@@ -39,6 +39,8 @@
 ## ~/.claude 반영 (정본 → 실제)
 - [ ] `tools/home-sync.sh diff` 로 검토하고 `apply`
   - 현재 대기 중: luau-kb 스킬 링크 2개(luau-types, luau-verify), CLAUDE.md 갱신(리뷰 시점, 모델 사용 규칙)
+- [ ] 고아 확인: `tools/home-sync.sh status` 끝의 "이전에 관리했지만 지금 MANIFEST 에 없음" 항목을 제안된 `rm` 으로 직접 지운다
+  - 2026-11-10 실제 `~/.claude` 에 `status` 를 돌렸을 때 고아 없음(스킬 링크가 하나도 설치되지 않아 `skills/roblox-luau` 링크도 없다). 첫 apply 후 다시 확인한다.
 
 ## 다른 세션에 넘길 것
 - [ ] stl-luau 세션에 `handoff/stl-luau.md` 전달
