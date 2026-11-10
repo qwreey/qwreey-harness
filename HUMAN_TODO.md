@@ -43,6 +43,7 @@
   - 위치: `rbvm/.claude/conventions.md:28-37`
   - 근거: D-01 확정(금지 근거였던 pesde 0.7.3 은 이미 해소)
 - [ ] quad 세션에 `handoff/quad.md` 전달 (Relate.luau error level, runshim 정렬, 낡은 주석)
+- [ ] table-sim 세션에 `handoff/table-sim.md` 전달 (서버 파일 구조 제안)
 - [ ] 각 저장소의 낡은 서술 8건 정정
   - 목록: `decisions/README.md` 끝 "이번에 발견한 낡은 서술"
 - [ ] moonwave-luau 의 `.claude/`, `CLAUDE.md` 가 한 번도 커밋되지 않았다. 커밋할지 결정한다.

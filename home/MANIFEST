@@ -10,3 +10,7 @@ link skills/luau-types /code/Projects/luau-kb/skills/luau-types
 link skills/luau-verify /code/Projects/luau-kb/skills/luau-verify
 link skills/harness-doctor /code/Projects/claude-doctor/home/.claude/skills/harness-doctor
 link skills/roblox-luau /code/Projects/luau-kb/skills/roblox-luau
+link skills/luau-upstream /code/Projects/luau-kb/skills/luau-upstream
+link skills/luau-style /code/Projects/luau-kb/skills/luau-style
+link skills/luau-testing /code/Projects/luau-kb/skills/luau-testing
+link rules/luau-core.md /code/Projects/luau-kb/rules/luau-core.md

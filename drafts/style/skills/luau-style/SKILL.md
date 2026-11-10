@@ -1,7 +1,7 @@
 ---
 name: luau-style
 description: >-
-  Luau 코드의 네이밍·관용구·모듈 구조·에러 처리·주석·포맷·테스트 관용의 근거와 좋은 예/나쁜 예를 저장소별 차이와 함께 제공한다.
+  Luau 코드의 네이밍·관용구·모듈 구조·파일 길이와 분리·폴더 묶음·데이터와 코드 나누기·에러 처리·주석·포맷·테스트 관용의 근거와 좋은 예/나쁜 예를 저장소별 차이와 함께 제공한다.
   .luau 파일을 새로 쓰거나 고칠 때, 리뷰·감사에서 스타일이나 관용구를 판정할 때, 이름(PascalCase/camelCase)·const 대 local·
   if-then-else 식·f<<T>>·require 경로(@self, init.luau)·error 레벨·stylua 설정·--!strict·TODO 마커가 질문일 때 쓴다.
   타입 시스템 결함은 luau-types, 성능 측정은 luau-perf, 검사 도구 사용법은 luau-verify 가 다룬다.
@@ -50,6 +50,9 @@ description: >-
 | 파일 머리, 모듈 모양, `return` | `references/modules.md` §1–2 |
 | `require("./x")` 가 왜 안 되나, `@self`, `init.luau` | `references/modules.md` §3 |
 | 폴더·층·순환 | `references/modules.md` §4 |
+| 파일이 너무 긴가, 어떻게 나누나, 폴더로 묶을까 | `references/structure.md` §2–5 |
+| 요청 표·세트 배치·색을 코드로 쓸까 표로 쓸까 생성할까 | `references/structure.md` §6 |
+| 저장소 구조를 숫자로 재고 싶다 | `scripts/structure-scan.py` (`references/structure.md` §8) |
 | 주입되는 값을 지역에 받아도 되나 / 루프에서 캐시 | `references/modules.md` §6 |
 | 에러 메시지 모양, `error(msg, 2)` | `references/quality.md` §1 |
 | 주석 언어, `---` 문서 주석, `Ref:`, `--#region` | `references/quality.md` §2 |

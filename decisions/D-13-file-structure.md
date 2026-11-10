@@ -1,0 +1,66 @@
+# D-13. 파일 길이, 폴더 묶음, 데이터와 코드 나누기
+
+> 작성 2026-11-10. 실측은 `drafts/style/skills/luau-style/scripts/structure-scan.py` 로 10개 저장소를 읽기만 해서 얻었다. 사례와 원인은 `audit/12-code-structure.md`.
+
+## 1. 각 프로젝트의 입장과 실태
+
+| 프로젝트 | 길이 기준 | 폴더 규칙 | 실태 [실행] |
+|---|---|---|---|
+| quad | 없음 | "패밀리 접기만, 대분류 안함"(사용자 2026-09-07, `archive/surveys/2026-09-07-source-layout-plan.md`). `Dispatch/` 규칙은 architecture | `quad-base/src` 파일 29개 + 가족 폴더 5개. devui `Window/Manager.luau` 3,352줄, devui `src/` 평평한 파일 38개 |
+| devplorer | 없음 | **있음**: 기능마다 폴더 + `init.luau`, 서버는 층 `Core → Policy → Handlers → Window`, 작은 모듈은 폴더 없음, `Shared` 는 이름 유지(`conventions.md:60-73`, 2026-11-04) | 최대 `App/Output/View.luau` 1,652줄. `App/Explorer/` 19개 평평 |
+| stl-luau | 없음 | 종류 폴더 `Collections/ Algorithms/ Traits/ Trees/ Node/`, "트레이트 하나당 파일 하나"(`project-context.md:29`) | `Collections/Arr.luau` 3,030줄(함수 145, region 31) |
+| [비공개 프로젝트 세부 생략]
+| tbox | 없음 | 스키마 타입마다 파일 하나(`schema/roblox/` 17개) | 최대 300줄 |
+| rbvm·mrow·moonwave | 없음 | 없음 | 최대 490 / 343 / 1,261줄(moonwave 는 단일 파일 라이브러리) |
+| VideoSync(TS·Go) | 없음 | 없음 | `engine.ts` 2,500줄 |
+
+- 어느 저장소에도 **줄 수 기준이 없다**. 문서상 폴더 규칙은 devplorer 한 곳뿐이다.
+- 사용자가 "너무 길다"고 한 가장 작은 파일은 quad `Slot.luau` 1,194줄이다. 비테스트 Luau 파일 p90 은 443(quad)·594(devplorer)·834(table-sim)줄이다.
+
+## 2. 실제 근거
+
+- **지적은 사람이 했다.** 다섯 사례 모두 사용자가 직접 코드를 열고 지적했다. devplorer 의 10월 19~20일 리뷰 문서 15개가 2,500~4,100줄이던 `Server/init.luau` 를 `init.luau:1148` 처럼 인용했지만, 크기나 분리를 말한 문서는 하나도 없다. [실행: devplorer `review/` grep]
+- **성장이 빠르다.** devplorer `Server/init.luau` 는 사흘에 692 → 4,101줄, table-sim `<비공개>` 는 아흐레에 646 → 3,501줄, devui `Manager.luau` 는 이틀에 273 → 3,352줄이 됐다. 800줄 경고였다면 첫날에 걸렸다. [실행: `git log --numstat --follow`]
+- **늦게 나누면 비싸다.** table-sim `<비공개>` 는 클로저가 상태를 같이 쥐어서 "옮기기가 아니라 다시 짜기"가 됐다. 셋만 떼고 멈췄고, 이후 3,223줄로 다시 자랐다. [기록: table-sim `todos.md:114-121`]
+- **옮기기만 분리는 위험이 낮았다.** devplorer 는 옮긴 뒤 감사에서 분리가 만든 버그를 찾지 못했다(원래 있던 버그는 나왔다). quad Slot 분할은 "함수 목록 동일·동작 diff 0" 이었다. [기록]
+- **폴더 방식은 셋이 다르고 셋 다 사용자 승인을 받았다.** quad 는 가족 접기만, devplorer 는 층과 기능 폴더, stl 은 종류 폴더다. [기록]
+
+## 3. 합의안
+
+### 안 A. 공통 기본값 + 저장소 덮어쓰기 + 알림만
+- **길이**: 경고 800줄(분리 후보를 적음), 강제 1,500줄(덧붙이기 전에 사용자에게 분리안을 물음). 테스트는 두 배다. 생성물과 순수 데이터 모듈은 제외한다.
+- **폴더**: 공통 규칙은 셋이다.
+  - 접두 가족 셋 이상 → 폴더.
+  - 기능 폴더의 입구는 `init.luau`.
+  - 작은 독립 모듈은 폴더를 만들지 않는다.
+  - 대분류(층·종류)를 둘지는 저장소 rules 가 정한다.
+- **데이터**: 공통 규칙은 셋이다.
+  - 항목마다 같은 모양이면 표로 둔다.
+  - 생성물에는 머리 표시를 단다.
+  - 복사한 파일에는 원본 경로와 같음 검사를 둔다.
+- **장치**: 사용자 rules `code-structure.md`, PostToolUse 훅 `structure-reminder`(알림만), `luau-quality-auditor` 구조 측정, 저장소 `.claude/structure.json` 으로 값과 예외를 덮어쓴다.
+
+| 프로젝트 | 변경량 |
+|---|---|
+| table-sim | 강제 기준 초과 3개, 경고 6개. 분리는 저장소 세션의 일이다. 이 안은 알림만 더한다 |
+| quad | 초과 2개(devui Manager·Decoration) |
+| stl-luau | `Arr.luau` 1개. 저장소가 `structure.json` 에 예외를 올리거나 나눈다 |
+| devplorer | 초과 1개 |
+| VideoSync | 초과 1개 |
+| 나머지 | 0 |
+
+### 안 B. 수치 없이 판단만 ("길어지면 분리를 제안한다")
+- 지금 상태와 같다. 다섯 사례 모두 이 상태에서 났다.
+
+### 안 C. 강제 기준에서 Write/Edit 를 막는다 (PreToolUse deny)
+- 하던 버그 수정까지 막는다. 사용자는 분리를 사안마다 승인해 왔다("파일 나누기 진행해도 돼", "권고대로"). 막으면 그 흐름과 맞지 않는다.
+
+## 4. 추천: 안 A
+
+- 값이 없으면 모델은 길이를 판단하지 않는다는 것이 다섯 사례로 드러났다.
+- 수치를 알림으로만 쓰면 비용이 적다. 저장소 설계(stl 의 "타입 하나에 파일 하나", tbox 스키마 폴더)는 `structure.json` 의 예외로 지킬 수 있다.
+- 폴더 대분류는 세 저장소가 서로 다르게 정했다. 공통으로 강제하지 않는다.
+
+## 5. 사용자 확인 질문
+
+줄 수 기준을 경고 800줄, 강제 1,500줄(테스트 두 배)로 두고, 강제 기준은 막지 않고 "새 기능을 덧붙이기 전에 분리안을 먼저 묻는다"로만 쓸까요? 폴더 대분류는 저장소마다 정하게 둘까요? stl `Arr.luau`(3,030줄, region 31개)처럼 타입 하나가 한 파일인 설계는 예외로 둘지 나눌지도 같이 정해 주세요.
