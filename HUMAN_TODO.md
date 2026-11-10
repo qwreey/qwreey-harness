@@ -42,6 +42,7 @@
 - [ ] rbvm 세션(또는 다음 rbvm 작업 때): `const` 금지 규약을 해제한다.
   - 위치: `rbvm/.claude/conventions.md:28-37`
   - 근거: D-01 확정(금지 근거였던 pesde 0.7.3 은 이미 해소)
+- [ ] quad 세션에 `handoff/quad.md` 전달 (Relate.luau error level, runshim 정렬, 낡은 주석)
 - [ ] 각 저장소의 낡은 서술 8건 정정
   - 목록: `decisions/README.md` 끝 "이번에 발견한 낡은 서술"
 - [ ] moonwave-luau 의 `.claude/`, `CLAUDE.md` 가 한 번도 커밋되지 않았다. 커밋할지 결정한다.

@@ -54,3 +54,11 @@
 ## 5. 사용자 확인 질문
 
 "라이브러리 코드에서는 손으로 센 `error(msg, 2)` 대신 저장소의 raise 헬퍼를 쓴다(`-O2` 인라인에서 위치가 사라짐 — 이번에 재현)"를 공통 규칙으로 넣을까요? tbox 는 지금 raise 헬퍼가 없는데, 필요하면 stl 의 `Common.raise` 방식을 권할지도 정해 주세요.
+
+## 정정 (2026-11-10, audit/11 §2-11 실측)
+- "테이블 필드를 거쳐 호출하면 `-O2` 에서 안전하다"는 `function M.f` 처럼 **대입으로 만든 필드**에만 맞다.
+  `local T = { f = function … end }` 처럼 테이블 리터럴 안에 쓴 필드 함수는 인라인된다.
+- `error(msg, 2)` 는 위치를 잃기만 하는 것이 아니다. 호출자가 인라인되지 않은 경우에는 **틀린 줄**(호출자의 호출자)을 가리킨다.
+- `--!native` / `@native` 는 최적화 수준 2 를 강제하므로 같은 문제가 생긴다. CLI 로 실측했고 엔진 안에서는 확인하지 않았다.
+- 실례: quad 를 `-O2` 로 돌리면 테스트 3개가 실패한다. 그중 하나는 `quad-base/src/Relate.luau:28` 의 `error(…, 3)` 때문이다.
+- 근거: `drafts/gaps/optimize-levels.md`, `snippets/optimize-o2-error-level.luau`, `tools/run_opt.sh`
