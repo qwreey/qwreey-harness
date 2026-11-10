@@ -90,6 +90,7 @@ python3 -I tools/lsp_probe.py tools/dx-sample/consumer.luau --hover 'new' --comp
 | 하네스 돌연변이 검사 4종 | 전부 FAIL 로 잡힘 (`snippets/RESULTS.md`) |
 | `tools/repro-stylua-typeargs.sh` (stylua 2.5.2) | rc=0 (설정 없음 → 오염, `syntax = "Luau"` → 보존) |
 | 스킬 경계 트리거 (`claude -p --model sonnet --plugin-dir`, 질문 6개 × 2회 + require 2개 재측 × 2회) | 16/16 기대 스킬이 먼저 호출됨. 질문별 cwd 를 나눠야 한다(같은 cwd 동시 실행 1건이 여러 스킬을 연달아 부름) |
+| roblox-luau 분리 트리거 (2026-11-10, `claude -p --model sonnet --plugin-dir`, 질문 25개 × 2회, 질문마다 새 cwd) | **47/50** 기대 스킬이 먼저 호출됨. 어긋난 3회는 모두 스킬 미호출(v2 "mise shim No version is set" 2회는 사용자 CLAUDE.md 가 직접 답해서, 옛 luau-verify description 으로도 0/2. rt3 1회). 나눔 비교: 스킬 넷(엔진 하나로 묶음) 23/26, 여섯(긴 description) 44/44, 여섯(짧은 description, 채택) 43/44 → 실제 저장소 47/50. 상시 문맥 비용(`ok` 한 번의 입력 토큰): 분리 전 15,724, 채택안 약 16,826 |
 
 ## 원천과 범위
 
