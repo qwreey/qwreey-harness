@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# 정본으로 이동 → home/.claude/hooks/structure-reminder.py (이 사본은 더 고치지 않는다)
 """PostToolUse(Write|Edit|MultiEdit|Bash) 리마인더: 편집한 소스 파일이 길어졌거나 폴더가 평평해지면 알린다.
 
 막지 않는다(decision 없음). additionalContext 만 주입한다.

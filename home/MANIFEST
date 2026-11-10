@@ -6,6 +6,7 @@ harness.env
 lib/harness_env.py
 hooks/heavy-proc-guard.py
 hooks/bash-bypass-reminder.py
+hooks/structure-reminder.py
 
 # 심볼릭 링크: link <~/.claude 기준 경로> <대상>
 # 대상에는 ${HARNESS_WORKSPACE}, ${HARNESS_DOCTOR_ROOT} 같은 harness.env 변수를 쓴다(home-sync 가 푼다).
@@ -21,3 +22,4 @@ link skills/luau-style ${HARNESS_WORKSPACE}/luau-kb/skills/luau-style
 link skills/luau-testing ${HARNESS_WORKSPACE}/luau-kb/skills/luau-testing
 link rules/luau-core.md ${HARNESS_WORKSPACE}/luau-kb/rules/luau-core.md
 link skills/luau-perf ${HARNESS_WORKSPACE}/luau-kb/skills/luau-perf
+rules/code-structure.md
