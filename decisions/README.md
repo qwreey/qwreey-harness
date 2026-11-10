@@ -8,10 +8,15 @@
 |---|---|---|---|
 | 1 | type function 사용 범위 | quad: 진단 전용(결과 타입 합성 금지) / stl-luau: 쓰지 않음 | `skills/luau-types/references/type-functions.md` §0 |
 | 2 | `const` | rbvm: 금지(pesde 타입 익스포트 문제) / stl-luau·quad·tbox 등: 재대입 없는 바인딩은 `const` | `skills/luau-verify/references/tooling.md` §3 |
-| 3 | 러너 | luau CLI 만(stl-luau, moonwave-luau, quad) / luau + lute 이중(tbox) / lune 은 모두 배제 중 | `skills/luau-verify/references/tooling.md` §2 |
 | 4 | luau 버전 핀 | 0.742(stl-luau) / 0.734(quad, tbox, table-sim, moonwave-luau, devplorer) | `skills/luau-verify/references/toolchain.md` §3, `snippets/RESULTS.md` (두 버전 차이 4칸) |
-| 5 | CI 기준 검사기 | luau-analyze 만(stl-luau) / 둘 다(quad) / luau-lsp(Roblox 전용 저장소) | `skills/luau-verify/references/checkers.md` §5 |
 | 6 | stylua 세부 | 들여쓰기 Tabs/Spaces, `call_parentheses` Always/Input | `skills/luau-verify/references/tooling.md` §4 |
+
+## 결정됨
+
+| # | 항목 | 결정 | 기록 |
+|---|---|---|---|
+| 3 | 러너 | `luau` CLI 기본, lune 안 씀. 엔진 의존 동작은 필요한 부분만 mock, Studio MCP 는 mock 충실도 확인과 재현 불가 동작에만 | `D-03-runner.md` |
+| 5 | 기준 검사기 | 정확성: 순수 Luau 는 luau-analyze, Roblox 전역은 luau-lsp + 정의 파일. DX: 공개 API 라이브러리는 luau-lsp 로 hover·자동완성·추론 타입 확인 | `D-06-type-checker.md` |
 
 ## 합의된 공통 분모 (결정 없이 references 에 반영함)
 

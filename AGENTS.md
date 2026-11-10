@@ -8,6 +8,8 @@
 |---|---|
 | Luau 타입 에러를 이해할 수 없다, 에러가 나야 할 곳에서 안 난다, 결과가 unknown 으로 샌다 | `/code/Projects/luau-kb/skills/luau-types/SKILL.md` (결정 트리와 증상 → 파일 표) |
 | 타입 검사 결과를 믿어도 되는지, 재현 파일 만들기, luau-analyze / luau-lsp 호출법 | `/code/Projects/luau-kb/skills/luau-verify/SKILL.md` |
+| Roblox 엔진·서비스에 기대는 동작(task, 이벤트, Instance) 확인, mock 작성, Roblox Studio MCP, Roblox API 문서, globalTypes 정의 파일 | `/code/Projects/luau-kb/skills/roblox-luau/SKILL.md` |
+| 공개 API 의 hover·자동완성·추론 타입(DX) 확인 | `/code/Projects/luau-kb/skills/luau-verify/references/checkers.md` §6, `/code/Projects/luau-kb/tools/lsp_probe.py` |
 
 상세 references (SKILL.md 의 표가 절 번호까지 안내한다):
 - `/code/Projects/luau-kb/skills/luau-types/references/generics.md` — 제네릭 추론, `f<<T>>`, 콜백, 타입 팩
@@ -17,10 +19,15 @@
 - `/code/Projects/luau-kb/skills/luau-types/references/type-functions.md` — type function (정책 미정 포함)
 - `/code/Projects/luau-kb/skills/luau-types/references/solver-limits.md` — 새/옛 솔버, 결함 카탈로그(버전별)
 - `/code/Projects/luau-kb/skills/luau-verify/references/negative-controls.md` — 음성 대조군, 돌연변이 검사
-- `/code/Projects/luau-kb/skills/luau-verify/references/checkers.md` — luau-analyze, luau-lsp 직접 호출
+- `/code/Projects/luau-kb/skills/luau-verify/references/checkers.md` — luau-analyze, luau-lsp 직접 호출, §6 DX 검사와 Claude Code LSP 연동
 - `/code/Projects/luau-kb/skills/luau-verify/references/toolchain.md` — mise shim 함정, 버전 핀
 - `/code/Projects/luau-kb/skills/luau-verify/references/snippet-markers.md` — 스니펫 표식 문법
 - `/code/Projects/luau-kb/skills/luau-verify/references/tooling.md` — .luaurc, 러너, const, stylua
+- `/code/Projects/luau-kb/skills/roblox-luau/references/env-dependence.md` — luau+mock 으로 충분한가, Studio 가 필요한가 (판정 표, Deferred·Destroy 실측)
+- `/code/Projects/luau-kb/skills/roblox-luau/references/mocks.md` — mock 범위, 주입, getfenv 전역 주입, 차이 기록, 충실도 검증 (rbvm, quad 실례)
+- `/code/Projects/luau-kb/skills/roblox-luau/references/studio-mcp.md` — Studio MCP 도구, 여러 Studio 고르기, studio-sync 규칙, 내장 skill 13개
+- `/code/Projects/luau-kb/skills/roblox-luau/references/api-docs.md` — create.roblox.com llms.txt, 검색 API, `.md` URL
+- `/code/Projects/luau-kb/skills/roblox-luau/references/typedefs.md` — globalTypes 정의 파일, `--definitions`, sourcemap
 
 ## 읽는 법
 - 절마다 `status: verified`(스니펫이 luau 0.734 와 0.742 에서 재현됨) 또는 `status: described`(원천 서술만 있음)가 붙어 있다. described 를 인용할 때는 미재현이라고 밝힌다.

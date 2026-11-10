@@ -2,13 +2,13 @@
 
 ## 이 파일이 답하는 질문
 - Q1 `.luaurc` 를 strict 로 두면 충분한가?
-- Q2 코드를 무엇으로 실행하나: luau CLI, lune, lute? (정책 미정)
+- Q2 코드를 무엇으로 실행하나: luau CLI, lune, lute? (결정: D-03)
 - Q3 `const` 를 써도 되나? (정책 미정)
 - Q4 stylua 가 `f<<T>>(...)` 를 망가뜨린다는데 사실인가?
 
 ## 목차
 - §1 `.luaurc` 와 `--!strict`
-- §2 러너 정책 (미정)
+- §2 러너 (결정: D-03)
 - §3 `const` 정책 (미정)
 - §4 stylua 와 명시 타입 인자
 - §5 린트
@@ -29,10 +29,14 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippe
 - **파일마다 `--!strict` 를 다는 것이 유일하게 믿을 수 있는 층이다.**
 - 새 솔버의 nonstrict 는 거의 아무것도 보고하지 않는다(quad doc-snippets.py 머리 설명, 위 스니펫과 일치).
 
-## §2 러너 정책 (미정)
-status: described (정책) / verified (lune 의 const 파싱 실패) · 원천: stl-luau/.claude/base/architecture.md "런타임: 순수 luau", stl/moonwave-luau/table-sim/devplorer mise.toml 머리 주석, tbox/mise.toml `[tasks.test]`
+## §2 러너 (결정: D-03)
+status: described (정책) / verified (lune 의 const 파싱 실패) · 원천: 사용자 결정 claude-doctor `decisions/D-03-runner.md` (2026-11-10), 이 저장소 `decisions/D-03-runner.md`; 결정 전 입장: stl-luau/.claude/base/architecture.md "런타임: 순수 luau", stl/moonwave-luau/table-sim/devplorer mise.toml 머리 주석, tbox/mise.toml `[tasks.test]`
 
-> 정책: 미정 — decisions/ 참고
+**결정**: 기본 러너는 `luau` CLI 다. lune 은 쓰지 않는다.
+- Roblox 서비스·환경에 기대는 동작(`task`, 이벤트 등)은 **필요한 부분만 mock 을 만들어** `luau` 로 돌리는 것이 기본이다. 항상 Studio 를 부르면 기계적으로 테스트할 수 없기 때문이다.
+- Roblox Studio(MCP)는 mock 이 실제와 맞는지 확인할 때와 mock 으로 재현할 수 없는 동작을 볼 때 쓴다. 판정 표, mock 패턴, Studio MCP 사용법은 roblox-luau 스킬에 있다.
+
+결정 전에 갈렸던 입장(기록):
 
 | 입장 | 저장소 | 근거 |
 |---|---|---|
@@ -40,7 +44,7 @@ status: described (정책) / verified (lune 의 const 파싱 실패) · 원천: 
 | **luau + lute 이중 실행** | tbox | 테스트를 두 런타임에서 돌리고, fs/process 가 필요한 도구 스크립트는 lute 로 실행한다 |
 | lune 을 넣지 않음 | table-sim, devplorer | 의존 라이브러리가 쓰는 `const` 를 lune 이 못 읽는다 |
 
-사실(정책과 무관):
+사실:
 - `lune 0.10.5` 는 `const x = 1` 에서 "Incomplete statement: expected assignment or a function call" 로 실패한다. `luau` 0.734 는 실행한다(이 저장소 수동 실측).
 - `luau` CLI 에는 파일·프로세스 I/O 라이브러리가 없다.
 - require 해석 규칙이 런타임마다 다르다. 예: lune 0.8.9 에서는 `@self` 의 의미가 luau CLI 와 반대였다(stl 기록, described). 런타임을 바꿀 때는 require 규칙을 다시 잰다.
