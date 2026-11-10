@@ -1,0 +1,12 @@
+{
+  "name": "claude-doctor-market",
+  "owner": { "name": "qwreey", "email": "me@qwreey.moe" },
+  "description": "툴킷 무관 하네스 플러그인 마켓 (claude-doctor). Luau 지식은 luau-kb-market 에 따로 있다.",
+  "plugins": [
+    {
+      "name": "session-log",
+      "source": "./plugins/session-log",
+      "description": "세션 기록 자동화: 분리 프로세스가 요약(haiku + 원문 대조)해 저장소 밖에 쌓고, 저장소의 메인 에이전트가 /session-import 로 받아 간다"
+    }
+  ]
+}

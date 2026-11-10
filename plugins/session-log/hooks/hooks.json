@@ -1,0 +1,26 @@
+{
+  "description": "session-log: 판단만 하는 가벼운 훅. 요약은 setsid 로 분리한 워커가 한다. 출력은 <harness-hook name=\"session-log\" level=…> 로 감싼 영어 한두 줄.",
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" SessionStart", "timeout": 10 } ] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" UserPromptSubmit", "timeout": 10 } ] }
+    ],
+    "PreToolUse": [
+      { "matcher": "Bash|Skill", "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" PreToolUse", "timeout": 10 } ] }
+    ],
+    "PostToolUse": [
+      { "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" PostToolUse", "timeout": 10 } ] }
+    ],
+    "PreCompact": [
+      { "matcher": "manual|auto", "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" PreCompact", "timeout": 30 } ] }
+    ],
+    "PostCompact": [
+      { "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" PostCompact", "timeout": 10 } ] }
+    ],
+    "SessionEnd": [
+      { "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" SessionEnd", "timeout": 5 } ] }
+    ]
+  }
+}

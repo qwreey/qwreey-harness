@@ -19,7 +19,8 @@
 - [ ] `/code/Projects/stl-luau-doctor` worktree
   - stl-luau 세션이 `doctor/diet` 를 반영하고 나면 지운다: `git -C /code/Projects/stl-luau worktree remove ../stl-luau-doctor`
 
-## 권한 (auto 모드 분류기가 막거나, 사용자 판단 사항)
+## 권한
+- [ ] plugin.json 의 license 필드(session-log 는 MIT 로 적혀 있음)와 luau-kb·coderag LICENSE 를 함께 결정 (auto 모드 분류기가 막거나, 사용자 판단 사항)
 - [ ] rbvm, table-sim 의 프로젝트 settings 에서 `git push` deny 를 뺄지 결정
   - 위치: `rbvm/.claude/settings.json:25`, `table-sim/.claude/settings.json:4`
   - 사용자 레벨 deny 는 이미 뺐다.
@@ -34,6 +35,7 @@
 - [ ] stl-luau, tbox: `.claude/worktrees` 를 `.git/info/exclude` 로만 무시 중이다. `.gitignore` 로 옮길지 결정한다(각 세션 몫).
 - [ ] 세션 기록 실측이 남긴 `~/.claude/projects/-tmp-sl-hookproj-omyV*` 디렉터리 2개 정리
 - [ ] 훅 형식 실측이 남긴 `~/.claude/projects/-tmp-hookfmt`, `-tmp-cmp`, `-tmp-effect-*` (6개) 정리
+- [ ] 실측용 임시 프로젝트 기록 `~/.claude/projects/-tmp-*` 정리 (2026-11-10 기준 307개; 이번 작업의 claude -p 실측분이 대부분. `ls -d ~/.claude/projects/-tmp-*` 로 확인 후 삭제)
 - [ ] 위임 시범의 임시 산출물 `/tmp/dtrial/` 과 `/code/Projects/table-sim-agy/runs/` 정리
 
 ## ~/.claude 반영 (정본 → 실제)

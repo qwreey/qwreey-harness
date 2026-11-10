@@ -10,6 +10,16 @@ last_verified: 2026-11-10
 
 2026-11-10. 조사와 실측 근거는 `audit/15-session-log.md` 에 있다. 이 폴더의 스크립트는 실측용 프로토타입이고 본 구현이 아니다.
 
+> **구현됨: `plugins/session-log/`** (README 가 현재 동작의 정본). 아래 본문과 달라진 점(사용자 결정 2026-11-10):
+> - **저장 위치를 저장소 밖으로 옮겼다.** `${SESSION_LOG_HOME:-${XDG_DATA_HOME:-~/.local/share}/session-log}/<project-key>/records/` 에 둔다. 키는 git common-dir 기준이라 worktree 도 같은 키를 쓴다. §5.1 의 `.claude/session/auto/` 는 쓰지 않는다. 저장소에는 아무것도 쓰지 않는다.
+> - **받아 가기 흐름**: 기록은 `pending` 으로 쌓인다. 저장소 메인 에이전트가 `/session-import`(`session-log pending|show|import|dismiss`)로 저장소 관례에 맞게 합치거나 고르고, 커밋도 그 에이전트가 한다. index 에 `imported`(위치, 커밋)나 `dismissed` 를 남긴다.
+> - **알림**: 요약 완료(다음 PostToolUse·UserPromptSubmit 1회, info), pending(SessionStart·commit 직전 PreToolUse·PreCompact·handover, warn, 5개나 7일을 넘으면 action), PreCompact 상기(warn), 인계(info). 모두 `<harness-hook name="session-log" level=…>` 로 감싼 영어다(`home/.claude/HOOK-MESSAGES.md`).
+> - **dedup 단위**는 (session_id, compact 회차, 트리거)다. 회차는 PreCompact 표지를 SessionStart(compact)·PostCompact 가 소비하며 올린다.
+> - **주입 안전**: SessionStart 와 UserPromptSubmit 출력은 user turn 에 그대로 들어간다. 그래서 인계와 상기에는 구조화 항목(개수, 경로, ⚠ 없는 항목 제목, 대조를 통과한 인용)만 넣는다. 자유 텍스트 요약은 넣지 않고 `<>` 는 무력화한다. §7.1 의 "미해결 그대로 주입"을 대체한다.
+> - **대조 실패 처리**: 원문에 없는 사용자 인용은 뺀다. 숫자는 ⚠ 표시를 붙인다. 대조 범위는 파일 전체가 아니라 그 구간이다(메모리, 그리고 더 엄격한 대조).
+> - 요약 프롬프트는 영어로 바꿨다(`sllib/messages.py`). 절 제목은 한국어를 유지한다.
+> - Stop 훅, 일별·주별 통합(§6)은 아직 구현하지 않았다.
+
 | 파일 | 하는 일 |
 |---|---|
 | `extract.py` | 트랜스크립트를 바이트 오프셋부터 읽어 잡음을 거르고 마스킹한다. 줄마다 `L<원본 줄>` 을 붙인다 |
