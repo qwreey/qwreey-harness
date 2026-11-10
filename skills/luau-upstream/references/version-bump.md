@@ -112,4 +112,4 @@ status: verified
 
 | 날짜 | 기준 → 새 | 뒤집힘 | 새 실패 | 같음 | 메모 |
 |---|---|---|---|---|---|
-| 2026-11-10 | 0.742 → 0.746 | 1 (`variance-value-phantom-nil` 8행) | 1 (`variance-intersection-instantiation` 19행, 한계가 풀림) | 첫 실행 66/68, 스니펫이 138개로 는 뒤 재실행도 같은 2건만 다름 | 상세는 `watchlist.md` §2. 스니펫 밖의 변화(N1·N2)는 저장소 게이트로 찾았다 |
+| 2026-11-10 | 0.742 → 0.746 | 1 (`variance-value-phantom-nil` 8행) | 1 (`variance-intersection-instantiation` 19행, 한계가 풀림) — 둘 다 스니펫 반영됨(버전 조건 표식), 세 버전 rc=0 | 첫 실행 66/68, 스니펫이 138개로 는 뒤 재실행도 같은 2건만 다름 | 상세는 `watchlist.md` §2. 스니펫 밖의 변화(N1·N2)는 저장소 게이트로 찾았다 |

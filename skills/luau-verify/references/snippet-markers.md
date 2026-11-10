@@ -131,9 +131,9 @@ status: verified
 
 ```bash
 cd /code/Projects/luau-kb
-python3 -I tools/check_snippets.py snippets/*.luau                         # 기본 0.742 (LUAU_VER 로 변경)
-python3 -I tools/check_snippets.py --luau 0.734,0.742 snippets/*.luau      # 행렬, 하나라도 실패면 rc=1
-python3 -I tools/check_snippets.py --luau 0.734,0.742 --lsp 1.70.1 --table snippets/*.luau > /tmp/t.md
+python3 -I tools/check_snippets.py snippets/*.luau                         # 기본 0.746 (LUAU_VER 로 변경)
+python3 -I tools/check_snippets.py --luau 0.734,0.742,0.746 snippets/*.luau      # 행렬, 하나라도 실패면 rc=1
+python3 -I tools/check_snippets.py --luau 0.734,0.742,0.746 --lsp 1.70.1 --table snippets/*.luau > /tmp/t.md
 python3 -I tools/check_snippets.py --mode roblox --rbx-lsp 1.70.1,1.69.0 snippets/rbx-*.luau   # 머리 없는 Roblox 스니펫
 bash snippets/tf-cross-module.sh; bash snippets/verify-require.sh                   # 모듈 여럿이 필요한 주장
 ```

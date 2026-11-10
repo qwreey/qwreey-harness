@@ -77,7 +77,7 @@ claude plugin install luau-kb@luau-kb-market
 ```bash
 cd /code/Projects/luau-kb
 claude plugin validate /code/Projects/luau-kb
-python3 -I tools/check_snippets.py --luau 0.734,0.742 snippets/*.luau
+python3 -I tools/check_snippets.py --luau 0.734,0.742,0.746 snippets/*.luau
 tools/repro-stylua-typeargs.sh
 python3 -I tools/lsp_probe.py tools/dx-sample/consumer.luau --hover 'new' --complete 'local n = s.' --expect-nonempty
 ```
@@ -89,7 +89,7 @@ python3 -I tools/lsp_probe.py tools/dx-sample/consumer.luau --hover 'new' --comp
 | 검사 | 결과 |
 |---|---|
 | `claude plugin validate /code/Projects/luau-kb` (Claude Code 2.1.316) | **✔ Validation passed, rc=0**. 디렉터리 제출용 부가 검사는 LICENSE 없음과 아이콘 없음을 알렸다. 이 둘은 통과 여부에 영향이 없고, 라이선스 선택은 사용자 몫이라 비워 두었다 |
-| `python3 -I tools/check_snippets.py --luau 0.734,0.742 snippets/*.luau` | **152개 × 2 버전 = 304 ok, rc=0** (표: `snippets/RESULTS.md`) |
+| `python3 -I tools/check_snippets.py --luau 0.734,0.742,0.746 snippets/*.luau` | **세 버전 각 137 ok(총 ok 441줄), rc=0** (표: `snippets/RESULTS.md`) |
 | `snippets/rbx-require-cli.sh`, `verify-require.sh`, `style-require-paths.sh` | 전부 ok, rc=0 |
 | 하네스 돌연변이 검사 4종 | 전부 FAIL 로 잡힘 (`snippets/RESULTS.md`) |
 | `tools/repro-stylua-typeargs.sh` (stylua 2.5.2) | rc=0 (설정 없음 → 오염, `syntax = "Luau"` → 보존) |

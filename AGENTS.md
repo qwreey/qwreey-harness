@@ -125,5 +125,5 @@ luau-upstream
 - 도구는 PATH 의 mise shim 대신 `/code/.local/share/mise/installs/luau/<ver>/luau-analyze` 처럼 버전 경로로 직접 부른다.
 
 ## 이 저장소를 고칠 때
-- 새 사실은 `snippets/` 에 최소 재현과 표식을 먼저 넣고 `python3 -I tools/check_snippets.py --luau 0.734,0.742 snippets/*.luau` 가 rc=0 인지 확인한다. 실행 조건(`-O2`, `--codegen`)이나 Roblox 정의 파일이 필요한 주장은 하네스 머리로 고정한다(`skills/luau-verify/references/snippet-markers.md` §2a·§2b).
+- 새 사실은 `snippets/` 에 최소 재현과 표식을 먼저 넣고 `python3 -I tools/check_snippets.py --luau 0.734,0.742,0.746 snippets/*.luau` 가 rc=0 인지 확인한다. 실행 조건(`-O2`, `--codegen`)이나 Roblox 정의 파일이 필요한 주장은 하네스 머리로 고정한다(`skills/luau-verify/references/snippet-markers.md` §2a·§2b).
 - 프로젝트 고유 설계(특정 라이브러리의 타입 이름, API)는 넣지 않는다. 일반 Luau 지식만 둔다.

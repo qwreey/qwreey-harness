@@ -2,9 +2,9 @@
 """luau-kb 스니펫 검증기. 스킬 references 의 'verified' 주장은 전부 snippets/*.luau 하나와 짝이다.
 
 사용:
-  python3 -I tools/check_snippets.py snippets/*.luau                 # 기본 버전(LUAU_VER, 없으면 0.742)
-  python3 -I tools/check_snippets.py --luau 0.734,0.742 snippets/*.luau   # 버전 행렬, 어느 하나라도 실패면 rc=1
-  python3 -I tools/check_snippets.py --luau 0.734,0.742 --table snippets/*.luau  # RESULTS.md 용 표 출력
+  python3 -I tools/check_snippets.py snippets/*.luau                 # 기본 버전(LUAU_VER, 없으면 0.746)
+  python3 -I tools/check_snippets.py --luau 0.734,0.742,0.746 snippets/*.luau   # 버전 행렬, 어느 하나라도 실패면 rc=1
+  python3 -I tools/check_snippets.py --luau 0.734,0.742,0.746 --table snippets/*.luau  # RESULTS.md 용 표 출력
   --lsp 1.70.1   를 더하면 luau-lsp analyze(새 솔버) 결과를 '참고 열'로 덧붙인다(판정에는 안 씀).
   --mode roblox  모든 파일을 Roblox 모드(아래 --@lsp-roblox)로 검사한다. 머리에 --@lsp-roblox 가 있는 파일은 모드와 무관하게 Roblox 모드다.
   --rbx-lsp 1.70.1,1.69.0   Roblox 모드 파일을 검사할 luau-lsp 버전들(기본 1.70.1,1.69.0 중 설치된 것). --defs 로 정의 파일을 바꾼다.
@@ -432,7 +432,7 @@ def cell_of(e, info):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("files", nargs="*")
-    ap.add_argument("--luau", default=os.environ.get("LUAU_VER", "0.742"))
+    ap.add_argument("--luau", default=os.environ.get("LUAU_VER", "0.746"))
     ap.add_argument("--table", action="store_true")
     ap.add_argument("--lsp", default="", help="참고 열: 순수 Luau 파일을 이 luau-lsp 버전으로도 돌려 비교")
     ap.add_argument("--mode", choices=["luau", "roblox"], default="luau")

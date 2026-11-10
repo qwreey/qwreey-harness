@@ -86,8 +86,8 @@ summary: 0.742 → 0.746 bug-scan 결과 — 고쳐진 S11, 풀린 교집합 인
 
 | 분류 | 스니펫 | 내용 | 판정 |
 |---|---|---|---|
-| 뒤집힘 | `variance-value-phantom-nil.luau` 8행 | `local holeAccepted: VP<number?> = empty` 에 0.746 이 "Expected this to be 'VP<number?>', but got 'empty'" | **고쳐짐(S11)**. 넓게 보면 "이미 만들어 둔 테이블(봉인된 지역)에 없는 `read x: T?` 필드는 더 이상 nil 로 읽히지 않는다". 읽기·쓰기 필드(`{ x: number? }`)는 0.742 에서도 거부됐고, 0.746 은 `read` 필드도 같게 맞췄다. 리터럴 `{}` 를 바로 넣는 것은 여전히 통과 |
-| 새 실패 | `variance-intersection-instantiation.luau` 19행 | `id3(w3)` (`W3<T> = { v: T } & {}`) 의 "No valid instantiation" 이 0.746 에서 사라짐 | **한계가 풀림(개선)**. 재 보니 0.746 은 T 를 `number` 로 정확히 풀고, 결과의 `.v` 를 `string` 에 넣으면 잡는다(검사가 꺼진 것 아님). 같은 파일의 `W1`(`{ read v: T } & { read f: (T) -> () }`)은 여전히 실패하고 메시지 하한이 `number \| nil` → `number \| unknown` 으로 바뀌었다 |
+| 뒤집힘(**반영됨**) | `variance-value-phantom-nil.luau` 8행 | `local holeAccepted: VP<number?> = empty` 에 0.746 이 "Expected this to be 'VP<number?>', but got 'empty'" | **고쳐짐(S11)**. 넓게 보면 "이미 만들어 둔 테이블(봉인된 지역)에 없는 `read x: T?` 필드는 더 이상 nil 로 읽히지 않는다". 읽기·쓰기 필드(`{ x: number? }`)는 0.742 에서도 거부됐고, 0.746 은 `read` 필드도 같게 맞췄다. 리터럴 `{}` 를 바로 넣는 것은 여전히 통과 |
+| 새 실패(**반영됨**) | `variance-intersection-instantiation.luau` 19행 | `id3(w3)` (`W3<T> = { v: T } & {}`) 의 "No valid instantiation" 이 0.746 에서 사라짐 | **한계가 풀림(개선)**. 재 보니 0.746 은 T 를 `number` 로 정확히 풀고, 결과의 `.v` 를 `string` 에 넣으면 잡는다(검사가 꺼진 것 아님). 같은 파일의 `W1`(`{ read v: T } & { read f: (T) -> () }`)은 여전히 실패하고 메시지 하한이 `number \| nil` → `number \| unknown` 으로 바뀌었다 |
 | 같음 | 나머지 전부(마지막 실행: 138개 중 136개) | — | 변화 없음 |
 
 ### 스니펫 밖에서 발견된 0.746 의 새 진단 (저장소 실측 → 최소 재현)
@@ -102,7 +102,7 @@ status: verified (최소 재현 0.742 0건 / 0.746 진단, 2026-11-10) · 원천
 - 스니펫 담당에게: N1·N2 를 `unions-iterate-function-or-table.luau`, `tf-iterate-refined-optional.luau` 같은 이름으로 `expect-error [>=0.746]` 스니펫으로 넣을 것.
 
 - **저장소 영향**: S11 의 수정은 에러가 새로 생기는 방향이다. `read` 옵셔널 필드를 가진 타입에, 그 필드가 없는 이미 만든 테이블을 넘기는 코드가 0.746 에서 실패할 수 있다.
-- **스니펫 담당에게 넘길 일**(이 스킬은 스니펫을 고치지 않는다): `variance-value-phantom-nil.luau` 8행을 `-- bug-present [<0.746] || expect-error [>=0.746]` 로, `variance-intersection-instantiation.luau` 19행을 `-- expect-error: No valid instantiation [<0.746]` 로. luau-types `variance.md` §3·§7 과 `solver-limits.md` §2 에 0.746 열을 더한다.
+- **스니펫 반영됨**(2026-11-10): `variance-value-phantom-nil.luau` 8행은 `-- bug-present [<0.746] || expect-error: ... [>=0.746]`, `variance-intersection-instantiation.luau` r3 줄은 `-- expect-error: No valid instantiation [<0.746]` 로 바꾸고, 풀린 결과를 `string` 에 넣는 대조군을 더했다. 판정: W3 는 T 가 `number` 로 풀려 한계가 풀린 것(탐침 `local _x: never = id3(w3)` 가 'got { } & { v: number }'), W1 은 계속 실패. luau-types `variance.md` §3·§7, `solver-limits.md` §2 에 0.746 을 반영했다. 세 버전 rc=0.
 
 ## §3 그 밖의 타입 한계
 status: described (업스트림 칸) / verified (스니펫이 있는 행) · 근거: luau-types `type-functions-limits.md`, `recursion-and-limits.md`

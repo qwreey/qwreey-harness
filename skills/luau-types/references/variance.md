@@ -26,6 +26,7 @@ last_verified: 2026-11-10
 last_confirmed:
   - luau 0.734
   - luau 0.742
+  - luau 0.746
 ---
 # variance — 변성, 서브타이핑, 팬텀 표식
 
@@ -77,9 +78,11 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippe
 - 공변 칸과 반공변 칸을 **한 테이블 안의 두 필드**로 나눠도 판정은 같다(stl 배터리 실측, described). 단 **교집합**(`A & Out<T> & In<T>`)으로 나누면 §7 의 추론 실패를 밟는다.
 
 ## §3 값 팬텀의 nil 구멍
-status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/variance-value-phantom-nil.luau` · 원천: stl typing-limits "값 팬텀은 피하세요", quad 8.42 1번
+status: verified · last-confirmed: luau 0.746 (0.734·0.742 는 구멍이 열려 있음, 0.746 에서 바뀜) · 근거: `snippets/variance-value-phantom-nil.luau` · 원천: stl typing-limits "값 팬텀은 피하세요", quad 8.42 1번
 
-`read __phantom: T` 처럼 **값 모양** 팬텀을 쓰면, `T` 가 `nil` 을 품을 때(`number?`) 그 필드가 **아예 없는** 빈 테이블도 통과한다. 새 솔버가 없는 `read` 필드를 `nil` 로 읽기 때문이다. 함수 모양 팬텀 `(T) -> T` 는 이 경우를 거부한다. 표식에는 함수 모양을 쓴다. 소속만 표시하는 표식이라면 `read __kind: true` 같은 싱글턴 필드를 따로 둔다.
+`read __phantom: T` 처럼 **값 모양** 팬텀을 쓰면, `T` 가 `nil` 을 품을 때(`number?`) 그 필드가 **아예 없는** 빈 테이블도 통과한다. 새 솔버가 없는 `read` 필드를 `nil` 로 읽기 때문이다. 함수 모양 팬텀 `(T) -> T` 는 이 경우를 거부한다. 표식에는 함수 모양을 쓴다.
+
+**0.746 에서 바뀜**: 이미 만들어 둔 테이블(봉인된 지역 `empty`)을 `VP<number?>` 자리에 넣으면 이제 "Expected this to be 'VP<number?>', but got 'empty'" 로 거부된다(0.734·0.742 는 통과). 리터럴 `{}` 를 바로 넣는 것은 0.746 에서도 통과한다. 그래도 핀이 0.742 이하인 곳에서는 구멍이 그대로이고, 0.746 에서는 "nil 을 품은 read 필드가 없는 테이블"이 새 에러로 나올 수 있다. 함수 팬텀 권고는 유지한다. 소속만 표시하는 표식이라면 `read __kind: true` 같은 싱글턴 필드를 따로 둔다.
 
 ## §4 공변 자리에서 제네릭이 넓어지는 누수
 status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/variance-covariant-generic-widening.luau` · 원천: stl typing-limits 머리 "2026-10-12 키·위치·값을 넘기는 제네릭은 불변 마커"
@@ -112,9 +115,9 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippe
 함의: 이벤트 콜백 자리에서 파라미터 수 부족은 에러가 아니다(언어 성질). 라이브러리가 `(T, number) -> any` 를 받는다면 사용자에게 함수 **값**도 같은 개수로 선언하게 하거나, 리터럴로 감싸게 한다.
 
 ## §7 교집합 + 불변/반공변 T = 추론 실패
-status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/variance-intersection-instantiation.luau` · 원천: quad audit consumer-type-surface-2026-10-06 probes/pure/repro_a1_pure.luau, quad 8.36 A1
+status: verified · last-confirmed: luau 0.746 (`& {}` 꼴만 0.746 에서 풀림, 나머지는 0.734·0.742·0.746 동일) · 근거: `snippets/variance-intersection-instantiation.luau` · 원천: quad audit consumer-type-surface-2026-10-06 probes/pure/repro_a1_pure.luau, quad 8.36 A1
 
-`W<T> = { read v: T } & { read f: (T) -> () }` 처럼 **교집합 안에서 T 가 반공변이나 불변 자리**에 서면, 같은 별칭의 값을 넘겨도 `id<T>(x: W<T>)` 가 "No valid instantiation ... at least X | nil, at most X" 로 실패한다. `{ v: T } & {}` 도 같다. 다음은 통과한다.
+`W<T> = { read v: T } & { read f: (T) -> () }` 처럼 **교집합 안에서 T 가 반공변이나 불변 자리**에 서면, 같은 별칭의 값을 넘겨도 `id<T>(x: W<T>)` 가 "No valid instantiation ... at least X | nil, at most X" 로 실패한다. `{ v: T } & {}` 도 0.742 까지는 같다. **0.746 에서 바뀜**: `{ v: T } & {}`(W3)는 T 가 `number` 로 정확히 풀린다(결과 `.v` 를 `string` 에 넣으면 잡히므로 검사가 꺼진 것이 아니다). 반공변 자리가 낀 `{ read v: T } & { read f: (T) -> () }`(W1)는 0.746 에서도 실패하고, 메시지 하한만 `number | nil` → `number | unknown` 으로 바뀌었다. 다음은 모든 버전에서 통과한다.
 - 같은 멤버를 **한 테이블**에 둔 `{ read v: T, read f: (T) -> () }`
 - 교집합이어도 T 가 공변 자리뿐인 `{ read v: T } & { read x: number }`
 

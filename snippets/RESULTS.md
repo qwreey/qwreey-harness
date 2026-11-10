@@ -3,6 +3,7 @@
 - 실행일: 2026-11-10
 - 명령: `python3 -I tools/check_snippets.py --luau 0.734,0.742 --lsp 1.70.1 --table snippets/*.luau`
 - 결과: **55개 전부 통과, rc=0**(2026-11-10 type function 재구성으로 `tf-*` 22개. 옛 `typefn-*` 5개는 `tf-*` 로 이름을 바꿈). 두 버전 모두 `luau-analyze` 새 솔버 기준(`--@solver=old` 표시한 파일만 옛 솔버)이다.
+- 0.746: 이 표는 0.734·0.742 만 담는다(표 전체를 다시 뽑지 않았다). 0.746 은 `--luau 0.734,0.742,0.746` 행렬이 전부 rc=0 이고, 0.742 와 다른 파일은 위 `variance-` 둘뿐이라 해당 두 행에 괄호로 적었다.
 - 칸 읽는 법: `E` = 그 버전에서 살아 있는 `expect-error` 줄 수(음성 대조군), `B` = `bug-present` 줄 수(지금 잡히지 않는 알려진 한계), `run` = 검사 뒤 `luau` 실행까지 통과.
 - 마지막 열은 참고용이다. 같은 파일을 `luau-lsp analyze --platform=standard --flag:LuauSolverV2=true` 로 돌려, 진단 줄이 표식과 맞는지만 적었다. 판정에는 쓰지 않는다. 버전 조건이 붙은 줄은 luau-lsp 가 내장한 Luau 판을 하네스가 모르므로 '잡음/무진단' 관측만 괄호로 적었다(1.70.1 은 0.742 에서 고쳐진 넷 중 셋만 고쳐져 있다. `tf-limit-keyof-scale` 의 '놓침'은 0.734 전용 표식 줄이라 1.70.1 이 0.742 와 같다는 뜻이다). `—` 는 `.luaurc` 나 옛 솔버가 필요한 파일이라 건너뛰었다는 뜻이다.
 
@@ -59,9 +60,9 @@
 | `variance-function-arity.luau` | ok (E4 B0) | ok (E4 B0) | 같음 |
 | `variance-function-phantom.luau` | ok (E4 B0) | ok (E4 B0) | 같음 |
 | `variance-generic-method-contravariance.luau` | ok (E1 B1) | ok (E1 B1) | 같음 |
-| `variance-intersection-instantiation.luau` | ok (E2 B0) | ok (E2 B0) | 같음 |
+| `variance-intersection-instantiation.luau` | ok (E3 B0) | ok (E3 B0) | 같음 (대조군 줄을 더해 E2→E3. 0.746: ok E2 B0, r3 줄은 `[<0.746]` 표식) |
 | `variance-read-field.luau` | ok (E2 B0) | ok (E2 B0) | 같음 |
-| `variance-value-phantom-nil.luau` | ok (E2 B1) | ok (E2 B1) | 같음 |
+| `variance-value-phantom-nil.luau` | ok (E2 B1) | ok (E2 B1) | 같음 (0.746: ok E3 B0 — 8행이 `bug-present [<0.746] \|\| expect-error [>=0.746]`) |
 | `verify-negative-control.luau` | ok (E1 B0 run) | ok (E1 B0 run) | 같음 |
 
 ## 0.734 → 0.742 사이에 바뀐 칸 (버전 조건 표식으로 고정)

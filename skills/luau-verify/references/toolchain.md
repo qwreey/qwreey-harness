@@ -62,7 +62,7 @@ status: verified · last-confirmed: 2026-11-10
 - 또는 `mise exec luau@0.742 -- luau-analyze …` 로 버전을 명시한다.
 - `luau-analyze` 에는 `--version` 이 없다. 버전은 경로로 확인한다. `luau-lsp --version` 은 있다.
 - 이 저장소의 `tools/check_snippets.py` 는 shim 을 쓰지 않고 `$LUAU_BIN_DIR/<ver>` 나 `$MISE_DATA_DIR/installs/luau/<ver>` 를 직접 부른다. 다른 머신에서는 `LUAU_BIN_DIR` 이나 `MISE_DATA_DIR` 을 맞춘다.
-- `lute` 는 이 머신에 설치돼 있지 않다(한 프로젝트의 mise.toml 에만 핀). 2026-11-10 현재 `luau/0.746` 도 설치돼 있지만 이 저장소의 행렬은 0.734·0.742 다.
+- `lute` 는 이 머신에 설치돼 있지 않다(한 프로젝트의 mise.toml 에만 핀). 2026-11-10 현재 `luau/0.746` 도 설치돼 있지만 이 저장소의 행렬은 0.734·0.742·0.746 이고 기본 버전은 0.746 이다(최신에서 새 결함을 먼저 보려고, 2026-11-10).
 - mise 로 고정한 pesde 에 `pesde self-upgrade` 를 쓰면 `~/.pesde/bin/pesde` 가 새로 생겨 PATH 순서에 따라 고정 버전을 가린다(described, 후보 X-08, `tbox/CLAUDE.md:45-48`). shim 함정(§1)과 같은 계열이다. `which -a pesde` 로 확인한다.
 
 ## §3 버전 핀 정책 (미정)

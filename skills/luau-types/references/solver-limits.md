@@ -59,38 +59,38 @@ status: verified · last-confirmed: luau 0.742 (`--help` 와 스니펫) · 근�
 
 ## §2 결함 카탈로그 (한 표)
 
-"0.734 / 0.742" 열은 이 저장소 스니펫의 결과다(`bug` = 진단이 안 나는 한계가 있음, `fixed` = 잡힘). lsp 열은 `luau-lsp 1.70.1 analyze --flag:LuauSolverV2=true` 결과를 참고로 적었다. 옛 솔버 열은 원천 기록과 이번 프로브 결과다.
+"0.734 / 0.742 / 0.746" 열은 이 저장소 스니펫의 결과다(`bug` = 진단이 안 나는 한계가 있음, `fixed` = 잡힘). lsp 열은 `luau-lsp 1.70.1 analyze --flag:LuauSolverV2=true` 결과를 참고로 적었다. 옛 솔버 열은 원천 기록과 이번 프로브 결과다.
 
-| ID | 증상 (에러가 안 남) | 스니펫 | 0.734 | 0.742 | lsp 1.70.1 | 옛 솔버 | 설명 위치 |
-|---|---|---|---|---|---|---|---|
-| S1 | 뒤쪽 파라미터를 생략한 람다의 주석 상한 소실 | `generics-callback-bound-lost` | bug | bug | bug | 잡음 | generics.md §5 |
-| S2 | 파라미터를 제약하지 않는 맨 람다의 결과 누수 | `generics-bare-lambda-free-type` | bug | **fixed** | **bug** | 잡음 | generics.md §4 |
-| S3 | 제네릭 몸통에서 타입 변수 값 무검사 | `generics-body-unchecked` | bug | bug | bug | 잡음 | generics.md §6 |
-| S4 | 문자열 키 리터럴 → 인덱서 파라미터 값 무검사 | `generics-string-key-literal-indexer` | bug | bug | bug | 잡음 | generics.md §6 |
-| S5 | 재귀 타입이 유니온/옵셔널 갈래일 때 타입 인자 무검사 | `unions-recursive-in-optional` | bug | bug | bug | 잡음 | unions-singletons.md §4 |
-| S6 | `{}` 리터럴 → `{ [K]: V }` 가 unknown, 이후 쓰기 무검사 | `generics-literal-to-indexer-unknown` | bug | bug | bug | 일부 잡음 | generics.md §2 |
-| S7 | 비균일 재귀 메소드 반환 누수 | `recursion-nonuniform-return` | bug | bug | bug | 선언 거부 | recursion-and-limits.md §1 |
-| S8 | 비균일 재귀보다 앞 선언 별칭의 참조가 에러 타입 | `recursion-declaration-order` | bug | bug | bug | 없음(재정렬) | recursion-and-limits.md §3 |
-| S9 | 자기 참조 함수 필드 + 같은 이름 멤버의 유니온 통과 | `unions-same-name-method-hole` | bug | bug | bug | (read 거부) | unions-singletons.md §5 |
-| S10 | 제네릭 메소드의 파라미터 반공변 무검사 | `variance-generic-method-contravariance` | bug | bug | bug | (read 거부) | variance.md §5 |
-| S11 | 값 팬텀 `read p: T?` 에 빈 테이블 통과 | `variance-value-phantom-nil` | bug | bug | bug | (read 거부) | variance.md §3 |
-| S12 | 공변 자리에서 제네릭 V 가 넓어짐 | `variance-covariant-generic-widening` | bug | bug | bug | (read 거부) | variance.md §4 |
-| S13 | 공변 인자 둘 → 교집합 `number & string` | `generics-covariant-args-intersection` | bug | **fixed**(유니온) | fixed | (read 거부) | generics.md §7 |
-| S14 | 가변 인자 자리의 꼬리 호출 결과 무검사 | `solver-vararg-tail-call` | bug | **fixed** | fixed | 잡음 | packs-and-varargs.md §11 |
-| S15 | 함수 ∩ 테이블 값이 never 로 아무 데나 대입 | `unions-function-table-intersection` | bug | bug | bug | 호출 거부 | unions-singletons.md §7 |
-| S16 | `setmetatable` 형 `__call` 인자 무검사 | 같은 파일 | bug | **fixed** | fixed | (문법 모름) | unions-singletons.md §7 |
-| S17 | 선언된 테이블의 제네릭 함수 필드 결과 무검사(조건: `self: any`. `self` 를 그 타입으로 적으면 잡힘, 교집합 여부 무관) | `solver-declared-generic-field`, `solver-generic-method-self-type` | bug | bug | bug | 잡음 | §4 아래 |
-| S18 | 줄어들지 않은 `index<…, M>` 결과가 아무 데나 대입 | `tf-builtin-unreduced-index` | bug | bug | bug | (문법 모름) | type-functions-limits.md B3 |
-| S19 | nonstrict `.luaurc` 아래 명백한 에러 0건 | `modes-luaurc-nonstrict-silences` | 동작 | 동작 | — | — | luau-verify 스킬 |
-| S20 | `local function`·`function M.f`·메서드·리터럴 필드에 **넘친 인자** 무진단(주석 타입을 거친 값은 잡힘) | `pack-extra-args`, `pack-extra-args-exposure` | bug | bug | bug | 잡음 | packs-and-varargs.md §10 |
-| S21 | 제네릭 팩 `...: A...` 를 `{ ... }` 에 담으면 `{nil}`, `table.pack` 은 거부(defer 패턴) | `pack-store-generic-pack` | 동작 | 동작 | 동작 | 우회도 거부 | packs-and-varargs.md §6 |
-| S22 | 제네릭 몸통: 기대 타입이 정확히 `T` 가 아닌 자리(`T?` 반환, 지역 초기화, `T` 값을 구체 자리에) 무검사 | `generics-body-probe-type` | bug(`return 5`→T 도) | bug(`→T` 만 잡음) | 0.742 와 같음 | 잡음 | generics.md §6-1 |
-| S23 | 인덱서 없는 갈래가 든 유니온의 `for … in` 무검사 | `solver-union-iter-no-indexer` | bug | bug | bug | — | unions-singletons.md §11 |
-| S24 | 교집합 컨테이너를 인덱서로 돌 때 루프 변수 타입 소실 | `unions-intersection-iter-method` | bug | bug | bug | — | unions-singletons.md §11 |
-| S25 | `[string]: any` 인덱서와의 교집합이 이름 있는 필드까지 any 로 | `unions-catchall-indexer-intersection` | bug | bug | bug | 노이즈 다량(원천) | unions-singletons.md §10 |
-| S26 | 자기 참조 함수 필드 타입 A → 다른 자기 참조 타입의 `B?` 통과 | `unions-self-ref-optional-hole` | bug | bug | bug | — | unions-singletons.md §4 |
-| S27 | `__call` 콜러블 네임스페이스로 부른 제네릭 생성자 결과 무검사 | `generics-callable-namespace` | bug | bug | bug | — | generics.md §9 |
-| S28 | 함수 타입끼리·테이블 타입끼리 캐스트는 모양이 달라도 통과(겹침만 봄) | `solver-cast-overlap-only` | 동작 | 동작 | 동작 | — | §4 아래 |
+| ID | 증상 (에러가 안 남) | 스니펫 | 0.734 | 0.742 | 0.746 | lsp 1.70.1 | 옛 솔버 | 설명 위치 |
+|---|---|---|---|---|---|---|---|---|---|
+| S1 | 뒤쪽 파라미터를 생략한 람다의 주석 상한 소실 | `generics-callback-bound-lost` | bug | bug | bug | bug | 잡음 | generics.md §5 |
+| S2 | 파라미터를 제약하지 않는 맨 람다의 결과 누수 | `generics-bare-lambda-free-type` | bug | **fixed** | **fixed** | **bug** | 잡음 | generics.md §4 |
+| S3 | 제네릭 몸통에서 타입 변수 값 무검사 | `generics-body-unchecked` | bug | bug | bug | bug | 잡음 | generics.md §6 |
+| S4 | 문자열 키 리터럴 → 인덱서 파라미터 값 무검사 | `generics-string-key-literal-indexer` | bug | bug | bug | bug | 잡음 | generics.md §6 |
+| S5 | 재귀 타입이 유니온/옵셔널 갈래일 때 타입 인자 무검사 | `unions-recursive-in-optional` | bug | bug | bug | bug | 잡음 | unions-singletons.md §4 |
+| S6 | `{}` 리터럴 → `{ [K]: V }` 가 unknown, 이후 쓰기 무검사 | `generics-literal-to-indexer-unknown` | bug | bug | bug | bug | 일부 잡음 | generics.md §2 |
+| S7 | 비균일 재귀 메소드 반환 누수 | `recursion-nonuniform-return` | bug | bug | bug | bug | 선언 거부 | recursion-and-limits.md §1 |
+| S8 | 비균일 재귀보다 앞 선언 별칭의 참조가 에러 타입 | `recursion-declaration-order` | bug | bug | bug | bug | 없음(재정렬) | recursion-and-limits.md §3 |
+| S9 | 자기 참조 함수 필드 + 같은 이름 멤버의 유니온 통과 | `unions-same-name-method-hole` | bug | bug | bug | bug | (read 거부) | unions-singletons.md §5 |
+| S10 | 제네릭 메소드의 파라미터 반공변 무검사 | `variance-generic-method-contravariance` | bug | bug | bug | bug | (read 거부) | variance.md §5 |
+| S11 | 값 팬텀 `read p: T?` 에 빈 테이블 통과 (0.746 은 이미 만든 테이블만 거부, 리터럴 `{}` 는 통과) | `variance-value-phantom-nil` | bug | bug | **fixed** | bug | (read 거부) | variance.md §3 |
+| S12 | 공변 자리에서 제네릭 V 가 넓어짐 | `variance-covariant-generic-widening` | bug | bug | bug | bug | (read 거부) | variance.md §4 |
+| S13 | 공변 인자 둘 → 교집합 `number & string` | `generics-covariant-args-intersection` | bug | **fixed**(유니온) | **fixed**(유니온) | fixed | (read 거부) | generics.md §7 |
+| S14 | 가변 인자 자리의 꼬리 호출 결과 무검사 | `solver-vararg-tail-call` | bug | **fixed** | **fixed** | fixed | 잡음 | packs-and-varargs.md §11 |
+| S15 | 함수 ∩ 테이블 값이 never 로 아무 데나 대입 | `unions-function-table-intersection` | bug | bug | bug | bug | 호출 거부 | unions-singletons.md §7 |
+| S16 | `setmetatable` 형 `__call` 인자 무검사 | 같은 파일 | bug | **fixed** | **fixed** | fixed | (문법 모름) | unions-singletons.md §7 |
+| S17 | 선언된 테이블의 제네릭 함수 필드 결과 무검사(조건: `self: any`. `self` 를 그 타입으로 적으면 잡힘, 교집합 여부 무관) | `solver-declared-generic-field`, `solver-generic-method-self-type` | bug | bug | bug | bug | 잡음 | §4 아래 |
+| S18 | 줄어들지 않은 `index<…, M>` 결과가 아무 데나 대입 | `tf-builtin-unreduced-index` | bug | bug | bug | bug | (문법 모름) | type-functions-limits.md B3 |
+| S19 | nonstrict `.luaurc` 아래 명백한 에러 0건 | `modes-luaurc-nonstrict-silences` | 동작 | 동작 | 동작 | — | — | luau-verify 스킬 |
+| S20 | `local function`·`function M.f`·메서드·리터럴 필드에 **넘친 인자** 무진단(주석 타입을 거친 값은 잡힘) | `pack-extra-args`, `pack-extra-args-exposure` | bug | bug | bug | bug | 잡음 | packs-and-varargs.md §10 |
+| S21 | 제네릭 팩 `...: A...` 를 `{ ... }` 에 담으면 `{nil}`, `table.pack` 은 거부(defer 패턴) | `pack-store-generic-pack` | 동작 | 동작 | 동작 | 동작 | 우회도 거부 | packs-and-varargs.md §6 |
+| S22 | 제네릭 몸통: 기대 타입이 정확히 `T` 가 아닌 자리(`T?` 반환, 지역 초기화, `T` 값을 구체 자리에) 무검사 | `generics-body-probe-type` | bug(`return 5`→T 도) | bug(`→T` 만 잡음) | bug(`→T` 만 잡음) | 0.742 와 같음 | 잡음 | generics.md §6-1 |
+| S23 | 인덱서 없는 갈래가 든 유니온의 `for … in` 무검사 | `solver-union-iter-no-indexer` | bug | bug | bug | bug | — | unions-singletons.md §11 |
+| S24 | 교집합 컨테이너를 인덱서로 돌 때 루프 변수 타입 소실 | `unions-intersection-iter-method` | bug | bug | bug | bug | — | unions-singletons.md §11 |
+| S25 | `[string]: any` 인덱서와의 교집합이 이름 있는 필드까지 any 로 | `unions-catchall-indexer-intersection` | bug | bug | bug | bug | 노이즈 다량(원천) | unions-singletons.md §10 |
+| S26 | 자기 참조 함수 필드 타입 A → 다른 자기 참조 타입의 `B?` 통과 | `unions-self-ref-optional-hole` | bug | bug | bug | bug | — | unions-singletons.md §4 |
+| S27 | `__call` 콜러블 네임스페이스로 부른 제네릭 생성자 결과 무검사 | `generics-callable-namespace` | bug | bug | bug | bug | — | generics.md §9 |
+| S28 | 함수 타입끼리·테이블 타입끼리 캐스트는 모양이 달라도 통과(겹침만 봄) | `solver-cast-overlap-only` | 동작 | 동작 | 동작 | 동작 | — | §4 아래 |
 
 ## §3 0.734 → 0.742 에서 바뀐 것
 status: verified · 근거: 위 표의 S2, S13, S14, S16, S22, `snippets/RESULTS.md`
@@ -147,7 +147,7 @@ status: described
 status: described · 원천: stl luau-solver-issues/DRAFTS.md "올리기 전 체크리스트", quad §0
 
 1. 라이브러리 없이 15줄 안팎의 최소 재현을 만든다. **같은 파일에 대조군 줄**(같은 실수의 다른 모양이 잡히는 줄)을 둔다. 검사기가 통째로 꺼진 것이 아님을 보이기 위해서다.
-2. `--solver=old` 와 두 luau 버전으로 대조한다. 이 저장소에서는 `snippets/` 에 표식(`-- bug-present`)을 붙여 넣고 `tools/check_snippets.py --luau 0.734,0.742` 로 돌린다.
+2. `--solver=old` 와 두 luau 버전으로 대조한다. 이 저장소에서는 `snippets/` 에 표식(`-- bug-present`)을 붙여 넣고 `tools/check_snippets.py --luau 0.734,0.742,0.746` 로 돌린다.
 3. 우회하려고 공개 API 나 타입 모양을 비틀지 않는다. 한계를 문서화하고, 사용 관례를 적고, 되돌릴 지점(이슈·RFC 링크)을 남긴다. 반환을 `any` 로 여는 회피는 금지다(quad·stl 공통 원칙). 단, 우회가 비튼 것이 아니라 그냥 더 나은 설계라면 채택한다.
 4. 업스트림 보고는 사용자가 결정한다(두 원천 모두 초안만 두고 게시하지 않았다). 중복 검색어와 인접 이슈(#2168, #2380, #2733)는 원천 DRAFTS.md 에 있다.
 
