@@ -1,6 +1,6 @@
 # 툴킷 web (JS/TS 웹) — 골격
 
-> **실제 프로젝트를 가져온 뒤 채움.** 지금은 감지만 한다. 검사 코드는 하나도 내지 않는다.
+> **실제 프로젝트를 가져온 뒤 채움.** 지금은 감지와 플러그인 도입 추천(`WEB-PLUGINS`, `WEB-RULE`, 정보)만 한다. 나머지 검사는 아직 없다.
 > 대상 예정: 블로그(react/astro, 아직 옮겨 오지 않음), vitrine(go + react/vite), quad·devplorer의 astro 문서 사이트.
 
 검사 모듈: `scripts/toolkits/web.py`. 공유 지식 저장소: 아직 없음(`web-kb`가 생기면 `--kb` 기본 경로 `<작업공간>/web-kb`).
@@ -13,6 +13,20 @@
 
 확인(2026-11-10, 읽기 전용): vitrine → `web/package.json: react, vite` + tsx 7개로 감지된다.
 같은 실행에서 quad(`docs/site/package.json: astro`)와 devplorer(`docs/package.json: astro`)도 web으로 함께 감지됐다(luau + web 두 툴킷).
+
+## 검사
+
+| 코드 | 등급 | 내용 |
+|---|---|---|
+| `WEB-PLUGINS` | 정보 | security-guidance, frontend-design, context7, claude-security 가 project·local·user `enabledPlugins` 어디에도 없으면 하나씩 추천한다. 설정 안내는 메시지에 있다. 근거: [audit/16 §8](../../../../../../audit/16-marketplace.md) |
+| `WEB-RULE` | 정보 | 사용자 레벨 `~/.claude/rules/web-security.md` 가 없다. 정본(`home/.claude/rules/`)에 있으면 apply 대기라고 알린다 |
+
+판정: 추천일 뿐이다. 공유 worktree 저장소는 security-guidance 에 `ENABLE_STOP_REVIEW=0` 을 더한다. 이미 다른 방식(로컬 마켓 등)으로 켜져 있으면 무시한다.
+
+## 후보 (실측 후 도입)
+
+- typescript-lsp, gopls-lsp(vitrine Go), rust-analyzer-lsp(Rust 저장소): 바이너리 설치 후 audit/16 §7-5 실측을 거쳐 `WEB-PLUGINS` 목록에 더한다.
+- modern-web-guidance, axe-accessibility: 참고. web-kb 후보.
 
 ## 이후 채울 검사 후보
 

@@ -26,6 +26,8 @@ intake/<이름>/            # 소문자-하이픈. 예: blog, vitrine-web
 | 권장 | 감사자에게 볼 코드: 바뀐 파일이나 핵심 모듈 | `/audit` 대상 |
 | 선택 | `git log --stat -20` 출력(`INTAKE.md` 에 붙임) | 낡음 판정에 쓸 날짜. 반입 사본에는 git 이력이 없다 |
 
+- **web 반입 때 확인할 것**: 블로그(react/astro)를 가져오면 `scan.py` 의 `WEB-PLUGINS`·`WEB-RULE` 정보가 나오는지 보고, 프로젝트 `.claude/settings.json` 에 `handoff/vitrine.md` 의 `enabledPlugins` 조각과 frontend-design 명시 호출 줄이 있는지 대조한다.
+
 가져오지 않는 것
 - **자격 증명과 비밀**: `.env*`, `*.pem`, `*.key`, `id_*`, `.credentials.json`, `.npmrc`·`.pypirc` 의 토큰, `settings.local.json` 안의 키, 클라우드 설정(`.aws/`, `.config/gcloud/`).
   반입 뒤에도 한 번 훑는다: `grep -rIlE '(api[_-]?key|secret|token|password)\s*[:=]' intake/<이름>` — 걸리면 그 파일을 지우고 `INTAKE.md` 에 적는다.

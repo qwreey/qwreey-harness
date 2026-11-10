@@ -26,6 +26,8 @@
 - [ ] luau-kb 의 LICENSE 결정
   - `claude plugin validate` 부가 검사가 LICENSE 와 아이콘이 없다고 알렸다.
 
+- [ ] audit/16 §7 의 승인 대기 실측 5건(security-guidance, frontend-design, context7, claude-security, LSP·session-report)
+  - auto 분류기가 외부 코드 실행을 거부했다. 허용 규칙을 추가하거나 사용자가 직접 실행해야 한다.
 - [ ] codex worktree 모드 사용 여부 결정
   - 이 호스트에서 codex 샌드박스가 bwrap 네임스페이스를 만들지 못해 셸 실행이 안 된다.
   - 열려면 `DELEGATE_CODEX_SANDBOX=danger-full-access` 를 써야 한다. 그대로 두면 empty 모드만 쓴다.
@@ -40,6 +42,7 @@
 ## 다른 세션에 넘길 것
 - [ ] stl-luau 세션에 `handoff/stl-luau.md` 전달
   - 내용: doctor/diet 를 그 세션이 직접 반영하고, todos 를 BI 기준으로 갱신한다.
+- [ ] vitrine 세션에 `handoff/vitrine.md` 전달 (웹 플러그인 4개 enabledPlugins 조각, env, CLAUDE.md 한 줄)
 - [ ] rbvm 세션(또는 다음 rbvm 작업 때): `const` 금지 규약을 해제한다.
   - 위치: `rbvm/.claude/conventions.md:28-37`
   - 근거: D-01 확정(금지 근거였던 pesde 0.7.3 은 이미 해소)
