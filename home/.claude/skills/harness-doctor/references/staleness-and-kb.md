@@ -1,0 +1,84 @@
+# 4·5. 낡음과 모순, 공유 지식 쏠림
+
+## 목차
+- [4. 낡음과 모순](#4-낡음과-모순)
+  - [에이전트 문서 사이 모순](#에이전트-문서-사이-모순)
+  - [D-07](#d-07)
+- [5. 공유 지식 쏠림](#5-공유-지식-쏠림)
+
+## 4. 낡음과 모순
+
+날짜 태그가 붙은 상태 서술("[2026-10-12 기준] 시제품 단계…")은 쓴 순간부터 낡기 시작한다.
+같은 상태를 여러 문서가 따로 적으면 서로 어긋난다. 예: quad의 `CLAUDE.md:3`은 09-07, `todos.md:8`은 09-06이다.
+상태의 소스는 한 곳(todos나 ROADMAP)으로 둔다. CLAUDE.md에는 "지금 상태 1줄 + 소스 포인터"만 둔다.
+
+scan이 보는 문서: 루트의 `CLAUDE.md`, `GEMINI.md`, `AGENTS.md`, `ROADMAP.md`, `HUMAN_TODO.md`와 `.claude/`의 `todos.md`, `project-context.md`, `conventions.md`
+
+| 코드 | 뜻 |
+|---|---|
+| `STALE-DATED` | "YYYY-MM-DD 기준/현재" 상태 서술이 14일을 넘었다. 파일마다 한 건으로 묶고 줄 번호를 단다 |
+| `STALE-DATETAGS` | `**[YYYY-MM-DD` 신설 태그가 10개 이상이다. 경위가 규칙 본문에 섞여 있다는 뜻이다 |
+| `STALE-MISMATCH` | 문서마다 '기준' 날짜가 다르다. 같은 상태를 여러 곳이 적고 있다는 뜻이다 |
+| `STALE-SUPERSEDED` | CLAUDE.md, conventions, rules가 "뒤집혔다"고 한 질문 ID를 GEMINI.md나 AGENTS.md가 '확정'으로 적는다 |
+| `STALE-AGENTDOC-OLD` | GEMINI.md나 AGENTS.md의 마지막 커밋이 CLAUDE.md보다 오래됐다(정보) |
+
+**모델이 볼 것**
+- `STALE-DATED`: 서술이 지금도 맞는지 `git log`, 코드, todos와 대조한다.
+  - 맞으면 날짜 태그를 걷고 사실만 남기는 안을 낸다.
+  - 틀리면 고친 문장을 제안한다. 모르면 "확인 필요"로 둔다.
+- 스크립트가 못 잡는 낡음도 찾는다.
+  - 없는 파일·명령·스크립트를 가리키는 문장
+  - 끝난 마일스톤의 규약(quad M2 자율 구현 규약이 사례)
+  - 취소선으로 남은 정정 서사
+  - 날짜 없는 시한부 주장("곧", "다음 세션에")
+- 규약끼리 부딪치는 곳을 찾는다. 예: "병렬 권장"과 "감사자 병렬 금지". 우선순위를 한 문장으로 정하는 안을 낸다.
+- 고칠 때는 틀린 서술을 취소선으로 남기지 않는다. 올바른 문장만 남기고 경위는 archive로 보낸다.
+
+### 에이전트 문서 사이 모순
+
+GEMINI.md와 AGENTS.md는 agy·codex의 진입점이다. 이들에게는 rules가 자동으로 실리지 않는다.
+그래서 이 문서들이 규약을 복제하고 있으면 Claude 쪽 규약과 따로 낡는다.
+
+- **실례**: stl-luau `GEMINI.md:24`가 "확정된 결정" 절에 질문 AB를 적고 있었다. 그런데 `conventions.md:36`은 "AB 규칙은 뒤집혔다(질문 BI)"고 한다.
+  - scan이 원본 stl-luau에서 이것을 `STALE-SUPERSEDED`로 잡는다(실측).
+  - 고친 초안 stl-luau-doctor에서는 잡히지 않는다. 그 초안의 GEMINI.md는 AB를 "지금 전환 중인 것" 절로 옮겼다.
+- **검출 한계**: scan은 "질문 XX" 꼴의 결정 ID를 쓰는 저장소에서만 잡는다.
+  - 그 밖의 모순은 모델이 직접 본다. 툴체인 버전, 검사 명령, 금지 사항, 커밋·push 정책 같은 것이다.
+  - 방법: CLAUDE.md의 "넘지 않는 선"·명령 표와 GEMINI.md·AGENTS.md를 나란히 읽는다.
+- **고치는 법**: GEMINI.md와 AGENTS.md는 규약을 다시 적지 않고 CLAUDE.md와 rules 파일을 가리키게 한다.
+  - 틀은 `claude-doctor/drafts/delegate/skills/delegate/templates/AGENTS.md.template`이다.
+  - 당장은 어긋난 줄만 고치는 안을 낸다.
+
+### D-07
+
+끝난 할 일을 어떻게 다룰지는 D-07(`claude-doctor/decisions/D-07-finished-todos.md`)에서 아직 미결이다.
+- 제안된 추천안: 상시 로드되는 todos에서는 끝난 항목을 지우고, 보존이 필요하면 import되지 않는 파일(`archive/todos-history.md`)로 옮긴다.
+- table-sim `todos.md:5`는 정반대 규칙("된 것은 지우지 않고 아래로 내린다")을 적고 있다. 바꾸게 되면 그 규칙 문장도 같이 바꿔야 한다.
+- `LOAD-TODOS-DONE`이 나오면 고치지 말고 D-07을 가리키며 묻는다. 질문 틀은 `fix-protocol.md`에 있다.
+
+## 5. 공유 지식 쏠림
+
+일반 Luau 지식이 프로젝트 문서에만 쌓이면, 다른 저장소는 "저쪽 보고 오기"로만 그 지식을 얻는다.
+정본은 `/code/Projects/luau-kb`(스킬, snippets, typedefs)다.
+
+| 코드 | 뜻 |
+|---|---|
+| `KB-MARK` | `<!-- luau-kb 후보 -->` 표시 목록. 옮길 대상 장부다 |
+| `KB-CAND` | 표시는 없지만 일반 Luau 지식일 수 있는 줄. Luau 용어와 근거 신호(버전 `0.7xx`, "N배", "%", 상류, 결함, 재현, 실측)가 함께 있는 줄을 센다 |
+
+**모델이 볼 것** (`KB-CAND` 판정)
+- **후보**: 라이브러리 없이 재현되거나 Luau 버전에만 의존하는 사실이다.
+  - 솔버 동작, 표준 라이브러리 성능, stylua·luau-analyze의 함정, `-O2` 인라인 문제
+- **후보 아님**: 프로젝트 API, 설계 결정, 그 저장소의 수치 계약에 묶인 것이다.
+- 둘이 섞였으면 "혼합"으로 적는다. 분류 예시는 `claude-doctor/audit/07-stl-luau-diet.md` §5의 23개 표다.
+- 이미 luau-kb에 있는지 확인한다: `grep -rn <핵심어> /code/Projects/luau-kb/skills`
+  - 있으면 프로젝트 문서의 서술을 포인터로 바꾸는 안을 낸다.
+- `question.md`, `todos.md`처럼 import되지 않는 문서의 후보는 우선순위가 낮다.
+
+**고치는 법**
+- 승인을 받으면 해당 줄 끝에 `<!-- luau-kb 후보 -->`를 붙인다. 표시는 지우지 않는다.
+- 실제로 옮기는 일은 luau-kb 작업에서 한다. 순서는 이렇다.
+  1. snippet으로 재현한다(`luau-kb/tools/check_snippets.py`).
+  2. 스킬 reference에 적는다.
+  3. 프로젝트 문서에는 포인터만 남긴다.
+- 이 스킬에서는 옮기자는 제안까지만 한다.

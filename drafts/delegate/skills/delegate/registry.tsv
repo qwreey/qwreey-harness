@@ -1,0 +1,16 @@
+# delegate 중앙 표 — 저장소마다 위임 uid 를 하나 정한다(백엔드 agy·codex 가 같이 쓴다).
+# 열: key<TAB>root<TAB>uid<TAB>setup<TAB>note
+#   key   : 작업공간 이름의 앞부분. 작업공간은 <dirname(root)>/<key>-<backend>/ (예: /code/Projects/quad-agy)
+#   root  : 메인 저장소 경로(작업 트리 루트)
+#   uid   : 61000 부터. 같은 uid 를 두 저장소가 쓰지 않는다 — 한쪽 과제가 다른 쪽 worktree 를 고칠 수 없게.
+#           /etc/passwd 의 실제 사용자와 겹치면 안 된다(`delegate.sh doctor` 가 검사).
+#   setup : worktree 를 만든 직후 root 권한으로, worktree 안에서 한 번 돌릴 명령(없으면 -). 실패는 경고만.
+#   note  : 사람용 메모
+# 새 저장소는 `delegate.sh register <root>` 로 다음 빈 uid 를 받는다. 손으로 고칠 때는 돌고 있는 위임이 없을 때.
+#
+# [2026-11-10] tbox 를 61000 → 61003 으로 옮겼다(quad 와 충돌하던 것, audit/04 §1). 61000 소유로 남은
+#              옛 tbox-agy/.home 은 migration.md 의 정리 단계에서 지운다.
+quad	/code/Projects/quad	61000	timeout 300 mise exec -- pesde install	quad-codex 의 codex 기록도 61000
+stl-luau	/code/Projects/stl-luau	61001	-
+table-sim	/code/Projects/table-sim	61002	-	vendor/ 는 gitignore 라 worktree 에 없음 — AGENTS.md 에 읽기 예외 명시
+tbox	/code/Projects/tbox	61003	-	옛 61000(quad 와 충돌)

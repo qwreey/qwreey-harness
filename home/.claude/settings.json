@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /code/.claude/hooks/heavy-proc-guard.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 /code/.claude/hooks/bash-bypass-reminder.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "enableArtifact": false,
+  "enabledPlugins": {
+    "cc-plugin-you-should-know@builtin": true
+  },
+  "language": "한국어",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "high",
+      "autoCompactWindow": 500000
+    }
+  },
+  "tui": "fullscreen",
+  "timeFormat": "12-hour",
+  "theme": "auto",
+  "preferredNotifChannel": "terminal_bell",
+  "autoScrollEnabled": true,
+  "remoteControlAtStartup": false,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
+  "model": "opus"
+}
