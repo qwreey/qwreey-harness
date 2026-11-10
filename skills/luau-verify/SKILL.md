@@ -1,0 +1,54 @@
+---
+name: luau-verify
+description: >-
+  Luau 코드와 타입 주장을 실제로 검증하는 절차와 도구 사용법이다. luau-analyze 와 luau-lsp analyze 를
+  버전을 지정해 직접 호출하는 법(mise shim 이 버전 미지정 디렉터리에서 실패하는 함정 포함), 진단이 stderr 로
+  나오는 점과 종료 코드, 새 솔버와 옛 솔버(--solver=old)와 luau 0.734/0.742 비교, "진단 0건"을 믿기 위한
+  음성 대조군과 돌연변이 검사, .luaurc 와 --!strict, 스니펫 표식(-- expect-error, -- bug-present, --@run),
+  stylua 가 f<<T>> 를 망가뜨리는 조건, 러너(luau/lune/lute)와 const 와 버전 핀 정책을 다룬다.
+  타입 검사 결과를 믿어도 되는지 확인할 때, 재현 파일이나 스파이크를 만들 때, 검사 게이트를 짜거나 고칠 때,
+  luau·luau-lsp·stylua 버전을 올릴 때 쓴다. 타입 규칙 자체(무엇이 왜 안 잡히는가)는 luau-types 가 다룬다.
+---
+# luau-verify
+
+이 스킬은 "타입 검사 결과를 어떻게 믿을 수 있게 만드나"를 다룬다. 사실의 근거는 플러그인 루트의 `snippets/` 와 `tools/` 이고, 실행 결과는 `snippets/RESULTS.md` 다.
+
+## 핵심 절차 (재현·검증 한 번)
+1. **버전을 고정해 직접 부른다.** PATH 의 shim 대신 `/code/.local/share/mise/installs/luau/<ver>/luau-analyze` 를 쓰거나 `mise exec luau@<ver> --` 를 붙인다. → `references/toolchain.md`
+2. **파일 첫 줄에 `--!strict`** 를 둔다. `.luaurc` 나 `--mode=strict` 에 기대지 않는다. → `references/tooling.md` §1
+3. **검사한다. 진단은 stderr 다.** `2>&1` 을 붙인다. 진단이 있으면 rc=1, 린트만 있으면 rc=0. → `references/checkers.md` §1
+4. **음성 대조군**(같은 실수의 다른 모양, 반드시 잡혀야 하는 줄)이 기대한 메시지로 잡혔는지 본다. 안 잡혔으면 0건은 아무 의미가 없다. → `references/negative-controls.md` §2
+5. 의심스러우면 `--annotate` 로 추론 타입을 보고, `--solver=old` 와 다른 luau 버전으로 대조한다. → `references/checkers.md` §3–4
+6. 결과를 **도구, 버전, 솔버와 함께** 적는다(예: "luau-analyze 0.742 새 솔버, luau-lsp 1.70.1 은 다름").
+7. 지식으로 남길 사실이면 `snippets/` 에 표식을 단 최소 재현을 넣고 두 버전으로 돌린다. → `references/snippet-markers.md`
+
+## 어느 도구로 검사하나
+- 순수 Luau: `luau-analyze`(빠르고 luau 배포판과 같은 버전) 또는 `luau-lsp analyze --platform=standard --flag:LuauSolverV2=true`
+- Roblox 코드: `luau-lsp analyze --platform=roblox --definitions=<globalTypes.d.luau> [--sourcemap=…]` 만 가능하다(luau-analyze 는 정의 파일을 못 읽는다). 정의 파일은 이 저장소의 `typedefs/globalTypes.d.luau`.
+- 한도 플래그(too complex)는 luau-lsp `--flag:` 로만 바꿀 수 있다.
+- 어느 쪽을 CI 기준으로 둘지는 저장소마다 다르다. > 정책: 미정 — decisions/ 참고 (`references/checkers.md` §5)
+
+## 라우팅
+| 상황 / 질문 | 읽을 곳 |
+|---|---|
+| "No version is set for shim", 다른 디렉터리에서 결과가 다르다 | `references/toolchain.md` §1–2 |
+| luau 0.734 와 0.742 중 무엇으로 고정하나, 버전을 올리는 절차 | `references/toolchain.md` §3–4 |
+| luau-analyze 옵션, 출력 형식, 종료 코드, `--annotate` | `references/checkers.md` §1, §4 |
+| luau-lsp analyze 와 정의 파일, FFlag 기본값, 한도 플래그 | `references/checkers.md` §2 |
+| 새 솔버/옛 솔버/버전/도구 비교 실행 | `references/checkers.md` §3 |
+| 진단 0건을 믿어도 되나, 대조군 만드는 법, 돌연변이 검사 | `references/negative-controls.md` |
+| 알려진 결함을 테스트로 고정(고쳐지면 알림) | `references/negative-controls.md` §3, `references/snippet-markers.md` |
+| 스니펫 표식 문법, 하네스 실행, RESULTS 표 갱신 | `references/snippet-markers.md` |
+| `.luaurc` nonstrict/strict, `--!strict` | `references/tooling.md` §1 |
+| luau / lune / lute 중 무엇으로 실행하나 | `references/tooling.md` §2 (정책 미정) |
+| `const` 를 써도 되나 | `references/tooling.md` §3 (정책 미정) |
+| stylua 가 `f<<T>>` 를 `f << T >>` 로 바꿨다 | `references/tooling.md` §4, `tools/repro-stylua-typeargs.sh` |
+| 타입 규칙 자체(왜 안 잡히나, 결함 카탈로그) | luau-types 스킬 |
+
+## 자주 밟는 함정 (요약)
+- shim 의 `--help` 는 실패해도 rc=0 이다. 존재 확인을 rc 로 하지 않는다.
+- `2>/dev/null` 을 붙이면 진단이 사라진다.
+- 재현 파일을 다른 프로젝트 디렉터리에 두면 그 프로젝트의 `.luaurc` 와 `mise.toml` 이 끼어든다. `/tmp` 의 새 디렉터리에서 돌린다.
+- 음성 값은 주석으로 만든다(`(nil :: any) :: T`). 추론 결과로 만든 음성 값은 이미 샌 타입일 수 있다.
+- luau-lsp 는 자기 내장 Luau 판으로 검사한다. 에디터 판정과 CI 판정은 다를 수 있다.
+- stylua 는 설정 파일이 없는 디렉터리에서 돌면 `f<<T>>(x)` 를 조용히 망가뜨린다.

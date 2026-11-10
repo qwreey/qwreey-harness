@@ -1,0 +1,10 @@
+{
+  "name": "luau-kb",
+  "version": "0.1.0",
+  "description": "Luau 타입 시스템 한계와 검증 절차의 정본 지식(실행 가능한 스니펫으로 luau 0.734/0.742 에서 검증). 스킬: luau-types, luau-verify.",
+  "author": {
+    "name": "qwreey",
+    "email": "me@qwreey.moe"
+  },
+  "keywords": ["luau", "roblox", "type-system", "luau-analyze", "luau-lsp"]
+}
