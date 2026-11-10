@@ -40,31 +40,21 @@ status: described · 근거: 저장소 실태(2026-11-10)
 - 모양의 틀(메타테이블 프리미티브, 트레이트 등록, 닷 함수 모음)은 저장소마다 다르다. **그 저장소의 본보기 파일을 열어 따른다.** 본보기 경로는 저장소 `.claude/` 문서에 있다.
 
 ## §3 require 경로 규칙
-status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/style-require-paths.sh` R1–R4 (같은 결론: `snippets/verify-require.sh`, `snippets/rbx-require-cli.sh`), quad `.claude/base/project-setup-plan.md:144-167`, stl-luau `.claude/base/architecture.md:37-63`, tbox `CLAUDE.md:95-117` · 후보 Q-101, S-123, X-02, X-04
+status: verified · last-confirmed: luau 0.742 (0.734 동일) · 정본: roblox-luau `references/require-and-modules.md` §1·§2·§4·§5 (경로 해석표, ambiguous 에러, symlink, 정적 검사 범위), luau-verify `references/checkers.md` §7 (검사기와 런타임이 갈리는 자리) · 근거 스니펫: `snippets/style-require-paths.sh` R1–R4
 
-`init.luau` 는 **자기가 든 폴더 자체**를 뜻한다. 그래서 상대 경로의 기준이 한 단계 위다.
-
-| 파일 | `./x` 가 가리키는 곳 | `@self/x` |
-|---|---|---|
-| `pkg/src/init.luau` | `pkg/x` (폴더의 **형제**) | `pkg/src/x.luau` |
-| `pkg/src/a.luau` | `pkg/src/x.luau` (자기 형제) | 실패(일반 파일에는 `@self` 가 없다) |
+이 절은 **규칙 한 줄씩**만 둔다. 이유와 재현은 정본에 있다.
 
 ```lua
 -- pkg/src/init.luau
-local Types = require("./types")     -- 나쁜 예: pkg/types 를 찾는다. 거기 같은 이름 파일이 있으면 에러 없이 그것을 읽는다
+local Types = require("./types")     -- 나쁜 예: init.luau 의 ./ 는 폴더의 형제(pkg/types)를 찾는다
 local Types = require("@self/types") -- 좋은 예
 ```
-- `X.luau` 를 `X/init.luau` 로 바꿔도 바깥의 `require("./X")` 는 그대로 동작한다.
-- `init.luau` 안에서 `require("./src/…")` 처럼 바깥 폴더 이름을 적으면, 패키지 관리자가 폴더 이름을 바꿀 때 깨진다. `@self/…` 로 쓴다.
-- **테스트 엔트리를 `init.luau` 로 짓지 않는다**(`tests/run.luau`). `tests/init.luau` 안의 `./helper` 는 `tests/` 가 아니라 저장소 루트를 찾는다. `could not resolve child component … (ambiguous)` 는 `X.luau` 와 `X/` 가 형제로 함께 있을 때 난다.
-- **인자는 문자열 리터럴로 쓴다.** CLI 런타임은 `"./pkg/" .. name` 도 실행하지만, `--!strict` 의 luau-analyze 는 `Unknown require: unsupported path` 로 거부하고 타입을 추적하지 못한다.
-- **정적 검사가 잡는 범위를 알고 쓴다.**
-  - `--!strict` 에서는 **없는** 경로를 `Unknown require` 로 잡는다(luau-analyze, luau-lsp 둘 다). nonstrict 에서는 0건이다.
-  - **있는 다른 파일로 풀리는** 틀린 경로(위의 `./types` 오배선)는 어느 모드에서도 못 잡는다.
-  - 그래서 새 모듈에는 그 모듈을 실제로 `require` 하는 테스트를 둔다.
-- **CLI require 는 symlink 를 따라가지 않는다**(`snippets/verify-require.sh` R3, `snippets/rbx-require-cli.sh` Q7). luau-lsp 는 따라가므로 에디터는 깨끗한데 실행은 실패할 수 있다. 워크스페이스 링크를 실행 검증하려면 `cp -rL` 로 복사한 임시 디렉터리에서 돌린다.
-- 검사기와 런타임이 갈리는 자리(`.luaurc` alias 값의 모양, 같은 모듈이 두 경로로 열릴 때)는 `luau-verify` 의 checkers §7 에 있다.
-- Studio 의 require 규칙(접두 없는 문자열은 에러, alias 대소문자 등)은 `roblox-luau` 담당이다.
+- `init.luau` 안에서 같은 폴더 파일은 `@self/x` 로 부른다. 바깥 폴더 이름(`./src/x`)을 적지 않는다. → 정본 §1
+- 테스트 엔트리를 `init.luau` 로 짓지 않는다(`tests/run.luau`). → 정본 §1·§2
+- `require` 인자는 문자열 리터럴로 쓴다. 동적 경로는 런타임은 돌지만 `--!strict` analyze 가 거부한다. → 정본 §5, checkers §7
+- 파일마다 `--!strict` 를 단다. strict 가 있어야 없는 경로를 정적 검사가 잡는다. 있는 다른 파일로 풀리는 오타는 못 잡으므로 새 모듈에는 그 모듈을 실제로 `require` 하는 테스트를 둔다. → 정본 §5
+- 워크스페이스 symlink 는 CLI 가 따라가지 않으니 실행 검증은 `cp -rL` 사본에서 한다. → 정본 §4
+- Studio 의 문자열 require 규칙은 `roblox-luau` 담당이다. → 정본 §6
 
 **`@game/…` 절대 경로** (status: described · 근거: `decisions/D-12-require-paths.md`)
 > 정책: 제안(D-12) — 사용자 확인 전. 제안은 "위치가 바뀌는 번들에서만 금지"이다.
@@ -72,12 +62,11 @@ local Types = require("@self/types") -- 좋은 예
 - 고정 위치에서만 도는 코드는 쓴다(table-sim). 저장소 rules 가 정한다.
 
 ## §4 패키지 사본과 타입 전용 require
-status: described (실측 기록) · 근거: quad `scripts/relink.sh:97-103`, `.claude/base/module-lifecycle-plan.md:164-172`, `.claude/base/quad-types-plan.md:22-37`, `docs/how-to/11-library-on-quad.md:213`, rbvm-sib:224-227 · 후보 Q-107, Q-108, Q-109, R-45
+status: described · 정본: roblox-luau `references/require-and-modules.md` §7·§8 · 후보 Q-107, Q-108, Q-109, R-45
 
-- **같은 패키지의 설치 사본이 둘이면 모듈 수준 상태가 둘로 갈린다.** 캐시, 함수 identity 검사, weak-key 레지스트리가 각자 따로 돈다. luau-lsp 도 두 사본을 다른 모듈로 보고 타입 신원을 가른다.
-  - 라이브러리는 코어 모듈을 직접 require 하기보다, 게임이 넘긴 인스턴스를 팩토리 인자로 받는 편이 안전하다.
-- **타입만 쓰려는 `require` 도 런타임에 실행된다.** 게시 패키지의 dev-dependency 는 소비자에게 전파되지 않는다. 그래서 타입 전용 require 가 소비자 환경에서 크래시한다. 런타임이 가벼운 types 패키지를 일반 의존성으로 둔다.
-- **require 되는 순간 Instance 같은 수명 있는 값을 만들어 모듈 변수에 쥐지 않는다.** 처음 붙은 화면과 함께 죽고, 이후 호출이 죽은 값을 쓴다. 필요할 때 만든다.
+- 같은 패키지의 설치 사본이 둘이면 모듈 수준 상태가 갈린다. 라이브러리는 코어를 직접 require 하지 말고 게임이 넘긴 인스턴스를 팩토리 인자로 받는다. → 정본 §8
+- 타입만 쓰려는 `require` 도 런타임에 실행된다. 타입 전용 모듈은 가벼운 types 패키지로 분리해 일반 의존성으로 둔다. → 정본 §8
+- require 되는 순간 Instance 같은 수명 있는 값을 만들어 모듈 변수에 쥐지 않는다. → 정본 §8
 
 ## §5 모듈 필드 읽기 (제안 D-11)
 status: described · 근거: `decisions/D-11-object-shape-and-field-access.md`, devplorer `.claude/conventions.md:71` · 후보 D-C04

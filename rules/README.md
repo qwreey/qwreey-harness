@@ -5,7 +5,7 @@
 | 파일 | paths | 줄 수 | 근거·예시 |
 |---|---|---|---|
 | `luau-core.md` | `**/*.luau` | 38 | `skills/luau-style/references/` (각 줄 끝 링크) |
-| `code-structure.md` | `**/*.{luau,lua,ts,tsx,go}` | 17 | `skills/luau-style/references/structure.md` — **제안(D-13) 상태라 MANIFEST 링크를 아직 걸지 않았다.** 사용자가 D-13 을 확정하면 `link rules/code-structure.md /code/Projects/luau-kb/rules/code-structure.md` 를 더한다 |
+| `code-structure.md` | `**/*.{luau,lua,ts,tsx,go}` | 17 | `skills/luau-style/references/structure.md` — **D-13 확정+보완**(claude-doctor `decisions/README.md` 현황표, 2026-11-10). 확정됐으므로 MANIFEST 에 `link rules/code-structure.md /code/Projects/luau-kb/rules/code-structure.md` 를 더한다(`home/` 정본은 claude-doctor 쪽이라 사용자가 `home-sync` 로 반영) |
 
 ## 작성 규칙
 - frontmatter 에 `paths` 를 반드시 단다. 없으면 매 세션 항상 로드되어 비용이 그대로다.
