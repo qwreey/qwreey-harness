@@ -53,3 +53,11 @@ luau-kb 가 stl-luau 의 서술을 재현하거나 다시 재 보니 틀렸거�
 |---|---|---|---|---|---|
 | S27 | `stylua.toml:1` | tbox/quad 와 같은 설정이다 | tbox 는 Spaces + Input 이고 quad 는 설정 파일이 없다 | claude-doctor `decisions/D-02-stylua.md` | 표현 (낡은 서술 1번째 줄) |
 | S28 | `mise.toml:18-19` | quad 는 luau 를 고정하지 않는다 | quad 는 0.734 를 핀했다 | claude-doctor `decisions/D-05-toolchain-pins.md` | 표현 (낡은 서술 2번째 줄) |
+
+## 분리 계획: `src/Collections/Arr.luau` (2026-11-10)
+전체 근거와 계획기 원문: claude-doctor `drafts/split-plans/stl-luau-Arr.md`. 읽기 전용 시험이며 stl-luau 에는 쓰지 않았다.
+- 3,030줄이 **6군집**(Insert 196, Ctor 310, Query 469, Sort 404, Shuffle 319→`Range`/`Reorder` 로 이름 변경 권장, Stream 683) + `Core` 37줄 + `init` 약 150줄로 갈린다. 군집 사이 간선 7개가 모두 `Core` 로 가고 **순환 0**, 모듈 상태 0 이라 **옮기기만 하는 커밋**으로 나눌 수 있다.
+- 타입이 하나(`Arr<T>`)여도 나눌 수 있다. `snippets/style-split-types.sh`(luau-kb) S1 이 0.734·0.742·0.746 에서 제네릭·콜백 검사·`Arr.Sized<<number?>>` 명시 인자가 그대로임을 실측했다. 묶음이 `init` 을 require 하면 순환이므로(S3) 생성자는 `Ctor` 로 뺀다.
+- **측정 필요**: `Core` 의 `toIndex`·`resolveRange`·`wrap`·`newEmpty` 는 뜨거운 루프 앞의 작은 헬퍼라, 다른 파일로 옮기면 `-O2` 인라인이 사라질 수 있다(luau-perf `calls-and-closures.md` §1). 옮긴 뒤 `bench/` 로 재거나 묶음마다 사본을 둔다.
+- 계약 구현 위치 함수 다섯(241–280)은 `listImpl` 표와 함께 `init` 에 남기거나 `Query` 로 보낸다.
+- D-13 확정(2026-11-10): 파일 길이 800줄 경고·1,500줄 강제(테스트는 두 배)이나 **알림만 하고 막지 않는다**. 확실한 사유를 기록하면 기준을 넘는 예외도 가능하다. 계획기는 `python3 -I /code/Projects/luau-kb/skills/luau-style/scripts/split-plan.py <파일.luau> [--target 400] [--max 800] [--scope 함수이름] [--json]` (읽기 전용, 표준 라이브러리만). `Arr.luau` 는 예외로 두지 않는다는 것이 사용자 결정이다.

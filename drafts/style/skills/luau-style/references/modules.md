@@ -1,3 +1,5 @@
+> 이전됨 → luau-kb/skills/luau-style, 이 초안은 갱신하지 않음 (CD04: 정적 검사 서술은 strict 조건부, 동적 require 는 런타임 실행·strict analyze 거부)
+
 # modules.md — 파일·모듈·require·배치
 
 목차

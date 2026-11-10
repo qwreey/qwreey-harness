@@ -26,7 +26,7 @@
   - `local` 다음이면 `;` 를 앞 줄 끝으로 옮겨 안전하다.
   - [실행: `/tmp/cd-exp/syn/p1.luau`. stl 이 `conventions.md:93` 에 적은 것과 같음]
 - **`local const x = 1` 은 문법 에러가 아니다.** `const` 라는 지역변수와 전역 대입 `x = 1` 이 된다. [실행]
-  - 0.734·0.742 둘 다 실행되고, 린트(`SameLineStatement`, `UninitializedLocal`)만 경고한다.
+  - 0.734·0.742 둘 다 실행되고, 린트(`SameLineStatement`, `UninitializedLocal`)만 경고한다. (→ 정정 절 참고)
   - stl `conventions.md:89` 와 일치한다.
 - **`const function f()` 는 유효한 문법이다**(0.734·0.742 실행·분석 모두 통과). [실행: `c1.luau`]
 - **lune 0.10.5 는 `const` 를 파싱하지 못한다**(`Incomplete statement`). [실행] → D-03.
@@ -75,3 +75,8 @@ rbvm 의 "`const` 금지"는 pesde 0.7.3 의 타입 익스포트 문제 때문�
 ## 사용자 결정 (2026-11-10)
 
 **확정: `const`를 써도 된다.** rbvm 의 금지 근거(pesde 0.7.3)는 사라졌다. 같은 파일 안에서 섞지 않는 것은 유지한다. rbvm 쪽 규약 갱신은 rbvm 세션 몫이다(HUMAN_TODO 또는 handoff).
+
+## 정정 (2026-11-10, luau-kb 증류)
+- "린트 경고만 난다"는 **nonstrict 에서만** 맞다. `--!strict` 에서는 luau-analyze 0.734·0.742 가 `TypeError: Unknown global 'x'` 를 낸다. 실행은 두 모드 모두 된다.
+- 따라서 `const` 를 쓰지 않는 파일에서 실수로 `local const x = 1` 이 생기면 strict 검사가 잡아 준다. nonstrict 파일은 린트에만 기대야 한다.
+- 근거: `/code/Projects/luau-kb/skills/luau-style/references/idioms.md` 정정, `/code/Projects/luau-kb/snippets/style-const-local-const-global.luau`

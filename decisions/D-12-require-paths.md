@@ -18,7 +18,7 @@
 
 - `init.luau` 상대 경로 규칙: stl·tbox·moonwave 가 각자 실측했다. luau CLI 0.734 기준이다.
   - tbox `squish` 에서는 실제로 이 실수로 깨진 코드가 있었다(`tbox/CLAUDE.md:108-109`). [기록]
-- **정적 검사가 require 경로 오류를 잡지 못한다**(stl `architecture.md:307-330`, moonwave `conventions.md:73-74`). 그래서 "실제로 불러보는 테스트"가 유일한 그물이다. [기록]
+- **정적 검사가 require 경로 오류를 잡지 못한다**(→ 정정 절 참고: strict 조건부) (stl `architecture.md:307-330`, moonwave `conventions.md:73-74`). 그래서 "실제로 불러보는 테스트"가 유일한 그물이다. [기록]
 - devplorer 의 `@game` 금지는 그 저장소의 배포 방식(복제되는 번들) 때문이다. table-sim 은 고정 위치(`ReplicatedStorage/TableSim`)에서 돌아서 `@game` 이 문제 되지 않는다. [기록·추정]
 - CLI(luau)와 Studio 의 require 해석이 다를 수 있다. 비교표가 없다(감사 05 §2-3). [서술]
 
@@ -29,7 +29,7 @@
   1. `init.luau` 안에서 자기 폴더 파일은 `@self/`, `./` 는 폴더의 형제다.
   2. require 대상은 문자열 리터럴로 쓴다.
   3. 테스트 엔트리를 `init.luau` 로 짓지 않는다.
-  4. 새 모듈은 실제로 require 하는 테스트를 둔다(정적 검사가 못 잡음).
+  4. 새 모듈은 실제로 require 하는 테스트를 둔다(정적 검사가 못 잡음). (→ 정정 절 참고: 규칙은 유지)
   5. symlink 를 따라가지 않으므로 스테이징은 복사로 한다.
 - 조건부 규칙: **위치가 바뀌는(복제·이동되는) 코드에서는 `@game/` 절대 경로 금지.**
 
@@ -48,3 +48,9 @@
 ## 5. 사용자 확인 질문
 
 require 규칙 다섯(`init.luau` 의 `@self`, 리터럴 경로, 엔트리를 `init.luau` 로 짓지 않음, 실제로 불러보는 테스트, symlink 미추적)을 공통 규칙으로 넣고, `@game/` 금지는 "위치가 바뀌는 번들일 때만"으로 둘까요?
+
+## 정정 (2026-11-10, luau-kb 증류)
+- "정적 검사가 require 경로 오류를 못 잡는다"에는 strict 조건이 붙는다. `--!strict` 면 없는 경로는 `Unknown require` 로 잡힌다. 못 잡는 것은 nonstrict 이거나, 오타가 다른 실제 파일로 풀리는 경우다.
+- 규칙 4(실제 require 테스트)는 그대로 필요하다.
+- 동적 require 경로: luau 0.734·0.742 런타임은 실행하고, strict 의 luau-analyze 만 `unsupported path` 로 거부한다(Studio 는 미측정). `ambiguous` 에러 서술은 낡았다.
+- 근거: `/code/Projects/luau-kb/skills/roblox-luau/references/require-and-modules.md` §5·§9, `/code/Projects/luau-kb/skills/luau-verify/references/checkers.md` §7, `/code/Projects/luau-kb/snippets/style-require-paths.sh`
