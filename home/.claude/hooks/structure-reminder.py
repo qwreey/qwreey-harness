@@ -260,29 +260,29 @@ def check_file(path, tool, ti, data, state, created):
     exempt = bool(ex and ex[1])
     if exempt and n >= warn and "exempt" not in said:
         said.append("exempt")
-        notes.append(f"`{rel}` ({n} lines) has a structure exemption. Reason: {ex[0]} ({ex[2]})")
+        notes.append(Note("info", f"`{rel}` ({n} lines) has a structure exemption. Reason: {ex[0]} ({ex[2]})"))
     if exempt:
         pass  # 길이 알림 대신 위의 사유 한 줄만
     elif n >= hard and "hard" not in said:
         said += ["hard", "warn"]
         planner = find_planner() if tk == "luau" else None
         plan = f" First extract candidate groups with `python3 -I {planner} {path}` (read-only)." if planner else ""
-        notes.append(f"`{rel}` is {n} lines, over the hard limit ({hard}). Finish the current edit, but before adding more features "
+        notes.append(Note("action", f"`{rel}` is {n} lines, over the hard limit ({hard}). Finish the current edit, but before adding more features "
                      f"to this file, propose a split to the user (which groups go where; a move-only commit first) and wait for an answer.{plan}"
                      f" If the file must stay whole for a solid reason (type limits, generated, pure data), put "
-                     f"`{comments[0]}@structure-exempt: <reason>` in its header.")
+                     f"`{comments[0]}@structure-exempt: <reason>` in its header."))
     elif n >= warn and "warn" not in said:
         said.append("warn")
-        notes.append(f"`{rel}` is {n} lines (warn limit {warn}). Before adding more, check for a responsibility group to split out; "
-                     f"if there is one, name the split candidate in one line in your report.")
+        notes.append(Note("warn", f"`{rel}` is {n} lines (warn limit {warn}). Before adding more, check for a responsibility group to split out; "
+                     f"if there is one, name the split candidate in one line in your report."))
     if ex and not ex[1] and n >= warn and "exempt-bad" not in said and said:
         said.append("exempt-bad")
-        notes.append(f"The structure exemption on `{rel}` ({ex[2]}) is invalid: the reason is empty or not a reason (\"{ex[0]}\"). "
-                     f"Give a real reason or remove the mark.")
+        notes.append(Note("warn", f"The structure exemption on `{rel}` ({ex[2]}) is invalid: the reason is empty or not a reason (\"{ex[0]}\"). "
+                     f"Give a real reason or remove the mark."))
     if not exempt and n - entry["base"] >= grow and n >= warn and "grow" not in said:
         said.append("grow")
-        notes.append(f"`{rel}` grew {entry['base']} -> {n} lines (+{n - entry['base']}) this session. If you keep appending new code "
-                     f"to one file, first see whether it can become a new module.")
+        notes.append(Note("warn", f"`{rel}` grew {entry['base']} -> {n} lines (+{n - entry['base']}) this session. If you keep appending new code "
+                     f"to one file, first see whether it can become a new module."))
 
     if created and os.path.basename(os.path.dirname(path)).lower() not in HOMOGENEOUS and not is_test:
         d = os.path.dirname(path)
@@ -296,16 +296,30 @@ def check_file(path, tool, ti, data, state, created):
         entry_name = "init.luau" if tk == "luau" else "an index file"
         if len(srcs) >= cfg["flat"] and len(subdirs) <= 2 and drel not in seen_dirs:
             seen_dirs.append(drel)
-            notes.append(f"`{drel}/` has {len(srcs)} source files and {len(subdirs)} subfolders. "
-                         f"Propose to the user grouping related files into folders ({entry_name}).")
+            notes.append(Note("warn", f"`{drel}/` has {len(srcs)} source files and {len(subdirs)} subfolders. "
+                         f"Propose to the user grouping related files into folders ({entry_name})."))
         prefix = prefix_of(os.path.splitext(os.path.basename(path))[0])
         fam = sorted({os.path.splitext(x)[0] for x in srcs if prefix_of(os.path.splitext(x)[0]) == prefix})
         key = drel + "::" + prefix
         if len(fam) >= 3 and prefix not in subdirs and key not in seen_dirs:
             seen_dirs.append(key)
-            notes.append(f"`{drel}/` has {len(fam)} files starting with `{prefix}` ({', '.join(fam)}). "
-                         f"Consider grouping them into a `{prefix}/` folder ({entry_name}).")
+            notes.append(Note("info", f"`{drel}/` has {len(fam)} files starting with `{prefix}` ({', '.join(fam)}). "
+                         f"Consider grouping them into a `{prefix}/` folder ({entry_name})."))
     return notes
+
+
+class Note(str):
+    """Message text with an urgency level (info|warn|action; None = no level of its own). See HOOK-MESSAGES.md."""
+    def __new__(cls, level, text):
+        o = super().__new__(cls, text)
+        o.level = level
+        return o
+
+
+def top_level(notes):
+    order = ["info", "warn", "action"]
+    lv = [n.level for n in notes if getattr(n, "level", None) in order]
+    return max(lv, key=order.index) if lv else "info"
 
 
 def prefix_of(stem):
@@ -354,7 +368,7 @@ def main():
 
     if notes and not state.get("ref_said"):
         state["ref_said"] = True
-        notes.append(f"Limits and how to split: {REF}. The repo's .claude/structure.json can change the limits and the toolkit table.")
+        notes.append(Note(None, f"Limits and how to split: {REF}. The repo's .claude/structure.json can change the limits and the toolkit table."))
     try:
         json.dump(state, open(state_path, "w"))
     except OSError:
@@ -362,7 +376,7 @@ def main():
     if not notes:
         return 0
     json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse",
-                                      "additionalContext": '<harness-hook name="structure-reminder">\n' + " ".join(notes) + "\n</harness-hook>"}},
+                                      "additionalContext": f'<harness-hook name="structure-reminder" level="{top_level(notes)}">\n' + " ".join(notes) + "\n</harness-hook>"}},
               sys.stdout, ensure_ascii=False)
     return 0
 

@@ -120,7 +120,7 @@ def main():
         "by every Claude session, and the OOM killer has killed a Claude process before (quad 2026-09-28). " + how +
         " If this is a false positive, wrapping the same way passes."
     )
-    reason = f'<harness-hook name="heavy-proc-guard">\n{reason}\n</harness-hook>'
+    reason = f'<harness-hook name="heavy-proc-guard" level="action">\n{reason}\n</harness-hook>'
     json.dump({"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
         "permissionDecision": "deny",

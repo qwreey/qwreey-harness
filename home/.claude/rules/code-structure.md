@@ -1,4 +1,5 @@
 ---
+description: 코드 구조 규칙. 파일 길이(800/1,500줄)·예외·분리 방법·폴더·데이터·이름 (툴킷 공통, structure-reminder 훅과 짝)
 paths:
   - "**/*.luau"
   - "**/*.lua"
@@ -13,42 +14,42 @@ paths:
   - "**/*.go"
   - "**/*.kt"
 ---
-# 코드 구조 (파일 길이·폴더·데이터) — 툴킷 공통
+# Code structure (file length, folders, data) - all toolkits
 
-> 정책: D-13 확정(2026-11-10). 저장소의 `.claude/rules/`, `conventions.md`, `.claude/structure.json` 이 다르게 정하면 그쪽을 따른다.
-> 이 규칙은 PostToolUse 훅 `structure-reminder` 와 짝이다. 훅은 알리기만 하고 막지 않는다.
+> Policy: decided as D-13 (2026-11-10). If the repo's `.claude/rules/`, `conventions.md`, or `.claude/structure.json` says otherwise, follow the repo.
+> Pairs with the PostToolUse hook `structure-reminder`. The hook only informs; it never blocks.
 
-## 파일 길이
-- 기능을 더하기 전에 대상 파일의 줄 수를 본다. 기준에서 테스트는 두 배이고, 생성물과 순수 데이터 파일은 뺀다.
-  - 800줄을 넘으면 떼어 낼 묶음을 작업 보고에 한 줄로 적는다.
-  - 1,500줄을 넘으면 덧붙이기 전에 사용자에게 분리안을 묻는다.
+## File length
+- Check the target file's line count before adding a feature. Tests get double the limits; generated and pure-data files are excluded.
+  - Over 800 lines: name the group to split out, in one line of your work report.
+  - Over 1,500 lines: ask the user for a split plan before appending anything.
 
-## 예외
-- 확실한 이유가 있으면 기준을 넘긴 채로 둘 수 있다. 예: 타입 한계, 생성물, 순수 데이터.
-- 그때는 이유를 남긴다. 둘 중 하나로 한다.
-  - 파일 머리 10줄 안에 `<주석> @structure-exempt: <사유>` 를 쓴다(`--`, `//`, `#`).
-  - `structure.json` 의 `exempt` 에 적는다.
-- 이유 없는 예외("나중에", "귀찮아서")는 두지 않는다.
+## Exemptions
+- A file may stay over the limit for a solid reason, e.g. type limits, generated code, pure data.
+- Record the reason in one of two ways:
+  - `<comment> @structure-exempt: <reason>` within the first 10 lines of the file (`--`, `//`, `#`).
+  - an entry in `exempt` in `structure.json`.
+- No reasonless exemptions ("later", "too much work").
 
-## 나누는 방법
-- "옮기기만" 하는 커밋을 먼저 하고, 고치기는 다음 커밋에서 한다.
-- 옮긴 뒤에는 문서에 남은 옛 경로를 고치고 이음매를 확인한다.
-- 남은 덩어리에 기능을 다시 붙이지 않는다. 공유 상태는 먼저 상태 표나 모듈로 꺼낸다.
+## How to split
+- Do a move-only commit first; fix things in the next commit.
+- After moving, fix stale paths left in docs and check the seams.
+- Do not re-attach features to the leftover chunk. Extract shared state first into a state table or module.
 
-## 폴더
-- 같은 폴더에 같은 접두를 가진 파일이 셋 이상이면 `접두/` 폴더로 묶는다.
-- 한 폴더에 종류가 다른 소스가 15개를 넘으면 묶음을 제안한다.
-- 대분류(층, 종류)는 저장소가 정한다.
+## Folders
+- Three or more files with the same prefix in one folder: group them into a `prefix/` folder.
+- More than 15 sources of different kinds in one folder: propose a grouping.
+- The repo decides the top-level categories (layer, kind).
 
-## 데이터
-- 항목마다 모양이 같은 것(요청 이름·인자·비용·권한, 배치 등)은 한 곳의 표로 두고, 코드는 그 표를 읽는다.
-- 같은 변수를 문자열로 8갈래 넘게 분기하면 표로 바꿀지 본다.
-- 툴이 만든 데이터는 별도 파일에 두고, 머리에 생성기 경로와 "손으로 고치지 않는다"를 적는다.
-- 복사한 파일에는 원본 경로를 적고, 원본과 같은지 보는 검사를 둔다.
+## Data
+- Per-item data with a uniform shape (request name, args, cost, permission, batch, ...) goes in one table; code reads the table.
+- If one variable is branched on by string in more than 8 ways, consider replacing the branches with a table.
+- Tool-generated data goes in its own file, with the generator path and "do not edit by hand" in the header.
+- A copied file records its source path, and a check verifies it still matches the source.
 
-## 이름
-- 사용자가 정한 이름이나 구조가 규칙과 어긋나도 바로 바꾸지 않는다. 이유를 붙여 변경을 제안하고, 일괄 수정은 승인을 받은 뒤에 한다.
+## Naming
+- If a user-chosen name or structure conflicts with these rules, do not rename right away. Propose the change with reasons; do bulk edits only after approval.
 
-## 툴킷별 상세
-- Luau: `luau-style` 스킬의 `references/structure.md`(사례), `references/splitting.md`(분리 전략), `scripts/split-plan.py`(분리 계획기)
-- 그 밖의 툴킷: 아직 없음. 툴킷을 반입한 뒤 채운다(`harness-doctor` `references/toolkits/`).
+## Toolkit details
+- Luau: `luau-style` skill: `references/structure.md` (cases), `references/splitting.md` (split strategy), `scripts/split-plan.py` (split planner).
+- Other toolkits: none yet. Fill in after the toolkit is imported (`harness-doctor` `references/toolkits/`).

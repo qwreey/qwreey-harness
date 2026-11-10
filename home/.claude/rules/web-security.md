@@ -1,5 +1,5 @@
 ---
-description: 웹·서버 코드를 다룰 때 지킬 보안 필수 규칙 (audit/16 의 설계 수준 공백)
+description: 웹·서버 코드 보안 필수 규칙 (audit/16 의 설계 수준 공백 보완)
 paths:
   - "**/*.ts"
   - "**/*.tsx"

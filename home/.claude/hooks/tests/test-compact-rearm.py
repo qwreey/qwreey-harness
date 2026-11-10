@@ -4,6 +4,7 @@
 같은 (session_id, 회차) 에서는 한 번만 알리고, rearm-on-compact 가 회차를 올리면 다시 알려야 한다.
 """
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -51,6 +52,8 @@ for name, fn in (("bash-bypass-reminder", bypass), ("structure-reminder", struct
     res.append((name + ": new epoch fires again", bool(fn("a"))))
     res.append((name + ": then silent again", fn("a") == ""))
     res.append((name + ": other session unaffected by rearm", fn("b") == ""))
+res.append(("bash-bypass-reminder interpreter note carries level=info", 'level="info">' in json.loads(bypass("lv"))["hookSpecificOutput"]["additionalContext"]))
+res.append(("structure-reminder carries a level", bool(re.search(r'level="(info|warn|action)">', json.loads(struct("lv"))["hookSpecificOutput"]["additionalContext"]))))
 res.append(("rearm-on-compact prints nothing, bad stdin ok", run("rearm-on-compact.py", {}) == ""))
 bad = subprocess.run([sys.executable, "-I", os.path.join(H, "rearm-on-compact.py")], input="{no", capture_output=True, text=True, env=ENV)
 res.append(("rearm-on-compact survives bad stdin", bad.returncode == 0 and not bad.stdout))

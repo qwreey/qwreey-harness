@@ -4,6 +4,7 @@
 임시 저장소를 /tmp 아래에 만들고 훅에 PostToolUse JSON 을 stdin 으로 넣는다. 상태 파일은 TMPDIR 을 임시로 바꿔 격리한다.
 """
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -16,6 +17,9 @@ REPO = os.path.join(T, "repo")
 STATE = os.path.join(T, "state")
 os.makedirs(os.path.join(REPO, ".git"))
 os.makedirs(STATE)
+
+
+LAST = {}
 
 
 def mk(rel, n, head="--!strict"):
@@ -42,7 +46,9 @@ def run(tool, path, sid="s1", ti_extra=None, resp=None, env_extra=None, raw=None
     out = json.loads(p.stdout)
     assert out["hookSpecificOutput"]["hookEventName"] == "PostToolUse"
     ctx = out["hookSpecificOutput"]["additionalContext"]
-    assert ctx.startswith('<harness-hook name="structure-reminder">\n') and ctx.endswith("\n</harness-hook>"), ctx
+    m = re.match(r'<harness-hook name="structure-reminder" level="(info|warn|action)">\n', ctx)
+    assert m and ctx.endswith("\n</harness-hook>"), ctx
+    LAST["level"] = m.group(1)
     return ctx
 
 
@@ -64,11 +70,14 @@ small = mk("src/Small.luau", 100)
 case("작은 파일 Edit → 조용", run("Edit", small, ti_extra=edit(3)), want_empty=True)
 
 mid = mk("src/Mid.luau", 850)
-case("850줄 Edit → warn", run("Edit", mid, ti_extra=edit(2)), "warn limit 800")
+out_w = run("Edit", mid, ti_extra=edit(2))
+case("850줄 Edit → warn", out_w, "warn limit 800")
+case("  … level=warn", out_w, 'level="warn">')
 case("같은 파일 다시 → 조용(세션당 한 번)", run("Edit", mid, ti_extra=edit(2)), want_empty=True)
 mk("src/Mid.luau", 1600)
 out = run("Edit", mid, ti_extra=edit(5))
 case("1600줄로 커짐 → hard", out, "hard limit (1500)")
+case("  … level=action(경고 800 이 섞여도 최고 단계)", out, 'level="action">')
 case("  … 세션 성장(848→1600)도 같은 알림에", out, "848 -> 1600")
 case("그 뒤 → 조용", run("Edit", mid, ti_extra=edit(1)), want_empty=True)
 
@@ -82,6 +91,9 @@ t = mk("tests/Big.spec.luau", 1000)
 case("테스트 1000줄 → 조용(두 배 기준)", run("Edit", t, ti_extra=edit(1)), want_empty=True)
 t2 = mk("tests/Huge.spec.luau", 3100)
 case("테스트 3100줄 → hard(3000)", run("Edit", t2, ti_extra=edit(1)), "hard limit (3000)")
+
+ex = mk("src/Exempt.luau", 1700, head="-- @structure-exempt: type limits, cannot split")
+case("예외 사유 안내 → level=info", run("Edit", ex, sid="ex1", ti_extra=edit(1)), 'level="info">')
 
 gen = mk("assets/meshes/Prop.luau", 5000, head="-- 만든 것: scripts/meshgen.py ← Prop.json. 손으로 고치지 않는다.")
 case("생성물 머리 → 조용", run("Edit", gen, ti_extra=edit(1)), want_empty=True)

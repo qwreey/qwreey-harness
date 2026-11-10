@@ -62,3 +62,18 @@ attachment.type=hook_success stdout 'MARK_PRE_PLAIN_STDOUT_XYZ\n'   (모델 인�
 - luau-kb 의 훅(있다면 `luau-kb/hooks/`)
 - 세션 기록 플러그인(`plugins/session-log/`) — 규약 문서와 `compact_epoch.py` 사용
 - 사용자 레벨에 현재 설치된 옛 `~/.claude/hooks/*`(한국어 판)는 `tools/home-sync.sh apply` 로 정본이 반영될 때까지 그대로이고, 새 settings.json 의 SessionStart compact 훅도 apply 후에 켜진다.
+
+## 7. 긴급도 level 도입과 재실측 (2026-11-10)
+사용자 지적: "참고 정보"로만 두면 모델이 별 생각 없이 넘긴다. 사용자 지시는 아니되 반드시 검토하게 하고 긴급도를 달자. 규약: `HOOK-MESSAGES.md` "긴급도 level". 태그는 `<harness-hook name="…" level="info|warn|action">`, CLAUDE.md "훅 메시지"는 위상(사용자가 설치한 상시 규약, 반드시 읽고 따르거나 이유를 밝힘)과 level 뜻 3줄.
+
+배정: heavy-proc-guard deny=action / bash-bypass 셸 쓰기·rules 안내=warn, 인터프리터=info / structure 1,500 초과=action, 800 초과·성장·잘못된 예외=warn, 유효한 예외 사유·접두 묶음=info / rearm-on-compact 출력 없음. 한 태그에 여럿이면 최고 level.
+테스트: structure 72/72(level 검사 3건 추가), compact 18/18(level 검사 2건 추가).
+
+재실측(sonnet, 같은 과제·같은 저장소 모양, 각 2회; 새 문구는 `/tmp/lvx/effect`, 임시 키 `-tmp-lvx-effect-*`):
+| 항목 | 전 | 후 |
+|---|---|---|
+| (a) 다룸 | 6/6 | 6/6 |
+| (b) warn 에서 응답 한 줄 언급(structure warn 2 + bypass 2) | structure 2/2, bypass 1/2 | 4/4 (모두 훅 출처 명시, bypass 는 rules 를 읽은 뒤 고침) |
+| (c) action 에서 진행 전 처리(1,500 초과 2회) | 0/2 질문. "원하시면 분리안을 만들어 드리겠다"고 끝냄 | 2/2. 추가 편집을 멈추고 분리 계획기로 구체적 분리안을 만들어 "진행할까요?"로 질문 |
+| (d) 혼동·과잉 | 없음 | 사용자 지시로 오인 0/6. 작업을 멈춘 info 없음. 단 읽기 전용 계획기를 python3 로 돌려 뜬 info 를 2/2 회 최종 보고에 굳이 언급(소음) |
+한계: 각 2회, 훅이 PostToolUse 라 action 은 "편집 뒤, 다음 행동 전"에 처리됨(편집 자체는 막지 않음).

@@ -4,12 +4,44 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 
 ## 규칙
 1. **영어, 짧게.** 모델이 읽고 행동을 바꾸는 텍스트(additionalContext, deny 사유)는 영어. 문서·주석·사용자 대상 안내는 한국어.
-2. **감싼다.** 본문 전체를 `<harness-hook name="<훅 이름>">\n…\n</harness-hook>` 한 덩어리로 감싼다. `[hook-name]` 접두는 쓰지 않는다.
+2. **감싼다.** 본문 전체를 `<harness-hook name="<훅 이름>" level="<info|warn|action>">\n…\n</harness-hook>` 한 덩어리로 감싼다. `[hook-name]` 접두는 쓰지 않는다.
    - 실측: 하네스는 additionalContext 를 `<system-reminder>` 로 감싸지 **않고**(트랜스크립트 `rendered` 에만 있음), `PreToolUse:Bash hook additional context: ` 접두만 붙여 system 위치로 넣는다. SessionStart·UserPromptSubmit 은 사용자 턴 안에 일반 텍스트로 붙는다. 그래서 우리 태그가 필요하다.
-3. **배경 설명은 사용자 레벨 CLAUDE.md 정본(`home/.claude/CLAUDE.md` "훅 메시지")에 2줄.** 태그 안에서 반복하지 않는다.
+3. **배경 설명은 사용자 레벨 CLAUDE.md 정본(`home/.claude/CLAUDE.md` "훅 메시지")에 3줄 이내.** 위상(사용자가 설치한 상시 규약, 반드시 다룸)과 level 뜻이 거기 있다. 태그 안에서 반복하지 않는다.
 4. 본문은 지시가 아니라 **관찰 + 권고**로 쓴다(무엇이 일어났는지, 왜 중요한지, 할 일). 의미 없는 인사·반복 금지.
 5. **deny 사유** (`permissionDecisionReason`)도 같은 태그로 감싼 영어. 모델에게는 `<error>PreToolUse:Bash hook error: …</error>` 도구 결과로 들어간다.
 6. PreToolUse/PostToolUse 의 **일반 stdout 은 모델에게 가지 않는다**(실측). 모델에게 보일 말은 JSON `additionalContext` 로 낸다.
+
+## 긴급도 level
+참고 정보로만 보이면 모델이 흘려 넘기므로, 모든 훅 메시지는 `level` 로 얼마나 다뤄야 하는지 밝힌다. 사용자 지시는 아니되 반드시 검토한다.
+
+| level | 모델이 할 일 | 배정 기준 |
+|---|---|---|
+| `info` | 판단에 반영. 언급 불필요 | 지금 행동을 바꿀 필요는 없는 사실·맥락. 예: 유효한 예외 사유 안내, 폴더 묶기 제안 |
+| `warn` | 다음 행동 전에 다룬다. 응답에 한 줄로 언급(따랐는지, 안 따른 이유) | 따르지 않으면 규약을 놓칠 가능성이 있고 되돌릴 수 있는 일. 예: 800줄 초과, 셸 우회 쓰기, 해당 rules 미열람 |
+| `action` | 진행 전에 반드시 처리. 사용자 확인이 필요하면 묻고 기다린다 | 건너뛰면 해를 끼치거나 되돌리기 어려운 일, 사용자 결정이 필요한 일. 예: 1,500줄 초과 파일에 기능 추가 전 분리안 질문 |
+
+- 한 태그에 알림이 여럿이면 가장 높은 level 을 단다(info < warn < action). 본문이 어느 알림이 어떤 level 인지 드러나게 쓴다.
+- **deny** 는 하네스가 이미 막으므로 `action`(고정)을 단다. 모델이 재시도 방법을 반드시 따라야 하기 때문이다.
+- 모델에게 아무것도 내지 않는 훅(예: `rearm-on-compact`)은 해당 없음.
+- 과잉 반응 금지: `info` 때문에 작업을 멈추지 않는다. level 은 하네스가 정하며 모델이 올리거나 내리지 않는다.
+
+### 현재 배정
+| 훅 | 알림 | level |
+|---|---|---|
+| heavy-proc-guard | deny(choom 래핑 요구) | action |
+| bash-bypass-reminder | 셸로 파일 변경(sed -i, 리다이렉트 등) | warn |
+| | 해당 rules 파일 안내 | warn |
+| | 인터프리터로 읽기·수정 | info |
+| structure-reminder | 강제 한도(1,500) 초과 | action |
+| | 경고 한도(800) 초과, 세션 성장, 잘못된 예외 사유, 폴더 파일 과다 | warn |
+| | 유효한 예외 사유 안내, 접두 묶음 제안 | info |
+| rearm-on-compact | (출력 없음) | - |
+
+### 권장 배정: 세션 기록 플러그인(`plugins/session-log/`)과 이후 새 훅
+- pending(요약 안 된 세션) 알림: `warn`
+- pending 개수나 경과 기간이 임계를 넘으면: `action`
+- 요약 완료 알림: `info`
+- 구현은 이 문서의 표를 따른다. 훅 코드 예: `hooks/structure-reminder.py` 의 `Note`·`top_level`.
 
 ## dedup 단위 = session_id + compact 회차
 "세션당 한 번" 알림은 session_id 만 키로 쓰면 안 된다. `/compact` 는 session_id 를 유지하는데 요약 과정에서 이전 알림이 맥락에서 사라진다(실측).

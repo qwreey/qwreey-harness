@@ -113,17 +113,20 @@ def main():
         seen = set()
 
     notes = []
+    levels = []  # info < warn < action; the tag carries the highest
     writes = bool(INPLACE.search(cmd) or REDIRECT.search(cmd))
     interp = any(h in INTERP for h in hs)
 
     if writes and "write" not in seen:
         seen.add("write")
+        levels.append("warn")
         notes.append("This command changes files without the Edit/Write tools (sed -i, redirect, patch, ...). "
                      "PostToolUse hooks on Edit|Write (formatters, checkers) do not run, and path-scoped .claude/rules "
                      "and skill conventions for the file are not applied. After the change, Read the file to check it "
                      "against the conventions, and run the formatter/checker yourself.")
     elif interp and "interp" not in seen:
         seen.add("interp")
+        levels.append("info")
         notes.append("Reading or changing files through an interpreter (" + ", ".join(sorted(set(hs) & INTERP)) + ") bypasses the "
                      "Read/Edit/Write tools: path-scoped .claude/rules may not load and Edit|Write hooks do not run. "
                      "If you generate or bulk-edit source with a script, first check the relevant skills and rules "
@@ -136,6 +139,7 @@ def main():
         hit = [r for r, globs in rules if r not in seen and any(matches(p, g) for p in paths for g in globs)]
         if hit:
             seen.update(hit)
+            levels.append("warn")
             rel = [os.path.relpath(h, proj) if h.startswith(proj) else h.replace(os.path.expanduser("~"), "~") for h in hit]
             notes.append("Rules that apply to files this command touches: " + ", ".join(rel) + " - Read them first if you have not.")
 
@@ -146,7 +150,7 @@ def main():
     except OSError:
         pass
     json.dump({"hookSpecificOutput": {"hookEventName": "PreToolUse",
-                                      "additionalContext": '<harness-hook name="bash-bypass-reminder">\n' + " ".join(notes) + "\n</harness-hook>"}},
+                                      "additionalContext": f'<harness-hook name="bash-bypass-reminder" level="{"warn" if "warn" in levels else "info"}">\n' + " ".join(notes) + "\n</harness-hook>"}},
               sys.stdout, ensure_ascii=False)
     return 0
 
