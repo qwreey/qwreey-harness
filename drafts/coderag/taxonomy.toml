@@ -164,20 +164,26 @@ label = "주석·마커·문서화"
 aliases = ["comment", "주석", "TODO", "D-07", "D-08"]
 # ← quality.md §1–§2
 
-# ── luau/runtime ← 엔진 무관 런타임 사실(스니펫 style-*·perf-weak-*)
+# ── luau/runtime ← skills/luau-runtime (2026-11-10 roblox-luau 에서 나눔: Roblox 엔진 없이 성립하는 것)
 [category."luau/runtime"]
 label = "런타임 의미"
 aliases = ["runtime", "런타임"]
+skill = "luau-runtime"
 
 [category."luau/runtime/gc"]
 label = "GC 와 약한 테이블"
-aliases = ["gc", "weak table", "약한 테이블", "__mode", "ephemeron"]
-# ← snippets/perf-weak-not-ephemeron.luau, luau-perf 메모리 절
+aliases = ["gc", "weak table", "약한 테이블", "__mode", "ephemeron", "누수", "leak"]
+# ← luau-runtime gc-and-weak-tables.md, snippets/rbx-gc-*.luau (비용은 luau/perf/memory, Roblox 관찰은 roblox/gc)
 
 [category."luau/runtime/coroutines"]
 label = "코루틴"
-aliases = ["coroutine", "코루틴", "resume", "yield"]
-# ← snippets/style-coroutine-resume-swallows.luau
+aliases = ["coroutine", "코루틴", "resume", "yield", "C-call boundary", "thread-local"]
+# ← luau-runtime coroutines.md, snippets/style-coroutine-resume-swallows.luau (task 라이브러리는 roblox/signals)
+
+[category."luau/runtime/require"]
+label = "require-by-string (CLI 경로 규칙)"
+aliases = ["require", "init.luau", "@self", ".luaurc", "alias", "symlink", "ambiguous"]
+# ← luau-runtime require-by-string.md, snippets/rbx-require-cli.sh (Studio 쪽은 roblox/require)
 
 [category."luau/runtime/strings"]
 label = "문자열과 UTF-8"
@@ -316,50 +322,71 @@ since = "2026-11-10"
 
 # ─────────────────────────────────────────────────────────────── roblox (엔진 의존)
 
+# 2026-11-10 roblox-luau 를 나눔. 1차 진입 스킬: 엔진 핵심 roblox-engine, 원격·서비스 roblox-net, GUI·월드 roblox-world,
+# 타입·mock·Studio luau-roblox, 문서 조회 roblox-docs. 엔진 없이 성립하는 것은 luau/runtime 으로 갔다.
 [category."roblox"]
 label = "Roblox 엔진과 Luau"
 aliases = ["roblox", "로블록스", "engine", "엔진"]
-skill = "roblox-luau"
+skill = "roblox-engine"
 
 [category."roblox/env"]
 label = "엔진 의존 판정(luau+mock 인가, Studio 인가)"
 aliases = ["env dependence", "환경 의존", "mock 으로 충분한가"]
-# ← env-dependence.md §1–§2, §5
+skill = "luau-roblox"
+# ← luau-roblox env-dependence.md §1–§2, §5
 
 [category."roblox/signals"]
 label = "신호·task 타이밍"
-aliases = ["signal", "신호", "event", "이벤트", "Deferred", "task.defer", "task.spawn", "SignalBehavior"]
-# ← env-dependence.md §3
+aliases = ["signal", "신호", "event", "이벤트", "Deferred", "task.defer", "task.spawn", "SignalBehavior", "TOCTOU", "경쟁"]
+# ← roblox-engine signals-and-events.md, tasks-and-threads.md
 
 [category."roblox/lifecycle"]
 label = "Instance 수명과 Destroy"
-aliases = ["Destroy", "lifecycle", "수명", "Parent", "AncestryChanged"]
-# ← env-dependence.md §4
+aliases = ["Destroy", "lifecycle", "수명", "Parent", "AncestryChanged", "Destroying"]
+# ← roblox-engine instance-lifecycle.md
+
+[category."roblox/instance"]
+label = "트리 API·Attribute·태그·QueryDescendants"
+aliases = ["FindFirstChild", "WaitForChild", "Clone", "Attribute", "CollectionService", "QueryDescendants", "Reflection"]
+# ← roblox-engine instance-api.md
+
+[category."roblox/types"]
+label = "Roblox API 의 타입"
+aliases = ["Instance.new", "IsA", "GetAttribute", "Enum", "typeof"]
+skill = "luau-roblox"
+# ← luau-roblox api-types.md, snippets/rbx-types-*.luau
+
+[category."roblox/perf"]
+label = "엔진 비용 기준치"
+aliases = ["perf", "성능", "비용", "optimize", "-O2"]
+# ← roblox-engine perf.md
 
 [category."roblox/require"]
-label = "Roblox 의 require"
-aliases = ["require", "@game", "@self", "ModuleScript"]
-# ← snippets/rbx-require-cli.sh, luau-style modules.md §3
+label = "Roblox 안 require(Studio 문자열 require, 캐시, VM 경계)"
+aliases = ["require", "@game", "ModuleScript", "Studio require", "캐시"]
+# ← roblox-engine require-in-roblox.md (CLI 경로 규칙은 luau/runtime/require, 쓰는 규칙은 luau-style modules.md §3)
 
 [category."roblox/tween"]
 label = "Tween"
 aliases = ["tween", "TweenService", "트윈"]
-planned = true
+# ← roblox-engine tween-and-animation.md
 
 [category."roblox/parallel"]
 label = "Actor 와 Parallel Luau"
-aliases = ["actor", "parallel luau", "병렬", "task.desynchronize"]
-planned = true
-# 원천에도 정리본 없음(luau-kb README "아직 없는 것")
+aliases = ["actor", "parallel luau", "병렬", "task.desynchronize", "ConnectParallel", "SharedTable", "thread safety"]
+# ← roblox-engine parallel-luau.md, snippets/rbx-parallel-*.luau
 
 [category."roblox/gui"]
 label = "GUI 와 입력"
 aliases = ["gui", "ui", "input", "입력", "AutomaticSize", "TextBounds", "ZIndex", "focus", "포커스", "SurfaceGui"]
-# ← gui-and-input.md
+skill = "roblox-world"
+# ← roblox-world gui-and-input.md
 
 [category."roblox/networking"]
 label = "원격·복제"
 aliases = ["networking", "네트워크"]
+skill = "roblox-net"
+# ← roblox-net remotes-and-replication.md
 
 [category."roblox/networking/remotes"]
 label = "RemoteEvent·RemoteFunction 인자와 한도"
@@ -374,6 +401,8 @@ aliases = ["replication", "복제", "network ownership", "소유권", "streaming
 [category."roblox/world"]
 label = "월드"
 aliases = ["world", "월드"]
+skill = "roblox-world"
+# ← roblox-world world-and-physics.md
 
 [category."roblox/world/physics"]
 label = "물리·제약·DragDetector"
@@ -393,6 +422,8 @@ aliases = ["MeshPart", "EditableMesh", "EditableImage", "asset", "에셋", "High
 [category."roblox/services"]
 label = "플랫폼 서비스"
 aliases = ["service", "서비스"]
+skill = "roblox-net"
+# ← roblox-net platform-services.md
 
 [category."roblox/services/data"]
 label = "DataStore·MemoryStore·MessagingService"
@@ -412,37 +443,43 @@ aliases = ["HttpService", "JSONEncode", "Open Cloud", "publish", "게시"]
 [category."roblox/security"]
 label = "보안(검증·필터·샌드박스)"
 aliases = ["security", "보안", "exploit", "검증", "TextService", "filter", "loadstring", "DoS"]
+skill = "roblox-net"
 # ← remotes-and-replication.md §1, §5–§6, platform-services.md §5, §7–§8
 
 [category."roblox/gc"]
-label = "Roblox 의 약한 테이블과 GC"
-aliases = ["gc", "weak table", "ephemeron", "collectgarbage"]
-# ← snippets/rbx-gc-*.luau
+label = "Roblox 안 GC 관찰(Instance·연결이 얽힌 수거)"
+aliases = ["gc", "collectgarbage", "gcinfo", "Instance weak key", "메모리"]
+# ← roblox-engine gc-in-roblox.md, instance-lifecycle.md §4–§6 (약한 표 의미론은 luau/runtime/gc)
 
 [category."roblox/testing"]
 label = "mock 과 엔진 의존 테스트"
 aliases = ["mock", "목", "getfenv", "주입", "충실도"]
-# ← mocks.md
+skill = "luau-roblox"
+# ← luau-roblox mocks.md
 
 [category."roblox/studio"]
 label = "Studio MCP 와 동기화"
 aliases = ["studio", "Studio MCP", "rojo", "sync", "studio-sync", "Play"]
-# ← studio-mcp.md
+skill = "luau-roblox"
+# ← luau-roblox studio-mcp.md
 
 [category."roblox/api-docs"]
 label = "Roblox API 문서 찾기"
-aliases = ["api docs", "create.roblox.com", "llms.txt", "문서"]
-# ← api-docs.md
+aliases = ["api docs", "create.roblox.com", "llms.txt", "문서", "creator-docs", "roblox_docs.py", "deprecated", "thread safety"]
+skill = "roblox-docs"
+# ← roblox-docs sources.md, luau-kb tools/roblox_docs.py (문서 루트 pack 후보 — sources.md §6)
 
 [category."roblox/typedefs"]
 label = "정의 파일과 sourcemap"
 aliases = ["globalTypes", "definitions", "정의 파일", "sourcemap", "--definitions"]
-# ← typedefs.md
+skill = "luau-roblox"
+# ← luau-roblox typedefs.md
 
 [category."roblox/logging"]
 label = "LogService 와 로그"
 aliases = ["LogService", "log", "로그", "print"]
-# ← platform-services.md §9
+skill = "roblox-net"
+# ← roblox-net platform-services.md §9
 
 # ─────────────────────────────────────────────────────────────── harness (에이전트 하네스)
 # luau-kb 의 지식이 아니다. claude-doctor(사용자 레벨)의 어휘 후보로 함께 적는다 — D13-6.

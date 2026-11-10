@@ -18,7 +18,12 @@ link skills/harness-doctor ${HARNESS_DOCTOR_ROOT}/home/.claude/skills/harness-do
 # 툴킷 luau — 공유 지식 luau-kb (플러그인 마켓으로 옮기면 이 줄들은 지운다)
 link skills/luau-types ${HARNESS_WORKSPACE}/luau-kb/skills/luau-types
 link skills/luau-verify ${HARNESS_WORKSPACE}/luau-kb/skills/luau-verify
-link skills/roblox-luau ${HARNESS_WORKSPACE}/luau-kb/skills/roblox-luau
+link skills/luau-runtime ${HARNESS_WORKSPACE}/luau-kb/skills/luau-runtime
+link skills/luau-roblox ${HARNESS_WORKSPACE}/luau-kb/skills/luau-roblox
+link skills/roblox-engine ${HARNESS_WORKSPACE}/luau-kb/skills/roblox-engine
+link skills/roblox-net ${HARNESS_WORKSPACE}/luau-kb/skills/roblox-net
+link skills/roblox-world ${HARNESS_WORKSPACE}/luau-kb/skills/roblox-world
+link skills/roblox-docs ${HARNESS_WORKSPACE}/luau-kb/skills/roblox-docs
 link skills/luau-upstream ${HARNESS_WORKSPACE}/luau-kb/skills/luau-upstream
 link skills/luau-style ${HARNESS_WORKSPACE}/luau-kb/skills/luau-style
 link skills/luau-testing ${HARNESS_WORKSPACE}/luau-kb/skills/luau-testing

@@ -31,7 +31,7 @@
   | 접두 | 담당 |
   |---|---|
   | `perf-` | luau-perf |
-  | `rbx-` | roblox-luau |
+  | `rbx-` | roblox-engine·roblox-net·roblox-world·luau-roblox (구 roblox-luau, 2026-11-10 분리) |
   | `style-` | luau-style |
   | `test-`, `pack-`, `opt-`, `native-` | testing·types·verify |
 
