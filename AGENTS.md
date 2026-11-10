@@ -15,6 +15,7 @@
 | luau·luau-lsp·stylua 를 올릴지, 새 문법·RFC 를 지금 써도 되는지, 알려진 결함이 상류에서 고쳐지는지 | `/code/Projects/luau-kb/skills/luau-upstream/SKILL.md` |
 | 공개 API 의 hover·자동완성·추론 타입(DX) 확인 | `/code/Projects/luau-kb/skills/luau-verify/references/checkers.md` §6, `/code/Projects/luau-kb/tools/lsp_probe.py` |
 | `.luau` 파일을 쓸 때 항상 지킬 짧은 규칙 | `/code/Projects/luau-kb/rules/luau-core.md` (경로 조건부 규칙, `/code/Projects/luau-kb/rules/README.md`) |
+| 파일 길이·분리·폴더 묶음 같은 코드 구조 규칙 | 정본은 사용자 레벨 `~/.claude/rules/code-structure.md`(claude-doctor `home/.claude/rules/code-structure.md`, 툴킷 공통). Luau 세부는 `/code/Projects/luau-kb/skills/luau-style/references/structure.md`·`splitting.md`. `/code/Projects/luau-kb/rules/code-structure.md` 는 이 안내만 둔다 |
 
 ### 주제가 여러 스킬에 걸칠 때의 정본
 - weak 표: 의미론(ephemeron 없음, `__mode`)·누수·Roblox 안 GC 관찰은 roblox-luau `gc-and-weak-tables.md`, 비용·객체 크기·클로저 캐시는 luau-perf `gc-and-memory.md`, 누수 판정 하네스·프로브 함정은 luau-testing `gc-and-time.md`.

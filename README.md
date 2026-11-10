@@ -31,7 +31,7 @@ skills/
                          world-and-physics, platform-services, perf
   luau-upstream/         SKILL.md + references/ 5개
     references/          sources, watchlist, syntax-adoption, version-bump, roadmap-notes
-rules/                   luau-core.md(**/*.luau), code-structure.md(제안 D-13), README.md(배포 방식과 로드 실측)
+rules/                   luau-core.md(**/*.luau), code-structure.md(안내만: 정본은 ~/.claude/rules/code-structure.md), README.md(배포 방식과 로드 실측)
 snippets/                *.luau 152개(주장 하나에 파일 하나, 접두가 담당: perf- rbx- style- test- opt- native- pack- tf- …)
                          + *.sh 셸 하네스(require·stylua·cross-module) + RESULTS.md (버전 행렬 결과, 강등 목록)
 bench/                   성능 벤치 19개 + lib/ 하네스 + run.sh + RESULTS.md, results/*.tsv (luau-perf 근거)

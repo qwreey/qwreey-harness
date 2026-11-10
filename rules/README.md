@@ -5,7 +5,7 @@
 | 파일 | paths | 줄 수 | 근거·예시 |
 |---|---|---|---|
 | `luau-core.md` | `**/*.luau` | 38 | `skills/luau-style/references/` (각 줄 끝 링크) |
-| `code-structure.md` | `**/*.{luau,lua,ts,tsx,go}` | 17 | `skills/luau-style/references/structure.md` — **D-13 확정+보완**(claude-doctor `decisions/README.md` 현황표, 2026-11-10). 확정됐으므로 MANIFEST 에 `link rules/code-structure.md /code/Projects/luau-kb/rules/code-structure.md` 를 더한다(`home/` 정본은 claude-doctor 쪽이라 사용자가 `home-sync` 로 반영) |
+| `code-structure.md` | `**/*.{luau,lua}` | 9 | **안내만 둔다.** 구조 규칙(D-13 확정)은 툴킷과 무관해서 정본이 사용자 레벨 `~/.claude/rules/code-structure.md`(claude-doctor `home/.claude/rules/code-structure.md`, MANIFEST 관리 파일)로 옮겨 갔다. 이 파일은 MANIFEST 로 링크하지 않는다. 플러그인을 읽지 않는 에이전트에게 정본 위치와 Luau 세부(`skills/luau-style/references/structure.md`·`splitting.md`, 입구 `init.luau`)만 알려 준다 |
 
 ## 작성 규칙
 - frontmatter 에 `paths` 를 반드시 단다. 없으면 매 세션 항상 로드되어 비용이 그대로다.
