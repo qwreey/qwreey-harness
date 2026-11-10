@@ -46,4 +46,13 @@
 - [ ] table-sim 세션에 `handoff/table-sim.md` 전달 (서버 파일 구조 제안)
 - [ ] 각 저장소의 낡은 서술 8건 정정
   - 목록: `decisions/README.md` 끝 "이번에 발견한 낡은 서술"
+  - 2026-11-10: 아래 저장소별 정정 파일에 합쳤다. 그 파일들을 전달하면 이 항목도 끝난다.
+- [ ] quad 세션에 `handoff/quad.md` 의 "luau-kb 증류에서 나온 정정" 절 전달 (36건: 행동 16, 표현 20. `-O2` 게이트·에러 위치·태깅 지점, type function 제약, alias, 엔진 동작)
+- [ ] stl-luau 세션에 `handoff/stl-luau-corrections.md` 전달 (28건: 행동 6, 표현 22. perf-measurements 수치 정정 중심, `handoff/stl-luau.md` 와 별개)
+- [ ] tbox 세션에 `handoff/tbox-corrections.md` 전달 (6건: 행동 2, 표현 4. stylua 오염 원인, analyze FFlag 확인 무효)
+- [ ] devplorer 세션에 `handoff/devplorer-corrections.md` 전달 (5건: 행동 2, 표현 3. DataStore 예산, weak 표 Instance 수거)
+- [ ] rbvm 세션에 `handoff/rbvm-corrections.md` 전달 (4건: 행동 2, 표현 2. 접두 없는 require, 시그널 userdata 신원. 위 `const` 항목 포함)
+- [ ] table-sim 세션에 `handoff/table-sim-corrections.md` 전달 (2건: 표현 2)
+- [ ] moonwave-luau 세션에 `handoff/moonwave-luau-corrections.md` 전달 (2건: 표현 2)
+- [ ] 메인(claude-doctor)이 `handoff/claude-doctor-corrections.md` 반영 (8건: 행동 2, 표현 6. D-01 §2, audit/09 M-05)
 - [ ] moonwave-luau 의 `.claude/`, `CLAUDE.md` 가 한 번도 커밋되지 않았다. 커밋할지 결정한다.
