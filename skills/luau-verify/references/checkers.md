@@ -165,7 +165,7 @@ Roblox(정의 파일 + platform roblox): hover `part` → `Part`, `players` → 
 ## §7 require 해소: 검사기와 런타임이 갈리는 자리
 status: verified · last-confirmed: luau 0.734·0.742, luau-lsp 1.70.1 · 근거: `snippets/verify-require.sh`(R1~R6, rc=0), `snippets/rbx-require-cli.sh` Q8·Q9(다른 모듈로 풀림), `snippets/style-require-paths.sh` R3·R4(동적 경로) · 원천: 후보 Q-102, Q-103, Q-104, S-123, S-124, S-126 (quad `scripts/relink.sh:4-18`, `.claude/base/project-setup-plan.md:112-246,339-348`; stl `base/architecture.md:37-57,312-341`; tbox `CLAUDE.md:63-70,95-117`; moonwave `conventions.md:66-74`)
 
-정적 검사가 통과해도 require 는 런타임에서만 터질 수 있다. 어디서 갈리는지 알아야 "0건"을 믿을지 정할 수 있다. 이 표가 **검사기 대 런타임 판정의 정본**이다. 경로 해석 규칙 자체(`init.luau` 의 `./` 와 `@self`, ambiguous 에러, 사본)는 luau-runtime 스킬 `references/require-by-string.md`, Studio 의 문자열 require·캐시는 roblox-engine 스킬 `references/require-in-roblox.md` 가 정본이다.
+정적 검사가 통과해도 require 는 런타임에서만 터질 수 있다. 어디서 갈리는지 알아야 "0건"을 믿을지 정할 수 있다. 이 표가 **검사기 대 런타임 판정의 정본**이다. 경로 해석 규칙 자체(`init.luau` 의 `./` 와 `@self`, ambiguous 에러, 사본)는 luau-runtime 스킬 `../../luau-runtime/references/require-by-string.md`, Studio 의 문자열 require·캐시는 roblox-engine 스킬 `../../roblox-engine/references/require-in-roblox.md` 가 정본이다.
 
 | 상황 | `luau` 런타임 | `luau-analyze` | `luau-lsp analyze` |
 |---|---|---|---|

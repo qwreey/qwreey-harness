@@ -75,8 +75,8 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일), `run_opt.sh` B1�
 
 `error(msg, 2)` 는 "나를 부른 프레임"을 가리킨다. 인라인된 함수에는 프레임이 없어 level 이 밀린다. `-O2` 에서 지역 함수·**테이블 리터럴** 필드 함수는 인라인돼 위치가 사라지거나 **틀린 줄**을 가리키고, 대입으로 만든 필드(`function M.f`)만 안전하다. `debug.traceback`·`debug.info(1, "n")` 도 인라인된 함수를 보지 못한다(`-g2` 로도 안 돌아옴). native 실행(`--codegen`) 자체는 위치를 바꾸지 않는다. 바꾸는 것은 수준 2 다.
 
-- 경우별 표와 테스트 쪽 함의(같은 스위트를 `-O1`·`-O2` 로 두 번)의 정본: luau-testing 스킬 `references/optimize-levels.md` §2.
-- 처방(손으로 센 level 대신 첫 비라이브러리 프레임을 찾는 raise 헬퍼)의 정본: luau-style 스킬 `references/errors.md` §2.
+- 경우별 표와 테스트 쪽 함의(같은 스위트를 `-O1`·`-O2` 로 두 번)의 정본: luau-testing 스킬 `../../luau-testing/references/optimize-levels.md` §2.
+- 처방(손으로 센 level 대신 첫 비라이브러리 프레임을 찾는 raise 헬퍼)의 정본: luau-style 스킬 `../../luau-style/references/errors.md` §2.
 
 ## §5 인라인 캐시와 상수 키
 status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/opt-inline.luau`(ic-name, ic-slot, const-key 그룹), `bench/tbl-access.luau`(field-vs-slot), 후보 S-P21, S-P22, S-P24, S-P25

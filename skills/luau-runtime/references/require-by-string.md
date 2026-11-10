@@ -76,7 +76,7 @@ status: verified (CLI 런타임·analyze·luau-lsp) / described (Rojo) · last-c
 ## §5 정적 검사가 잡는 것과 못 잡는 것
 status: verified · last-confirmed: luau 0.734, 0.742, luau-lsp 1.70.1 · 근거: `snippets/rbx-require-cli.sh` Q8·Q9 · 후보: Q-102, S-124, X-02
 
-판정표(런타임 × `luau-analyze` × `luau-lsp`)의 정본은 luau-verify 스킬 `references/checkers.md` §7 이다. 요지:
+판정표(런타임 × `luau-analyze` × `luau-lsp`)의 정본은 luau-verify 스킬 `../../luau-verify/references/checkers.md` §7 이다. 요지:
 - strict 에서는 풀리지 않는 경로(없는 파일, `init.luau` 의 `./` 오용, symlink, `./` 없는 alias 값)를 `luau-analyze` 가 `Unknown require: unsupported path`(rc=1)로 잡는다. nonstrict 는 0건이다.
 - **있는 다른 모듈로 풀리는 오타**는 모드와 무관하게 못 잡는다. luau-lsp 는 symlink 와 `./` 없는 alias 를 풀어 버려 에디터만 보면 놓친다. Roblox 인스턴스 경로(`script.Parent.X`)는 sourcemap 이 있어야 푼다(luau-roblox `typedefs.md` §4).
 - 그래서 "정적 검사가 require 오류를 **절대** 못 잡는다"는 strict 에서 틀렸고, 처방은 (1) 모든 파일 strict, (2) require 를 고친 변경은 실제로 require 하는 런타임 게이트다.

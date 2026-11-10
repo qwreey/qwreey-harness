@@ -78,19 +78,19 @@ status: described(Studio) / verified(CLI 측정 규칙) · 근거: quad/.claude/
 
 - 힙 수치는 churn 뒤 **최저값**으로 적는다. 벤치 하네스도 이전 결과를 놓고 collect 한다(`bench/lib/bench.luau`).
 - `luau-analyze` 는 `collectgarbage` 를 모른다. 타입 검사를 받는 스니펫에서는 `(_G :: any).collectgarbage` 로 꺼낸다.
-- 누수 판정 하네스(`fullgc`, 객체 수 판정, 측정 함수 분리, 프로브 함정)의 정본은 luau-testing `references/gc-and-time.md` §1–§2 다.
-- "GC 는 할당이 있어야 진행한다"(유휴 Studio 힙 56 MB 고정 → 할당 뒤 약 10 MB)와 Roblox 샌드박스의 `collectgarbage` 가 `"count"` 만 받는 점은 luau-runtime `references/gc-and-weak-tables.md` §4(언어 규칙)와 roblox-engine `references/gc-in-roblox.md` §1–2(Roblox 관찰)가 정본이다.
+- 누수 판정 하네스(`fullgc`, 객체 수 판정, 측정 함수 분리, 프로브 함정)의 정본은 luau-testing `../../luau-testing/references/gc-and-time.md` §1–§2 다.
+- "GC 는 할당이 있어야 진행한다"(유휴 Studio 힙 56 MB 고정 → 할당 뒤 약 10 MB)와 Roblox 샌드박스의 `collectgarbage` 가 `"count"` 만 받는 점은 luau-runtime `../../luau-runtime/references/gc-and-weak-tables.md` §4(언어 규칙)와 roblox-engine `../../roblox-engine/references/gc-in-roblox.md` §1–2(Roblox 관찰)가 정본이다.
 
 ## §6 클로저 캐시
 status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/perf-closure-cache.luau`, 후보 Q-005, Q-006
 
 - 업밸류가 반복마다 바뀌지 않는 클로저 식(`function() return shared end`, `function() end`)은 반복마다 **같은 함수 객체**다. 할당이 없다. 반복 변수를 캡처하면 매번 새 객체다.
 - GC 잔여를 세는 측정에서 "1개 남음"으로 보이는 원인이다.
-- 함수를 키로 쓰는 레지스트리의 수명 함정(인라인 클로저가 바깥 모듈을 캡처하면 영구 잔존)은 luau-runtime `references/gc-and-weak-tables.md` §7.
+- 함수를 키로 쓰는 레지스트리의 수명 함정(인라인 클로저가 바깥 모듈을 캡처하면 영구 잔존)은 luau-runtime `../../luau-runtime/references/gc-and-weak-tables.md` §7.
 
 ## §7 경계: 의미론은 luau-runtime 에
-- ephemeron 없음(값이 키를 가리키면 영구 잔존), `__mode = "v"` 의 키는 강함, `__mode` 오타, 약한 값 배열의 구멍, 멈춘 코루틴이 잡는 키, GC 시점에 기대는 코드: luau-runtime `references/gc-and-weak-tables.md` §2~§4(스니펫 `rbx-gc-no-ephemeron.luau`, `rbx-gc-weak-modes.luau`). 순수 Luau 의미론이지만 그쪽이 정본이다.
-- Instance userdata 의 수거와 재생성: roblox-engine `references/instance-lifecycle.md`.
+- ephemeron 없음(값이 키를 가리키면 영구 잔존), `__mode = "v"` 의 키는 강함, `__mode` 오타, 약한 값 배열의 구멍, 멈춘 코루틴이 잡는 키, GC 시점에 기대는 코드: luau-runtime `../../luau-runtime/references/gc-and-weak-tables.md` §2~§4(스니펫 `rbx-gc-no-ephemeron.luau`, `rbx-gc-weak-modes.luau`). 순수 Luau 의미론이지만 그쪽이 정본이다.
+- Instance userdata 의 수거와 재생성: roblox-engine `../../roblox-engine/references/instance-lifecycle.md`.
 
 ## §8 정정과 조건 차이
 | 원천 | 원래 서술 | 이번 측정 | 처리 |

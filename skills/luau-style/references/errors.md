@@ -35,7 +35,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippe
 
 `error(msg, n)` 의 n 은 "error 를 부른 함수에서 몇 프레임 위인가"다. 인라인된 함수에는 프레임이 없어서 n 이 밀린다.
 
-경우별 표(`-O1`/`-O2` 결과: 위치 없음, 틀린 줄, 리터럴 필드 인라인, 대입 필드는 안전)의 정본은 luau-testing `references/optimize-levels.md` §2 다. 여기서는 표를 되풀이하지 않는다. 요지는 둘이다.
+경우별 표(`-O1`/`-O2` 결과: 위치 없음, 틀린 줄, 리터럴 필드 인라인, 대입 필드는 안전)의 정본은 luau-testing `../../luau-testing/references/optimize-levels.md` §2 다. 여기서는 표를 되풀이하지 않는다. 요지는 둘이다.
 - 로컬 함수·테이블 **리터럴** 필드 함수는 `-O2` 에서 인라인되어 손으로 센 level 이 위치를 잃거나 틀린 줄을 가리킨다.
 - 대입으로 만든 필드 함수(`function M.f`)는 인라인되지 않는다.
 

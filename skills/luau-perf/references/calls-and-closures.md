@@ -27,7 +27,7 @@
 - `pcall` 은 평범한 호출의 1.8~2.9 배, `coroutine.create`+`resume` 은 10~15 배다.
 
 ## §2 호출 모양
-status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/call-shape.luau`, `bench/call-closures.luau`(wrap 그룹), 대상 함수는 `bench/lib/arr.luau`·`lib/vfuncs.luau`(다른 모듈), 후보 S-P04, S-P29
+status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/call-shape.luau`, `bench/call-closures.luau`(wrap 그룹), 대상 함수는 `bench/lib/arr.luau`·`bench/lib/vfuncs.luau`(다른 모듈), 후보 S-P04, S-P29
 
 200만 호출. 기준 = `a:LenM()`(메타테이블 `__index` 를 거쳐 찾는 메서드).
 

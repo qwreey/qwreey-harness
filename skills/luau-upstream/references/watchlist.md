@@ -30,7 +30,7 @@ status: described
   - `불필요` — 고쳐지면 코드 변경 없이 풀린다. 우회 장치를 심지 않는다.
 
 ## §1 타입 솔버 결함 (S1–S19)
-status: verified (0.746 열, 2026-11-10 bug-scan) / described (업스트림 칸) · 근거: luau-types `references/solver-limits.md` §2, `snippets/*`
+status: verified (0.746 열, 2026-11-10 bug-scan) / described (업스트림 칸) · 근거: luau-types `../../luau-types/references/solver-limits.md` §2, `snippets/*`
 
 | ID | 한계 (진단이 안 남) | 스니펫 | 0.742 | 0.746 | 업스트림 | 상태 | 예상 시점 | 우회 수명 |
 |---|---|---|---|---|---|---|---|---|

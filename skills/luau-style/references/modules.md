@@ -40,7 +40,7 @@ status: described · 근거: 저장소 실태(2026-11-10)
 - 모양의 틀(메타테이블 프리미티브, 트레이트 등록, 닷 함수 모음)은 저장소마다 다르다. **그 저장소의 본보기 파일을 열어 따른다.** 본보기 경로는 저장소 `.claude/` 문서에 있다.
 
 ## §3 require 경로 규칙
-status: verified · last-confirmed: luau 0.742 (0.734 동일) · 정본: luau-runtime `references/require-by-string.md` §1·§2·§4·§5 (경로 해석표, ambiguous 에러, symlink, 정적 검사 범위), luau-verify `references/checkers.md` §7 (검사기와 런타임이 갈리는 자리) · 근거 스니펫: `snippets/style-require-paths.sh` R1–R4
+status: verified · last-confirmed: luau 0.742 (0.734 동일) · 정본: luau-runtime `../../luau-runtime/references/require-by-string.md` §1·§2·§4·§5 (경로 해석표, ambiguous 에러, symlink, 정적 검사 범위), luau-verify `../../luau-verify/references/checkers.md` §7 (검사기와 런타임이 갈리는 자리) · 근거 스니펫: `snippets/style-require-paths.sh` R1–R4
 
 이 절은 **규칙 한 줄씩**만 둔다. 이유와 재현은 정본에 있다.
 
@@ -54,7 +54,7 @@ local Types = require("@self/types") -- 좋은 예
 - `require` 인자는 문자열 리터럴로 쓴다. 동적 경로는 런타임은 돌지만 `--!strict` analyze 가 거부한다. → 정본 §5, checkers §7
 - 파일마다 `--!strict` 를 단다. strict 가 있어야 없는 경로를 정적 검사가 잡는다. 있는 다른 파일로 풀리는 오타는 못 잡으므로 새 모듈에는 그 모듈을 실제로 `require` 하는 테스트를 둔다. → 정본 §5
 - 워크스페이스 symlink 는 CLI 가 따라가지 않으니 실행 검증은 `cp -rL` 사본에서 한다. → 정본 §4
-- Studio 의 문자열 require 규칙은 `roblox-engine` 담당이다. → roblox-engine `references/require-in-roblox.md` §1
+- Studio 의 문자열 require 규칙은 `roblox-engine` 담당이다. → roblox-engine `../../roblox-engine/references/require-in-roblox.md` §1
 
 **`@game/…` 절대 경로** (status: described · 근거: `decisions/D-12-require-paths.md`)
 > 정책: 제안(D-12) — 사용자 확인 전. 제안은 "위치가 바뀌는 번들에서만 금지"이다.
@@ -62,7 +62,7 @@ local Types = require("@self/types") -- 좋은 예
 - 고정 위치에서만 도는 코드는 쓴다(table-sim). 저장소 rules 가 정한다.
 
 ## §4 패키지 사본과 타입 전용 require
-status: described · 정본: roblox-engine `references/require-in-roblox.md` §2·§3, luau-runtime `references/require-by-string.md` §8 · 후보 Q-107, Q-108, Q-109, R-45
+status: described · 정본: roblox-engine `../../roblox-engine/references/require-in-roblox.md` §2·§3, luau-runtime `../../luau-runtime/references/require-by-string.md` §8 · 후보 Q-107, Q-108, Q-109, R-45
 
 - 같은 패키지의 설치 사본이 둘이면 모듈 수준 상태가 갈린다. 라이브러리는 코어를 직접 require 하지 말고 게임이 넘긴 인스턴스를 팩토리 인자로 받는다. → 정본 §8
 - 타입만 쓰려는 `require` 도 런타임에 실행된다. 타입 전용 모듈은 가벼운 types 패키지로 분리해 일반 의존성으로 둔다. → 정본 §8
