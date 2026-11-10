@@ -1,3 +1,35 @@
+---
+title: "큰 파일을 나누는 전략 카탈로그와 분리 계획기"
+description: "큰 파일을 어디서 어떻게 자르나: split-plan.py 분리 계획기, 동작 단위 분화, 타입 하나를 여러 파일로 나눠도 타입이 따라오는 init 모으기 꼴, 늦은 조회 표로 전방 선언 끊기, 처리기 표, State.luau, 닫개 덩어리"
+keywords:
+  - "split-plan.py"
+  - "분리 계획기"
+  - "파일 쪼개기"
+  - "split large file"
+  - "타입 하나 여러 파일"
+  - "재수출"
+  - "re-export"
+  - "전방 선언"
+  - "forward declaration"
+  - "늦은 조회 표"
+  - "Cyclic module dependency"
+  - "Cyclic dependencies are only supported if all modules in the cycle use 'export' syntax"
+  - "Key 'Sort' not found in table 'Arr'"
+  - "Cannot add property"
+  - "처리기 표"
+  - "State.luau"
+  - "닫개 덩어리"
+  - "closure factory"
+  - "Core Ctor 분리"
+kind: reference
+category: luau/style/splitting
+tags: [cli]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+  - luau 0.746
+---
 # splitting — 큰 파일을 나누는 전략 카탈로그와 분리 계획기
 
 ## 이 파일이 답하는 질문
@@ -24,6 +56,7 @@
 
 ## §0 분리 계획기
 status: described · last-confirmed: 2026-11-10, 실제 파일 3개 시험(claude-doctor `drafts/split-plans/`) · 근거: `scripts/split-plan.py`
+summary: split-plan.py 가 호출 그래프·공유 상태·구획으로 함수 군집을 묶어 후보 파일·순환·옮기기 순서를 낸다. 결과는 판단 재료
 
 ```bash
 python3 -I <luau-style 스킬>/scripts/split-plan.py <파일.luau> [--json] [--scope <함수>] [--target 400] [--max 800]

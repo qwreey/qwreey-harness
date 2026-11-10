@@ -1,3 +1,30 @@
+---
+title: "DragDetector, 물리, 캐릭터, 용접, 카메라, 런타임 에셋의 엔진 규칙"
+description: "DragDetector 제약 함수는 끌기 시작점 기준 이동량을 주고받음, 구름 저항 없음·얇은 파트 뚫림, 물리로 바뀐 Position 무신호, WeldConstraint Clone 이 원본을 가리킴, 앉은 캐릭터·Humanoid, 카메라, EditableMesh·에셋 로드"
+keywords:
+  - "DragDetector"
+  - "AddConstraintFunction"
+  - "MaxActivationDistance"
+  - "구름 저항 없음"
+  - "얇은 파트 뚫림"
+  - "물리 Position 변경 신호"
+  - "WeldConstraint Clone"
+  - "Weld C0 C1"
+  - "SeatWeld PivotTo"
+  - "EvaluateStateMachine"
+  - "카메라 Scriptable 되돌림"
+  - "CreateMeshPartAsync"
+  - "lacking capability NotAccessible"
+  - "lacking capability Plugin"
+  - "EditableMesh memory budget"
+  - "PreloadAsync Failure"
+  - "에셋 프라이버시 Restricted"
+  - "Highlight 255"
+kind: reference
+category: roblox/world
+tags: [studio, policy, correction]
+last_verified: 2026-11-10
+---
 # world-and-physics — DragDetector, 물리, 캐릭터, 용접, 카메라, 런타임 에셋의 엔진 규칙
 
 ## 이 파일이 답하는 질문

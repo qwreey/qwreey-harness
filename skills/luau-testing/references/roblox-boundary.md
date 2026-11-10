@@ -1,3 +1,31 @@
+---
+title: "Roblox 의존 코드를 luau 로 시험하는 경계: 분리, mock, 그리고 mock 이 거짓말하는 곳"
+description: "Roblox 의존 코드를 luau CLI 로 시험하는 경계(D-03): 엔진 무관 코어 분리·mock 주입·fake 객체, 로드 시점 엔진 전역 참조 금지, mock 과 엔진이 갈리는 점, Deferred 배달 심, fake Instance 의 typeof 한계"
+keywords:
+  - "mock 과 엔진 차이"
+  - "mock vs engine"
+  - "mock 믿어도 되나"
+  - "엔진 무관 코어"
+  - "fake Instance"
+  - "typeof(x) == \"Instance\""
+  - "로드 시점 전역 참조"
+  - "CLI 에 Vector3 없음"
+  - "Deferred 시그널 심"
+  - "deferred shim"
+  - "같은 값 대입 Changed"
+  - "Connect 비함수 인자"
+  - "리스너 에러 격리"
+  - "getfenv mock 주입"
+  - "newproxy"
+  - "Studio 확인 후보"
+kind: reference
+category: luau/testing/roblox-boundary
+tags: [studio, policy]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # roblox-boundary — Roblox 의존 코드를 luau 로 시험하는 경계: 분리, mock, 그리고 mock 이 거짓말하는 곳
 
 ## 이 파일이 답하는 질문

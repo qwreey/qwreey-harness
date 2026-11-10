@@ -1,3 +1,28 @@
+---
+title: "mise 핀, shim 함정, 버전 올리기"
+description: "mise shim 의 'No version is set for shim' 함정과 --help rc=0, 버전 경로 직접 호출, luau 0.734/0.742 핀 입장(미정), 버전을 올리는 절차, pesde·Rojo·symlink 링크 함정"
+keywords:
+  - "No version is set for shim"
+  - "mise shim"
+  - "mise exec"
+  - "직접 호출 경로"
+  - "/code/.local/share/mise/installs"
+  - "버전 핀"
+  - "version pin"
+  - "버전 올리기"
+  - "luau 업그레이드"
+  - "luau-analyze 버전 확인"
+  - "pesde"
+  - "pesde self-upgrade"
+  - "pesde 워크스페이스"
+  - "Rojo 매핑"
+  - "luau_packages"
+  - "symlink 링크"
+kind: reference
+category: luau/tooling/toolchain
+tags: [cli, policy]
+last_verified: 2026-11-10
+---
 # toolchain — mise 핀, shim 함정, 버전 올리기
 
 ## 이 파일이 답하는 질문

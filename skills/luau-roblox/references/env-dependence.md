@@ -1,3 +1,24 @@
+---
+title: "luau+mock 으로 충분한가, Studio 가 필요한가"
+description: "엔진에 기대는 동작을 luau CLI+mock 으로 시험해도 되는지, Studio 가 필요한지 가르는 원칙·판정 표·절차. task 순서, 신호 시점, Destroy, 복제, GUI, 물리, GC 행마다 근거를 단다"
+keywords:
+  - "mock 으로 충분한가"
+  - "Studio 가 필요한가"
+  - "Studio 필요 판정"
+  - "판정 표"
+  - "luau CLI 로 Roblox 테스트"
+  - "엔진 의존 테스트"
+  - "계약 대 엔진 실제 동작"
+  - "engine-dependent test"
+  - "when to use Studio"
+  - "luau CLI task 전역 없음"
+  - "엔진 대면 델타"
+  - "D-03"
+kind: reference
+category: roblox/env
+tags: [policy, studio]
+last_verified: 2026-11-10
+---
 # env-dependence — luau+mock 으로 충분한가, Studio 가 필요한가
 
 ## 이 파일이 답하는 질문

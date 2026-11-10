@@ -1,3 +1,31 @@
+---
+title: "약한 표의 비용, GC 시간, 객체 크기"
+description: "약한 키 레지스트리의 생성·조회·GC 비용(포인터 해싱 한 번이라 무시할 만은 범위 한정), __mode=\"k\" 표는 비워져도 칸 배열을 붙잡음(\"ks\" 는 줄어듦), 표·레코드·클로저 객체 크기, 클로저 캐시"
+keywords:
+  - "약한 표 비용"
+  - "weak table cost"
+  - "약한 키 레지스트리 비용"
+  - "__mode = \"ks\""
+  - "__mode k 메모리 안 줄어듦"
+  - "객체 크기"
+  - "표 메모리 크기"
+  - "table memory size"
+  - "바이트 수"
+  - "GC 시간"
+  - "GC 압박"
+  - "클로저 캐시"
+  - "closure caching"
+  - "type(v) == \"table\" 선검사"
+  - "collectgarbage(\"count\")"
+  - "메모리 고수위"
+kind: reference
+category: luau/perf/memory
+tags: [measured, correction]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # gc-and-memory — 약한 표의 비용, GC 시간, 객체 크기
 
 ## 이 파일이 답하는 질문

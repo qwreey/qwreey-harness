@@ -1,3 +1,22 @@
+---
+title: "Roblox 안에서 GC 를 관찰하기, Instance·연결이 얽힌 수거"
+description: "Roblox 샌드박스의 collectgarbage 는 count 만 받으므로 할당 압박+프레임 넘기기로 수거를 관찰하는 법, 유휴 Studio 메모리가 안 줄어드는 이유, Instance·연결이 얽힌 수거의 정본 링크"
+keywords:
+  - "collectgarbage(\"collect\") 안 됨"
+  - "use gcinfo() instead"
+  - "gcinfo"
+  - "collectgarbage(\"count\")"
+  - "Roblox 수거 관찰"
+  - "할당 압박"
+  - "weak 표 canary"
+  - "GC 에포크"
+  - "Studio 메모리 안 줄어듦"
+  - "누수 판정 Studio"
+kind: reference
+category: roblox/gc
+tags: [studio, correction]
+last_verified: 2026-11-10
+---
 # gc-in-roblox — Roblox 안에서 GC 를 관찰하기, Instance·연결이 얽힌 수거
 
 ## 이 파일이 답하는 질문

@@ -1,3 +1,26 @@
+---
+title: "업스트림을 어디서, 어떻게, 얼마나 자주 보나"
+description: "luau·RFC·luau-lsp·StyLua·rojo·Roblox 엔진 변화를 어디서 보나: 출처 URL 표, API 한도 밖 curl 경로(atom 피드·리다이렉트), FFlag 값 확인, 점검 주기, 사용자가 가져온 정보의 모양과 근거 등급 인용법"
+keywords:
+  - "업스트림 출처"
+  - "릴리스 노트 어디서"
+  - "GitHub API 한도"
+  - "rate limit"
+  - "releases.atom"
+  - "curl 릴리스 확인"
+  - "clientsettingscdn"
+  - "FFlag 값 확인"
+  - "DevForum 베타 공지"
+  - "rfcs.luau.org"
+  - "근거 등급"
+  - "점검 주기"
+  - "출처 인용"
+  - "upstream_check.py --notes"
+kind: reference
+category: luau/upstream/sources
+tags: [docs-quoted]
+last_verified: 2026-11-10
+---
 # sources — 업스트림을 어디서, 어떻게, 얼마나 자주 보나
 
 ## 이 파일이 답하는 질문

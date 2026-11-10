@@ -1,3 +1,33 @@
+---
+title: "최적화 수준, 인라인, 인라인 캐시, native 코드 생성"
+description: "최적화 수준 0·1·2 와 --!optimize·--!native·@native 우선순위, -O2 인라인 조건과 값, 인라인이 error(msg, 2)·traceback 위치를 바꾸는 이유, 인라인 캐시와 상수 키, native codegen 이득·손해와 타입 주석 효과, 확인 명령"
+keywords:
+  - "--!optimize"
+  - "--!native"
+  - "@native"
+  - "native codegen"
+  - "네이티브 코드 생성"
+  - "-O2 인라인"
+  - "inlining"
+  - "인라인 조건"
+  - "error(msg, 2) 위치"
+  - "-O2 에러 위치 틀림"
+  - "인라인 캐시"
+  - "inline cache"
+  - "타입 주석 native 효과"
+  - "luau-compile --remarks"
+  - "--codegen"
+  - "@debugnoinline"
+  - ":: 캐스트 비용"
+  - "최적화 수준"
+kind: reference
+category: luau/perf/optimizer
+tags: [o2, measured, correction]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # optimizer-and-native — 최적화 수준, 인라인, 인라인 캐시, native 코드 생성
 
 ## 이 파일이 답하는 질문

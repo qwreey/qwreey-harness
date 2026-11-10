@@ -1,3 +1,31 @@
+---
+title: "GUI 레이아웃·자동 크기·입력 전달·톱바 인셋의 엔진 규칙"
+description: "GUI 누름은 첫 GuiButton 에서 멈추고 Active 로는 관통을 못 막는다(투명 버튼 싱크), AutomaticSize 함정, AbsoluteSize·CanvasPosition 갱신 시점, TextBounds·UIScale 글자 폭, 톱바 인셋 좌표계, gameProcessed·포커스, SurfaceGui"
+keywords:
+  - "GUI 클릭 관통"
+  - "Active 클릭 안 막음"
+  - "투명 TextButton 싱크"
+  - "InputSink"
+  - "남은 누름"
+  - "AutomaticSize UISizeConstraint"
+  - "AbsoluteSize 갱신 시점"
+  - "CanvasPosition 클램프"
+  - "TextBounds 잘림"
+  - "GetTextBoundsAsync"
+  - "UIScale 글자 폭"
+  - "CanvasGroup 클리핑 ZIndexBehavior"
+  - "GetGuiInset 0"
+  - "TopbarInset"
+  - "GetMouseLocation 인셋"
+  - "gameProcessed"
+  - "CaptureFocus"
+  - "SurfaceGui 축"
+  - "플러그인 위젯 UserInputService"
+kind: reference
+category: roblox/gui
+tags: [studio, correction]
+last_verified: 2026-11-10
+---
 # gui-and-input — GUI 레이아웃·자동 크기·입력 전달·톱바 인셋의 엔진 규칙
 
 ## 이 파일이 답하는 질문

@@ -1,3 +1,31 @@
+---
+title: "파일 머리, 모듈 모양, require"
+description: "모듈 파일 머리(--!strict 와 왜를 적는 머리 주석), 값 하나 return, init.luau 안에서 ./ 대신 @self, 테스트 엔트리 이름, 패키지 사본·타입 전용 require, 주입 필드를 지역에 받는 문제(D-11), 엔진 무관 로직 분리"
+keywords:
+  - "파일 머리"
+  - "--!strict"
+  - "머리 주석"
+  - "@self"
+  - "init.luau require"
+  - "require(\"./x\")"
+  - "module must return a single value"
+  - "Unknown require"
+  - "unsupported path"
+  - "동적 require"
+  - "@game/ 절대 경로"
+  - "패키지 사본 둘"
+  - "타입 전용 require"
+  - "모듈 필드 지역 별칭"
+  - "languageMode nonstrict"
+  - "--!nocheck"
+kind: reference
+category: luau/style/modules
+tags: [policy, correction, cli]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # modules — 파일 머리, 모듈 모양, require
 
 ## 이 파일이 답하는 질문

@@ -1,3 +1,24 @@
+---
+title: "이 사용자의 Luau 저장소들은 실제로 어떻게 테스트하나"
+description: "quad·stl-luau·table-sim·devplorer·tbox·moonwave-luau·rbvm 의 실제 테스트 방식 비교표(러너, 단언, 에러 줄, -O2 실행, Roblox 처리, 타입 대조군), 공통점과 새 저장소 출발점, 원천 정정"
+keywords:
+  - "저장소별 테스트 방식"
+  - "quad 테스트"
+  - "stl-luau 테스트"
+  - "table-sim 테스트"
+  - "devplorer 테스트"
+  - "tbox 테스트"
+  - "moonwave-luau 테스트"
+  - "rbvm 유닛 테스트"
+  - "tests/run.luau"
+  - "scripts/check.sh"
+  - "새 저장소 테스트 출발점"
+  - "테스트 현황 비교"
+kind: reference
+category: luau/testing/practices
+tags: [correction]
+last_verified: 2026-11-10
+---
 # repo-practices — 이 사용자의 Luau 저장소들은 실제로 어떻게 테스트하나
 
 ## 이 파일이 답하는 질문

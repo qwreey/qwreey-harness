@@ -1,3 +1,33 @@
+---
+title: "Actor, 병렬 단계, 스레드 안전 등급, Actor 메시징, SharedTable"
+description: "Actor 와 직렬·병렬 단계, task.desynchronize·ConnectParallel, 스레드 안전 등급(ReadSafe·Safe·Unsafe)과 병렬에서 못 쓰는 API, 타입 검사기가 단계를 모름, Actor 메시지 복사·VM 격리, SharedTable 제약과 새 솔버 반복 에러"
+keywords:
+  - "Actor 병렬"
+  - "Parallel Luau"
+  - "task.desynchronize"
+  - "task.synchronize"
+  - "ConnectParallel"
+  - "스레드 안전 등급"
+  - "thread safety"
+  - "ReadSafe"
+  - "병렬 단계 속성 쓰기"
+  - "Actor SendMessage"
+  - "BindToMessageParallel"
+  - "Actor 별 VM"
+  - "병렬 단계 require"
+  - "GetActor nil"
+  - "SharedTable"
+  - "SharedTableRegistry"
+  - "SharedTable.increment"
+  - "__iter metamethod must return (next[, table[, state]])"
+kind: reference
+category: roblox/parallel
+tags: [new-solver, silent, docs-quoted]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau-lsp 1.69.0
+  - luau-lsp 1.70.1
+---
 # parallel-luau — Actor, 병렬 단계, 스레드 안전 등급, Actor 메시징, SharedTable
 
 ## 이 파일이 답하는 질문

@@ -1,3 +1,32 @@
+---
+title: "호출 모양, 가변 인자, 클로저, pcall·코루틴의 값"
+description: "obj:M() 대 Mod.M 대 local 로 꺼낸 함수의 호출 비용, 클로저 콜백·업밸류(비용은 인라인 여부), 가변 인자·select·table.pack, pcall·코루틴 바닥값, 인자 표 재사용과 table.clear, 실패 메시지 지연 생성"
+keywords:
+  - "메서드 호출 비용"
+  - "obj:M() 대 Mod.M(obj)"
+  - "클로저 비용"
+  - "closure cost"
+  - "업밸류 비용"
+  - "콜백 비용"
+  - "가변 인자 비용"
+  - "vararg cost"
+  - "select(\"#\", ...)"
+  - "table.pack 대 {...}"
+  - "pcall 비용"
+  - "pcall overhead"
+  - "코루틴 생성 비용"
+  - "coroutine.create 비용"
+  - "인자 표 재사용"
+  - "함수 감싸기 비용"
+  - "동적 dispatch"
+kind: reference
+category: luau/perf/calls
+tags: [measured, o2, correction]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # calls-and-closures — 호출 모양, 가변 인자, 클로저, pcall·코루틴의 값
 
 ## 이 파일이 답하는 질문

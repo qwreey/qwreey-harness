@@ -1,3 +1,26 @@
+---
+title: "저장소마다 다른 값과 결정 상태"
+description: "저장소마다 갈린 const·stylua·러너·검사기·버전 핀·주석 언어·네이밍·에러 형식·객체 모양 값(2026-11-10 스냅숏)과 D-01~D-13 결정 상태(확정/제안), 저장소 규칙이 이긴다는 읽는 법"
+keywords:
+  - "저장소별 차이"
+  - "per-repo overrides"
+  - "결정 상태"
+  - "decision status"
+  - "확정 제안"
+  - "D-01"
+  - "D-13"
+  - "stylua indent"
+  - "call_parentheses"
+  - "버전 핀"
+  - "luau-lsp 핀"
+  - "검사 기준"
+  - "주석 언어 저장소별"
+  - "저장소 규칙 우선"
+kind: reference
+category: luau/style/overrides
+tags: [policy]
+last_verified: 2026-11-10
+---
 # project-overrides — 저장소마다 다른 값과 결정 상태
 
 ## 이 파일이 답하는 질문

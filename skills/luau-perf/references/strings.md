@@ -1,3 +1,30 @@
+---
+title: "문자열 누적, 파싱, 패턴 역추적의 기준선"
+description: "s ..= x 누적은 O(n²) 라 table.concat 로 모으기, string.byte 손 파서가 gmatch+tonumber 보다 빠름(string.sub 판은 느림), .- 여럿인 사용자 패턴의 역추적 폭주와 패턴·입력 길이 상한, 문자열 메모리 폭발"
+keywords:
+  - "문자열 누적"
+  - "string concatenation"
+  - "..= 누적 O(n²)"
+  - "table.concat"
+  - "string builder"
+  - "문자열 파싱 성능"
+  - "string.gmatch 대 손 파서"
+  - "string.byte 파서"
+  - "패턴 역추적"
+  - "pattern backtracking"
+  - "사용자 패턴 상한"
+  - "string.find 느림"
+  - "ReDoS"
+  - "문자열 메모리 폭발"
+  - "CSV 파싱"
+kind: reference
+category: luau/perf/strings
+tags: [measured, correction, security]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # strings — 문자열 누적, 파싱, 패턴 역추적의 기준선
 
 ## 이 파일이 답하는 질문

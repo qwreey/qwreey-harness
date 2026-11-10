@@ -1,3 +1,33 @@
+---
+title: "유니온, 교집합, 싱글턴, 좁히기"
+description: "싱글턴 보존과 K & keyof + index 이름 인자 패턴, 태그 유니온 좁히기 실패, 옵셔널 갈래의 재귀 타입 무검사, 좁힌 뒤 호출 거부, 콜러블 테이블(함수∩테이블), catch-all 인덱서 교집합, 컨테이너 for-in"
+keywords:
+  - "싱글턴 보존"
+  - "singleton"
+  - "태그 유니온 좁히기"
+  - "narrowing"
+  - "K & keyof"
+  - "index<M, K>"
+  - "콜러블 테이블"
+  - "callable table"
+  - "함수 테이블 교집합"
+  - "옵셔널 갈래 무검사"
+  - "catch-all 인덱서 교집합"
+  - "교집합 컨테이너 순회"
+  - "Cannot call a value of the union type"
+  - "could be nil"
+  - "Cannot call a value of type *error-type* in union"
+  - "not precise enough"
+  - "Cannot iterate over a table without indexer"
+  - "Cannot have more than one table indexer"
+kind: reference
+category: luau/types/unions
+tags: [new-solver, silent, bug, correction]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # unions-singletons — 유니온, 교집합, 싱글턴, 좁히기
 
 ## 이 파일이 답하는 질문

@@ -1,3 +1,28 @@
+---
+title: "task 라이브러리, 협력 스케줄링의 경쟁, 시한, 시계"
+description: "task 라이브러리 계약(spawn 이 같은 thread 반환, 죽은 스레드 cancel no-op, delay 인자 순서), defer 중첩 순서, RemoteFunction 동시 요청의 TOCTOU 경쟁, InvokeClient·WaitForChild 무한 대기와 시한, os.clock 대 GetServerTimeNow"
+keywords:
+  - "task.defer 와 task.spawn 차이"
+  - "task.spawn 반환값"
+  - "task.defer 순서"
+  - "task.cancel 죽은 스레드"
+  - "task.delay 인자 순서"
+  - "invalid argument #1 to 'spawn' (function or thread expected)"
+  - "협력 스케줄링 경쟁"
+  - "TOCTOU"
+  - "RemoteFunction 동시 요청"
+  - "쿨다운 뚫림"
+  - "한 번만 초기화"
+  - "InvokeClient 무한 대기"
+  - "무한 대기 시한"
+  - "os.clock"
+  - "GetServerTimeNow 역행"
+  - "시계 주입"
+kind: reference
+category: roblox/tasks
+tags: [studio, correction]
+last_verified: 2026-11-10
+---
 # tasks-and-threads — task 라이브러리, 협력 스케줄링의 경쟁, 시한, 시계
 
 코루틴의 **순수 의미론**(resume 의 에러 삼킴, yield 할 수 없는 문맥, 문맥 전파 없음)은 엔진과 무관해서 luau-runtime `coroutines.md` 가 정본이다. 이 파일은 Roblox `task` 라이브러리와 엔진 스케줄러 위의 동작을 둔다.

@@ -1,3 +1,27 @@
+---
+title: "Roblox 문서를 어디서 어떻게 읽나: 방식 비교, 도구, 온라인 대체, 인용 규칙"
+description: "Roblox 공식 문서를 읽는 방식 비교(creator-docs tarball 채택), tools/roblox_docs.py 의 sync·search·get·api 명령과 출력, 인용 규칙(경로:줄·커밋·STUDIO_VERSION), llms.txt 온라인 대체, 신뢰 경계"
+keywords:
+  - "roblox_docs.py"
+  - "creator-docs"
+  - "Roblox 공식 문서 조회"
+  - "API 시그니처 확인"
+  - "thread_safety"
+  - "deprecated 확인"
+  - "llms.txt"
+  - "docs/api/search"
+  - ".md 페이지"
+  - "STUDIO_VERSION"
+  - "문서 인용 규칙"
+  - "HARNESS_ROBLOX_DOCS_CACHE"
+  - "문서 신뢰 경계"
+  - "rbx-docs-search"
+  - "http_get"
+kind: reference
+category: roblox/api-docs
+tags: [docs-quoted, security]
+last_verified: 2026-11-10
+---
 # sources — Roblox 문서를 어디서 어떻게 읽나: 방식 비교, 도구, 온라인 대체, 인용 규칙
 
 ## 이 파일이 답하는 질문

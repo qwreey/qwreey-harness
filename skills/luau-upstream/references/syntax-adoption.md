@@ -1,3 +1,38 @@
+---
+title: "새 문법을 언제부터 쓰나"
+description: "class·if local·while local·const 같은 새 문법 채택 판정: CLI·luau-lsp·stylua·Studio/라이브 4조건과 2026-11-10 판정표, CLI 가 실험 FFlag 를 켜는 함정, 재현 명령, 못 쓰는 문법 대비(이름 충돌·우회 금지)"
+keywords:
+  - "새 문법 채택"
+  - "syntax adoption"
+  - "새 문법 써도 되나"
+  - "if local 채택"
+  - "if local 써도 되나"
+  - "while local"
+  - "class 문법"
+  - "class syntax"
+  - "const 채택"
+  - "4조건 판정표"
+  - "LuauExperimentalIfLocalSyntax"
+  - "DebugLuauUserDefinedClasses"
+  - "class keyword is illegal here"
+  - "stylua 새 문법 파싱"
+  - "FFlag 뒤 문법"
+  - "실험 문법 CLI"
+  - "Studio 베타 문법"
+kind: reference
+category: luau/upstream/syntax
+tags: [policy, cli]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+  - luau 0.746
+  - luau-lsp 1.69.0
+  - luau-lsp 1.70.1
+  - lune 0.10.5
+  - stylua 2.5.2
+  - stylua 2.6.0
+---
 # syntax-adoption — 새 문법을 언제부터 쓰나
 
 ## 이 파일이 답하는 질문

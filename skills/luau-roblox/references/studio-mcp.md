@@ -1,3 +1,29 @@
+---
+title: "Roblox Studio MCP 로 엔진 동작 확인하기"
+description: "Roblox Studio MCP 를 부르는 두 경우, 읽기 전용 도구와 상태를 바꾸는 도구, 여러 Studio 중 studio_id 고르기, studio-sync 로 Rojo 싣기, execute_luau 실측 관용구(return, Deferred 두 번 호출), 내장 skill 13개"
+keywords:
+  - "Studio MCP 로 확인"
+  - "execute_luau"
+  - "list_roblox_studios"
+  - "studio_id"
+  - "get_studio_state"
+  - "start_stop_play"
+  - "상태 변경 도구"
+  - "studio-sync"
+  - "rojo_sync_guide"
+  - "servePlaceIds"
+  - "AgentOwner"
+  - "Deferred 두 번 호출"
+  - "_G.probe"
+  - "Studio 내장 skill"
+  - "rbx-unit-test"
+  - "rbx-perf-profiling"
+  - "rbx-permissions"
+kind: reference
+category: roblox/studio
+tags: [studio, policy]
+last_verified: 2026-11-10
+---
 # studio-mcp — Roblox Studio MCP 로 엔진 동작 확인하기
 
 ## 이 파일이 답하는 질문

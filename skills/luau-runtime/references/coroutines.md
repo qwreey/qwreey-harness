@@ -1,3 +1,29 @@
+---
+title: "코루틴과 스레드의 순수 의미론 (엔진 무관)"
+description: "엔진 무관 코루틴 의미론: resume·wrap 이 에러를 (false, err) 로 삼키는 길, 죽은·실행 중 코루틴, table.sort 비교자·메타메서드·C 경계와 CLI 메인 스레드에서의 yield 실패, thread-local·문맥 전파 없음"
+keywords:
+  - "코루틴 에러 사라짐"
+  - "coroutine error swallowed"
+  - "coroutine.resume 에러"
+  - "coroutine.wrap 에러"
+  - "attempt to yield across C-call boundary"
+  - "cannot resume dead coroutine"
+  - "cannot resume running coroutine"
+  - "C stack overflow"
+  - "coroutine.isyieldable"
+  - "CLI 메인 스레드 yield"
+  - "thread-local"
+  - "문맥 전파"
+  - "context propagation"
+  - "암묵 문맥 누출"
+kind: reference
+category: luau/runtime/coroutines
+tags: [silent, cli]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # coroutines — 코루틴과 스레드의 순수 의미론 (엔진 무관)
 
 ## 이 파일이 답하는 질문

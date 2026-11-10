@@ -1,3 +1,32 @@
+---
+title: "배열부·해시부 성장 규칙과 그 함정"
+description: "배열부·해시부 rehash 규칙에서 나오는 함정: nil 구멍으로 해시부 이동, 앞에서 비우는 큐·table.remove(t, 1)·음수 키, 생성자 밖 번호 칸 대입, table.create·move·clone 이득, 키 종류별 조회와 # 경계 캐시"
+keywords:
+  - "배열부 해시부"
+  - "array part hash part"
+  - "nil 구멍"
+  - "배열 구멍 성능"
+  - "table.remove(t, 1)"
+  - "큐 구현 성능"
+  - "링 버퍼"
+  - "ring buffer"
+  - "음수 키"
+  - "생성자 밖 대입"
+  - "table.create"
+  - "table.move"
+  - "table.clone"
+  - "# 연산자 비용"
+  - "레코드 번호 칸 대 이름 필드"
+  - "rehash"
+  - "attempt to compare number < nil"
+kind: reference
+category: luau/perf/tables
+tags: [measured, correction]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # tables — 배열부·해시부 성장 규칙과 그 함정
 
 ## 이 파일이 답하는 질문

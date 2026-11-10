@@ -1,3 +1,32 @@
+---
+title: "재귀 타입, 선언 순서, 검사기 한도"
+description: "제네릭 메소드가 Foo<U> 를 돌려주는 비균일 재귀의 조용한 누수와 typeof 최상위 함수 처방, 별칭 선언 순서 누수, 상호 재귀 별칭, too complex 증상별 한도 플래그와 줄이는 설계"
+keywords:
+  - "비균일 재귀"
+  - "non-uniform recursion"
+  - "선언 순서 누수"
+  - "declaration order"
+  - "재귀 타입 별칭"
+  - "recursive type alias"
+  - "상호 재귀 별칭"
+  - "Recursive type being used with different parameters"
+  - "Code is too complex to typecheck"
+  - "too complex 한도 플래그"
+  - "정수 한도 플래그"
+  - "LuauTarjanChildLimit"
+  - "LuauSubtypingIterationLimit"
+  - "LuauTypeInferIterationLimit"
+  - "LuauSolverConstraintLimit"
+  - "Studio too complex 무표시"
+  - "relax-recursive-type-restriction"
+kind: reference
+category: luau/types/recursion
+tags: [new-solver, silent, bug, correction, studio]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # recursion-and-limits — 재귀 타입, 선언 순서, 검사기 한도
 
 ## 이 파일이 답하는 질문

@@ -1,3 +1,32 @@
+---
+title: "테스트가 실제로 무언가를 잡는지 확인하기"
+description: "실행 테스트가 정말 버그를 잡는지 확인: 일부러 실패하는 러너 음성 대조군, 스펙 등록 누락 grep, 돌연변이 검사, 차등 시험·퍼즈와 퍼저 자가검사, 시드 고정과 결정성"
+keywords:
+  - "테스트 음성 대조군"
+  - "러너 음성 대조군"
+  - "테스트가 잡는지"
+  - "0 failed"
+  - "스펙 등록 누락"
+  - "돌연변이 검사"
+  - "mutation test"
+  - "차등 시험"
+  - "differential testing"
+  - "퍼즈"
+  - "fuzz"
+  - "퍼저 검증"
+  - "최소 재현 축소"
+  - "시드 고정"
+  - "seed"
+  - "error(\"spec failures\", 0)"
+  - "=> fail"
+kind: reference
+category: luau/testing/negative-controls
+tags: [cli]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # negative-controls — 테스트가 실제로 무언가를 잡는지 확인하기
 
 ## 이 파일이 답하는 질문

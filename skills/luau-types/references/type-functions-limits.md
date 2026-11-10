@@ -1,3 +1,31 @@
+---
+title: "type function 의 제약과 부작용 목록"
+description: "type function 의 제약·부작용 목록(버전 열 포함): 바깥 지역 참조 금지와 pcall 지원, print·error 진단 모양, 무한 루프·too complex·keyof 150 키 한도, 인자 직렬화 실패, 제네릭 재조립, export 프라이밍, hover·자동완성 DX"
+keywords:
+  - "type function 한계"
+  - "type function 제약"
+  - "type function 부작용"
+  - "type function limits"
+  - "type function pcall"
+  - "type function 무한 루프"
+  - "type function hover"
+  - "인자 직렬화 실패"
+  - "keyof 150 키"
+  - "프라이밍"
+  - "LuauDoNotExportBrokenTypeFunction"
+  - "export type function"
+  - "setreadindexer"
+  - "Type function cannot reference outer local"
+  - "Type functions do not currently support types of the form"
+  - "Complexity limit reached when passing a type to a type function"
+  - "returned a non-type value"
+  - "errored at runtime"
+  - "not supported in type functions"
+kind: reference
+category: luau/types/type-functions
+tags: [new-solver, bug, silent, measured, studio]
+last_verified: 2026-11-10
+---
 # type-functions-limits — type function 의 제약과 부작용 목록
 
 ## 이 파일이 답하는 질문
@@ -44,6 +72,7 @@ status: verified (하네스 규칙) · 근거: `snippets/RESULTS.md`, `tools/che
   - TB = `tbox/packages/tbox`
 
 ## §1 실행 환경 (E)
+summary: 몸통은 바깥 지역 변수를 못 쓰지만 바깥 별칭은 된다. pcall 은 luau-lsp 1.69.0 에만 없고, any/unknown 입력은 분해 전에 걸러야 한다
 
 | ID | 증상 | 원인 | 버전 (0.734 / 0.742 / lsp 1.69.0 / lsp 1.70.1) | 우회법 | 근거 | status |
 |---|---|---|---|---|---|---|
@@ -69,6 +98,7 @@ status: verified (하네스 규칙) · 근거: `snippets/RESULTS.md`, `tools/che
 | D6 | 저장소의 '에러 0건' 게이트가 type function 몸통의 진단을 놓친다 | stl 게이트의 에러 규약은 최상위 `type function` 몸통을 건너뛴다(본문 검사의 거짓 양성 회피) | (stl 0.742) | 몸통은 대조군 스니펫으로 따로 검사한다 | stl `conventions.md:84` 끝 | described |
 
 ## §3 성능·한도 (L)
+summary: 깊은 재귀는 stack overflow 진단, 무한 루프는 검사기를 멈추니 상한과 timeout. keyof 맵 150 키 넘으면 too complex, 큰 표면 export·호출 수·메모리도 한도
 
 | ID | 증상 | 원인 | 버전 | 우회법 | 근거 | status |
 |---|---|---|---|---|---|---|

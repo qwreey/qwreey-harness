@@ -1,3 +1,31 @@
+---
+title: "DataStore·MemoryStore·상품·글자 안전·샌드박스·게시 도구"
+description: "DataStore 크기·분당 예산, pcall 실패·UpdateAsync 재실행·GetAsync 캐시, Studio DataStore 가 프로덕션에 씀, MemoryStore·MessagingService 한도, ProcessReceipt, 글 필터·RichText, JSONEncode, loadstring, LogService, Open Cloud"
+keywords:
+  - "DataStore 한도"
+  - "DataStore 예산"
+  - "UpdateAsync 재실행"
+  - "GetAsync 캐시"
+  - "UseCache"
+  - "Enable Studio Access to API Services"
+  - "MemoryStore 한도"
+  - "MessagingService 유실"
+  - "ProcessReceipt"
+  - "PurchaseGranted"
+  - "FilterStringAsync"
+  - "RichText 이스케이프"
+  - "JSONEncode 혼합 키"
+  - "loadstring"
+  - "LoadStringEnabled"
+  - "스크립트 타임아웃"
+  - "LogService MessageOut"
+  - "Open Cloud Luau Execution"
+  - "로그 위조 문자"
+kind: reference
+category: roblox/services
+tags: [security, policy, docs-quoted, correction]
+last_verified: 2026-11-10
+---
 # platform-services — DataStore·MemoryStore·상품·글자 안전·샌드박스·게시 도구
 
 ## 이 파일이 답하는 질문

@@ -1,3 +1,30 @@
+---
+title: "파일 길이, 폴더 묶음, 데이터와 코드 나누기"
+description: "파일 길이 기준(경고 800·강제 1,500줄, D-13)과 사유를 남기는 예외 표식, 나눌 신호와 옮기기만 커밋 절차, 기능 폴더·접두 가족 접기, 데이터를 표로 뺄지 생성할지, 저장소 분리 성공·재성장 사례"
+keywords:
+  - "파일 길이 기준"
+  - "file too long"
+  - "800줄"
+  - "1500줄"
+  - "@structure-exempt"
+  - "structure.json"
+  - "예외 사유"
+  - "폴더로 묶기"
+  - "접두 가족"
+  - "옮기기만 커밋"
+  - "이음매 감사"
+  - "structure-scan.py"
+  - "하드코딩 데이터 표"
+  - "선언 표 일반 처리기"
+  - "코드 생성 마지막 수단"
+  - "재성장"
+  - "평평한 폴더"
+  - "region 접기"
+kind: reference
+category: luau/style/structure
+tags: [policy, measured]
+last_verified: 2026-11-10
+---
 # structure — 파일 길이, 폴더 묶음, 데이터와 코드 나누기
 
 ## 이 파일이 답하는 질문

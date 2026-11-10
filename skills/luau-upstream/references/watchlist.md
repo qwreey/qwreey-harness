@@ -1,3 +1,28 @@
+---
+title: "알려진 한계와 그것을 고칠 업스트림 항목"
+description: "luau-kb 의 타입 솔버 결함(S1–S19)·type function·도구 한계를 업스트림 이슈·RFC 와 잇는 감시 목록: 0.746 실측 상태, 0.742→0.746 bug-scan 결과와 새 위양성, 우회책 수명(임시·영구·불필요), 보고 후보"
+keywords:
+  - "곧 고쳐지나"
+  - "업스트림에서 해결 중"
+  - "upstream issue tracking"
+  - "감시 목록"
+  - "watchlist"
+  - "우회책 수명"
+  - "workaround lifetime"
+  - "임시 우회 영구 우회"
+  - "알려진 결함 상태"
+  - "#2380"
+  - "bug-scan 결과"
+  - "is not iterable"
+  - "0.746 새 진단"
+  - "업스트림 보고 후보"
+  - "S1–S19"
+  - "고쳐짐 실측"
+kind: reference
+category: luau/upstream/watchlist
+tags: [bug, new-solver]
+last_verified: 2026-11-10
+---
 # watchlist — 알려진 한계와 그것을 고칠 업스트림 항목
 
 > last-checked: 2026-11-10 (luau 최신 0.746, luau-lsp 최신 1.70.1). 이슈 상태는 GitHub API·이슈 페이지로, 릴리스 노트는 0.735–0.746 태그 페이지로(`roadmap-notes.md` §1), 동작은 `tools/upstream_check.py --bug-scan 0.746` 으로 확인했다.
@@ -31,6 +56,7 @@ status: described
 
 ## §1 타입 솔버 결함 (S1–S19)
 status: verified (0.746 열, 2026-11-10 bug-scan) / described (업스트림 칸) · 근거: luau-types `../../luau-types/references/solver-limits.md` §2, `snippets/*`
+summary: 진단 없이 새는 솔버 결함 S1–S19 의 0.742·0.746 상태, 업스트림 항목, 예상 시점과 우회책 수명 표
 
 | ID | 한계 (진단이 안 남) | 스니펫 | 0.742 | 0.746 | 업스트림 | 상태 | 예상 시점 | 우회 수명 |
 |---|---|---|---|---|---|---|---|---|
@@ -56,6 +82,7 @@ status: verified (0.746 열, 2026-11-10 bug-scan) / described (업스트림 칸)
 
 ## §2 bug-scan 결과 (2026-11-10, 0.742 → 0.746)
 status: verified · 명령: `python3 -I tools/upstream_check.py --bug-scan 0.746` (같은 결과를 `--base 0.734` 로도 확인)
+summary: 0.742 → 0.746 bug-scan 결과 — 고쳐진 S11, 풀린 교집합 인스턴스화, 나머지 같음, 스니펫 밖에서 찾은 0.746 새 진단
 
 | 분류 | 스니펫 | 내용 | 판정 |
 |---|---|---|---|

@@ -1,3 +1,33 @@
+---
+title: "`type function` 을 쓸지 정하는 법"
+description: "type function 을 쓸지 사안별(D-04)로 정하는 판단 절차, 대안 없이 불가피한 패턴(strip-nil·키별 사상·덮어쓰는 병합·리터럴 계산), 쓰기로 했을 때 체크리스트, print+never 진단 패턴, 원천 정정과 사용처"
+keywords:
+  - "type function 써도 되나"
+  - "type function 판단"
+  - "user-defined type function"
+  - "타입 함수 대안"
+  - "strip-nil"
+  - "StripNil"
+  - "키별 사상"
+  - "mapped type"
+  - "덮어쓰는 병합"
+  - "리터럴 값 계산"
+  - "예약 키 금지"
+  - "진단 전용 type function"
+  - "types.never 진단"
+  - "types.singleton"
+  - "Expected this to be unreachable"
+  - "D-04"
+kind: reference
+category: luau/types/type-functions
+tags: [policy, correction, new-solver]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+  - luau-lsp 1.69.0
+  - luau-lsp 1.70.1
+---
 # type-functions — `type function` 을 쓸지 정하는 법
 
 ## 이 파일이 답하는 질문
@@ -61,6 +91,7 @@ status: described (절차) · 근거 행은 각 단계에 적었다
 
 ## §2 타입 함수 없이는 표현할 수 없는 패턴
 status: verified (P1–P6 의 type function 쪽과 대안 쪽 모두 스니펫) · P7–P9 described
+summary: strip-nil(메소드 자리)·키별 사상·덮어쓰는 병합·리터럴 계산은 불가피, 예약 키·nil 벗기기는 자리에 따라 대안이 있고 이름 인자는 내장 keyof/index 로 충분
 
 | ID | 패턴 | 재 본 대안과 결과 | 결론 | 근거 |
 |---|---|---|---|---|

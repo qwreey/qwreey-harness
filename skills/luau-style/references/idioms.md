@@ -1,3 +1,33 @@
+---
+title: "문법 관용구"
+description: "const 채택(D-01)과 local const·( 로 시작하는 문장 함정, if 식 대 and/or 삼항, f<<T>> 를 오타로 고치지 않기, 배열 구멍과 #t, 맨 function 의 전역 대입, 메타메서드가 상속되지 않음"
+keywords:
+  - "local const"
+  - "const 써도 되나"
+  - "Variable 'k' is constant and may not be reassigned"
+  - "Unknown global 'x'"
+  - "SameLineStatement"
+  - "Ambiguous syntax"
+  - "if 식"
+  - "if-then-else expression"
+  - "and/or 삼항"
+  - "f<<T>> 오타"
+  - "배열 구멍"
+  - "#t 길이"
+  - "맨 function 전역"
+  - "bare function global"
+  - "GlobalUsedAsLocal"
+  - "메타메서드 상속"
+  - "__call 네임스페이스"
+kind: reference
+category: luau/style/idioms
+tags: [policy, correction, silent, cli]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+  - stylua 2.5.2
+---
 # idioms — 문법 관용구
 
 ## 이 파일이 답하는 질문

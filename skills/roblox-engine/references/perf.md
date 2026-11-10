@@ -1,3 +1,26 @@
+---
+title: "Roblox 엔진 쪽 비용 기준치와 재는 법"
+description: "Studio 실측 엔진 비용 기준치(Instance.new, 속성 대입, GUI 수천 개, TextLabel 매 프레임 갱신, 트윈 5000개, BindableEvent 큰 표, 느린 Async 호출), 라이브 -O2·Studio -O1 기본값, CLI·mock 수치 읽는 법"
+keywords:
+  - "Instance.new 비용"
+  - "속성 대입 비용"
+  - "GUI 수천 개 프레임"
+  - "TextLabel 매 프레임 갱신"
+  - "트윈 수천 개 비용"
+  - "BindableEvent 큰 표 비용"
+  - "CreateHumanoidModelFromUserIdAsync"
+  - "GetProductInfo 지연"
+  - "--!optimize"
+  - "라이브 최적화 수준"
+  - "Studio -O1 라이브 -O2"
+  - "MicroProfiler"
+  - "CLI 벤치 엔진 비용"
+  - "60fps"
+kind: reference
+category: roblox/perf
+tags: [measured, studio, o2]
+last_verified: 2026-11-10
+---
 # perf — Roblox 엔진 쪽 비용 기준치와 재는 법
 
 ## 이 파일이 답하는 질문

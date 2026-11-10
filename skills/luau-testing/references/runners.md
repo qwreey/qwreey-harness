@@ -1,3 +1,34 @@
+---
+title: "무엇으로 테스트를 돌리나: 순수 luau CLI, 독립 런타임, 프레임워크 현황"
+description: "무엇으로 테스트를 돌리나: 순수 luau CLI 의 종료 코드·-a 인자·require 반환·--coverage·없는 전역, 집계형/즉시 실패형 최소 러너와 엔트리 이름, io 없이 픽스처·골든, lute·lune, Jest Roblox·TestEZ 현황"
+keywords:
+  - "테스트 러너"
+  - "test runner"
+  - "luau CLI 종료 코드"
+  - "-a 인자"
+  - "--coverage"
+  - "coverage.out"
+  - "require 반환 하나"
+  - "집계형 러너"
+  - "즉시 실패형"
+  - "엔트리 init.luau 금지"
+  - "픽스처"
+  - "골든 파일"
+  - "golden file"
+  - "lute test"
+  - "lune"
+  - "Jest Roblox"
+  - "jest-lua"
+  - "TestEZ"
+  - "Open Cloud Luau Execution"
+kind: reference
+category: luau/testing/runner
+tags: [cli, policy]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # runners — 무엇으로 테스트를 돌리나: 순수 luau CLI, 독립 런타임, 프레임워크 현황
 
 ## 이 파일이 답하는 질문

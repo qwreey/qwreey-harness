@@ -1,3 +1,33 @@
+---
+title: "테스트 구조와 단언 패턴, 에러 메시지와 사용자 줄 단언"
+description: "프레임워크 없는 케이스·단언 모양, pcall 이 돌려주는 에러 값의 모양, -O2 에서도 맞는 사용자 줄 단언, 파일 이름만 보는 blame 단언의 구멍, eq<T> 헬퍼가 타입 불일치를 못 잡는 이유, 테스트 데이터 고르기"
+keywords:
+  - "에러 메시지 단언"
+  - "사용자 줄 단언"
+  - "debug.info(1, \"l\") + 1"
+  - "curline 헬퍼"
+  - "blame 단언"
+  - "assertBlamesUser"
+  - "assertion failed!"
+  - "invalid argument #2 to 'assert' (string expected, got table)"
+  - "error(테이블)"
+  - "구조화된 에러"
+  - "eq<T> 헬퍼"
+  - "단언 헬퍼 타입"
+  - "Expected this to be 'number', but got 'string'"
+  - "경계 케이스"
+  - "비교 횟수 카운터"
+  - "정확값 단언 시드"
+  - "assert 메시지"
+kind: reference
+category: luau/testing/assertions
+tags: [cli, o2, silent]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+  - luau-lsp 1.70.1
+---
 # assertions — 테스트 구조와 단언 패턴, 에러 메시지와 사용자 줄 단언
 
 ## 이 파일이 답하는 질문

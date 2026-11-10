@@ -1,3 +1,27 @@
+---
+title: "Destroy, Destroying, 파괴된 Instance, userdata 신원과 수명 묶기"
+description: "Destroy 가 하는 일과 Parent=nil 의 차이, Deferred 에서 Destroying 핸들러 안 Parent 가 이미 nil, 파괴된 Instance 의 locked 에러와 센티넬 연결 생존 판정, userdata 재생성으로 weak 키 소실, 수명 묶기와 누수 조건"
+keywords:
+  - "Destroy 뒤 연결"
+  - "Destroying 핸들러 시점"
+  - "Destroying Parent nil"
+  - "Parent = nil 과 Destroy 차이"
+  - "The Parent property of Part is locked, current parent: NULL, new parent Workspace"
+  - "파괴됨 판정"
+  - "센티넬 연결"
+  - "Connected false 동기"
+  - "Instance userdata 신원"
+  - "Instance weak 키 사라짐"
+  - "수명 묶기"
+  - "never-firing 연결"
+  - "Instance 누수"
+  - "Explorer 삭제 AncestryChanged"
+  - "Debris:AddItem"
+kind: reference
+category: roblox/lifecycle
+tags: [studio, correction]
+last_verified: 2026-11-10
+---
 # instance-lifecycle — Destroy, Destroying, 파괴된 Instance, userdata 신원과 수명 묶기
 
 ## 이 파일이 답하는 질문

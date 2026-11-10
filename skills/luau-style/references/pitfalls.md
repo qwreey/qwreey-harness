@@ -1,3 +1,35 @@
+---
+title: "타입 검사가 못 잡는 언어 함정"
+description: "타입 검사가 못 잡는 런타임 함정: table.insert 의 nil·다중 반환 오버로드, 순회 중 키 추가·순회 순서·불안정 정렬, 가변 인자 nil 개수, %a 와 UTF-8 바이트 길이, NaN, coroutine.resume 에러 삼킴, 얕은 clone"
+keywords:
+  - "table.insert nil"
+  - "table.insert(t, f())"
+  - "No overload for function accepts 1 arguments"
+  - "순회 중 변경"
+  - "modify during iteration"
+  - "해시 순회 순서"
+  - "table.sort 안정 정렬"
+  - "stable sort"
+  - "select(\"#\", ...)"
+  - "table.pack"
+  - "다중 반환 잘림"
+  - "%a 패턴"
+  - "UTF-8 바이트 길이"
+  - "utf8.len"
+  - "string.format %q"
+  - "coroutine.resume 에러 삼킴"
+  - "cannot resume dead coroutine"
+  - "한 번만 초기화 yield"
+  - "table.clone 얕은 복사"
+  - "pcall(getfenv, 1)"
+kind: reference
+category: luau/style/pitfalls
+tags: [silent, correction, cli]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # pitfalls — 타입 검사가 못 잡는 언어 함정
 
 ## 이 파일이 답하는 질문

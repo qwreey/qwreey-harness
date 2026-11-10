@@ -1,3 +1,31 @@
+---
+title: "TweenService 엔진 사실 (Play·Cancel·Completed, 파괴, 수명, 보간 타입)"
+description: "TweenService 실측: Play 는 값을 동기로 안 쓰고 Create 만 던진다, 끝난 트윈 Cancel 의 Completed(Cancelled) 재발화, Cancel 통지 역전, 대상 Destroy 뒤에도 끝까지 도는 트윈, 핸들 잃은 무한 트윈, TweenInfo 기본값"
+keywords:
+  - "TweenService Completed 안 옴"
+  - "Completed Cancelled 재발화"
+  - "Tween Cancel 통지 순서"
+  - "Cancel 값 되돌림"
+  - "PlaybackState 끝남 판정"
+  - "Play 직후 값"
+  - "파괴된 Instance 트윈"
+  - "무한 트윈 RepeatCount"
+  - "트윈 핸들 수거"
+  - "Tween 누수"
+  - "TweenInfo 기본값"
+  - "보간 가능한 타입"
+  - "TweenService:Create 목표 표"
+  - "cannot be tweened due to type mismatch"
+  - "is not a data type that can be tweened"
+  - "third argument expects Enum.EasingDirection input"
+kind: reference
+category: roblox/tween
+tags: [studio, correction, silent]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau-lsp 1.69.0
+  - luau-lsp 1.70.1
+---
 # tween-and-animation — TweenService 엔진 사실 (Play·Cancel·Completed, 파괴, 수명, 보간 타입)
 
 ## 이 파일이 답하는 질문

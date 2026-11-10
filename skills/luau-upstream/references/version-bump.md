@@ -1,3 +1,28 @@
+---
+title: "luau / luau-lsp / stylua 를 올리는 절차"
+description: "luau·luau-lsp·stylua 를 올리는 5단계 절차: 설치와 핀 변경 분리, bug-scan 으로 고쳐짐 후보·깨짐 후보 분류, last-confirmed·watchlist 갱신, 저장소별 인계 문서 틀과 실행 기록"
+keywords:
+  - "luau 버전 올리기"
+  - "luau 업그레이드"
+  - "version bump"
+  - "upgrade luau"
+  - "bug-scan"
+  - "upstream_check.py --bug-scan"
+  - "고쳐짐 후보"
+  - "깨짐 후보"
+  - "업데이트 뒤 깨짐"
+  - "핀 올리기"
+  - "mise install luau"
+  - "last-confirmed 갱신"
+  - "인계 문서"
+  - "luau-lsp 올리기"
+  - "stylua 올리기"
+  - "새 진단 증가"
+kind: reference
+category: luau/upstream/release
+tags: [policy, cli]
+last_verified: 2026-11-10
+---
 # version-bump — luau / luau-lsp / stylua 를 올리는 절차
 
 ## 이 파일이 답하는 질문

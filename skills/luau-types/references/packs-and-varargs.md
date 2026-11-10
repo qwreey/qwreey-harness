@@ -1,3 +1,36 @@
+---
+title: "타입 팩, 가변 인자, 여러 값 반환"
+description: "...T 와 T... 의 차이와 함수 타입 가변 인자 문법, select·table.pack·unpack 의 타입, 받은 ... 를 저장하는 defer 패턴 우회, 튜플 별칭·반환 팩 유니온 불가, 넘친 인자 무진단과 노출법"
+keywords:
+  - "타입 팩"
+  - "type pack"
+  - "가변 인자"
+  - "varargs"
+  - "...T"
+  - "T..."
+  - "제네릭 팩"
+  - "select 타입"
+  - "table.pack"
+  - "table.unpack"
+  - "defer 패턴"
+  - "튜플 타입 별칭"
+  - "반환 팩 유니온"
+  - "넘친 인자"
+  - "extra arguments"
+  - "pcall 실패 분기"
+  - "Expected this to be '...V', but got 'A...'"
+  - "Trying to get a type from a variadic type parameter"
+  - "Expected '->' when parsing function type"
+  - "Too many type parameters"
+kind: reference
+category: luau/types/packs
+tags: [new-solver, silent]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+  - luau-lsp 1.70.1
+---
 # packs-and-varargs — 타입 팩, 가변 인자, 여러 값 반환
 
 ## 이 파일이 답하는 질문

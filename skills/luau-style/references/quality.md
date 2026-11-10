@@ -1,3 +1,33 @@
+---
+title: "주석, 마커, 포맷, 테스트 관용, 검증과 보고"
+description: "주석 언어와 왜를 쓰는 주석, --- 문서 주석과 Ref: 위치, TODO 마커, stylua 를 저장소 루트에서 syntax = Luau 로 돌려 f<<T>> 를 지키기, 프레임워크 없는 테스트 관용, exit code 판정과 보고 범위, 성능 주장"
+keywords:
+  - "주석 언어"
+  - "comment language"
+  - "--- 문서 주석"
+  - "-- Ref:"
+  - "--#region"
+  - "TODO 마커"
+  - "@deprecated"
+  - "stylua 하위 폴더"
+  - "--search-parent-directories"
+  - "syntax = \"Luau\""
+  - "stylua: ignore"
+  - "f << T >>"
+  - "exit code 판정"
+  - "ALL PASS"
+  - "2>/dev/null"
+  - "ulimit -v"
+  - "보고 범위"
+  - "관측 계약 아님"
+  - "특성화 테스트"
+kind: reference
+category: luau/style/quality
+tags: [policy, cli]
+last_verified: 2026-11-10
+last_confirmed:
+  - stylua 2.5.2
+---
 # quality — 주석, 마커, 포맷, 테스트 관용, 검증과 보고
 
 ## 이 파일이 답하는 질문

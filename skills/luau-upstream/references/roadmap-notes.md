@@ -1,3 +1,28 @@
+---
+title: "지금 진행 중인 큰 변화"
+description: "진행 중인 큰 변화: luau 0.735–0.746 릴리스 요약, class 가 재귀 타입을 풀어 주나(직접 근거 없음, 제네릭 class 범위 밖), CLI→Studio 베타→라이브 시차, RFC 상태별 현황, 정수 타입 철회, luau-lsp·StyLua·rojo"
+keywords:
+  - "luau 로드맵"
+  - "luau roadmap"
+  - "앞으로 무엇이 바뀌나"
+  - "릴리스 노트 요약"
+  - "release notes"
+  - "class 와 재귀 타입"
+  - "제네릭 class"
+  - "CLI 엔진 반영 시차"
+  - "Studio 베타 라이브 시차"
+  - "RFC 현황"
+  - "RFC status"
+  - "정수 타입 철회"
+  - "integer 철회"
+  - "shared self types"
+  - "coroutine.finally"
+  - "luau-lsp 번들 Luau 판"
+kind: reference
+category: luau/upstream/roadmap
+tags: [docs-quoted]
+last_verified: 2026-11-10
+---
 # roadmap-notes — 지금 진행 중인 큰 변화
 
 > **last-checked: 2026-11-10** (luau 0.746 / luau-lsp 1.70.1 / StyLua 2.6.0 / rojo 7.7.1 / rfcs master 5fcbb5a). 이 파일은 빨리 낡는다. 30일이 지났으면 답하기 전에 `sources.md` 대로 다시 본다.

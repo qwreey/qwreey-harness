@@ -1,3 +1,32 @@
+---
+title: "에러를 던지고, 잡고, 테스트하기"
+description: "에러 메시지는 영어 리터럴로, 되던지기는 error(e, 0). -O2 인라인으로 손으로 센 error level 이 위치를 잃는 문제와 스택을 걷는 raise 헬퍼, pcall(f(x)) 함정, NaN 경계 검사, 에러 테스트 단언"
+keywords:
+  - "raise 헬퍼"
+  - "raise helper"
+  - "error(msg, 2)"
+  - "error level"
+  - "되던지기"
+  - "rethrow"
+  - "error(e, 0)"
+  - "pcall(f(x))"
+  - "xpcall traceback"
+  - "attempt to call a string value"
+  - "inlining failed: module uses getfenv/setfenv"
+  - "NaN 경계 검사"
+  - "NaN range check"
+  - "믿을 수 없는 값 검증"
+  - "rawlen"
+  - "에러 메시지 형식"
+  - "사용자 줄 가리키기"
+kind: reference
+category: luau/style/errors
+tags: [o2, policy, cli]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # errors — 에러를 던지고, 잡고, 테스트하기
 
 ## 이 파일이 답하는 질문

@@ -1,3 +1,32 @@
+---
+title: "변성, 서브타이핑, 팬텀 표식"
+description: "read 필드 공변·읽기쓰기 불변, 함수 모양 팬텀 표식으로 변성 고르기, 값 팬텀의 nil 구멍, 공변 자리 제네릭 넓어짐, 콜백 파라미터 개수, 교집합·V? 필드의 추론 실패, 입력 표식·출력 전체형 설계 원칙"
+keywords:
+  - "변성"
+  - "variance"
+  - "공변"
+  - "covariant"
+  - "반공변"
+  - "contravariant"
+  - "불변"
+  - "invariant"
+  - "팬텀 표식 변성"
+  - "phantom marker"
+  - "read 필드"
+  - "불변 마커"
+  - "콜백 파라미터 개수"
+  - "입력 자리 출력 자리"
+  - "read keyword is illegal here"
+  - "No valid instantiation could be inferred for generic type parameter"
+  - "Expected the parameter types to be a supertype"
+kind: reference
+category: luau/types/variance
+tags: [new-solver, silent, bug]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # variance — 변성, 서브타이핑, 팬텀 표식
 
 ## 이 파일이 답하는 질문

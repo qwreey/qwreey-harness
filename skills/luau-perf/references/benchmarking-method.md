@@ -1,3 +1,32 @@
+---
+title: "측정부터, 그리고 믿을 수 있게 재는 법"
+description: "추측 대신 측정부터: 프로파일, 워밍업·순서 회전·측정 전 GC·중앙값·control 대조군을 갖춘 벤치 하네스, -O1·-O2·--codegen 모드 선택, 잡음 바닥 읽기, 같은 파일 인라인 같은 벤치 함정과 bench/ 실행법"
+keywords:
+  - "벤치마크 짜는 법"
+  - "마이크로벤치"
+  - "microbenchmark"
+  - "benchmark harness"
+  - "벤치 하네스"
+  - "luau --profile"
+  - "워밍업 중앙값"
+  - "잡음 바닥"
+  - "noise floor"
+  - "control 대조군"
+  - "벤치 함정"
+  - "측정부터"
+  - "os.clock"
+  - "bench/run.sh"
+  - "summarize.py"
+  - "어느 모드로 재나"
+  - "Bench.run"
+kind: reference
+category: luau/perf/measurement
+tags: [measured, cli, o2]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # benchmarking-method — 측정부터, 그리고 믿을 수 있게 재는 법
 
 ## 이 파일이 답하는 질문

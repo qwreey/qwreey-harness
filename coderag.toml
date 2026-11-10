@@ -1,0 +1,63 @@
+# coderag pack 매니페스트 (coderag tech-design §13.3). luau-kb 를 pack 으로 등록하면 이 파일을 읽는다.
+#   등록 예(소비자 쪽 coderag.toml 또는 ~/.coderag/coderag.toml):
+#     [[packs]]
+#     name = "luau-kb"
+#     path = "/code/Projects/luau-kb"
+# 모듈 = 스킬 디렉터리 하나(SKILL.md + references/). 문서 ID 는 `pack:luau-kb/<스킬>` 이름공간을 쓴다(§14).
+# 캐시는 pack 안에 쓰지 않는다(소비자의 $CODERAG_HOME/cache/packs/). 분류 어휘는 taxonomy.toml(§16).
+
+[pack]
+name = "luau-kb"
+description = "Luau 타입 한계·검증·테스트·성능·스타일·런타임·Roblox 엔진·업스트림 지식 (스킬 12개의 references)"
+taxonomy = "taxonomy.toml"
+
+[[contexts.knowledge]]
+provider = ["markdown-frontmatter"]
+  [[contexts.knowledge.targets]]
+  module = "luau-types"
+  source = "skills/luau-types"
+  options = { skip_sections = ["목차"] }
+  [[contexts.knowledge.targets]]
+  module = "luau-verify"
+  source = "skills/luau-verify"
+  options = { skip_sections = ["목차"] }
+  [[contexts.knowledge.targets]]
+  module = "luau-testing"
+  source = "skills/luau-testing"
+  options = { skip_sections = ["목차"] }
+  [[contexts.knowledge.targets]]
+  module = "luau-perf"
+  source = "skills/luau-perf"
+  options = { skip_sections = ["목차"] }
+  [[contexts.knowledge.targets]]
+  module = "luau-style"
+  source = "skills/luau-style"
+  options = { skip_sections = ["목차"] }
+  [[contexts.knowledge.targets]]
+  module = "luau-runtime"
+  source = "skills/luau-runtime"
+  options = { skip_sections = ["목차"] }
+  [[contexts.knowledge.targets]]
+  module = "luau-roblox"
+  source = "skills/luau-roblox"
+  options = { skip_sections = ["목차"] }
+  [[contexts.knowledge.targets]]
+  module = "roblox-engine"
+  source = "skills/roblox-engine"
+  options = { skip_sections = ["목차"] }
+  [[contexts.knowledge.targets]]
+  module = "roblox-net"
+  source = "skills/roblox-net"
+  options = { skip_sections = ["목차"] }
+  [[contexts.knowledge.targets]]
+  module = "roblox-world"
+  source = "skills/roblox-world"
+  options = { skip_sections = ["목차"] }
+  [[contexts.knowledge.targets]]
+  module = "roblox-docs"
+  source = "skills/roblox-docs"
+  options = { skip_sections = ["목차"] }
+  [[contexts.knowledge.targets]]
+  module = "luau-upstream"
+  source = "skills/luau-upstream"
+  options = { skip_sections = ["목차"] }

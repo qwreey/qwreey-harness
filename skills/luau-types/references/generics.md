@@ -1,3 +1,34 @@
+---
+title: "제네릭 추론, 명시 타입 인자, 콜백"
+description: "새 솔버에서 제네릭 결과가 조용히 unknown 이 되는 자리와 명시 타입 인자 f<<T>> 해법, 콜백·람다 주석 상한 소실, 제네릭 몸통 무검사, __call·pcall 경유 타입 인자 소실과 호출 표면 규칙"
+keywords:
+  - "제네릭 추론"
+  - "generic inference"
+  - "명시 타입 인자"
+  - "explicit type arguments"
+  - "f<<T>>"
+  - "제네릭 콜백 상한"
+  - "generic callback bound"
+  - "람다 주석 무시"
+  - "제네릭 몸통 무검사"
+  - "탐침 타입"
+  - "LuauSoundGenericMismatches"
+  - "콜러블 네임스페이스"
+  - "사용자 정의 타입 가드"
+  - "Box<unknown, unknown>"
+  - "Consider placing the following annotations"
+  - "Expected 'nil', but got 'number'"
+  - "Internal error: outstanding free or blocked type in function call"
+  - "Not all codepaths in this function return"
+kind: reference
+category: luau/types/generics
+tags: [new-solver, silent, bug]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+  - luau-lsp 1.70.1
+---
 # generics — 제네릭 추론, 명시 타입 인자, 콜백
 
 ## 이 파일이 답하는 질문

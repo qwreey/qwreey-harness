@@ -1,3 +1,29 @@
+---
+title: "Roblox 타입 정의와 sourcemap 을 luau-lsp 에 넘기기"
+description: "Roblox 코드를 luau-lsp 로 검사하려면 정의 파일 globalTypes.d.luau, --platform=roblox, Rojo sourcemap 이 필요하다. 빠졌을 때의 진단, luau-kb typedefs 판, Claude Code LSP 래퍼·lsp_probe 설정"
+keywords:
+  - "globalTypes.d.luau"
+  - "정의 파일"
+  - "definition file"
+  - "--definitions"
+  - "--platform=roblox"
+  - "--sourcemap"
+  - "rojo sourcemap"
+  - "sourcemap.json"
+  - "Unknown global 'Instance'"
+  - "Unknown require: unsupported path"
+  - "Key 'Lib' not found in external type 'Instance'"
+  - "*error-type*"
+  - "luau-analyze Roblox 검사 불가"
+  - "LUAU_KB_LSP_DEFS"
+  - "LUAU_KB_LSP_PLATFORM"
+  - "lsp_probe"
+kind: reference
+category: roblox/typedefs
+last_verified: 2026-11-10
+last_confirmed:
+  - luau-lsp 1.70.1
+---
 # typedefs — Roblox 타입 정의와 sourcemap 을 luau-lsp 에 넘기기
 
 ## 이 파일이 답하는 질문

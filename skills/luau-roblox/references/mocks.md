@@ -1,3 +1,31 @@
+---
+title: "필요한 부분만 흉내 내기, 차이 기록, 충실도 검증"
+description: "엔진 mock 은 테스트가 기대는 표면만 만들고 주입을 먼저 쓴다. getfenv 로 모듈 환경에 game·task 넣기, 검증된 Signal·Instance·task mock 모양, 엔진과의 차이 표, Studio 충실도 검증 절차"
+keywords:
+  - "mock 범위"
+  - "mock 충실도 검증"
+  - "mock fidelity"
+  - "mock 차이 기록"
+  - "mock 보다 주입"
+  - "dependency injection"
+  - "getfenv 전역 주입"
+  - "attempt to modify a readonly table"
+  - "_G.task"
+  - "Signal mock 역순 순회"
+  - "task mock flush"
+  - "가상 시계"
+  - "virtual clock"
+  - "table.sort 안정 정렬 아님"
+  - "makeFakeStore"
+  - "quad-mock"
+  - "rbvm 가상 Signal"
+kind: reference
+category: roblox/testing
+tags: [studio]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.742
+---
 # mocks — 필요한 부분만 흉내 내기, 차이 기록, 충실도 검증
 
 ## 이 파일이 답하는 질문

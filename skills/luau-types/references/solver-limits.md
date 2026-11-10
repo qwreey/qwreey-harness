@@ -1,3 +1,32 @@
+---
+title: "새 솔버와 옛 솔버, 결함 카탈로그(버전별)"
+description: "새 솔버(LuauSolverV2)와 옛 솔버 고르기, 진단이 안 나는 결함 카탈로그 S1–S28 의 버전별 상태, 0.734→0.742 에서 바뀐 것, 맞는 코드가 거부되는 위양성 목록, 결함을 만났을 때 절차와 원천 정정"
+keywords:
+  - "새 솔버"
+  - "new solver"
+  - "옛 솔버"
+  - "old solver"
+  - "LuauSolverV2"
+  - "--solver=old"
+  - "결함 카탈로그"
+  - "솔버 결함"
+  - "위양성"
+  - "false positive"
+  - "0.742 변경점"
+  - "for i in ipairs"
+  - "Argument count mismatch. Function expects 2 arguments, but 2 are specified"
+  - "캐스트 겹침"
+  - "self: any 제네릭 메서드"
+  - "Subtyping 캐시 오염"
+  - "업스트림 보고"
+kind: reference
+category: luau/types/solver
+tags: [new-solver, old-solver, bug, silent, correction]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # solver-limits — 새 솔버와 옛 솔버, 결함 카탈로그(버전별)
 
 ## 이 파일이 답하는 질문
@@ -75,6 +104,7 @@ status: verified · 근거: 위 표의 S2, S13, S14, S16, S22, `snippets/RESULTS
 
 ## §4 위양성(맞는 코드가 거부됨) 쪽 결함
 status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/solver-generic-intersection-return.luau`, `snippets/solver-declared-generic-field.luau`, `snippets/generics-annotation-does-not-flow.luau`, `snippets/variance-intersection-instantiation.luau`
+summary: 교집합+반환 제네릭, 주석 미전파 등 맞는 코드가 거부되는 결함과 우회, 반대로 self: any 제네릭 메서드 결과 무검사와 겹침만 보는 캐스트
 
 - **교집합 + 반환 속 제네릭**: `<S>(S & S) -> S` 를 글자 그대로 같은 타입에 대입해도 거부된다. `S` 가 반환에 없거나 교집합이 없으면 통과한다(stl luau-solver-issues/8). 같은 뿌리로 보이는 실무 증상: 서로 다른 패키지 사본에서 온 "같은" 큰 타입끼리 대입이 실패한다(quad 8.43, described). 라이브러리 경계는 `read` 필드 하나짜리 표식으로 받고, 런타임 브랜드를 확인한 뒤 캐스트한다.
 - **교집합 안 불변/반공변 T** 추론 실패: variance.md §7.

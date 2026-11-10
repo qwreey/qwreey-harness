@@ -1,3 +1,32 @@
+---
+title: "원격·바인더블 신뢰 경계, 복제, 네트워크 소유권, 스트리밍"
+description: "원격 신뢰 경계: RemoteEvent 로 보낸 표는 사본(메타테이블·함수 소실), BindableEvent 인자 복사와 Fire 실패, 원격 값 검증 순서, 원격 한도, 복제 컨테이너와 RunContext, 네트워크 소유권, StreamingEnabled 범위"
+keywords:
+  - "RemoteEvent 메타테이블 테이블"
+  - "원격 인자 복사"
+  - "RemoteFunction 인자"
+  - "BindableEvent 인자 복사"
+  - "tables cannot be cyclic"
+  - "Invalid table key type used"
+  - "원격 값 검증"
+  - "NaN inf 검증"
+  - "UnreliableRemoteEvent"
+  - "원격 요청 한도"
+  - "DoS 예산"
+  - "복제 경계"
+  - "RunContext"
+  - "Script that implemented this callback has been destroyed"
+  - "SetNetworkOwner"
+  - "네트워크 소유권"
+  - "Can only call Network Ownership API on a part that is descendent of Workspace"
+  - "같은 값 쓰기 복제 안 됨"
+  - "StreamingEnabled 속성"
+  - "DisplayName 권한"
+kind: reference
+category: roblox/networking
+tags: [security, studio]
+last_verified: 2026-11-10
+---
 # remotes-and-replication — 원격·바인더블 신뢰 경계, 복제, 네트워크 소유권, 스트리밍
 
 ## 이 파일이 답하는 질문

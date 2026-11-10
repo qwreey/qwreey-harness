@@ -1,3 +1,36 @@
+---
+title: "스니펫 표식 문법과 하네스 사용법"
+description: "snippets/*.luau 의 줄 끝 표식(expect-error, bug-present, 버전 조건)과 머리 주석(--@run, --@run-opt, --@compile, --@codegen, --@lsp-roblox) 문법, 하네스 강제 규칙, check_snippets.py 실행과 RESULTS 표, 새 주장 추가 순서"
+keywords:
+  - "스니펫 표식"
+  - "snippet marker"
+  - "-- expect-error"
+  - "-- bug-present"
+  - "버전 조건 표식"
+  - "--@run"
+  - "--@run-opt"
+  - "--@run-with"
+  - "--@compile"
+  - "--@codegen"
+  - "--@inline-remarks"
+  - "--@lsp-roblox"
+  - "--@luaurc"
+  - "--@no-control"
+  - "check_snippets.py"
+  - "RESULTS.md"
+  - "하네스 규칙"
+  - "새 주장 추가"
+  - "doc-snippets.py"
+kind: reference
+category: luau/verify/snippets
+tags: [cli, o2]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+  - luau-lsp 1.69.0
+  - luau-lsp 1.70.1
+---
 # snippet-markers — 스니펫 표식 문법과 하네스 사용법
 
 ## 이 파일이 답하는 질문

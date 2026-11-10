@@ -1,3 +1,33 @@
+---
+title: "언어 차원의 require 규칙(luau CLI), 정적 검사가 잡는 조건, 모듈 사본"
+description: "luau CLI require-by-string 규칙: init.luau 안 ./ 와 @self, 두 ambiguous 에러, .luaurc alias 는 값이 ./ 로 시작해야 런타임에서 풀림, symlink 미지원, strict analyze 가 잡는 것과 못 잡는 오타, 패키지 사본 둘, D-12"
+keywords:
+  - "require 경로 ambiguous"
+  - "require-by-string"
+  - "@self"
+  - "init.luau 상대 경로"
+  - "could not resolve child component"
+  - "could not reset to requiring context"
+  - "could not jump to alias"
+  - "Unknown require: unsupported path"
+  - "module must return a single value"
+  - ".luaurc alias"
+  - "require alias 런타임"
+  - "symlink require"
+  - "cp -rL"
+  - "require 오타 진단 0건"
+  - "패키지 사본 둘"
+  - "tests/init.luau"
+  - "D-12"
+kind: reference
+category: luau/runtime/require
+tags: [cli, correction, policy]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+  - luau-lsp 1.70.1
+---
 # require-by-string — 언어 차원의 require 규칙(luau CLI), 정적 검사가 잡는 조건, 모듈 사본
 
 Roblox 엔진 없이 성립하는 규칙만 둔다(RFC require-by-string 과 luau CLI 실측). Studio 의 문자열 require, Instance 경로, ModuleScript 캐시와 VM 경계는 roblox-engine `require-in-roblox.md` 가 정본이다. 검사기 대 런타임 판정표는 luau-verify `checkers.md` §7, 쓰는 규칙은 luau-style `modules.md`.

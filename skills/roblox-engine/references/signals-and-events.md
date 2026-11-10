@@ -1,3 +1,29 @@
+---
+title: "RBXScriptSignal 의 배달 시점, 순서, 끊기, 속성 변경 신호"
+description: "RBXScriptSignal 실측: Deferred 판정과 재개 지점 배달, 연결 역순 호출·발화 중 Connect·리스너 에러 격리, Disconnect 는 대기분을 버리고 Destroy 절단은 1회 배달, 같은 값 대입 Changed 0회, 시그널 userdata 신원"
+keywords:
+  - "Deferred 신호 순서"
+  - "SignalBehavior"
+  - "Deferred Immediate 판정"
+  - "재개 지점"
+  - "resumption point"
+  - "핸들러 연결 역순"
+  - "발화 중 Connect"
+  - "Once Connected false"
+  - "Disconnect 대기 배달"
+  - "Destroy 로 끊긴 연결 대기분"
+  - "같은 값 대입 Changed"
+  - "GetPropertyChangedSignal 중간값"
+  - "리스너 에러 격리"
+  - "시그널 캐시 키"
+  - "isUpdating 플래그 가드"
+  - "Maximum event re-entrancy depth exceeded"
+  - "Attempt to connect failed: Passed value is not a function"
+kind: reference
+category: roblox/signals
+tags: [studio, correction]
+last_verified: 2026-11-10
+---
 # signals-and-events — RBXScriptSignal 의 배달 시점, 순서, 끊기, 속성 변경 신호
 
 ## 이 파일이 답하는 질문

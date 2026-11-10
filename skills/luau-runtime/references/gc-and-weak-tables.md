@@ -1,3 +1,30 @@
+---
+title: "약한 표의 의미론, 누수 조건, GC 프로브의 함정 (엔진 무관)"
+description: "Luau 약한 표 의미론과 누수 판정: ephemeron 이 없어 값이 키를 잡으면 영구 잔존, __mode=\"v\" 의 강한 키·__mod 오타·약한 배열 구멍·멈춘 코루틴, GC 시점 의존 버그, 프로브 함정, 함수 키·옵저버 설계"
+keywords:
+  - "weak table 누수"
+  - "약한 테이블 누수"
+  - "weak table leak"
+  - "ephemeron"
+  - "약한 키 값이 키를 잡음"
+  - "__mode = \"v\""
+  - "__mod 오타"
+  - "약한 배열 구멍"
+  - "weak 항목 사라짐"
+  - "누수 판정"
+  - "GC 프로브 함정"
+  - "함수 키 레지스트리"
+  - "옵저버 그래프 weak"
+  - "GC 는 할당이 있어야 진행"
+  - "멈춘 코루틴 weak 키"
+kind: reference
+category: luau/runtime/gc
+tags: [cli, silent, correction]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # gc-and-weak-tables — 약한 표의 의미론, 누수 조건, GC 프로브의 함정 (엔진 무관)
 
 ## 이 파일이 답하는 질문

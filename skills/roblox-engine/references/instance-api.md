@@ -1,3 +1,31 @@
+---
+title: "트리 API 경계, Parent·에러 문구, Clone, Attribute·태그, QueryDescendants, Reflection, 데이터 타입 값"
+description: "트리 API 의 경계 입력 동작(FindFirstChild·IsDescendantOf·WaitForChild), 엔진 에러 문구 원문, Clone 과 Archivable, Attribute 값·이름 제약, QueryDescendants 셀렉터 문법, ReflectionService, 데이터 타입 float32, debug·getfenv 차이"
+keywords:
+  - "QueryDescendants 셀렉터"
+  - "QueryDescendants selector"
+  - "엔진 에러 문구"
+  - "Bogus is not a valid property name."
+  - "Unable to create an Instance of type"
+  - "Attempt to set Frame as its own parent"
+  - "would result in circular reference"
+  - "Unable to assign property Size. UDim2 expected, got table"
+  - "Array is not a supported attribute type"
+  - "FindFirstDescendant is not enabled"
+  - "Argument 1 missing or nil"
+  - "attempt to get length of a Instance value"
+  - "Clone Archivable nil"
+  - "IsDescendantOf nil"
+  - "오브젝트 참조 속성 nil 해제"
+  - "InstanceHandle"
+  - "ReflectionService GetPropertiesOfClass"
+  - "float32 경계 비교"
+  - "game.JobId 빈 문자열"
+kind: reference
+category: roblox/instance
+tags: [studio, correction]
+last_verified: 2026-11-10
+---
 # instance-api — 트리 API 경계, Parent·에러 문구, Clone, Attribute·태그, QueryDescendants, Reflection, 데이터 타입 값
 
 ## 이 파일이 답하는 질문

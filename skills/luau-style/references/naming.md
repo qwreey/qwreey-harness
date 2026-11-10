@@ -1,3 +1,30 @@
+---
+title: "이름 짓기"
+description: "PascalCase·camelCase 공통 다섯 규칙(타입, require 받은 모듈 지역, isX 술어, _ 필드), 저장소마다 갈리는 케이스는 이웃 모듈을 따름, 새 저장소 기본값, 사용자가 정한 이름 처리, 필드가 메서드를 가리는 함정"
+keywords:
+  - "PascalCase"
+  - "camelCase"
+  - "네이밍 케이싱"
+  - "naming convention"
+  - "이름 짓기"
+  - "파일 이름 대소문자"
+  - "T 접두"
+  - "isX 술어"
+  - "_ 접두 필드"
+  - "생성자 이름"
+  - "공개 이름 변경"
+  - "이름 변경 제안"
+  - "필드가 메서드를 가림"
+  - "field shadows method"
+  - "한 글자 별칭"
+kind: reference
+category: luau/style/naming
+tags: [policy]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # naming — 이름 짓기
 
 ## 이 파일이 답하는 질문

@@ -1,3 +1,31 @@
+---
+title: "\"진단 0건\"을 믿을 수 있게 만드는 방법"
+description: "진단 0건이 맞는 코드·검사 꺼짐·타입 누수 중 무엇인지 가리는 음성 대조군 만드는 법, 알려진 결함을 현재 상태로 고정하기, 기대표 대 줄 끝 표식, 게이트 돌연변이 검사, 자원 상한과 체크리스트"
+keywords:
+  - "음성 대조군"
+  - "negative control"
+  - "진단 0건"
+  - "zero diagnostics"
+  - "0건을 믿어도 되나"
+  - "대조군 만드는 법"
+  - "통제군"
+  - "돌연변이 검사"
+  - "mutation testing"
+  - "알려진 결함 고정"
+  - "검사 꺼짐"
+  - "게이트 검증"
+  - "기대표"
+  - "spike-expectations.tsv"
+  - "(nil :: any) :: T"
+  - "ulimit -v"
+kind: reference
+category: luau/verify/negative-controls
+tags: [silent, cli]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # negative-controls — "진단 0건"을 믿을 수 있게 만드는 방법
 
 ## 이 파일이 답하는 질문

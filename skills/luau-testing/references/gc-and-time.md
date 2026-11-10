@@ -1,3 +1,33 @@
+---
+title: "GC 프로브와 시간 의존 로직 시험"
+description: "luau CLI 에서 weak 표 정리·누수를 KB 가 아닌 객체 수로 판정하는 GC 프로브, 프로브가 스스로 결론을 망치는 함정, 가상 시계로 디바운스·타이머를 결정적으로 시험, Roblox collectgarbage 제약"
+keywords:
+  - "GC 프로브"
+  - "누수 테스트"
+  - "leak test"
+  - "Unknown global 'collectgarbage'"
+  - "collectgarbage(\"collect\")"
+  - "fullgc"
+  - "weak-key 추적자"
+  - "객체 수 판정"
+  - "KB 흔들림"
+  - "클로저 캐시"
+  - "가상 시계"
+  - "virtual clock"
+  - "디바운스 테스트"
+  - "debounce"
+  - "스로틀 타이머"
+  - "advance(dt)"
+  - "os.clock"
+  - "task.wait 지터"
+kind: reference
+category: luau/testing/time
+tags: [cli]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # gc-and-time — GC 프로브와 시간 의존 로직 시험
 
 ## 이 파일이 답하는 질문

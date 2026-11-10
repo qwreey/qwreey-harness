@@ -1,3 +1,33 @@
+---
+title: "Instance, Enum, 서비스, 속성, 엔진 호출의 타입 사용법"
+description: "luau-lsp --platform=roblox 에서 Instance.new·GetService·FindFirstChild·IsA·GetAttribute·Enum 이 받는 타입과 좁히기, 타입이 런타임보다 낙관적인 자리(Clone, LocalPlayer), 검사기가 못 잡는 엔진 호출"
+keywords:
+  - "Instance.new 타입 추론"
+  - "GetService 타입"
+  - "IsA 좁히기"
+  - "IsA refinement"
+  - "ClassName 비교 좁히기"
+  - "GetAttribute unknown"
+  - "typeof 와 type 차이"
+  - "Enum 문자열 대입"
+  - "FindFirstChild nil 타입"
+  - "WaitForChild timeout nil"
+  - "Clone non-nil 타입"
+  - "LocalPlayer nil"
+  - "Invalid class name"
+  - "Invalid service name"
+  - "Unknown type 'Prat'"
+  - "Key 'Foo' not found in external type 'Workspace'"
+  - "Cannot compare unrelated types"
+  - "could be nil"
+kind: reference
+category: roblox/types
+tags: [new-solver, silent]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau-lsp 1.69.0
+  - luau-lsp 1.70.1
+---
 # api-types — Instance, Enum, 서비스, 속성, 엔진 호출의 타입 사용법
 
 ## 이 파일이 답하는 질문

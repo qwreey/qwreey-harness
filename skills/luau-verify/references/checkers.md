@@ -1,3 +1,35 @@
+---
+title: "luau-analyze 와 luau-lsp 직접 호출, 솔버 비교"
+description: "luau-analyze·luau-lsp analyze 직접 호출법, stderr 진단과 종료 코드, 숨은 --fflags, 솔버×버전 비교, --annotate, 기준 검사기 D-06, lsp_probe.py 로 hover·자동완성 DX 확인, .lsp.json 연동, require 해소의 검사기·런타임 차이"
+keywords:
+  - "luau-analyze 사용법"
+  - "luau-lsp analyze"
+  - "--fflags"
+  - "--annotate"
+  - "--flag:LuauSolverV2=true"
+  - "--platform=roblox"
+  - "globalTypes.d.luau"
+  - "종료 코드"
+  - "stderr 진단"
+  - "기준 검사기"
+  - "D-06"
+  - "lsp_probe.py"
+  - "hover 자동완성"
+  - ".lsp.json"
+  - "엔진 무관 게이트"
+  - "거짓 클린"
+  - "symlink require"
+  - "Unknown require"
+  - "Warning: unrecognized flag"
+kind: reference
+category: luau/verify/checkers
+tags: [cli, policy, correction]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+  - luau-lsp 1.70.1
+---
 # checkers — luau-analyze 와 luau-lsp 직접 호출, 솔버 비교
 
 ## 이 파일이 답하는 질문
@@ -22,6 +54,7 @@
 
 ## §1 luau-analyze
 status: verified · last-confirmed: luau 0.742 (0.734 동일) (`--help`, 수동 실행; `snippets/RESULTS.md` "스니펫 밖에서 실측한 것", `snippets/verify-fflags-force-strict.luau`, `snippets/verify-require.sh` R6)
+summary: 버전 경로로 직접 부르고 진단은 stderr 라 2>&1 필수, rc=1 은 타입·구문 에러뿐(린트는 0), 숨은 --fflags 는 불리언만 바꾸며 Roblox 전역은 모른다
 
 ```bash
 L=/code/.local/share/mise/installs/luau/0.742     # 버전 디렉터리 직접 (shim 함정은 toolchain.md)
@@ -147,6 +180,7 @@ Roblox(정의 파일 + platform roblox): hover `part` → `Part`, `players` → 
 읽는 법: `fromList` 처럼 주석이 없으면 진단 0건이어도 소비자에게 `unknown` 이 보인다. 공개 함수의 매개변수와 반환은 주석을 단다.
 
 ### Claude Code LSP 연동 (`.lsp.json`)
+summary: tools/luau-lsp.sh 래퍼가 바이너리·플랫폼을 골라 LSP 도구로 붙인다. hover·정의는 되나 자동완성·inlay 는 lsp_probe.py 로, validate 뒤 도구 목록도 확인
 
 ```json
 { "luau": { "command": "${CLAUDE_PLUGIN_ROOT}/tools/luau-lsp.sh",

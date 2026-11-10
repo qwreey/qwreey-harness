@@ -1,3 +1,31 @@
+---
+title: "순회 모양별 비용"
+description: "숫자 for·ipairs·일반화 for·pairs 순회 비용(메타테이블 배열에서는 절반 아래), 해시 순회 API 는 표를 그대로 내주기, next 삼중항·래퍼 이터레이터 비용, 루프 안 nil 검사와 a.data[i] 끌어올리기, next(t, k) 중간부터 돌기 함정"
+keywords:
+  - "ipairs 대 숫자 for"
+  - "ipairs vs numeric for"
+  - "순회 비용"
+  - "iteration cost"
+  - "일반화 for"
+  - "generalized iteration"
+  - "pairs 성능"
+  - "이터레이터 API 설계"
+  - "래퍼 이터레이터 비용"
+  - "next 삼중항"
+  - "next(t, k)"
+  - "중간부터 순회"
+  - "필드 인덱싱 끌어올리기"
+  - "루프 nil 검사 비용"
+  - "FORGPREP_INEXT"
+  - "__iter"
+kind: reference
+category: luau/perf/iteration
+tags: [measured, correction]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # iteration — 순회 모양별 비용
 
 ## 이 파일이 답하는 질문

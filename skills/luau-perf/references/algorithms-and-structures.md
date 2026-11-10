@@ -1,3 +1,32 @@
+---
+title: "차수보다 상수: 알고리즘과 자료구조 고르기"
+description: "차수보다 상수: 정렬된 입력이면 병합이 해시를 이김, table.sort 비교자를 빼면 4배 빠름, 힙 한 번에 짓기, 결과 표 대신 다중 반환, 덱·힙·트리·정렬 배열 표현 선택과 안정 정렬·quickselect·top-k 원천 수치"
+keywords:
+  - "정렬 비교자 비용"
+  - "table.sort 비교자"
+  - "sort comparator cost"
+  - "3방향 비교자"
+  - "해시 대 정렬 병합"
+  - "집합 연산 성능"
+  - "힙 짓기"
+  - "heapify"
+  - "다중 반환 대 결과 표"
+  - "multiple returns"
+  - "자료구조 선택"
+  - "안정 정렬"
+  - "quickselect"
+  - "top-k"
+  - "레드블랙 AVL"
+  - "링 버퍼 덱"
+  - "Big-O 보다 상수"
+kind: reference
+category: luau/perf/algorithms
+tags: [measured, correction]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # algorithms-and-structures — 차수보다 상수: 알고리즘과 자료구조 고르기
 
 ## 이 파일이 답하는 질문

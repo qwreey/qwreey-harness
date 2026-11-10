@@ -1,3 +1,29 @@
+---
+title: "Studio 의 문자열 require, Instance 경로, ModuleScript 캐시와 VM 경계"
+description: "Studio 문자열 require 의 경로 규칙과 에러(접두 필수, 대상을 기다리지 않음, @game, alias 대소문자), 이미 require 된 ModuleScript 캐시 때문에 Rojo 수정이 안 보이는 문제, 콘솔·플러그인·Actor VM 경계"
+keywords:
+  - "Studio 문자열 require"
+  - "@game"
+  - "@self"
+  - "require path must start with a valid prefix"
+  - "could not resolve child component"
+  - "is not a valid alias"
+  - "Unable to require module from given path"
+  - "require 캐시 옛 본문"
+  - "Rojo 수정 반영 안 됨"
+  - "require(ms:Clone())"
+  - "game.Loaded IsLoaded"
+  - "플러그인 VM 경계"
+  - "execute_luau require 상태 공유"
+  - "pesde 소문자 폴더"
+kind: reference
+category: roblox/require
+tags: [studio]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # require-in-roblox — Studio 의 문자열 require, Instance 경로, ModuleScript 캐시와 VM 경계
 
 ## 이 파일이 답하는 질문

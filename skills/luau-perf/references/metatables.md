@@ -1,3 +1,31 @@
+---
+title: "메타테이블 세금의 정확한 범위와 피하는 법"
+description: "메타테이블이 붙은 표의 정수 키 칸 t[i] 만 느려지는 세금(-O1 1.6배, native 읽기 2.1·쓰기 4.4배), rawget·freeze 로 못 피함, 상수 필드·안쪽 표는 무관, 메서드 복사 대 메타테이블, 구조 처방과 메타메서드 규약"
+keywords:
+  - "메타테이블 비용"
+  - "메타테이블 세금"
+  - "metatable overhead"
+  - "metatable tax"
+  - "setmetatable 성능"
+  - "정수 키 칸 세금"
+  - "rawget 으로 피하기"
+  - "table.freeze 성능"
+  - "메서드 복사 대 메타테이블"
+  - "클래스 구조 성능"
+  - "__index 표 대 함수"
+  - "안쪽 표에 원소"
+  - "frozen 표 __newindex"
+  - "__eq 호출 조건"
+  - "__gc 없음"
+  - "luaV_gettable"
+kind: reference
+category: luau/perf/metatables
+tags: [measured, correction, o2]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # metatables — 메타테이블 세금의 정확한 범위와 피하는 법
 
 ## 이 파일이 답하는 질문

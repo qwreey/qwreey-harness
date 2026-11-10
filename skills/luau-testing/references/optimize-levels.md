@@ -1,3 +1,31 @@
+---
+title: "테스트를 `-O2` 로도 돌려야 하는 이유"
+description: "테스트를 기본 -O1 과 -O2 로 두 번 돌려야 하는 이유: 인라인으로 error level·debug.info·traceback 이 바뀌는 표, 라이브러리 버그와 측정 버그 구분, --!optimize·--!native 지시어 우선, getfenv 가 인라인을 끔"
+keywords:
+  - "-O2 에서만 실패"
+  - "테스트 -O2 실행"
+  - "luau -O2"
+  - "-O1 -O2 두 번"
+  - "인라인 error level"
+  - "helper=lost"
+  - "traceback 함수 이름 사라짐"
+  - "--!optimize"
+  - "--!native"
+  - "@native"
+  - "getfenv 인라인 꺼짐"
+  - "inlining is completely disabled for modules that use getfenv/setfenv"
+  - "--@run-opt=0,2"
+  - "--@run-with"
+  - "측정 버그"
+  - "게이트 -O2"
+kind: reference
+category: luau/testing/optimize-levels
+tags: [o2, cli, correction]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+---
 # optimize-levels — 테스트를 `-O2` 로도 돌려야 하는 이유
 
 ## 이 파일이 답하는 질문

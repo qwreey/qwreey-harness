@@ -1,3 +1,36 @@
+---
+title: ".luaurc 모드, 러너, const, stylua"
+description: ".luaurc nonstrict 가 에러를 0건으로 만드는 함정과 --!strict·DebugLuauForceStrictMode, 러너 결정 D-03(luau CLI, lune 제외), const 허용 D-01, stylua 의 f<<T>> 오염 D-02, 린트 rc=0 과 게이트 판정"
+keywords:
+  - ".luaurc"
+  - "nonstrict"
+  - "--!strict"
+  - "--mode=strict"
+  - "DebugLuauForceStrictMode"
+  - "러너 선택"
+  - "lune"
+  - "lute"
+  - "const 써도 되나"
+  - "stylua 오염"
+  - "f << T >>"
+  - "stylua syntax Luau"
+  - "린트 rc=0"
+  - "게이트 판정"
+  - "selene"
+  - "GlobalUsedAsLocal"
+  - "UnknownType: Unknown type 'Instance'"
+  - "Incomplete statement: expected assignment or a function call"
+  - "Variable 'x' is constant and may not be reassigned"
+kind: reference
+category: luau/tooling/config
+tags: [policy, correction, cli]
+last_verified: 2026-11-10
+last_confirmed:
+  - luau 0.734
+  - luau 0.742
+  - luau-lsp 1.70.1
+  - stylua 2.5.2
+---
 # tooling — .luaurc 모드, 러너, const, stylua
 
 ## 이 파일이 답하는 질문
