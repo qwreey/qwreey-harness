@@ -26,7 +26,7 @@ audit 10 기준 이 세션들의 파일 수정은 Bash(sed -i·python) 쪽이 Ed
   파일 머리 10줄 안  `--@structure-exempt: <사유>`  (luau. web·rust·go 는 `//@structure-exempt:`, python 은 `#@structure-exempt:`)
   또는 structure.json  "exempt": [{"path": "<글롭>", "reason": "<사유>"}]
   사유가 비었거나 사유가 아닌 말("나중에", "귀찮", "TODO", "-")이면 무효다 — 평소처럼 알리고 무효라고 덧붙인다.
-  유효한 예외 파일은 경고·강제·성장 알림 대신 "예외 사유: …" 한 줄을 세션당 한 번만 낸다(경고 기준 이상일 때).
+  유효한 예외 파일은 경고·강제·성장 알림 대신 "Reason: …" 한 줄(알림 문구는 영어, audit/17)을 세션당 한 번만 낸다(경고 기준 이상일 때).
 강제 기준을 넘은 .luau/.lua 파일에는 분리 계획기(split-plan.py) 명령을 한 줄 붙인다. 계획기는 ~/.claude/skills/luau-style 에서 찾고,
   없으면 harness.env 의 HARNESS_LUAU_KB 또는 ${HARNESS_WORKSPACE}/luau-kb 에서 찾는다. 못 찾으면 안내를 생략한다.
 
@@ -38,7 +38,7 @@ audit 10 기준 이 세션들의 파일 수정은 Bash(sed -i·python) 쪽이 Ed
   같은 이름이면 기본 표의 해당 키를 덮어쓰고, 새 이름이면 툴킷을 더한다. 툴킷 안의 warn/hard/grow 가 최상위 값보다 앞선다.
   저장소가 더한 확장자는 Write/Edit 에서만 본다(Bash 경로 탐지는 기본 표의 확장자만 안다).
 끄기: 환경 변수 STRUCTURE_REMINDER=off
-상태 파일: $TMPDIR/claude-structure-reminder/<session_id>.json
+상태 파일: $TMPDIR/claude-structure-reminder/<session_id>.c<compact 회차>.json (lib/compact_epoch.py. compact 뒤 다시 알린다)
 """
 import fnmatch
 import importlib.util
@@ -97,6 +97,19 @@ def harness_env():
     return _ENV
 
 
+def dedup_path(namespace, session_id):
+    """State file keyed by (session_id, compact epoch) via lib/compact_epoch.py; falls back to session_id only."""
+    try:
+        spec = importlib.util.spec_from_file_location("compact_epoch", Path(__file__).resolve().parent.parent / "lib" / "compact_epoch.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.state_path(namespace, session_id)
+    except Exception:
+        d = os.path.join(tempfile.gettempdir(), namespace)
+        os.makedirs(d, exist_ok=True)
+        return os.path.join(d, re.sub(r"[^\w-]", "", str(session_id or "nosession")) + ".json")
+
+
 def find_planner():
     """split-plan.py 경로. 못 찾으면 None(안내 생략)."""
     env = harness_env()
@@ -119,7 +132,7 @@ def exemption(head10, rel, cfg, comments):
     for line in head10.split("\n"):
         m = mark.match(line)
         if m:
-            return m.group(1), reason_ok(m.group(1)), "머리 표식"
+            return m.group(1), reason_ok(m.group(1)), "header mark"
     for e in cfg.get("exempt") or []:
         if isinstance(e, dict) and fnmatch.fnmatch(rel, str(e.get("path") or "")):
             return str(e.get("reason") or ""), reason_ok(e.get("reason")), "structure.json"
@@ -247,28 +260,29 @@ def check_file(path, tool, ti, data, state, created):
     exempt = bool(ex and ex[1])
     if exempt and n >= warn and "exempt" not in said:
         said.append("exempt")
-        notes.append(f"`{rel}` ({n}줄)은 구조 예외입니다. 예외 사유: {ex[0]} ({ex[2]})")
+        notes.append(f"`{rel}` ({n} lines) has a structure exemption. Reason: {ex[0]} ({ex[2]})")
     if exempt:
         pass  # 길이 알림 대신 위의 사유 한 줄만
     elif n >= hard and "hard" not in said:
         said += ["hard", "warn"]
         planner = find_planner() if tk == "luau" else None
-        plan = f" 나눌 묶음은 `python3 -I {planner} {path}` 로 먼저 뽑아 보세요(읽기 전용)." if planner else ""
-        notes.append(f"`{rel}` 이 {n}줄로 강제 기준({hard}줄)을 넘었습니다. 지금 하던 수정은 마무리하되, 이 파일에 새 기능을 "
-                     f"더 덧붙이기 전에 분리안(어떤 묶음을 어디로, '옮기기만' 커밋을 먼저)을 사용자에게 제시하고 답을 받으세요.{plan}"
-                     f" 확실한 이유(타입 한계·생성물·순수 데이터)로 한 파일이어야 하면 머리에 `{comments[0]}@structure-exempt: <사유>` 를 답니다.")
+        plan = f" First extract candidate groups with `python3 -I {planner} {path}` (read-only)." if planner else ""
+        notes.append(f"`{rel}` is {n} lines, over the hard limit ({hard}). Finish the current edit, but before adding more features "
+                     f"to this file, propose a split to the user (which groups go where; a move-only commit first) and wait for an answer.{plan}"
+                     f" If the file must stay whole for a solid reason (type limits, generated, pure data), put "
+                     f"`{comments[0]}@structure-exempt: <reason>` in its header.")
     elif n >= warn and "warn" not in said:
         said.append("warn")
-        notes.append(f"`{rel}` 이 {n}줄입니다(경고 기준 {warn}줄). 더 덧붙이기 전에 떼어 낼 책임 묶음이 있는지 보고, "
-                     f"있으면 작업 보고에 분리 후보를 한 줄로 적으세요.")
+        notes.append(f"`{rel}` is {n} lines (warn limit {warn}). Before adding more, check for a responsibility group to split out; "
+                     f"if there is one, name the split candidate in one line in your report.")
     if ex and not ex[1] and n >= warn and "exempt-bad" not in said and said:
         said.append("exempt-bad")
-        notes.append(f"`{rel}` 의 구조 예외({ex[2]})는 사유가 비었거나 사유가 아니어서(\"{ex[0]}\") 무효입니다. "
-                     f"이유를 적거나 표식을 지우세요.")
+        notes.append(f"The structure exemption on `{rel}` ({ex[2]}) is invalid: the reason is empty or not a reason (\"{ex[0]}\"). "
+                     f"Give a real reason or remove the mark.")
     if not exempt and n - entry["base"] >= grow and n >= warn and "grow" not in said:
         said.append("grow")
-        notes.append(f"이번 세션에 `{rel}` 이 {entry['base']} → {n}줄(+{n - entry['base']})로 늘었습니다. 새 코드를 한 파일에 "
-                     f"계속 붙이고 있다면 새 모듈로 낼 수 있는지 먼저 보세요.")
+        notes.append(f"`{rel}` grew {entry['base']} -> {n} lines (+{n - entry['base']}) this session. If you keep appending new code "
+                     f"to one file, first see whether it can become a new module.")
 
     if created and os.path.basename(os.path.dirname(path)).lower() not in HOMOGENEOUS and not is_test:
         d = os.path.dirname(path)
@@ -279,18 +293,18 @@ def check_file(path, tool, ti, data, state, created):
         srcs = [x for x in names if toolkit_of(x, table) and os.path.isfile(os.path.join(d, x))]
         subdirs = [x for x in names if os.path.isdir(os.path.join(d, x)) and not x.startswith(".")]
         drel = os.path.relpath(d, root)
-        entry_name = "init.luau" if tk == "luau" else "index 파일"
+        entry_name = "init.luau" if tk == "luau" else "an index file"
         if len(srcs) >= cfg["flat"] and len(subdirs) <= 2 and drel not in seen_dirs:
             seen_dirs.append(drel)
-            notes.append(f"`{drel}/` 에 소스 파일이 {len(srcs)}개 있고 하위 폴더는 {len(subdirs)}개입니다. "
-                         f"같은 기능끼리 폴더({entry_name})로 묶을지 사용자에게 제안하세요.")
+            notes.append(f"`{drel}/` has {len(srcs)} source files and {len(subdirs)} subfolders. "
+                         f"Propose to the user grouping related files into folders ({entry_name}).")
         prefix = prefix_of(os.path.splitext(os.path.basename(path))[0])
         fam = sorted({os.path.splitext(x)[0] for x in srcs if prefix_of(os.path.splitext(x)[0]) == prefix})
         key = drel + "::" + prefix
         if len(fam) >= 3 and prefix not in subdirs and key not in seen_dirs:
             seen_dirs.append(key)
-            notes.append(f"`{drel}/` 에 `{prefix}` 로 시작하는 파일이 {len(fam)}개입니다({', '.join(fam)}). "
-                         f"`{prefix}/` 폴더({entry_name})로 묶는 것을 검토하세요.")
+            notes.append(f"`{drel}/` has {len(fam)} files starting with `{prefix}` ({', '.join(fam)}). "
+                         f"Consider grouping them into a `{prefix}/` folder ({entry_name}).")
     return notes
 
 
@@ -320,9 +334,7 @@ def main():
         return 0
 
     sid = re.sub(r"[^\w-]", "", str(data.get("session_id") or "nosession"))
-    state_dir = os.path.join(tempfile.gettempdir(), "claude-structure-reminder")
-    os.makedirs(state_dir, exist_ok=True)
-    state_path = os.path.join(state_dir, sid + ".json")
+    state_path = dedup_path("claude-structure-reminder", data.get("session_id"))
     try:
         state = json.load(open(state_path))
     except Exception:
@@ -342,7 +354,7 @@ def main():
 
     if notes and not state.get("ref_said"):
         state["ref_said"] = True
-        notes.append(f"기준과 나누는 법: {REF}. 저장소 .claude/structure.json 이 기준 값과 툴킷 표를 바꿀 수 있습니다.")
+        notes.append(f"Limits and how to split: {REF}. The repo's .claude/structure.json can change the limits and the toolkit table.")
     try:
         json.dump(state, open(state_path, "w"))
     except OSError:
@@ -350,7 +362,7 @@ def main():
     if not notes:
         return 0
     json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse",
-                                      "additionalContext": "[structure-reminder] " + " ".join(notes)}},
+                                      "additionalContext": '<harness-hook name="structure-reminder">\n' + " ".join(notes) + "\n</harness-hook>"}},
               sys.stdout, ensure_ascii=False)
     return 0
 

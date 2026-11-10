@@ -111,16 +111,16 @@ def main():
     if not any(is_executor(h, executors) for h in heads):
         return 0
     if wrap[0] == "choom":
-        how = ("명령 맨 앞에 `choom -n 1000 -p $$;`를 붙이거나(이 셸과 그 자식 전부가 1순위 희생자가 된다) "
-               "`choom -n 1000 -- prlimit --data=3221225472 -- <명령>`으로 감싸 다시 실행하라. ")
+        how = ("Re-run with `choom -n 1000 -p $$;` prepended (this shell and its children become the first OOM victims), "
+               "or wrap it: `choom -n 1000 -- prlimit --data=3221225472 -- <command>`.")
     else:
-        how = f"`{' '.join(wrap)} <명령>`으로 감싸 다시 실행하라. "
+        how = f"Re-run wrapped as `{' '.join(wrap)} <command>`."
     reason = (
-        "heavy-proc-guard: 벤치/퍼저/성능 실측으로 보이는 실행은 OOM 희생자 순위를 올려서 띄울 것 "
-        "(컨테이너 메모리 cgroup은 모든 Claude 세션이 공유하며, OOM이 Claude 프로세스를 죽인 적 있음 — quad 2026-09-28). "
-        + how +
-        "무거운 실행이 아닌데 걸렸다면(오탐) 같은 방법으로 감싸면 통과한다."
+        "Bench/fuzz/perf/stress-looking runs must raise their OOM-victim rank first. The container's memory cgroup is shared "
+        "by every Claude session, and the OOM killer has killed a Claude process before (quad 2026-09-28). " + how +
+        " If this is a false positive, wrapping the same way passes."
     )
+    reason = f'<harness-hook name="heavy-proc-guard">\n{reason}\n</harness-hook>'
     json.dump({"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
         "permissionDecision": "deny",

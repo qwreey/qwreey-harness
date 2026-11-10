@@ -30,6 +30,18 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.claude/hooks/rearm-on-compact.py",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   },
   "enableArtifact": false,

@@ -10,14 +10,16 @@
   - 스킬은 description 이 맞을 때만 로드되므로, 스크립트로 일괄 수정할 때는 규약을 놓치기 쉽다.
 
 종류마다 세션당 한 번만 알린다. rules 파일 안내는 파일마다 세션당 한 번이다.
-상태 파일 위치: $TMPDIR/claude-bypass-reminder/<session_id>.json
+상태 파일 위치: $TMPDIR/claude-bypass-reminder/<session_id>.c<compact 회차>.json (lib/compact_epoch.py. compact 뒤 다시 알린다)
 """
 import fnmatch
+import importlib.util
 import json
 import os
 import re
 import sys
 import tempfile
+from pathlib import Path
 
 INTERP = {"python", "python3", "node", "deno", "bun", "perl", "ruby", "lua", "luau", "lune", "lute"}
 PREFIX = {"(", "{", "time", "nice", "env", "command", "exec", "nohup", "sudo", "choom", "prlimit", "timeout", "--"}
@@ -25,6 +27,19 @@ INPLACE = re.compile(r"\bsed\s+(-\S*\s+)*-i|\bperl\s+(-\S*\s+)*-\S*p\S*i|\bawk\s
 CODE_EXT = r"\.(luau|lua|py|ts|tsx|js|jsx|mjs|cjs|astro|vue|svelte|css|rs|go|json|toml|md|mdx|ya?ml|sh)"
 REDIRECT = re.compile(r"(?<![0-9&])>>?\s*['\"]?([^\s;|&'\"]+" + CODE_EXT + r")\b|\btee\s+(-a\s+)?['\"]?([^\s;|&'\"]+" + CODE_EXT + r")")
 PATHLIKE = re.compile(r"[\w./@-]+" + CODE_EXT + r"\b")
+
+
+def dedup_path(namespace, session_id):
+    """State file keyed by (session_id, compact epoch) via lib/compact_epoch.py; falls back to session_id only."""
+    try:
+        spec = importlib.util.spec_from_file_location("compact_epoch", Path(__file__).resolve().parent.parent / "lib" / "compact_epoch.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.state_path(namespace, session_id)
+    except Exception:
+        d = os.path.join(tempfile.gettempdir(), namespace)
+        os.makedirs(d, exist_ok=True)
+        return os.path.join(d, re.sub(r"[^\w-]", "", str(session_id or "nosession")) + ".json")
 
 
 def heads(cmd):
@@ -91,9 +106,7 @@ def main():
     if hs and hs[0] in ("git", "gh") and not INPLACE.search(cmd):
         return 0
 
-    state_dir = os.path.join(tempfile.gettempdir(), "claude-bypass-reminder")
-    os.makedirs(state_dir, exist_ok=True)
-    state_path = os.path.join(state_dir, sid + ".json")
+    state_path = dedup_path("claude-bypass-reminder", data.get("session_id"))
     try:
         seen = set(json.load(open(state_path)))
     except Exception:
@@ -105,15 +118,16 @@ def main():
 
     if writes and "write" not in seen:
         seen.add("write")
-        notes.append("이 명령은 Edit/Write 도구를 거치지 않고 파일을 바꿉니다(sed -i, 리다이렉트, patch 등). "
-                     "Edit|Write 에 걸린 PostToolUse 훅(포맷터, 검사기)은 돌지 않으며, 해당 파일의 경로 조건부 "
-                     ".claude/rules 와 스킬 규약도 적용되지 않습니다. 바꾼 뒤 그 파일을 Read 해서 규약과 맞는지 "
-                     "확인하고, 포맷터나 검사기는 직접 실행하세요.")
+        notes.append("This command changes files without the Edit/Write tools (sed -i, redirect, patch, ...). "
+                     "PostToolUse hooks on Edit|Write (formatters, checkers) do not run, and path-scoped .claude/rules "
+                     "and skill conventions for the file are not applied. After the change, Read the file to check it "
+                     "against the conventions, and run the formatter/checker yourself.")
     elif interp and "interp" not in seen:
         seen.add("interp")
-        notes.append("인터프리터(" + ", ".join(sorted(set(hs) & INTERP)) + ")로 파일을 읽거나 바꾸면 Read/Edit/Write "
-                     "도구가 아니므로 경로 조건부 .claude/rules 가 로드되지 않을 수 있고, Edit|Write 훅도 돌지 않습니다. "
-                     "스크립트로 소스를 생성하거나 일괄 수정한다면 관련 스킬과 rules 의 규약(네이밍, 관용구)을 먼저 확인하세요.")
+        notes.append("Reading or changing files through an interpreter (" + ", ".join(sorted(set(hs) & INTERP)) + ") bypasses the "
+                     "Read/Edit/Write tools: path-scoped .claude/rules may not load and Edit|Write hooks do not run. "
+                     "If you generate or bulk-edit source with a script, first check the relevant skills and rules "
+                     "(naming, idioms).")
 
     if writes or interp:
         rules = load_rules([os.path.join(proj, ".claude", "rules"),
@@ -123,7 +137,7 @@ def main():
         if hit:
             seen.update(hit)
             rel = [os.path.relpath(h, proj) if h.startswith(proj) else h.replace(os.path.expanduser("~"), "~") for h in hit]
-            notes.append("이 명령이 다루는 파일에 적용되는 rules: " + ", ".join(rel) + " — 아직 보지 않았다면 먼저 Read 하세요.")
+            notes.append("Rules that apply to files this command touches: " + ", ".join(rel) + " - Read them first if you have not.")
 
     if not notes:
         return 0
@@ -132,7 +146,7 @@ def main():
     except OSError:
         pass
     json.dump({"hookSpecificOutput": {"hookEventName": "PreToolUse",
-                                      "additionalContext": "[bash-bypass-reminder] " + " ".join(notes)}},
+                                      "additionalContext": '<harness-hook name="bash-bypass-reminder">\n' + " ".join(notes) + "\n</harness-hook>"}},
               sys.stdout, ensure_ascii=False)
     return 0
 

@@ -7,6 +7,8 @@ lib/harness_env.py
 hooks/heavy-proc-guard.py
 hooks/bash-bypass-reminder.py
 hooks/structure-reminder.py
+hooks/rearm-on-compact.py
+lib/compact_epoch.py
 
 # 심볼릭 링크: link <~/.claude 기준 경로> <대상>
 # 대상에는 ${HARNESS_WORKSPACE}, ${HARNESS_DOCTOR_ROOT} 같은 harness.env 변수를 쓴다(home-sync 가 푼다).
