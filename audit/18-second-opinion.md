@@ -298,7 +298,98 @@ agent 훅을 쓰지 않는 이유
    - 일관성을 원하면 sonnet 기본이 맞다.
 7. **설치 순서 의존**: 리뷰어의 읽기 전용 가드는 `drafts/agents/hooks/auditor-readonly-guard.py` 다. 감사 에이전트 묶음(`drafts/agents`, PLAN 의 감사 에이전트 항목)과 함께 들일지, 가드만 먼저 들여 리뷰어를 앞세울지.
 
-## 9. 적용 순서 (승인 뒤)
+## 9. 재현 실험 결과 (§8-1)
+
+날짜 2026-11-10, claude 2.1.316. 리뷰어 초안(`drafts/second-opinion/agents/second-opinion-reviewer.md`)으로 advisor 호출 시점을 재현했다. 대상은 이 세션(c9a9e895) L2490, 커밋 `8039225` 직후다. 결과는 **opus 2회, sonnet 1회 모두 4건 중 완전히 잡은 것이 0건**이었다. 대신 셋 다 advisor 가 잡지 못한 다른 문제를 찾았다.
+
+### 9.1 방법 [로컬]
+
+- **시점 복원**
+  - claude-doctor `8039225`, luau-kb `3ee4a16`(18:07, 호출 18:16:05 직전 커밋), coderag `1ae6265`(18:11)을 `/tmp/so-replay/<이름>` 에 복원했다.
+  - `git worktree` 대신 독립 클론을 쓰고, `main` 외 ref 와 reflog 를 지웠다. worktree 는 저장소의 이후 ref 가 그대로 보여서 `git log --all` 로 미래 커밋을 볼 수 있기 때문이다.
+  - 그 시점에 미커밋이던 `plugins/`(session-log 작업 중)와 luau-kb 의 미커밋 작업은 복원하지 못했다.
+  - 실제 설치본 `~/.claude` 는 현재 상태를 그대로 썼다. hooks·CLAUDE.md 는 15:5x 이후 바뀌지 않아 그 시점과 같다. **예외는 settings.json 이다**(20:51 수정, `autoMode` 블록 추가). 이 차이는 §9.3 에 적었다.
+- **누출 차단**: `--settings` 에 PreToolUse 가드를 걸었다.
+  - 막은 것: 원본 저장소 3개, `~/.claude/projects`·`plugins` 등 런타임 상태, 넓은 경로를 재귀로 훑는 검색, 실제 홈으로의 `home-sync apply`
+  - 나머지 읽기 전용 강제는 `drafts/agents/hooks/auditor-readonly-guard.py` 에 넘겼다.
+  - 리뷰어가 막힌 경로에 접근하려 한 시도: sonnet 1회(`~/.claude/projects`), opus2 1회(재귀 검색)
+- **실행**: `claude -p --agents <초안 JSON> --agent second-opinion-reviewer --model <opus|sonnet> --effort high --allowedTools Read Grep Glob Bash --no-session-persistence`
+  - 초안 본문은 그대로 썼다. 바꾼 것은 추출 헬퍼 경로 하나뿐이다.
+  - 사용자 원문은 리뷰어가 직접 뽑았다. 그 시점까지 자른 트랜스크립트에 `user-asks.py --transcript` 를 돌렸고, 34개가 나왔다.
+- **브리프**(템플릿 꼴, 약 25줄)
+  - 넣은 것
+    - 종류 `done`, 목표("apply 안내 직전 최종 점검"), 제약
+    - 병행 작업 한 줄: session-log 플러그인과 luau-kb 재편, "이 검토 범위 밖"
+    - 검증할 주장 5개: 메인이 L2510 에서 실제로 한 말에서 advisor 영향분을 뺀 것
+    - 가장 자신 없는 곳: "auto-compact 미실측". 핸드백 보고에 이미 있던 내용이다
+  - **advisor 의 4건은 넣지 않았다.**
+  - 원문: `/tmp/so-replay-kit/brief.md`
+
+### 9.2 4건 회수
+
+| advisor 가 잡은 것 | opus #1 | opus #2 | sonnet #1 |
+|---|---|---|---|
+| 1. home-sync 가 MANIFEST 에서 빠진 항목(고아 링크)을 정리하지 않음 | 부분(약): `roblox-luau` 링크 대상이 없다는 것만 "참고"로 적음. 정리 기능이 없다는 데까지는 가지 않음 | 못 잡음(링크는 안 봤다고 적음) | 못 잡음 |
+| 2. 훅이 import 하는 `lib/*` 와 MANIFEST 대조 | 부분: 새 lib 가 MANIFEST 에 있다고 확인함. import 의존과 고장 양상은 짚지 않음 | 부분: 같음. 설치본에 `lib/` 가 없다는 점은 봄 | 부분(약): "새 훅 2개는 MANIFEST 에 있다"까지만 |
+| 3. 사용자 레벨 symlink rules(paths 있음)가 실제로 로드되는지 아무도 재지 않음 | 못 잡음 | 못 잡음 | 못 잡음 |
+| 4. session-log 의 SessionStart·UPS 주입은 user turn 이라 래퍼 필수, 인계 텍스트가 주입 경로가 됨 | 못 잡음 | 못 잡음 | 못 잡음 |
+| (덧) auto-compact 미검증이지만 apply 를 막을 사유는 아님 | 잡음. 바이너리를 정적으로 읽어 "같은 경로일 가능성"까지 감 | 잡음 | 잡음. 확인할 로그를 남기자고 제안함 |
+| (덧) rules 언어 질문이 미결 | 못 잡음 | 못 잡음 | 못 잡음 |
+
+- 2번은 결과가 "문제 없음"인 점검이다. advisor 도 점검을 권했을 뿐이고, 메인이 확인해 보니 모두 들어 있었다(L2505). 그래서 MANIFEST 등재를 직접 확인한 것은 "부분"으로 쳤다.
+- "덧"의 auto-compact 는 브리프의 "가장 자신 없는 곳"에 있었으니 회수로 치지 않는다.
+- **놓친 이유** [추정]
+  - 4번과 rules 질문은 브리프가 "범위 밖"이라고 적은 영역(session-log)에 있거나, 대화 흐름에만 있었다(메인이 사용자에게 던질 질문).
+  - 3번은 diff 에 없는 "아직 아무도 재지 않은 전제"다. 사용자 원문에서 rules 자동 로드를 물은 곳(L349)에서 출발해 따라가야 나온다.
+  - advisor 는 대화 전체를 봐서 이것들이 보였다. 리뷰어는 브리프·diff·사용자 원문만 봤고, 브리프가 범위를 좁혔다.
+
+### 9.3 새 발견 (advisor 가 언급하지 않은 것)
+
+| 발견 | 누가 | 확인 |
+|---|---|---|
+| **apply 하면 설치본 settings.json 의 `autoMode.environment`(25항목)가 사라진다.** `apply` 는 파일을 통째로 `cp` 한다(`.bak` 은 남는다) | 셋 다. opus 둘은 "반드시", sonnet 은 "권장" | **재현 시점의 발견으로는 무효다.** 설치본은 20:51 에 수정됐고, 호출 시점(18:16) 이전 트랜스크립트에는 설정 키로서의 `autoMode` 가 없다. 대신 **지금은 맞다.** 정본 HEAD 에 `autoMode` 0건, 설치본 1건, `tools/home-sync.sh:168` 은 `cp -p`. 다음 apply 전에 사용자가 정해야 한다 |
+| compact 회차가 오르면 structure-reminder 의 "성장" 기준점이 새로 잡혀, 조금씩 늘어나는 파일의 성장 알림이 사라진다. 알림 문구의 "this session"도 실제와 다르다 | opus #1(프로브로 재현, 권장), sonnet(참고) | 재현했다. 999→1199줄에서 rearm 이 없으면 `grew 799 -> 1199 (+400) this session`, rearm 이 있으면 warn 만 나온다. audit/17 §5 와 HOOK-MESSAGES.md 에 "참고"로 적힌 절충이다. 다만 이 훅이 생긴 이유(692→4,101줄)와 부딪힌다는 점은 처음 지적됐다. 지금 HEAD 의 `structure-reminder.py:245-251` 도 같은 코드다 |
+| apply 범위가 이번 커밋보다 크다. structure-reminder 가 처음 켜지고, rules 2개·harness.env·lib·CLAUDE.md 전면 교체가 함께 들어간다 | opus #2, sonnet | 맞다. 설치본 hooks 에는 2개만 있고 `lib/`·`rules/` 는 없다 |
+| HOOK-MESSAGES.md 와 audit/17 은 배경을 "2줄"이라고 적었는데, CLAUDE.md 에 들어간 것은 1줄이다(효과 실측은 2줄로 함) | opus 둘 | 맞다(`audit/17:36,51`, `HOOK-MESSAGES.md:9`) |
+| SessionStart 출력 위치를 audit/17 표와 HOOK-MESSAGES.md 가 다르게 적었다 | 셋 다 | 문서 표현만 어긋남. 결론(래퍼 필요)은 같다 |
+| 서브에이전트에서 compact 하면 SessionStart 가 불리지 않아 회차가 오르지 않는다 | opus #1 | 바이너리를 정적으로 읽은 결과다. 미실측 |
+| HOOK-MESSAGES.md 는 MANIFEST 밖이라(의도) 다른 저장소 세션이 규약을 찾을 길이 없다 | opus #2 | 맞다. 영향 판단은 사용자 몫 |
+| 그 밖에: 안 쓰는 `sid` 변수, heavy-proc-guard·bypass 자동 테스트 없음, 회차 상태 파일 정리 없음 | opus #2, sonnet | 참고 수준 |
+
+### 9.4 비용과 시간 (API 환산, `total_cost_usd`)
+
+| 실행 | 비용 | 시간 | 턴 | 판정 |
+|---|---|---|---|---|
+| advisor 1회(원래) | $1.33 | 약 66초 | — | — |
+| opus #1 | $1.17 | 210초 | 29 | 고친 뒤 진행 |
+| opus #2 | $0.96 | 198초 | 21 | 고친 뒤 진행 |
+| sonnet #1 | $0.42 | 103초 | 16 | 고친 뒤 진행 |
+| 합계(스모크 haiku $0.003 포함) | $2.55 | | | 상한 $4 안 |
+
+### 9.5 해석
+
+- **"리뷰어로 advisor 를 대체해도 된다"는 이번 실험으로는 뒷받침되지 않는다.** advisor 의 강점은 대화에만 있던 맥락을 쓰는 데 있었다(진행 중인 다른 작업에 미칠 영향, 아직 재지 않은 전제, 사용자에게 걸린 질문). 리뷰어는 이 셋을 하나도 회수하지 못했다.
+- **리뷰어도 쓸모가 있었다.** 리뷰어의 강점은 실측이다. 프로브, 바이너리 grep, 정본과 설치본 diff 를 직접 돌렸다. 그 결과 advisor 가 놓친 진짜 문제를 찾았다. 하나는 성장 알림이 사라지는 문제(재현함)이고, 다른 하나는 apply 범위다. `autoMode` 는 재현 오염이지만 지금 시점에서는 맞는 경고다. advisor 와 리뷰어가 잡는 문제는 겹치지 않고 서로를 보완했다.
+- **opus 와 sonnet**
+  - 4건 회수: 차이가 없었다.
+  - 새 발견: opus 가 깊었다. opus #1 은 프로브로 재현했고 "반드시"와 "권장"을 갈랐다. sonnet 은 같은 문제를 "참고"로만 적었다.
+  - 비용: sonnet 은 opus 의 약 40%, 시간은 절반이었다.
+  - "기본 sonnet, high 만 opus"(§8-6)와 어긋나지 않는다.
+- **브리프에 반영할 것**: 맥락 손실을 줄이려면 다음 두 가지가 필요하다.
+  - **병행 작업을 "범위 밖"으로 적지 말고 "이 변경이 영향을 줄 수 있는 곳"으로 넘긴다.** 이번에 4번을 놓친 직접 원인으로 보인다.
+  - `user-asks.py --claims` 로 메인의 미결 질문과 약속을 함께 넘긴다.
+  - 이 두 가지를 넣고 다시 재 볼지는 사용자 결정이다. 같은 방법이면 1회에 $0.4~1.2 다.
+- **이 실험의 한계**
+  - 시점마다 1~2회만 돌렸다.
+  - 미커밋 `plugins/` 와 그 시점의 설치본 settings.json 은 복원하지 못했다.
+  - 판정(완전/부분/못 잡음)은 메인 한 사람이 매겼다.
+
+산출물(커밋하지 않음)
+- 키트: `/tmp/so-replay-kit/`(브리프, 가드, 에이전트 JSON, 자른 트랜스크립트)
+- 원시 출력: `/tmp/so-replay-out/{opus1,opus2,sonnet1}.jsonl`
+- 임시 프로젝트 키 `~/.claude/projects/-tmp-so-replay-claude-doctor/`: `--no-session-persistence` 를 줬는데도 tool-results 1개가 남았다
+
+## 10. 적용 순서 (승인 뒤)
 
 1. §8-1 재현 실험(리뷰어 초안을 임시로 `--agents` 나 `/tmp` 프로젝트에 두고 1회).
 2. 리뷰어, 스킬, 스크립트를 `home/.claude/` 정본으로 옮기고 MANIFEST 에 추가한다. `HOOK-MESSAGES.md` 배정 표도 갱신한다.
