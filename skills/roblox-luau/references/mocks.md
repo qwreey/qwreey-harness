@@ -75,6 +75,7 @@ status: described · 원천: quad `quad-base/test/mock.luau`("Roblox 와 다른 
 | 속성 변경 신호 시점 | 대입 즉시 | 다음 resumption point, 중간값 안 보임 (quad m10 #2) | 중간값에 기대는 테스트는 Studio 로 |
 | `task.wait(t)` | 즉시 `t` 반환 | 최소 한 프레임 | 시간 경과에 기대는 테스트 불가 |
 
+- 주제별 "엔진 대 mock" 표가 이미 있다. 새 mock 의 차이 표를 쓸 때 출발점으로 쓴다: 신호 `signals-and-events.md` §8, Instance 수명 `instance-lifecycle.md` §8, 트윈 `tween-and-animation.md` §8, 트리 API `instance-api.md` §1(rbvm 열), require `require-and-modules.md` §6. 각 reference 절의 `mock 흉내:` 줄이 그 동작을 흉내 내는 mock 이 있는지 적는다.
 - 근거가 Studio 실측이 아니라 기억이나 문서 인용이면 그렇게 표시한다. rbvm known-issues 는 "전부 코드 리딩으로 찾았고 런타임에서 재현한 것은 하나도 없다"고 머리에 밝히고, 확인된 항목에 `[확인됨, 날짜]` 를 붙이게 했다.
 
 ## §6 충실도 검증 절차

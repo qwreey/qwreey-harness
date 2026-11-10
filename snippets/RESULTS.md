@@ -304,3 +304,43 @@
 | 풀리지 않는 require 는 luau-analyze 진단 0건("거짓 클린") | quad `scripts/relink.sh:4-6`, stl `base/architecture.md:322-329`, 후보 Q-102·S-124 | nonstrict 파일에서만. strict 는 `Unknown require` | 조건 추가 |
 | 타입 행 정정(교집합 원인, 모듈 필드 오타, 유니온 제네릭 조건, 클로저 좁히기 둘째 모양) | quad `research/kit-packaging-plan.md:73,91`, stl-luau-doctor `conventions.md:40`, `base/typing-limits.md:371-386`, devplorer `feedback/quad-upstream-2026-10-20.md:494` | 각 스니펫 참고 | `luau-types/references/solver-limits.md` §7 |
 | quad 테스트 게이트(-O1 만, 파일 이름만 단언, 헬퍼로 기대 줄, 손으로 센 level) | quad `scripts/test.sh:81-84`, `quad-base/test/mock.luau:854-858`, `spec.errorutil.luau:21-23`, `quad-base/src/Relate.luau:28-29` | `-O2` 에서 3건 실패 | `luau-testing/references/repo-practices.md` §3 |
+
+## rbx — `rbx-*` (roblox-luau 스킬, 2026-11-10)
+
+- 명령: `python3 -I tools/check_snippets.py --luau 0.734,0.742 --table snippets/rbx-*.luau` → **17개 전부 통과, rc=0**. 머리 `--@lsp-roblox` 인 14개는 하네스 Roblox 모드(luau-lsp 1.70.1·1.69.0, `--platform=roblox`, `typedefs/globalTypes.d.luau`, 새 솔버)로, 나머지 3개(`rbx-gc-*`)는 luau-analyze + `luau` 실행으로 돈다.
+- 여러 파일이 필요한 require 주장: `bash snippets/rbx-require-cli.sh` → 51개 확인 전부 ok, rc=0(luau 0.734·0.742, luau-lsp 1.70.1).
+- `rbx-types-*`·`rbx-parallel-*` 13개는 claude-doctor `drafts/gaps/snippets/` 의 `roblox-*`·`parallel-*` 를 이름만 바꿔 옮겼다. `rbx-types-engine-calls.luau` 는 새로 썼다.
+- Studio 런타임 동작(신호, Destroy, 트윈, 엔진 GC)은 스니펫으로 만들지 않았다. references 에서 `status: described` + 원천 Studio 실측 경로로 둔다(Studio MCP 미사용).
+
+| 스니펫 | luau 0.734 | luau 0.742 |
+|---|---|---|
+| `rbx-gc-no-ephemeron.luau` | ok (E0 B0 run) | ok (E0 B0 run) |
+| `rbx-gc-probe-pitfalls.luau` | ok (E0 B0 run) | ok (E0 B0 run) |
+| `rbx-gc-weak-modes.luau` | ok (E0 B0 run) | ok (E0 B0 run) |
+
+| 스니펫 (Roblox 모드) | luau-lsp 1.70.1 | luau-lsp 1.69.0 |
+|---|---|---|
+| `rbx-parallel-actor-messaging-types.luau` | ok (E4 B1) | ok (E4 B1) |
+| `rbx-parallel-sharedtable-iter-old-solver.luau` | ok (E1 B0) | ok (E1 B0) |
+| `rbx-parallel-sharedtable-types.luau` | ok (E6 B3) | ok (E6 B3) |
+| `rbx-parallel-task-phase-signatures.luau` | ok (E4 B2) | ok (E4 B2) |
+| `rbx-types-attributes-typeof.luau` | ok (E5 B2) | ok (E5 B2) |
+| `rbx-types-constructors-services.luau` | ok (E11 B0) | ok (E11 B0) |
+| `rbx-types-constructors-standard.luau` | ok (E3 B0) | ok (E3 B0) |
+| `rbx-types-docs-isa-sample.luau` | ok (E1 B0) | ok (E1 B0) |
+| `rbx-types-engine-calls.luau` | ok (E5 B2) | ok (E5 B2) |
+| `rbx-types-enums.luau` | ok (E9 B0) | ok (E9 B0) |
+| `rbx-types-find-wait-nil.luau` | ok (E3 B1) | ok (E3 B1) |
+| `rbx-types-isa-refinement.luau` | ok (E7 B0) | ok (E7 B0) |
+| `rbx-types-signals-datatypes.luau` | ok (E7 B1) | ok (E7 B1) |
+| `rbx-types-sourcemap-children.luau` | ok (E3 B0) | ok (E3 B0) |
+
+재현으로 정정·조건을 붙인 원천 주장(상세는 각 reference 의 "정정" 절):
+
+| 원래 주장 | 원천 | 실측 | 처리 |
+|---|---|---|---|
+| 테스트 엔트리 `init.luau` 가 `src/init.luau` 와 이름이 겹쳐 ambiguous | tbox `CLAUDE.md:141-145`, 후보 X-04 | 둘만으로는 모호하지 않다. 대상의 `X.luau`+`X/`, 또는 요구 폴더 옆 같은 이름 파일일 때만(`rbx-require-cli.sh` Q4) | 정정(`require-and-modules.md` §2) |
+| `.luaurc` alias 는 CLI 런타임에서 안 된다 | stl `base/architecture.md:48-52`, quad `project-setup-plan.md:112-142` | 값에 `./` 가 없을 때만. luau-lsp 는 그 꼴과 symlink 도 푼다(Q6·Q11) | 조건 추가(§3–4) |
+| 잘못된 require 를 analyze 가 0건으로 통과 | stl `base/architecture.md:322-325`, quad `relink.sh:4-6`, moonwave `conventions.md:73-74` | strict 면 `Unknown require`. 0건은 nonstrict, luau-lsp 의 symlink·alias, 다른 모듈로 풀리는 오타(Q8·Q9) | 조건 추가(§5) |
+| Luau weak-key 표는 ephemeron 이다(탐사자 판정) | quad `audit/tween-completed-2026-09-21` 탐사자 기록 | 아니다. 포획 업밸류를 비운 프로브 결함(`rbx-gc-no-ephemeron`, `rbx-gc-probe-pitfalls`) | 정정(원천 REPORT 가 이미 무효 처리) |
+| `TweenService:Create` 목표 표·`TweenInfo.new` 명시 nil 은 타입이 잡는다(암묵 가정) | — | 둘 다 통과한다(`rbx-types-engine-calls` bug-present). `GetPropertyChangedSignal` 리터럴 이름은 잡는다 | 새 사실(`api-types.md` §11) |

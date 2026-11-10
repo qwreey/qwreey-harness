@@ -6,6 +6,8 @@
 - Q3 `--definitions` 와 `--sourcemap` 은 어떻게 넘기나? 빠지면 어떻게 되나?
 - Q4 Claude Code 의 LSP 도구는 Roblox 프로젝트를 어떻게 다루나?
 
+정의 파일을 넘긴 **결과**로 어떤 타입이 나오는지(`Instance.new`, `IsA`, `GetAttribute`, Enum, 엔진 호출)는 `api-types.md` 에 있다. 이 파일은 넘기는 **법**이다.
+
 ## 목차
 - §1 왜 정의 파일이 필요한가
 - §2 luau-kb typedefs
