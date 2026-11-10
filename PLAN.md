@@ -134,6 +134,17 @@
    - 옮길 스킬: luau-perf, luau-style(drafts/style에서 이동), luau-testing, roblox-luau 보강
    - 모순 항목은 decisions에 올린다.
 
+## 3.7 coderag 확장 (2026-11-10 사용자 승인, 현재 doc 검색 구현이 끝난 뒤 착수)
+
+1. **설계안 작성**: `coderag/tech-design.md` 에 아래 다섯 가지를 설계안으로 쓴다. 사용자가 검토한 뒤 확정한다.
+   - **지식 계층 3단**: global / pack(luau-kb 등) / project. 우선순위는 project > pack > global 이고, 결과마다 계층을 표시한다.
+   - **소스 선언**: path·glob / git / 패키지(lockfile 로 설치 경로를 해석) / pack. 모듈 해석은 코어가 맡는다.
+   - **분류 체계**: 계층형 `category`(통제 어휘 `taxonomy.toml`) + 자유 `tags`, 검색 필터.
+   - **버전·미래 필드**: `lifecycle`(rfc → implemented-cli → released-roblox → deprecated), `applies_to`(luau>=x), `review_after`, `--luau <ver>` 필터.
+   - **원천 하나, 접근 둘**: luau-kb references 에 frontmatter 를 단다. 스킬(Claude)과 coderag CLI(다른 에이전트, 정밀 조회)가 같은 파일을 쓴다.
+2. **확정 후**: luau-kb 증류·upstream 결과에 맞춰 `taxonomy.toml` 을 만든다.
+3. **frontmatter 채우기**: luau-kb references 에 frontmatter 를 backfill 한다.
+
 ## 4. 사용자가 결정할 것
 
 1. 공유 방식: `~/.claude/skills` 심볼릭 링크 vs 플러그인 설치 (버전 bump 필요)
