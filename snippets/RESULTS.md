@@ -344,3 +344,35 @@
 | 잘못된 require 를 analyze 가 0건으로 통과 | stl `base/architecture.md:322-325`, quad `relink.sh:4-6`, moonwave `conventions.md:73-74` | strict 면 `Unknown require`. 0건은 nonstrict, luau-lsp 의 symlink·alias, 다른 모듈로 풀리는 오타(Q8·Q9) | 조건 추가(§5) |
 | Luau weak-key 표는 ephemeron 이다(탐사자 판정) | quad `audit/tween-completed-2026-09-21` 탐사자 기록 | 아니다. 포획 업밸류를 비운 프로브 결함(`rbx-gc-no-ephemeron`, `rbx-gc-probe-pitfalls`) | 정정(원천 REPORT 가 이미 무효 처리) |
 | `TweenService:Create` 목표 표·`TweenInfo.new` 명시 nil 은 타입이 잡는다(암묵 가정) | — | 둘 다 통과한다(`rbx-types-engine-calls` bug-present). `GetPropertyChangedSignal` 리터럴 이름은 잡는다 | 새 사실(`api-types.md` §11) |
+
+## perf — `perf-*` (luau-perf 스킬, 2026-11-10)
+
+명령: `python3 -I tools/check_snippets.py --luau 0.734,0.742 --table snippets/perf-*.luau` → 7 개 전부 통과, rc=0. 모두 `--@run` 런타임 단언이다(타입 진단 표식 없음).
+
+| 스니펫 | luau 0.734 | luau 0.742 | 주장 |
+|---|---|---|---|
+| `perf-closure-cache.luau` | ok (E0 B0 run) | ok (E0 B0 run) | 고정 업밸류 클로저는 반복마다 같은 객체, 반복 변수 캡처는 새 객체(Q-005) |
+| `perf-ctor-slots-memory.luau` | ok (E0 B0 run) | ok (E0 B0 run) | 번호 칸 3 < 번호 2+이름 1 < 이름 3, 트리 노드 6칸도 번호 칸이 작다(S-P19·S-P20) |
+| `perf-ipairs-raw.luau` | ok (E0 B0 run) | ok (E0 B0 run) | `ipairs`·일반화 for 는 `__index` 를 보지 않는다(S-P06) |
+| `perf-next-from-hash-key.luau` | ok (E0 B0 run) | ok (E0 B0 run) | 해시부 키에서 `next(t, k)` 를 시작하면 앞에 놓인 큰 키를 놓친다(S-P34) |
+| `perf-nil-hole-hash-part.luau` | ok (E0 B0 run) | ok (E0 B0 run) | 구멍을 nil 로 두며 채우면 원소가 해시부로 간다(S-P17) |
+| `perf-table-move-raw.luau` | ok (E0 B0 run) | ok (E0 B0 run) | `table.move` 는 메타메서드를 부르지 않는다(S-P03) |
+| `perf-weak-ks-shrink.luau` | ok (E0 B0 run) | ok (E0 B0 run) | `__mode="k"` 는 비워져도 칸 배열을 붙잡고 `"ks"` 는 준다(S-P35) |
+
+- 돌연변이 3 종(`/tmp` 사본: `"k"`→`"ks"`, 해시부 판별 단언 뒤집기, `next` 단언 뒤집기)은 모두 FAIL 로 잡혔다.
+- 시간 주장은 스니펫이 아니라 `bench/*.luau`(19 개)로 쟀다. 원표는 `bench/RESULTS.md`, 원자료는 `bench/results/2026-11-10.tsv`(0.734 `-O1`, 0.742 `-O1`/`-O2`/`-O2 --codegen`, 프로세스 3 개).
+- 부수 발견: `luau-analyze`(0.734·0.742)는 `collectgarbage` 를 모른다(Unknown global). 스니펫에서는 `(_G :: any).collectgarbage` 로 꺼냈다.
+- luau-perf 는 ephemeron 스니펫을 따로 두지 않았다. ephemeron 의미론은 `rbx-gc-no-ephemeron.luau`(roblox-luau)가 정본이다.
+
+### perf 재측정으로 정정한 주장
+
+| 원래 주장 | 원천 | 재측정(0.742, 모드 셋 + 0.734 `-O1`) | 처리 |
+|---|---|---|---|
+| 글자마다 도는 Luau 파서는 `gmatch`+`tonumber` 보다 약 40 배 느리다 | audit/09 M-05 요약(원문 mrow REVIEW:809-813 은 컴비네이터 라이브러리 값) | `string.byte` 손 파서가 0.69~0.74x(인터프리터), 0.25x(native) | **방향 뒤집힘**. `strings.md` §5 |
+| 정렬 병합은 해싱을 못 이긴다(Union 5.9 배 느림) | stl perf 9절, audit/09 S-P14·S-P47 | 이미 정렬된 배열 병합이 해시의 0.27~0.38x(비교자 함수를 거쳐도 0.39~0.57x). 정렬부터 하면 해시가 1.16~1.24 배 이김 | **방향 뒤집힘(일반화 범위)**. `algorithms-and-structures.md` §8 |
+| 업밸류를 든 클로저가 지역 함수보다 5~8 ns 비싸다 | stl perf 55절, S-P27 | `-O1` 차이 없음(0.95~0.97). `-O2` 3.5x·native 6.3x 는 지역 함수 인라인 때문 | **원인 정정**. `calls-and-closures.md` §7 |
+| `#` 는 O(log n), 20만에서 약 90 ns | stl perf 17절, S-P33 | 경계 캐시로 반복 호출은 필드 읽기의 0.83~1.03 배 | 조건 정정. `tables.md` §8 |
+| 숫자 키 조회가 테이블 키보다 싸다(9.1 대 14.8 ns) | stl perf 39절, S-P23 | 배열부 정수만 0.49~0.76x. 해시부 정수·실수 키는 1.16~1.43x 로 더 느림 | 범위 정정. `tables.md` §8 |
+| 가변 인자는 원인 아님(±2 ns) | stl perf 54절 | 고정 인자 대비 13~28%(인터프리터), 66~79%(native) | 53절 쪽 채택. `calls-and-closures.md` §7 |
+| 메타테이블 부착 작은 배열 96 B | stl perf 1-부절, S-P05 | 80 B(메타테이블 유무 같음) | 수치 정정. `metatables.md` §8 |
+| `-O2` 는 테이블 필드 경유 호출을 인라인하지 않는다, 위치가 "사라진다" | decisions D-10, quad 스파이크 27 | 리터럴 테이블 필드는 인라인, 틀린 줄도 가리킴(`run_opt.sh` 58/58, 2026-11-10 재실행) | D-10 정정 절과 같음. `optimizer-and-native.md` §4·§8 |
