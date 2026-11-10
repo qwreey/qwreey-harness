@@ -704,8 +704,9 @@ def modularity_cluster(nodes, edges, gamma=1.0):
     e = {n: {o: w / m2 for o, w in adj[n].items()} for n in nodes}  # e_ij (양방향 각각)
     while True:
         best, pair = 0.0, None
-        for i in e:
-            for j, eij in e[i].items():
+        for i in sorted(e):                     # 정렬해서 돈다 — 같은 값이면 늘 같은 쌍을 고른다(결과가 실행마다 같게)
+            for j in sorted(e[i]):
+                eij = e[i][j]
                 if i < j:
                     dq = 2 * (eij - gamma * deg[i] * deg[j])
                     if dq > best:
@@ -830,9 +831,11 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
     fwd = {}
     for u in units:
         if u.kind == "func":
-            if u.init_kind == "define" and u.name in func_by_name:
-                pass
-            func_by_name.setdefault(u.name, u) if u.init_kind == "define" else func_by_name.__setitem__(u.name, u)
+            # 같은 이름이면 실제 정의(`function f`·`local function f`)가 자리표시보다 앞선다
+            if u.init_kind == "define":
+                func_by_name.setdefault(u.name, u)
+            else:
+                func_by_name[u.name] = u
     locals_ = {}
     for u in units:
         if u.kind == "local":
@@ -842,10 +845,6 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
     for u in units:
         if u.kind == "func" and u.init_kind == "define" and u.name in locals_:
             fwd[u.name] = {"declared": locals_[u.name].line0, "defined": u.line0}
-            u.kind = "func"
-    for u in units:
-        if u.kind == "func" and u.init_kind == "func" and u.name in fwd:
-            pass
     # local f: T = function() end 뒤 f = function … 처럼 자리표시자를 둔 경우도 전방 선언이다
     for u in units:
         if u.kind == "func" and u.init_kind == "func":
@@ -869,11 +868,9 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
     for u in funcs:
         collect_refs(u, toks, scope_names, names,
                      opaque={n for x in units if x.kind == "import" for n in x.names} | set(consts_guess))
-        if u.name in fwd and u.name in locals_:
-            pass
     # 반환 표에 든 이름은 공개다
     for u in units:
-        if u.kind in ("return", "local") and u.kind != "func":
+        if u.kind in ("return", "local"):
             seg = toks[u.t0:u.t1 + 1]
             for a in range(len(seg) - 2):
                 if seg[a][0] == "name" and seg[a + 1][1] == "=" and seg[a + 2][0] == "name" \
@@ -905,8 +902,7 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
         users = state_users.get(n, set())
         if n in written or lu.init_kind in ("none", "nil"):
             state[n] = {"line": lu.line0, "users": sorted(users), "writers": sorted(written.get(n, ())),
-                        "scalar": lu.init_kind in ("literal", "nil", "none") and n not in
-                        {w for x in funcs for w in x.writes if False}}
+                        "scalar": lu.init_kind in ("literal", "nil", "none")}  # 숫자·불리언: 다른 모듈로 가면 값 복사
         else:
             consts[n] = {"line": lu.line0, "users": sorted(users)}
 
@@ -937,7 +933,7 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
     fams = families(fnames)
     word_fam = collections.defaultdict(list)
     for n in fnames:
-        for w in set(words(n)):
+        for w in sorted(set(words(n))):
             if w not in STOP and len(w) > 2:
                 word_fam[w].append(n)
     word_fam = {w: ms for w, ms in word_fam.items() if 3 <= len(ms) <= max(6, nfun * 0.25)}
@@ -959,7 +955,7 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
         for s, v in state.items():
             if s in core_state:
                 continue
-            us = [x for x in v["users"] if x in mem and x not in helpers]
+            us = [x for x in v["users"] if x in mem and x not in helpers]  # users 는 정렬된 목록
             for x in us:
                 E[(x, "$" + s) if x < "$" + s else ("$" + s, x)] += 1.0
         # 구획·가족은 가상 노드로 약하게 묶는다
@@ -967,13 +963,13 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
             if u.name in mem and u.name not in helpers and u.section:
                 E[(u.name, "§" + u.section)] += sec_w
         # 이름 낱말 가족(bagOpen·bagTake·spawnBag → "bag"): 공개 진입점은 서로 부르지 않아서 이것이 주된 신호다
-        for w, ms in word_fam.items():
+        for w, ms in sorted(word_fam.items()):
             ms = [x for x in ms if x in mem and x not in helpers]
             if len(ms) >= 3:
                 for x in ms:
                     E[(x, "~" + w)] += 0.5
         # 같은 필드를 만지는 함수(session.bundles, record.bag): 상태가 매개변수 안에 있는 모듈의 신호
-        for f, ms in field_fam.items():
+        for f, ms in sorted(field_fam.items()):
             ms = [x for x in ms if x in mem and x not in helpers]
             if len(ms) >= 2:
                 for x in ms:
@@ -1022,12 +1018,12 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
     changed = True
     while changed:
         changed = False
-        clusters.sort(key=lines_of)
+        clusters.sort(key=lambda c: (lines_of(c), min(by[x].line0 for x in c)))
         for c in clusters:
             if lines_of(c) >= target * 0.4 or len(clusters) <= 2:
                 continue
             others = [o for o in clusters if o is not c]
-            best = max(others, key=lambda o: (link(c, o), -lines_of(o)))
+            best = max(others, key=lambda o: (link(c, o), -lines_of(o), -min(by[x].line0 for x in o)))
             if link(c, best) == 0:
                 # 이어진 데가 없으면 같은 구획의 군집, 그것도 없으면 그대로 둔다
                 sec = collections.Counter(by[x].section for x in c).most_common(1)[0][0]
@@ -1059,7 +1055,7 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
             helpers.add(n)
     banned = set()
     for _ in range(6):
-        for h in list(helpers):
+        for h in sorted(helpers):
             if h not in helpers:
                 continue
             for r in by[h].refs:
@@ -1112,9 +1108,9 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
             nm = title_name(sec)
             if nm and nm not in taken:
                 return nm, sec, "구획"
-        wc = collections.Counter(w for x in c for w in set(words(x)) if w not in STOP and len(w) > 2)
+        wc = collections.Counter(w for x in sorted(c) for w in sorted(set(words(x))) if w not in STOP and len(w) > 2)
         ranked = sorted(((cover_sc(w, k, c), w) for w, k in wc.items() if k >= 2 and k / len(c) >= 0.1), reverse=True)
-        central = max(c, key=lambda x: sum(calls.get((x, y), 0) + calls.get((y, x), 0) for y in c))
+        central = max(sorted(c), key=lambda x: sum(calls.get((x, y), 0) + calls.get((y, x), 0) for y in c))
         for _, w in ranked:
             if pascal(w) not in taken:
                 return pascal(w), sec, ("낱말" if wc[w] / len(c) >= 0.3 else "낱말(약함)")
@@ -1139,8 +1135,9 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
                 ranges.append([a, b])
         alts = []
         for cand in [pascal(max(ms, key=lambda x: by[x].lines()))] + \
-                [pascal(w) for w, _ in collections.Counter(w for x in ms for w in set(words(x))
-                                                            if w not in STOP and len(w) > 2).most_common(3)]:
+                [pascal(w) for w, _ in sorted(collections.Counter(w for x in ms for w in set(words(x))
+                                                                   if w not in STOP and len(w) > 2).items(),
+                                              key=lambda kv: (-kv[1], kv[0]))[:3]]:
             if cand != nm and cand not in alts:
                 alts.append(cand)
         out_clusters.append({"id": k, "file": nm, "why": why, "alts": alts[:3], "section": sec, "lines": lines_of(ms), "funcs": ms,
@@ -1192,11 +1189,13 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
         seq = eades(comp)
         pos = {x: k for k, x in enumerate(seq)}
         back = [(a, b) for a in comp for b in comp if (a, b) in cross and pos[a] > pos[b]]
-        back.sort(key=lambda e: -cross[e])
+        back.sort(key=lambda e: (-cross[e], names_by_id[e[0]], names_by_id[e[1]]))
         cycles.append({"clusters": [names_by_id[x] for x in seq],
                        "cut": [{"from": names_by_id[a], "to": names_by_id[b], "calls": cross[(a, b)],
                                 "symbols": sorted(cross_syms[(a, b)])[:6]} for a, b in back],
                        "cut_calls": sum(cross[e] for e in back)})
+
+    cycles.sort(key=lambda c: c["clusters"])
 
     # ── 상태 배치 ──
     placement = []
