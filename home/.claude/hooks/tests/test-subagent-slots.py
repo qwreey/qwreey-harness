@@ -281,6 +281,169 @@ hook(dict(session_id="main", transcript_path=sub_tp, cwd=PROJ, agent_id="z", hoo
           tool_use_id="nested", tool_input={"model": "sonnet"}))
 check("nested spawn inside a subagent does not move the main offset", m.state()["main"]["off"] == os.path.getsize(m.tp))
 
+# ---- 한도 % 예산 + 2단계 (사용자 결정 2026-11-10, audit/21 §5) ----
+SL = os.path.join(HOME, "statusline", "harness-status.py")
+
+
+def sline(sid, rl=None, env=None):
+    d = {"session_id": sid, "model": {"display_name": "Opus"}}
+    if rl is not None:
+        d["rate_limits"] = rl
+    return subprocess.run([sys.executable, "-I", SL], input=json.dumps(d), capture_output=True, text=True, env=env or ENV).stdout.strip()
+
+
+def rl(p5=None, pw=None, r5=1_000_000, rw=9_000_000):
+    o = {}
+    if p5 is not None:
+        o["five_hour"] = {"used_percentage": p5, "resets_at": r5}
+    if pw is not None:
+        o["seven_day"] = {"used_percentage": pw, "resets_at": rw}
+    return o
+
+
+def lim_file(sid):
+    return os.path.join(T, "claude-subagent-slots", sid + ".limits.json")
+
+
+A = {"five_hour": {"p": 20.0, "r": 1000}, "seven_day": {"p": 50.0, "r": 9000}, "t": time.time()}
+P = lambda *a: L.parse_away(list(a), L.CFG_DEFAULTS, A)
+check("parse: 30% -> pct, both windows", P("30%")["unit"] == "pct" and P("30%")["budget_pct"] == 30 and P("30%")["pct_win"] is None)
+check("parse: 30%w -> seven_day, 30%5h -> five_hour", P("30%w")["pct_win"] == "seven_day" and P("30%5h")["pct_win"] == "five_hour")
+check("parse: $5 usd, 6a agents, 2nd number = slots", P("$5")["budget_usd"] == 5 and P("6a")["budget_agents"] == 6 and P("$5", "3")["slots"] == 3 and P("30%", "3")["slots"] == 3)
+check("parse: no args + limit data -> pct default 30", P()["unit"] == "pct" and P()["budget_pct"] == 30)
+check("parse: no args + no limit data -> usd + plan-unknown", L.parse_away([], L.CFG_DEFAULTS, None)["unit"] == "usd" and L.parse_away([], L.CFG_DEFAULTS, None)["note"] == "plan-unknown")
+check("parse: HARNESS_AWAY_PLAN=usd keeps usd even with limit data", L.parse_away([], dict(L.CFG_DEFAULTS, HARNESS_AWAY_PLAN="usd"), A)["unit"] == "usd")
+check("parse: 30% without limit data falls back to usd (no-limits)", L.parse_away(["30%"], L.CFG_DEFAULTS, None)["note"] == "no-limits")
+check("parse: explicit window missing -> other window (window-missing)", L.parse_away(["30%5h"], L.CFG_DEFAULTS, {"seven_day": A["seven_day"], "t": 1})["note"] == "window-missing")
+for bad in (["0%"], ["abc"], ["5%x"]):
+    try:
+        L.parse_away(bad, L.CFG_DEFAULTS, A)
+        check(f"parse: {bad} rejected", False)
+    except ValueError:
+        check(f"parse: {bad} rejected", True)
+
+# statusline 이 한도 값을 파일에 적고, 줄에도 보인다
+sline("pc", rl(20, 50))
+check("statusline writes limits file from rate_limits", json.load(open(lim_file("pc")))["five_hour"]["p"] == 20)
+check("statusline shows limits", "limit 5h 20% wk 50%" in sline("pc", rl(20, 50)))
+sline("pc", {})
+check("statusline: no rate_limits keeps the previous file", json.load(open(lim_file("pc")))["seven_day"]["p"] == 50)
+
+# % 계산: /away 시점부터의 증가분, 가장 빡빡한 창이 먼저
+pc = S("pc")
+out = cli("away", "pc", "30%", "2")
+check("/away 30%: pct budget on, both windows tracked", "한도 30%p" in out and "5h/week" in out and pc.state()["away"]["unit"] == "pct")
+sline("pc", rl(40, 60))  # 5h +20, week +10
+pa, ida = pc.launch()
+pb, idb = pc.launch()
+check("pct: +20%p of 30 -> not over (2 slots)", not denied(pa) and not denied(pb) and ctx(pa) == "")
+check("pct statusline: AWAY +20/30% 5h", "AWAY +20/30% 5h slots 2" in sline("pc", rl(40, 60)))
+sline("pc", rl(52, 65))  # 5h +32
+pd = pc.pre()[1]
+check("pct: 5h +32%p >= 30 -> over, 2 running -> queued with limit reason", denied(pd) and "5h limit +32%p" in reason(pd))
+check("pct: level 1 stamp recorded", pc.state()["away"]["over_at"] and not pc.state()["away"]["over2_at"])
+check("pct statusline: OVER", "AWAY OVER +32/30% 5h" in sline("pc", rl(52, 65)))
+sline("pc", rl(81, 65))  # 5h +61 >= 60
+pe = pc.pre()[1]
+check("pct: +61%p >= 2x -> stage 2 halt", denied(pe) and reason(pe).startswith('<harness-hook name="subagent-slots" level="action">\nhalt:'))
+check("pct statusline: HALT", "AWAY HALT" in sline("pc", rl(81, 65)))
+_, wfl = pc.pre(tool="Workflow")
+check("stage 2: Workflow also denied", denied(wfl) and "halt:" in reason(wfl))
+check("stage 2: full instruction once, short afterwards", "progress file" in reason(pe) and "progress file" in reason(wfl) and len(reason(wfl)) < len(reason(pe)))
+subprocess.run([sys.executable, "-I", os.path.join(H, "rearm-on-compact.py")], input=json.dumps({"session_id": "pc", "source": "compact"}), text=True, env=ENV)
+pf = pc.pre()[1]
+check("stage 2: full instruction again after compact (dedup per epoch)", "wait for the user" in reason(pf) and len(reason(pf)) > 300)
+check("stage 2: denied calls reserve nothing and count as queued", pc.state()["reserved"] == {} and pc.state()["away"]["queued"] >= 4)
+out = cli("back", "pc")
+check("/back: stage 2 reached with time and pct growth", "2단계(새 서브에이전트 중단) 도달: 예" in out and "5h +" in out and "예산 초과: 예" in out)
+
+# 남은 여유가 N 보다 작으면 한도 100% 가 문턱
+cli("away", "room", "30%w")
+sline("room", rl(10, 90))
+r_ = S("room")
+cli("away", "room", "30%w", "1")
+sline("room", rl(10, 99))
+ra = r_.pre()[1]
+check("pct: week at 90% base, N=30 -> threshold is the remaining 10%p (not over at +9)", not denied(ra))
+sline("room", rl(10, 100))
+rb, _ = r_.launch()
+rc = r_.pre()[1]
+check("pct: reaching 100% of the window -> stage 2", denied(rc) and "halt:" in reason(rc))
+
+# 창 리셋을 넘을 때: 리셋 전 증가분을 쌓고 새로 센다
+sline("rs", rl(20, 50, r5=1000))
+cli("away", "rs", "30%5h", "2")
+rs = S("rs")
+sline("rs", rl(45, 50, r5=1000))  # +25
+rs.launch()
+sline("rs", rl(3, 51, r5=19000))  # 리셋 → 25 + 3 = 28
+ro = rs.pre()[1]
+check("reset: 25 before + 3 after = 28 < 30 -> not over", not denied(ro) and rs.state()["away"]["pct"]["five_hour"]["acc"] == 25)
+sline("rs", rl(6, 51, r5=19000))  # 31
+rs.launch()  # 슬롯 1 개 남음 -> 2 번째
+rp = rs.pre()[1]
+check("reset: 25 + 6 = 31 >= 30 -> over (queued at 2 running)", denied(rp) and "5h limit +31%p" in reason(rp))
+sline("rs", rl(7, 51, r5=19030))  # 30초 어긋난 resets_at 은 리셋이 아니다
+check("reset: tiny resets_at jitter (<60s) is not a reset", rs.pre() and rs.state()["away"]["pct"]["five_hour"]["acc"] == 25)
+
+# 값이 오래됐을 때: 마지막 증가분은 유지, USD 가드로 보강
+sline("st", rl(20, 50))
+cli("away", "st", "30%", "2")
+stl = S("st")
+d_ = json.load(open(lim_file("st")))
+d_["t"] -= 15 * 60
+json.dump(d_, open(lim_file("st"), "w"))
+envg = dict(ENV, HARNESS_AWAY_BUDGET_USD="10")
+stl.env = envg
+_, sa = stl.launch()
+stl.stop_agent(sa, [usage_line("s1", "claude-opus-5-5", out=750_000)])  # $15
+sb = stl.pre()[1]
+check("stale: no fresh limit data, USD $15 >= guard $10 -> level 1 reminder", ctx(sb).count("limit data stale") == 1 and "stale" in ctx(sb))
+check("stale statusline shows (stale)", "(stale)" in sline("st", None, envg))
+sline("st", rl(25, 50))  # 다시 신선
+check("stale: fresh value again -> pct evaluated (+5, level 0), no guard", L.away_eval(json.load(open(os.path.join(T, "claude-subagent-slots", "st.json"))), json.load(open(lim_file("st"))), time.time(), False, envg)["level"] == 0)
+
+# USD 2단계 + 에이전트 수 2단계 + Workflow allow 정책
+os.environ.pop("HARNESS_AWAY_WORKFLOW", None)
+envw = dict(ENV, HARNESS_AWAY_WORKFLOW="allow")
+u = S("usd2", envw)
+cli("away", "usd2", "$10", "2", env=envw)
+_, ua = u.launch()
+u.stop_agent(ua, [usage_line("u1", "claude-opus-5-5", out=600_000)])  # $12: 1 단계
+u1, ub = u.launch()
+check("usd2: $12 of $10 -> level 1 (allowed when idle, with reconsider warn)", not denied(u1) and "Away budget reached" in ctx(u1))
+u.stop_agent(ub, [usage_line("u2", "claude-opus-5-5", out=500_000)])  # 누적 $22 >= $20
+n_sp = u.state()["spawned"]
+u2 = u.pre()[1]
+_, uw = u.pre(tool="Workflow")
+check("usd2: $22 >= 2x$10 -> Agent denied (halt)", denied(u2) and "halt:" in reason(u2))
+check("usd2: Workflow denied even with HARNESS_AWAY_WORKFLOW=allow", denied(uw))
+check("usd2: denied calls are not counted as spawned", u.state()["spawned"] == n_sp)
+check("usd2: stage-2 time recorded and logged", u.state()["away"]["over2_at"] and any(e["k"] == "stage2" for e in u.state()["log"]))
+check("usd2 statusline: HALT $22.00/$10", "AWAY HALT $22.00/$10" in sline("usd2", None, envw))
+out = cli("back", "usd2", env=envw)
+check("/back (usd): stage 2 line", "2단계(새 서브에이전트 중단) 도달: 예" in out)
+g2 = S("ag2")
+cli("away", "ag2", "1a", "3")
+_, g2a = g2.launch()
+g2.stop_agent(g2a)
+g2b = g2.pre()[1]  # 1 개 띄운 뒤라 1 단계(비어 있으니 허용)
+g2c = g2.pre()[1]  # 예약 1 + 띄운 2 -> 2 >= 2x1
+check("agents 1a: level 1 allowed when idle, then 2 spawned -> stage 2", denied(g2c) and "halt:" in reason(g2c))
+check("stage 2 never fires in attended mode", not denied(S("att2").pre()[1]))
+
+# ---- 서브에이전트 안의 중첩 호출은 메인의 "회차당 한 번" 알림을 쓰지 않는다 ----
+envn = dict(ENV, HARNESS_FANOUT_WARN_CONCURRENT="2")
+nn = S("nest", envn)
+nn.launch()
+sub_pre = hook(dict(nn.base(hook_event_name="PreToolUse", tool_name="Agent", tool_use_id="nest-sub", agent_id="zz", agent_type="general-purpose",
+                            tool_input={"model": "sonnet", "run_in_background": True})), envn)
+check("nested (agent_id) call gets the fan-out warn", "Large fan-out" in ctx(sub_pre))
+_, main_pre = nn.pre()
+check("main still gets its own fan-out warn after the subagent consumed one", "Large fan-out" in ctx(main_pre))
+_, main_pre2 = nn.pre()
+check("main dedup within the burst is unchanged (silent)", ctx(main_pre2) == "")
+
 # ---- 끄기·잘못된 입력 ----
 check("off switch -> no output", hook({"session_id": "off", "hook_event_name": "PreToolUse", "tool_name": "Agent", "tool_input": {}},
                                       dict(ENV, HARNESS_SUBAGENT_SLOTS="off")) is None)

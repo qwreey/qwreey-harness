@@ -7,7 +7,9 @@
 - attended(기본): 막지 않는다. 큰 팬아웃(동시 N 개 이상, opus 이상 M 개 이상, Workflow)이면 warn 으로
   "사용자에게 규모를 고지하라"를 낸다. 팬아웃 한 묶음(실행 중 0 에서 시작해 다시 0 이 될 때까지)마다·compact 회차마다 한 번.
 - away(사용자가 /away 로 선언): 실행 중 수가 슬롯 이상이면 deny(사유 "queue: …", level=action). 세션은 멈추지 않는다.
-  예산을 넘기면 슬롯을 HARNESS_AWAY_OVER_SLOTS(기본 1)로 줄여 직렬화하고, 메인에 재고 리마인더를 한 번 준다.
+  예산을 넘기면(1단계) 슬롯을 HARNESS_AWAY_OVER_SLOTS(기본 1)로 줄여 직렬화하고, 메인에 재고 리마인더를 한 번 준다.
+  예산의 2배를 넘으면(2단계) 새 Agent·Workflow 를 모두 deny(`halt: …`, level=action): 진척 파일에 상태를 적고 사용자를 기다리라는 지시.
+  메인을 강제로 끊지는 않는다. 예산 단위는 USD·에이전트 수·한도 %(statusline 이 쓴 <sid>.limits.json 을 읽는다).
 - 세는 법: PreToolUse 에서 예약(+1) → PostToolUse(async_launched)·SubagentStart 에서 실행 중으로 → SubagentStop 에서 −1.
   어긋남 복구: lib/subagent_ledger.live() (background_tasks, meta.json, 트랜스크립트 mtime, 예약 TTL). 수동: /away reset.
 끄기: HARNESS_SUBAGENT_SLOTS=off. 실패해도 아무것도 막지 않는다(예외는 삼킨다).
@@ -78,6 +80,22 @@ def fams_text(L, items):
     return ", ".join(f"{f} {n}" for f, n in L.by_family(items).items()) or "unknown models"
 
 
+def stage2_deny(L, st, away, ep, who, ev, kind):
+    """2단계: 새 서브에이전트·Workflow 를 모두 거절한다. 전체 지시는 회차(compact)·away 선언마다 한 번, 이후는 짧게."""
+    away["queued"] = away.get("queued", 0) + 1
+    L.log(st, "stage2-deny", kind=kind)
+    key = f"{ep}:{away.get('since')}"
+    if st["notes"].get(f"stage2:{who}") != key:
+        st["notes"][f"stage2:{who}"] = key
+        return deny(tag("action",
+                        f"halt: the away budget's stage 2 is reached ({ev['why']}); new subagents and workflows are refused until the user returns. "
+                        f"This call did not run. Do not retry or work around it. Write the current state to the progress file "
+                        f"(or the session notes): what is done, what is running, what is next, and what needs the user's decision. "
+                        f"Then wait for the user; the session itself is not stopped, so you may finish the small step in hand but start no new large work."))
+    return deny(tag("action", "halt: away budget stage 2 still in effect; no new subagents or workflows. "
+                              "Keep the progress file current and wait for the user."))
+
+
 def pre_agent(L, st, data, cfg, now):
     ti = data.get("tool_input") or {}
     sid = data.get("session_id")
@@ -87,13 +105,14 @@ def pre_agent(L, st, data, cfg, now):
     if n == 0:
         st["burst"] = st.get("burst", 0) + 1
     ep = L.epoch(sid)
+    who = data.get("agent_id") or "main"  # dedup 은 (세션, 호출한 쪽, 회차): 서브에이전트 안의 중첩 호출이 메인의 "한 번"을 쓰지 않게
     out = None
     away = st.get("away") if (st.get("away") or {}).get("on") else None
     if away:
-        _, _, over = L.away_status(st)
-        if over and not away.get("over_at"):
-            away["over_at"] = now
-            L.log(st, "over-budget", why=over)
+        ev = L.away_check(st, cfg, L.read_limits(sid), now)
+        over = ev["why"]
+        if ev["level"] >= 2:
+            return stage2_deny(L, st, away, ep, who, ev, "agent")
         limit = away.get("over_slots", 1) if over else away.get("slots", 2)
         if n >= limit:
             away["queued"] = away.get("queued", 0) + 1
@@ -104,8 +123,8 @@ def pre_agent(L, st, data, cfg, now):
                             f"{n} subagents running ({fams_text(L, items)}), slot limit {limit}.{why} This call did not run; the session is not stopped. "
                             f"Do not retry until a completion notification arrives; meanwhile do non-agent work or end the turn. "
                             f"Before respawning, check whether a smaller model (sonnet) or a smaller pass would do."))
-        if over and st["notes"].get("over") != f"{ep}:{away.get('since')}":
-            st["notes"]["over"] = f"{ep}:{away.get('since')}"
+        if over and st["notes"].get(f"over:{who}") != f"{ep}:{away.get('since')}":
+            st["notes"][f"over:{who}"] = f"{ep}:{away.get('since')}"
             out = context(tag("warn",
                               f"Away budget reached ({over}). Subagents are now serialized ({limit} at a time); nothing is stopped. "
                               f"Before each further spawn, reconsider: can sonnet do it instead of opus/fable; can the work be a small "
@@ -117,8 +136,8 @@ def pre_agent(L, st, data, cfg, now):
         conc_lim = L.num(cfg, "HARNESS_FANOUT_WARN_CONCURRENT", int)
         big_lim = L.num(cfg, "HARNESS_FANOUT_WARN_BIG", int)
         key = f"{ep}:{st['burst']}"
-        if (after >= conc_lim or big >= big_lim) and st["notes"].get("fanout") != key:
-            st["notes"]["fanout"] = key
+        if (after >= conc_lim or big >= big_lim) and st["notes"].get(f"fanout:{who}") != key:
+            st["notes"][f"fanout:{who}"] = key
             L.log(st, "fanout-warn", n=after, big=big)
             mix = fams_text(L, items + [{"fam": fam}])
             out = context(tag("warn",
@@ -140,6 +159,9 @@ def pre_workflow(L, st, data, cfg, now):
     away = st.get("away") if (st.get("away") or {}).get("on") else None
     out = None
     if away:
+        ev = L.away_check(st, cfg, L.read_limits(data.get("session_id")), now)
+        if ev["level"] >= 2:
+            return stage2_deny(L, st, away, L.epoch(data.get("session_id")), data.get("agent_id") or "main", ev, "workflow")
         policy = str(cfg.get("HARNESS_AWAY_WORKFLOW", "idle")).strip().lower()
         if policy == "deny":
             away["queued"] = away.get("queued", 0) + 1
@@ -231,6 +253,7 @@ def reconcile(L, st, data, cfg, now):
         st["running"].update(grace)
     else:
         L.live(st, cfg, now)
+    L.away_check(st, cfg, L.read_limits(data.get("session_id")), now)  # 1·2단계 도달 시각을 정확히 남긴다
 
 
 HANDLERS = {

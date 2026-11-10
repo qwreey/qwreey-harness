@@ -37,8 +37,10 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 | | 유효한 예외 사유 안내, 접두 묶음 제안 | info |
 | rearm-on-compact | (출력 없음) | - |
 | subagent-slots | away 중 슬롯이 차서 deny(사유 `queue: wait for a running agent to finish, then spawn the next`) | action |
-| | away 예산 도달 → 직렬화 + 재고 리마인더(compact 회차·away 선언마다 한 번) | warn |
+| | away 예산 도달(1단계) → 직렬화 + 재고 리마인더(compact 회차·away 선언마다 한 번) | warn |
+| | away 예산 2배(2단계) → 새 Agent·Workflow deny(`halt: …`; 전체 지시는 회차·away 선언마다 한 번, 이후 짧게) | action |
 | | attended 큰 팬아웃(동시 4+, opus 이상 2+, Workflow) → 사용자에게 규모 고지(팬아웃 묶음·회차마다 한 번) | warn |
+|   (이중 구조) | 메인의 말 고지는 CLAUDE.md 가 2개부터, 훅 warn 은 4개부터다. 의도된 설계: 훅은 메인이 고지를 놓쳤을 때의 보강이라 일부러 더 늦게 울린다(둘 다 2면 warn 이 잦아 무뎌진다). `audit/21` §5-3 | - |
 | | away 중 허용된 Workflow(내부 동시성은 슬롯 밖) | warn |
 
 ### 권장 배정: 세션 기록 플러그인(`plugins/session-log/`)과 이후 새 훅
@@ -47,17 +49,18 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 - 요약 완료 알림: `info`
 - 구현은 이 문서의 표를 따른다. 훅 코드 예: `hooks/structure-reminder.py` 의 `Note`·`top_level`.
 
-## dedup 단위 = session_id + compact 회차
+## dedup 단위 = session_id + 호출한 쪽(agent_id 또는 main) + compact 회차
 "세션당 한 번" 알림은 session_id 만 키로 쓰면 안 된다. `/compact` 는 session_id 를 유지하는데 요약 과정에서 이전 알림이 맥락에서 사라진다(실측).
 - 공용 함수: `~/.claude/lib/compact_epoch.py` (정본 `home/.claude/lib/compact_epoch.py`)
-  - `state_path(namespace, session_id)` → `$TMPDIR/<namespace>/<sid>.c<회차>.json`. 디렉터리도 만든다.
+  - `state_path(namespace, session_id, agent_id=None)` → `$TMPDIR/<namespace>/<sid>.c<회차>[.a<agent_id>].json`. 디렉터리도 만든다.
+  - 서브에이전트 안의 훅도 부모의 session_id 를 받는다. 입력의 `agent_id` 를 꼭 넘겨야 서브에이전트가 메인의 "한 번" 알림을 쓰지 않는다(`audit/21` §5-6).
   - `epoch(session_id)`, `bump(session_id)`.
 - 회차는 `hooks/rearm-on-compact.py` 가 SessionStart(matcher `compact`)에서 올린다(settings.json 에 등록됨). 실측: compact 때 PreCompact → SessionStart(source=compact) → PostCompact 가 모두 불리고 session_id 는 같다.
 - 사용(경로로 모듈 적재, harness_env 와 같은 방식):
   ```python
   spec = importlib.util.spec_from_file_location("compact_epoch", home / "lib" / "compact_epoch.py")
   ce = importlib.util.module_from_spec(spec); spec.loader.exec_module(ce)
-  state_file = ce.state_path("claude-my-hook", data["session_id"])
+  state_file = ce.state_path("claude-my-hook", data["session_id"], data.get("agent_id"))
   ```
   구현 예: `hooks/bash-bypass-reminder.py` 의 `dedup_path`. lib 가 없으면 session_id 키로 되돌아간다.
 - 테스트: `hooks/tests/test-compact-rearm.py`.

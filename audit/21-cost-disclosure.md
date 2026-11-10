@@ -19,7 +19,8 @@
   - 큰 팬아웃의 기준: 동시 4개 이상, opus 이상 2개 이상, Workflow.
 - **away**: `/away [예산] [슬롯]` 으로 켠다.
   - 실행 중인 수가 슬롯 이상이면 그 호출만 deny 한다. 사유는 `queue: wait for a running agent to finish, then spawn the next` 이고 level 은 action 이다. 세션은 계속 돈다.
-  - 예산을 넘기면 슬롯을 1로 줄여 직렬화한다. 메인에는 재고 리마인더를 한 번 준다.
+  - 예산을 넘기면(1단계) 슬롯을 1로 줄여 직렬화한다. 메인에는 재고 리마인더를 한 번 준다.
+  - 예산의 2배를 넘으면(2단계) 새 서브에이전트와 Workflow 를 모두 거절하고, 메인에게 진척 파일에 상태를 적고 사용자를 기다리라고 한다(§5).
   - `/back` 이 비운 동안의 요약을 보여 준다.
 - **statusline**:
   - 컨텍스트 %
@@ -242,7 +243,7 @@
   - 무인 세션에서 사용자가 걱정하는 것은 "얼마나 빨리 태우는가"다.
   - 범위는 메인과 서브에이전트를 모두 포함한다. `/away` 이후에 쓴 것만 센다.
 - 에이전트 수(`8a`)는 보조로 남겼다.
-- 구독 사용자에게 더 정확한 척도는 `rate_limits.five_hour.used_percentage` 다. 이 값은 statusline 에만 오고 훅에는 오지 않는다. 그래서 예산 기준으로 쓰지 않았다(§5 결정 항목).
+- 구독 사용자에게 더 정확한 척도는 `rate_limits` 의 한도 % 다. 이 값은 statusline 에만 오므로 statusline 이 파일에 적고 훅이 읽는다. 사용자 결정으로 `/away 30%`·`30%w`·`30%5h` 를 지원한다(§5-1). 2단계(예산의 2배)에서는 새 서브에이전트·Workflow 를 거절한다(§5-2).
 
 ### 2.3 슬롯 직렬화와 카운터
 
@@ -369,7 +370,7 @@
 
 ## 4. 테스트와 실측
 
-### 단위 테스트 (`python3 -I hooks/tests/test-subagent-slots.py`): 55/55
+### 단위 테스트 (`python3 -I hooks/tests/test-subagent-slots.py`): 102/102 (§5 의 한도 %·2단계 44개, 중첩 dedup 3개 포함)
 - 가격 계산
   - sonnet 5.5 의 캐시 쓰기, 읽기, 출력
   - opus 5.5 = 2 × sonnet 5.5
@@ -433,22 +434,53 @@
 - `~/.claude/projects/-tmp-sa-live-proj`
 - 임시 디렉터리 `/tmp/sa-probe`, `/tmp/sa-live`, `/tmp/ccdocs` 도 남아 있다.
 
-## 5. 사용자 결정이 필요한 것
+## 5. 사용자 결정 (2026-11-10 반영)
 
-1. **예산 단위**
-   - 추천은 USD(API 목록가 환산)다.
-   - 구독 사용자라면 "5시간 한도 % 증가분"이 실제 부담에 더 가깝다.
-     - 그 값은 statusline 에만 온다.
-     - statusline 이 원장에 써 주는 방식으로 붙일 수는 있다. 다만 statusline 은 대화형에서만 돈다.
-2. **away 중 Workflow** 의 기본값.
-   - 지금은 `idle`(실행 중 0일 때만)이다.
-   - `deny`(순차 Agent 로만)로 바꿀지 정한다.
-3. **예산 초과 뒤의 동작**
-   - 지금은 슬롯을 1로 줄이고 계속 돈다.
-   - "2배를 넘으면 opus 이상 호출만 거절" 같은 2단계를 둘지 정한다. 이 경우 세션은 계속 돌고 sonnet 으로 대체된다.
-4. **attended 문턱값**: 동시 4개, opus 이상 2개.
-   - CLAUDE.md 는 "2개 이상이면 고지"로 더 이르게 잡았다. 훅은 그것을 놓쳤을 때의 보강이다.
-   - 훅 문턱도 2로 맞출지 정한다. 맞추면 warn 이 잦아진다.
+1. **예산 단위는 사용자 요금제에 맞춘다. [결정, 구현됨]**
+   - 비개발자는 USD 를 체감하지 못하고 "한도 다 썼다" 로 체감한다. 구독자가 많다.
+   - 인자:
+     - `/away $5`: USD(API 목록가 환산)
+     - `/away 30%`: 쓸 수 있는 창 중 가장 빡빡한 쪽 기준으로, 지금부터 30%p 를 더 쓸 때까지
+     - `/away 30%w`, `/away 30%5h`: 창을 명시(주간, 5시간)
+     - `/away 6a`: 에이전트 수
+     - 인자 없음: statusline 이 한도 값을 보낸 적이 있으면 `HARNESS_AWAY_BUDGET_PCT`(30), 없으면 USD 기본값(20)과 `[plan-unknown]` 표지.
+   - 5시간 창이 없는 요금제(예: 울트라)는 `rate_limits` 에 `five_hour` 가 없을 수 있다. 있는 창만 추적한다.
+   - **한도 % 출처 [문서: code.claude.com/docs/en/statusline]**
+     - statusline 입력 JSON 의 `rate_limits.five_hour` / `rate_limits.seven_day` 에 `used_percentage`(0~100)와 `resets_at`(epoch 초)이 있다.
+     - claude.ai Pro/Max/Ultra 구독자에게만 오고, 세션의 첫 API 응답 이후에 온다. 창마다 따로 빠질 수 있고, `resets_at` 이 지나면 그 창은 사라진다.
+     - 앱 게이트웨이 사용자용 `spend_limit` 도 있다(`used_percentage`, 선택으로 `used_usd`·`limit_usd`). 이번에는 쓰지 않았다.
+     - 훅 입력에는 없다. [미확인] `/usage`·응답 헤더·로컬 파일에서 읽는 방법은 찾지 못했다(문서에 없다).
+     - 로컬 2.1.316 `-p` 실측은 하지 않았다(statusline 이 `-p` 에서 돌지 않을 수 있어 문서 우선).
+   - **구조**: statusline 스크립트가 `rate_limits` 를 `$TMPDIR/claude-subagent-slots/<sid>.limits.json`(`{five_hour:{p,r}, seven_day:{p,r}, t}`)에 적고, 훅이 그것을 읽는다. 값이 없으면 파일을 덮지 않는다.
+   - **계산**:
+     - `/away` 시점에 창마다 기준점(`start`)과 남은 여유(`room = 100 - 시작값`)를 기록한다.
+     - 1단계 문턱 = `min(N, room)`: 남은 여유가 N 보다 작으면 한도 100% 가 문턱이다.
+     - 증가분 = `acc + (last - start)`.
+     - `resets_at` 이 60초를 넘겨 바뀌면 창이 리셋된 것이다. 그때까지의 증가분을 `acc` 에 쌓고 새 창을 0 에서 센다(문턱은 N 으로 복구). 60초 안의 흔들림은 리셋이 아니다.
+     - 창을 지정하지 않으면 어느 창이든 먼저 문턱에 닿으면 도달로 본다(보통 5시간 창).
+   - **값이 오래됐을 때**: statusline 이 `HARNESS_AWAY_LIMITS_STALE_MIN`(10)분 넘게 갱신하지 못하면(대화형이 아님, 닫힘 등) 마지막 증가분은 유지하고, 모자란 부분은 USD 가드(`HARNESS_AWAY_BUDGET_USD`, 기본 20)로 메운다. 상태줄에 `(stale)` 이 붙는다.
+   - **요금제 감지**: `rate_limits` 가 왔다는 사실이 구독자 신호다. 못 받으면(비구독, `-p`, 첫 응답 전) USD 로 켜고 `[plan-unknown]` 을 출력한다. 스킬이 사용자에게 한 번 묻고, `harness.env` 에 `HARNESS_AWAY_PLAN=pct|usd` 를 적도록 제안한다(대신 쓰지 않는다).
+   - [미확인] 메인이 쉬면서 서브에이전트만 도는 동안 `rate_limits` 가 갱신되는지(서브에이전트 응답이 값을 바꾸는지). 안 바뀌면 그 구간의 % 증가분이 늦게 잡힌다. 실 사용에서 `/back` 요약의 USD 와 %p 를 대조해 본다.
+2. **예산 초과는 2단계. [결정, 구현됨]**
+   - 1단계(예산 도달): 지금처럼 슬롯을 1로 줄이고 재고 리마인더를 한 번 낸다.
+   - 2단계(예산의 `HARNESS_AWAY_STAGE2_MULT`=2 배): 새 Agent 와 Workflow 를 모두 deny 한다(`halt: …`, level=action).
+     - 첫 거절(compact 회차·away 선언마다 한 번)에 전체 지시를 준다: 진척 파일(또는 세션 메모)에 한 일, 실행 중인 것, 다음, 사용자 결정 필요를 적고 사용자를 기다린다.
+     - 이후 거절은 짧은 한 줄이다.
+   - **메인을 강제로 끊는 장치는 넣지 않았다.** 지시와 서브에이전트 차단만 한다. 강제 중단이 필요하면 제안이다: Stop 훅에서 `decision`/`continue:false` 를 쓰는 방법이 있으나, 메인의 진행 중인 작업을 잃을 수 있어 사용자 판단으로 남긴다.
+   - 한계: 메인이 서브에이전트를 더 부르지 않고 직접 일하면 2단계 안내를 받을 계기가 없다(훅이 낼 수 있는 곳은 PreToolUse 뿐). 메인 자체의 소모는 막지 않는다. 이것이 의도다.
+   - `/back` 요약에 1·2단계 도달 여부와 시각이 들어간다. statusline 은 `AWAY OVER …` / `AWAY HALT …` 로 보인다.
+3. **고지 문턱의 이중 구조는 의도된 설계다. [결정, 코드 변경 없음]**
+   - 메인의 말 고지: CLAUDE.md, 서브에이전트 2개 이상 또는 Workflow 전에 한 줄.
+   - 훅 warn: 동시 4개, opus 이상 2개, Workflow. 메인이 고지를 놓쳤을 때의 보강이다.
+   - 둘을 2로 맞추면 warn 이 잦아져 무뎌진다. 그래서 일부러 다르게 둔다(`HOOK-MESSAGES.md` 에도 적었다).
+4. **away 중 Workflow: `idle` 유지. [결정]** 실행 중 0개일 때만 허용하고, 2단계에서는 `HARNESS_AWAY_WORKFLOW=allow` 여도 거절한다.
 5. **실제 반영**
    - `tools/home-sync.sh diff` 로 검토한 뒤 `apply` 한다.
    - statusLine 은 새로 생긴다. 다른 statusline 을 쓰고 싶으면 정본의 `statusLine` 을 지운다.
+   - 이번 변경 테스트: `test-subagent-slots.py` 102개(기존 55 + 한도 %·2단계 44 + 중첩 dedup 3), `test-compact-rearm.py` 26개(+6).
+
+6. **dedup 키에 호출한 쪽을 넣었다. [버그 수정]**
+   - 서브에이전트 안에서 도는 훅도 부모의 `session_id` 를 받는다. 구분 필드는 `agent_id`(와 `agent_type`)다 [문서: hooks 공통 입력 필드 "tool events such as PreToolUse and PostToolUse fire … the input carries the agent_id and agent_type"]. 로컬 `/tmp/sa-probe` 덤프에는 서브에이전트 안 도구 훅이 없어 실측으로는 확인하지 못했다. 서브에이전트 이벤트(SubagentStart/Stop)의 `agent_id` 만 실측됐다.
+   - 이전 키 `(session_id, compact 회차)` 에는 구분이 없어, 서브에이전트가 "회차당 한 번" 알림을 먼저 쓰면 메인이 못 받았다(반대도 같다).
+   - 수정: `lib/compact_epoch.py` 의 `state_path(namespace, session_id, agent_id=None)` 가 `<sid>.c<회차>[.a<agent_id>].json` 을 낸다. bash-bypass-reminder·structure-reminder 가 `data.get("agent_id")` 를 넘긴다. subagent-slots 의 `notes` 키(`fanout:`·`over:`·`stage2:`)에도 호출한 쪽을 넣었다.
+   - 남은 것: structure-reminder 의 성장 기준점(`.base.json`)은 세션 단위라 메인·서브가 공유한다. 파일별 기준점이라 알림을 가로채진 않지만, 서브가 먼저 쓴 파일의 기준은 서브의 첫 편집 시점이 된다. 필요하면 후속으로 정한다.

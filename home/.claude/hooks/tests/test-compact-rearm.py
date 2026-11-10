@@ -72,6 +72,33 @@ res.append(("growth: baseline survives compact (+200 then +150 -> grow note)", "
 res.append(("rearm-on-compact prints nothing, bad stdin ok", run("rearm-on-compact.py", {}) == ""))
 bad = subprocess.run([sys.executable, "-I", os.path.join(H, "rearm-on-compact.py")], input="{no", capture_output=True, text=True, env=ENV)
 res.append(("rearm-on-compact survives bad stdin", bad.returncode == 0 and not bad.stdout))
+
+# ---- 서브에이전트 안의 훅은 부모 session_id 를 받는다: dedup 은 (세션, 호출한 쪽, 회차) ----
+def bypass_as(sid, agent_id=None):
+    d = {"session_id": sid, "cwd": REPO, "tool_name": "Bash", "tool_input": {"command": "python3 -c 'print(1)'"}}
+    if agent_id:
+        d.update(agent_id=agent_id, agent_type="general-purpose")
+    return run("bash-bypass-reminder.py", d)
+
+
+def struct_as(sid, agent_id=None):
+    d = {"session_id": sid, "cwd": REPO, "tool_name": "Edit", "tool_input": {"file_path": big, "old_string": "a", "new_string": "a\n"}, "tool_response": {}}
+    if agent_id:
+        d.update(agent_id=agent_id, agent_type="general-purpose")
+    return run("structure-reminder.py", d)
+
+
+sb = bypass_as("sub1", "agent-x")
+mb = bypass_as("sub1")
+res.append(("subagent consumed the bypass reminder first, main still gets it", bool(sb) and bool(mb)))
+res.append(("main dedup unchanged: second main call is silent", bypass_as("sub1") == ""))
+res.append(("subagent dedup per agent_id: same agent silent, another agent notified", bypass_as("sub1", "agent-x") == "" and bool(bypass_as("sub1", "agent-y"))))
+ss = struct_as("sub2", "agent-x")
+ms = struct_as("sub2")
+res.append(("structure: subagent first, main still gets the warn", bool(ss) and bool(ms)))
+res.append(("structure: main second call silent", struct_as("sub2") == ""))
+rearm("sub1")
+res.append(("subagent + main both re-armed after compact", bool(bypass_as("sub1", "agent-x")) and bool(bypass_as("sub1"))))
 for ok, name in [(r[1], r[0]) for r in res]:
     print(("PASS " if ok else "FAIL ") + name)
 fails = [r for r in res if not r[1]]

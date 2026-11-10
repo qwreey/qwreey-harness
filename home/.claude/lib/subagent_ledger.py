@@ -59,6 +59,10 @@ CFG_DEFAULTS = {
     "HARNESS_AWAY_BUDGET_USD": "20",  # /away 에 예산을 안 주면
     "HARNESS_AWAY_SLOTS": "2",  # /away 에 슬롯을 안 주면
     "HARNESS_AWAY_OVER_SLOTS": "1",  # 예산을 넘긴 뒤 슬롯(직렬화)
+    "HARNESS_AWAY_BUDGET_PCT": "30",  # 구독제: /away 에 예산을 안 주면 그 창의 몇 %p 를 더 쓸 때까지
+    "HARNESS_AWAY_PLAN": "auto",  # auto(statusline 이 한도 값을 보내면 pct, 아니면 usd) | usd | pct
+    "HARNESS_AWAY_STAGE2_MULT": "2",  # 2단계 = 예산의 이 배수(새 서브에이전트·Workflow 거절)
+    "HARNESS_AWAY_LIMITS_STALE_MIN": "10",  # statusline 이 한도 값을 이만큼 못 갱신하면 오래된 것으로 보고 USD 가드로
     "HARNESS_AWAY_WORKFLOW": "idle",  # away 중 Workflow: idle(실행 중 0 일 때만) | deny | allow
     "HARNESS_SLOTS_STALE_MIN": "30",  # 트랜스크립트가 이만큼 조용한 실행 중 항목은 죽은 것으로 본다
     "HARNESS_SLOTS_RESERVE_SEC": "90",  # PreToolUse 예약이 SubagentStart 없이 이만큼 지나면 버린다
@@ -364,10 +368,48 @@ def sweep(st, now=None, window=600):
             account_agent(st, aid, a["path"])
 
 
+# ---------- 한도 % (statusline 입력의 rate_limits → 세션별 파일) ----------
+WINDOWS = {"5h": "five_hour", "w": "seven_day"}
+WLABEL = {"five_hour": "5h", "seven_day": "week"}
+
+
+def limits_path(sid):
+    return os.path.join(state_dir(), _sid(sid) + ".limits.json")
+
+
+def write_limits(sid, rate_limits, now=None):
+    """statusline 이 호출한다. 훅은 statusline 입력을 못 받으므로 이 파일로 넘긴다. 값이 없으면 쓰지 않는다(이전 값 유지)."""
+    out = {}
+    for w in WINDOWS.values():
+        e = (rate_limits or {}).get(w)
+        if isinstance(e, dict) and isinstance(e.get("used_percentage"), (int, float)):
+            out[w] = {"p": float(e["used_percentage"]), "r": e.get("resets_at") if isinstance(e.get("resets_at"), (int, float)) else None}
+    if not out:
+        return False
+    out["t"] = now or time.time()
+    p = limits_path(sid)
+    tmp = f"{p}.{os.getpid()}.tmp"
+    with open(tmp, "w") as f:
+        json.dump(out, f)
+    os.replace(tmp, p)
+    return True
+
+
+def read_limits(sid):
+    try:
+        d = json.load(open(limits_path(sid)))
+        return d if isinstance(d, dict) and "t" in d else None
+    except Exception:
+        return None
+
+
 # ---------- away ----------
-def parse_away_args(args, cfg):
-    """`[예산] [슬롯]`. 예산: 15 | $15 | 15usd → USD, 8a | 8agents → 에이전트 수. 슬롯: 2 | 2s | slots=2."""
-    budget_usd, budget_agents, slots = num(cfg, "HARNESS_AWAY_BUDGET_USD"), None, num(cfg, "HARNESS_AWAY_SLOTS", int)
+def parse_away(args, cfg, lim=None):
+    """`[예산] [슬롯]` → dict(unit, budget_usd, budget_agents, budget_pct, pct_win, slots, note).
+    예산: 15 | $15 | 15usd → USD, 8a → 에이전트 수, 30% → 한도 %p(가장 빡빡한 창), 30%w | 30%5h → 창 지정.
+    슬롯: 2 | 2s | slots=2. 예산을 안 주면 HARNESS_AWAY_PLAN(auto 는 lim 이 있으면 pct)."""
+    r = dict(unit=None, budget_usd=None, budget_agents=None, budget_pct=None, pct_win=None, note=None,
+             slots=num(cfg, "HARNESS_AWAY_SLOTS", int))
     pos = 0
     for a in args:
         a = a.strip().lower()
@@ -375,34 +417,136 @@ def parse_away_args(args, cfg):
             continue
         m = re.fullmatch(r"(?:slots?=)?(\d+)s(?:lots?)?|slots?=(\d+)", a)
         if m:
-            slots = int(m.group(1) or m.group(2))
+            r["slots"] = int(m.group(1) or m.group(2))
+            continue
+        m = re.fullmatch(r"(\d+(?:\.\d+)?)\s*%\s*(w|week|weekly|7d|5h|5hr|h)?", a)
+        if m and pos == 0:
+            if float(m.group(1)) <= 0:
+                raise ValueError("한도 %는 0 보다 커야 한다")
+            r["unit"], r["budget_pct"], pos = "pct", float(m.group(1)), 1
+            if m.group(2):
+                r["pct_win"] = WINDOWS["w" if m.group(2) in ("w", "week", "weekly", "7d") else "5h"]
             continue
         m = re.fullmatch(r"(\d+)\s*a(?:gents?)?", a)
         if m and pos == 0:
-            budget_agents, budget_usd, pos = int(m.group(1)), None, 1
+            r["unit"], r["budget_agents"], pos = "agents", int(m.group(1)), 1
             continue
         m = re.fullmatch(r"\$?(\d+(?:\.\d+)?)(?:usd|\$)?", a)
         if m:
             if pos == 0:
-                budget_usd, pos = float(m.group(1)), 1
+                r["unit"], r["budget_usd"], pos = "usd", float(m.group(1)), 1
             else:
-                slots = int(float(m.group(1)))
+                r["slots"] = int(float(m.group(1)))
             continue
         raise ValueError(f"알 수 없는 인자: {a}")
-    return budget_usd, budget_agents, max(1, slots)
+    plan = str(cfg.get("HARNESS_AWAY_PLAN", "auto")).strip().lower()
+    if r["unit"] is None:
+        pct_ok = plan == "pct" or (plan == "auto" and bool(lim and any(w in lim for w in WINDOWS.values())))
+        if pct_ok:
+            r["unit"], r["budget_pct"] = "pct", num(cfg, "HARNESS_AWAY_BUDGET_PCT")
+        else:
+            r["unit"], r["budget_usd"] = "usd", num(cfg, "HARNESS_AWAY_BUDGET_USD")
+            if plan == "auto":
+                r["note"] = "plan-unknown"
+    if r["unit"] == "pct":
+        have = [w for w in WINDOWS.values() if lim and w in lim]
+        want = [r["pct_win"]] if r["pct_win"] else have
+        use = [w for w in want if w in have] or have
+        if not use:  # 한도 값을 아직 못 받음(비구독, -p, 첫 응답 전)
+            r["unit"], r["budget_usd"], r["budget_pct"] = "usd", num(cfg, "HARNESS_AWAY_BUDGET_USD"), None
+            r["note"] = "no-limits"
+        elif r["pct_win"] and r["pct_win"] not in use:
+            r["note"] = "window-missing"
+            r["pct_win"] = None
+    r["slots"] = max(1, r["slots"])
+    return r
 
 
-def away_status(st, now=None):
-    """(spent_usd, spawned, over, why) — away 이후 기준."""
+def parse_away_args(args, cfg):
+    """(budget_usd, budget_agents, slots) — 구버전 호환(% 는 USD 로 바뀌지 않으므로 budget_usd=None)."""
+    r = parse_away(args, cfg)
+    return r["budget_usd"], r["budget_agents"], r["slots"]
+
+
+def pct_init(r, lim, now):
+    """/away 시점의 기준점. 창마다 시작값·리셋 시각·문턱(남은 여유가 N 보다 작으면 거기까지)을 적는다."""
+    wins = [r["pct_win"]] if r["pct_win"] else [w for w in WINDOWS.values() if w in lim]
+    out = {}
+    for w in wins:
+        p = lim[w]["p"]
+        room = max(0.0, 100.0 - p)
+        out[w] = {"start": p, "last": p, "acc": 0.0, "r": lim[w].get("r"), "room": room}
+    return out
+
+
+def away_eval(st, lim=None, now=None, persist=True, cfg=None):
+    """away 예산 판정 → dict(level 0|1|2, why, spent, spawned, pct(창별 증가분 %p), stale).
+    level 1 = 예산 도달, level 2 = 예산 x STAGE2_MULT. 기준은 /away 이후 증가분.
+    persist=True 면 창 상태(리셋 넘김 포함)를 st 에 갱신한다. 훅만 True(잠금 안), statusline 은 False."""
+    now = now or time.time()
+    cfg = cfg or CFG_DEFAULTS
     a = st.get("away") or {}
+    if not persist:
+        import copy
+        a = copy.deepcopy(a)
+    mult = num(cfg, "HARNESS_AWAY_STAGE2_MULT")
     spent = total_usd(st) - a.get("base_usd", 0.0)
     spawned = st.get("spawned", 0) - a.get("base_spawned", 0)
-    over = None
-    if a.get("budget_usd") is not None and spent >= a["budget_usd"]:
-        over = f"budget ${a['budget_usd']:g} used (${spent:.2f})"
-    elif a.get("budget_agents") is not None and spawned >= a["budget_agents"]:
-        over = f"agent budget {a['budget_agents']} used ({spawned} spawned)"
-    return spent, spawned, over
+    res = dict(level=0, why=None, spent=spent, spawned=spawned, pct={}, stale=False)
+
+    def mark(level, why):
+        if level > res["level"]:
+            res["level"], res["why"] = level, why
+
+    if a.get("budget_usd") is not None:
+        b = a["budget_usd"]
+        if spent >= b * mult:
+            mark(2, f"${b * mult:g} (x{mult:g} budget) reached (${spent:.2f})")
+        if spent >= b:
+            mark(1, f"budget ${b:g} used (${spent:.2f})")
+    elif a.get("budget_agents") is not None:
+        b = a["budget_agents"]
+        if spawned >= b * mult:
+            mark(2, f"{b * mult:g} agents (x{mult:g} budget) reached ({spawned} spawned)")
+        if spawned >= b:
+            mark(1, f"agent budget {b} used ({spawned} spawned)")
+    elif a.get("budget_pct") is not None:
+        n = a["budget_pct"]
+        stale_sec = num(cfg, "HARNESS_AWAY_LIMITS_STALE_MIN") * 60
+        fresh = bool(lim) and now - lim.get("t", 0) <= stale_sec
+        res["stale"] = not fresh
+        pw = a.get("pct") or {}
+        for w, s in pw.items():
+            cur = lim.get(w) if fresh else None
+            if cur:
+                if cur.get("r") and s.get("r") and cur["r"] > s["r"] + 60:  # 창이 리셋됐다: 리셋 전 증가분을 쌓고 새로 센다
+                    s["acc"] += max(0.0, s["last"] - s["start"])
+                    s["start"], s["room"] = 0.0, 100.0
+                    s["r"] = cur["r"]
+                s["last"] = cur["p"]
+                if s.get("r") is None:
+                    s["r"] = cur.get("r")
+            d = s["acc"] + max(0.0, s["last"] - s["start"])
+            res["pct"][w] = d
+            t1, t2 = min(n, s["room"]), min(n * mult, s["room"])  # 남은 여유가 N 보다 작으면 한도 100% 가 문턱
+            lbl = WLABEL[w]
+            if d >= t2:
+                mark(2, f"{lbl} limit +{d:.0f}%p since away (stage-2 threshold {t2:g}%p)")
+            if d >= t1:
+                mark(1, f"{lbl} limit +{d:.0f}%p since away (budget {t1:g}%p)")
+        if not fresh:  # 값이 오래됐다: 마지막으로 본 증가분은 그대로 두고, 모자란 부분은 USD 가드로 메운다
+            fb = num(cfg, "HARNESS_AWAY_BUDGET_USD")
+            if spent >= fb * mult:
+                mark(2, f"limit data stale; USD guard ${fb * mult:g} reached (${spent:.2f})")
+            if spent >= fb:
+                mark(1, f"limit data stale; USD guard ${fb:g} used (${spent:.2f})")
+    return res
+
+
+def away_status(st, now=None, lim=None, cfg=None):
+    """(spent_usd, spawned, over 문자열 또는 None) — away 이후 기준. 상태는 고치지 않는다."""
+    e = away_eval(st, lim, now, persist=False, cfg=cfg)
+    return e["spent"], e["spawned"], e["why"]
 
 
 def find_transcript(sid):
@@ -417,56 +561,101 @@ def fmt_spend(bucket):
     return ", ".join(f"{m.replace('claude-', '')} ${e['usd']:.2f} ({tok(e['tok'])} tok)" for m, e in items) or "없음"
 
 
+def away_check(st, cfg, lim, now=None):
+    """away 중이면 판정하고(창 상태 갱신 포함) 1·2단계 도달 시각을 처음 한 번만 적는다. 훅·/back 이 부른다."""
+    a = st.get("away")
+    if not (a and a.get("on")):
+        return None
+    now = now or time.time()
+    e = away_eval(st, lim, now, True, cfg)
+    if e["level"] >= 1 and not a.get("over_at"):
+        a["over_at"] = now
+        log(st, "over-budget", why=e["why"])
+    if e["level"] >= 2 and not a.get("over2_at"):
+        a["over2_at"] = now
+        log(st, "stage2", why=e["why"])
+    return e
+
+
+def budget_text(a, cfg):
+    mult = num(cfg, "HARNESS_AWAY_STAGE2_MULT")
+    if a.get("budget_usd") is not None:
+        return f"${a['budget_usd']:g} (API 목록가 환산, {mult:g}배인 ${a['budget_usd'] * mult:g} 에서 새 서브에이전트 중단)"
+    if a.get("budget_agents") is not None:
+        return f"에이전트 {a['budget_agents']}개 ({mult:g}배인 {a['budget_agents'] * mult:g}개에서 중단)"
+    wl = "/".join(WLABEL[w] for w in (a.get("pct") or {})) or "?"
+    return f"한도 {a['budget_pct']:g}%p ({wl} 창 기준, {mult:g}배인 {a['budget_pct'] * mult:g}%p 에서 새 서브에이전트 중단)"
+
+
 def cmd_away(sid, args):
     cfg = config(os.environ.get("CLAUDE_PROJECT_DIR"))
+    lim = read_limits(sid)
     try:
-        budget_usd, budget_agents, slots = parse_away_args(args, cfg)
+        r = parse_away(args, cfg, lim)
     except ValueError as e:
-        print(f"/away: {e}. 형식: /away [예산: 15 | $15 | 8a] [슬롯: 2]")
+        print(f"/away: {e}. 형식: /away [예산: $5 | 30% | 30%w | 30%5h | 6a] [슬롯: 2]")
         return 2
+    now = time.time()
     with session(sid) as st:
         account_main(st, st.get("tp") or find_transcript(sid))
         sweep(st)
-        st["away"] = {"on": True, "since": time.time(), "budget_usd": budget_usd, "budget_agents": budget_agents,
-                      "slots": slots, "over_slots": num(cfg, "HARNESS_AWAY_OVER_SLOTS", int),
-                      "base_usd": total_usd(st), "base_spawned": st.get("spawned", 0), "queued": 0, "over_at": None}
-        log(st, "away-on", budget_usd=budget_usd, budget_agents=budget_agents, slots=slots)
+        st["away"] = {"on": True, "since": now, "unit": r["unit"], "budget_usd": r["budget_usd"], "budget_agents": r["budget_agents"],
+                      "budget_pct": r["budget_pct"], "pct": pct_init(r, lim, now) if r["unit"] == "pct" else {},
+                      "slots": r["slots"], "over_slots": num(cfg, "HARNESS_AWAY_OVER_SLOTS", int),
+                      "base_usd": total_usd(st), "base_spawned": st.get("spawned", 0), "queued": 0, "over_at": None, "over2_at": None}
+        log(st, "away-on", unit=r["unit"], budget_usd=r["budget_usd"], budget_agents=r["budget_agents"], budget_pct=r["budget_pct"], slots=r["slots"])
         n = len(live(st, cfg))
-    b = f"${budget_usd:g} (API 목록가 환산)" if budget_agents is None else f"에이전트 {budget_agents}개"
-    print(f"away 모드 켬: 예산 {b}, 동시 슬롯 {slots}. 예산을 넘기면 슬롯 {num(cfg, 'HARNESS_AWAY_OVER_SLOTS', int)}개로 직렬화한다(멈추지 않음).")
+        a = st["away"]
+    print(f"away 모드 켬: 예산 {budget_text(a, cfg)}, 동시 슬롯 {r['slots']}.")
+    print(f"예산을 넘기면(1단계) 슬롯 {num(cfg, 'HARNESS_AWAY_OVER_SLOTS', int)}개로 직렬화하고, {num(cfg, 'HARNESS_AWAY_STAGE2_MULT'):g}배를 넘기면(2단계) 새 서브에이전트·Workflow 를 거절하고 메인에게 상태를 적고 기다리라고 한다.")
+    note = r.get("note")
+    if note == "no-limits":
+        print("[no-limits] 한도 % 값을 아직 받지 못해(statusline 미설정, 비구독, 또는 첫 응답 전) USD 예산으로 켰다.")
+    elif note == "window-missing":
+        print("[window-missing] 지정한 창의 값이 없어 있는 창으로 켰다(요금제에 없는 창일 수 있다).")
+    elif note == "plan-unknown":
+        print("[plan-unknown] 요금제를 알 수 없어 USD 기본값으로 켰다.")
     print(f"지금 실행 중인 서브에이전트: {n}개. 돌아오면 /back 으로 요약을 본다.")
     return 0
 
 
-def summary(st, cfg, now=None):
+def summary(st, cfg, now=None, lim=None):
     now = now or time.time()
     a = st.get("away") or {}
-    spent, spawned, over = away_status(st)
+    e = away_check(st, cfg, lim, now) or away_eval(st, lim, now, False, cfg)
+    spent, spawned = e["spent"], e["spawned"]
     items = live(st, cfg, now)
     mins = (now - a.get("since", now)) / 60
+    hm = lambda t: time.strftime("%H:%M", time.localtime(t))
     lines = [f"자리 비운 시간: {mins:.0f}분",
-             f"쓴 비용(API 목록가 환산): ${spent:.2f}" + (f" / 예산 ${a['budget_usd']:g}" if a.get("budget_usd") is not None else ""),
-             f"띄운 서브에이전트: {spawned}개" + (f" / 예산 {a['budget_agents']}개" if a.get("budget_agents") is not None else "")
-             + f", 줄 세운(거절 후 대기) 횟수: {a.get('queued', 0)}",
-             f"예산 초과: {'예 — ' + over if over else '아니오'}",
-             f"지금 실행 중: {len(items)}개 {by_family(items) or ''}",
-             f"세션 누적(훅이 본 뒤): 메인 {fmt_spend(st['spent']['main'])} / 서브 {fmt_spend(st['spent']['sub'])}"]
+             f"예산: {budget_text(a, cfg)}",
+             f"쓴 비용(API 목록가 환산): ${spent:.2f}"]
+    if a.get("budget_pct") is not None:
+        lines.append("한도 증가분(자리 비운 뒤): " + (", ".join(f"{WLABEL[w]} +{d:.0f}%p" for w, d in e["pct"].items()) or "없음")
+                     + (" (한도 값이 오래돼 USD 가드로 보강)" if e["stale"] else ""))
+    lines += [f"띄운 서브에이전트: {spawned}개" + (f" / 예산 {a['budget_agents']}개" if a.get("budget_agents") is not None else "")
+              + f", 줄 세운(거절 후 대기) 횟수: {a.get('queued', 0)}",
+              f"예산 초과: {'예 ' + hm(a['over_at']) + ' (1단계) — ' + str(e['why']) if a.get('over_at') else '아니오'}",
+              f"2단계(새 서브에이전트 중단) 도달: {'예 ' + hm(a['over2_at']) if a.get('over2_at') else '아니오'}",
+              f"지금 실행 중: {len(items)}개 {by_family(items) or ''}",
+              f"세션 누적(훅이 본 뒤): 메인 {fmt_spend(st['spent']['main'])} / 서브 {fmt_spend(st['spent']['sub'])}"]
     since = a.get("since", 0)
-    ev = [e for e in st["log"] if e.get("t", 0) >= since and e["k"] in ("queued", "over-budget", "recovered")]
+    ev = [x for x in st["log"] if x.get("t", 0) >= since and x["k"] in ("queued", "over-budget", "stage2", "recovered")]
     if ev:
-        lines.append("사건: " + ", ".join(f"{time.strftime('%H:%M', time.localtime(e['t']))} {e['k']}" for e in ev[-8:]))
+        lines.append("사건: " + ", ".join(f"{hm(x['t'])} {x['k']}" for x in ev[-8:]))
     return lines
 
 
 def cmd_back(sid):
     cfg = config(os.environ.get("CLAUDE_PROJECT_DIR"))
+    lim = read_limits(sid)
     with session(sid) as st:
         account_main(st, st.get("tp") or find_transcript(sid))
         sweep(st)
         if not (st.get("away") or {}).get("on"):
             print("away 모드가 아니다. 세션 누적(훅이 본 뒤): 메인 " + fmt_spend(st["spent"]["main"]) + " / 서브 " + fmt_spend(st["spent"]["sub"]))
             return 0
-        lines = summary(st, cfg)
+        lines = summary(st, cfg, lim=lim)
         st["away"]["on"] = False
         st["last_away"] = st.pop("away")
         st["away"] = None
@@ -478,12 +667,13 @@ def cmd_back(sid):
 
 def cmd_status(sid):
     cfg = config(os.environ.get("CLAUDE_PROJECT_DIR"))
+    lim = read_limits(sid)
     with session(sid) as st:
         account_main(st, st.get("tp") or find_transcript(sid))
         sweep(st)
         if (st.get("away") or {}).get("on"):
             print("away 모드 켜짐:")
-            print("\n".join("- " + x for x in summary(st, cfg)))
+            print("\n".join("- " + x for x in summary(st, cfg, lim=lim)))
         else:
             items = live(st, cfg)
             print(f"away 모드 아님. 실행 중 {len(items)}개 {by_family(items) or ''}")

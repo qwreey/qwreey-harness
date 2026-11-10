@@ -38,7 +38,7 @@ audit 10 기준 이 세션들의 파일 수정은 Bash(sed -i·python) 쪽이 Ed
   같은 이름이면 기본 표의 해당 키를 덮어쓰고, 새 이름이면 툴킷을 더한다. 툴킷 안의 warn/hard/grow 가 최상위 값보다 앞선다.
   저장소가 더한 확장자는 Write/Edit 에서만 본다(Bash 경로 탐지는 기본 표의 확장자만 안다).
 끄기: 환경 변수 STRUCTURE_REMINDER=off
-상태 파일: $TMPDIR/claude-structure-reminder/<session_id>.c<compact 회차>.json (알렸는지 여부. lib/compact_epoch.py. compact 뒤 다시 알린다)
+상태 파일: $TMPDIR/claude-structure-reminder/<session_id>.c<compact 회차>[.a<agent_id>].json (알렸는지 여부. lib/compact_epoch.py. compact 뒤 다시 알린다)
 성장 기준점: $TMPDIR/claude-structure-reminder/<session_id>.base.json (session_id 단위. compact 회차가 올라도 유지한다)
 """
 import fnmatch
@@ -105,17 +105,18 @@ def base_state_path(session_id):
     return os.path.join(d, re.sub(r"[^\w-]", "", str(session_id or "nosession")) + ".base.json")
 
 
-def dedup_path(namespace, session_id):
+def dedup_path(namespace, session_id, agent_id=None):
     """State file keyed by (session_id, compact epoch) via lib/compact_epoch.py; falls back to session_id only."""
     try:
         spec = importlib.util.spec_from_file_location("compact_epoch", Path(__file__).resolve().parent.parent / "lib" / "compact_epoch.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
-        return mod.state_path(namespace, session_id)
+        return mod.state_path(namespace, session_id, agent_id)
     except Exception:
         d = os.path.join(tempfile.gettempdir(), namespace)
         os.makedirs(d, exist_ok=True)
-        return os.path.join(d, re.sub(r"[^\w-]", "", str(session_id or "nosession")) + ".json")
+        who = ".a" + re.sub(r"[^\w-]", "", str(agent_id)) if agent_id else ""
+        return os.path.join(d, re.sub(r"[^\w-]", "", str(session_id or "nosession")) + who + ".json")
 
 
 def find_planner():
@@ -359,7 +360,7 @@ def main():
         return 0
 
     sid = re.sub(r"[^\w-]", "", str(data.get("session_id") or "nosession"))
-    state_path = dedup_path("claude-structure-reminder", data.get("session_id"))
+    state_path = dedup_path("claude-structure-reminder", data.get("session_id"), data.get("agent_id"))
     try:
         state = json.load(open(state_path))
     except Exception:

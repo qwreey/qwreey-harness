@@ -30,25 +30,42 @@ def main():
     if isinstance(cost, (int, float)):
         parts.append(f"${cost:.2f}")
     try:
+        rl = d.get("rate_limits") or {}
+        sid = d.get("session_id")
+    except Exception:
+        rl, sid = {}, None
+    try:
         spec = importlib.util.spec_from_file_location("subagent_ledger", HOME / "lib" / "subagent_ledger.py")
         L = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(L)
-        st = L.read(d.get("session_id"))
         now = time.time()
+        if sid:
+            L.write_limits(sid, rl, now)  # 훅은 statusline 입력을 못 받으므로 파일로 넘긴다(audit/21 §5)
+        lim = L.read_limits(sid)
+        st = L.read(sid)
+        lp = [f"{lbl} {rl[w]['used_percentage']:.0f}%" for w, lbl in (("five_hour", "5h"), ("seven_day", "wk"))
+              if isinstance(rl.get(w), dict) and isinstance(rl[w].get("used_percentage"), (int, float))]
+        if lp:
+            parts.append("limit " + " ".join(lp))
         ttl = float(L.CFG_DEFAULTS["HARNESS_SLOTS_RESERVE_SEC"])
         items = list(st["running"].values()) + [r for r in st["reserved"].values() if now - r.get("t", 0) <= ttl]
         if items:
             parts.append(f"agents {len(items)} (" + ", ".join(f"{f} {n}" for f, n in L.by_family(items).items()) + ")")
         a = st.get("away") or {}
         if a.get("on"):
-            spent, spawned, over = L.away_status(st)
+            cfg = L.config(os.environ.get("CLAUDE_PROJECT_DIR"))
+            e = L.away_eval(st, lim, now, persist=False, cfg=cfg)
             if a.get("budget_agents") is not None:
-                b = f"{spawned}/{a['budget_agents']} agents"
+                b = f"{e['spawned']}/{a['budget_agents']} agents"
+            elif a.get("budget_pct") is not None:
+                w, dv = max(e["pct"].items(), key=lambda kv: kv[1]) if e["pct"] else (None, 0.0)
+                b = f"+{dv:.0f}/{a['budget_pct']:g}%" + (f" {L.WLABEL[w]}" if w else "") + (" (stale)" if e["stale"] else "")
             else:
-                b = f"${spent:.2f}/${a.get('budget_usd', 0):g}"
-            slots = a.get("over_slots", 1) if over else a.get("slots")
+                b = f"${e['spent']:.2f}/${a.get('budget_usd', 0):g}"
+            lv = e["level"]
+            slots = a.get("over_slots", 1) if lv else a.get("slots")
             q = f" queued {a['queued']}" if a.get("queued") else ""
-            parts.append(f"AWAY {'OVER ' if over else ''}{b} slots {slots}{q}")
+            parts.append(f"AWAY {'HALT ' if lv >= 2 else 'OVER ' if lv else ''}{b} slots {slots}{q}")
     except Exception:
         pass
     print(" · ".join(p for p in parts if p))

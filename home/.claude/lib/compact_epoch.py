@@ -8,7 +8,7 @@ is unchanged across /compact; PreCompact, SessionStart(source=compact), PostComp
 
 Usage in a hook (load by path, like harness_env):
     ce = load_module(~/.claude/lib/compact_epoch.py)
-    path = ce.state_path("claude-my-hook", session_id)   # $TMPDIR/claude-my-hook/<sid>.c<epoch>.json
+    path = ce.state_path("claude-my-hook", session_id, data.get("agent_id"))   # $TMPDIR/claude-my-hook/<sid>.c<epoch>[.a<agent_id>].json
 Files live under $TMPDIR (tempfile.gettempdir()); the epoch counter is $TMPDIR/claude-compact-epoch/<sid>.
 """
 import os
@@ -41,8 +41,13 @@ def bump(session_id):
     return n
 
 
-def state_path(namespace, session_id):
-    """Dedup state file for this hook in the current epoch; creates the directory."""
+def state_path(namespace, session_id, agent_id=None):
+    """Dedup state file for this hook in the current epoch; creates the directory.
+
+    Hooks that fire inside a subagent get the PARENT's session_id plus agent_id (docs: common input fields;
+    measured 2026-11-10). So the key is (session_id, agent_id or main, epoch): a subagent consuming a "once per
+    epoch" reminder must not use it up for the main conversation, nor the other way round. Pass data.get("agent_id")."""
     d = os.path.join(tempfile.gettempdir(), namespace)
     os.makedirs(d, exist_ok=True)
-    return os.path.join(d, f"{_sid(session_id)}.c{epoch(session_id)}.json")
+    who = f".a{_sid(agent_id)}" if agent_id else ""
+    return os.path.join(d, f"{_sid(session_id)}.c{epoch(session_id)}{who}.json")
