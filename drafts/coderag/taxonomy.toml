@@ -1,0 +1,494 @@
+# taxonomy.toml — luau-kb 분류 어휘 (초안, 2026-11-10)
+#
+# 상태: 초안. luau-kb 에는 아직 쓰지 않는다. 형식과 규칙은 coderag tech-design.md §16.
+# 도출 근거: luau-kb 의 스킬·references 구조(2026-11-10 시점)와 snippets/·bench/ 파일 이름.
+#   각 범주 옆 주석 `← …` 은 지금 그 범주에 들어갈 파일·절이다(검토용, 형식의 일부 아님).
+#   luau-perf·luau-style·luau-testing·luau-upstream 은 다른 에이전트가 만드는 중이라 그 시점의 목차로 적었다.
+#
+# 규칙 요약 (§16)
+#   - 키는 범주의 정규 경로. 조각은 [a-z0-9-], 구분은 "/". 부모는 자식 선언으로 암묵 선언된다.
+#   - label: 사람이 읽는 이름(채널 A 의 묶음 제목). aliases: 검색 동의어(낱말). 입력 정규화에는 쓰지 않는다.
+#   - skill: 이 범주의 1차 진입 스킬(정보용). review_days: review_after 가 없을 때 last_verified + N 일.
+#   - deprecated = "<새 경로>": 폐기. 색인 때 새 경로로 바꿔 저장하고 lint 가 경고한다. 항목은 지우지 않는다.
+#   - planned = true: 아직 문서가 없는 범주(원천에도 정리본 없음). lint 가 "빈 범주"로 세지 않는다.
+
+schema = 1
+pack = "luau-kb"
+# 이 pack 이 소유하는 최상위. harness 는 luau-kb 가 아니라 global(claude-doctor) 어휘 후보 — 결정 D13-6·D16-5.
+roots = ["luau", "roblox", "harness"]
+
+[defaults]
+review_days = 90
+
+# ─────────────────────────────────────────────────────────────── luau (언어·도구, 엔진 무관)
+
+[category."luau"]
+label = "Luau 언어와 도구"
+
+# ── luau/types ← skills/luau-types
+[category."luau/types"]
+label = "Luau 타입 시스템"
+aliases = ["types", "typing", "type checker", "타입", "타입 검사"]
+skill = "luau-types"
+
+[category."luau/types/generics"]
+label = "제네릭 추론·명시 타입 인자·콜백"
+aliases = ["generic", "generics", "제네릭", "f<<T>>", "타입 인자", "콜백", "lambda", "람다"]
+# ← generics.md §1–§7, §9–§10
+
+[category."luau/types/packs"]
+label = "타입 팩과 가변 인자"
+aliases = ["type pack", "타입 팩", "variadic", "가변 인자", "..."]
+# ← generics.md §8, snippets/pack-*.luau
+
+[category."luau/types/variance"]
+label = "변성·서브타이핑·팬텀 표식"
+aliases = ["variance", "변성", "covariance", "공변", "불변", "phantom", "팬텀", "marker", "표식", "read 필드"]
+# ← variance.md
+
+[category."luau/types/unions"]
+label = "유니온·교집합·싱글턴·좁히기"
+aliases = ["union", "유니온", "intersection", "교집합", "singleton", "싱글턴", "narrowing", "좁히기", "keyof", "index"]
+# ← unions-singletons.md
+
+[category."luau/types/recursion"]
+label = "재귀 타입 별칭과 선언 순서"
+aliases = ["recursive type", "재귀 타입", "재귀 별칭", "선언 순서", "Recursive type being used with different parameters"]
+# ← recursion-and-limits.md §1–§4, §7
+
+[category."luau/types/limits"]
+label = "검사기 한도와 too complex"
+aliases = ["too complex", "Code is too complex to typecheck", "한도 플래그", "LuauTarjanChildLimit", "LuauTypeInferIterationLimit"]
+# ← recursion-and-limits.md §5–§6
+
+[category."luau/types/type-functions"]
+label = "type function"
+aliases = ["type function", "타입 함수", "types library", "types.*", "D-04"]
+# ← type-functions.md, type-functions-limits.md, snippets/tf-*
+
+[category."luau/types/solver"]
+label = "새 솔버와 옛 솔버, 결함 카탈로그"
+aliases = ["solver", "솔버", "new solver", "새 솔버", "LuauSolverV2", "old solver", "결함"]
+# ← solver-limits.md, snippets/solver-*
+
+[category."luau/types/design"]
+label = "타입 표면 설계 원칙"
+aliases = ["API 설계", "타입 설계", "입력 자리", "출력 자리", "over-engineering", "오버엔지니어링"]
+# ← variance.md §8, luau-types SKILL "먼저 지킬 원칙" 3. claude-doctor audit/10 §6.1 의 라이브러리 설계 원칙(luau-design 후보)
+
+# ── luau/verify ← skills/luau-verify
+[category."luau/verify"]
+label = "검증 절차"
+aliases = ["verify", "검증", "재현", "repro"]
+skill = "luau-verify"
+
+[category."luau/verify/negative-controls"]
+label = "음성 대조군과 돌연변이 검사"
+aliases = ["negative control", "음성 대조군", "진단 0건", "mutation", "돌연변이"]
+# ← negative-controls.md
+
+[category."luau/verify/checkers"]
+label = "luau-analyze·luau-lsp 직접 호출과 비교"
+aliases = ["luau-analyze", "luau-lsp analyze", "checker", "검사기", "D-06"]
+# ← checkers.md §1–§5
+
+[category."luau/verify/snippets"]
+label = "스니펫 표식과 하네스"
+aliases = ["snippet", "스니펫", "expect-error", "bug-present", "check_snippets"]
+# ← snippet-markers.md
+
+[category."luau/verify/dx"]
+label = "DX 검사(hover·자동완성·추론 타입)"
+aliases = ["dx", "hover", "autocomplete", "자동완성", "inlay", "lsp_probe"]
+# ← checkers.md §6
+
+# ── luau/tooling ← luau-verify toolchain·tooling (스킬은 luau-verify 를 쓴다)
+[category."luau/tooling"]
+label = "툴체인"
+aliases = ["tooling", "툴체인", "도구"]
+skill = "luau-verify"
+
+[category."luau/tooling/toolchain"]
+label = "mise 핀과 shim 함정"
+aliases = ["mise", "shim", "버전 핀", "pin", "D-05"]
+# ← toolchain.md
+
+[category."luau/tooling/luaurc"]
+label = ".luaurc 와 --!strict 모드"
+aliases = [".luaurc", "--!strict", "strict", "nonstrict", "모드"]
+# ← tooling.md §1, snippets/modes-*
+
+[category."luau/tooling/runner"]
+label = "러너(luau CLI, lute)"
+aliases = ["runner", "러너", "lute", "lune", "D-03"]
+# ← tooling.md §2
+
+[category."luau/tooling/stylua"]
+label = "stylua"
+aliases = ["stylua", "formatter", "포맷", "D-02"]
+# ← tooling.md §4, luau-style quality.md §3, snippets/style-stylua-pitfalls.sh
+
+[category."luau/tooling/packages"]
+label = "패키지 관리자(pesde, wally)"
+aliases = ["pesde", "wally", "packages", "패키지"]
+# ← luau-style modules.md §4. 원천: audit/10 §3 "pesde + mise 툴링"
+
+# ── luau/style ← skills/luau-style (작성 중)
+[category."luau/style"]
+label = "코드 스타일과 관용"
+aliases = ["style", "스타일", "convention", "컨벤션", "규약"]
+skill = "luau-style"
+
+[category."luau/style/naming"]
+label = "이름 짓기"
+aliases = ["naming", "네이밍", "casing", "PascalCase", "camelCase", "D-09"]
+# ← naming.md
+
+[category."luau/style/idioms"]
+label = "문법 관용구"
+aliases = ["idiom", "관용구", "const", "if 식", "D-01"]
+# ← idioms.md
+
+[category."luau/style/modules"]
+label = "파일 머리·모듈 모양·require"
+aliases = ["module", "모듈", "require", "@self", "init.luau", "D-12", "D-13"]
+# ← modules.md
+
+[category."luau/style/errors"]
+label = "에러 던지기·잡기·테스트"
+aliases = ["error", "에러", "pcall", "xpcall", "error level", "D-10"]
+# ← errors.md
+
+[category."luau/style/comments"]
+label = "주석·마커·문서화"
+aliases = ["comment", "주석", "TODO", "D-07", "D-08"]
+# ← quality.md §1–§2
+
+# ── luau/runtime ← 엔진 무관 런타임 사실(스니펫 style-*·perf-weak-*)
+[category."luau/runtime"]
+label = "런타임 의미"
+aliases = ["runtime", "런타임"]
+
+[category."luau/runtime/gc"]
+label = "GC 와 약한 테이블"
+aliases = ["gc", "weak table", "약한 테이블", "__mode", "ephemeron"]
+# ← snippets/perf-weak-not-ephemeron.luau, luau-perf 메모리 절
+
+[category."luau/runtime/coroutines"]
+label = "코루틴"
+aliases = ["coroutine", "코루틴", "resume", "yield"]
+# ← snippets/style-coroutine-resume-swallows.luau
+
+[category."luau/runtime/strings"]
+label = "문자열과 UTF-8"
+aliases = ["string", "문자열", "utf8", "ascii"]
+# ← snippets/style-strings-ascii-utf8.luau
+
+[category."luau/runtime/tables"]
+label = "테이블 의미(구멍, #, table.insert)"
+aliases = ["table", "테이블", "nil 구멍", "#", "table.insert"]
+# ← snippets/style-table-insert-pitfalls.luau, luau-style idioms.md §4–§5
+
+# ── luau/perf ← skills/luau-perf (작성 중), bench/
+[category."luau/perf"]
+label = "성능"
+aliases = ["perf", "performance", "성능", "최적화", "benchmark", "벤치"]
+skill = "luau-perf"
+
+[category."luau/perf/measurement"]
+label = "측정 방법과 하네스"
+aliases = ["benchmark", "벤치마크", "측정", "profiling", "프로파일", "잡음 바닥"]
+# ← benchmarking-method.md, bench/lib, luau-style quality.md §6
+
+[category."luau/perf/calls"]
+label = "호출·클로저·가변 인자 비용"
+aliases = ["call", "호출", "closure", "클로저", "varargs", "pcall 비용"]
+# ← calls-and-closures.md, bench/call-*
+
+[category."luau/perf/tables"]
+label = "테이블 배열부·해시부 성장"
+aliases = ["table.create", "table.move", "prealloc", "큐", "queue", "nil holes"]
+# ← bench/tbl-* (references 파일은 작성 중)
+
+[category."luau/perf/metatables"]
+label = "메타테이블 비용"
+aliases = ["metatable", "메타테이블", "__index", "정수 키 칸 세금"]
+# ← metatables.md, bench/mt-*
+
+[category."luau/perf/iteration"]
+label = "순회 모양"
+aliases = ["ipairs", "pairs", "next", "generalized iteration", "순회"]
+# ← iteration.md, bench/iter-forms
+
+[category."luau/perf/strings"]
+label = "문자열 누적과 패턴"
+aliases = ["table.concat", "..=", "pattern", "패턴", "역추적"]
+# ← strings.md, bench/str-build
+
+[category."luau/perf/optimizer"]
+label = "최적화 수준과 인라인"
+aliases = ["-O1", "-O2", "--!optimize", "inline", "인라인"]
+# ← optimizer-and-native.md §1–§5, bench/opt-inline, snippets/opt-*
+
+[category."luau/perf/native"]
+label = "native codegen"
+aliases = ["--!native", "@native", "codegen", "native"]
+# ← optimizer-and-native.md §6, bench/native-annot, snippets/native-*
+
+[category."luau/perf/memory"]
+label = "메모리와 GC 압박"
+aliases = ["memory", "메모리", "GC 압박", "allocation", "할당"]
+# ← bench/gc-weak (references 작성 중)
+
+[category."luau/perf/algorithms"]
+label = "알고리즘 선택"
+aliases = ["algorithm", "알고리즘", "sort", "정렬", "heap", "힙"]
+# ← bench/algo-basics, bench/sort-compare
+
+# ── luau/testing ← skills/luau-testing (작성 중; 지금은 snippets/test-* 만)
+[category."luau/testing"]
+label = "테스트"
+aliases = ["test", "testing", "테스트"]
+skill = "luau-testing"
+
+[category."luau/testing/runner"]
+label = "작은 테스트 러너"
+aliases = ["test runner", "mini runner"]
+# ← snippets/test-mini-runner.luau, luau-style quality.md §4
+
+[category."luau/testing/assertions"]
+label = "단언과 같음 비교"
+aliases = ["assert", "단언", "deep equal"]
+# ← snippets/test-user-line-assert.luau, test-generic-eq-helper.luau
+
+[category."luau/testing/errors"]
+label = "에러 모양 테스트"
+aliases = ["error test", "에러 테스트"]
+# ← snippets/test-error-shapes.luau, test-blame-filename-only.luau
+
+[category."luau/testing/time"]
+label = "시간·지연 실행 흉내"
+aliases = ["virtual clock", "가상 시계", "deferred", "task.defer shim"]
+# ← snippets/test-virtual-clock.luau, test-deferred-shim.luau
+
+# ── luau/upstream ← skills/luau-upstream — 빨리 낡는다
+[category."luau/upstream"]
+label = "업스트림 변화"
+aliases = ["upstream", "업스트림", "release notes", "릴리스 노트", "rfc", "fflag"]
+skill = "luau-upstream"
+review_days = 30
+
+[category."luau/upstream/syntax"]
+label = "새 문법 채택 판정"
+aliases = ["new syntax", "새 문법", "class", "if local", "while local", "const"]
+# ← syntax-adoption.md. 승인안 4: 새 문법 하나 = 지식 단위 하나(lifecycle·applies_to)
+
+[category."luau/upstream/rfc"]
+label = "RFC"
+aliases = ["rfc", "rfcs.luau.org", "proposal", "제안"]
+
+[category."luau/upstream/release"]
+label = "릴리스와 버전 올리기"
+aliases = ["release", "릴리스", "version bump", "버전 올리기", "bug-scan"]
+# ← version-bump.md
+
+[category."luau/upstream/watchlist"]
+label = "한계 ↔ 업스트림 항목, 우회책 수명"
+aliases = ["watchlist", "감시 목록", "workaround", "우회", "곧 고쳐지나"]
+# ← watchlist.md, recursion-and-limits.md §7
+
+[category."luau/upstream/roadmap"]
+label = "진행 중인 큰 변화"
+aliases = ["roadmap", "로드맵"]
+review_days = 14
+# ← roadmap-notes.md (작성 중)
+
+[category."luau/upstream/sources"]
+label = "어디서 무엇을 보나"
+aliases = ["sources", "출처", "curl", "github api"]
+review_days = 90
+# ← sources.md
+
+# ── 폐기 예: 감사 06 에서 스킬 이름이 luau-typing 이었다가 luau-types 로 정해졌다
+[category."luau/typing"]
+deprecated = "luau/types"
+since = "2026-11-10"
+
+# ─────────────────────────────────────────────────────────────── roblox (엔진 의존)
+
+[category."roblox"]
+label = "Roblox 엔진과 Luau"
+aliases = ["roblox", "로블록스", "engine", "엔진"]
+skill = "roblox-luau"
+
+[category."roblox/env"]
+label = "엔진 의존 판정(luau+mock 인가, Studio 인가)"
+aliases = ["env dependence", "환경 의존", "mock 으로 충분한가"]
+# ← env-dependence.md §1–§2, §5
+
+[category."roblox/signals"]
+label = "신호·task 타이밍"
+aliases = ["signal", "신호", "event", "이벤트", "Deferred", "task.defer", "task.spawn", "SignalBehavior"]
+# ← env-dependence.md §3
+
+[category."roblox/lifecycle"]
+label = "Instance 수명과 Destroy"
+aliases = ["Destroy", "lifecycle", "수명", "Parent", "AncestryChanged"]
+# ← env-dependence.md §4
+
+[category."roblox/require"]
+label = "Roblox 의 require"
+aliases = ["require", "@game", "@self", "ModuleScript"]
+# ← snippets/rbx-require-cli.sh, luau-style modules.md §3
+
+[category."roblox/tween"]
+label = "Tween"
+aliases = ["tween", "TweenService", "트윈"]
+planned = true
+
+[category."roblox/parallel"]
+label = "Actor 와 Parallel Luau"
+aliases = ["actor", "parallel luau", "병렬", "task.desynchronize"]
+planned = true
+# 원천에도 정리본 없음(luau-kb README "아직 없는 것")
+
+[category."roblox/gui"]
+label = "GUI 와 입력"
+aliases = ["gui", "ui", "input", "입력", "AutomaticSize", "TextBounds", "ZIndex", "focus", "포커스", "SurfaceGui"]
+# ← gui-and-input.md
+
+[category."roblox/networking"]
+label = "원격·복제"
+aliases = ["networking", "네트워크"]
+
+[category."roblox/networking/remotes"]
+label = "RemoteEvent·RemoteFunction 인자와 한도"
+aliases = ["remote", "RemoteEvent", "RemoteFunction", "BindableEvent", "인자 복사"]
+# ← remotes-and-replication.md §2–§6
+
+[category."roblox/networking/replication"]
+label = "복제 경계·소유권·스트리밍"
+aliases = ["replication", "복제", "network ownership", "소유권", "streaming", "StreamingEnabled"]
+# ← remotes-and-replication.md §7–§10
+
+[category."roblox/world"]
+label = "월드"
+aliases = ["world", "월드"]
+
+[category."roblox/world/physics"]
+label = "물리·제약·DragDetector"
+aliases = ["physics", "물리", "constraint", "weld", "DragDetector"]
+# ← world-and-physics.md §1–§4
+
+[category."roblox/world/character"]
+label = "캐릭터와 카메라"
+aliases = ["character", "캐릭터", "Humanoid", "camera", "카메라"]
+# ← world-and-physics.md §5–§6
+
+[category."roblox/world/assets"]
+label = "런타임 에셋과 렌더링"
+aliases = ["MeshPart", "EditableMesh", "EditableImage", "asset", "에셋", "Highlight"]
+# ← world-and-physics.md §7–§9
+
+[category."roblox/services"]
+label = "플랫폼 서비스"
+aliases = ["service", "서비스"]
+
+[category."roblox/services/data"]
+label = "DataStore·MemoryStore·MessagingService"
+aliases = ["DataStore", "MemoryStore", "MessagingService", "ProfileStore"]
+# ← platform-services.md §1–§3
+
+[category."roblox/services/monetization"]
+label = "게임 패스와 개발자 상품"
+aliases = ["game pass", "developer product", "MarketplaceService", "ProcessReceipt"]
+# ← platform-services.md §4
+
+[category."roblox/services/http"]
+label = "HttpService·JSON·Open Cloud"
+aliases = ["HttpService", "JSONEncode", "Open Cloud", "publish", "게시"]
+# ← platform-services.md §6, §10
+
+[category."roblox/security"]
+label = "보안(검증·필터·샌드박스)"
+aliases = ["security", "보안", "exploit", "검증", "TextService", "filter", "loadstring", "DoS"]
+# ← remotes-and-replication.md §1, §5–§6, platform-services.md §5, §7–§8
+
+[category."roblox/gc"]
+label = "Roblox 의 약한 테이블과 GC"
+aliases = ["gc", "weak table", "ephemeron", "collectgarbage"]
+# ← snippets/rbx-gc-*.luau
+
+[category."roblox/testing"]
+label = "mock 과 엔진 의존 테스트"
+aliases = ["mock", "목", "getfenv", "주입", "충실도"]
+# ← mocks.md
+
+[category."roblox/studio"]
+label = "Studio MCP 와 동기화"
+aliases = ["studio", "Studio MCP", "rojo", "sync", "studio-sync", "Play"]
+# ← studio-mcp.md
+
+[category."roblox/api-docs"]
+label = "Roblox API 문서 찾기"
+aliases = ["api docs", "create.roblox.com", "llms.txt", "문서"]
+# ← api-docs.md
+
+[category."roblox/typedefs"]
+label = "정의 파일과 sourcemap"
+aliases = ["globalTypes", "definitions", "정의 파일", "sourcemap", "--definitions"]
+# ← typedefs.md
+
+[category."roblox/logging"]
+label = "LogService 와 로그"
+aliases = ["LogService", "log", "로그", "print"]
+# ← platform-services.md §9
+
+# ─────────────────────────────────────────────────────────────── harness (에이전트 하네스)
+# luau-kb 의 지식이 아니다. claude-doctor(사용자 레벨)의 어휘 후보로 함께 적는다 — D13-6.
+# 근거: claude-doctor audit/10 §0 패턴 A–G, §8.
+
+[category."harness"]
+label = "에이전트 하네스(Claude Code·Gemini·Codex)"
+aliases = ["harness", "하네스", "claude code"]
+review_days = 60
+
+[category."harness/context"]
+label = "컨텍스트 관리·compact·체크포인트"
+aliases = ["compact", "context", "컨텍스트", "checkpoint", "체크포인트", "handover", "핸드오버"]
+
+[category."harness/delegation"]
+label = "위임·서브에이전트·모델 선택·예산"
+aliases = ["subagent", "서브에이전트", "agy", "gemini", "codex", "delegate", "위임", "모델", "예산"]
+
+[category."harness/hooks"]
+label = "훅"
+aliases = ["hook", "훅", "PreToolUse", "PostToolUse", "SessionStart", "additionalContext"]
+
+[category."harness/skills"]
+label = "스킬 작성과 트리거"
+aliases = ["skill", "스킬", "SKILL.md", "description", "trigger"]
+
+[category."harness/plugins"]
+label = "플러그인과 마켓플레이스"
+aliases = ["plugin", "플러그인", "marketplace", "마켓플레이스", "plugin validate"]
+
+[category."harness/rules"]
+label = "rules 와 상시 컨텍스트"
+aliases = ["rules", "CLAUDE.md", "AGENTS.md", "GEMINI.md", "paths"]
+
+[category."harness/memory"]
+label = "auto memory 와 기록 문서"
+aliases = ["memory", "auto memory", "기록 문서", "frontmatter", "coderag"]
+
+[category."harness/review"]
+label = "리뷰·감사 루프"
+aliases = ["review", "리뷰", "audit", "감사", "소진"]
+
+[category."harness/shell"]
+label = "Bash 위생과 환경"
+aliases = ["bash", "rm -rf", "pgrep", "choom", "ulimit", "sandbox"]
+
+[category."harness/git"]
+label = "git 흐름(sandbox, push)"
+aliases = ["git", "push", "stash", "worktree"]
