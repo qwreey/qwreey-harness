@@ -38,7 +38,7 @@ status: verified (도구 목록과 설명) · last-confirmed: 2026-11-10, 이 �
 | 스크립트 보기 | `script_read`, `script_grep`, `script_search` | 이름·내용으로 찾기, 줄 번호 붙여 읽기 |
 | 출력 보기 | `get_console_output` | Output 창. 테스트 러너는 결과를 여기 찍는다 |
 | 화면 | `screen_capture` | 뷰포트 캡처(UI·렌더링 확인) |
-| 문서 | `http_get` | create.roblox.com 문서(`.md` 나 `llms.txt` 로 끝나는 URL 만 허용). `api-docs.md` 참고 |
+| 문서 | `http_get` | create.roblox.com 문서(`.md` 나 `llms.txt` 로 끝나는 URL 만 허용). roblox-docs `sources.md` 참고 |
 | 지식 | `list_skills`, `skill` | 내장 skill 목록과 본문(§6) |
 | 동기화 안내 | `rojo_sync_guide` | `studio-sync` 사용법(§4). `studio_id` 불필요 |
 | **상태 변경** | `execute_luau` | 코드 실행(`datamodel_type` 필수). Studio 메인 스레드에서 돌아 yield 전까지 Studio 가 멈춘다 |
@@ -94,7 +94,7 @@ status: verified (목록과 설명) · last-confirmed: 2026-11-10 (`skill` 도�
 
 | skill | 언제 부르나 |
 |---|---|
-| `rbx-docs-search` | Roblox API·가이드를 `http_get` 으로 찾을 때. URL 패턴 표와 `query` 사용법이 있다(`api-docs.md`) |
+| `rbx-docs-search` | Roblox API·가이드를 `http_get` 으로 찾을 때. URL 패턴 표와 `query` 사용법이 있다(roblox-docs `sources.md`) |
 | `rbx-unit-test` | Studio 안에서 ModuleScript 단위 테스트를 쓰거나 돌릴 때. 기존 프레임워크(Jest-Lua, TestEZ) 감지 → 없으면 `ServerStorage.UnitTest` 내장 하네스. Play 의 Server DataModel 에서 돈다. 이 저장소 방침상 단위 테스트의 기본은 luau CLI + mock 이고, 이 skill 은 mock 으로 안 되는 모듈에 쓴다 |
 | `rbx-debug` | 브레이크포인트를 걸고 스레드 정보를 보며 스크립트 동작을 확인할 때 |
 | `rbx-perf-profiling` | MicroProfiler 데이터(LibMP)로 CPU/GPU 병목, 프레임 스파이크, 하위 시스템별 메모리를 볼 때 |

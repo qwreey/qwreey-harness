@@ -11,7 +11,7 @@ description: >-
   가상 시계로 디바운스·타이머 시험, Jest Roblox·jest-lua·TestEZ·lute test 현황과 이 사용자 저장소들의 실제 테스트 방식을 다룬다.
   테스트나 스펙을 새로 쓰거나 러너·게이트를 짤 때, 테스트가 Studio 나 -O2 에서만 깨질 때, 에러 위치 단언이 흔들릴 때,
   mock 결과를 믿어도 되는지 판단할 때, 누수나 시간 의존 로직을 시험할 때, 테스트 프레임워크를 고를 때 쓴다.
-  타입 검사 결과 검증(진단 0건, 표식)은 luau-verify, Roblox 엔진 동작과 mock 작성·Studio MCP 절차는 roblox-luau 가 다룬다.
+  타입 검사 결과 검증(진단 0건, 표식)은 luau-verify, mock 작성·Studio MCP 절차는 luau-roblox, Roblox 엔진 동작은 roblox-engine 이 다룬다.
 ---
 # luau-testing
 
@@ -61,12 +61,12 @@ description: >-
 | 디바운스·스로틀·타이머 시험, `task.wait` 지터 | `references/gc-and-time.md` §3 |
 | Roblox 에서 `collectgarbage("collect")` 가 거부됨 | `references/gc-and-time.md` §4 |
 | quad, stl-luau, table-sim, devplorer, tbox, moonwave, rbvm 의 테스트 방식 | `references/repo-practices.md` |
-| mock 작성·주입 패턴, Studio MCP 로 확인하는 절차 | roblox-luau 스킬 `references/mocks.md`, `references/studio-mcp.md` |
+| mock 작성·주입 패턴, Studio MCP 로 확인하는 절차 | luau-roblox 스킬 `references/mocks.md`, `references/studio-mcp.md` |
 | 타입 진단을 테스트로 고정(expect-error, bug-present) | luau-verify 스킬 `references/snippet-markers.md` |
 | 최적화 수준·인라인 규칙·native 성능 자체 | luau-perf 스킬 |
 
 ## 답할 때
 - 절의 `status` 를 함께 말한다. `described` 는 "원천 서술, 미재현"이라고 밝힌다.
 - 버전과 최적화 수준을 붙인다(예: "luau 0.742, `-O2` 에서만").
-- mock·심의 결과를 엔진 사실로 말하지 않는다. 엔진 쪽 사실은 roblox-luau 스킬의 Studio 실측을 인용한다.
+- mock·심의 결과를 엔진 사실로 말하지 않는다. 엔진 쪽 사실은 roblox-engine·roblox-net·roblox-world 스킬의 Studio 실측을 인용한다.
 - 새 사실은 `snippets/test-*.luau` 에 최소 재현과 하네스 머리(`--@run`, `--@run-opt=0,2`, `--@run-with … => ok|fail; out~…`)를 먼저 넣고 `python3 -I tools/check_snippets.py --luau 0.734,0.742 snippets/test-*.luau` 로 돌린다.

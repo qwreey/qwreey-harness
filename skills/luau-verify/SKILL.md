@@ -13,7 +13,7 @@ description: >-
   공개 API 의 hover·자동완성·추론 타입 표시(DX)를 확인하는 법(tools/lsp_probe.py)과 Claude Code LSP 연동(.lsp.json)을 다룬다.
   타입 검사 결과를 믿어도 되는지 확인할 때, 재현 파일이나 스파이크를 만들 때, 검사 게이트를 짜거나 고칠 때,
   라이브러리의 공개 API 가 에디터에서 어떻게 보이는지 확인할 때, luau·luau-lsp·stylua 버전을 올릴 때 쓴다.
-  타입 규칙 자체(무엇이 왜 안 잡히는가)는 luau-types, Roblox 엔진 동작 확인은 roblox-luau 가 다룬다.
+  타입 규칙 자체(무엇이 왜 안 잡히는가)는 luau-types, Roblox 위 타입·mock·Studio 절차는 luau-roblox, 엔진 동작은 roblox-engine 이 다룬다.
 ---
 # luau-verify
 
@@ -51,12 +51,12 @@ description: >-
 | `-O2`·`-g0`·`--codegen` 실행, 바이트코드·remark·native 크기 주장을 스니펫으로 고정 | `references/snippet-markers.md` §2a |
 | Roblox 전역이 필요한 스니펫(luau-lsp + 정의 파일), luau-lsp 플래그 함정 | `references/snippet-markers.md` §2b, `references/checkers.md` §2 |
 | `--fflags`, 엔진 무관 게이트, 같은 진단이 두 번 보고됨 | `references/checkers.md` §1 |
-| require 가 에디터에선 풀리는데 실행은 실패(symlink, alias), nonstrict 거짓 클린, 다른 파일로 풀리는 오타 | `references/checkers.md` §7, `snippets/verify-require.sh` (경로 규칙 자체는 roblox-luau `require-and-modules.md` §1–4) |
+| require 가 에디터에선 풀리는데 실행은 실패(symlink, alias), nonstrict 거짓 클린, 다른 파일로 풀리는 오타 | `references/checkers.md` §7, `snippets/verify-require.sh` (경로 규칙 자체는 luau-runtime `require-by-string.md` §1–4) |
 | 린트는 rc=0, 게이트를 종료 코드로 판정, selene 설정 탐색 | `references/tooling.md` §5 |
 | pesde 워크스페이스·소비자 설치, Rojo 매핑, `self-upgrade` 가 핀을 가림 | `references/toolchain.md` §1, §5 |
 | 테스트 작성, 러너 패턴, 에러 줄 단언, `-O2` 로 테스트 | luau-testing 스킬 |
 | `.luaurc` nonstrict/strict, `--!strict` | `references/tooling.md` §1 |
-| luau / lune / lute 중 무엇으로 실행하나, Roblox 의존 동작은 | `references/tooling.md` §2 (결정 D-03), roblox-luau 스킬 |
+| luau / lune / lute 중 무엇으로 실행하나, Roblox 의존 동작은 | `references/tooling.md` §2 (결정 D-03), luau-roblox 스킬 |
 | `const` 를 써도 되나 | `references/tooling.md` §3 (결정 D-01: 써도 됨) |
 | stylua 가 `f<<T>>` 를 `f << T >>` 로 바꿨다 | `references/tooling.md` §4 (결정 D-02), `tools/repro-stylua-typeargs.sh` |
 | 타입 규칙 자체(왜 안 잡히나, 결함 카탈로그) | luau-types 스킬 |

@@ -18,7 +18,7 @@
 - §7 스코프와 환경
 - §8 공유되는 값
 
-모든 절은 "에러 없이 틀린다"는 공통점이 있다. 타입 결함은 `luau-types`, 비용은 `luau-perf`, Roblox 엔진 동작은 `roblox-luau` 가 다룬다.
+모든 절은 "에러 없이 틀린다"는 공통점이 있다. 타입 결함은 `luau-types`, 비용은 `luau-perf`, 코루틴·weak 표 의미론은 `luau-runtime`, Roblox 엔진 동작은 `roblox-engine` 이 다룬다.
 
 ---
 
@@ -70,7 +70,7 @@ status: verified (①②③) / described (나머지) · last-confirmed: luau 0.7
    - 바이트 한도로 자를 때는 "`utf8.len` 이 nil 인 동안 한 바이트씩 줄이기"(O(n²)) 대신, 이어짐 바이트(0x80–0xBF)를 최대 3번 거슬러 올라간다.
 3. **`string.format("%q", s)` 는 개행을 "백슬래시 + 실제 개행"으로 쓴다.** 출력이 두 줄이 된다. 한 줄 로그가 필요하면 직접 이스케이프한다.
 - Lua 패턴의 `+`·`*` 는 되돌아간다(backtrack). 공백 뒤가 비면 공백 하나를 내용으로 돌려받는 식이다. 되돌아가지 않는 파서(PEG)를 옮길 때 대안을 풀어 쓴다.
-- 문자열 이어 붙이기와 패턴 역추적 비용은 `luau-perf` 에 있다. 로그 위조 방지(보이지 않는 문자 목록)는 `roblox-luau` 담당이다.
+- 문자열 이어 붙이기와 패턴 역추적 비용은 `luau-perf` 에 있다. 로그 위조 방지(보이지 않는 문자 목록)는 `roblox-net` 담당이다(`platform-services.md` §5).
 
 ## §5 숫자: NaN 과 inf
 status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/style-nan-range-check.luau` · 후보 X-14, Q-080
@@ -86,7 +86,7 @@ status: verified (①) / described (나머지) · last-confirmed: luau 0.742 (0.
 - yield 할 수 없는 문맥(메타메서드, `table.sort` 비교자 같은 C 경계)에서 yield 하면 원시 에러로 죽는다. `coroutine.isyieldable()` 로 미리 막는다. 단 luau CLI 최상위에서는 `isyieldable()` 이 참인데도 yield 가 거부된다. 대기는 직접 만든 코루틴 안에서만 한다.
 - **"한 번만" 초기화 함수가 yield 하면 두 번 돈다.** 완료 표시를 성공 뒤에 세우면, 기다리는 사이 두 번째 호출이 같은 초기화를 다른 스레드에서 다시 시작한다. 진행 중 상태를 먼저 기록하고 대기자를 모은다.
 - Luau 에는 thread-local 도, 비동기 문맥 전파 훅도 없다. 전역 플래그나 코루틴 키로 만든 암묵 문맥은 yield 중 끼어들기, `task.spawn` 한 새 코루틴의 문맥 상실, 재개되지 않을 때의 영구 미완료를 부른다. 문맥은 인자로 넘긴다.
-- Roblox `task.*` 와 엔진 재개 동작은 `roblox-luau` 담당이다.
+- 코루틴 의미론의 정본은 `luau-runtime` `coroutines.md`, Roblox `task.*` 와 엔진 재개 동작은 `roblox-engine` 담당이다.
 
 ## §7 스코프와 환경
 status: verified (전역 대입) / described (나머지) · 근거: `snippets/style-bare-function-global.luau`, quad `.claude/base/effect-plan.md:450-453`, quad `.claude/feedback/consumer-kits-studio-qa-2026-10-07.md:512`, quad `.claude/base/brand-plan.md:276-286` · 후보 Q-081, Q-119, Q-048

@@ -142,7 +142,7 @@ python3 -I $P src/Main.luau --root . --platform roblox \
 | inlay | `fromList` 지역에 `: Stack<unknown>` |
 | hover `local` 키워드 (음성 대조) | 빈 결과, `--expect-nonempty` 로 rc=3 |
 
-Roblox(정의 파일 + platform roblox): hover `part` → `Part`, `players` → `Players`, `Touched:Connect(function(hit)` 의 `hit` → `BasePart`, complete `part.Anch` → `Anchored  Field  boolean`. 정의 파일 없이는 `*error-type*` 이고 platform 이 standard 면 `hit` 이 `unknown` 이다(roblox-luau 스킬 `typedefs.md` §1).
+Roblox(정의 파일 + platform roblox): hover `part` → `Part`, `players` → `Players`, `Touched:Connect(function(hit)` 의 `hit` → `BasePart`, complete `part.Anch` → `Anchored  Field  boolean`. 정의 파일 없이는 `*error-type*` 이고 platform 이 standard 면 `hit` 이 `unknown` 이다(luau-roblox 스킬 `typedefs.md` §1).
 
 읽는 법: `fromList` 처럼 주석이 없으면 진단 0건이어도 소비자에게 `unknown` 이 보인다. 공개 함수의 매개변수와 반환은 주석을 단다.
 
@@ -165,7 +165,7 @@ Roblox(정의 파일 + platform roblox): hover `part` → `Part`, `players` → 
 ## §7 require 해소: 검사기와 런타임이 갈리는 자리
 status: verified · last-confirmed: luau 0.734·0.742, luau-lsp 1.70.1 · 근거: `snippets/verify-require.sh`(R1~R6, rc=0), `snippets/rbx-require-cli.sh` Q8·Q9(다른 모듈로 풀림), `snippets/style-require-paths.sh` R3·R4(동적 경로) · 원천: 후보 Q-102, Q-103, Q-104, S-123, S-124, S-126 (quad `scripts/relink.sh:4-18`, `.claude/base/project-setup-plan.md:112-246,339-348`; stl `base/architecture.md:37-57,312-341`; tbox `CLAUDE.md:63-70,95-117`; moonwave `conventions.md:66-74`)
 
-정적 검사가 통과해도 require 는 런타임에서만 터질 수 있다. 어디서 갈리는지 알아야 "0건"을 믿을지 정할 수 있다. 이 표가 **검사기 대 런타임 판정의 정본**이다. 경로 해석 규칙 자체(`init.luau` 의 `./` 와 `@self`, ambiguous 에러, Studio 의 문자열 require, 캐시·사본)는 roblox-luau 스킬 `references/require-and-modules.md` §1–§4·§6–§8 이 정본이다.
+정적 검사가 통과해도 require 는 런타임에서만 터질 수 있다. 어디서 갈리는지 알아야 "0건"을 믿을지 정할 수 있다. 이 표가 **검사기 대 런타임 판정의 정본**이다. 경로 해석 규칙 자체(`init.luau` 의 `./` 와 `@self`, ambiguous 에러, 사본)는 luau-runtime 스킬 `references/require-by-string.md`, Studio 의 문자열 require·캐시는 roblox-engine 스킬 `references/require-in-roblox.md` 가 정본이다.
 
 | 상황 | `luau` 런타임 | `luau-analyze` | `luau-lsp analyze` |
 |---|---|---|---|
@@ -177,6 +177,6 @@ status: verified · last-confirmed: luau 0.734·0.742, luau-lsp 1.70.1 · 근거
 | alias 값이 접두 없는 `lib`, `pkg/src` | **실패**(`could not jump to alias "lib"`) | `Unknown require` | **풀림** |
 | 동적 경로(`"./pkg/" .. name`) | 실행됨 | `Unknown require: unsupported path`(strict) | — |
 
-- 그래서 "에디터(luau-lsp)는 깨끗한데 실행은 실패"가 symlink 와 접두 없는 alias 에서 난다. 실복사(`cp -rL`)로 스테이징하는 법과 Rojo 동작은 roblox-luau `require-and-modules.md` §4.
-- 원천 정정 두 건(alias 는 "편집기 전용", 잘못된 require 는 "항상 0건")은 위 표의 조건으로 갈린다. 원천 경로와 문구는 roblox-luau `require-and-modules.md` 끝의 정정 표에 모았다.
+- 그래서 "에디터(luau-lsp)는 깨끗한데 실행은 실패"가 symlink 와 접두 없는 alias 에서 난다. 실복사(`cp -rL`)로 스테이징하는 법과 Rojo 동작은 luau-runtime `require-by-string.md` §4.
+- 원천 정정 두 건(alias 는 "편집기 전용", 잘못된 require 는 "항상 0건")은 위 표의 조건으로 갈린다. 원천 경로와 문구는 luau-runtime `require-by-string.md` 끝의 정정 표에 모았다.
 - 처방: require 를 고친 변경은 **실제로 한 번 require 하는 런타임 게이트**(테스트 엔트리 실행)를 둔다. strict 에서도 "다른 파일로 풀리는" 행 때문에 필요하다. 음성 대조군 체크리스트에 "require 해소"를 넣는다(`negative-controls.md` §7).

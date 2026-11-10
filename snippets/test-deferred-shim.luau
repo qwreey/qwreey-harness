@@ -5,7 +5,7 @@
 --   규칙: Fire 는 연결별 큐에 적재, flush() 가 FIFO 로 비움(flush 중 새 발화는 같은 flush 뒤에 붙음), 같은 값 대입은 발화 안 함,
 --   명시 Disconnect 는 대기분을 버림, 리스너 에러는 격리(다른 리스너는 돈다). 콜백은 배달 시점의 현재 값을 읽는다.
 --   갈리는 점: 한 프레임에 "hello" → "world" 를 쓰면 동기 mock 은 콜백이 두 값을 차례로 보고, 지연 심은 두 번 모두 "world" 를 본다.
---   이 파일은 심 자체의 성질만 보인다. 엔진이 실제로 이렇게 배달하는지는 Studio 실측 기록(roblox-luau 스킬)에 기대며, 심 결과는 엔진 실측이 아니다.
+--   이 파일은 심 자체의 성질만 보인다. 엔진이 실제로 이렇게 배달하는지는 Studio 실측 기록(roblox-engine 스킬 signals-and-events.md)에 기대며, 심 결과는 엔진 실측이 아니다.
 -- 근거: 원천 quad/.claude/audit/round13-e79-deferred-signals/README.md:1-30(심 설계·"엔진 실측 아님" 경고), 후보 Q-030·Q-018·Q-019·Q-023·Q-027
 
 type Conn = { fn: (any) -> (), connected: boolean }

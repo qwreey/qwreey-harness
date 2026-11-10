@@ -372,7 +372,7 @@
 
 | 원래 주장 | 원천 | 실측 | 처리 |
 |---|---|---|---|
-| 테스트 엔트리 `init.luau` 가 `src/init.luau` 와 이름이 겹쳐 ambiguous | tbox `CLAUDE.md:141-145`, 후보 X-04 | 둘만으로는 모호하지 않다. 대상의 `X.luau`+`X/`, 또는 요구 폴더 옆 같은 이름 파일일 때만(`rbx-require-cli.sh` Q4) | 정정(`require-and-modules.md` §2) |
+| 테스트 엔트리 `init.luau` 가 `src/init.luau` 와 이름이 겹쳐 ambiguous | tbox `CLAUDE.md:141-145`, 후보 X-04 | 둘만으로는 모호하지 않다. 대상의 `X.luau`+`X/`, 또는 요구 폴더 옆 같은 이름 파일일 때만(`rbx-require-cli.sh` Q4) | 정정(luau-runtime `require-by-string.md` §2) |
 | `.luaurc` alias 는 CLI 런타임에서 안 된다 | stl `base/architecture.md:48-52`, quad `project-setup-plan.md:112-142` | 값에 `./` 가 없을 때만. luau-lsp 는 그 꼴과 symlink 도 푼다(Q6·Q11) | 조건 추가(§3–4) |
 | 잘못된 require 를 analyze 가 0건으로 통과 | stl `base/architecture.md:322-325`, quad `relink.sh:4-6`, moonwave `conventions.md:73-74` | strict 면 `Unknown require`. 0건은 nonstrict, luau-lsp 의 symlink·alias, 다른 모듈로 풀리는 오타(Q8·Q9) | 조건 추가(§5) |
 | Luau weak-key 표는 ephemeron 이다(탐사자 판정) | quad `audit/tween-completed-2026-09-21` 탐사자 기록 | 아니다. 포획 업밸류를 비운 프로브 결함(`rbx-gc-no-ephemeron`, `rbx-gc-probe-pitfalls`) | 정정(원천 REPORT 가 이미 무효 처리) |
@@ -395,7 +395,7 @@
 - 돌연변이 3 종(`/tmp` 사본: `"k"`→`"ks"`, 해시부 판별 단언 뒤집기, `next` 단언 뒤집기)은 모두 FAIL 로 잡혔다.
 - 시간 주장은 스니펫이 아니라 `bench/*.luau`(19 개)로 쟀다. 원표는 `bench/RESULTS.md`, 원자료는 `bench/results/2026-11-10.tsv`(0.734 `-O1`, 0.742 `-O1`/`-O2`/`-O2 --codegen`, 프로세스 3 개).
 - 부수 발견: `luau-analyze`(0.734·0.742)는 `collectgarbage` 를 모른다(Unknown global). 스니펫에서는 `(_G :: any).collectgarbage` 로 꺼냈다.
-- luau-perf 는 ephemeron 스니펫을 따로 두지 않았다. ephemeron 의미론은 `rbx-gc-no-ephemeron.luau`(roblox-luau)가 정본이다.
+- luau-perf 는 ephemeron 스니펫을 따로 두지 않았다. ephemeron 의미론은 `rbx-gc-no-ephemeron.luau`(luau-runtime)가 정본이다.
 
 ### perf 재측정으로 정정한 주장
 

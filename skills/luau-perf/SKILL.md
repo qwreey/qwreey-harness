@@ -9,7 +9,7 @@ description: >-
   --!native·@native 와 타입 주석의 native codegen 효과, 약한 테이블과 GC 압박·메모리, 알고리즘 선택(해시 대 정렬,
   힙, 결과 표 대 다중 반환)을 다룬다. 코드가 느리다, 최적화해 달라, 벤치마크를 짜거나 결과를 해석한다, 메타테이블
   비용이나 테이블·배열 성능을 묻는다, native 나 --!optimize 를 쓸지 정한다, 메모리·GC 압박이 의심된다 같은 요청에서
-  쓴다. Roblox 엔진 API 비용은 roblox-luau, 타입 문제는 luau-types 가 다룬다.
+  쓴다. Roblox 엔진 API 비용은 roblox-engine, weak 표 의미론은 luau-runtime, 타입 문제는 luau-types 가 다룬다.
 ---
 # luau-perf
 
@@ -38,9 +38,9 @@ description: >-
 | `-O2`·`--!optimize`, 인라인 조건, `error(msg, 2)` 위치가 `-O2` 에서 틀림 | `references/optimizer-and-native.md` §2–§4 (경우별 표는 luau-testing `optimize-levels.md` §2) |
 | `t.Name` 대 `t[1]`, 다른 모듈 상수 키, `::` 캐스트 비용 | `references/optimizer-and-native.md` §3·§5 |
 | `--!native`/`@native` 를 붙일까, 타입 주석이 native 에 주는 효과 | `references/optimizer-and-native.md` §6 |
-| 약한 테이블 비용, `__mode="ks"`, GC 시간, 객체 메모리 크기, 클로저 캐시 | `references/gc-and-memory.md` (ephemeron·weak 의미론은 roblox-luau `gc-and-weak-tables.md`) |
+| 약한 테이블 비용, `__mode="ks"`, GC 시간, 객체 메모리 크기, 클로저 캐시 | `references/gc-and-memory.md` (ephemeron·weak 의미론은 luau-runtime `gc-and-weak-tables.md`) |
 | 해시 대 정렬 병합, 힙 짓기, `table.sort` 비교자, 결과 표 대 다중 반환, 자료구조 선택 | `references/algorithms-and-structures.md` |
-| Instance 생성·속성 대입·바인더블·트윈 비용, Studio 프로파일러, 라이브 최적화 수준 | roblox-luau 스킬 `references/perf.md`, `references/studio-mcp.md` §6 |
+| Instance 생성·속성 대입·바인더블·트윈 비용, Studio 프로파일러, 라이브 최적화 수준 | roblox-engine 스킬 `references/perf.md`, `references/studio-mcp.md` §6 |
 
 ## 자주 밟는 함정 (요약, 0.742)
 - 메타테이블이 붙은 표의 `t[i]` 는 `-O1` 1.6 배, native 읽기 2.1 배·쓰기 4.4 배 느리다. 상수 문자열 필드와 안쪽 표는 영향 없다.

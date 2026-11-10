@@ -66,7 +66,7 @@ status: verified · last-confirmed: stylua 2.5.2 · 근거: luau-kb `tools/repro
 ## §4 테스트 관용 (결정 D-03)
 status: described · 근거: stl-luau·moonwave-luau·tbox·quad 테스트 관행, `decisions/D-03-runner.md` (2026-11-10 확정, 보완)
 
-- **러너는 `luau` CLI 다.** lune 은 `const` 를 파싱하지 못해서 쓰지 않는다. Roblox 서비스에 기대는 동작은 필요한 부분만 mock 해서 `luau` 로 돌리고, mock 이 실제와 맞는지는 Studio MCP 로 확인한다 → `roblox-luau`.
+- **러너는 `luau` CLI 다.** lune 은 `const` 를 파싱하지 못해서 쓰지 않는다. Roblox 서비스에 기대는 동작은 필요한 부분만 mock 해서 `luau` 로 돌리고, mock 이 실제와 맞는지는 Studio MCP 로 확인한다 → `luau-roblox`.
 - 프레임워크 없이 `assert(cond, "메시지")` 로 쓴다. 엔트리는 `tests/run.luau`(이름을 `init.luau` 로 짓지 않는다, `modules.md` §3), 파일은 주제마다 하나다. 파일 끝에서 값을 `return` 한다.
 - **경계 케이스를 고정한다**: 빈 것 / 한 개 / 뒤집힌 구간 / 범위 초과 / 음수 인덱스. 조용히 clamp 하는 API 는 테스트가 없으면 "아무것도 안 함"과 "망가짐"을 구분하지 못한다.
 - **눈에 안 보이는 것은 오라클과 대조한다**: 이분 탐색은 선형 탐색과, 힙은 정렬 결과와, 무작위 입력 수백 회로.

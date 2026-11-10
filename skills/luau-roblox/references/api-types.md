@@ -160,7 +160,7 @@ status: verified · last-confirmed: luau-lsp 1.70.1 (1.69.0 동일) · 근거: `
 
 | 코드 | 타입 검사 | 런타임(원천 실측) |
 |---|---|---|
-| `p.Touched:Connect(5)` | 에러 | 던지지 않고 경고만(`signals-and-events.md` §6) |
+| `p.Touched:Connect(5)` | 에러 | 던지지 않고 경고만(roblox-engine `signals-and-events.md` §6) |
 | `task.delay(function() end, 1)`(인자 순서 뒤바뀜) | 에러. 시간이 첫 인자다 | 에러 |
 | `p:GetPropertyChangedSignal("Bogus")` | 에러 `Key 'Bogus' not found`(리터럴일 때만) | `Bogus is not a valid property name.` |
 | `p:GetPropertyChangedSignal(변수)` | 검사 없음 | 위와 같음 |

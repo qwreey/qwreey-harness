@@ -36,7 +36,7 @@ status: described (정책) / verified (lune 의 const 파싱 실패) · 원천: 
 
 **결정**: 기본 러너는 `luau` CLI 다. lune 은 쓰지 않는다.
 - Roblox 서비스·환경에 기대는 동작(`task`, 이벤트 등)은 **필요한 부분만 mock 을 만들어** `luau` 로 돌리는 것이 기본이다. 항상 Studio 를 부르면 기계적으로 테스트할 수 없기 때문이다.
-- Roblox Studio(MCP)는 mock 이 실제와 맞는지 확인할 때와 mock 으로 재현할 수 없는 동작을 볼 때 쓴다. 판정 표, mock 패턴, Studio MCP 사용법은 roblox-luau 스킬에 있다.
+- Roblox Studio(MCP)는 mock 이 실제와 맞는지 확인할 때와 mock 으로 재현할 수 없는 동작을 볼 때 쓴다. 판정 표, mock 패턴, Studio MCP 사용법은 luau-roblox 스킬에 있다.
 
 결정 전에 갈렸던 입장(기록):
 

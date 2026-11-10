@@ -24,7 +24,7 @@
 - 순수 Luau 비용(메타테이블, 표, 순회, 클로저, GC 비용, native codegen 일반)은 **luau-perf** 스킬이 다룬다. 이 파일은 엔진 API 와 Studio 에서 잰 것만 둔다.
 - 아래 수치는 모두 원천 저장소의 **데스크톱 Studio** 실측이다(`status: described`). 기계 사양이 적혀 있지 않다. 60fps 상한(유휴 프레임 16.6ms)이 걸린 환경이다. 모바일은 아무도 재지 않았다. 절대값보다 **자릿수와 비율**로 읽는다.
 - 신호 모드는 비용에 직접 영향이 적지만, 원천이 기록하지 않은 경우 "모드 미기재"로 적었다.
-- 엔진 위 실제 비용을 새로 잴 때는 Studio 내장 skill `rbx-perf-profiling`(MicroProfiler), `rbx-scene-analysis`(메모리·Instance 구성)를 쓴다(`studio-mcp.md` §6).
+- 엔진 위 실제 비용을 새로 잴 때는 Studio 내장 skill `rbx-perf-profiling`(MicroProfiler), `rbx-scene-analysis`(메모리·Instance 구성)를 쓴다(luau-roblox `studio-mcp.md` §6).
 
 ## §2 Instance 와 속성
 status: described · last-confirmed: quad 2026-10-22(데스크톱 Studio Play 클라이언트, 모드 미기재, 커밋 `8404d7dd`), table-sim(Studio 0.742, 2026-10) · 근거: quad `.claude/audit/perf-studio-2026-10-22/REPORT.md:21-63`; table-sim `<비공개>`; quad `.claude/base/slot-plan.md:120-123,3342-3343` · 후보: Q-093, T-54, Q-062
@@ -43,7 +43,7 @@ status: described · last-confirmed: quad 2026-10-22(데스크톱 Studio Play �
 - 글자 갱신은 개수에 비례해 레이아웃 비용이 붙는다. 수천 개 라벨을 매 프레임 바꾸지 않는다.
 - `Parent = nil` 뒤 `Destroy()` 가 바로 `Destroy()` 보다 비싸다는 서술이 있다. 벤치는 없다.
 - `QueryDescendants` 는 깊이 200·결합자 4개까지 0.02ms 이하였다(`instance-api.md` §6).
-- 측정 함정: 유휴 클라이언트의 힙은 할당이 없으면 줄지 않는다. 힙 수치는 짧은 쓰레기를 할당(churn)한 뒤의 최저값으로 잰다. 시나리오 빌드는 별도 함수로 뺀다(`gc-and-weak-tables.md` §4–5).
+- 측정 함정: 유휴 클라이언트의 힙은 할당이 없으면 줄지 않는다. 힙 수치는 짧은 쓰레기를 할당(churn)한 뒤의 최저값으로 잰다. 시나리오 빌드는 별도 함수로 뺀다(`gc-in-roblox.md` §2, 프로브 함정 luau-runtime `gc-and-weak-tables.md` §5).
 
 mock 흉내: 해당 없음. mock 위 CLI 수치에는 엔진 호출 비용이 빠져 있다(§7).
 
@@ -63,11 +63,11 @@ mock 흉내: 해당 없음. mock Tween 은 보간을 하지 않는다.
 ## §4 바인더블 인자 복사
 status: described · last-confirmed: devplorer 2026-10-20(Studio Edit, 플러그인 문맥, 잡음 큼) · 근거: devplorer `.claude/review/2026-10-20-bindable-watch.md:93-104` · 후보: D-R03
 
-- `BindableEvent:Fire` 는 처리기마다 인자 표를 새로 복사한다(`remotes-and-replication.md` §3). 2만 항목 표를 Fire 하면 1회 약 14ms, 처리기가 하나 늘 때마다 2~4ms 가 더 든다. 작은 인자 2000회는 1.9ms.
+- `BindableEvent:Fire` 는 처리기마다 인자 표를 새로 복사한다(roblox-net `remotes-and-replication.md` §3). 2만 항목 표를 Fire 하면 1회 약 14ms, 처리기가 하나 늘 때마다 2~4ms 가 더 든다. 작은 인자 2000회는 1.9ms.
 - 바인더블에는 크기 상한이 없다. 큰 표를 자주 보내는 설계는 피하고, 같은 VM 안이면 모듈 함수 호출로 넘긴다.
 - Actor 메시지도 호출마다 전체 복사다(`parallel-luau.md` §5, 수치 없음).
 
-mock 흉내: 아니오. Lua mock 바인더블은 보통 표를 복사하지 않고 그대로 넘겨, 비용도 별칭 차이도 재현하지 않는다(`remotes-and-replication.md` §3).
+mock 흉내: 아니오. Lua mock 바인더블은 보통 표를 복사하지 않고 그대로 넘겨, 비용도 별칭 차이도 재현하지 않는다(roblox-net `remotes-and-replication.md` §3).
 
 ## §5 느린 엔진 호출
 status: described · last-confirmed: table-sim 2026-10(Studio 0.742 Play) · 근거: table-sim `<비공개>` · 후보: T-22, T-23, T-24, T-28, T-31
@@ -80,12 +80,12 @@ status: described · last-confirmed: table-sim 2026-10(Studio 0.742 Play) · 근
 | 캐릭터 `Model:ScaleTo(5)` | 0.6ms |
 | `RenderPriority.Camera+5` 에서 로컬 파트 6개 배치 | 16µs/프레임 |
 
-- `…Async` 호출은 양보하고 실패할 수 있다. 화면 흐름에 넣을 때는 시한과 pcall 을 둔다(`tasks-and-threads.md` §6). 자세한 동작은 `world-and-physics.md`.
+- `…Async` 호출은 양보하고 실패할 수 있다. 화면 흐름에 넣을 때는 시한과 pcall 을 둔다(`tasks-and-threads.md` §6). 자세한 동작은 roblox-world `world-and-physics.md`.
 
 mock 흉내: 해당 없음. 스텁은 즉시 돌려주므로 대기 시간을 재현하지 않는다.
 
 ## §6 최적화 수준(-O)과 native
-status: described (문서 판정, 엔진 안 실측 없음) · last-confirmed: Roblox 문서 `luau/comments.md` "Script directives"(2026-11-10 curl) · 근거: 그 문서; stl-luau-doctor `.claude/papers/05-quad-survey.md:110`, `.claude/conventions.md:136`; quad `.claude/archive/post-implementation-review/round14-reflection-plan.md:25`, `docs/quadnomicon/11-static-grepability-and-error-architecture.md:126-129`; Roblox 문서 `luau/native-code-gen.md`(2026-11-10) · 후보: S-116, Q-088, audit/09 §6 #2
+status: described (문서 판정, 엔진 안 실측 없음) · last-confirmed: Roblox 문서 `luau/comments.md` "Comment directives" 절(56–78행, creator-docs ccc2b01d9bf8, `roblox_docs.py get luau/comments.md#comment-directives` 로 2026-11-10 재확인. 이전 표기 "Script directives" 는 절 이름이 틀렸다) · 근거: 그 문서; stl-luau-doctor `.claude/papers/05-quad-survey.md:110`, `.claude/conventions.md:136`; quad `.claude/archive/post-implementation-review/round14-reflection-plan.md:25`, `docs/quadnomicon/11-static-grepability-and-error-architecture.md:126-129`; Roblox 문서 `luau/native-code-gen.md`(2026-11-10) · 후보: S-116, Q-088, audit/09 §6 #2
 
 - **Roblox 문서가 기본값을 적어 둔다**: `--!optimize` 지시어 설명에 "1 enables basic optimizations (default in Studio testing)", "2 enables further optimizations (default in live games)"(`/docs/en-us/luau/comments.md`, 2026-11-10). stl 의 "라이브 `-O2`, Studio `-O1`" 은 이 문서와 맞고, quad 의 "실측 필요"는 문서로 닫힌다. 엔진 안에서 직접 잰 기록은 아직 없다(아래 절차).
 - 문서는 "Exact optimizations aren't published and are subject to change" 라고 덧붙인다. CLI `-O2` 의 인라인 규칙이 엔진과 같다는 것은 가정이다.

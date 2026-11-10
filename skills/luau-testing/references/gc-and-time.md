@@ -13,7 +13,7 @@
 - §3 가상 시계
 - §4 Roblox 쪽 차이
 
-이 파일은 GC 프로브(누수 판정 하네스와 프로브 함정)의 **정본**이다. weak 표의 의미론(ephemeron 이 없다 등)과 Roblox 안 GC 관찰은 roblox-luau `gc-and-weak-tables.md`, 메모리·GC 비용과 객체 크기는 luau-perf `gc-and-memory.md` 가 정본이다.
+이 파일은 GC 프로브(누수 판정 하네스와 프로브 함정)의 **정본**이다. weak 표의 의미론(ephemeron 이 없다 등)과 Roblox 안 GC 관찰은 luau-runtime `gc-and-weak-tables.md`, 메모리·GC 비용과 객체 크기는 luau-perf `gc-and-memory.md` 가 정본이다.
 
 ---
 
@@ -43,8 +43,8 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일, `-O2` 같음) · �
 - 실기기에서는 시나리오가 정본(가상 시계 결과)과 맞는지만 확인한다. 원천은 디바운스를 가상 시계로 8만 시드 차등 시험해 차이 0 을 확인했고, 실기기 `task.wait` 는 ±0.02초 지터를 보였다(described).
 
 ## §4 Roblox 쪽 차이
-status: described · 정본: roblox-luau `../../roblox-luau/references/gc-and-weak-tables.md` §4·§6
+status: described · 정본: luau-runtime `../../luau-runtime/references/gc-and-weak-tables.md` §4, roblox-engine `../../roblox-engine/references/gc-in-roblox.md` §1–2
 
 - Roblox 샌드박스의 `collectgarbage` 는 `"count"` 만 받는다(문서 확인, 컨텍스트 무관). 위 `fullgc()` 는 CLI 전용이다.
 - 엔진 안에서는 할당 압박 + 프레임 넘기기로 GC 를 진행시키고 weak canary 가 비는 에포크 수로 판정한다. GC 는 할당이 있어야 진행하므로 유휴 상태의 "안 줄어든다"는 누수 증거가 아니다. 절차와 수치는 정본 §6·§4.
-- Studio 에서 확인하는 절차는 roblox-luau 스킬 `../../roblox-luau/references/studio-mcp.md`.
+- Studio 에서 확인하는 절차는 luau-roblox 스킬 `../../luau-roblox/references/studio-mcp.md`.

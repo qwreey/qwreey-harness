@@ -11,7 +11,7 @@
 D-07~D-12(끝난 할 일, 주석 언어, 네이밍, 에러, 객체 모양, require 경로)는 claude-doctor 에서 제안 상태다. 이 저장소의 references 는 그중 사실 부분만 싣고 정책은 `> 정책: 제안(D-xx)` 으로 표시한다. 사실 부분의 정본:
 - D-10(에러): `-O2` 위치 소실의 경우별 표 `skills/luau-testing/references/optimize-levels.md` §2, raise 헬퍼 `skills/luau-style/references/errors.md` §2.
 - D-11(필드 읽기): `skills/luau-style/references/modules.md` §5.
-- D-12(require 경로): 경로 해석 `skills/roblox-luau/references/require-and-modules.md` §1–§4·§9, 검사기 대 런타임 `skills/luau-verify/references/checkers.md` §7.
+- D-12(require 경로): 경로 해석 `skills/luau-runtime/references/require-by-string.md` §1–§4·§9(Studio 쪽은 `skills/roblox-engine/references/require-in-roblox.md`), 검사기 대 런타임 `skills/luau-verify/references/checkers.md` §7.
 - D-08·D-09: `skills/luau-style/references/naming.md`, `project-overrides.md`.
 
 ## 결정됨
@@ -31,7 +31,7 @@ D-07~D-12(끝난 할 일, 주석 언어, 네이밍, 에러, 객체 모양, requi
 - 파일마다 `--!strict`.
 - 한계를 우회하려고 공개 API·타입을 비틀지 않는다. 문서화, 관례, 되돌릴 링크.
 - 업스트림 이슈 게시는 사용자가 결정한다.
-- 테스트는 `-O1` 과 `-O2` 로 두 번 돌리고, 에러 테스트는 메시지와 사용자 줄을 같이 단언한다(stl-luau 실천과 D-10 의 사실 부분. `skills/luau-testing/`). Roblox 문서도 `--!optimize` 기본값을 Studio 테스트 1, 라이브 2 로 적는다(`skills/roblox-luau/references/perf.md` §6).
+- 테스트는 `-O1` 과 `-O2` 로 두 번 돌리고, 에러 테스트는 메시지와 사용자 줄을 같이 단언한다(stl-luau 실천과 D-10 의 사실 부분. `skills/luau-testing/`). Roblox 문서도 `--!optimize` 기본값을 Studio 테스트 1, 라이브 2 로 적는다(`skills/roblox-engine/references/perf.md` §6).
 
 ## 원천 정정의 전달
 각 references 의 '정정' 절에 모은 원천 저장소의 틀린 서술은 저장소별로 claude-doctor `handoff/<repo>-corrections.md`(quad 는 `handoff/quad.md`)에 묶어 각 세션에 넘긴다.

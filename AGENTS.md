@@ -18,7 +18,7 @@
 | 파일 길이·분리·폴더 묶음 같은 코드 구조 규칙 | 정본은 사용자 레벨 `~/.claude/rules/code-structure.md`(claude-doctor `home/.claude/rules/code-structure.md`, 툴킷 공통). Luau 세부는 `/code/Projects/luau-kb/skills/luau-style/references/structure.md`·`splitting.md`. `/code/Projects/luau-kb/rules/code-structure.md` 는 이 안내만 둔다 |
 
 ### 주제가 여러 스킬에 걸칠 때의 정본
-- weak 표: 의미론(ephemeron 없음, `__mode`)·누수·Roblox 안 GC 관찰은 roblox-luau `gc-and-weak-tables.md`, 비용·객체 크기·클로저 캐시는 luau-perf `gc-and-memory.md`, 누수 판정 하네스·프로브 함정은 luau-testing `gc-and-time.md`.
+- weak 표: 의미론(ephemeron 없음, `__mode`)·누수·Roblox 안 GC 관찰은 luau-runtime `gc-and-weak-tables.md`, 비용·객체 크기·클로저 캐시는 luau-perf `gc-and-memory.md`, 누수 판정 하네스·프로브 함정은 luau-testing `gc-and-time.md`.
 - require: 경로 해석 규칙(CLI·Studio)은 roblox-luau `require-and-modules.md`, 검사기 대 런타임 판정표는 luau-verify `checkers.md` §7, 쓰는 규칙(`@self`, 리터럴, 엔트리 이름)은 luau-style `modules.md`.
 - `-O2` 와 `error(msg, level)`: 경우별 표는 luau-testing `optimize-levels.md` §2, raise 헬퍼 처방은 luau-style `errors.md` §2, 인라인 규칙은 luau-perf `optimizer-and-native.md` §3.
 
@@ -72,25 +72,25 @@ luau-style
 - `/code/Projects/luau-kb/skills/luau-style/references/project-overrides.md` — 저장소마다 다른 값과 결정 상태
 
 roblox-luau
-- `/code/Projects/luau-kb/skills/roblox-luau/references/env-dependence.md` — luau+mock 으로 충분한가, Studio 가 필요한가 (판정 표)
-- `/code/Projects/luau-kb/skills/roblox-luau/references/mocks.md` — mock 범위, 주입, 차이 기록, 충실도 검증
-- `/code/Projects/luau-kb/skills/roblox-luau/references/studio-mcp.md` — Studio MCP 도구, 여러 Studio 고르기, studio-sync 규칙
-- `/code/Projects/luau-kb/skills/roblox-luau/references/api-docs.md` — Roblox API 문서 찾기
-- `/code/Projects/luau-kb/skills/roblox-luau/references/api-types.md` — Instance·Enum·서비스·속성·엔진 호출의 타입
-- `/code/Projects/luau-kb/skills/roblox-luau/references/typedefs.md` — Roblox 정의 파일과 sourcemap 을 luau-lsp 에 넘기기
-- `/code/Projects/luau-kb/skills/roblox-luau/references/signals-and-events.md` — RBXScriptSignal 배달 시점·순서·끊기, 속성 변경 신호
-- `/code/Projects/luau-kb/skills/roblox-luau/references/instance-lifecycle.md` — Destroy, Destroying, 파괴된 Instance, userdata 신원
-- `/code/Projects/luau-kb/skills/roblox-luau/references/instance-api.md` — 트리 API, Clone, Attribute·태그, QueryDescendants, 데이터 타입 값
-- `/code/Projects/luau-kb/skills/roblox-luau/references/tween-and-animation.md` — TweenService 엔진 사실
-- `/code/Projects/luau-kb/skills/roblox-luau/references/tasks-and-threads.md` — task 라이브러리, 코루틴 에러, 경쟁, 시계
-- `/code/Projects/luau-kb/skills/roblox-luau/references/parallel-luau.md` — Actor, 병렬 단계, 스레드 안전 등급, SharedTable
-- `/code/Projects/luau-kb/skills/roblox-luau/references/gc-and-weak-tables.md` — weak 표 의미론, 누수 조건, Roblox 안 GC 관찰
+- `/code/Projects/luau-kb/skills/luau-roblox/references/env-dependence.md` — luau+mock 으로 충분한가, Studio 가 필요한가 (판정 표)
+- `/code/Projects/luau-kb/skills/luau-roblox/references/mocks.md` — mock 범위, 주입, 차이 기록, 충실도 검증
+- `/code/Projects/luau-kb/skills/luau-roblox/references/studio-mcp.md` — Studio MCP 도구, 여러 Studio 고르기, studio-sync 규칙
+- `/code/Projects/luau-kb/skills/roblox-docs/references/sources.md` — Roblox API 문서 찾기
+- `/code/Projects/luau-kb/skills/luau-roblox/references/api-types.md` — Instance·Enum·서비스·속성·엔진 호출의 타입
+- `/code/Projects/luau-kb/skills/luau-roblox/references/typedefs.md` — Roblox 정의 파일과 sourcemap 을 luau-lsp 에 넘기기
+- `/code/Projects/luau-kb/skills/roblox-engine/references/signals-and-events.md` — RBXScriptSignal 배달 시점·순서·끊기, 속성 변경 신호
+- `/code/Projects/luau-kb/skills/roblox-engine/references/instance-lifecycle.md` — Destroy, Destroying, 파괴된 Instance, userdata 신원
+- `/code/Projects/luau-kb/skills/roblox-engine/references/instance-api.md` — 트리 API, Clone, Attribute·태그, QueryDescendants, 데이터 타입 값
+- `/code/Projects/luau-kb/skills/roblox-engine/references/tween-and-animation.md` — TweenService 엔진 사실
+- `/code/Projects/luau-kb/skills/roblox-engine/references/tasks-and-threads.md` — task 라이브러리, 코루틴 에러, 경쟁, 시계
+- `/code/Projects/luau-kb/skills/roblox-engine/references/parallel-luau.md` — Actor, 병렬 단계, 스레드 안전 등급, SharedTable
+- `/code/Projects/luau-kb/skills/luau-runtime/references/gc-and-weak-tables.md` — weak 표 의미론, 누수 조건, Roblox 안 GC 관찰
 - `/code/Projects/luau-kb/skills/roblox-luau/references/require-and-modules.md` — require-by-string 경로 해석(CLI·Studio), 모듈 캐시와 사본
-- `/code/Projects/luau-kb/skills/roblox-luau/references/gui-and-input.md` — GUI 레이아웃·자동 크기·입력 전달
-- `/code/Projects/luau-kb/skills/roblox-luau/references/remotes-and-replication.md` — 원격·바인더블 신뢰 경계, 복제, 네트워크 소유권, 스트리밍
-- `/code/Projects/luau-kb/skills/roblox-luau/references/world-and-physics.md` — DragDetector, 물리, 캐릭터, 카메라, 런타임 에셋
-- `/code/Projects/luau-kb/skills/roblox-luau/references/platform-services.md` — DataStore·MemoryStore·상품·글자 안전·게시 도구
-- `/code/Projects/luau-kb/skills/roblox-luau/references/perf.md` — Roblox 엔진 쪽 비용 기준치, 최적화 수준
+- `/code/Projects/luau-kb/skills/roblox-world/references/gui-and-input.md` — GUI 레이아웃·자동 크기·입력 전달
+- `/code/Projects/luau-kb/skills/roblox-net/references/remotes-and-replication.md` — 원격·바인더블 신뢰 경계, 복제, 네트워크 소유권, 스트리밍
+- `/code/Projects/luau-kb/skills/roblox-world/references/world-and-physics.md` — DragDetector, 물리, 캐릭터, 카메라, 런타임 에셋
+- `/code/Projects/luau-kb/skills/roblox-net/references/platform-services.md` — DataStore·MemoryStore·상품·글자 안전·게시 도구
+- `/code/Projects/luau-kb/skills/roblox-engine/references/perf.md` — Roblox 엔진 쪽 비용 기준치, 최적화 수준
 
 luau-upstream
 - `/code/Projects/luau-kb/skills/luau-upstream/references/sources.md` — 업스트림을 어디서, 얼마나 자주 보나

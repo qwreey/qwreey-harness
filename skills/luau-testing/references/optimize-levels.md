@@ -24,7 +24,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippe
 
 - `luau` CLI 의 기본은 `-O1` 이다. 최적화 수준 2 는 같은 모듈의 작은 지역 함수를 **호출 자리에 인라인**한다. 인라인된 함수는 스택 프레임이 없어서 `error(msg, level)`, `debug.info(level, …)`, `debug.traceback` 이 보는 프레임이 달라진다.
 - 그래서 `-O1` 에서만 도는 테스트는 `-O2` 에서만 나는 실패를 **영원히 보지 못한다.** `opt-cli-level-o1.luau` 는 지시어 없이 기본 실행은 통과하고 `luau -O2` 에서는 첫 단언이 실패한다(하네스의 `--@run-with -O2 => fail` 이 이 음성 대조군을 고정한다).
-- Roblox 문서는 `--!optimize` 기본값을 **Studio 테스트 1, 라이브 게임 2** 로 적는다(`/docs/en-us/luau/comments.md`, 2026-11-10 확인. 엔진 안 실측은 없음, roblox-luau `perf.md` §6). 즉 Studio 플레이 테스트도 라이브의 인라인 경로를 보지 못한다. `--!native`·`@native` 는 엔진과 무관하게 수준 2 를 강제한다(§3).
+- Roblox 문서는 `--!optimize` 기본값을 **Studio 테스트 1, 라이브 게임 2** 로 적는다(`/docs/en-us/luau/comments.md`, 2026-11-10 확인. 엔진 안 실측은 없음, roblox-engine `perf.md` §6). 즉 Studio 플레이 테스트도 라이브의 인라인 경로를 보지 못한다. `--!native`·`@native` 는 엔진과 무관하게 수준 2 를 강제한다(§3).
 - 최적화 수준·인라인 규칙·native 자체의 설명은 luau-perf 스킬 소관이다. 이 파일은 테스트 쪽 함의만 다룬다.
 
 ## §2 `-O2` 에서 바뀌는 것 (D-10 정정 반영)

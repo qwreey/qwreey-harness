@@ -79,7 +79,7 @@ status: verified · last-confirmed: luau-lsp 1.69.0·1.70.1 · 근거: `tools/ch
   1. 같은 `--flag:` 가 두 번 오면 **앞의 값**이 이긴다(`--flag:LuauSolverV2=false --flag:LuauSolverV2=true` 는 옛 솔버). 머리에 그 플래그가 있으면 기본값을 넣지 않는다.
   2. `--platform` 을 두 번 주면 `Duplicate argument` 로 실행이 실패한다. 머리에 있으면 기본값을 넣지 않는다(`--definitions` 도 같게 처리).
 - `--@sourcemap {json}` 은 Rojo 형식 sourcemap 을 임시 파일로 두고 `--sourcemap` 으로 넘긴다.
-- Roblox 모드에서는 실행 머리(§2a)를 쓸 수 없다(엔진이 없다). 런타임 동작은 roblox-luau 스킬의 절차(mock 또는 Studio)로 확인한다.
+- Roblox 모드에서는 실행 머리(§2a)를 쓸 수 없다(엔진이 없다). 런타임 동작은 luau-roblox 스킬의 절차(mock 또는 Studio)로 확인한다.
 - `--table` 은 Roblox 모드 파일을 luau-lsp 버전 열을 가진 별도 표로 출력한다.
 
 ## §3 하네스가 강제하는 규칙

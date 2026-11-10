@@ -49,7 +49,7 @@ status: described (원격 쪽 실측 없음) · last-confirmed: 원천 서술 20
 mock 흉내: 해당 없음. 원격은 mock 이 인터페이스 모양만 스텁한다. 복사·메타테이블 제거를 흉내 내지 않으므로 mock 위 테스트는 별칭을 공유한 채 통과할 수 있다.
 
 ## §3 BindableEvent 인자 복사
-status: described (원천 실측) · last-confirmed: Studio Edit, 2026-10-20, 플러그인 문맥, 모드 미기재(처리기는 `Fire` 뒤에 따로 돌았다) · 근거: `/code/Projects/devplorer/.claude/review/2026-10-20-bindable-watch.md:20-21,72-85` · 후보: D-R02 (비용은 D-R03 → `perf.md`)
+status: described (원천 실측) · last-confirmed: Studio Edit, 2026-10-20, 플러그인 문맥, 모드 미기재(처리기는 `Fire` 뒤에 따로 돌았다) · 근거: `/code/Projects/devplorer/.claude/review/2026-10-20-bindable-watch.md:20-21,72-85` · 후보: D-R02 (비용은 D-R03 → roblox-engine `perf.md`)
 
 | 보낸 것 | 처리기가 받은 것 |
 |---|---|
@@ -61,7 +61,7 @@ status: described (원천 실측) · last-confirmed: Studio Edit, 2026-10-20, �
 | Instance 키 표 | 성공 |
 
 - 원격(§2)과 달리 함수는 정체성 그대로 건너온다. 같은 VM 안이기 때문이다.
-- 바인더블에는 크기 상한이 없다. 큰 표를 처리기마다 복사하는 비용은 `perf.md`.
+- 바인더블에는 크기 상한이 없다. 큰 표를 처리기마다 복사하는 비용은 roblox-engine `perf.md`.
 - 처리기가 던져도 `Fire` 한 쪽으로 퍼지지 않았다.
 
 mock 흉내: 보통 흉내 내지 않는다. 흔한 mock Signal 은 같은 표를 그대로 넘기므로 "받은 표를 고치면 보낸 쪽도 바뀐다"는 엔진에 없는 결합을 만든다.
@@ -145,7 +145,7 @@ status: described (원천 실측: Studio 0.742 Play, 서버 1 + 클라이언트 
 - 서버가 속도를 준 직후 소유권을 넘기면 그 속도가 넘어가지 않았다. 속도는 새 소유자 쪽에서 준다.
 - 서버 물리를 클라이언트에서 보면 움직이는 프레임의 15%가 제자리였고 속도 편차가 189%였다. 튕긴 플레이어에게 소유권을 넘기면 0%, 13~36%였다(반일반: 장면 의존).
 
-mock 흉내: 해당 없음. 물리·소유권은 항상 Studio(`env-dependence.md` §2).
+mock 흉내: 해당 없음. 물리·소유권은 항상 Studio(luau-roblox `env-dependence.md` §2).
 
 ## §10 스트리밍과 복제 범위
 status: described (원천 실측: Studio 0.742 Play, 2026-10) · 근거: `table-sim/<비공개>`, `table-sim/<비공개>`, `/code/Projects/devplorer/.claude/research/feature-proposals-2.md:68` · 후보: T-13, T-14
@@ -153,7 +153,7 @@ status: described (원천 실측: Studio 0.742 Play, 2026-10) · 근거: `table-
 - StreamingEnabled 에서 `ReplicationFocus` 가 먼 곳이면 먼 Model 은 빈 껍데기로 온다(`PrimaryPart = nil`). 그 아래 파트·데칼·**파트의 속성**은 오지 않는다.
 - 반면 **Model·Folder 자신의 속성과 Player 속성은 모두에게 간다.** 스트리밍은 속성을 숨겨 주지 않는다. 비밀을 Model 속성에 두지 않는다(보안 경계인지는 문서 미확인).
 - 초점을 옮기면 1~2초 안에 바뀌었다.
-- `workspace.StreamingMinRadius`, `StreamOutBehavior`, `StreamingTargetRadius` 는 스크립트에서 읽을 수 없다(`not a valid member`). `SignalBehavior` 와 같은 꼴이다(`signals-and-events.md`). 값은 Rojo 프로젝트의 Workspace 속성으로 두고 저장소에서 관리한다.
+- `workspace.StreamingMinRadius`, `StreamOutBehavior`, `StreamingTargetRadius` 는 스크립트에서 읽을 수 없다(`not a valid member`). `SignalBehavior` 와 같은 꼴이다(roblox-engine `signals-and-events.md`). 값은 Rojo 프로젝트의 Workspace 속성으로 두고 저장소에서 관리한다.
 - 받는 쪽에 아직 없는 Instance 참조는 `nil` 이다(§4).
 
 mock 흉내: 해당 없음.
@@ -164,7 +164,7 @@ mock 흉내: 해당 없음.
 없음. 이 파일에 옮긴 행 가운데 원천끼리 결론이 갈린 것은 없다. table-sim 은 외부 모델이 "Model 속성도 스트리밍으로 숨겨진다"고 단정한 것을 실측으로 뒤집었다(T-13). 그 단정은 원천 저장소의 서술이 아니라 외부 검토 결과라 여기 올리지 않는다.
 
 ## 미판정
-미실측 주장이다. Studio MCP 를 쓰지 않아 판정하지 않았다. 재현할 때는 `studio-mcp.md` §5 관용구(결과는 `return`, Deferred 는 두 번 호출)를 따르고 모드를 함께 적는다.
+미실측 주장이다. Studio MCP 를 쓰지 않아 판정하지 않았다. 재현할 때는 luau-roblox `studio-mcp.md` §5 관용구(결과는 `return`, Deferred 는 두 번 호출)를 따르고 모드를 함께 적는다.
 
 | 주장 | 후보 | 재현 절차 |
 |---|---|---|

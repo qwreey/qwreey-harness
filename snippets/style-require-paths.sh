@@ -9,7 +9,7 @@
 #     R1 의 오배선처럼 **있는 다른 파일로 풀리는** 경로는 어느 모드에서도 못 잡는다. 그래서 새 모듈은 실제로 require 하는 테스트가 필요하다.
 #  R4 CLI 런타임은 동적 경로(`"./pkg/" .. name`)도 실행한다. 정적 검사(R3)만 거부한다.
 # 근거: quad .claude/base/project-setup-plan.md:144-167, stl-luau/.claude/base/architecture.md:37-63, tbox/CLAUDE.md:95-117,141-147,
-#       mrow-rv:1183-1187. 후보 Q-101, S-123, X-02, X-04. Studio 쪽 규칙(접두 필수 등)은 roblox-luau 담당.
+#       mrow-rv:1183-1187. 후보 Q-101, S-123, X-02, X-04. Studio 쪽 규칙(접두 필수 등)은 roblox-engine require-in-roblox.md 담당.
 # 기대와 어긋나면 rc=1. 사용: bash snippets/style-require-paths.sh [버전...]   (기본 0.734 0.742)
 set -u
 MISE=${MISE_DATA_DIR:-/code/.local/share/mise}

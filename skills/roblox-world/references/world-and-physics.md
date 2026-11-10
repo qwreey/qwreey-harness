@@ -46,7 +46,7 @@ status: described · last-confirmed: 원천 실측 Studio 0.742 Play, 2026-10-12
   - 처방: 원기둥은 축 하나만 잠그는 `AlignOrientation`, 공은 목표 0 인 `AngularVelocity` 에 토크 한도 "질량 × 6" 정도로 제동한다(값은 장면에 맞춘다).
 - 빠르게 떨어지는 얇은 물체는 얇은 파트를 뚫는다. 받침을 두껍게 하거나 속도를 제한한다.
 - 보이지 않는 받침과 테이블 사이에 끼인 물체는 겹침 해소 과정에서 크게 튕겨 나간다. 받침끼리 겹치지 않게 둔다.
-- 소유권·복제 쪽 물리(놓을 때 어긋남, 같은 값 쓰기 무복제)는 `remotes-and-replication.md` §9 몫이다(T-07~T-12).
+- 소유권·복제 쪽 물리(놓을 때 어긋남, 같은 값 쓰기 무복제)는 roblox-net `remotes-and-replication.md` §9 몫이다(T-07~T-12).
 - mock 흉내: 해당 없음.
 
 ## §3 엔진이 바꾼 값과 변경 신호
@@ -54,7 +54,7 @@ status: described · last-confirmed: 원천 실측 Studio Play, 2026-10-19(devpl
 
 - 물리로 떨어지는 Part 의 `Position` 은 `GetPropertyChangedSignal("Position")` 을 **0회** 발화했다. 물리 시뮬레이션이 바꾸는 값은 속성 변경 신호로 관측할 수 없다고 본다. 움직임을 따라가려면 `RunService` 프레임 신호에서 직접 읽는다.
 - Studio 에서 `game.JobId` 는 빈 문자열이다. 서버 식별에 쓰는 코드는 Studio 에서 빈 값을 견뎌야 한다.
-- 신호 일반 규칙(같은 값 대입 0회 등)은 `signals-and-events.md`.
+- 신호 일반 규칙(같은 값 대입 0회 등)은 roblox-engine `signals-and-events.md`.
 - mock 흉내: 없다. 속성 bag mock 은 물리가 없으므로 이 차이가 드러나지 않는다. mock 위에서 "Position 이 바뀌면 신호가 온다"를 테스트하면 엔진과 반대가 된다.
 
 ## §4 용접·제약·Clone
@@ -105,7 +105,7 @@ status: described · 확인일: 2026-10(원천 조사), 문서·DevForum 인용 
 - Decal ID 와 Image ID 는 다르다(업로드는 Decal ID 를 준다).
 - 에셋이 Open Use 인지 런타임에 읽는 API 는 없다.
 - 권한을 고친 뒤에도 negative caching 으로 한동안 실패할 수 있다.
-- 정책 항목이라 주기적으로 다시 확인한다. 날짜가 지난 판단은 쓰기 전에 문서를 다시 본다(`api-docs.md`).
+- 정책 항목이라 주기적으로 다시 확인한다. 날짜가 지난 판단은 쓰기 전에 문서를 다시 본다(roblox-docs `sources.md`).
 - mock 흉내: 해당 없음.
 
 ## §9 렌더링: Highlight

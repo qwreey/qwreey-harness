@@ -12,7 +12,7 @@ stl-luau·moonwave-luau 는 `luau-analyze`, quad 는 둘 다, rbvm·table-sim·d
 
 ## 반영한 곳
 - `skills/luau-verify/references/checkers.md` §5 (결정), §6 (DX 검사, `tools/lsp_probe.py`, Claude Code LSP 연동 `.lsp.json`)
-- `skills/roblox-luau/references/typedefs.md`
+- `skills/luau-roblox/references/typedefs.md`
 
 ## 되돌릴 조건
 `luau-analyze` 가 정의 파일을 읽게 되거나, 두 도구의 Luau 빌드 차이로 한쪽 게이트가 반복해서 실제 버그를 놓치면 다시 본다.

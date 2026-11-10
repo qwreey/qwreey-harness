@@ -25,7 +25,7 @@
 - 정정
 - 미판정
 
-한도·정책 수치는 날짜에 매인다. 절마다 확인일을 적었다. **정기 재확인 대상**이다(`api-docs.md` 로 문서를 다시 읽는다). Studio 실측은 원천 기록이고 이 저장소가 다시 재지 않았다.
+한도·정책 수치는 날짜에 매인다. 절마다 확인일을 적었다. **정기 재확인 대상**이다(roblox-docs `sources.md` 로 문서를 다시 읽는다). Studio 실측은 원천 기록이고 이 저장소가 다시 재지 않았다.
 
 ---
 
@@ -65,7 +65,7 @@ status: described (DataStore 는 원천 실측, 나머지 문서) · last-confir
 | MessagingService | 문서에 Studio 설명이 없다. 서버가 하나라 다중 서버 시나리오는 Studio 로 못 본다 |
 | TeleportService | Studio 에서 동작하지 않는다(문서 명시) |
 
-- 처방: 테스트용 experience 를 따로 게시해 Studio 접근을 그쪽에만 켠다. 데이터 서비스는 인터페이스로 감싸 `luau`+mock 으로 시험한다(`mocks.md` §2).
+- 처방: 테스트용 experience 를 따로 게시해 Studio 접근을 그쪽에만 켠다. 데이터 서비스는 인터페이스로 감싸 `luau`+mock 으로 시험한다(luau-roblox `mocks.md` §2).
 
 mock 흉내: 이 절 자체가 "언제 mock 으로 대신하나"의 근거다.
 
@@ -146,9 +146,9 @@ status: described (Rojo 는 원천 로컬 실측, 나머지 문서 인용) · la
 
 - Open Cloud Place Publishing API 는 EditableImage·EditableMesh·PartOperation·SurfaceAppearance·BaseWrap 이 든 플레이스를 갱신하지 못한다. 그런 플레이스는 Studio 에서 게시한다.
 - Open Cloud Luau Execution: 스크립트 4MB, 실행 5분, 플레이스당 미완료 10개, 생성 5회/분. 물리가 돌지 않고 Script 가 자동 실행되지 않으며 데이터모델 변경은 저장되지 않는다. DataStore 는 쓸 수 있다. 게시된 버전이 대상이다.
-- Rojo 7.7: 프로젝트 루트 밖 `$path` 로 빌드·sourcemap 이 된다. 없는 `$path` 는 에러, 빈 디렉터리는 괜찮다. `.jsonc` 와 정식 `syncback` 은 7.7.0 부터. `servePlaceIds` 로 받을 플레이스를 거른다(`studio-mcp.md` §4).
+- Rojo 7.7: 프로젝트 루트 밖 `$path` 로 빌드·sourcemap 이 된다. 없는 `$path` 는 에러, 빈 디렉터리는 괜찮다. `.jsonc` 와 정식 `syncback` 은 7.7.0 부터. `servePlaceIds` 로 받을 플레이스를 거른다(luau-roblox `studio-mcp.md` §4).
 - 툴박스 모델의 `PackageLink.AutoUpdate = true` 는 공급망 위험이다. rbxm 은 Lune 으로 풀어 소스만 읽어 검사할 수 있다.
-- pesde 패키지 이름의 이름 부분은 소문자·숫자·`_` 만 된다. 설치된 패키지 폴더 이름도 소문자다. 그래서 코드가 자기 루트를 이름으로 찾지 말고 `script.Parent` 를 모듈 로드 때 보관해 쓴다(`require-and-modules.md`).
+- pesde 패키지 이름의 이름 부분은 소문자·숫자·`_` 만 된다. 설치된 패키지 폴더 이름도 소문자다. 그래서 코드가 자기 루트를 이름으로 찾지 말고 `script.Parent` 를 모듈 로드 때 보관해 쓴다(roblox-engine `require-in-roblox.md` §3).
 
 mock 흉내: 해당 없음.
 

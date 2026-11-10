@@ -31,7 +31,7 @@
   - **quad-mock**: quad `quad-base/test/mock.luau`. 동기 Signal. `Fire` 는 연결 목록 스냅샷을 **역순**으로 돈다. 속성 대입마다(같은 값이어도) 바로 발화한다.
   - **E79 심**: quad `.claude/audit/round13-e79-deferred-signals/env.luau`. quad-mock 위에 Deferred 를 흉내 낸 연구용 심. 같은 값 무발화, 연결별 큐, `flush()` 가 FIFO 로 비운다. 엔진 실측이 아니다.
   - **rbvm**: rbvm `src/signal.luau` 의 가상 Signal(엔진을 프록시로 감싸는 계층). 정순으로 부른다.
-  - mock 을 만들거나 고치는 법은 `mocks.md`, Studio 로 재는 법은 `studio-mcp.md` §5.
+  - mock 을 만들거나 고치는 법은 luau-roblox `mocks.md`, Studio 로 재는 법은 luau-roblox `studio-mcp.md` §5.
 
 ## §1 SignalBehavior 모드 판정
 status: described · last-confirmed: Roblox 문서 `scripting/events/deferred.md`(last_updated 2026-11-10), Studio 0.738(2026-09-10)·0.742(2026-10-13) 원천 실측 · 근거: quad `.claude/audit/studio-docs-2026-09-10.md:35,43-45`, rbvm `.claude/design/engine-behavior.md:14-15` · 후보: Q-017, R-07, Q-146
@@ -90,7 +90,7 @@ status: described · last-confirmed: Studio 0.738.0.7381393(2026-09-10, Deferred
 
 - **같은 값 대입은 신호를 쏘지 않는다.** 현재값(기본값 포함)과 같은 값을 쓰면 `GetPropertyChangedSignal` 도 `Changed` 도 0회다(`Frame.Visible = true` 0회, `TextLabel.Text = "Label"` 0회). 그래서 "OnChange → 저장 → 다시 대입" 왕복은 엔진에서 저절로 멈춘다. 값 비교 없이 쏘는 mock 에서는 1회가 나와 "엔진 0 / mock 1"로 갈린다.
 - **핸들러는 배달 시점의 값을 읽는다.** 한 프레임에 `Text = "hello"`, `Text = "world"` 를 쓰면 핸들러는 2회 불리고 두 번 다 `world` 를 읽는다. 중간값 `hello` 는 관측되지 않는다. 연결 직후의 대입도 한 틱 뒤에 배달된다.
-- **엔진이 스스로 바꾸는 값은 신호가 없을 수 있다.** 물리로 떨어지는 Part 의 `Position` 은 `GetPropertyChangedSignal` 을 0회 발화했다(devplorer, D-F18). 엔진이 쓰기를 고쳐 돌려주는 속성(`ScrollingFrame.CanvasPosition` 클램프)은 `gui-and-input.md` §3.
+- **엔진이 스스로 바꾸는 값은 신호가 없을 수 있다.** 물리로 떨어지는 Part 의 `Position` 은 `GetPropertyChangedSignal` 을 0회 발화했다(devplorer, D-F18). 엔진이 쓰기를 고쳐 돌려주는 속성(`ScrollingFrame.CanvasPosition` 클램프)은 roblox-world `gui-and-input.md` §3.
 - 소문자 별칭: `GetPropertyChangedSignal("archivable")` 은 신호 객체는 만들지만 **발화하지 않는다**(`Archivable` 은 1회). `"name"`, `"parent"` 는 만들 때 거부된다(quad round11).
 - 타입: luau-lsp `--platform=roblox` 는 리터럴 속성 이름을 검사한다(`GetPropertyChangedSignal("Bogus")` → `Key 'Bogus' not found`). 이름이 변수면 검사하지 않고, 런타임은 `Bogus is not a valid property name.` 으로 던진다(`rbx-types-engine-calls.luau`, verified luau-lsp 1.70.1·1.69.0).
 
@@ -132,7 +132,7 @@ status: described · 근거: §2~§6 각 절, quad `.claude/archive/post-impleme
 | 시그널 신원 | 읽을 때마다 새 userdata | 고정 | 고정 | 캐시(적중 안 함) |
 
 - 이 표의 엔진 열은 Deferred 하나다. Immediate 플레이스를 대상으로 하는 mock 은 이 표로 검증하지 않는다.
-- mock 의 차이 기록 형식과 충실도 절차는 `mocks.md` §5–6.
+- mock 의 차이 기록 형식과 충실도 절차는 luau-roblox `mocks.md` §5–6.
 
 ---
 
@@ -158,4 +158,4 @@ status: described · 근거: §2~§6 각 절, quad `.claude/archive/post-impleme
 | quad `.claude/base/event-plan.md:84-85`(옛 헤더) | 엔진은 `Connect(비함수)` 에서 raise | 던지지 않고 경고만 | quad round8 2026-09-08 |
 
 ## 미판정
-- **Immediate 모드 전부.** 재현 절차: (1) 쓰는 사람이 없는 테스트 플레이스에서 사람이 Workspace 속성 `SignalBehavior` 를 `Immediate` 로 바꾼다(스크립트·MCP 로는 못 바꾼다). (2) `studio-mcp.md` §5 관용구로 이 파일 §3·§4·§5 의 시나리오를 그대로 돌린다(결과는 `return`). (3) 대입 다음 줄에서 핸들러가 이미 돌았는지로 모드를 확인한다. (4) 결과를 날짜·Studio 버전·모드와 함께 이 파일 표에 열로 더한다.
+- **Immediate 모드 전부.** 재현 절차: (1) 쓰는 사람이 없는 테스트 플레이스에서 사람이 Workspace 속성 `SignalBehavior` 를 `Immediate` 로 바꾼다(스크립트·MCP 로는 못 바꾼다). (2) luau-roblox `studio-mcp.md` §5 관용구로 이 파일 §3·§4·§5 의 시나리오를 그대로 돌린다(결과는 `return`). (3) 대입 다음 줄에서 핸들러가 이미 돌았는지로 모드를 확인한다. (4) 결과를 날짜·Studio 버전·모드와 함께 이 파일 표에 열로 더한다.

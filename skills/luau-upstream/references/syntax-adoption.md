@@ -35,7 +35,7 @@ status: described
 | C1 | **luau CLI** 가 기본값으로 파싱·실행 | 실행기와 `luau-analyze` 가 같은 배포판. 검사 게이트가 문법 에러로 무너진다 | `luau x.luau`, `luau-analyze x.luau` (FFlag 없이) |
 | C2 | **luau-lsp** 가 파싱·검사 | 에디터와 Roblox 정의 파일 검사. 번들 Luau 판이 CLI 보다 늦다 | `luau-lsp analyze --platform=standard x.luau` |
 | C3 | **stylua** 가 파싱 | 포맷 게이트가 파싱 실패로 rc=2. 파일 전체가 포맷되지 않는다 | `stylua --syntax luau --check x.luau` |
-| C4 | **Roblox Studio / 라이브 서버**가 기본값으로 켬 | 엔진은 같은 기능을 자기 FFlag 로 늦게 켠다. Studio 베타에서만 켜진 기능은 라이브 게임에서 문법 에러다 | DevForum 공지, `create.roblox.com/docs` 의 Luau 문서에 실렸는지, Studio 에서 실행(`roblox-luau` 스킬의 Studio MCP) |
+| C4 | **Roblox Studio / 라이브 서버**가 기본값으로 켬 | 엔진은 같은 기능을 자기 FFlag 로 늦게 켠다. Studio 베타에서만 켜진 기능은 라이브 게임에서 문법 에러다 | DevForum 공지, `create.roblox.com/docs` 의 Luau 문서에 실렸는지, Studio 에서 실행(`luau-roblox` 스킬의 Studio MCP) |
 
 - 부가 도구: lune(러너), selene(린터), pesde(게시 검증기), darklua(번들러)도 각자 파서를 갖는다. 저장소가 쓰는 것만 본다.
 - `luau-analyze` 에는 `--fflags` 옵션이 없다. 그래서 FFlag 뒤에 있는 문법은 CLI 게이트로 검사할 수 없다. `luau` 실행기에는 `--fflags=` 가 있다.

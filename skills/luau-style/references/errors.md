@@ -39,7 +39,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippe
 - 로컬 함수·테이블 **리터럴** 필드 함수는 `-O2` 에서 인라인되어 손으로 센 level 이 위치를 잃거나 틀린 줄을 가리킨다.
 - 대입으로 만든 필드 함수(`function M.f`)는 인라인되지 않는다.
 
-- `-O2` 는 라이브 Roblox 게임의 기본이다(described — Roblox 문서 `luau/comments.md` 가 `--!optimize` 기본값을 Studio 테스트 1, 라이브 게임 2 로 적는다. 엔진 안 실측은 없다: luau-testing `optimize-levels.md` §1, roblox-luau `perf.md` §6). `--!native`·`@native` 도 최적화 수준 2 를 강제한다(CLI 실측). 그래서 **`-O1` 로만 도는 테스트는 이 문제를 영원히 못 본다.**
+- `-O2` 는 라이브 Roblox 게임의 기본이다(described — Roblox 문서 `luau/comments.md` 가 `--!optimize` 기본값을 Studio 테스트 1, 라이브 게임 2 로 적는다. 엔진 안 실측은 없다: luau-testing `optimize-levels.md` §1, roblox-engine `perf.md` §6). `--!native`·`@native` 도 최적화 수준 2 를 강제한다(CLI 실측). 그래서 **`-O1` 로만 도는 테스트는 이 문제를 영원히 못 본다.**
 - 같은 모듈에서 `getfenv`/`setfenv` 를 쓰면 모듈 전체의 인라인이 꺼진다(`luau-compile --remarks -O2`: `inlining failed: module uses getfenv/setfenv`, `snippets/test-getfenv-inline-off.luau`). 에러 위치 테스트를 짤 때 이것 때문에 문제가 가려질 수 있다.
 
 **처방**

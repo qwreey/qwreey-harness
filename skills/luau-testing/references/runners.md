@@ -89,4 +89,4 @@ status: described · 근거: Roblox `docs/cloud/reference/features/luau-executio
 
 - **Open Cloud Luau Execution**: 스크립트를 작업으로 보내고 상태(QUEUED/PROCESSING/COMPLETE/FAILED/CANCELLED), 반환값, 로그를 받는다. 제약: 스크립트 4 MB, 실행 5분, 장소당 미완료 작업 10개, 작업 생성 분당 5회, 결과 보존 24시간. **물리 시뮬레이션과 장소 안 Script 는 돌지 않고** DataModel 변경은 저장되지 않는다. DataStore 는 실제로 건드린다. Jest Roblox 의 공식 CI 경로다.
 - 문서가 참조 구현으로 링크하는 `Roblox/place-ci-cd-demo` 는 2024-09-17 에 archived 됐다. 예제로만 본다.
-- Studio MCP 로 하는 수동 확인 절차는 roblox-luau 스킬 `../../roblox-luau/references/studio-mcp.md` 에 있다.
+- Studio MCP 로 하는 수동 확인 절차는 luau-roblox 스킬 `../../luau-roblox/references/studio-mcp.md` 에 있다.

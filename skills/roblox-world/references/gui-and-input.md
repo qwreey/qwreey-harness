@@ -76,7 +76,7 @@ status: described · last-confirmed: 원천 실측 Studio Play(Client), 2026-10-
 ## §5 자식 순서·클리핑·ZIndex
 status: described · last-confirmed: 원천 실측 Studio Play(Client), Deferred, 2026-10-13 (깜빡임은 서술) · 근거: `/code/Projects/quad/.claude/audit/kit-studio-2026-10-13/REPORT.md:49-56`, `/code/Projects/quad/docs/how-to/03-long-lists-and-windowing.md:229` · 후보: Q-049, Q-053
 
-- `GetChildren` 은 이 실측에서 삽입 순이었다. 문서 보장은 아니다(`instance-api.md` §1, R-38). 화면 순서는 물리 순서가 아니라 `UIListLayout.SortOrder`/`LayoutOrder` 와 `ZIndex` 가 정한다.
+- `GetChildren` 은 이 실측에서 삽입 순이었다. 문서 보장은 아니다(roblox-engine `instance-api.md` §1, R-38). 화면 순서는 물리 순서가 아니라 `UIListLayout.SortOrder`/`LayoutOrder` 와 `ZIndex` 가 정한다.
 - 떼었다 다시 붙여 순서를 바꾸면 `AncestryChanged`·`ChildAdded` 가 다시 발화하고 레이아웃이 깜빡일 수 있다(서술). 순서만 바꿀 때는 `LayoutOrder` 를 쓴다.
 - `ClipsDescendants = true` Frame 은 창 밖으로 나간 `UIStroke` 를 경계에서 자른다.
 - `CanvasGroup` 의 클리핑과 `GroupTransparency` 적용은 `ScreenGui.ZIndexBehavior` 에 달렸다. 코드로 만든 ScreenGui 기본값(Global)에서는 자르지 않았고 Sibling 에서는 잘랐다. 원천이 같은 날 사용자 확인으로 정정한 결과다.

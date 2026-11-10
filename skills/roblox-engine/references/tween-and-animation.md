@@ -70,9 +70,9 @@ status: described · last-confirmed: quad 2026-09-21(Studio Edit, Deferred) · �
 - **엔진은 트윈의 Lua 핸들을 붙잡지 않는다.** 재생 중이어도 Lua 참조를 다 놓으면 몇 GC 에포크 안에 핸들이 수거되고, 엔진은 트윈을 계속 돌린다. 활성 트윈을 열거하는 API 가 없으므로 그 뒤에는 **Cancel 할 방법이 없다.**
 - **`RepeatCount = -1` 트윈은 대상을 Destroy 하거나 떼도 영원히 돈다.** 무한 트윈은 대상을 파괴하기 **전에** 핸들로 `Cancel` 한다.
 - 반대 방향 누수: `Completed` 연결 클로저가 대상 Instance 를 잡으면, 트윈 객체가 살아 있는 동안 그 Instance 가 수거되지 않는다(150 에포크 동안 잔존). 연결 클로저는 Instance 대신 레코드만 잡고, 완료 시와 Cancel 자리에서 연결을 끊는다.
-- weak 캐시에만 둔 트윈 레코드는 GC 시점에 사라질 수 있다. 명시적으로 만든 기록은 명시적으로 지운다(`gc-and-weak-tables.md` §4).
+- weak 캐시에만 둔 트윈 레코드는 GC 시점에 사라질 수 있다. 명시적으로 만든 기록은 명시적으로 지운다(luau-runtime `gc-and-weak-tables.md` §4).
 
-mock 흉내: **아니오**. Lua mock Tween 은 엔진처럼 "핸들 없이 계속 도는" 상태를 만들지 않는다. 핸들 수거는 Studio 에서 할당 압박으로만 관찰한다(`gc-and-weak-tables.md` §6).
+mock 흉내: **아니오**. Lua mock Tween 은 엔진처럼 "핸들 없이 계속 도는" 상태를 만들지 않는다. 핸들 수거는 Studio 에서 할당 압박으로만 관찰한다(`gc-in-roblox.md` §1).
 
 ## §6 보간 타입, `TweenInfo` 기본값, 진행 중 변경
 status: described · last-confirmed: quad H-333 Studio 실측(날짜 미기재), 2026-11-04 · 근거: quad `.claude/base/tween-plan.md:211-215,497-528,546-560`, `.claude/audit/tween-settle-2026-11-04/REPORT.md:10` · 후보: Q-036, Q-037
@@ -83,7 +83,7 @@ status: described · last-confirmed: quad H-333 Studio 실측(날짜 미기재),
 - **`Cancel()` 은 값을 되돌리지 않는다.** 현재 보간값에 멈추고, 다음 트윈은 거기서 이어진다. `Reverses = true` 트윈의 정지값은 시작값이다.
 - 끝난 트윈은 다시 `Play` 할 수 있다는 관측이 있다("재사용 불가" 서술은 의심, 정정 표).
 
-mock 흉내: 보간 타입 검사는 mock 마다 다르다. quad runshim 의 데이터 타입 값 객체는 값의 의미가 없어 보간 결과를 흉내 내지 않는다(`mocks.md` §4).
+mock 흉내: 보간 타입 검사는 mock 마다 다르다. quad runshim 의 데이터 타입 값 객체는 값의 의미가 없어 보간 결과를 흉내 내지 않는다(luau-roblox `mocks.md` §4).
 
 ## §7 타입 검사가 잡는 것
 status: verified · last-confirmed: luau-lsp 1.70.1·1.69.0 + `typedefs/globalTypes.d.luau` · 근거: `snippets/rbx-types-engine-calls.luau`

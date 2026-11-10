@@ -12,7 +12,7 @@ stl-luau·moonwave-luau·quad 는 `luau` CLI 만, tbox 는 `luau` + `lute` 이�
 
 ## 반영한 곳
 - `skills/luau-verify/references/tooling.md` §2
-- `skills/roblox-luau/` (판정 표, mock 패턴, Studio MCP 사용법)
+- `skills/luau-roblox/` (판정 표, mock 패턴, Studio MCP 사용법)
 
 ## 되돌릴 조건
 lune 이 `const` 를 파싱하고 Luau 판을 따라잡거나, Studio 를 기계적으로 부를 수 있는 헤드리스 실행기가 생기면 다시 본다.

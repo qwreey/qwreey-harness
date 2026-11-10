@@ -71,7 +71,7 @@ status: described · last-confirmed: Studio 0.736(quad spike10, 2026-09-01, Edit
 - 그래서 Instance 를 키로 쓴 **weak-key 표의 항목은 Instance 가 살아 있어도 사라질 수 있다.** 다시 얻은 userdata 로 찾으면 없다. 강한 표의 키로 쥐고 있으면 userdata 가 살아 있어 신원이 유지된다(대신 그 표가 수거를 막는다).
 - Destroy 된 Instance 는 Lua 참조가 weak 표에만 있으면 수거된다. rbvm 실측: weak 맵에만 든 Instance 20개를 Destroy 하고 할당 부하 + `task.wait()` 를 주자 5프레임 만에 20개 모두 사라졌다.
 - 시그널 userdata 도 같다. 아무도 쥐지 않으면 수거되고 다시 얻으면 새 주소다(`signals-and-events.md` §6).
-- Roblox 에서 수거를 관찰하는 법(`collectgarbage("collect")` 를 못 쓴다)은 `gc-and-weak-tables.md` §6.
+- Roblox 에서 수거를 관찰하는 법(`collectgarbage("collect")` 를 못 쓴다)은 `gc-in-roblox.md` §1.
 
 mock 흉내: **아니오**. quad-mock 의 Instance 는 Lua 테이블 프록시라 참조가 있는 한 신원이 고정되고, 엔진처럼 수거·재생성되지 않는다(quad-mock 머리 주석이 범위 밖으로 명시). 이 동작에 기대는 코드는 Studio 로만 확인한다.
 

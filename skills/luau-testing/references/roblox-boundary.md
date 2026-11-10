@@ -24,7 +24,7 @@ status: described (정책) · 근거: claude-doctor `decisions/D-03-runner.md` "
 2. Roblox 서비스·환경(`task`, 이벤트, Instance 트리)에 기대는 부분은 **그 부분만** mock 으로 대체해 여전히 `luau` 로 돈다. 항상 Studio 를 부르면 기계적으로 반복 시험할 수 없다.
 3. Studio(MCP)는 두 경우에만 쓴다: mock 이 실제와 맞는지 확인할 때, mock 으로 재현할 수 없는 동작(물리, 렌더, 실제 GC·복제)을 볼 때.
 
-mock 작성 패턴, 주입 방법, 충실도 검증 절차는 roblox-luau 스킬 `../../roblox-luau/references/mocks.md`, Studio 에서 확인하는 절차는 `../../roblox-luau/references/studio-mcp.md`, 무엇이 Studio 를 요구하는지의 판정 표는 `../../roblox-luau/references/env-dependence.md` 에 있다. 이 파일은 **테스트 설계 쪽**(경계 긋기, mock 이 틀리는 지점 목록)만 다룬다.
+mock 작성 패턴, 주입 방법, 충실도 검증 절차는 luau-roblox 스킬 `../../luau-roblox/references/mocks.md`, Studio 에서 확인하는 절차는 `../../luau-roblox/references/studio-mcp.md`, 무엇이 Studio 를 요구하는지의 판정 표는 `../../luau-roblox/references/env-dependence.md` 에 있다. 이 파일은 **테스트 설계 쪽**(경계 긋기, mock 이 틀리는 지점 목록)만 다룬다.
 
 ## §2 세 방법: 코어 분리, mock 주입, fake 객체
 status: verified (저장소 패턴 읽기, 2026-11-10) · 근거: `table-sim/.claude/conventions.md:96`, `quad/quad-roblox/test/spec.elem.luau:43`, `rbvm/.claude/review/2026-10-05-repro/fake.luau`, 원천 claude-doctor `drafts/gaps/testing.md` §10
@@ -58,7 +58,7 @@ mock 은 쓰는 사람이 상상한 엔진이다. 원천에서 실제로 엔진�
 | 시그널을 동기로 즉시 배달 | Deferred(신규 place 기본)는 다음 재개점에 배달(§5) |
 | 시계를 직접 읽음(`os.clock`) | 실기기 `task.wait` 는 ±0.02초 지터 → 시계는 주입한다(`gc-and-time.md` §3) |
 
-관리법: 이런 차이는 **목록으로 남기고**, 결과가 mock 의 가정에 기대는 테스트에는 "Studio 확인 후보" 표시를 단다. 엔진 쪽 사실의 근거와 갱신은 roblox-luau 스킬이 맡는다.
+관리법: 이런 차이는 **목록으로 남기고**, 결과가 mock 의 가정에 기대는 테스트에는 "Studio 확인 후보" 표시를 단다. 엔진 쪽 사실의 근거와 갱신은 roblox-engine·roblox-net·roblox-world 스킬이 맡는다.
 
 ## §5 Deferred 배달 심
 status: verified (심의 성질) / described (엔진과의 일치) · 근거: `snippets/test-deferred-shim.luau`(`--@run-opt=2`), `quad/.claude/audit/round13-e79-deferred-signals/README.md:1-30`, 후보 Q-030·Q-018·Q-019

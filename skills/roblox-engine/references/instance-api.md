@@ -46,7 +46,7 @@ status: described · last-confirmed: Studio 0.742.0.7421053(rbvm, 2026-10-13, Ed
 
 - **점 표기·`["…"]` 모두 같은 이름 자식보다 멤버(속성·메서드)가 우선한다.** `inst.Parent` 는 `Parent` 라는 자식이 있어도 속성이다. 자식은 `:FindFirstChild` 로 찾는다. 둘 다 없으면 `X is not a valid member of Folder "Name"`.
 - `FindFirstAncestor*` 와 `IsDescendantOf` 는 **자기 자신을 빼고** 본다. 이름으로 소속을 판정하면 이름 편집으로 우회되므로, 시작 때 잡아 둔 참조로 `IsDescendantOf` 한다.
-- `GetChildren`/`GetDescendants` 순서는 문서 보장이 없다. 관측상 삽입 순이다(`gui-and-input.md` §5).
+- `GetChildren`/`GetDescendants` 순서는 문서 보장이 없다. 관측상 삽입 순이다(roblox-world `gui-and-input.md` §5).
 - 일부 CoreGui 계열 Instance 는 `Name` 을 읽을 때 에러가 날 수 있다는 서술이 있다. `game:GetDescendants()` 전체를 돌 때는 pcall 로 감싼다(미실측).
 - 병렬 단계에서 쓸 수 있는 트리 API(`FindFirstChild` 는 Safe, 소문자 `findFirstChild` 와 `WaitForChild` 는 Unsafe)는 `parallel-luau.md` §3.
 
@@ -72,9 +72,9 @@ mock 흉내: quad-mock 은 순환·자기 Parent 를 거부하도록 맞춰졌�
 ## §3 `Clone()` 과 `Archivable`
 status: described · last-confirmed: quad 2026-09-18(Studio, 태그 상속), devplorer 서술 · 근거: devplorer `.claude/review/2026-10-19-server-edit.md:36-37`, `.claude/review/2026-10-19-server-structure.md:157-158`; quad `.claude/base/tag-plan.md:220-224`, `.claude/base/claim-plan.md:313`; 문서 `classes/Instance.md` Clone · 후보: D-R16, Q-041, T-20
 
-- `Archivable = false` 인 Instance 는 `Clone()` 이 **nil** 을 돌려주고, 그런 자손은 **소리 없이 빠진다.** 타입은 `Clone()` 을 non-nil 로 선언한다(`api-types.md` §10). `GetDescendants` 는 `Archivable` 과 무관하게 다 보인다.
+- `Archivable = false` 인 Instance 는 `Clone()` 이 **nil** 을 돌려주고, 그런 자손은 **소리 없이 빠진다.** 타입은 `Clone()` 을 non-nil 로 선언한다(luau-roblox `api-types.md` §10). `GetDescendants` 는 `Archivable` 과 무관하게 다 보인다.
 - 사본은 태그를 물려받고 `Parent` 는 nil 이다(quad 실측).
-- 사본의 `WeldConstraint` 는 사본 밖 원본 파트를 계속 가리킨다(`world-and-physics.md` §4).
+- 사본의 `WeldConstraint` 는 사본 밖 원본 파트를 계속 가리킨다(roblox-world `world-and-physics.md` §4).
 - 막 만든 사본의 `Parent == nil` 은 파괴된 Instance 와 구분되지 않는다(`instance-lifecycle.md` §3).
 
 mock 흉내: quad-mock 은 Clone 을 다루지 않는다. Archivable 규칙은 어느 mock 도 흉내 내지 않는다.
@@ -82,10 +82,10 @@ mock 흉내: quad-mock 은 Clone 을 다루지 않는다. Archivable 규칙은 �
 ## §4 Attribute
 status: described · last-confirmed: quad 2026-09-01(Studio 0.736, Edit)·09-08·09-10(Studio 0.738), devplorer 2026-10-19(Studio Play) · 근거: quad `.claude/audit/round8-studio-2026-09-08.md:12`, `.claude/audit/studio-docs-2026-09-10.md:144-150`, `.claude/audit/spike10-full-run-2026-09-01.md:38-52`, `.claude/base/attribute-plan.md:85-110,188-194`; devplorer `.claude/review/2026-10-19-server-edit.md:300,304-309`; 문서 `studio/properties.md` "Instance attributes" · 후보: Q-039, Q-040, D-R46
 
-- 값: 프리미티브와 일부 데이터 타입만(문서 목록은 `api-types.md` §6). 테이블·메타테이블 테이블은 `Array is not a supported attribute type` 로 거부된다. `SetAttribute(name, nil)` 은 삭제다.
+- 값: 프리미티브와 일부 데이터 타입만(문서 목록은 luau-roblox `api-types.md` §6). 테이블·메타테이블 테이블은 `Array is not a supported attribute type` 로 거부된다. `SetAttribute(name, nil)` 은 삭제다.
 - 이름: 공백, `RBX` 접두, 100자 초과, 빈 문자열을 거부한다. 안전한 꼴은 `^[%w_]+$` 이다(devplorer 검증 규칙).
 - **Instance 값(미문서 Studio Beta, 2026-09-01 관측 — 낡음 위험 최상)**: `SetAttribute(name, inst)` 를 받았고 `GetAttribute` 는 Instance 가 아니라 `typeof == "InstanceHandle"` 을 돌려줬다. 원본과 `==`·`rawequal` 모두 false, `handle:Get()` 이 원본을 돌려주고(nil 일 수 있음, `:Wait()` 가 실체화를 기다림), 대상이 Destroy 돼도 nil 로 풀리지 않았다. 지금 동작은 다시 확인한다.
-- 타입: `GetAttribute` 는 `unknown?`, `SetAttribute` 의 값은 `any` 다(`api-types.md` §6).
+- 타입: `GetAttribute` 는 `unknown?`, `SetAttribute` 의 값은 `any` 다(luau-roblox `api-types.md` §6).
 
 mock 흉내: 확인한 mock 이 없다. 값 타입·이름 검사를 mock 에 넣으려면 이 절의 규칙을 그대로 쓴다.
 
@@ -139,18 +139,18 @@ mock 흉내: 해당 없음.
 status: described · last-confirmed: tbox 리뷰(2026-10-05), quad 서술 · 근거: tbox `docs/code-review-2026-10-05.md:153-162,187-194,356`, `docs/redesign-precedents.md:23`; quad `.claude/base/source-state-plan.md:1081-1085`, `.claude/base/tween-plan.md:120-121`, `.claude/base/brand-plan.md:276-286`, `.claude/qa-request/post-implementation-review-round13.md:750` · 후보: Q-080, Q-063, Q-048, X-17, X-20, X-23
 
 - Roblox 데이터 타입은 **값으로 같다**(`UDim.new(0, 8) == UDim.new(0, 8)` 은 true). NaN 은 자기와 같지 않아 `==` 기반 중복 제거를 늘 통과한다.
-- `Vector2`·`Vector3`·`CFrame`·`NumberRange` 성분과 네이티브 `vector` 성분은 **float32** 다. 64비트 경계와 비교하면 틀린다(`NumberRange.new(0, 0.1)` 이 `maxSpan = 0.1` 검사에 실패). 경계도 float32 로 반올림해 비교한다. 원격 값 검증 맥락은 `remotes-and-replication.md` §5.
+- `Vector2`·`Vector3`·`CFrame`·`NumberRange` 성분과 네이티브 `vector` 성분은 **float32** 다. 64비트 경계와 비교하면 틀린다(`NumberRange.new(0, 0.1)` 이 `maxSpan = 0.1` 검사에 실패). 경계도 float32 로 반올림해 비교한다. 원격 값 검증 맥락은 roblox-net `remotes-and-replication.md` §5.
 - float 로 저장되는 속성은 쓴 값과 읽은 값이 다를 수 있다는 서술이 있다(`BackgroundTransparency = 0.1`). **미실측**이다.
 - 일부 Roblox userdata 는 **없는 멤버를 인덱싱만 해도 던진다.** 임의 값을 `v.tag ~= nil` 처럼 덕 타이핑하지 말고 `typeof` 를 먼저 보거나 weak-key 집합으로 소속을 판정한다.
 - `CFrame:FuzzyEq` 는 회전을 각도 근사로 비교한다(문서). trace 를 보존하는 왜곡이 정규직교 검사를 통과할 수 있다(Studio 미확인).
 
-mock 흉내: quad runshim 의 데이터 타입은 값의 의미가 없는 관대한 객체라 위 사실을 흉내 내지 않는다(`mocks.md` §4). 네이티브 `vector` 의 float32 는 luau CLI 에서도 재현된다.
+mock 흉내: quad runshim 의 데이터 타입은 값의 의미가 없는 관대한 객체라 위 사실을 흉내 내지 않는다(luau-roblox `mocks.md` §4). 네이티브 `vector` 의 float32 는 luau CLI 에서도 재현된다.
 
 ## §9 런타임 환경 차이 (debug, getfenv, JobId)
 status: described · last-confirmed: quad 2026-08-06(Studio, 사용자 실측 일부), Luau CLI·Lune·Studio 재현(Q-119), devplorer 2026-10-19 · 근거: quad `.claude/research/debug-tooling-plan.md:85-91,186-222`, `.claude/feedback/consumer-kits-studio-qa-2026-10-07.md:512`; devplorer `.claude/research/feature-proposals-2.md:97,184,243` · 후보: Q-057, Q-119, D-F18
 
 - Roblox 의 `debug` 에는 `sethook`, `getlocal`, `setlocal`, `getupvalue`, `setupvalue` 가 없다. `info`, `traceback`, `profilebegin` 계열만 있다.
-- `pcall(getfenv, 1)` 은 호출자 환경이 아니라 pcall(C 함수)에 대한 환경, 곧 실행 중 스레드의 전역을 돌려준다. `loadstring`+`setfenv` 로 주입된 환경(UI Labs 등)을 찾으려면 그냥 `getfenv()` 를 쓴다. `getfenv`/`setfenv` 는 환경 최적화를 끈다(`platform-services.md` §7).
+- `pcall(getfenv, 1)` 은 호출자 환경이 아니라 pcall(C 함수)에 대한 환경, 곧 실행 중 스레드의 전역을 돌려준다. `loadstring`+`setfenv` 로 주입된 환경(UI Labs 등)을 찾으려면 그냥 `getfenv()` 를 쓴다. `getfenv`/`setfenv` 는 환경 최적화를 끈다(roblox-net `platform-services.md` §7).
 - Studio 에서 `game.JobId` 는 빈 문자열이다.
 
 mock 흉내: luau CLI 의 `debug` 는 Roblox 와 목록이 같지 않다. CLI 에서 되는 디버그 기법이 Roblox 에서 없을 수 있다.
@@ -164,7 +164,7 @@ mock 흉내: luau CLI 의 `debug` 는 Roblox 와 목록이 같지 않다. CLI �
 
 | 원천 경로:줄 | 틀리거나 낡은 서술 | 맞는 것 | 근거 |
 |---|---|---|---|
-| rbvm `.claude/design/architecture.md:208-209` | 접두 없는 require 는 형제 기준(rbvm 구현 서술) | 엔진은 접두 없는 경로를 거부한다 | rbvm engine-behavior:68-83 (`require-and-modules.md` §6) |
+| rbvm `.claude/design/architecture.md:208-209` | 접두 없는 require 는 형제 기준(rbvm 구현 서술) | 엔진은 접두 없는 경로를 거부한다 | rbvm engine-behavior:68-83 (`require-in-roblox.md` §1) |
 | devplorer `.claude/review/2026-10-19-server-structure.md:25`(【추론】, 문서 기억) | `QueryDescendants` 가 `:not()` 과 `[prop ^= "x"]` 계열(`^=`·`*=`·`$=`) 연산자를 지원한다 | `:not` 은 "Expected at least one filter", `^=`·`*=`·`$=` 는 "comparison operator expected"(`not a valid selector`) | devplorer `.claude/audit/2026-10-19-server-structure.md:23`, `.claude/review/2026-11-08-post-move-audit.md:40`(Studio 2026-11-09 실측, 같은 저장소) |
 
 ## 미판정

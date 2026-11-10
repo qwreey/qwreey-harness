@@ -7,7 +7,7 @@ description: >-
   .luau 파일을 새로 쓰거나 고칠 때, 리뷰·감사에서 스타일이나 관용구를 판정할 때, PascalCase/camelCase, const 대 local,
   local const, if-then-else 식 대 and/or, f<<T>>, init.luau 와 @self, error level 과 -O2, pcall 함정, stylua 설정,
   --!strict, TODO 마커, 주석 언어가 질문일 때 쓴다. 타입 시스템 결함은 luau-types, 검사 도구 호출법은 luau-verify,
-  Roblox 엔진 동작은 roblox-luau, 성능 수치는 luau-perf 가 다룬다.
+  require 경로 해석·코루틴 의미론은 luau-runtime, Roblox 엔진 동작은 roblox-engine, 성능 수치는 luau-perf 가 다룬다.
 ---
 
 # luau-style
@@ -90,5 +90,5 @@ description: >-
 - 타입 시스템 한계와 솔버 결함, type function → `luau-types`
 - 측정 방법과 수치(메타테이블 비용, 호출 모양, 문자열) → `luau-perf`
 - 검사기 호출법, 음성 대조군, 핀 → `luau-verify`
-- Roblox 엔진·서비스 동작, mock, Studio, Studio 쪽 require → `roblox-luau`
+- require 경로 해석(CLI)·weak 표·코루틴 의미론 → `luau-runtime` / mock, Studio, Roblox 타입 → `luau-roblox` / Roblox 엔진·서비스 동작, Studio 쪽 require → `roblox-engine`·`roblox-net`·`roblox-world`
 - 저장소 고유 설계(특정 라이브러리의 API, 트레이트, 오류 번호 체계) → 각 저장소 `.claude/`

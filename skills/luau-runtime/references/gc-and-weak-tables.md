@@ -1,30 +1,30 @@
-# gc-and-weak-tables — 약한 표의 의미론, 누수 조건, GC 프로브의 함정
+# gc-and-weak-tables — 약한 표의 의미론, 누수 조건, GC 프로브의 함정 (엔진 무관)
 
 ## 이 파일이 답하는 질문
 - Q1 weak-key 표의 값이 자기 키를 잡으면 항목이 수거되나? (Luau 에 ephemeron 이 있나?)
 - Q2 `__mode = "v"` 표의 키는? `__mode` 를 잘못 쓰면?
 - Q3 weak 표 항목이 "어느 날" 사라져 코드가 간헐적으로 실패한다. 왜?
 - Q4 "누수다/아니다"를 어떻게 판정하나? 프로브가 스스로 결론을 바꾸는 함정은?
-- Q5 Roblox 에서는 `collectgarbage("collect")` 를 못 쓴다. 수거를 어떻게 관찰하나?
+- Q5 Roblox 에서는 `collectgarbage("collect")` 를 못 쓴다. 수거를 어떻게 관찰하나? → roblox-engine `gc-in-roblox.md`
 - Q6 weak 표를 쓰는 설계에서 피해야 할 모양은?
 
 ## 목차
-- §1 범위: 이 파일과 luau-perf 의 경계
+- §1 범위: 이 파일과 luau-perf·luau-testing·roblox-engine 의 경계
 - §2 ephemeron 이 없다
 - §3 weak 모드의 의미: 키·값·오타·구멍·멈춘 코루틴
 - §4 GC 시점에 기대는 코드
 - §5 누수 판정 절차와 프로브 함정
-- §6 Roblox 에서 GC 를 관찰하기
+- §6 Roblox 에서 GC 를 관찰하기 → roblox-engine `gc-in-roblox.md`
 - §7 설계 처방
 - 모순 판정 · 정정
 
 ---
 
-## §1 범위: 이 파일과 luau-perf 의 경계
+## §1 범위: 이 파일과 luau-perf·luau-testing·roblox-engine 의 경계
 - 이 파일은 **의미론과 누수 판정**을 다룬다. 같은 언어 사실(ephemeron 없음)을 luau-perf `gc-and-memory.md` 도 비용 관점에서 한 줄로 적는다. 무엇이 수거되고 무엇이 남는가, 그것을 어떻게 믿을 만하게 재는가.
 - **비용**(weak 표의 칸 수가 줄지 않음 `"ks"`, weak-key 레지스트리의 생성·GC 비용, 객체 크기, "GC 는 할당이 있어야 진행" 의 성능 쪽)은 luau-perf 스킬의 `gc-and-memory.md` 가 다룬다.
-- §2·§3·§5 의 주장은 순수 Luau 라 luau CLI 로 재현했다(`status: verified`). Roblox VM 도 같은 Luau 의미론을 따른다. 수거 **시점**은 엔진마다 다르다(§4, §6).
-- Instance userdata 의 수거·재생성은 엔진 동작이라 `instance-lifecycle.md` §4 에 있다.
+- §2·§3·§5 의 주장은 순수 Luau 라 luau CLI 로 재현했다(`status: verified`). Roblox VM 도 같은 Luau 의미론을 따른다. 수거 **시점**은 호스트마다 다르다(§4).
+- **엔진이 얽힌 관찰은 roblox-engine 에 있다.** Roblox 안에서 수거를 관찰하는 법과 `collectgarbage` 제약은 roblox-engine `gc-in-roblox.md`, Instance 를 weak 키로 쓴 표가 비는 이유(userdata 재생성)와 `Connect` 가 잡는 참조·누수는 roblox-engine `instance-lifecycle.md` §4–6 이다.
 - **측정 하네스**(fullgc, 객체 수 판정, 테스트로 고정하는 법)의 정본은 luau-testing 스킬의 `gc-and-time.md` 다. §5 는 누수 **판정**에 필요한 만큼만 요약한다.
 
 ## §2 ephemeron 이 없다
@@ -59,10 +59,10 @@ status: described · last-confirmed: quad 실측(CLI, 2026-09), quad Studio 2026
 
 - weak 항목이 사라지는 때는 GC 가 정한다. 같은 키를 다시 쓰는 코드가 **간헐적으로** 실패한다. weak 캐시의 유일한 강한 앵커를 먼저 치우면, 다음 할당 중(증분 GC 의 원자 단계 포함) 값이 사라진다.
 - 처방: **명시적으로 만든 기록은 명시적으로 지운다.** weak 표는 "놓쳐도 되는 캐시"에만 쓴다.
-- GC 는 할당이 있어야 진행한다. 유휴 Studio 클라이언트의 `collectgarbage("count")` 가 12초 동안 56MB 그대로였고, 짧게 사는 쓰레기를 할당하자 약 10MB 로 돌아왔다. 할당이 없으면 "안 줄어든다"는 누수 증거가 아니다.
+- GC 는 할당이 있어야 진행한다(증분 GC 의 걸음은 할당이 민다). 할당이 없으면 "안 줄어든다"는 누수 증거가 아니다. Studio 에서 본 실례(유휴 클라이언트 56MB 가 할당을 주자 약 10MB)는 roblox-engine `gc-in-roblox.md` §2.
 - weak-key 표에 넣기만 해도 메모리가 선형으로 느는 것처럼 보이는 것은 누수가 아니라 GC 페이싱 아래의 고수위다(수치·`"ks"`: luau-perf `gc-and-memory.md` §3).
 
-mock 흉내: CLI 의 GC 시점은 Roblox 와 다르다(`env-dependence.md` §2 마지막 행). 시점에 기대는 버그는 CLI 에서 재현되지 않을 수 있다.
+mock 흉내: CLI 의 GC 시점은 Roblox 와 다르다(luau-roblox `env-dependence.md` §2 마지막 행). 시점에 기대는 버그는 CLI 에서 재현되지 않을 수 있다.
 
 ## §5 누수 판정 절차와 프로브 함정
 status: verified (함정 셋) / described (하네스 절차) · last-confirmed: luau 0.734, 0.742 · 근거: `snippets/rbx-gc-probe-pitfalls.luau`; quad `.claude/audit/round13-e42-gc-sweep/README.md:10-13,92-93`, `.claude/audit/tween-completed-2026-09-21/REPORT.md:25-31,43-44`, `.claude/audit/perf-studio-2026-10-22/REPORT.md:14-17` · 후보: Q-122, Q-123, Q-005, Q-003
@@ -73,14 +73,8 @@ status: verified (함정 셋) / described (하네스 절차) · last-confirmed: 
 
 mock 흉내: 해당 없음.
 
-## §6 Roblox 에서 GC 를 관찰하기
-status: described · last-confirmed: 문서 `globals/LuaGlobals.md` collectgarbage(last_updated 2026-11-10); quad 2026-09-01·09-08·09-21 Studio, rbvm 0.742(2026-10-13, Deferred) · 근거: 문서 "Roblox's Luau sandbox only allows the count option"; quad `.claude/audit/tween-completed-2026-09-21/infinite-tween-probe.md:10-12`, `.claude/audit/spike10-full-run-2026-09-01.md:12-14`, `.claude/audit/round8-studio-2026-09-08.md:11`; rbvm `.claude/design/engine-behavior.md:47` · 후보: Q-011, R-18
-
-- Roblox 의 `collectgarbage` 는 `"count"` 만 받는다(문서, deprecated 표시, `gcinfo()` 를 권한다). Studio MCP 실행 스레드에서도 `"collect"` 는 `use gcinfo() instead` 로 거부됐다.
-- 관찰법: **할당 압박 + 프레임 넘기기.** 에포크마다 `table.create(5000)` 을 20번 할당하고 `task.wait(0.05)` 한다. weak 표 canary 가 비면 수거된 것이다. 실측상 2~3 에포크(1초 미만)에 비었다. rbvm 은 Instance 20개가 5프레임 만에 수거됐다.
-- 결과는 "N 에포크 안에 수거됨/안 됨"으로 적는다. 대조군(수거돼야 하는 것)이 같은 에포크 안에 수거되는지 같이 본다. tween-completed 실측은 대조군 8 에포크, 누수 후보 150 에포크 잔존으로 판정했다.
-
-mock 흉내: 해당 없음. CLI 에서는 `collectgarbage("collect")` 로 바로 본다.
+## §6 Roblox 에서 GC 를 관찰하기 → roblox-engine `gc-in-roblox.md`
+- 엔진 동작이라 roblox-engine 으로 옮겼다(2026-11-10). 요지: Roblox 의 `collectgarbage` 는 `"count"` 만 받으므로 할당 압박 + 프레임 넘기기로 weak canary 가 비는지 본다.
 
 ## §7 설계 처방
 status: described · 근거: quad `.claude/base/relate-plan.md:121,140-151`, `.claude/audit/round13-e42-gc-sweep/README.md:42`, `.claude/archive/v2-initial-implementation/pre-implementation-handtrace-round7.md:2453-2458`, `.claude/archive/question-resolved.md:1495`; rbvm `.claude/review/2026-10-05-code-review.md:571-584` · 후보: Q-006, Q-007, Q-002, R-22
@@ -88,7 +82,7 @@ status: described · 근거: quad `.claude/base/relate-plan.md:121,140-151`, `.c
 - **함수를 키로 쓰는 dedup·레지스트리 표**: 인라인 클로저가 바깥 모듈을 잡으면 그 모듈이 영원히 산다(잡는 경우 50/50 잔존, 안 잡는 경우 0/50). 키 함수는 모듈 수준 함수로 둔다.
 - **반응형·옵저버 그래프**: 구독자를 weak 로 담는다면 하류 → 상류 참조는 강하게 둔다. 아니면 중간 파생 노드가 수거돼, Observer 가 레지스트리에 살아 있는데도 에러 없이 다시는 발화하지 않는다(실측: 발화 0, 구독자 0).
 - **두 weak 표를 잇는 설계**: 값이 다른 표의 키를 가리키면 §2 의 순환 누수다. 한쪽을 강한 표 + 명시 정리로 바꾼다.
-- Instance 를 weak 키로 쓰는 표는 엔진이 userdata 를 재생성해 항목이 미아가 될 수 있다(`instance-lifecycle.md` §4–5).
+- Roblox: Instance 를 weak 키로 쓰는 표는 엔진이 userdata 를 재생성해 항목이 미아가 될 수 있다(roblox-engine `instance-lifecycle.md` §4–5, 관찰법 roblox-engine `gc-in-roblox.md` §1).
 
 mock 흉내: 해당 없음.
 
@@ -106,4 +100,5 @@ mock 흉내: 해당 없음.
 | 원천 경로:줄 | 틀리거나 낡은 서술 | 맞는 것 | 근거 |
 |---|---|---|---|
 | quad `.claude/audit/tween-completed-2026-09-21/probe-log.md`(탐사자 1~6, 7·8 판정) | weak-key 표가 ephemeron 처럼 수거된다 | 포획 업밸류를 비운 프로브 결함. Luau 는 ephemeron 이 아니다 | `rbx-gc-no-ephemeron.luau`, `rbx-gc-probe-pitfalls.luau` (원천 REPORT 가 이미 무효 처리, 확인용) |
-| quad audit/08 Q-011 비고 | `collectgarbage("collect")` 가 일반 스크립트에서도 막혔는지 범위 재확인 필요 | Roblox 샌드박스 전체에서 `"count"` 만 허용(문서) | 문서 `globals/LuaGlobals.md` |
+
+Roblox 쪽 정정(`collectgarbage` 범위, Q-011)은 roblox-engine `gc-in-roblox.md` 정정 절에 있다.
