@@ -165,7 +165,7 @@ mock 흉내: luau CLI 의 `debug` 는 Roblox 와 목록이 같지 않다. CLI �
 | 원천 경로:줄 | 틀리거나 낡은 서술 | 맞는 것 | 근거 |
 |---|---|---|---|
 | rbvm `.claude/design/architecture.md:208-209` | 접두 없는 require 는 형제 기준(rbvm 구현 서술) | 엔진은 접두 없는 경로를 거부한다 | rbvm engine-behavior:68-83 (`require-and-modules.md` §6) |
-| devplorer `$=` 지원 기억(`.claude/review/2026-10-19-server-round6.md`) | `QueryDescendants` 가 `$=` 를 지원한다 | `not a valid selector` | devplorer 2026-11-08 실측(같은 저장소) |
+| devplorer `.claude/review/2026-10-19-server-structure.md:25`(【추론】, 문서 기억) | `QueryDescendants` 가 `:not()` 과 `[prop ^= "x"]` 계열(`^=`·`*=`·`$=`) 연산자를 지원한다 | `:not` 은 "Expected at least one filter", `^=`·`*=`·`$=` 는 "comparison operator expected"(`not a valid selector`) | devplorer `.claude/audit/2026-10-19-server-structure.md:23`, `.claude/review/2026-11-08-post-move-audit.md:40`(Studio 2026-11-09 실측, 같은 저장소) |
 
 ## 미판정
 - **float 저장 속성의 왕복(Q-063).** 절차: `Frame.BackgroundTransparency = 0.1` 뒤 `== 0.1` 과 `string.format("%.17g")` 값을 기록하고, Position(UDim2)·Size·Color3 성분도 같이 본다.
