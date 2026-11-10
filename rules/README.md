@@ -1,44 +1,54 @@
-# rules — 경로 조건부 공통 규약
+# rules - path-scoped shared rules
 
-여러 Luau 저장소가 함께 쓰는 `paths:` 조건부 규칙 파일을 둔다. 정본은 이 디렉터리이고, 사용자 레벨 `~/.claude/rules/` 에는 심볼릭 링크로 건다(claude-doctor `home/MANIFEST` 의 `link rules/<파일> …` 줄).
+This directory holds the `paths:`-scoped rule files shared by several Luau repos. This directory is canonical; user-level `~/.claude/rules/` links to it with symlinks (the `link rules/<file> …` lines in claude-doctor `home/MANIFEST`).
 
-| 파일 | paths | 줄 수 | 근거·예시 |
+| File | paths | Lines | Rationale and examples |
 |---|---|---|---|
-| `luau-core.md` | `**/*.luau` | 38 | `skills/luau-style/references/` (각 줄 끝 링크) |
-| `code-structure.md` | `**/*.{luau,lua}` | 9 | **안내만 둔다.** 구조 규칙(D-13 확정)은 툴킷과 무관해서 정본이 사용자 레벨 `~/.claude/rules/code-structure.md`(claude-doctor `home/.claude/rules/code-structure.md`, MANIFEST 관리 파일)로 옮겨 갔다. 이 파일은 MANIFEST 로 링크하지 않는다. 플러그인을 읽지 않는 에이전트에게 정본 위치와 Luau 세부(`skills/luau-style/references/structure.md`·`splitting.md`, 입구 `init.luau`)만 알려 준다 |
+| `luau-core.md` | `**/*.luau` | 40 | `skills/luau-style/references/` (link at the end of each line) |
+| `code-structure.md` | `**/*.{luau,lua}` | 11 | **Pointer only.** The structure rules (D-13, decided) are toolkit-independent, so their canonical copy moved to user level `~/.claude/rules/code-structure.md` (claude-doctor `home/.claude/rules/code-structure.md`, a MANIFEST-managed file). This file is not linked by MANIFEST. It only tells agents that do not read the plugin where the canonical rules are and where the Luau details live (`skills/luau-style/references/structure.md`, `splitting.md`, entry `init.luau`) |
 
-## 작성 규칙
-- frontmatter 에 `paths` 를 반드시 단다. 없으면 매 세션 항상 로드되어 비용이 그대로다.
-- 한 줄에 규칙 하나, 명령형으로 쓰고 줄 끝에 근거 reference 링크를 붙인다. 근거와 사실은 references 에 두고 다시 쓰지 않는다.
-- 링크는 `../skills/luau-style/references/X.md` 상대 경로다. 이 저장소 안에서도, `~/.claude/rules/` 와 `~/.claude/skills/luau-style` 이 나란히 링크된 사용자 홈에서도 같은 파일을 가리킨다.
-- 파일 하나를 40줄 이하로 둔다.
-- 정책이 갈린 항목은 사용자 결정 전에는 규칙으로 만들지 않는다. 이견 없는 공통분만 넣는다(아래).
+## Writing rules
+- Every rule file has frontmatter with `paths` (required; without it the file loads in every session at full cost) and a one-line `description` in Korean.
+- The body is English (fewer tokens per injection, see below). One rule per line, imperative, with the rationale reference link at the end. Facts and rationale stay in references; do not restate them here.
+- Links are relative: `../skills/luau-style/references/X.md`. They point to the same file inside this repo and in a user home where `~/.claude/rules/` and `~/.claude/skills/luau-style` are linked side by side.
+- Keep each file at 40 lines or fewer.
+- Do not turn a contested policy into a rule before the user decides. Only the undisputed common part goes in (below).
 
-## `luau-core.md` 각 줄의 출처 (2026-11-10)
-사용자 확정 결정(claude-doctor `decisions/README.md` "사용자 결정 현황")과 충돌하지 않는 줄만 넣었다.
-- **확정 결정**: `const` 사용과 파일 안 일관성(D-01), stylua 루트 실행·`<<` diff(D-02), 게이트 exit code·stderr(D-06).
-- **일곱 저장소가 이미 일치하는 공통분**: 네이밍 다섯(D-09 의 이견 없는 부분), 식별자·에러 메시지 영어와 "파일의 주석 언어 따르기"(D-08 의 이견 없는 부분), 에러 리터럴, `@self`·리터럴 경로·엔트리 이름·실제 require 테스트(D-12 의 이견 없는 부분).
-- **언어 사실에서 나온 줄**(스니펫으로 재현): `local const`, `(` 문장, `and/or` 삼항, 맨 `function`, `error(e, 0)` 되던지기, `pcall(f(x))`.
-- **넣지 않은 것**(제안 상태라 스킬에만 `> 정책: 제안(D-xx)` 으로 둠): 새 파일의 주석 언어(D-08), 네임스페이스 함수 케이스·새 저장소 기본값(D-09), 라이브러리 raise 헬퍼 의무화와 줄 단언 테스트(D-10 — rules 에는 "헬퍼가 있으면 쓴다"만), 필드 읽기(D-11), `@game/`(D-12), 코드 `TODO`(D-07), 버전 명시(D-05).
+## Where each line of `luau-core.md` comes from (2026-11-10)
+Only lines that do not conflict with the user's decisions (claude-doctor `decisions/README.md`, "사용자 결정 현황") are included.
+- **Decided**: using `const` and staying consistent within a file (D-01), running stylua from the root and diffing `<<` files (D-02), gate exit code and stderr (D-06).
+- **Common ground the seven repos already share**: the five naming rules (undisputed part of D-09), English identifiers and error messages plus "follow the file's comment language" (undisputed part of D-08), literal error messages, `@self`, literal paths, entry names, and real `require` tests (undisputed part of D-12).
+- **Lines that come from language facts** (reproduced in snippets): `local const`, statements starting with `(`, `and/or` ternaries, bare `function`, `error(e, 0)` rethrow, `pcall(f(x))`.
+- **Left out** (still proposals, so they live only in the skill as `> 정책: 제안(D-xx)`): comment language for new files (D-08), namespace-function casing and new-repo defaults (D-09), mandatory library raise helper and line-assert tests (D-10; the rules only say "use the helper if there is one"), field reads (D-11), `@game/` (D-12), code `TODO`s (D-07), version pinning (D-05).
 
-## 심볼릭 링크로 건 rules 가 로드되는가 (실측 2026-11-10, Claude Code 2.1.316, `claude -p --model sonnet`)
+## English body: tokens and compliance (2026-11-10, Claude Code 2.1.316, `claude -p --model sonnet`)
+- Tokens: a temporary project with only `.claude/rules/<file>` and `mod.luau`; prompt "Read mod.luau, then reply with just: ok". Rule cost = context size of the API call after the Read minus the no-rule control (23,689).
 
-임시 프로젝트 넷을 만들고 각각 `mod.luau` 를 Read 하게 한 뒤, `stream-json` 출력에 규칙 본문이 붙었는지와 모델의 답을 봤다. 프로젝트는 각자 `git init` 한 디렉터리이고 작업 디렉터리도 그곳이다.
+  | File | Korean body | English body | Change |
+  |---|---|---|---|
+  | `luau-core.md` | +1,826 | +1,409 | −417 (−23%) |
+  | `code-structure.md` | +413 | +345 | −68 (−16%) |
 
-| 프로젝트 `.claude/rules/luau-core.md` | 규칙 로드 |
+- Compliance: the rules-only condition of the `snippets/RESULTS.md` style measurement (same task and 12-item scorer), English `luau-core.md`, 2 runs: **12/12, 12/12** (Korean body before: 12/12, 12/12). The rule loaded in both runs, and both reports separated the verification scope ("Studio not measured"). One run used a hand-counted `error(msg, 2)` 6 times; the repo had no raise helper, so this is not a rule violation (the Korean runs had 0).
+
+## Do symlinked rules load? (measured 2026-11-10, Claude Code 2.1.316, `claude -p --model sonnet`)
+
+Four temporary projects, each told to Read `mod.luau`; we checked whether the rule body was attached in the `stream-json` output and what the model answered. Each project is its own `git init` directory and is also the working directory.
+
+| Project `.claude/rules/luau-core.md` | Rule loaded |
 |---|---|
-| 실제 파일(복사본) | **로드됨** (Read 직후 system reminder, 첫 줄을 그대로 인용) |
-| 프로젝트 **안** 파일을 가리키는 symlink(`../../shared/luau-core.md`) | **로드됨** (reminder 의 경로는 링크 대상 `shared/luau-core.md` 로 표시) |
-| 프로젝트 **밖**(`/code/Projects/luau-kb/rules/luau-core.md`)을 가리키는 symlink | **로드 안 됨** (모델 답 "NONE") |
-| 규칙 없음(대조군) | 로드 안 됨 |
+| Real file (copy) | **Loaded** (system reminder right after the Read; the model quoted the first line verbatim) |
+| Symlink to a file **inside** the project (`../../shared/luau-core.md`) | **Loaded** (the reminder shows the link target path `shared/luau-core.md`) |
+| Symlink to a file **outside** the project (`/code/Projects/luau-kb/rules/luau-core.md`) | **Not loaded** (model answered "NONE") |
+| No rule (control) | Not loaded |
 
-공식 문서(code.claude.com/docs/en/memory, 2026-11-10 확인)와 일치한다.
+This matches the official docs (code.claude.com/docs/en/memory, checked 2026-11-10).
 - "Claude Code treats a symlink whose target is outside your working directory like an external import. The linked rules don't load until you approve external imports for the project, and after that only the ones without a `paths` field load."
-  - 승인 대화상자는 대화형 세션을 시작할 때만 뜬다. 그래서 `-p` 에서는 승인할 길이 없다.
-  - 문서대로라면 **승인해도 `paths` 가 있는 외부 symlink 규칙은 로드되지 않는다.** 그래서 `luau-core.md` 를 프로젝트 `.claude/rules/` 에 외부 symlink 로 거는 방식은 쓸 수 없다.
-- 사용자 레벨은 다르다: "To load shared rules without that approval, keep them in `~/.claude/rules/`". `~/.claude/rules/` 의 파일은 사용자가 쓴 것으로 보고 대화상자 없이 신뢰한다.
-  - 예외는 데스크톱 Cowork 세션이다. 거기서는 작업 디렉터리 밖을 가리키는 symlink 규칙 파일·디렉터리를 건너뛴다.
-- 결론: 배포는 **사용자 레벨 `~/.claude/rules/luau-core.md` → 이 저장소 파일** symlink 로 한다(MANIFEST 의 `link` 줄).
-  - 사용자 레벨 symlink 의 로드는 문서 근거만 있고 이번에 재지 않았다. 실제 홈 설정을 바꾸지 않기 위해서다.
-  - home-sync 로 링크를 건 뒤 `.luau` 파일 하나를 Read 하는 `claude -p` 한 번으로 확인한다.
-  - 특정 저장소에만 걸고 싶으면 링크 대신 복사본이나 프로젝트 안 파일을 쓴다.
+  - The approval dialog appears only when an interactive session starts, so `-p` has no way to approve.
+  - Per the docs, **even after approval, external symlinked rules that have `paths` do not load.** So linking `luau-core.md` into a project's `.claude/rules/` as an external symlink cannot work.
+- User level is different: "To load shared rules without that approval, keep them in `~/.claude/rules/`". Files in `~/.claude/rules/` are treated as user-authored and trusted without a dialog.
+  - The exception is desktop Cowork sessions, which skip symlinked rule files and directories that point outside the working directory.
+- Conclusion: deploy as a **user-level `~/.claude/rules/luau-core.md` → this repo's file** symlink (the `link` line in MANIFEST).
+  - Loading through a user-level symlink is backed by the docs only and was not measured, to avoid changing the real home setup.
+  - After home-sync creates the link, confirm with one `claude -p` that Reads a `.luau` file.
+  - To apply the rules to one repo only, use a copy or a file inside that project instead of a link.

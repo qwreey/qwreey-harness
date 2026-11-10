@@ -192,6 +192,7 @@
 - skill 조건의 결함 둘: skill 1 은 `init.luau` 에 `--!strict` 를 빠뜨렸다. skill 2 는 사용자가 정한 `add(name, count)` 를 스킬의 "새 저장소 기본값"(Pascal, 제안 D-09)에 따라 `Add`·`New` 로 바꿨다. 그래서 `naming.md` §3 과 SKILL 결정 트리에 "사용자가 정한 이름이 기본값보다 우선"을 더했다(측정 뒤 수정). 이 문구는 뒤에 "바꾸지 말고 제안"으로 다시 고쳐 재측정했다(아래 "이름 제안 원칙 재측정").
 - rules 만 둔 조건에서는 링크된 references 가 프로젝트에 없어 모델이 "규칙 본문만 따랐다"고 보고했다. 사용자 홈 배포(`~/.claude/rules` + `~/.claude/skills/luau-style`)에서는 상대 링크가 풀린다.
 - 표본이 조건마다 2회라 차이는 방향만 본다.
+- **rules 영어화 뒤 재측정(2026-11-10)**: 본문을 영어로 바꾼 `luau-core.md` 로 rules 조건만 2회 — **12/12, 12/12**(회귀 없음), 두 번 모두 rules 로드·보고에서 검증 범위 구분. 1회는 손으로 센 `error(msg, 2)` 6곳(저장소에 raise 헬퍼가 없어 규칙 위반은 아님, 한국어 본문 때 0). 비용 0.12·0.16 USD. 토큰은 `rules/README.md`.
 
 ### 타입 하나를 여러 파일로 나누기 — `style-split-types.sh` (2026-11-10)
 명령: `choom -n 1000 -- bash snippets/style-split-types.sh` (기본 0.734 0.742 0.746) → **세 버전 각 23건 ok, rc=0**. 파일이 여럿 필요해서 셸로 잰다.
