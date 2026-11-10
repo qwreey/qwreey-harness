@@ -83,6 +83,7 @@ status: described (업스트림 칸) / verified (스니펫이 있는 행) · 근
 | ID | 한계 | 근거 | 업스트림 | 상태 (0.746) | 우회 수명 |
 |---|---|---|---|---|---|
 | R1 (tf) | type function 에서 읽기 전용 인덱서를 다시 조립 못 함 — `setreadindexer` 런타임 에러 "luau does not yet support separate read/write types for indexers" | `tf-rebuild-read-indexer` | UDTF RFC 문서에 API 는 있으나 master `TypeFunctionRuntime.cpp` 가 아직 에러. 추적 이슈·PR 없음(0.738 은 읽기 전용 인덱서 **추론**만 개선) | bug | 임시이지만 시점 근거 없음: 인덱서 슬롯은 원본을 그대로 돌려준다 |
+| FP-ipairs | (위양성) 새 솔버가 `for i in ipairs(t)`(루프 변수 하나)를 "Argument count mismatch. Function expects 2 arguments, but 2 are specified" 로 거부. 옛 솔버·두 변수·`pairs` 는 통과 | `solver-ipairs-single-var`, luau-types `solver-limits.md` §4-1 | 없음(GitHub 검색 2026-11-10 "ipairs Argument count", "but 2 are specified". 인접 #2986 제네릭 팩 호출의 암묵 nil 인자 개수) | bug(0.746, lsp 1.70.1) | 임시: `for i, _ in ipairs(t)` 나 숫자 for. 고쳐지면 스니펫 expect-error 가 실패한다 |
 | R3 (tf) | 리터럴의 모르는 키(남는 키)를 어떤 테이블 타입도 검사하지 않음 | `tf-noalt-merge` 31–33행 | exact table rfcs#11 — 0.740 실험 뒤 **2026-10-28 닫힘**("진행하지 않기로") | bug | **영구**: 이 모양의 검사는 오지 않는다 |
 | L1–L9 (tf) | too complex, 스택 오버플로, 무한 루프에 시간 한도 없음 | `tf-limit-*` | 부분 수정: 0.735 UDTF 힙 한도, 0.738 #2707(모듈 간 too complex). 열림: #2273·#2234·#2356·#2056, #3013(큰 테이블 리터럴, 0.745 에 관련 수정) | 재현 | 영구: 설계로 줄인다 |
 | X1 (tf) | 인스턴스화 안 된 `export type function` 소비 시 진단 0건 | type-functions-limits X1 | 없음 | — | 영구: 정의 모듈에서 프라이밍 |

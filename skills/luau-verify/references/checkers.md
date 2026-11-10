@@ -7,6 +7,7 @@
 - Q4 추론된 실제 타입을 보려면?
 - Q5 CI 기준 검사기는 둘 중 무엇인가? (결정: D-06)
 - Q6 공개 API 의 hover, 자동완성, 추론 타입 표시(DX)를 어떻게 확인하나? Claude Code 에서 luau-lsp 를 LSP 로 쓰려면?
+- Q7 require 가 안 풀리면 검사기는 어떻게 반응하나? symlink, `.luaurc` alias, `init.luau` 의 `./` 는?
 
 ## 목차
 - §1 luau-analyze
@@ -15,11 +16,12 @@
 - §4 추론 타입 보기
 - §5 기준 검사기 (결정: D-06)
 - §6 DX 검사 (hover, 자동완성, 추론 타입) 와 Claude Code LSP 연동
+- §7 require 해소: 검사기와 런타임이 갈리는 자리
 
 ---
 
 ## §1 luau-analyze
-status: verified · last-confirmed: luau 0.742 (`--help`, 수동 실행; `snippets/RESULTS.md` "스니펫 밖에서 실측한 것")
+status: verified · last-confirmed: luau 0.742 (0.734 동일) (`--help`, 수동 실행; `snippets/RESULTS.md` "스니펫 밖에서 실측한 것", `snippets/verify-fflags-force-strict.luau`, `snippets/verify-require.sh` R6)
 
 ```bash
 L=/code/.local/share/mise/installs/luau/0.742     # 버전 디렉터리 직접 (shim 함정은 toolchain.md)
@@ -31,10 +33,17 @@ L=/code/.local/share/mise/installs/luau/0.742     # 버전 디렉터리 직접 (
 - **진단은 stderr 로 나온다.** `2>/dev/null` 을 붙이면 0건처럼 보인다. 파이프에 넘길 때는 `2>&1` 을 붙인다.
 - 형식: `./file.luau(줄,열): TypeError: 메시지`. 여러 줄 메시지는 다음 줄들에 이어진다(`Expected this to be` 다음 줄에 타입). 부분 문자열로 기대할 때는 이어진 줄까지 붙여서 본다.
 - 종료 코드: TypeError/SyntaxError 가 있으면 1, 린트(`LocalUnused`, `LocalShadow` 등)만 있으면 0.
-- 옵션은 `--mode`, `--solver`, `--formatter`, `--annotate`, `--timetrace` 뿐이다. **FFlag 를 바꾸는 옵션이 없다.** 한도 플래그 조정과 정의 파일 로딩이 필요하면 luau-lsp 를 쓴다.
+- `--help` 에 나오는 옵션은 `--mode`, `--solver`, `--formatter`, `--annotate`, `--timetrace` 다. **`--help` 에 없는 `--fflags=이름=true|false[,…]` 도 받는다**(0.742 소스 `CLI/src/Analyze.cpp:434`, 후보 S-129).
+  - 불리언 플래그만 바뀐다. 모르는 이름은 stderr 에 `Warning: unrecognized flag 'X'.`, 정수 한도(`LuauTypeInferIterationLimit=10` 등)는 `Warning: unrecognized value '10' for flag …` 를 내고 무시된다. 경고는 rc 에 영향이 없으니 플래그 이름 오타를 rc 로 알아챌 수 없다. stderr 를 본다.
+  - `--fflags=true` / `false` 는 `Luau` 로 시작하는 모든 불리언 플래그를 켜거나 끈다(실험 플래그 포함, `CLI/src/Flags.cpp`).
+  - 쓸모 있는 예: `--fflags=DebugLuauForceStrictMode=true` 는 `.luaurc` nonstrict 를 덮고 strict 로 검사한다(`snippets/verify-fflags-force-strict.luau`).
+  - 기본값: luau CLI 는 실험적이지 않은 `Luau*` 불리언 플래그를 모두 켜고 돈다(`setLuauFlagsDefault`). Studio·luau-lsp 에디터 판정과 다를 수 있다(후보 S-129, described).
+  - **정정(2026-11-10)**: 이전 판은 "FFlag 를 바꾸는 옵션이 없다"고 적었다. 정수 한도 플래그와 정의 파일 로딩은 여전히 luau-lsp 로만 된다.
 - `--mode=strict` 는 `.luaurc` 도 `--!` 지시자도 없을 때의 기본값만 정한다(`snippets/modes-*.luau`).
 - `.luaurc` 는 **검사하는 파일 기준으로** 상위 디렉터리에서 찾는다. 재현 파일을 다른 프로젝트 안에 두면 그 프로젝트의 `.luaurc` 가 끼어든다. 이 저장소 하네스는 파일을 임시 디렉터리로 복사해서 검사한다.
 - Roblox 전역(`Instance`, `game`)을 모른다. 정의 파일 옵션이 없어 Roblox 코드는 luau-lsp 로 검사해야 한다.
+- 이 성질을 거꾸로 쓰면 **엔진 무관 보장 게이트**가 된다. 엔진 무관이어야 하는 패키지를 정의 파일 없이(luau-analyze 나 `luau-lsp analyze --platform=standard`) 검사하면 Roblox 전역 사용이 `Unknown global 'game'` 타입 에러로 드러난다. Roblox 그룹만 핀 고정한 정의 파일로 본다(`snippets/verify-engine-free-globals.luau`, 후보 Q-114, quad `scripts/test.sh:28-31,42-44`).
+- 같은 모듈이 두 경로로 열리면(`luau-analyze src tests` 에서 tests 가 `../src/X` 를 require) 같은 진단이 `./src/X.luau(…)` 와 절대 경로 `/…/src/X.luau(…)` 로 **두 번** 보고된다. 진단 건수나 음성 대조군 기대 건수를 셀 때는 경로를 정규화하거나 파일을 한 번만 넘긴다(`snippets/verify-require.sh` R6, 후보 S-128, stl `base/architecture.md:111-114`).
 
 ## §2 luau-lsp analyze
 status: verified · last-confirmed: luau-lsp 1.70.1 (수동 실행)
@@ -48,7 +57,9 @@ LSP=/code/.local/share/mise/installs/github-johnny-morganz-luau-lsp/1.70.1/luau-
   --definitions=/code/Projects/luau-kb/typedefs/globalTypes.d.luau [--sourcemap=sourcemap.json] file.luau
 ```
 
-- `--platform=roblox` 인데 정의 파일이 없으면 경고를 내고 `Instance` 같은 전역을 모른다. analyze 는 정의 파일을 내려받지 않는다.
+- `--platform=roblox` 인데 정의 파일이 없으면 경고를 내고 `Instance` 같은 전역을 모른다. analyze 는 정의 파일을 내려받지 않는다. Rojo 프로젝트는 sourcemap 도 있어야 `script.Parent.X` 가 풀린다. 둘 중 하나가 없으면 `Unknown type 'Instance'` 류가 도배된다(후보 R-49, rbvm `tools/check.sh:8-14,49-53`).
+- 정의 파일은 **luau-lsp 버전에 맞춘 판**을 받는다(`main` 에서 받지 않는다). 새 문법을 쓴 정의 파일(2025-11자)을 luau-lsp 1.69.0 이 `SyntaxError: Expected ':' … got 'Enum'` 로 못 읽은 기록이 있다(described, 후보 R-49, rbvm `.claude/review/2026-10-05-code-review.md:653`). 이 저장소의 `typedefs/globalTypes.d.luau` 는 1.69.0·1.70.1 둘 다 읽는다.
+- 플래그 함정 둘(1.70.1 실측): 같은 `--flag:` 를 두 번 주면 **앞의 값**이 이긴다. `--platform` 을 두 번 주면 `Duplicate argument` 로 실패한다. 스크립트에서 기본 인자와 사용자 인자를 합칠 때 조심한다(하네스 Roblox 모드가 처리, `snippet-markers.md` §2b).
 - 출력도 stderr 로 나오고, 진단이 있으면 rc=1 이다. 파일 경로에 `./` 접두가 없다.
 - **옵션 없이 부르면 모든 Luau FFlag 를 켠 채 돈다**(`--no-flags-enabled` 로 끔). 에디터 확장은 `--no-flags-enabled` 와 동기화된 값으로 서버를 띄우므로, CLI 결과와 에디터 결과가 FFlag 하나 때문에 갈릴 수 있다. 실제로 `LuauDoNotExportBrokenTypeFunction` 때문에 다른 모듈의 type function 이 CLI 에서만 무효가 된 사례가 있다(quad typing-limits 8.18 정정, described).
 - 한도 플래그 예: `--flag:LuauTarjanChildLimit=160000 --flag:LuauSubtypingIterationLimit=100000 --flag:LuauTypeInferIterationLimit=1000000`. 어떤 증상에 어떤 플래그가 듣는지는 luau-types 스킬의 recursion-and-limits 에 있다. 임시 프로브는 **CI 와 같은 플래그**로 돌린다. 플래그가 빠지면 too complex 로 무너진 자리의 진단이 조용히 사라진다(quad 8.28, described).
@@ -150,3 +161,23 @@ Roblox(정의 파일 + platform roblox): hover `part` → `Part`, `players` → 
 - **설정 전달 실측(luau-lsp 1.70.1)**: 클라이언트가 `workspace.configuration` 능력을 알리지 않으면 `--settings` 파일이 쓰인다. 키는 평평한 `"luau-lsp.platform.type"` 꼴이어야 하고, 중첩 `{"luau-lsp": {…}}` 꼴은 무시됐다. 클라이언트가 능력을 알리고 `null` 로 답하면 `--settings` 가 무시됐다. `workspace/didChangeConfiguration` 페이로드만으로는 반영되지 않았다. 그래서 `.lsp.json` 의 `settings` 필드 대신 래퍼의 `--settings` 를 쓴다.
 - **`validate` 가 잡지 못하는 것**: 문서상 `.lsp.json` 의 서버 설정은 strict 라 알 수 없는 키가 있으면 로드에 실패한다. 사본에 `bogusKey` 를 넣고 돌린 결과 `claude plugin validate` 는 `✔ Validation passed` 였지만(`plugin.json` 에 `lspServers` 를 선언해도 같음), `claude -p` 에서 `LSP` 도구가 사라졌다. `.lsp.json` 을 고친 뒤에는 init 도구 목록에 `LSP` 가 있는지까지 본다.
 - 문제 추적: `LUAU_KB_LSP_LOG=/tmp/x.log claude …` 로 띄우면 래퍼가 고른 바이너리·플랫폼과 클라이언트가 보낸 메시지를 남긴다. Claude Code 는 `didChangeWatchedFiles` 동적 등록을 지원하지 않는다고 알린다. `analyze` 는 같은 조건에서 "sourcemap 변경 자동 반영 꺼짐" 경고를 냈으므로, 세션 중 sourcemap 을 다시 만들면 서버가 모를 수 있다(LSP 세션에서는 미검증).
+
+## §7 require 해소: 검사기와 런타임이 갈리는 자리
+status: verified · last-confirmed: luau 0.734·0.742, luau-lsp 1.70.1 · 근거: `snippets/verify-require.sh`(R1~R6, rc=0) · 원천: 후보 Q-102, Q-103, Q-104, S-123, S-124, S-126 (quad `scripts/relink.sh:4-18`, `.claude/base/project-setup-plan.md:112-246,339-348`; stl `base/architecture.md:37-57,312-341`; tbox `CLAUDE.md:63-70,95-117`; moonwave `conventions.md:66-74`)
+
+정적 검사가 통과해도 require 는 런타임에서만 터질 수 있다. 어디서 갈리는지 알아야 "0건"을 믿을지 정할 수 있다.
+
+| 상황 | `luau` 런타임 | `luau-analyze` | `luau-lsp analyze` |
+|---|---|---|---|
+| 없는 경로, 파일이 `--!strict` | 실패 | **그 줄에 `Unknown require`**. 모듈 값은 any 라 이후 오용은 안 잡힘 | `Unknown require` |
+| 없는 경로, nonstrict(지시어 없음) | 실패 | **0건, rc=0** ("거짓 클린") | — |
+| symlink 디렉터리를 거친 경로 | **실패**(`could not resolve child component`). 의도된 설계로 기록됨 | `Unknown require`(strict) | **풀림**(symlink 를 따라가 모듈 타입까지 검사) |
+| `.luaurc` alias 값이 `./lib` 나 절대 경로 | 동작 | 풀림 | 풀림 |
+| alias 값이 접두 없는 `lib`, `pkg/src` | **실패**(`could not jump to alias "lib"`) | `Unknown require` | **풀림** |
+| `Foo/init.luau` 안의 `./Bar` | `Foo` 의 **형제**를 찾는다. 폴더 안 `Foo/Bar.luau` 는 `@self/Bar` | 같은 해석 | 같은 해석 |
+| 일반 파일 안의 `@self/x` | 실패 | — | — |
+
+- 그래서 "에디터(luau-lsp)는 깨끗한데 실행은 실패"가 symlink 와 접두 없는 alias 에서 난다. pesde 워크스페이스 링크는 디렉터리 symlink 라, CLI 테스트 전에 실복사로 바꾼다. `cp -r` 은 symlink 를 그대로 복사하므로 `cp -rL` 을 쓴다(후보 Q-103·S-126, described). Rojo `sourcemap`/`build` 는 링크를 따라간다(described).
+- **정정(2026-11-10)**: 원천의 "커스텀 `.luaurc` alias 는 luau CLI 런타임에서 실패한다, 편집기 전용이다"(quad `.claude/base/project-setup-plan.md:339-348`, 후보 Q-104·S-125)는 alias 값에 `./` 가 없을 때만 맞다. quad `.luaurc` 의 값이 `"quad-base/src"` 꼴이다. `"./quad-base/src"` 로 쓰면 0.734·0.742 런타임에서 동작한다.
+- **조건 추가(2026-11-10)**: 원천의 "require 가 안 풀리면 luau-analyze 가 진단 0건으로 통과한다"(후보 Q-102·S-124)는 **nonstrict 파일**에서 맞다. `--!strict` 파일에서는 require 줄에 `Unknown require` 가 난다. 단 `./` 를 잘못 썼는데 그 경로에 **다른 파일이 실제로 있으면**(이름 바뀐 패키지의 옛 `src` 등) 엉뚱한 모듈이 조용히 풀린다. 이것은 모드와 무관하다.
+- 처방: require 를 고친 변경은 **실제로 한 번 require 하는 런타임 게이트**(테스트 엔트리 실행)를 둔다. 정적 검사만 돌리는 하네스는 이 범주를 못 본다. 음성 대조군 체크리스트에 "require 해소"를 넣는다(`negative-controls.md` §7).

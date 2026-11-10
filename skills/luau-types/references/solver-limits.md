@@ -6,6 +6,8 @@
 - Q3 luau 를 0.734 에서 0.742 로 올리면 무엇이 바뀌는가?
 - Q4 같은 모양의 제네릭 함수 타입끼리 대입이 안 된다.
 - Q5 선언된 테이블의 제네릭 메소드 결과가 검사되지 않는다.
+- Q6 원인 줄이 아닌 곳에 에러가 난다 / 맞는 코드가 pcall·분기 대입·루프에서 거부된다.
+- Q7 원천 기록 중 재현해 보니 틀렸거나 조건이 달랐던 것은?
 
 ## 목차
 - §1 솔버 고르기와 확인법
@@ -14,6 +16,7 @@
 - §4 위양성(맞는 코드가 거부됨) 쪽 결함
 - §5 서술만 있는 결함과 역사
 - §6 결함을 만났을 때
+- §7 정정 (원천 저장소에 전달)
 
 ---
 
@@ -44,17 +47,27 @@ status: verified · last-confirmed: luau 0.742 (`--help` 와 스니펫) · 근�
 | S11 | 값 팬텀 `read p: T?` 에 빈 테이블 통과 | `variance-value-phantom-nil` | bug | bug | bug | (read 거부) | variance.md §3 |
 | S12 | 공변 자리에서 제네릭 V 가 넓어짐 | `variance-covariant-generic-widening` | bug | bug | bug | (read 거부) | variance.md §4 |
 | S13 | 공변 인자 둘 → 교집합 `number & string` | `generics-covariant-args-intersection` | bug | **fixed**(유니온) | fixed | (read 거부) | generics.md §7 |
-| S14 | 가변 인자 자리의 꼬리 호출 결과 무검사 | `solver-vararg-tail-call` | bug | **fixed** | fixed | 잡음 | generics.md §8 |
+| S14 | 가변 인자 자리의 꼬리 호출 결과 무검사 | `solver-vararg-tail-call` | bug | **fixed** | fixed | 잡음 | packs-and-varargs.md §11 |
 | S15 | 함수 ∩ 테이블 값이 never 로 아무 데나 대입 | `unions-function-table-intersection` | bug | bug | bug | 호출 거부 | unions-singletons.md §7 |
 | S16 | `setmetatable` 형 `__call` 인자 무검사 | 같은 파일 | bug | **fixed** | fixed | (문법 모름) | unions-singletons.md §7 |
-| S17 | 선언된 테이블의 제네릭 함수 필드 결과 무검사 | `solver-declared-generic-field` | bug | bug | bug | 잡음 | §4 아래 |
+| S17 | 선언된 테이블의 제네릭 함수 필드 결과 무검사(조건: `self: any`. `self` 를 그 타입으로 적으면 잡힘, 교집합 여부 무관) | `solver-declared-generic-field`, `solver-generic-method-self-type` | bug | bug | bug | 잡음 | §4 아래 |
 | S18 | 줄어들지 않은 `index<…, M>` 결과가 아무 데나 대입 | `tf-builtin-unreduced-index` | bug | bug | bug | (문법 모름) | type-functions-limits.md B3 |
 | S19 | nonstrict `.luaurc` 아래 명백한 에러 0건 | `modes-luaurc-nonstrict-silences` | 동작 | 동작 | — | — | luau-verify 스킬 |
+| S20 | `local function`·`function M.f`·메서드·리터럴 필드에 **넘친 인자** 무진단(주석 타입을 거친 값은 잡힘) | `pack-extra-args`, `pack-extra-args-exposure` | bug | bug | bug | 잡음 | packs-and-varargs.md §10 |
+| S21 | 제네릭 팩 `...: A...` 를 `{ ... }` 에 담으면 `{nil}`, `table.pack` 은 거부(defer 패턴) | `pack-store-generic-pack` | 동작 | 동작 | 동작 | 우회도 거부 | packs-and-varargs.md §6 |
+| S22 | 제네릭 몸통: 기대 타입이 정확히 `T` 가 아닌 자리(`T?` 반환, 지역 초기화, `T` 값을 구체 자리에) 무검사 | `generics-body-probe-type` | bug(`return 5`→T 도) | bug(`→T` 만 잡음) | 0.742 와 같음 | 잡음 | generics.md §6-1 |
+| S23 | 인덱서 없는 갈래가 든 유니온의 `for … in` 무검사 | `solver-union-iter-no-indexer` | bug | bug | bug | — | unions-singletons.md §11 |
+| S24 | 교집합 컨테이너를 인덱서로 돌 때 루프 변수 타입 소실 | `unions-intersection-iter-method` | bug | bug | bug | — | unions-singletons.md §11 |
+| S25 | `[string]: any` 인덱서와의 교집합이 이름 있는 필드까지 any 로 | `unions-catchall-indexer-intersection` | bug | bug | bug | 노이즈 다량(원천) | unions-singletons.md §10 |
+| S26 | 자기 참조 함수 필드 타입 A → 다른 자기 참조 타입의 `B?` 통과 | `unions-self-ref-optional-hole` | bug | bug | bug | — | unions-singletons.md §4 |
+| S27 | `__call` 콜러블 네임스페이스로 부른 제네릭 생성자 결과 무검사 | `generics-callable-namespace` | bug | bug | bug | — | generics.md §9 |
+| S28 | 함수 타입끼리·테이블 타입끼리 캐스트는 모양이 달라도 통과(겹침만 봄) | `solver-cast-overlap-only` | 동작 | 동작 | 동작 | — | §4 아래 |
 
 ## §3 0.734 → 0.742 에서 바뀐 것
-status: verified · 근거: 위 표의 S2, S13, S14, S16, `snippets/RESULTS.md`
+status: verified · 근거: 위 표의 S2, S13, S14, S16, S22, `snippets/RESULTS.md`
 
 - 고쳐진 것 넷: S2(맨 람다 누수), S13(교집합 → 유니온), S14(꼬리 호출), S16(`__call` 인자).
+- 일부 고쳐진 것 하나: S22. 0.739 의 땜질 플래그 `LuauSoundGenericMismatches` 로, 제네릭 몸통에서 기대 타입이 **정확히** `T` 인 자리(`return 5` 를 반환 타입 `T` 에)만 0.742 에서 잡힌다(`generics-body-probe-type` 9행). luau-lsp 1.70.1 도 잡는다.
 - **luau-lsp 1.70.1 은 S2 가 아직 bug 다**(나머지 셋은 고쳐짐). 같은 파일이라도 CI(`luau-analyze` 0.742)와 에디터(`luau-lsp` 1.70.1)의 판정이 다를 수 있다. luau-lsp 는 자기가 내장한 Luau 판으로 검사하기 때문이다.
 - 이 넷 모두 **에러가 새로 생기는** 방향이다. 0.734 에서 통과하던 코드가 0.742 에서 실패할 수 있다. 원천 저장소 하나는 0.742 로 올리며 새 진단 12건과 음성 대조군 배터리의 변화를 기록했다(stl mise.toml 머리 주석, described).
 - 원천 저장소 하나가 0.742 로 올린 직접적인 이유: 0.734 의 `luau-analyze` 가 병렬 검사에서 힙을 깨뜨렸다(상류 #3020, described).
@@ -67,6 +80,24 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippe
 - **교집합 안 불변/반공변 T** 추론 실패: variance.md §7.
 - **주석이 제네릭 호출로 흐르지 않음**(`local m: Box<string, number> = New()` 거부): generics.md §1.
 - (반대 방향, 에러가 안 나는 쪽) **선언된 테이블 타입의 제네릭 함수 필드**(`Apply: <U>(self: any, factory: (any) -> U) -> U`)는 결과를 아무 타입에나 담아도 0건이다. 자유 함수나 **추론된** 테이블의 같은 함수는 잡힌다(quad 8.29). 결과 검사가 필요한 API 는 자유 함수로 노출하거나 결과에 주석을 요구한다.
+  - 조건은 `self: any` 다(verified · `snippets/solver-generic-method-self-type.luau` · 후보 Q-126). `GetOrCreate: <T>(self: A, …) -> T` 처럼 `self` 를 그 타입으로 적으면 결과가 검사된다. 단독 값이든 교집합(`A & B`) 값이든 같다. 비제네릭 메서드는 `self: any` 여도 검사된다. 원천의 "교집합 타입 값의 메서드 호출이 any 를 돌려준다"(quad kit-packaging-plan.md:73)는 이 결함이 교집합 값에서 보인 것이다. 그런데 variance.md §9 의 추론 실패를 피하려면 메서드 칸에 `self: any` 를 써야 하므로, 두 결함 사이에서 고른다: 제네릭 메서드는 반환 주석을 받는 자리에서 부르거나 자유 함수로 노출한다.
+- (에러가 안 나는 쪽) **캐스트는 검사가 아니다**(verified · `snippets/solver-cast-overlap-only.luau` · 원천 stl-luau-doctor/.claude/research/luau-source/README.md:125, 후보 S-140). `x :: T` 는 두 타입이 겹칠 수 있는지만 본다. `f :: (string) -> boolean`(`f: (number) -> number`), `({ a = 1 } :: { a: number }) :: { b: string }` 이 통과하고, 서로소인 원시 타입(`number` → `string`)만 "unrelated" 로 거부된다.
+
+### §4-1 위양성 추가분 (2026-11-10)
+status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: 아래 스니펫
+
+| 증상 (맞는 코드가 거부됨) | 스니펫 | 우회 | 설명 위치 |
+|---|---|---|---|
+| 제네릭 함수를 담은 테이블 리터럴을 인자 자리에 두면 거부되고, 그 실패가 Subtyping 캐시에 남아 **같은 모듈 뒷줄의 멀쩡한 비교**(`takeFn(id)`)까지 실패한다. 순서를 바꾸면 뒷줄은 통과 | `solver-table-literal-cache-poison`, 대조 `solver-table-literal-read-field-ok` | 받는 필드를 `read` 로, 또는 리터럴을 주석 단 지역에 먼저 담기. 원인 줄이 아닌 곳의 에러는 이것을 의심 | 원천 stl DRAFTS.md:194-202, 후보 S-139 |
+| 반환이 `()` 인 제네릭을 `pcall(f, …)` 에 바로 | `generics-pcall-unit-return` | 람다로 감싼다 | generics.md §9 |
+| `pcall(string.find, s, p)` (선택 인자 있는 내장) | `solver-pcall-builtin-overload` | 람다로 감싼다 | packs-and-varargs.md §9 |
+| `{ x: V, y: V? }` 에 `T1<number?>` | `variance-optional-generic-field` | `read y: V?` | variance.md §9 |
+| 주석 단 지역에 분기마다 다른 갈래 대입 → 제네릭 메서드 호출 "Cannot call a value of the union type" | `unions-annotated-local-branch-narrowing` | if-식을 주석 단 지역에 | unions-singletons.md §6 |
+| 클로저 안 루프에서 업밸류 좁히기 무효("could be nil") | `unions-closure-loop-narrowing` | 루프 전에 지역으로 받기 | unions-singletons.md §6 |
+| 유니온 파라미터에 넓혀야 하는 테이블 리터럴 | `unions-generic-union-param` | 주석 단 지역에 담아 넘기기 | unions-singletons.md §9 |
+| 명시 타입 인자를 일부만(`two<<number>>`) → 솔버 내부 에러 | `solver-explicit-args-freeze-never` | 전부 주거나 하나도 안 주기 | generics.md §10 |
+| 루프 변수 하나만 쓰는 `for i in ipairs(t)` → "Argument count mismatch. Function expects 2 arguments, but 2 are specified". 두 변수·`pairs`·`next`·`for i in t` 는 통과, 옛 솔버 0건. luau 0.734·0.742·0.746, luau-lsp 1.69.0·1.70.1 모두 같음. 업스트림 동일 이슈 못 찾음(2026-11-10) | `solver-ipairs-single-var` | `for i, _ in ipairs(t)` 나 숫자 for | luau-upstream `watchlist.md` §3 |
+| (Roblox 정의 파일) `DateTime:ToLocalTime()` 이 `{ any }` 라 `.Year` 거부 | `solver-roblox-datetime-tolocaltime`(`--@lsp-roblox`) | 결과를 레코드 타입으로 캐스트 | 원천 devplorer feedback :502, 후보 D-F33 |
 
 ## §5 서술만 있는 결함과 역사
 status: described
@@ -89,3 +120,16 @@ status: described · 원천: stl luau-solver-issues/DRAFTS.md "올리기 전 체
 2. `--solver=old` 와 두 luau 버전으로 대조한다. 이 저장소에서는 `snippets/` 에 표식(`-- bug-present`)을 붙여 넣고 `tools/check_snippets.py --luau 0.734,0.742` 로 돌린다.
 3. 우회하려고 공개 API 나 타입 모양을 비틀지 않는다. 한계를 문서화하고, 사용 관례를 적고, 되돌릴 지점(이슈·RFC 링크)을 남긴다. 반환을 `any` 로 여는 회피는 금지다(quad·stl 공통 원칙). 단, 우회가 비튼 것이 아니라 그냥 더 나은 설계라면 채택한다.
 4. 업스트림 보고는 사용자가 결정한다(두 원천 모두 초안만 두고 게시하지 않았다). 중복 검색어와 인접 이슈(#2168, #2380, #2733)는 원천 DRAFTS.md 에 있다.
+
+## §7 정정 (원천 저장소에 전달)
+status: verified (각 줄의 스니펫·실측)
+
+| 원천 | 원천 서술 | 실측 (luau 0.734·0.742) |
+|---|---|---|
+| `quad/.claude/research/kit-packaging-plan.md:73` | 교집합 타입 값의 메서드 호출이 any 를 돌려준다 | 교집합 탓이 아니다. 제네릭 메서드의 `self: any` 가 조건이다(S17). `self` 를 그 타입으로 적은 메서드는 교집합에서도 검사된다(`solver-generic-method-self-type`) |
+| `quad/.claude/research/kit-packaging-plan.md:91` | 서로 다른 선언의 제네릭 함수는 글자가 같아도 같지 않다 | 최소 꼴 `local g2: <U>(U) -> U = g1`(`g1: <T>(T) -> T`)은 통과한다. 원천의 실패는 `self` 재귀가 든 큰 타입 사본 둘 사이에서 났다 — 조건 미확정(described). 교집합·반환에 같은 제네릭이 든 꼴은 §4 첫 항목 |
+| `stl-luau-doctor/.claude/conventions.md:40` | 콜러블 네임스페이스는 모듈 필드 오타도 못 잡는다 | `setmetatable(M, { __call = … })` 꼴에서 `M.Neww` 는 잡힌다. 타입 인자 소실만 재현(`generics-callable-namespace`) |
+| `stl-luau-doctor/.claude/base/typing-limits.md:371-386` | 유니온 자리 제네릭은 같은 별칭일 때만 풀린다 | 조건이 더 넓다(unions-singletons.md §12) |
+| `devplorer/.claude/feedback/quad-upstream-2026-10-20.md:494` | 필드를 좁힌 뒤 다른 호출이 끼면 "could be nil" | 재현 안 됨(unions-singletons.md §12) |
+| 이 저장소 `recursion-and-limits.md` §5 옛 판 | `luau-analyze` 에는 플래그 옵션이 없다 | `--fflags=Name=true\|false` 가 동작한다(불리언만, `--help` 에는 없음). recursion-and-limits.md §5 에서 고쳤다 |
+

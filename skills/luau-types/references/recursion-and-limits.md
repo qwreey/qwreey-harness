@@ -42,6 +42,8 @@ type Tw<T> = { Value: T, Mapped: typeof(Mapped) }
 - 대입 줄 자체의 틀린 LHS 주석(`local wrong: Tw<boolean> = t:Mapped(...)`)은 그 줄에서 잡히지 않고 다운스트림에서만 잡힌다(described).
 - `setmetatable<{...}, { __index: typeof(...) }>` 로 확장하면 모순되는 진단 두 개가 동시에 나는 솔버 버그를 만났다(quad §1③ "채택 안 함", 0.733 관측, described).
 
+**같은 결함의 다른 얼굴** (described · 원천: stl-luau-doctor/.claude/research/class-like/README.md:24-26 · 후보 S-144): 원소 타입을 바꾸는 메서드 `Map: <U>(self: Arr<T>, …) -> Arr<U>` 를 인스턴스 타입에 적으면 정의 줄은 조용히 통과하고 반환이 `*error-type*` 이 되어, 결과를 쓰는 줄의 검사가 모두 꺼진다. 위 비균일 재귀 반환(S7)과 같은 모양이다. 별칭을 한 번 거치면 "Recursive type being used with different parameters" 로 드러난다는 기록도 같은 뿌리를 가리킨다(§2·§3). 타입을 바꾸는 연산은 메서드가 아니라 네임스페이스 함수(`Arr.Map(a, fn)`)나 위 `typeof(최상위 함수)` 처방으로 둔다.
+
 **보조 처방 (described)**: 콜백 파라미터 무주석 추론이 필요하면 타입을 "데이터부 / 메소드부"로 쪼갠다. 메소드의 `self` 와 콜백 파라미터가 메소드를 모르는 데이터부를 가리키게 한다(`Foo<T> = FooData<T> & { Map: <U>(self: FooData<T>, fn: (FooData<T>) -> U) -> Foo<U> }`). 결과 바인딩에는 여전히 주석이 필요하다.
 
 ## §2 옛 솔버는 선언 시점에 거부한다
@@ -72,7 +74,12 @@ status: described · 원천: quad typing-limits §1 "정확한 경계" 각주, �
 ## §5 "Code is too complex" 와 한도 플래그
 status: described · 원천: quad typing-limits 8.5, 8.7 4번, 8.9, 8.12, 8.28, 8.40, 8.41; quad/scripts/doc-snippets.py FLAGS
 
-- `luau-analyze` CLI 에는 플래그 옵션이 없다. 한도 플래그는 `luau-lsp analyze --flag:Name=값` 이나 에디터의 `luau-lsp.fflags.override` 로만 바꿀 수 있다(`--help` 실측). Studio 의 분석기는 바꿀 수 없다.
+- **플래그를 바꾸는 길** (정정 2026-11-10, verified · 근거: `snippets/verify-fflags-force-strict.luau`, 0.742 소스 `CLI/src/Flags.cpp`, `CLI/src/Analyze.cpp:434` · 후보 S-129, claude-doctor audit/09 §6 모순 1):
+  - `luau-analyze --fflags=Name=true|false[,Name2=…]` 로 **불리언** 플래그를 바꿀 수 있다. `--help` 에는 나오지 않는다(이 파일의 옛 서술 "플래그 옵션이 없다"는 `--help` 만 보고 쓴 것이라 틀렸다).
+  - 모르는 이름은 stderr 에 `Warning: unrecognized flag 'X'.` 를 내고 무시된다. **정수 한도**(`LuauTypeInferIterationLimit=1000000` 등)는 `Warning: unrecognized value '…' for flag …` 로 무시된다. 소스가 불리언 플래그 목록만 돈다. 경고는 종료 코드를 바꾸지 않으니 stderr 를 본다.
+  - 예: `--fflags=DebugLuauForceStrictMode=true` 는 `.luaurc` 의 nonstrict 를 덮고 strict 로 검사한다.
+  - CLI 는 실험적이지 않은 `Luau*` 플래그를 모두 켠 채 시작한다. 그래서 Studio·luau-lsp 에디터와 판정이 다를 수 있다(원천 서술, described).
+  - 따라서 이 절의 **한도 플래그(정수)는 여전히 luau-lsp `analyze --flag:Name=값`** 이나 에디터의 `luau-lsp.fflags.override` 로만 바꿀 수 있다. Studio 의 분석기는 사용자가 바꿀 수 없다.
 - **증상마다 듣는 레버가 다르다**(원천의 이분 탐색 결과):
 
 | 증상 | 들은 플래그 | 안 들은 것 |
@@ -85,6 +92,8 @@ status: described · 원천: quad typing-limits 8.5, 8.7 4번, 8.9, 8.12, 8.28, 
 
 - **too complex 는 진단을 지운다**: 한 자리가 무너지면 그 타입을 쓰는 다른 호출부의 진단까지 조용히 사라진다(quad 8.28). 임시 프로브는 CI 와 **같은 플래그**로 돌린다.
 - 측정법: 건수만으로는 효과가 보이지 않는다. "too complex 없이 통과하는 최소 한도"를 이분 탐색해 비교한다(quad 8.41).
+- **Studio 는 무너져도 표시하지 않는다**(described · 원천: quad/.claude/research/release-3.4.0-plan.md:30, declaration-surface-plan.md:94-98, base/surface-plan.md:19 · 후보 Q-128). 원천 기록으로 Studio 는 `LuauSolverConstraintLimit=1500` 동기화 값으로 돌았고, 생성된 타입 약 2300줄(호출 약 1500)을 내보내는 모듈에서 검사가 꺼졌는데 Studio 화면에는 음성 대조군이 0건으로만 보였다. 한도는 **모듈이 내보내는 타입**에 걸리고 파일 안 무게는 그 파일에 갇혔다(파일당 0.04~0.17초, 선형). Studio 의 플래그 값은 엔진 갱신으로 바뀔 수 있으니 날짜와 함께 읽는다.
+- **`any` 파라미터에 큰 모듈 표를 넘길 때**(described · 원천: stl-luau-doctor/.claude/audit/luau-solver-issues/DRAFTS.md:285-293, research/class-like/README.md:53-60 · 후보 S-143): 제네릭 함수 F 개가 메서드 M 개짜리 인스턴스 타입을 받는 모듈 표를 `local function take(_x: any)` 에 넘기면 too complex 가 나고, 같은 값을 `unknown` 파라미터·`Module :: any`·`local x: any = Module` 로 넘기면 나지 않는다는 기록이다. 원천의 소스 분석은 `any` 를 모든 칸에 밀어 넣는 걸음이 F × M 에 비례해 `LuauTypeInferIterationLimit`(2만)을 넘는다는 것이다. 이 저장소의 단순 꼴(읽기 메서드, `self: any`, F 50 × M 30)에서는 `any`/`unknown`/캐스트 사이에 차이가 없었고, 60 × 40 에서는 정의만으로 too complex 가 났다. 재현 조건(메서드 모양)이 더 필요하다. 처방(파라미터를 `unknown` 으로)은 비용이 없으니 그대로 권한다.
 
 ## §6 too complex 를 줄이는 설계
 status: described · 원천: quad 8.8, 8.9 (2), 8.11, 8.12, 8.41

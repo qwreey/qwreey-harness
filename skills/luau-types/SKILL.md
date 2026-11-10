@@ -4,8 +4,11 @@ description: >-
   Luau 타입 시스템의 동작과 알려진 한계를 실측 스니펫으로 정리한 지식이다. 제네릭 추론과 명시 타입 인자
   f<<T>>, 콜백·람다 주석, 변성(read 필드, 팬텀 표식, 공변/불변), 유니온·교집합·싱글턴·좁히기, 재귀 타입
   별칭과 선언 순서, "Code is too complex to typecheck"와 한도 플래그, type function(types.*, keyof, index),
-  새 솔버(LuauSolverV2)와 옛 솔버의 차이, luau 0.734와 0.742 사이의 결함 변화를 다룬다.
-  .luau 코드에서 타입 에러가 이해되지 않을 때, 에러가 나야 할 곳에서 안 날 때(진단 0건), 결과가 unknown/any로
+  타입 팩과 가변 인자(...T, T..., select, table.pack/unpack, pcall, defer 패턴, 넘친 인자 무진단, 반환 팩),
+  for-in 과 교집합·유니온 컨테이너, 캐스트의 한계, 맞는 코드를 거부하는 위양성(for i in ipairs 의
+  "Argument count mismatch", pcall 에 넘긴 제네릭, 분기 대입 뒤 유니온 호출), 새 솔버(LuauSolverV2)와 옛 솔버의 차이,
+  luau 0.734와 0.742 사이의 결함 변화를 다룬다.
+  .luau 코드에서 타입 에러가 이해되지 않거나 맞아 보이는 코드에 이상한 TypeError 가 날 때, 에러가 나야 할 곳에서 안 날 때(진단 0건), 결과가 unknown/any로
   새는 것 같을 때, 새 제네릭 API나 타입 표면을 설계할 때, luau 버전을 올린 뒤 진단이 바뀌었을 때 쓴다.
   검사 도구 사용법과 검증 절차는 luau-verify, Roblox API·성능 질문은 이 스킬의 범위가 아니다.
 ---
@@ -27,12 +30,14 @@ description: >-
   3. 값이 유니온·옵셔널 자리에 들어가는가? → `unions-singletons.md` §4–5
   4. 표식·`read` 필드·제네릭 컨테이너가 끼어 있는가? → `variance.md` §3–5
   5. 메소드가 `Foo<U>` 를 돌려주거나 별칭 선언 순서가 걸리는가? → `recursion-and-limits.md` §1, §3
-  6. 그래도 모르겠으면 결함 카탈로그에서 증상을 찾는다 → `solver-limits.md` §2
+  6. 가변 인자·여러 값 반환·넘친 인자·`pcall` 이 끼어 있는가? → `packs-and-varargs.md` §6, §9–10
+  7. 그래도 모르겠으면 결함 카탈로그에서 증상을 찾는다 → `solver-limits.md` §2
 - **맞는 코드가 거부된다**
   - "No valid instantiation" → `variance.md` §7, `generics.md` §7
   - 같은 모양 타입끼리 대입 실패, 주석 단 생성자 거부 → `solver-limits.md` §4
   - "Consider placing the following annotations" → `generics.md` §4
   - "Code is too complex to typecheck" → `recursion-and-limits.md` §5–6
+  - 원인 줄이 아닌 곳에 에러, pcall·분기 대입·루프 안에서만 거부 → `solver-limits.md` §4-1
 - **설계 중이다**: 입력 자리는 표식, 출력 자리는 전체형 → `variance.md` §8
 - **type function 을 쓸지 정한다** (정책: 사안별, D-04)
   1. type function 없이 표현되는가? 대안부터 잰다 → `type-functions.md` §2(strip-nil, 키별 사상, 덮어쓰는 병합, 리터럴 계산 등)
@@ -45,18 +50,28 @@ description: >-
 |---|---|
 | 주석을 달았는데 제네릭 호출이 `Box<unknown, unknown>` 불일치 | `references/generics.md` §1 |
 | `{ a = 1 }` 을 넘긴 뒤 아무 키·값이나 들어간다 | `references/generics.md` §2–3 |
-| `f<<T>>` 를 언제 쓰나, 타입 팩에는 `<<(T)>>` | `references/generics.md` §3, §8 |
+| `f<<T>>` 를 언제 쓰나, 일부만 주면 내부 에러 | `references/generics.md` §3, §10 |
+| `...T` 와 `T...`, `select`, `table.pack`/`unpack`, 팩 명시 인자 `<<(T)>>` | `references/packs-and-varargs.md` §1–5 |
+| 받은 `...` 를 저장했다 넘기기(defer, 시그널 큐) | `references/packs-and-varargs.md` §6 |
+| 인자를 너무 많이 넘겼는데 에러가 없다 | `references/packs-and-varargs.md` §10 |
+| 튜플 별칭, 반환 팩 유니온 `(boolean, T...) \| (false, E)` | `references/packs-and-varargs.md` §7–8 |
+| `M(5)`(`__call`)·`pcall(f, …)` 경유에서 타입 인자 소실·거부 | `references/generics.md` §9 |
+| `never` 반환 뒤, `table.freeze` 필드, 콜백 반환 개수, 타입 가드 | `references/generics.md` §10 |
 | 콜백 파라미터 주석이 무시된다(다른 타입이 통과) | `references/generics.md` §5 |
 | 분기마다 다른 return 에서 "Expected 'nil', but got 'number'" | `references/generics.md` §4 |
-| 제네릭 함수 몸통에서 `return v` 가 아무 타입이나 통과 | `references/generics.md` §6 |
+| 제네릭 함수 몸통에서 `return v` 가 아무 타입이나 통과, 탐침 타입 | `references/generics.md` §6, §6-1 |
 | `X<number>` 를 `X<number \| string>` 에 못 넣는다 / 넣으면 안 되는데 들어간다 | `references/variance.md` §1–2 |
 | 빈 테이블이 표식 타입을 통과한다 | `references/variance.md` §3 |
 | 제네릭 `put(m, k, v)` 에 틀린 값이 통과한다 | `references/variance.md` §4 |
 | 파라미터 수가 다른 콜백 | `references/variance.md` §6 |
+| `T1<number?>` 에서 "No valid instantiation" (`V` 와 `V?` 필드) | `references/variance.md` §9 |
 | 문자열 리터럴이 `string` 으로 넓어진다 / `keyof`·`index` 로 이름 인자 타이핑 | `references/unions-singletons.md` §1–2 |
 | `if o.tag then` 안에서 안 좁혀진다 | `references/unions-singletons.md` §3 |
 | `~= nil`, `type(x) == "function"` 뒤 호출 거부 | `references/unions-singletons.md` §6 |
-| 함수이면서 필드가 있는 값(콜러블 테이블) | `references/unions-singletons.md` §7 |
+| 함수이면서 필드가 있는 값(콜러블 테이블), 함수 자리에 넘기기 | `references/unions-singletons.md` §7 |
+| 분기 대입 뒤 "Cannot call a value of the union type", 루프 안 "could be nil" | `references/unions-singletons.md` §6 |
+| 유니온 파라미터에서 제네릭이 `unknown`, `[string]: any` 교집합 | `references/unions-singletons.md` §9–10 |
+| 교집합·유니온 컨테이너 `for … in` 의 루프 변수 타입 | `references/unions-singletons.md` §11 |
 | `Foo<T>` 메소드가 `Foo<U>` 를 돌려줄 때 결과 검사 소실 | `references/recursion-and-limits.md` §1 |
 | 별칭 순서를 바꾸니 진단이 생기거나 사라진다 | `references/recursion-and-limits.md` §3 |
 | "Recursive type being used with different parameters" | `references/recursion-and-limits.md` §2, §4 |
@@ -64,6 +79,9 @@ description: >-
 | type function 을 써도 되나, 대안이 있나, 원천 서술 정정 | `references/type-functions.md` §1–§2, §5 |
 | type function 의 제약·부작용(`print`/`error`/`pcall`, 프라이밍, too complex, 직렬화 실패, hover) | `references/type-functions-limits.md` |
 | 새 솔버 vs 옛 솔버, 0.734 vs 0.742, luau-lsp 와 판정 차이 | `references/solver-limits.md` §1–3 |
+| 캐스트가 왜 통과하나, `self: any` 제네릭 메서드 결과 무검사 | `references/solver-limits.md` §4 |
+| `for i in ipairs(t)` 에 "expects 2 arguments, but 2 are specified" (위양성) | `references/solver-limits.md` §4-1 |
+| `luau-analyze --fflags`(불리언만), Studio 의 무표시 too complex | `references/recursion-and-limits.md` §5 |
 | 업스트림에 보고할 만한 결함인가 | `references/solver-limits.md` §6 |
 | `.luaurc`, `--!strict`, luau-analyze/luau-lsp 호출법, 음성 대조군 | luau-verify 스킬 |
 

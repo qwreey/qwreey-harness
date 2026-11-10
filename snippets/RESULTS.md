@@ -192,3 +192,115 @@
 - skill 조건의 결함 둘: skill 1 은 `init.luau` 에 `--!strict` 를 빠뜨렸다. skill 2 는 사용자가 정한 `add(name, count)` 를 스킬의 "새 저장소 기본값"(Pascal, 제안 D-09)에 따라 `Add`·`New` 로 바꿨다. 그래서 `naming.md` §3 과 SKILL 결정 트리에 "사용자가 정한 이름이 기본값보다 우선"을 더했다(측정 뒤 수정, 재측정 안 함).
 - rules 만 둔 조건에서는 링크된 references 가 프로젝트에 없어 모델이 "규칙 본문만 따랐다"고 보고했다. 사용자 홈 배포(`~/.claude/rules` + `~/.claude/skills/luau-style`)에서는 상대 링크가 풀린다.
 - 표본이 조건마다 2회라 차이는 방향만 본다.
+
+## 검증·타입·테스트 추가분 (2026-11-10, 하네스 통합 뒤)
+
+- 명령: `python3 -I tools/check_snippets.py --luau 0.734,0.742 --lsp 1.70.1 --table <아래 파일>` → **rc=0**. 이 절의 스니펫 60개(`test-` 11, `pack-` 13, `opt-` 7, `native-` 6, `verify-` 2, 타입 행 재현 `generics-`·`solver-`·`unions-`·`variance-` 21) 전부 통과. Roblox 모드 1개는 luau-lsp 1.70.1·1.69.0 두 버전으로 검사했다.
+- 전체 회귀: `snippets/*.luau` 138개 × 두 버전 rc=0, `bash snippets/tf-cross-module.sh` rc=0, `bash snippets/verify-require.sh` rc=0(34개 확인).
+- 칸의 `X<n>` 은 실행 머리(`--@run-opt`, `--@run-with`, `--@compile`, `--@inline-remarks`, `--@codegen`) 검사 수다(`skills/luau-verify/references/snippet-markers.md` §2a). `solver-ipairs-single-var` 는 0.746 에서도 통과했다(위양성이 남아 있음).
+- 하네스 통합: claude-doctor `drafts/gaps/tools/check_roblox.py` 는 `--mode roblox`/`--@lsp-roblox`(+`--@sourcemap`, `--rbx-lsp`, `--defs`)로, `drafts/gaps/tools/run_opt.sh` 의 29개 확인은 위 실행 머리로 옮겼다. 초안 Roblox 스니펫 13개(`roblox-*`, `parallel-*`)도 `--mode roblox` 로 26/26 ok.
+
+| 스니펫 | luau 0.734 | luau 0.742 | luau-lsp 1.70.1 (참고) |
+|---|---|---|---|
+| `generics-body-probe-type.luau` | ok (E2 B4) | ok (E3 B3) | 같음 [버전 조건 줄 9:잡음] |
+| `generics-callable-namespace.luau` | ok (E2 B1) | ok (E2 B1) | 같음 |
+| `generics-callback-fewer-returns.luau` | ok (E2 B0) | ok (E2 B0) | 같음 |
+| `generics-pcall-unit-return.luau` | ok (E2 B0) | ok (E2 B0) | 같음 |
+| `native-annotation-codegen.luau` | ok (E0 B0 X3) | ok (E0 B0 X3) | 같음 |
+| `native-attribute-forces-o2.luau` | ok (E0 B0 run X1) | ok (E0 B0 run X1) | 같음 |
+| `native-attribute-nested.luau` | ok (E0 B0 X2) | ok (E0 B0 X2) | 같음 |
+| `native-attribute-syntax.luau` | ok (E2 B0) | ok (E2 B0) | 같음 |
+| `native-directive-forces-o2.luau` | ok (E0 B0 run X2) | ok (E0 B0 run X2) | 같음 |
+| `native-directive-order.luau` | ok (E0 B0 run X1) | ok (E0 B0 run X1) | 같음 |
+| `opt-cli-level-o1.luau` | ok (E0 B0 run X1) | ok (E0 B0 run X1) | 같음 |
+| `opt-cli-level-o2.luau` | ok (E0 B0 X2) | ok (E0 B0 X2) | 같음 |
+| `opt-fold-unroll.luau` | ok (E0 B0 run X4) | ok (E0 B0 run X4) | 같음 |
+| `opt-inline-rules.luau` | ok (E0 B0 X1) | ok (E0 B0 X1) | 같음 |
+| `opt-o1-error-level.luau` | ok (E0 B0 run X3) | ok (E0 B0 run X3) | 같음 |
+| `opt-o2-error-level.luau` | ok (E0 B0 run X2) | ok (E0 B0 run X2) | 같음 |
+| `opt-o2-traceback.luau` | ok (E0 B0 run X1) | ok (E0 B0 run X1) | 같음 |
+| `pack-alias-cannot-yield-pack.luau` | ok (E4 B0) | ok (E4 B0) | 같음 |
+| `pack-extra-args-exposure.luau` | ok (E4 B8) | ok (E4 B8) | 같음 |
+| `pack-extra-args-old.luau` | ok (E5 B0) | ok (E5 B0) | — |
+| `pack-extra-args.luau` | ok (E3 B2) | ok (E3 B2) | 같음 |
+| `pack-function-type-variadic-syntax.luau` | ok (E2 B0) | ok (E2 B0) | 같음 |
+| `pack-generic-forwarding.luau` | ok (E6 B0) | ok (E6 B0) | 같음 |
+| `pack-pcall-failure-value.luau` | ok (E2 B1 run) | ok (E2 B1 run) | 같음 |
+| `pack-return-pack-union-syntax.luau` | ok (E1 B0) | ok (E1 B0) | 같음 |
+| `pack-store-generic-pack.luau` | ok (E4 B0 run) | ok (E4 B0 run) | 같음 |
+| `pack-syntax-no-tuple-alias.luau` | ok (E1 B0) | ok (E1 B0) | 같음 |
+| `pack-truncation.luau` | ok (E4 B0) | ok (E4 B0) | 같음 |
+| `pack-unsound-positions.luau` | ok (E3 B3 run) | ok (E3 B3 run) | 같음 |
+| `pack-variadic-select.luau` | ok (E5 B2) | ok (E5 B2) | 같음 |
+| `solver-cast-overlap-only.luau` | ok (E1 B2) | ok (E1 B2) | 같음 |
+| `solver-explicit-args-freeze-never.luau` | ok (E3 B0) | ok (E3 B0) | 같음 |
+| `solver-generic-method-self-type.luau` | ok (E2 B2) | ok (E2 B2) | 같음 |
+| `solver-ipairs-single-var.luau` | ok (E1 B0 run) | ok (E1 B0 run) | 같음 |
+| `solver-pcall-builtin-overload.luau` | ok (E1 B0) | ok (E1 B0) | 같음 |
+| `solver-table-literal-cache-poison.luau` | ok (E2 B0) | ok (E2 B0) | 같음 |
+| `solver-table-literal-read-field-ok.luau` | ok (E1 B0) | ok (E1 B0) | 같음 |
+| `solver-union-iter-no-indexer.luau` | ok (E1 B1) | ok (E1 B1) | 같음 |
+| `test-blame-filename-only.luau` | ok (E0 B0 run X1) | ok (E0 B0 run X1) | 같음 |
+| `test-cli-runtime-facts.luau` | ok (E0 B0 run) | ok (E0 B0 run) | 같음 |
+| `test-deferred-shim.luau` | ok (E0 B0 run X1) | ok (E0 B0 run X1) | 같음 |
+| `test-error-shapes.luau` | ok (E0 B0 run X2) | ok (E0 B0 run X2) | 같음 |
+| `test-gc-weak-probe.luau` | ok (E1 B0 run X1) | ok (E1 B0 run X1) | 같음 |
+| `test-generic-eq-helper.luau` | ok (E3 B2) | ok (E3 B2) | 같음 |
+| `test-getfenv-inline-off.luau` | ok (E0 B0 X2) | ok (E0 B0 X2) | 같음 |
+| `test-mini-runner.luau` | ok (E0 B0 run X1) | ok (E0 B0 run X1) | 같음 |
+| `test-o2-line-probe.luau` | ok (E0 B0 X2) | ok (E0 B0 X2) | 같음 |
+| `test-user-line-assert.luau` | ok (E0 B0 run X2) | ok (E0 B0 run X2) | 같음 |
+| `test-virtual-clock.luau` | ok (E0 B0 run X1) | ok (E0 B0 run X1) | 같음 |
+| `unions-annotated-local-branch-narrowing.luau` | ok (E1 B0) | ok (E1 B0) | 같음 |
+| `unions-callable-table-not-function.luau` | ok (E1 B0 run) | ok (E1 B0 run) | 같음 |
+| `unions-catchall-indexer-intersection.luau` | ok (E1 B2) | ok (E1 B2) | 같음 |
+| `unions-closure-loop-narrowing.luau` | ok (E1 B0) | ok (E1 B0) | 같음 |
+| `unions-generic-union-param.luau` | ok (E4 B0) | ok (E4 B0) | 같음 |
+| `unions-intersection-iter-method.luau` | ok (E2 B1) | ok (E2 B1) | 같음 |
+| `unions-self-ref-optional-hole.luau` | ok (E1 B1) | ok (E1 B1) | 같음 |
+| `variance-optional-generic-field.luau` | ok (E1 B0) | ok (E1 B0) | 같음 |
+| `verify-engine-free-globals.luau` | ok (E2 B0) | ok (E2 B0) | 같음 |
+| `verify-fflags-force-strict.luau` | ok (E1 B0) | ok (E1 B0) | — |
+
+| 스니펫 (Roblox 모드) | luau-lsp 1.70.1 | luau-lsp 1.69.0 |
+|---|---|---|
+| `solver-roblox-datetime-tolocaltime.luau` | ok (E1 B0) | ok (E1 B0) |
+
+### 0.734 → 0.742 에서 바뀐 칸 (이 절)
+
+| 스니펫 | 0.734 | 0.742 |
+|---|---|---|
+| `generics-body-probe-type` | 제네릭 몸통의 `return 5`(기대 `T`) 무진단 | 잡힘(0.739 `LuauSoundGenericMismatches`). luau-lsp 1.70.1 도 잡음 |
+
+### 하네스 실행 머리 돌연변이 (6종, 전부 실패로 잡힘)
+
+| 돌연변이 | 결과 |
+|---|---|
+| `opt-o1-error-level` 의 `--@run-with -O2 => ok` 를 `fail` 로 | FAIL "기대 fail, rc=0" |
+| `opt-inline-rules` 의 `[inline:variadic]` 를 `[inline:ok]` 로 | FAIL "got=variadic" |
+| `native-annotation-codegen` 크기 단언 방향을 뒤집음 | FAIL "untyped*3 < typed 거짓" |
+| `native-attribute-nested` 의 `names = f` 를 `f,g` 로 | FAIL "함수 목록 ['f'] ≠ ['f', 'g']" |
+| `opt-fold-unroll` 의 `out!~math\.sqrt` 를 `out~` 로 | FAIL "출력에 /math\.sqrt/ 가 없음" |
+| `opt-cli-level-o2` 의 기대 출력 문자열을 없는 문자열로 | FAIL "출력에 /…/ 가 없음" |
+| `verify-fflags-force-strict` 에서 `--@args` 를 지움 | FAIL "expect-error 인데 0건"(플래그가 실제로 일함) |
+
+### 스니펫 밖에서 실측한 것 (이 절)
+
+| 항목 | 결과 | 재현 |
+|---|---|---|
+| `luau-analyze --fflags` | 0.734·0.742 모두 받는다(`--help` 에는 없음). 불리언만 바뀌고, 모르는 이름은 `Warning: unrecognized flag`, 정수 한도는 `Warning: unrecognized value '10'` 로 무시, rc 무영향. `DebugLuauForceStrictMode=true` 는 `.luaurc` nonstrict 를 덮는다 | `snippets/verify-fflags-force-strict.luau`, 수동 |
+| luau-lsp 플래그 함정 | 1.70.1: 같은 `--flag:` 두 번이면 앞의 값이 이김(`LuauSolverV2=false` 가 먼저면 넘친 인자를 잡고 `=true` 가 먼저면 못 잡음). `--platform` 두 번이면 `Duplicate argument` | 수동 |
+| require 해소 | strict 의 없는 경로 → `Unknown require`, nonstrict → 0건 rc=0. symlink: luau 런타임 실패, analyze `Unknown require`, luau-lsp 는 풂. alias 값 `./lib`·절대 경로는 런타임 동작, 접두 없는 `lib` 는 `could not jump to alias`(luau-lsp 만 풂). `luau-analyze src tests` 는 같은 진단을 두 경로로 2번 | `bash snippets/verify-require.sh` |
+| `UnknownType` 린트 | 정의 파일 없는 `typeof(v) == "Instance"` 는 `UnknownType` 린트, strict 에서도 rc=0. `(typeof(v) :: string)` 캐스트로 사라짐(0.734·0.742·lsp 1.70.1) | 수동 |
+| 새 솔버의 넘친 인자 | `local function f(a: number)` 에 `f(1, 2)` 무진단, require 를 넘어도 같음 | `pack-extra-args*.luau`, 수동 |
+
+### 강등·정정한 주장 (이 절)
+
+| 원래 주장 | 원천 | 실측 | 처리 |
+|---|---|---|---|
+| `luau-analyze` CLI 에는 플래그 옵션이 없다 | 이 저장소 `luau-types/references/recursion-and-limits.md:75`, `luau-verify/references/checkers.md` §1 | `--fflags=` 있음(불리언만) | 정정 |
+| `--mode=strict` 로 `.luaurc` 를 못 덮으니 CLI 로 strict 를 강제할 방법이 없다 | 이 저장소 `luau-verify/references/tooling.md` §1 | `--fflags=DebugLuauForceStrictMode=true` 로 강제됨 | 정정 |
+| 커스텀 `.luaurc` alias 는 luau CLI 런타임에서 실패한다(편집기 전용) | quad `.claude/base/project-setup-plan.md:339-348`, 후보 Q-104·S-125 | alias 값에 `./` 가 없을 때만 실패. `./x`·절대 경로는 0.734·0.742 런타임 동작 | 조건 추가 |
+| 풀리지 않는 require 는 luau-analyze 진단 0건("거짓 클린") | quad `scripts/relink.sh:4-6`, stl `base/architecture.md:322-329`, 후보 Q-102·S-124 | nonstrict 파일에서만. strict 는 `Unknown require` | 조건 추가 |
+| 타입 행 정정(교집합 원인, 모듈 필드 오타, 유니온 제네릭 조건, 클로저 좁히기 둘째 모양) | quad `research/kit-packaging-plan.md:73,91`, stl-luau-doctor `conventions.md:40`, `base/typing-limits.md:371-386`, devplorer `feedback/quad-upstream-2026-10-20.md:494` | 각 스니펫 참고 | `luau-types/references/solver-limits.md` §7 |
+| quad 테스트 게이트(-O1 만, 파일 이름만 단언, 헬퍼로 기대 줄, 손으로 센 level) | quad `scripts/test.sh:81-84`, `quad-base/test/mock.luau:854-858`, `spec.errorutil.luau:21-23`, `quad-base/src/Relate.luau:28-29` | `-O2` 에서 3건 실패 | `luau-testing/references/repo-practices.md` §3 |

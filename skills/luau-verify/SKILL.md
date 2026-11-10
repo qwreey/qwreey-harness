@@ -4,8 +4,12 @@ description: >-
   Luau 코드와 타입 주장을 실제로 검증하는 절차와 도구 사용법이다. luau-analyze 와 luau-lsp analyze 를
   버전을 지정해 직접 호출하는 법(mise shim 이 버전 미지정 디렉터리에서 실패하는 함정 포함), 진단이 stderr 로
   나오는 점과 종료 코드, 새 솔버와 옛 솔버(--solver=old)와 luau 0.734/0.742 비교, "진단 0건"을 믿기 위한
-  음성 대조군과 돌연변이 검사, .luaurc 와 --!strict, 스니펫 표식(-- expect-error, -- bug-present, --@run),
-  stylua 가 f<<T>> 를 망가뜨리는 조건, 러너(luau CLI 기본)와 const 와 버전 핀 정책, 그리고 luau-lsp 로
+  음성 대조군과 돌연변이 검사, .luaurc 와 --!strict(--fflags=DebugLuauForceStrictMode 로 강제), luau-analyze 의
+  숨은 --fflags 옵션, 스니펫 하네스 표식(-- expect-error, -- bug-present, --@run, -O2·-g0·--codegen 실행을 고정하는
+  --@run-opt/--@run-with, 바이트코드·인라인 remark·native 코드 크기를 보는 --@compile/--@inline-remarks/--@codegen,
+  Roblox 정의 파일로 검사하는 --@lsp-roblox), require 가 검사기와 런타임에서 갈리는 자리(symlink, .luaurc alias,
+  nonstrict 의 거짓 클린), 게이트를 종료 코드로 판정하기, pesde·Rojo 링크 함정,
+  stylua 가 f<<T>> 를 망가뜨리는 조건, 러너(luau CLI 기본)와 const(D-01)와 버전 핀 정책, 그리고 luau-lsp 로
   공개 API 의 hover·자동완성·추론 타입 표시(DX)를 확인하는 법(tools/lsp_probe.py)과 Claude Code LSP 연동(.lsp.json)을 다룬다.
   타입 검사 결과를 믿어도 되는지 확인할 때, 재현 파일이나 스파이크를 만들 때, 검사 게이트를 짜거나 고칠 때,
   라이브러리의 공개 API 가 에디터에서 어떻게 보이는지 확인할 때, luau·luau-lsp·stylua 버전을 올릴 때 쓴다.
@@ -27,7 +31,7 @@ description: >-
 ## 어느 도구로 검사하나
 - 순수 Luau: `luau-analyze`(빠르고 luau 배포판과 같은 버전) 또는 `luau-lsp analyze --platform=standard --flag:LuauSolverV2=true`
 - Roblox 코드: `luau-lsp analyze --platform=roblox --definitions=<globalTypes.d.luau> [--sourcemap=…]` 만 가능하다(luau-analyze 는 정의 파일을 못 읽는다). 정의 파일은 이 저장소의 `typedefs/globalTypes.d.luau`.
-- 한도 플래그(too complex)는 luau-lsp `--flag:` 로만 바꿀 수 있다.
+- 불리언 FFlag 는 `luau-analyze --fflags=이름=true`(`--help` 에 없음)로도 바꾼다. 정수 한도 플래그(too complex)는 luau-lsp `--flag:` 로만 바꿀 수 있다.
 - 정확성 게이트는 순수 Luau 면 `luau-analyze`, Roblox 전역을 쓰면 `luau-lsp` + 정의 파일이다(결정 D-06, `references/checkers.md` §5).
 - **DX 확인**: 공개 API 가 있는 라이브러리는 순수 Luau 라도 `tools/lsp_probe.py` 로 소비자 파일의 hover·자동완성·inlay 를 본다. 진단 0건이어도 소비자에게 `unknown` 이 보일 수 있다. → `references/checkers.md` §6
 
@@ -44,10 +48,17 @@ description: >-
 | 진단 0건을 믿어도 되나, 대조군 만드는 법, 돌연변이 검사 | `references/negative-controls.md` |
 | 알려진 결함을 테스트로 고정(고쳐지면 알림) | `references/negative-controls.md` §3, `references/snippet-markers.md` |
 | 스니펫 표식 문법, 하네스 실행, RESULTS 표 갱신 | `references/snippet-markers.md` |
+| `-O2`·`-g0`·`--codegen` 실행, 바이트코드·remark·native 크기 주장을 스니펫으로 고정 | `references/snippet-markers.md` §2a |
+| Roblox 전역이 필요한 스니펫(luau-lsp + 정의 파일), luau-lsp 플래그 함정 | `references/snippet-markers.md` §2b, `references/checkers.md` §2 |
+| `--fflags`, 엔진 무관 게이트, 같은 진단이 두 번 보고됨 | `references/checkers.md` §1 |
+| require 가 에디터에선 풀리는데 실행은 실패(symlink, alias), nonstrict 거짓 클린, `init.luau` 의 `./` | `references/checkers.md` §7, `snippets/verify-require.sh` |
+| 린트는 rc=0, 게이트를 종료 코드로 판정, selene 설정 탐색 | `references/tooling.md` §5 |
+| pesde 워크스페이스·소비자 설치, Rojo 매핑, `self-upgrade` 가 핀을 가림 | `references/toolchain.md` §1, §5 |
+| 테스트 작성, 러너 패턴, 에러 줄 단언, `-O2` 로 테스트 | luau-testing 스킬 |
 | `.luaurc` nonstrict/strict, `--!strict` | `references/tooling.md` §1 |
 | luau / lune / lute 중 무엇으로 실행하나, Roblox 의존 동작은 | `references/tooling.md` §2 (결정 D-03), roblox-luau 스킬 |
-| `const` 를 써도 되나 | `references/tooling.md` §3 (정책 미정) |
-| stylua 가 `f<<T>>` 를 `f << T >>` 로 바꿨다 | `references/tooling.md` §4, `tools/repro-stylua-typeargs.sh` |
+| `const` 를 써도 되나 | `references/tooling.md` §3 (결정 D-01: 써도 됨) |
+| stylua 가 `f<<T>>` 를 `f << T >>` 로 바꿨다 | `references/tooling.md` §4 (결정 D-02), `tools/repro-stylua-typeargs.sh` |
 | 타입 규칙 자체(왜 안 잡히나, 결함 카탈로그) | luau-types 스킬 |
 
 ## 자주 밟는 함정 (요약)
@@ -58,3 +69,5 @@ description: >-
 - luau-lsp 는 자기 내장 Luau 판으로 검사한다. 에디터 판정과 CI 판정은 다를 수 있다.
 - `claude plugin validate` 는 `.lsp.json` 의 알 수 없는 키를 잡지 못한다. 고친 뒤에는 세션 도구 목록에 `LSP` 가 있는지 본다.
 - stylua 는 설정 파일이 없는 디렉터리에서 돌면 `f<<T>>(x)` 를 조용히 망가뜨린다.
+- `--fflags` 의 모르는 플래그 이름은 경고만 내고 rc=0 이다. 오타를 rc 로 알 수 없다.
+- luau-lsp 는 symlink 와 접두 없는 `.luaurc` alias 를 풀지만 luau 런타임은 못 푼다. 에디터가 깨끗해도 한 번은 실제로 require 한다.

@@ -6,6 +6,7 @@
 - Q3 제네릭 함수에 틀린 값을 넘겼는데 `V` 가 넓어져서 통과해 버린다.
 - Q4 파라미터가 적은 함수를 콜백 자리에 넣을 수 있는가?
 - Q5 "No valid instantiation could be inferred for generic type parameter T" 가 맞는 호출에서 난다.
+- Q6 `T1<number?>` 를 넘겼는데 V 를 추론하지 못한다.
 
 ## 목차
 - §1 read 필드는 공변, 읽기·쓰기 필드는 불변
@@ -16,6 +17,7 @@
 - §6 함수 파라미터 개수와 서브타이핑
 - §7 교집합 + 불변/반공변 T = 추론 실패
 - §8 입력 자리와 출력 자리를 나누는 설계 원칙
+- §9 `V` 와 `V?` 를 함께 품은 읽기·쓰기 필드 = 옵셔널 인자 추론 실패
 
 ---
 
@@ -68,7 +70,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippe
 `{ Set: <Self>(self: Self, v: T) -> Self }` 같은 **제네릭 메소드**를 평범한 함수 타입 필드(`read Set: (self: any, v: number?) -> any`)에 대조하면 파라미터 `v` 의 반공변이 검사되지 않는다. `GRef<string>` 이 `number?` 를 받는 자리를 통과한다. 비제네릭 메소드는 정상으로 거부된다. 그래서 메소드 시그니처로 소속이나 변성을 검사하려 하지 말고 §2 의 팬텀 필드를 쓴다.
 
 ## §6 함수 파라미터 개수와 서브타이핑
-status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/variance-function-arity.luau` · 원천: quad 8.23, 8.36 5번
+status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/variance-function-arity.luau` · 원천: quad 8.23, 8.36 5번, devplorer/.claude/feedback/quad-upstream-2026-10-20.md:436-440 (후보 D-F32, 같은 규칙을 이벤트 콜백 자리에서 밟은 기록)
 
 | 대입 | 결과 |
 |---|---|
@@ -97,3 +99,11 @@ status: described · 원천: quad typing-limits 8.11 머리 배너, 8.41, 8.42; 
 - **출력 자리**(반환값, 사용자 콜백의 인자, `self`)는 메소드가 다 붙은 **전체형**을 쓴다. 사용자가 메소드를 부르는 자리라 자동완성이 필요하다.
 - 읽고 쓰는 상자는 전체형이 불변인 것이 맞다. 넣기만 하는 자리(반공변 표식), 읽기만 하는 자리(공변 표식), 둘 다 하는 자리(불변 표식)를 따로 둘 수 있다.
 - 표식에서 전체형으로 돌아갈 때는 런타임 브랜드 확인 뒤 캐스트하는 변환 함수를 하나 둔다. `(m :: any) :: Full<T>` 는 `T` 를 검사하지 않는다.
+
+## §9 `V` 와 `V?` 를 함께 품은 읽기·쓰기 필드 = 옵셔널 인자 추론 실패
+status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/variance-optional-generic-field.luau` · 원천: stl-luau-doctor/.claude/audit/luau-solver-issues/DRAFTS.md:271-283, research/class-like/README.md:31-37 (후보 S-142)
+
+`type T1<V> = { x: V, y: V? }` 를 받는 `f<V>(a: T1<V>)` 에 `T1<number?>` 를 넘기면 "No valid instantiation could be inferred for generic type parameter V" 다. `V = number?` 면 두 칸 모두 맞는데도, 불변 필드 둘이 하한(`number? | number`)과 상한(`number? & number`)을 따로 걸어 답을 찾지 못한다. `T1<number>` 는 통과한다.
+- 처방: 옵셔널 칸을 `read y: V?` 로 적는다(공변이 되어 통과).
+- 메서드 칸도 읽기·쓰기 함수 필드라 같은 실패를 낸다. 인스턴스 타입의 메서드는 `read Get: (self: any, key: K) -> V?` 처럼 `read` 와 `self: any` 로 적는다. `read` 여도 `self` 가 그 타입 자신(재귀)이면 실패한다는 원천 기록이 있다(described). 대가로 `self: any` 는 그 메서드가 제네릭이면 결과 검사를 잃는다(solver-limits.md S17).
+
