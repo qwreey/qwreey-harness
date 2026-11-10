@@ -134,7 +134,7 @@
    - 옮길 스킬: luau-perf, luau-style(drafts/style에서 이동), luau-testing, roblox-luau 보강
    - 모순 항목은 decisions에 올린다.
 
-## 3.7 coderag 확장 (2026-11-10 사용자 승인, 현재 doc 검색 구현이 끝난 뒤 착수)
+## 3.7 coderag 확장 (2026-11-10 승인, 설계 a1b309f 의 결정 49개 추천안 전부 확정, 구현 M1~ 진행)
 
 1. **설계안 작성**: `coderag/tech-design.md` 에 아래 다섯 가지를 설계안으로 쓴다. 사용자가 검토한 뒤 확정한다.
    - **지식 계층 3단**: global / pack(luau-kb 등) / project. 우선순위는 project > pack > global 이고, 결과마다 계층을 표시한다.
