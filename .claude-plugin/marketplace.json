@@ -9,7 +9,7 @@
     {
       "name": "luau-kb",
       "source": "./",
-      "description": "Luau 타입 시스템 한계와 검증 절차의 정본 지식"
+      "description": "Luau·Roblox 일반 지식의 정본: 타입 한계, 검증, 테스트, 성능, 스타일, Roblox 엔진 동작, 업스트림 변화(스킬 7개)"
     }
   ]
 }

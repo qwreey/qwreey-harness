@@ -29,7 +29,7 @@ quad 원본을 빼고 작업 트리 밖에 있는 복제본은 7개다.
 
 - 이 밖에 `quad/.claude/worktrees/agent-*/scripts/roblox-defs/` 아래 사본 8개도 원본과 md5 가 같다. 작업 트리는 임시라 표에서 뺐다.
 - `quad-changelog-check` 는 삭제되어 비교 대상이 아니다.
-- 서로 다른 두 판(rbvm, tbox)은 클래스별 프로퍼티 수, deprecated 멤버, 이벤트 표현이 다를 수 있다. 정의 데이터에 따라 같은 코드의 진단이 달라진다(quad typing-limits 8.22, luau-types 스킬 `type-functions.md` §7).
+- 서로 다른 두 판(rbvm, tbox)은 클래스별 프로퍼티 수, deprecated 멤버, 이벤트 표현이 다를 수 있다. 정의 데이터에 따라 같은 코드의 진단이 달라진다(quad typing-limits 8.22, luau-types 스킬 `type-functions-limits.md` §11).
 
 ## 단일 원천으로 쓰는 법 (제안, 미적용)
 

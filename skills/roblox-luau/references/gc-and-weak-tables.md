@@ -60,22 +60,16 @@ status: described · last-confirmed: quad 실측(CLI, 2026-09), quad Studio 2026
 - weak 항목이 사라지는 때는 GC 가 정한다. 같은 키를 다시 쓰는 코드가 **간헐적으로** 실패한다. weak 캐시의 유일한 강한 앵커를 먼저 치우면, 다음 할당 중(증분 GC 의 원자 단계 포함) 값이 사라진다.
 - 처방: **명시적으로 만든 기록은 명시적으로 지운다.** weak 표는 "놓쳐도 되는 캐시"에만 쓴다.
 - GC 는 할당이 있어야 진행한다. 유휴 Studio 클라이언트의 `collectgarbage("count")` 가 12초 동안 56MB 그대로였고, 짧게 사는 쓰레기를 할당하자 약 10MB 로 돌아왔다. 할당이 없으면 "안 줄어든다"는 누수 증거가 아니다.
-- weak-key 표에 넣기만 해도 CLI 메모리가 항목당 약 32B 씩 선형으로 늘었는데, 100사이클마다 `collectgarbage("collect")` 를 끼우자 0 이 됐다. 누수가 아니라 GC 페이싱 아래의 고수위다. 비용 쪽은 luau-perf `gc-and-memory.md`.
+- weak-key 표에 넣기만 해도 메모리가 선형으로 느는 것처럼 보이는 것은 누수가 아니라 GC 페이싱 아래의 고수위다(수치·`"ks"`: luau-perf `gc-and-memory.md` §3).
 
 mock 흉내: CLI 의 GC 시점은 Roblox 와 다르다(`env-dependence.md` §2 마지막 행). 시점에 기대는 버그는 CLI 에서 재현되지 않을 수 있다.
 
 ## §5 누수 판정 절차와 프로브 함정
 status: verified (함정 셋) / described (하네스 절차) · last-confirmed: luau 0.734, 0.742 · 근거: `snippets/rbx-gc-probe-pitfalls.luau`; quad `.claude/audit/round13-e42-gc-sweep/README.md:10-13,92-93`, `.claude/audit/tween-completed-2026-09-21/REPORT.md:25-31,43-44`, `.claude/audit/perf-studio-2026-10-22/REPORT.md:14-17` · 후보: Q-122, Q-123, Q-005, Q-003
 
-판정 절차(CLI, 상세는 luau-testing `gc-and-time.md`):
-1. 시나리오를 **별도 함수**에서 만든다. 측정 함수의 지역 변수가 대상을 붙잡아 누수처럼 보이는 일을 막는다.
-2. `fullgc()` 는 `collectgarbage("collect")` 를 최소 3회, 카운트 변화가 0.5KB 미만이 될 때까지(최대 12회) 돌린다.
-3. 판정은 KB 증분이 아니라 **weak-key 추적자에 남은 객체 수**로 한다. KB 는 weak 표·해시 용량의 고수위 때문에 수백 KB 흔들린다.
-4. N=0 기준선과 N 을 같이 잰다. 테스트 하네스·로그 표가 대상을 강하게 쥐지 않는지 본다.
-
-프로브 함정(스니펫으로 재현):
-- **포획 변수를 nil 로 지우기.** "다른 참조를 다 지웠다"며 클로저가 잡은 그 지역을 `nil` 로 만들면, 클로저의 업밸류 자체가 비워져 항목이 수거된다. 누수가 없어 보이지만 실험이 틀렸다. 값 클로저가 키를 **따로 복사한 업밸류**로 잡게 하고 바깥 변수만 지운다. quad 의 탐사자 판정 둘("ephemeron 맞다", "Completed 클로저는 안 샌다")이 이 이유로 무효 처리됐다.
-- **클로저 캐시.** 업밸류가 반복마다 바뀌지 않는 클로저(`function() end`, `function(v) shared:Set(v) end`)는 Luau 가 캐시해 **반복마다 같은 객체**다. "만든 N 개 중 1개가 남았다"로 보인다. 반복 변수를 잡으면 매번 새 클로저다.
+정본은 luau-testing `gc-and-time.md` §1(판정 절차)·§2(프로브 함정)다. 여기는 누수 판정에 필요한 요지만 둔다.
+- 판정: 시나리오는 별도 함수에서 만들고, 여러 번 `collect` 한 뒤 **weak-key 추적자에 남은 객체 수**로 본다(KB 아님). N=0 기준선과 함께 잰다.
+- 함정: (1) 클로저가 잡은 바로 그 지역을 `nil` 로 지우면 업밸류가 비워져 "수거됐다"가 거짓이 된다 — quad 탐사자 판정 둘이 이 이유로 무효. (2) 업밸류가 안 바뀌는 클로저는 캐시돼 같은 객체라 "N 개 중 1개 잔존"처럼 보인다(luau-perf `gc-and-memory.md` §6). (3) 하네스·로그 표가 대상을 쥔다.
 
 mock 흉내: 해당 없음.
 

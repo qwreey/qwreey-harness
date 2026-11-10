@@ -112,7 +112,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/
 status: described · 원천: tbox/docs/api-normalization.md:20, error-path-design.md:24, moonwave-luau/.claude/audit/mrow-spike/README.md:104-105 · 후보 X-22
 
 - 실패가 정상 흐름인 함수(파서의 대안, Union 검사)는 실패 메시지를 **미리 만들지 않는다.** 클로저나 표로 두고 사용자가 요청할 때 문자열을 만든다. tbox 는 실패 1 회에 약 3.5 µs, mrow 는 실패 5,642 회를 즉시 만드는 데 약 1.1 ms 였다(0.734).
-- 결과를 표(`{ok, value}`)로 돌려주지 말고 다중 반환(`ok, value`)으로 돌려주면 할당이 없다(`algorithms-and-structures.md` §4, 0.44~0.52x).
+- 결과를 표(`{ok, value}`)로 돌려주지 말고 다중 반환(`ok, value`)으로 돌려주면 할당이 없다(`algorithms-and-structures.md` §5, 0.44~0.52x).
 
 ## §7 정정과 조건 차이
 | 원천 | 원래 서술 | 이번 측정 | 처리 |

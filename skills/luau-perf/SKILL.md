@@ -35,10 +35,10 @@ description: >-
 | `obj:M()` 대 `Mod.M(obj)`, 함수 감싸기, 동적 dispatch | `references/calls-and-closures.md` §2 |
 | 클로저 콜백·업밸류 비용, 가변 인자·`select`·`table.pack`, `pcall`, 코루틴, 인자 표 | `references/calls-and-closures.md` §3–§5 |
 | 문자열 `..=` 누적, 파서, 사용자 패턴의 역추적 | `references/strings.md` |
-| `-O2`·`--!optimize`, 인라인 조건, `error(msg, 2)` 위치가 `-O2` 에서 틀림 | `references/optimizer-and-native.md` §2–§4 |
+| `-O2`·`--!optimize`, 인라인 조건, `error(msg, 2)` 위치가 `-O2` 에서 틀림 | `references/optimizer-and-native.md` §2–§4 (경우별 표는 luau-testing `optimize-levels.md` §2) |
 | `t.Name` 대 `t[1]`, 다른 모듈 상수 키, `::` 캐스트 비용 | `references/optimizer-and-native.md` §3·§5 |
 | `--!native`/`@native` 를 붙일까, 타입 주석이 native 에 주는 효과 | `references/optimizer-and-native.md` §6 |
-| 약한 테이블 비용, `__mode="ks"`, ephemeron 누수, GC 시간, 객체 메모리 크기 | `references/gc-and-memory.md` |
+| 약한 테이블 비용, `__mode="ks"`, GC 시간, 객체 메모리 크기, 클로저 캐시 | `references/gc-and-memory.md` (ephemeron·weak 의미론은 roblox-luau `gc-and-weak-tables.md`) |
 | 해시 대 정렬 병합, 힙 짓기, `table.sort` 비교자, 결과 표 대 다중 반환, 자료구조 선택 | `references/algorithms-and-structures.md` |
 | Instance 생성·속성 대입·바인더블·트윈 비용, Studio 프로파일러, 라이브 최적화 수준 | roblox-luau 스킬 `references/perf.md`, `references/studio-mcp.md` §6 |
 
@@ -54,6 +54,6 @@ description: >-
 
 ## 근거와 재현
 - 벤치: `/code/Projects/luau-kb/bench/*.luau`(19 개), 실행 `bench/run.sh`, 표 `bench/summarize.py`, 결과 `bench/RESULTS.md`·`bench/results/2026-11-10.tsv`.
-- 결정적인 주장: `/code/Projects/luau-kb/snippets/perf-*.luau`(8 개, `--@run`), 결과는 `snippets/RESULTS.md` 의 perf 절.
+- 결정적인 주장: `/code/Projects/luau-kb/snippets/perf-*.luau`(7 개, `--@run`), 결과는 `snippets/RESULTS.md` 의 perf 절.
 - 최적화 수준·native 의 CLI 주장: `snippets/opt-*.luau`, `snippets/native-*.luau`(luau-testing·verify 담당), `/code/Projects/claude-doctor/drafts/gaps/tools/run_opt.sh`(58 개 검사).
 - 원천: stl-luau-doctor `.claude/base/perf-measurements.md`(0.734 `-O1` 중심), 후보표 claude-doctor `audit/08`·`audit/09`. 각 절에 후보 ID 를 남겼다.

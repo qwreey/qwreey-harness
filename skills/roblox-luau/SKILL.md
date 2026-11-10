@@ -4,15 +4,15 @@ description: >-
   Roblox 엔진·런타임 지식과 그 검증 절차다. RBXScriptSignal·이벤트(Deferred/Immediate, 핸들러 배달 시점·순서,
   Disconnect 와 Destroy 의 대기 배달, Changed·GetPropertyChangedSignal 의 같은 값 무발화), Instance 수명(Destroy,
   Destroying, 파괴된 Instance, userdata 신원), TweenService(Cancel·Completed 순서, 파괴 뒤 트윈, 무한 트윈 누수),
-  약한 테이블 누수와 GC 프로브 함정(ephemeron 없음), require 경로(init.luau·@self·.luaurc alias·symlink, 잘못된
-  경로가 진단되는 조건, Studio require 캐시), task·코루틴·경쟁, Actor·병렬 Luau(ConnectParallel,
+  약한 테이블 누수와 GC 프로브 함정(ephemeron 없음), require 경로 해석(init.luau·@self·ambiguous·.luaurc alias·symlink,
+  Studio 문자열 require 와 캐시), task·코루틴·경쟁, Actor·병렬 Luau(ConnectParallel,
   desynchronize/synchronize, 병렬 단계에서 막힌 속성 쓰기·API, 스레드 안전 등급)·SharedTable, Instance·Enum·
   Attribute 타입, 트리 API·QueryDescendants, GUI 입력·레이아웃, 원격·복제·네트워크 소유권, DataStore 등 서비스,
   엔진 성능 기준치를 다룬다. 어떤 동작을 luau CLI 와 mock 으로 볼 수 있고 어떤 동작에 Roblox Studio 가 필요한지
   가르는 판정 표, mock 작성·충실도 검증, Studio MCP 사용법, API 문서 찾기, 정의 파일·sourcemap 도 둔다.
   Roblox 코드에서 시그널·이벤트가 안 오거나 늦게 올 때, Destroy·Tween 동작을
   확인할 때, 메모리·약한 테이블 누수를 의심할 때, require 가 안 풀리거나 엉뚱한 모듈을 실을 때, Actor/병렬
-  코드를 쓰거나 병렬 단계 에러를 고칠 때, mock 을 만들거나 Studio MCP 를 부를지 정할 때 쓴다. 순수 Luau 타입은 luau-types, 검사기는
+  코드를 쓰거나 병렬 단계 에러를 고칠 때, mock 을 만들거나 Studio MCP 를 부를지 정할 때 쓴다. 순수 Luau 타입은 luau-types, 검사기와 require 오타가 진단되는지는
   luau-verify, 순수 Luau 성능·GC 비용은 luau-perf 가 다룬다.
 ---
 # roblox-luau
@@ -43,7 +43,8 @@ description: >-
 | Tween `Play`·`Cancel`·`Completed` 순서, 파괴 뒤 트윈, 무한 트윈, 핸들 수거 | `references/tween-and-animation.md` |
 | 약한 테이블 누수, ephemeron, `__mode`, GC 프로브가 이상하다, Roblox 에서 GC 관찰 | `references/gc-and-weak-tables.md` |
 | require 가 안 풀린다, `init.luau`·`@self`, ambiguous 에러, `.luaurc` alias, symlink | `references/require-and-modules.md` §1–4 |
-| 잘못된 require 경로인데 진단 0건, Studio require 규칙·캐시, 모듈 사본 둘 | `references/require-and-modules.md` §5–8 |
+| 잘못된 require 경로인데 진단 0건 | luau-verify `references/checkers.md` §7 (요약: `references/require-and-modules.md` §5) |
+| Studio require 규칙·캐시, 모듈 사본 둘 | `references/require-and-modules.md` §6–8 |
 | `task.*` 계약, defer 순서, 코루틴 에러 삼킴, yield 불가 문맥, TOCTOU, 시한, 시계 | `references/tasks-and-threads.md` |
 | Actor, `task.desynchronize`, `ConnectParallel`, 스레드 안전 등급, SharedTable | `references/parallel-luau.md` |
 | `Instance.new`·`IsA`·`GetAttribute`·Enum·`FindFirstChild` 의 타입, 엔진 호출의 타입 | `references/api-types.md` |

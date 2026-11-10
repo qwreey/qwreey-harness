@@ -1,10 +1,19 @@
 {
   "name": "luau-kb",
-  "version": "0.1.0",
-  "description": "Luau 타입 시스템 한계와 검증 절차의 정본 지식(실행 가능한 스니펫으로 luau 0.734/0.742 에서 검증). 스킬: luau-types, luau-verify, roblox-luau. LSP: luau-lsp(.lsp.json).",
+  "version": "0.2.0",
+  "description": "여러 Luau·Roblox 저장소에서 모은 일반 지식의 정본(실행 가능한 스니펫으로 luau 0.734/0.742 에서 검증). 스킬: luau-types(타입 한계), luau-verify(검사 도구·검증 절차), luau-testing(테스트), luau-perf(성능 실측), luau-style(스타일·언어 함정), roblox-luau(엔진 동작·mock·Studio MCP), luau-upstream(업스트림 변화·버전 올리기). LSP: luau-lsp(.lsp.json).",
   "author": {
     "name": "qwreey",
     "email": "me@qwreey.moe"
   },
-  "keywords": ["luau", "roblox", "type-system", "luau-analyze", "luau-lsp"]
+  "keywords": [
+    "luau",
+    "roblox",
+    "type-system",
+    "luau-analyze",
+    "luau-lsp",
+    "testing",
+    "performance",
+    "style"
+  ]
 }

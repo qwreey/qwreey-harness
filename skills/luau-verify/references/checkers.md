@@ -163,21 +163,20 @@ Roblox(정의 파일 + platform roblox): hover `part` → `Part`, `players` → 
 - 문제 추적: `LUAU_KB_LSP_LOG=/tmp/x.log claude …` 로 띄우면 래퍼가 고른 바이너리·플랫폼과 클라이언트가 보낸 메시지를 남긴다. Claude Code 는 `didChangeWatchedFiles` 동적 등록을 지원하지 않는다고 알린다. `analyze` 는 같은 조건에서 "sourcemap 변경 자동 반영 꺼짐" 경고를 냈으므로, 세션 중 sourcemap 을 다시 만들면 서버가 모를 수 있다(LSP 세션에서는 미검증).
 
 ## §7 require 해소: 검사기와 런타임이 갈리는 자리
-status: verified · last-confirmed: luau 0.734·0.742, luau-lsp 1.70.1 · 근거: `snippets/verify-require.sh`(R1~R6, rc=0) · 원천: 후보 Q-102, Q-103, Q-104, S-123, S-124, S-126 (quad `scripts/relink.sh:4-18`, `.claude/base/project-setup-plan.md:112-246,339-348`; stl `base/architecture.md:37-57,312-341`; tbox `CLAUDE.md:63-70,95-117`; moonwave `conventions.md:66-74`)
+status: verified · last-confirmed: luau 0.734·0.742, luau-lsp 1.70.1 · 근거: `snippets/verify-require.sh`(R1~R6, rc=0), `snippets/rbx-require-cli.sh` Q8·Q9(다른 모듈로 풀림), `snippets/style-require-paths.sh` R3·R4(동적 경로) · 원천: 후보 Q-102, Q-103, Q-104, S-123, S-124, S-126 (quad `scripts/relink.sh:4-18`, `.claude/base/project-setup-plan.md:112-246,339-348`; stl `base/architecture.md:37-57,312-341`; tbox `CLAUDE.md:63-70,95-117`; moonwave `conventions.md:66-74`)
 
-정적 검사가 통과해도 require 는 런타임에서만 터질 수 있다. 어디서 갈리는지 알아야 "0건"을 믿을지 정할 수 있다.
+정적 검사가 통과해도 require 는 런타임에서만 터질 수 있다. 어디서 갈리는지 알아야 "0건"을 믿을지 정할 수 있다. 이 표가 **검사기 대 런타임 판정의 정본**이다. 경로 해석 규칙 자체(`init.luau` 의 `./` 와 `@self`, ambiguous 에러, Studio 의 문자열 require, 캐시·사본)는 roblox-luau 스킬 `references/require-and-modules.md` §1–§4·§6–§8 이 정본이다.
 
 | 상황 | `luau` 런타임 | `luau-analyze` | `luau-lsp analyze` |
 |---|---|---|---|
 | 없는 경로, 파일이 `--!strict` | 실패 | **그 줄에 `Unknown require`**. 모듈 값은 any 라 이후 오용은 안 잡힘 | `Unknown require` |
 | 없는 경로, nonstrict(지시어 없음) | 실패 | **0건, rc=0** ("거짓 클린") | — |
+| 경로가 틀렸는데 **있는 다른 파일로 풀림**(`init.luau` 의 `./types` 가 폴더 밖 같은 이름 파일을 가리킴, 이름 바뀐 패키지의 옛 `src`) | 엉뚱한 모듈을 **조용히** 싣는다 | 진단 없음(모드 무관, 그 모듈 타입으로 검사) | 진단 없음 |
 | symlink 디렉터리를 거친 경로 | **실패**(`could not resolve child component`). 의도된 설계로 기록됨 | `Unknown require`(strict) | **풀림**(symlink 를 따라가 모듈 타입까지 검사) |
 | `.luaurc` alias 값이 `./lib` 나 절대 경로 | 동작 | 풀림 | 풀림 |
 | alias 값이 접두 없는 `lib`, `pkg/src` | **실패**(`could not jump to alias "lib"`) | `Unknown require` | **풀림** |
-| `Foo/init.luau` 안의 `./Bar` | `Foo` 의 **형제**를 찾는다. 폴더 안 `Foo/Bar.luau` 는 `@self/Bar` | 같은 해석 | 같은 해석 |
-| 일반 파일 안의 `@self/x` | 실패 | — | — |
+| 동적 경로(`"./pkg/" .. name`) | 실행됨 | `Unknown require: unsupported path`(strict) | — |
 
-- 그래서 "에디터(luau-lsp)는 깨끗한데 실행은 실패"가 symlink 와 접두 없는 alias 에서 난다. pesde 워크스페이스 링크는 디렉터리 symlink 라, CLI 테스트 전에 실복사로 바꾼다. `cp -r` 은 symlink 를 그대로 복사하므로 `cp -rL` 을 쓴다(후보 Q-103·S-126, described). Rojo `sourcemap`/`build` 는 링크를 따라간다(described).
-- **정정(2026-11-10)**: 원천의 "커스텀 `.luaurc` alias 는 luau CLI 런타임에서 실패한다, 편집기 전용이다"(quad `.claude/base/project-setup-plan.md:339-348`, 후보 Q-104·S-125)는 alias 값에 `./` 가 없을 때만 맞다. quad `.luaurc` 의 값이 `"quad-base/src"` 꼴이다. `"./quad-base/src"` 로 쓰면 0.734·0.742 런타임에서 동작한다.
-- **조건 추가(2026-11-10)**: 원천의 "require 가 안 풀리면 luau-analyze 가 진단 0건으로 통과한다"(후보 Q-102·S-124)는 **nonstrict 파일**에서 맞다. `--!strict` 파일에서는 require 줄에 `Unknown require` 가 난다. 단 `./` 를 잘못 썼는데 그 경로에 **다른 파일이 실제로 있으면**(이름 바뀐 패키지의 옛 `src` 등) 엉뚱한 모듈이 조용히 풀린다. 이것은 모드와 무관하다.
-- 처방: require 를 고친 변경은 **실제로 한 번 require 하는 런타임 게이트**(테스트 엔트리 실행)를 둔다. 정적 검사만 돌리는 하네스는 이 범주를 못 본다. 음성 대조군 체크리스트에 "require 해소"를 넣는다(`negative-controls.md` §7).
+- 그래서 "에디터(luau-lsp)는 깨끗한데 실행은 실패"가 symlink 와 접두 없는 alias 에서 난다. 실복사(`cp -rL`)로 스테이징하는 법과 Rojo 동작은 roblox-luau `require-and-modules.md` §4.
+- 원천 정정 두 건(alias 는 "편집기 전용", 잘못된 require 는 "항상 0건")은 위 표의 조건으로 갈린다. 원천 경로와 문구는 roblox-luau `require-and-modules.md` 끝의 정정 표에 모았다.
+- 처방: require 를 고친 변경은 **실제로 한 번 require 하는 런타임 게이트**(테스트 엔트리 실행)를 둔다. strict 에서도 "다른 파일로 풀리는" 행 때문에 필요하다. 음성 대조군 체크리스트에 "require 해소"를 넣는다(`negative-controls.md` §7).

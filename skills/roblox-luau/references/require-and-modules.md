@@ -76,13 +76,10 @@ status: verified (CLI 런타임·analyze·luau-lsp) / described (Rojo) · last-c
 ## §5 정적 검사가 잡는 것과 못 잡는 것
 status: verified · last-confirmed: luau 0.734, 0.742, luau-lsp 1.70.1 · 근거: `snippets/rbx-require-cli.sh` Q8·Q9 · 후보: Q-102, S-124, X-02
 
-| 경우 | `luau-analyze` strict | nonstrict(지시어·`.luaurc` 없음) | 런타임 |
-|---|---|---|---|
-| 풀리지 않는 경로(없는 파일, `init.luau` 의 `./` 오용, 심볼릭 링크, `./` 없는 alias 값) | **`TypeError: Unknown require: unsupported path`, rc=1** | 진단 0건, rc=0 | 에러 |
-| 경로가 틀렸는데 **다른 모듈로 풀림**(폴더 밖에 같은 이름 파일이 있다) | **진단 없음**(그 모듈의 타입으로 검사) | 진단 없음 | 엉뚱한 모듈을 조용히 싣는다 |
-
-- luau-lsp 1.70.1 `analyze` 도 없는 파일에는 strict 에서 `Unknown require` 를 낸다. 단 symlink 와 `./` 없는 alias 는 **푼다**(런타임은 실패). 에디터만 보면 놓치는 꼴이다. Roblox 인스턴스 경로(`script.Parent.X`)는 sourcemap 이 있어야 푼다(`typedefs.md` §4).
-- 결론: "정적 검사가 require 경로 오류를 **절대** 못 잡는다"는 strict 에서는 틀렸다. 못 잡는 것은 **nonstrict 파일**과 **다른 모듈로 풀리는 오타**다. 그래서 (1) 모든 파일을 strict 로 두고, (2) require 를 고친 변경은 **실제로 한 번 require 하는 런타임 게이트**를 둔다. (2)는 strict 에서도 필요하다(Q9 꼴).
+판정표(런타임 × `luau-analyze` × `luau-lsp`)의 정본은 luau-verify 스킬 `references/checkers.md` §7 이다. 요지:
+- strict 에서는 풀리지 않는 경로(없는 파일, `init.luau` 의 `./` 오용, symlink, `./` 없는 alias 값)를 `luau-analyze` 가 `Unknown require: unsupported path`(rc=1)로 잡는다. nonstrict 는 0건이다.
+- **있는 다른 모듈로 풀리는 오타**는 모드와 무관하게 못 잡는다. luau-lsp 는 symlink 와 `./` 없는 alias 를 풀어 버려 에디터만 보면 놓친다. Roblox 인스턴스 경로(`script.Parent.X`)는 sourcemap 이 있어야 푼다(`typedefs.md` §4).
+- 그래서 "정적 검사가 require 오류를 **절대** 못 잡는다"는 strict 에서 틀렸고, 처방은 (1) 모든 파일 strict, (2) require 를 고친 변경은 실제로 require 하는 런타임 게이트다.
 - Studio 에서도 같은 꼴이 있다: 이름이 바뀐 패키지의 `require("./src/...")` 가 옆의 다른 `src` 모듈을 **에러 없이** 싣는다(mrow, Studio 0.740).
 
 mock 흉내: 해당 없음.

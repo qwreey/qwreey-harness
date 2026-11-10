@@ -74,20 +74,19 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일, 모든 모드 같�
 - 원천과 다른 행(MT 부착 96 → 80, `table.create(8)` 240 → 176, 집합 원소 하나 96 → 80)은 측정한 표의 모양·생성 경로 차이로 보인다. 상대 순서는 같다.
 
 ## §5 GC 진행과 측정
-status: described(Studio) / verified(CLI 측정 규칙) · 근거: quad/.claude/audit/perf-studio-2026-10-22/REPORT.md:12-17, round13-e42-gc-sweep/README.md:10-13, 후보 S-P51(Q-003), Q-011, Q-122, Q-123
+status: described(Studio) / verified(CLI 측정 규칙) · 근거: quad/.claude/audit/perf-studio-2026-10-22/REPORT.md:12-17, 후보 S-P51(Q-003), Q-011, Q-122, Q-123
 
-- **GC 는 할당이 있어야 진행한다.** 유휴 클라이언트 힙이 12 초간 56 MB 그대로였고, 짧은 쓰레기를 할당하자 약 10 MB 로 돌아왔다(Studio Play, 2026-10-22). 힙 측정은 churn 뒤 **최저값**으로 한다.
-- 측정 함수의 지역 변수가 대상을 붙잡아 누수처럼 보인다. 시나리오 빌드는 별도 함수로 뺀다. 벤치 하네스도 이전 결과를 놓고 collect 한다(`bench/lib/bench.luau`).
-- CLI 에서는 `collectgarbage("collect")` 를 여러 번(카운트 변화가 0.5 KB 미만이 될 때까지) 부르고, KB 대신 **약한 키 추적자에 남은 객체 수**로 판정한다(Q-122). 프로브 함정(포획 변수를 nil 로 지우기, 하네스가 대상을 쥐기)은 luau-testing `references/gc-and-time.md` 와 roblox-luau `references/gc-and-weak-tables.md` §5.
-- `luau-analyze` 는 `collectgarbage` 를 모른다(Unknown global, 0.734·0.742). 타입 검사를 받는 스니펫에서는 `(_G :: any).collectgarbage` 로 꺼낸다.
-- Roblox 의 일부 실행 컨텍스트는 `collectgarbage("collect")` 를 막는다. 할당 부하 + `task.wait` 로 진행시킨다(roblox-luau `gc-and-weak-tables.md` §6).
+- 힙 수치는 churn 뒤 **최저값**으로 적는다. 벤치 하네스도 이전 결과를 놓고 collect 한다(`bench/lib/bench.luau`).
+- `luau-analyze` 는 `collectgarbage` 를 모른다. 타입 검사를 받는 스니펫에서는 `(_G :: any).collectgarbage` 로 꺼낸다.
+- 누수 판정 하네스(`fullgc`, 객체 수 판정, 측정 함수 분리, 프로브 함정)의 정본은 luau-testing `references/gc-and-time.md` §1–§2 다.
+- "GC 는 할당이 있어야 진행한다"(유휴 Studio 힙 56 MB 고정 → 할당 뒤 약 10 MB)와 Roblox 샌드박스의 `collectgarbage` 가 `"count"` 만 받는 점은 roblox-luau `references/gc-and-weak-tables.md` §4·§6 이 정본이다.
 
 ## §6 클로저 캐시
 status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/perf-closure-cache.luau`, 후보 Q-005, Q-006
 
 - 업밸류가 반복마다 바뀌지 않는 클로저 식(`function() return shared end`, `function() end`)은 반복마다 **같은 함수 객체**다. 할당이 없다. 반복 변수를 캡처하면 매번 새 객체다.
 - GC 잔여를 세는 측정에서 "1개 남음"으로 보이는 원인이다.
-- 함수를 키로 쓰는 레지스트리에서 인라인 클로저가 바깥 모듈을 캡처하면 그 모듈이 영원히 산다(quad: 캡처 50/50 잔존, 비캡처 0/50, Q-006, described).
+- 함수를 키로 쓰는 레지스트리의 수명 함정(인라인 클로저가 바깥 모듈을 캡처하면 영구 잔존)은 roblox-luau `references/gc-and-weak-tables.md` §7.
 
 ## §7 경계: 의미론은 roblox-luau 에
 - ephemeron 없음(값이 키를 가리키면 영구 잔존), `__mode = "v"` 의 키는 강함, `__mode` 오타, 약한 값 배열의 구멍, 멈춘 코루틴이 잡는 키, GC 시점에 기대는 코드: roblox-luau `references/gc-and-weak-tables.md` §2~§4(스니펫 `rbx-gc-no-ephemeron.luau`, `rbx-gc-weak-modes.luau`). 순수 Luau 의미론이지만 그쪽이 정본이다.

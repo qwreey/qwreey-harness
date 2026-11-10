@@ -8,7 +8,7 @@ description: >-
   숨은 --fflags 옵션, 스니펫 하네스 표식(-- expect-error, -- bug-present, --@run, -O2·-g0·--codegen 실행을 고정하는
   --@run-opt/--@run-with, 바이트코드·인라인 remark·native 코드 크기를 보는 --@compile/--@inline-remarks/--@codegen,
   Roblox 정의 파일로 검사하는 --@lsp-roblox), require 가 검사기와 런타임에서 갈리는 자리(symlink, .luaurc alias,
-  nonstrict 의 거짓 클린), 게이트를 종료 코드로 판정하기, pesde·Rojo 링크 함정,
+  nonstrict 의 거짓 클린, 다른 파일로 풀리는 경로 오타), 게이트를 종료 코드로 판정하기, pesde·Rojo 링크 함정,
   stylua 가 f<<T>> 를 망가뜨리는 조건, 러너(luau CLI 기본)와 const(D-01)와 버전 핀 정책, 그리고 luau-lsp 로
   공개 API 의 hover·자동완성·추론 타입 표시(DX)를 확인하는 법(tools/lsp_probe.py)과 Claude Code LSP 연동(.lsp.json)을 다룬다.
   타입 검사 결과를 믿어도 되는지 확인할 때, 재현 파일이나 스파이크를 만들 때, 검사 게이트를 짜거나 고칠 때,
@@ -51,7 +51,7 @@ description: >-
 | `-O2`·`-g0`·`--codegen` 실행, 바이트코드·remark·native 크기 주장을 스니펫으로 고정 | `references/snippet-markers.md` §2a |
 | Roblox 전역이 필요한 스니펫(luau-lsp + 정의 파일), luau-lsp 플래그 함정 | `references/snippet-markers.md` §2b, `references/checkers.md` §2 |
 | `--fflags`, 엔진 무관 게이트, 같은 진단이 두 번 보고됨 | `references/checkers.md` §1 |
-| require 가 에디터에선 풀리는데 실행은 실패(symlink, alias), nonstrict 거짓 클린, `init.luau` 의 `./` | `references/checkers.md` §7, `snippets/verify-require.sh` |
+| require 가 에디터에선 풀리는데 실행은 실패(symlink, alias), nonstrict 거짓 클린, 다른 파일로 풀리는 오타 | `references/checkers.md` §7, `snippets/verify-require.sh` (경로 규칙 자체는 roblox-luau `require-and-modules.md` §1–4) |
 | 린트는 rc=0, 게이트를 종료 코드로 판정, selene 설정 탐색 | `references/tooling.md` §5 |
 | pesde 워크스페이스·소비자 설치, Rojo 매핑, `self-upgrade` 가 핀을 가림 | `references/toolchain.md` §1, §5 |
 | 테스트 작성, 러너 패턴, 에러 줄 단언, `-O2` 로 테스트 | luau-testing 스킬 |

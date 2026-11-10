@@ -73,18 +73,10 @@ status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/
 ## §4 `-O2` 와 `error(msg, level)` (D-10 정정)
 status: verified · last-confirmed: luau 0.742 (0.734 동일), `run_opt.sh` B1–B4, C1–C3 · 근거: `drafts/gaps/optimize-levels.md` §4·§5, 스니펫 `snippets/opt-o2-error-level.luau`, `opt-o1-error-level.luau`(대조군), `opt-o2-traceback.luau`, `/code/Projects/claude-doctor/decisions/D-10-error-handling.md` "정정" 절, 후보 S-116(+S-118, R-44), Q-088
 
-`error(msg, 2)` 는 "나를 부른 프레임"을 가리킨다. 인라인된 함수에는 프레임이 없어 level 이 밀린다.
+`error(msg, 2)` 는 "나를 부른 프레임"을 가리킨다. 인라인된 함수에는 프레임이 없어 level 이 밀린다. `-O2` 에서 지역 함수·**테이블 리터럴** 필드 함수는 인라인돼 위치가 사라지거나 **틀린 줄**을 가리키고, 대입으로 만든 필드(`function M.f`)만 안전하다. `debug.traceback`·`debug.info(1, "n")` 도 인라인된 함수를 보지 못한다(`-g2` 로도 안 돌아옴). native 실행(`--codegen`) 자체는 위치를 바꾸지 않는다. 바꾸는 것은 수준 2 다.
 
-| 경우 | `-O1` | `-O2` |
-|---|---|---|
-| 지역 함수 `check` 를 `pcall` 직속 함수가 호출 | 호출 줄 | **위치 없음**(level 2 = `pcall` C 프레임) |
-| 호출자가 인라인되지 않는 함수(가변 인자) 안에서 호출 | 호출 줄 | **틀린 줄**(호출자의 호출자) |
-| 상수 테이블 리터럴 필드 `T.check` | 호출 줄 | **위치 없음**(인라인됨) |
-| 필드 대입으로 만든 `M.check` | 호출 줄 | 호출 줄 |
-
-- native 실행 자체는 위치를 바꾸지 않는다(`--!optimize 1` + `--codegen` 은 위치 보존). 바꾸는 것은 수준 2 다.
-- `-O2` 의 `debug.traceback` 에는 인라인된 함수 줄이 없다. `debug.info(1, "n")` 은 바깥 함수 이름을 돌려준다. `-g2` 로도 돌아오지 않는다.
-- 처방: 라이브러리가 사용자 호출 줄을 가리켜야 하면 손으로 센 level 대신 스택을 걸어 첫 비라이브러리 프레임을 찾는 헬퍼를 둔다(헬퍼도 인라인되지 않게). 에러 단언 테스트는 `-O1` 과 `-O2` 양쪽에서 돈다. 테스트 쪽 규칙(같은 스위트를 `-O1`·`-O2` 로 두 번)은 luau-testing 스킬 `references/optimize-levels.md` 가 다룬다.
+- 경우별 표와 테스트 쪽 함의(같은 스위트를 `-O1`·`-O2` 로 두 번)의 정본: luau-testing 스킬 `references/optimize-levels.md` §2.
+- 처방(손으로 센 level 대신 첫 비라이브러리 프레임을 찾는 raise 헬퍼)의 정본: luau-style 스킬 `references/errors.md` §2.
 
 ## §5 인라인 캐시와 상수 키
 status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/opt-inline.luau`(ic-name, ic-slot, const-key 그룹), `bench/tbl-access.luau`(field-vs-slot), 후보 S-P21, S-P22, S-P24, S-P25

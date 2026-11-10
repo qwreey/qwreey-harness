@@ -13,7 +13,7 @@
 - §3 가상 시계
 - §4 Roblox 쪽 차이
 
-GC·weak 표의 **언어 사실**(ephemeron 이 없다 등)과 메모리 비용은 luau-perf·luau-style 스킬 소관이다. 이 파일은 측정·시험 방법만 다룬다.
+이 파일은 GC 프로브(누수 판정 하네스와 프로브 함정)의 **정본**이다. weak 표의 의미론(ephemeron 이 없다 등)과 Roblox 안 GC 관찰은 roblox-luau `gc-and-weak-tables.md`, 메모리·GC 비용과 객체 크기는 luau-perf `gc-and-memory.md` 가 정본이다.
 
 ---
 
@@ -27,11 +27,11 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일, `-O2` 같음) · �
 - 결과는 "순수 Luau 수준"으로 표시한다. Roblox GC 와 같다는 보장이 없다.
 
 ## §2 프로브 함정
-status: verified (2) / described (1, 3) · 근거: `snippets/test-gc-weak-probe.luau`, `quad/.claude/audit/tween-completed-2026-09-21/REPORT.md:25-31,43-44`, `quad/.claude/audit/round13-e42-gc-sweep/README.md:92-93`, 후보 Q-123·Q-005
+status: verified (1~3) / described (측정 함수 분리) · 근거: `snippets/test-gc-weak-probe.luau`(2), `snippets/rbx-gc-probe-pitfalls.luau`(1, 3), `snippets/perf-closure-cache.luau`(3), `quad/.claude/audit/tween-completed-2026-09-21/REPORT.md:25-31,43-44`, `quad/.claude/audit/round13-e42-gc-sweep/README.md:92-93`, 후보 Q-123·Q-005
 
 1. **포획 변수를 지워 "수거됐다"를 보이려는 실수**: 클로저가 잡은 바로 그 업밸류를 `nil` 로 지우면 클로저가 더는 대상을 잡지 않아, 원래 묻던 "클로저가 잡고 있어도 수거되나"의 답이 무효가 된다. 값 클로저는 키를 **따로 복사한** 업밸류로 잡게 하고, 원래 변수만 놓는다. 원천에서 탐사자 판정 둘이 이 이유로 무효 처리됐다.
 2. **하네스가 대상을 쥠**: 로그 표·결과 표가 대상을 강하게 담으면 잔존으로 보인다. 스니펫이 로그 표에 넣은 객체는 남고, 로그를 비우면 수거되는 것을 보인다. 기록에는 객체 대신 이름·번호를 담는다.
-3. **클로저 캐시**: 업밸류가 반복마다 바뀌지 않는 클로저(`function() end` 등)는 반복마다 같은 객체일 수 있다. "1개 남음"이 누수가 아니라 캐시된 클로저 하나일 수 있다.
+3. **클로저 캐시**: 업밸류가 반복마다 바뀌지 않는 클로저(`function() end` 등)는 반복마다 같은 객체다. "1개 남음"이 누수가 아니라 캐시된 클로저 하나일 수 있다(규칙: luau-perf `gc-and-memory.md` §6).
 - 측정 함수의 지역 변수가 시나리오 객체를 붙잡지 않게, 시나리오 생성은 별도 함수로 뺀다(quad `perf-studio-2026-10-22/REPORT.md:12-17`, described).
 
 ## §3 가상 시계
@@ -43,9 +43,8 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일, `-O2` 같음) · �
 - 실기기에서는 시나리오가 정본(가상 시계 결과)과 맞는지만 확인한다. 원천은 디바운스를 가상 시계로 8만 시드 차등 시험해 차이 0 을 확인했고, 실기기 `task.wait` 는 ±0.02초 지터를 보였다(described).
 
 ## §4 Roblox 쪽 차이
-status: described · 근거: `quad/.claude/audit/tween-completed-2026-09-21/infinite-tween-probe.md:10-12`, `quad/.claude/audit/spike10-full-run-2026-09-01.md:12-14`, 후보 Q-011
+status: described · 정본: roblox-luau `../../roblox-luau/references/gc-and-weak-tables.md` §4·§6
 
-- Roblox 의 일부 실행 컨텍스트(Studio MCP 실행 스레드 등)에서는 `collectgarbage` 가 `"count"` 만 받고 `"collect"` 는 거부한다("use gcinfo() instead"). 일반 스크립트에서도 막혀 있다는 기록이 있으나 컨텍스트별 범위는 재확인이 필요하다.
-- 엔진 안에서 GC 를 압박하려면 할당을 일으킨다: `table.create(5000)` × 20 할당과 `task.wait(0.05)` 를 에포크마다 반복하고, weak 표 canary 가 비는지로 판정한다(원천 실측 2~3 에포크, 1초 미만).
-- 엔진의 GC 는 할당이 있어야 진행한다. 유휴 상태에서는 쓰레기가 오래 남을 수 있다(quad `perf-studio-2026-10-22/REPORT.md:12-17`).
+- Roblox 샌드박스의 `collectgarbage` 는 `"count"` 만 받는다(문서 확인, 컨텍스트 무관). 위 `fullgc()` 는 CLI 전용이다.
+- 엔진 안에서는 할당 압박 + 프레임 넘기기로 GC 를 진행시키고 weak canary 가 비는 에포크 수로 판정한다. GC 는 할당이 있어야 진행하므로 유휴 상태의 "안 줄어든다"는 누수 증거가 아니다. 절차와 수치는 정본 §6·§4.
 - Studio 에서 확인하는 절차는 roblox-luau 스킬 `../../roblox-luau/references/studio-mcp.md`.

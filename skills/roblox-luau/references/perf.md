@@ -84,12 +84,13 @@ status: described · last-confirmed: table-sim 2026-10(Studio 0.742 Play) · 근
 
 mock 흉내: 해당 없음. 스텁은 즉시 돌려주므로 대기 시간을 재현하지 않는다.
 
-## §6 최적화 수준(-O)과 native — 미판정
-status: described (모순, 미판정) · 근거: stl-luau-doctor `.claude/papers/05-quad-survey.md:110`, `.claude/conventions.md:136`; quad `.claude/archive/post-implementation-review/round14-reflection-plan.md:25`, `docs/quadnomicon/11-static-grepability-and-error-architecture.md:126-129`; Roblox 문서 `luau/native-code-gen.md`(2026-11-10) · 후보: S-116, Q-088, audit/09 §6 #2
+## §6 최적화 수준(-O)과 native
+status: described (문서 판정, 엔진 안 실측 없음) · last-confirmed: Roblox 문서 `luau/comments.md` "Script directives"(2026-11-10 curl) · 근거: 그 문서; stl-luau-doctor `.claude/papers/05-quad-survey.md:110`, `.claude/conventions.md:136`; quad `.claude/archive/post-implementation-review/round14-reflection-plan.md:25`, `docs/quadnomicon/11-static-grepability-and-error-architecture.md:126-129`; Roblox 문서 `luau/native-code-gen.md`(2026-11-10) · 후보: S-116, Q-088, audit/09 §6 #2
 
-- stl 은 "라이브 Roblox 는 `-O2`, Studio 는 `-O1`" 을 사실로 적었다. quad 는 같은 질문을 "실측 필요"로 남겼다. Roblox 문서 검색(2026-11-10)에서 최적화 수준을 말하는 페이지를 찾지 못했다.
-- 이것이 중요한 이유: `-O2` 는 지역 함수 호출을 인라인해 `debug.info` 스택과 `error(msg, level)` 의 위치를 바꾼다(luau CLI 실측, luau-perf·luau-style 몫). Studio 에서 통과한 에러 위치 테스트가 라이브에서 달라질 수 있다.
-- `--!native`/`@native` 는 최적화 수준 2 를 강제한다(CLI 실측, luau-perf `native-codegen` 몫). Roblox 문서는 "동작은 같고 성능만 다르다"고 한다.
+- **Roblox 문서가 기본값을 적어 둔다**: `--!optimize` 지시어 설명에 "1 enables basic optimizations (default in Studio testing)", "2 enables further optimizations (default in live games)"(`/docs/en-us/luau/comments.md`, 2026-11-10). stl 의 "라이브 `-O2`, Studio `-O1`" 은 이 문서와 맞고, quad 의 "실측 필요"는 문서로 닫힌다. 엔진 안에서 직접 잰 기록은 아직 없다(아래 절차).
+- 문서는 "Exact optimizations aren't published and are subject to change" 라고 덧붙인다. CLI `-O2` 의 인라인 규칙이 엔진과 같다는 것은 가정이다.
+- 이것이 중요한 이유: `-O2` 는 지역 함수 호출을 인라인해 `debug.info` 스택과 `error(msg, level)` 의 위치를 바꾼다(luau CLI 실측, 경우별 표는 luau-testing `optimize-levels.md` §2). Studio 에서 통과한 에러 위치 테스트가 라이브에서 달라질 수 있다.
+- `--!native`/`@native` 는 최적화 수준 2 를 강제한다(CLI 실측, luau-perf `optimizer-and-native.md` §2·§6). Roblox 문서는 "동작은 같고 성능만 다르다"고 한다.
 - 처방(판정 전): 에러 위치·스택 걷기에 기대는 코드는 `-O1` 과 `-O2` 둘 다에서 맞게 짠다. 손으로 센 `error(msg, 2)` 를 라이브러리에서 쓰지 않는다(D-10).
 
 ## §7 CLI·mock 수치를 읽는 법
@@ -104,10 +105,10 @@ status: described · 근거: quad `.claude/audit/perf-cli-2026-09-26/REPORT.md:3
 
 | # | 내용 | 판정 |
 |---|---|---|
-| audit/09 §6 #2 | 라이브 Roblox 최적화 수준: stl "라이브 -O2, Studio -O1" 대 quad "미실측" | **미판정**. 조건 차이로 설명되지 않고, 문서 근거도 없다. 아래 절차로 판정한다 |
+| audit/09 §6 #2 | 라이브 Roblox 최적화 수준: stl "라이브 -O2, Studio -O1" 대 quad "미실측" | **판정(문서)**: stl 이 맞다. `luau/comments.md` 가 Studio 테스트 1, 라이브 2 를 기본값으로 적는다. 엔진 안 인라인 동작의 실측 확인은 아래 절차로 남긴다 |
 
 ## 미판정
-- **라이브·Studio 의 최적화 수준.** 재현 절차:
+- **라이브·Studio 의 최적화 수준(엔진 안 실측 확인).** 문서 기본값(Studio 1, 라이브 2)이 인라인 동작으로도 보이는지 확인하는 절차:
   1. ModuleScript 에 `local function inner() return debug.info(2, "n") end` 와 `local function outer() return inner() end` 를 두고 `outer()` 의 결과를 돌려준다. 같은 파일을 luau CLI 에서 `-O1`, `-O2` 로 돌려 두 결과(인라인되면 프레임 이름이 달라진다)를 기준으로 삼는다. 더 확실한 신호는 `error("x", 2)` 를 부르는 지역 함수의 보고 줄이다.
   2. Studio Edit(`execute_luau`)과 Play(Server, Client)에서 같은 모듈을 require 해 결과를 `return` 한다.
   3. 게시한 플레이스의 라이브 서버에서 같은 모듈을 돌려 결과를 `print` 하고 Developer Console(F9, 서버 출력)로 읽는다.
