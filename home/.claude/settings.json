@@ -51,5 +51,6 @@
   "remoteControlAtStartup": false,
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
-  "model": "opus"
+  "model": "opus",
+  "cleanupPeriodDays": 180
 }
