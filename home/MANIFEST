@@ -2,16 +2,22 @@
 # 여기 없는 것(projects/, sessions/, plugins/, skills/synced/, history.jsonl, .credentials.json 등)은 런타임 상태라 관리하지 않는다.
 settings.json
 CLAUDE.md
+harness.env
+lib/harness_env.py
 hooks/heavy-proc-guard.py
 hooks/bash-bypass-reminder.py
 
-# 심볼릭 링크: link <~/.claude 기준 경로> <절대 대상>
-link skills/luau-types /code/Projects/luau-kb/skills/luau-types
-link skills/luau-verify /code/Projects/luau-kb/skills/luau-verify
-link skills/harness-doctor /code/Projects/claude-doctor/home/.claude/skills/harness-doctor
-link skills/roblox-luau /code/Projects/luau-kb/skills/roblox-luau
-link skills/luau-upstream /code/Projects/luau-kb/skills/luau-upstream
-link skills/luau-style /code/Projects/luau-kb/skills/luau-style
-link skills/luau-testing /code/Projects/luau-kb/skills/luau-testing
-link rules/luau-core.md /code/Projects/luau-kb/rules/luau-core.md
-link skills/luau-perf /code/Projects/luau-kb/skills/luau-perf
+# 심볼릭 링크: link <~/.claude 기준 경로> <대상>
+# 대상에는 ${HARNESS_WORKSPACE}, ${HARNESS_DOCTOR_ROOT} 같은 harness.env 변수를 쓴다(home-sync 가 푼다).
+# 기본값: HARNESS_DOCTOR_ROOT = 이 클론, HARNESS_WORKSPACE = 그 부모. 대상이 없으면 status 에 보이고 apply 는 건너뛴다.
+link skills/harness-doctor ${HARNESS_DOCTOR_ROOT}/home/.claude/skills/harness-doctor
+
+# 툴킷 luau — 공유 지식 luau-kb (플러그인 마켓으로 옮기면 이 줄들은 지운다)
+link skills/luau-types ${HARNESS_WORKSPACE}/luau-kb/skills/luau-types
+link skills/luau-verify ${HARNESS_WORKSPACE}/luau-kb/skills/luau-verify
+link skills/roblox-luau ${HARNESS_WORKSPACE}/luau-kb/skills/roblox-luau
+link skills/luau-upstream ${HARNESS_WORKSPACE}/luau-kb/skills/luau-upstream
+link skills/luau-style ${HARNESS_WORKSPACE}/luau-kb/skills/luau-style
+link skills/luau-testing ${HARNESS_WORKSPACE}/luau-kb/skills/luau-testing
+link rules/luau-core.md ${HARNESS_WORKSPACE}/luau-kb/rules/luau-core.md
+link skills/luau-perf ${HARNESS_WORKSPACE}/luau-kb/skills/luau-perf

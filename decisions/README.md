@@ -27,6 +27,9 @@
 
 ## 이번에 발견한 낡은 서술 (각 저장소 세션에 전달할 것)
 
+> 2026-11-10: 아래 8건은 luau-kb 정정과 합쳐 저장소별 `handoff/<repo>-corrections.md`(quad 는 `handoff/quad.md` 의 C12·C36)로 옮겼다. 전달은 그 파일로 한다.
+
+
 - `stl-luau/stylua.toml:1` 의 "tbox/quad 와 같은 설정"은 거짓이다. tbox 는 Spaces+Input 이고 quad 는 설정 파일이 없다.
 - `stl-luau/mise.toml:18-19` 의 "quad 는 luau 를 고정하지 않는데"는 거짓이다. quad 는 0.734 를 핀했다.
 - `table-sim/mise.toml:3-5` 의 "형제와 같은 값"은 거짓이다. stl 은 0.742/1.70.1, quad 는 lsp 1.70.1 이다.

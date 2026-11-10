@@ -46,39 +46,37 @@ GEMINI.md와 AGENTS.md는 agy·codex의 진입점이다. 이들에게는 rules�
   - 그 밖의 모순은 모델이 직접 본다. 툴체인 버전, 검사 명령, 금지 사항, 커밋·push 정책 같은 것이다.
   - 방법: CLAUDE.md의 "넘지 않는 선"·명령 표와 GEMINI.md·AGENTS.md를 나란히 읽는다.
 - **고치는 법**: GEMINI.md와 AGENTS.md는 규약을 다시 적지 않고 CLAUDE.md와 rules 파일을 가리키게 한다.
-  - 틀은 `claude-doctor/drafts/delegate/skills/delegate/templates/AGENTS.md.template`이다.
+  - 틀은 `<doctor>/drafts/delegate/skills/delegate/templates/AGENTS.md.template`이다.
   - 당장은 어긋난 줄만 고치는 안을 낸다.
 
 ### D-07
 
-끝난 할 일을 어떻게 다룰지는 D-07(`claude-doctor/decisions/D-07-finished-todos.md`)에서 아직 미결이다.
+끝난 할 일을 어떻게 다룰지는 D-07(`<doctor>/decisions/D-07-finished-todos.md`)에서 아직 미결이다.
 - 제안된 추천안: 상시 로드되는 todos에서는 끝난 항목을 지우고, 보존이 필요하면 import되지 않는 파일(`archive/todos-history.md`)로 옮긴다.
 - table-sim `todos.md:5`는 정반대 규칙("된 것은 지우지 않고 아래로 내린다")을 적고 있다. 바꾸게 되면 그 규칙 문장도 같이 바꿔야 한다.
 - `LOAD-TODOS-DONE`이 나오면 고치지 말고 D-07을 가리키며 묻는다. 질문 틀은 `fix-protocol.md`에 있다.
 
 ## 5. 공유 지식 쏠림
 
-일반 Luau 지식이 프로젝트 문서에만 쌓이면, 다른 저장소는 "저쪽 보고 오기"로만 그 지식을 얻는다.
-정본은 `/code/Projects/luau-kb`(스킬, snippets, typedefs)다.
+툴킷 검사다. 원리는 언어와 무관하고, 정본 저장소·표시·용어는 툴킷마다 다르다.
+
+일반 지식(언어·툴체인 동작, 함정, 성능 사실)이 프로젝트 문서에만 쌓이면, 다른 저장소는 "저쪽 보고 오기"로만 그 지식을 얻는다.
+그런 지식의 정본은 그 툴킷의 공유 지식 저장소(`<작업공간>/<툴킷>-kb`, coderag의 pack 계층)다. 지금 있는 것은 luau의 luau-kb뿐이다.
 
 | 코드 | 뜻 |
 |---|---|
-| `KB-MARK` | `<!-- luau-kb 후보 -->` 표시 목록. 옮길 대상 장부다 |
-| `KB-CAND` | 표시는 없지만 일반 Luau 지식일 수 있는 줄. Luau 용어와 근거 신호(버전 `0.7xx`, "N배", "%", 상류, 결함, 재현, 실측)가 함께 있는 줄을 센다 |
+| `KB-MARK` | `<!-- <툴킷>-kb 후보 -->` 표시 목록. 옮길 대상 장부다 |
+| `KB-CAND` | 표시는 없지만 일반 지식일 수 있는 줄. 툴킷 용어와 근거 신호(버전, "N배", "%", 상류, 결함, 재현, 실측)가 함께 있는 줄을 센다 |
+
+툴킷별 용어·판정 예·정본 경로: luau는 `references/toolkits/luau.md#공유-지식-luau-kb`. 공유 지식 저장소가 없는 툴킷(web)은 이 항목을 내지 않는다.
 
 **모델이 볼 것** (`KB-CAND` 판정)
-- **후보**: 라이브러리 없이 재현되거나 Luau 버전에만 의존하는 사실이다.
-  - 솔버 동작, 표준 라이브러리 성능, stylua·luau-analyze의 함정, `-O2` 인라인 문제
+- **후보**: 그 프로젝트 없이 재현되거나 언어·도구 버전에만 의존하는 사실이다.
 - **후보 아님**: 프로젝트 API, 설계 결정, 그 저장소의 수치 계약에 묶인 것이다.
-- 둘이 섞였으면 "혼합"으로 적는다. 분류 예시는 `claude-doctor/audit/07-stl-luau-diet.md` §5의 23개 표다.
-- 이미 luau-kb에 있는지 확인한다: `grep -rn <핵심어> /code/Projects/luau-kb/skills`
-  - 있으면 프로젝트 문서의 서술을 포인터로 바꾸는 안을 낸다.
+- 둘이 섞였으면 "혼합"으로 적는다.
+- 이미 공유 지식 저장소에 있는지 grep으로 확인한다. 있으면 프로젝트 문서의 서술을 포인터로 바꾸는 안을 낸다.
 - `question.md`, `todos.md`처럼 import되지 않는 문서의 후보는 우선순위가 낮다.
 
 **고치는 법**
-- 승인을 받으면 해당 줄 끝에 `<!-- luau-kb 후보 -->`를 붙인다. 표시는 지우지 않는다.
-- 실제로 옮기는 일은 luau-kb 작업에서 한다. 순서는 이렇다.
-  1. snippet으로 재현한다(`luau-kb/tools/check_snippets.py`).
-  2. 스킬 reference에 적는다.
-  3. 프로젝트 문서에는 포인터만 남긴다.
-- 이 스킬에서는 옮기자는 제안까지만 한다.
+- 승인을 받으면 해당 줄 끝에 `<!-- <툴킷>-kb 후보 -->`를 붙인다. 표시는 지우지 않는다.
+- 실제로 옮기는 일은 공유 지식 저장소 작업에서 한다(재현 → 스킬 reference → 프로젝트에는 포인터). 이 스킬에서는 옮기자는 제안까지만 한다.

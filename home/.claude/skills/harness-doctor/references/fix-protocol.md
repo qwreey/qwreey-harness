@@ -29,11 +29,11 @@ done
 ```
 
 세션이 있는 저장소는 직접 고치지 않는다. 대신 다음 중 하나를 한다.
-- **인계 문서**(기본): `/code/Projects/claude-doctor/handoff/<repo>.md`를 만든다. 파일이 이미 있으면 날짜를 단 절을 덧붙인다.
-- **초안 브랜치**(큰 재구성일 때, 사용자가 승인한 경우만): 별도 worktree `/code/Projects/<repo>-doctor`와 브랜치 `doctor/<주제>`에 초안을 만든다.
+- **인계 문서**(기본): `<doctor>/handoff/<repo>.md`를 만든다(`<doctor>` = `scan.py --env`의 `DOCTOR_ROOT`). 파일이 이미 있으면 날짜를 단 절을 덧붙인다.
+- **초안 브랜치**(큰 재구성일 때, 사용자가 승인한 경우만): 별도 worktree `<작업공간>/<repo>-doctor`와 브랜치 `doctor/<주제>`에 초안을 만든다.
   인계 문서에 그 브랜치를 적는다. 선례는 stl-luau-doctor다.
 
-인계 문서 틀 (선례: `claude-doctor/handoff/stl-luau.md`)
+인계 문서 틀 (선례: `<doctor>/handoff/stl-luau.md`)
 ```markdown
 # <repo> 세션에게 — <한 줄 요지>
 
@@ -49,12 +49,12 @@ claude-doctor 의 harness-doctor 가 <날짜>에 이 저장소를 진단했습�
 - `python3 -I ~/.claude/skills/harness-doctor/scripts/scan.py <경로> --only <항목>` 에서 해당 코드가 사라지는지
 - 다 끝나면 사용자에게 알려 주세요.
 ```
-인계 문서를 만들었으면 `claude-doctor/HUMAN_TODO.md` "다른 세션에 넘길 것" 절에 "<repo> 세션에 `handoff/<repo>.md` 전달" 항목을 더한다.
+인계 문서를 만들었으면 `<doctor>/HUMAN_TODO.md` "다른 세션에 넘길 것" 절에 "<repo> 세션에 `handoff/<repo>.md` 전달" 항목을 더한다.
 
 ## 삭제가 필요할 때
 
 에이전트는 지우지 않는다. 대상은 파일, worktree, 브랜치, 디렉터리, 훅 파일, 백업이다.
-`/code/Projects/claude-doctor/HUMAN_TODO.md`의 알맞은 절에 체크박스 항목으로 올린다. 같은 항목이 이미 있으면 내용을 갱신한다.
+`<doctor>/HUMAN_TODO.md`의 알맞은 절에 체크박스 항목으로 올린다. 같은 항목이 이미 있으면 내용을 갱신한다.
 ```markdown
 - [ ] <무엇을 지우나 한 줄>
   - 위치: `<경로>` (브랜치 `<이름>`, 미커밋 N, 메인에 없는 커밋 N)
@@ -65,22 +65,17 @@ claude-doctor 의 harness-doctor 가 <날짜>에 이 저장소를 진단했습�
 
 ## 규약이 갈리는 항목
 
-`claude-doctor/decisions/D-xx`가 걸린 항목은 한쪽으로 고치지 않는다. D-01~D-12는 아직 사용자 확인 전인 제안이다.
+`<doctor>/decisions/D-xx`가 걸린 항목은 한쪽으로 고치지 않는다. 확정 여부는 `decisions/README.md`의 "사용자 결정 현황" 표가 정본이다.
+확정된 결정은 그 내용대로 고칠 안을 내고, 미확인·수정 중인 결정만 묻는다.
+
+코어(언어 무관) 결정:
 
 | scan 코드나 발견 | 관련 D-xx |
 |---|---|
 | `LOAD-TODOS-DONE`, 끝난 항목 규칙 | D-07 끝난 할 일 |
-| `TOOL-PIN`, 버전 서술 | D-05 버전 핀 |
-| stylua `indent_type`, `call_parentheses` 값 | D-02 stylua |
-| `const` 사용 여부 | D-01 |
-| lune, lute, luau 러너 | D-03 |
-| `type function` 사용 범위 | D-04 |
-| analyze와 lsp 중 무엇을 기준으로 할지 | D-06 |
-| 주석 언어 | D-08 |
-| 네이밍 케이싱 | D-09 |
-| 에러 형식, `error(msg, level)` | D-10 |
-| 객체 모양, 필드 지역 캐시 | D-11 |
-| require 경로, `@game` | D-12 |
+| 파일 길이·폴더 구조 알림 기준 | D-13 (기준 값은 언어 무관) |
+
+툴킷 결정(대부분 Luau 저장소 사이의 규약): 각 `references/toolkits/<이름>.md`의 "걸린 결정" 표. luau는 D-01~D-06, D-08~D-12.
 
 질문 틀: 각 D 파일의 "사용자 확인 질문" 절을 그대로 쓰고, 이 저장소에 미치는 변경량만 더한다.
 ```markdown
@@ -91,10 +86,11 @@ claude-doctor 의 harness-doctor 가 <날짜>에 이 저장소를 진단했습�
 
 ## 사용자 레벨(~/.claude)
 
-- 실제 `~/.claude`(이 환경에서는 `/code/.claude`)는 고치지 않는다.
-- 정본 `/code/Projects/claude-doctor/home/.claude/`를 고치는 안을 낸다. 새 파일이면 `home/MANIFEST`에 줄을 더한다.
+- 실제 `~/.claude`(`CLAUDE_CONFIG_DIR`가 있으면 그것)는 고치지 않는다.
+- 정본 `<doctor>/home/.claude/`를 고치는 안을 낸다. 새 파일이면 `home/MANIFEST`에 줄을 더한다.
   - 복사 대상은 경로 한 줄이다.
-  - 링크 대상은 `link <~/.claude 기준 경로> <절대 대상>` 꼴로 적는다.
+  - 링크 대상은 `link <~/.claude 기준 경로> <대상>` 꼴로 적는다. 대상에는 절대 경로 대신 `${HARNESS_WORKSPACE}`, `${HARNESS_DOCTOR_ROOT}`를 쓴다.
+  - 환경 고유값(경로, 래퍼, 정책)은 문서나 훅에 박지 않고 `home/.claude/harness.env`에 키로 둔다.
 - 고친 뒤에는 사용자에게 `tools/home-sync.sh diff`로 검토하고 `apply`하라고 안내한다. `status` 출력도 함께 보여 준다.
 - 사용자가 `/config` 같은 것으로 실제 쪽만 바꿨으면 `pull`로 정본에 가져오는 안을 낸다.
 - 진단은 `scan.py --user`로 한다.
@@ -104,7 +100,7 @@ claude-doctor 의 harness-doctor 가 <날짜>에 이 저장소를 진단했습�
 1. scan을 그 항목만 다시 돌린다(`--only N`). 해당 코드가 사라졌는지 확인한다.
 2. 상시 로드량이 바뀌었으면 전후 B/줄을 보고한다.
 3. rules를 바꿨으면 실제로 로드되는지 확인한다.
-   - 방법: `claude -p`로 해당 `.luau`를 한 번 Read하게 하고, 컨텍스트에 보이는 rule 파일 이름을 인용하게 한다(`audit/07` §1).
+   - 방법: `claude -p`로 그 rule의 paths에 맞는 파일을 한 번 Read하게 하고, 컨텍스트에 보이는 rule 파일 이름을 인용하게 한다(`audit/07` §1).
    - 모델은 sonnet 이상을 쓴다. haiku 결과로는 결론 내지 않는다.
 4. 스킬을 바꿨으면 `claude plugin validate <스킬 디렉터리의 상위>`로 형식을 확인한다.
 5. 커밋은 사용자가 요청할 때만 한다. 고친 파일 목록과 diff 요지를 보고한다.

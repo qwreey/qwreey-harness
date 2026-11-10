@@ -35,13 +35,13 @@ scan은 파일을 원문 그대로 센다. 블록 HTML 주석은 주입 전에 �
 - (a) 상시 CLAUDE.md: 정체성, 넘지 않는 선, 빌드·검사 명령, 지금 상태 1줄, 온디맨드 표
 - (b) `.claude/rules/*.md` + `paths`: 특정 파일을 다룰 때만 필요한 규칙
 - (c) 자동 호출 스킬 / (d) 사용자 호출 스킬: 절차형 내용(핸드오버, 감사 루프, 리뷰 라운드)
-- (e) luau-kb: 프로젝트와 무관한 Luau 지식
+- (e) 툴킷 공유 지식 저장소(luau는 luau-kb): 프로젝트와 무관한 언어·툴체인 지식
 - (f) archive: 끝난 경위, 정정 서사, 종결된 마일스톤 규약
 - 코드에서 얻을 수 있는 내용(디렉터리 트리, 파일 목록, 버전 표)은 지울 후보다.
 
 **고치는 법**
 1. `@import` 줄을 온디맨드 표의 행("무엇이 궁금할 때 → 어디를 볼 것")으로 바꾼다. 파일은 그대로 두고 import만 끊는다.
-2. conventions는 위 분류대로 rules, 스킬, archive로 나눈다. 선례는 stl-luau-doctor다(`claude-doctor/audit/07-stl-luau-diet.md` §2 분류표).
+2. conventions는 위 분류대로 rules, 스킬, archive로 나눈다. 선례는 stl-luau-doctor다(`<doctor>/audit/07-stl-luau-diet.md` §2 분류표).
 3. 옮기기 전 원문은 `archive/<이름>-<날짜>.md` 스냅숏으로 남긴다. 옮기기는 삭제가 아니다. 다만 내용을 걷어내는 일이라 승인이 필요하다.
 4. 전후 수치를 잰다: `wc -lc`, `LC_ALL=C.UTF-8 wc -m`, scan `--only 1`. 사용자에게는 `/context`로 확인해 보라고 권한다.
 5. `LOAD-TODOS-DONE`은 D-07이 미결이다. 고치지 말고 묻는다(`staleness-and-kb.md#d-07`).
@@ -66,7 +66,7 @@ scan은 파일을 원문 그대로 센다. 블록 HTML 주석은 주입 전에 �
 scan은 glob을 `git ls-files`(추적 파일과 무시되지 않은 새 파일) 기준으로 맞춰 본다. 그래서 생성 파일이나 무시된 파일을 겨냥한 glob은 `RULE-DEADGLOB` 오탐일 수 있다.
 
 **고치는 법**
-- `RULE-NOPATHS`: 이 규칙이 필요한 파일 범위를 정해 `paths: ["src/**/*.luau"]`처럼 단다.
+- `RULE-NOPATHS`: 이 규칙이 필요한 파일 범위를 정해 `paths: ["src/**/*.luau"]`, `paths: ["src/**/*.{ts,tsx}"]`처럼 단다.
   정말 모든 세션에 필요한 1~3줄이라면 CLAUDE.md로 옮기는 안을 낸다.
 - `RULE-DEADGLOB`: 폴더가 옮겨졌거나 오타인지 `git log --stat`로 확인한 뒤 glob을 고친다.
   앞으로 생길 폴더를 겨냥한 것이면 그대로 두고 보고만 한다.
@@ -86,4 +86,4 @@ scan은 glob을 `git ls-files`(추적 파일과 무시되지 않은 새 파일) 
 - conventions 쪽 명령 문장을 걷는다. 그 자리에는 '왜'와 근거 링크만 남긴다.
 - rule 줄 끝의 근거 표기("— conventions '절 이름'")가 여전히 그 절을 가리키는지 확인한다. 절 제목은 유지한다.
 - conventions에만 있고 rules에 없는 규칙이 나오면 rules로 옮기는 안을 함께 낸다.
-- stl-luau는 이 작업을 그 저장소 세션이 하기로 했다(`claude-doctor/handoff/stl-luau.md`). 직접 고치지 않는다.
+- stl-luau는 이 작업을 그 저장소 세션이 하기로 했다(`<doctor>/handoff/stl-luau.md`). 직접 고치지 않는다.

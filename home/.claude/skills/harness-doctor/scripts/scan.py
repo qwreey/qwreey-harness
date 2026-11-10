@@ -6,8 +6,12 @@
   python3 -I scan.py --user            사용자 레벨(정본 home/.claude 와 실제 ~/.claude)
   python3 -I scan.py --sessions <경로>  실행 중인 Claude 세션만 본다
 
-항목 번호: 0 세션, 1 상시 로드, 2 rules, 3 스킬, 4 낡음·모순, 5 luau-kb 후보,
-          6 복제본 표류, 7 설정, 8 툴체인, 9 worktree.
+  python3 -I scan.py --env              읽은 harness.env 값과 쓸 수 있는 툴킷을 보인다
+
+항목 번호: 0 세션, 1 상시 로드, 2 rules, 3 스킬, 4 낡음·모순, 5 공유 지식 후보(툴킷),
+          6 복제본 표류, 7 설정, 8 툴체인(툴킷), 9 worktree.
+코어(이 파일)는 언어와 무관한 검사만 한다. 언어·툴체인 검사는 toolkits/<이름>.py 가 맡고,
+저장소마다 감지 표식이 있을 때만 켠다(--toolkits 로 강제). 환경 고유값은 ~/.claude/harness.env 에서 읽는다.
 판단이 필요한 것은 '경고'나 '정보'로만 낸다. 고칠지는 모델과 사용자가 정한다.
 표준 라이브러리만 쓴다. git 은 GIT_OPTIONAL_LOCKS=0 으로 불러 인덱스를 건드리지 않는다.
 """
@@ -15,6 +19,7 @@ import argparse
 import datetime as dt
 import difflib
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -22,17 +27,35 @@ import subprocess
 import sys
 import tomllib
 from pathlib import Path
+from types import SimpleNamespace
 
-VERSION = "1"
+VERSION = "2"
 HERE = Path(__file__).resolve()
-# 이 파일은 <claude-doctor>/home/.claude/skills/harness-doctor/scripts/scan.py 다(~/.claude/skills 링크를 따라가도 같다).
-DOCTOR_ROOT = Path(os.environ["HARNESS_DOCTOR_ROOT"]) if os.environ.get("HARNESS_DOCTOR_ROOT") else (
-    HERE.parents[5] if HERE.parents[4].name == "home" else Path("/code/Projects/claude-doctor"))
-CANON_HOME = DOCTOR_ROOT / "home" / ".claude"
 USER_HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
+# 이 파일은 <claude-doctor>/home/.claude/skills/harness-doctor/scripts/scan.py 다(~/.claude/skills 링크를 따라가도 같다).
+_PATH_ROOT = HERE.parents[5] if HERE.parents[4].name == "home" else None
 
-# decisions/D-05 의 '권고 목표'(사용자 확인 전 제안). 어긋나면 정보로만 낸다.
-D05_TARGET = {"luau": "0.742", "luau-lsp": "1.70.1", "stylua": "2.5.2"}
+
+def _load_env():
+    """harness.env 를 lib/harness_env.py 로 읽는다. lib 가 없으면 ({}, None)."""
+    for lib in (HERE.parents[3] / "lib" / "harness_env.py", USER_HOME / "lib" / "harness_env.py"):
+        if lib.is_file():
+            spec = importlib.util.spec_from_file_location("harness_env", lib)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            cands = [USER_HOME / "harness.env"] + ([_PATH_ROOT / "home" / ".claude" / "harness.env"] if _PATH_ROOT else [])
+            return mod.load(cands), mod
+    return {}, None
+
+
+ENV, ENVLIB = _load_env()
+# 우선순위: 환경 변수 > 이 파일의 위치 > harness.env. 셋 다 없으면 정본 관련 검사(MANIFEST, 훅 사본)를 건너뛴다.
+_root = os.environ.get("HARNESS_DOCTOR_ROOT") or (str(_PATH_ROOT) if _PATH_ROOT else ENV.get("HARNESS_DOCTOR_ROOT"))
+DOCTOR_ROOT = Path(_root) if _root else None
+CANON_HOME = DOCTOR_ROOT / "home" / ".claude" if DOCTOR_ROOT else HERE.parents[3]
+WORKSPACE = Path(ENV.get("HARNESS_WORKSPACE") or (DOCTOR_ROOT.parent if DOCTOR_ROOT else Path.cwd()))
+# 위임 작업공간·초안 사본 접미(<repo>-<접미>). 형제 비교와 `all` 에서 뺀다.
+COPY_SUFFIXES = ("-agy", "-scratch", "-codex", "-proto", "-doctor")
 DESC_LIMIT = 1536
 SKILL_MAX_LINES = 500
 REF_TOC_LINES = 100
@@ -47,20 +70,63 @@ SKILL_KEYS = {
     "disable-model-invocation", "user-invocable", "effort", "shell", "version", "when_to_use",
     "paths", "hooks", "context", "agent", "metadata", "license", "compatibility",
 }
-SIDE_EFFECT = re.compile(
-    r"git (?:commit|push|merge|rebase|reset --hard|tag|worktree (?:add|remove)|branch -[dD])\b|\brm -[rf]|"
-    r"커밋(?:한다|하고|해|을 만든)|푸시한다|배포한다|업로드한다|게시한다|삭제한다|지운다|studio-sync|"
-    r"\b(?:publish|deploy)\.(?:py|sh)\b|setpriv|choom -n"
-)
+# 코어 부작용 낱말. 툴킷의 SIDE_EFFECT_WORDS 와 환경의 무거운 실행 래퍼(harness.env)가 build_side_effect 에서 더해진다.
+SIDE_EFFECT_CORE = [
+    r"git (?:commit|push|merge|rebase|reset --hard|tag|worktree (?:add|remove)|branch -[dD])\b", r"\brm -[rf]",
+    r"커밋(?:한다|하고|해|을 만든)", "푸시한다", "배포한다", "업로드한다", "게시한다", "삭제한다", "지운다",
+    r"\b(?:publish|deploy)\.(?:py|sh)\b", "setpriv",
+]
+SIDE_EFFECT = None
 AGENT_EXES = {"claude", "agy", "antigravity", "gemini", "codex"}
 BROAD_ALLOW = re.compile(r"^Bash\((?:sed|cp|mv|chmod|curl|wget|python3?|node|env|find|bash|sh|rm)(?::\*|\s\*|\*)?\)$")
-SKIP_DIRS = {".git", "node_modules", "worktrees", "luau_packages", "lune_packages", "Packages", "__pycache__"}
+SKIP_DIRS = {".git", "node_modules", "worktrees", "__pycache__"}  # 툴킷의 SKIP_DIRS 가 더해진다
 
 findings = []
 
 
 def add(item, sev, code, where, msg, ref=None):
     findings.append({"item": item, "sev": sev, "code": code, "where": str(where), "msg": msg, "ref": ref})
+
+
+# ---------------------------------------------------------- 툴킷
+def load_toolkits():
+    """scripts/toolkits/<이름>.py 를 읽는다. HARNESS_TOOLKITS 가 있으면 그 목록만."""
+    enabled = set((ENV.get("HARNESS_TOOLKITS") or "").split())
+    out = {}
+    for f in sorted((HERE.parent / "toolkits").glob("*.py")):
+        if f.name.startswith("_") or (enabled and f.stem not in enabled):
+            continue
+        spec = importlib.util.spec_from_file_location(f"harness_toolkit_{f.stem}", f)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        out[getattr(mod, "NAME", f.stem)] = mod
+    return out
+
+
+TOOLKITS = load_toolkits()
+for _tk in TOOLKITS.values():
+    SKIP_DIRS |= set(getattr(_tk, "SKIP_DIRS", ()))
+
+
+def heavy_wrap():
+    """무거운 실행 래퍼 argv. lib 가 없으면 기본값(auto: choom 이 있으면 쓴다)과 같게 정한다."""
+    if ENVLIB:
+        return ENVLIB.heavy_wrap(ENV)
+    import shutil
+    return ["choom", "-n", "1000", "--"] if shutil.which("choom") else []
+
+
+def build_side_effect():
+    words = list(SIDE_EFFECT_CORE)
+    for tk in TOOLKITS.values():
+        words += list(getattr(tk, "SIDE_EFFECT_WORDS", []))
+    wrap = heavy_wrap()
+    if wrap:  # 이 환경의 무거운 실행 래퍼를 쓰라고 하는 스킬(예: `choom -n`)
+        words.append(re.escape(" ".join(wrap[:2])))
+    return re.compile("|".join(words))
+
+
+SIDE_EFFECT = build_side_effect()
 
 
 # ---------------------------------------------------------------- 공용
@@ -102,8 +168,15 @@ def stats(p):
     return {"lines": t.count("\n") + (0 if t.endswith("\n") or not t else 1), "bytes": len(t.encode()), "chars": len(t)}
 
 
+def git_root(repo):
+    """repo 가 git 작업 트리의 루트면 True. 반입 사본(intake/<이름>/)처럼 다른 저장소 안의 하위 디렉터리면 False."""
+    out = run(["git", "rev-parse", "--show-toplevel"], cwd=repo)
+    return bool(out) and Path(out.strip()).resolve() == Path(repo).resolve()
+
+
 def repo_files(repo):
-    out = run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"], cwd=repo, timeout=60)
+    out = run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"], cwd=repo, timeout=60) \
+        if git_root(repo) else None
     if out is not None:
         return [f for f in out.split("\0") if f and not f.startswith(".claude/worktrees/")]
     files = []
@@ -305,7 +378,7 @@ def inside(path, root):
 
 def check_sessions(repo):
     sess = claude_sessions()
-    wts = worktrees(repo)
+    wts = worktrees(repo) if git_root(repo) else []
     here = [s for s in sess if inside(s[1], repo) and not s[2]]
     for pid, cwd, _, exe in here:
         add(0, "오류", "SESSION-LIVE", cwd,
@@ -543,8 +616,8 @@ def check_skill(sd, repo):
     mds = [p.resolve() for p in sd.rglob("*.md") if p.name != "SKILL.md"]
     for p in mds:
         depth = len(p.relative_to(sd.resolve()).parts)
-        if depth > 2:
-            add(3, "경고", "SKILL-NEST", rel(p, repo), "references 가 하위 디렉터리로 중첩됐다.")
+        if depth > 2 and p not in direct:  # 하위 폴더라도 SKILL.md 가 바로 가리키면 1단계다(예: references/toolkits/)
+            add(3, "경고", "SKILL-NEST", rel(p, repo), "references 가 하위 디렉터리로 중첩됐고 SKILL.md 가 바로 가리키지 않는다.")
     for p in direct:
         for q in md_links(p, sd):
             if q not in direct and q.name != "SKILL.md":
@@ -660,41 +733,6 @@ def check_stale(repo, today):
                 f"마지막 커밋 {gdate} 로 CLAUDE.md({cdate})보다 오래됐다. 규약이 따라왔는지 확인.")
 
 
-# --------------------------------------------------- 5 luau-kb 후보
-KB_MARK = re.compile(r"<!--\s*luau-kb 후보")
-KB_TERM = re.compile(r"luau-analyze|luau-lsp|새 솔버|new solver|솔버|type function|타입 함수|f<<|제네릭|generic|"
-                     r"table\.(?:move|create|clone|freeze|pack)|math\.fmod|-O2|stylua|setmetatable|__index|pcall|"
-                     r"상수 접기|인라인|업밸류|upvalue")
-KB_EVID = re.compile(r"0\.7\d\d|\d+(?:\.\d+)?\s*배|\d+(?:~\d+)?\s*%|상류|upstream|결함|재현|실측")
-
-
-def check_kb(repo):
-    docs = [repo / "CLAUDE.md", repo / "GEMINI.md"] + sorted((repo / ".claude").glob("*.md")) + rule_files(repo / ".claude")
-    marks, cands = [], {}
-    for p in docs:
-        if not p.is_file():
-            continue
-        lines = (read(p) or "").split("\n")
-        for i, line in enumerate(lines, 1):
-            if KB_MARK.search(line) and not re.search(r"`<!--", line):
-                marks.append(f"{rel(p, repo)}:{i}")
-                continue
-            prev = lines[i - 2] if i > 1 else ""
-            if KB_MARK.search(prev) or "`" * 3 in line:
-                continue
-            if KB_TERM.search(line) and KB_EVID.search(line):
-                cands.setdefault(rel(p, repo), []).append(i)
-    if marks:
-        add(5, "정보", "KB-MARK", repo, f"luau-kb 후보 표시 {len(marks)}곳: " + ", ".join(marks[:8]) + (" …" if len(marks) > 8 else ""),
-            "references/staleness-and-kb.md#5-공유-지식-쏠림")
-    for f, ls in sorted(cands.items(), key=lambda x: -len(x[1])):
-        if len(ls) >= 2:
-            add(5, "정보", "KB-CAND", f,
-                f"표시 없는 일반 Luau 지식 후보 {len(ls)}줄 (예: {', '.join(map(str, ls[:6]))}). 모델이 읽고 판정.",
-                "references/staleness-and-kb.md#5-공유-지식-쏠림")
-    return marks
-
-
 # ------------------------------------------------------ 6 복제본
 def load_json(p):
     try:
@@ -721,6 +759,13 @@ def script_of(cmd):
     return m[-1].strip('"') if m else None
 
 
+def script_path(sc, repo=None):
+    """훅 명령의 스크립트 경로를 푼다: $CLAUDE_PROJECT_DIR, $HOME 등 환경 변수, ~."""
+    if repo is not None:
+        sc = sc.replace("$CLAUDE_PROJECT_DIR", str(repo)).replace("${CLAUDE_PROJECT_DIR}", str(repo))
+    return os.path.expanduser(os.path.expandvars(sc))
+
+
 def user_settings():
     res = []
     for p in (USER_HOME / "settings.json", CANON_HOME / "settings.json"):
@@ -735,19 +780,19 @@ def common_dir(path):
     return out.strip() if out else None
 
 
-def check_drift(repo, files, projects, kb):
-    kb_defs = kb / "typedefs" / "globalTypes.d.luau"
-    kb_md5 = md5(kb_defs) if kb_defs.is_file() else None
-    for f in files:
-        if re.search(r"(^|/)globalTypes[\w.]*\.d\.luau$", f):
-            m = md5(repo / f)
-            if kb_md5 is None:
-                add(6, "정보", "DRIFT-TYPEDEFS", f, "luau-kb 정본이 없어 비교하지 못했다.")
-            elif m == kb_md5:
-                add(6, "정보", "DRIFT-TYPEDEFS", f, "luau-kb 정본과 같다(복제본). 참조로 바꿀지는 P5 범위.")
-            else:
-                add(6, "경고", "DRIFT-TYPEDEFS", f, f"luau-kb 정본과 md5 가 다르다({m[:8]} ≠ {kb_md5[:8]}). lsp 핀과 짝인지 확인.",
-                    "references/drift-and-settings.md#6-복제본-표류")
+def registry_uids():
+    """harness.env 의 HARNESS_DELEGATE_REGISTRY(key<TAB>root<TAB>uid…) → {uid: {저장소 이름}}."""
+    reg = ENV.get("HARNESS_DELEGATE_REGISTRY")
+    out = {}
+    for line in (read(reg) or "").split("\n") if reg else []:
+        cols = line.split("\t")
+        if len(cols) >= 3 and not line.startswith("#") and cols[2].strip().isdigit():
+            out.setdefault(cols[2].strip(), set()).add(Path(cols[1].strip()).name)
+    return out
+
+
+def check_drift(repo, files, projects):
+    # 언어 고유 사본(예: luau 의 globalTypes.d.luau)은 툴킷이 본다(DRIFT-TYPEDEFS).
     canon_guard = CANON_HOME / "hooks" / "heavy-proc-guard.py"
     for f in files:
         name = os.path.basename(f)
@@ -758,8 +803,8 @@ def check_drift(repo, files, projects, kb):
         if name == "agy-delegate.sh" or f.endswith("skills/delegate-agy/SKILL.md"):
             add(6, "정보", "DRIFT-DELEGATE", f, "agy 위임 사본. 통합안 claude-doctor/drafts/delegate (P4) 로 대체 예정.",
                 "references/drift-and-settings.md#위임-사본")
-    # uid 충돌
-    uids = {}
+    # uid 충돌: 저장소 안의 위임 사본 + 환경의 중앙 uid 표
+    uids = registry_uids()
     for sh in projects.glob("*/.claude/tools/agy-delegate.sh"):
         m = re.search(r"AGY_UID[:=]-?\$?\{?[\w:-]*?(\d{4,6})", read(sh) or "")
         if m:
@@ -803,8 +848,15 @@ def check_drift(repo, files, projects, kb):
 
 
 # ------------------------------------------------------- 7 설정
+PUSH_NOTE = {
+    "normal": "이 환경은 에이전트 push 가 정상 흐름이다(harness.env HARNESS_AGENT_PUSH=normal). 걷을지는 사용자 판단, HUMAN_TODO.",
+    "deny": "이 환경은 에이전트 push 를 막는 정책이다(HARNESS_AGENT_PUSH=deny). 그대로 둔다.",
+}
+
+
 def check_settings(repo, files):
-    inrepo = run(["git", "rev-parse", "--is-inside-work-tree"], cwd=repo)
+    nested = not git_root(repo) and run(["git", "rev-parse", "--show-toplevel"], cwd=repo)
+    inrepo = None if nested else run(["git", "rev-parse", "--is-inside-work-tree"], cwd=repo)
     for sp in (repo / ".claude" / "settings.json", repo / ".claude" / "settings.local.json"):
         s, err = load_json(sp)
         r = rel(sp, repo)
@@ -816,8 +868,7 @@ def check_settings(repo, files):
         for ev, mt, cmd in hook_cmds(s):
             sc = script_of(cmd)
             if sc:
-                path = sc.replace("$CLAUDE_PROJECT_DIR", str(repo)).replace("${CLAUDE_PROJECT_DIR}", str(repo))
-                path = os.path.expanduser(path)
+                path = script_path(sc, repo)
                 if not os.path.isabs(path):
                     path = str(repo / path)
                 if not os.path.isfile(path):
@@ -825,14 +876,18 @@ def check_settings(repo, files):
         perm = s.get("permissions") or {}
         for d in perm.get("deny") or []:
             if "git push" in d:
-                add(7, "정보", "SET-PUSHDENY", r, f"deny '{d}'. 이 sandbox 는 에이전트 push 가 정상 흐름이다(사용자 판단, HUMAN_TODO).",
-                    "references/drift-and-settings.md#7-설정")
+                note = PUSH_NOTE.get(ENV.get("HARNESS_AGENT_PUSH", ""), "에이전트 push 정책은 harness.env HARNESS_AGENT_PUSH 로 정한다.")
+                add(7, "정보", "SET-PUSHDENY", r, f"deny '{d}'. {note}", "references/drift-and-settings.md#7-설정")
         for a in perm.get("allow") or []:
             if BROAD_ALLOW.match(a.strip()):
                 add(7, "경고", "SET-BROADALLOW", r, f"allow '{a}' 는 임의 변경·실행을 연다.")
         if sp.name == "settings.local.json" and inrepo:
             if run(["git", "check-ignore", "-q", str(sp)], cwd=repo) is None:
                 add(7, "경고", "SET-LOCALIGNORE", r, "settings.local.json 이 무시되지 않는다(개인 설정이 커밋될 수 있음).")
+    if nested:  # 반입 사본(intake/<이름>/) 등: 바깥 저장소의 git 상태는 이 대상의 것이 아니다
+        add(7, "정보", "SET-NOGIT", repo, f"자기 git 저장소가 아니다(바깥 저장소 {nested.strip()} 안의 하위 디렉터리). "
+            "반입 사본이면 정상이다. git 기반 검사(7의 나머지, 9 worktree)는 건너뛴다.", "references/drift-and-settings.md#7-설정")
+        return
     if not inrepo:
         add(7, "경고", "SET-NOGIT", repo, "git 저장소가 아니다.")
         return
@@ -855,10 +910,7 @@ def check_settings(repo, files):
             add(7, "정보", "SET-DIRTY", repo, f"에이전트 문서 중 미추적 {len(unt)}개, 미커밋 변경 {len(mod)}개.")
 
 
-# ------------------------------------------------------ 8 툴체인
-SIBLING_CLAIM = re.compile(r"같은|같다|동일|따릅|따른|same as|matches")
-
-
+# ------------------------------------------- 5·6·8 툴킷 (공용 도우미)
 def mise_tools(p):
     try:
         data = tomllib.loads(read(p) or "")
@@ -871,79 +923,87 @@ def mise_tools(p):
     return tools
 
 
-def stylua_conf(p):
+def toml_conf(p):
     try:
         return tomllib.loads(read(p) or "")
     except tomllib.TOMLDecodeError:
         return None
 
 
-def check_toolchain(repo, files, projects):
-    has_luau = any(f.endswith(".luau") for f in files)
-    if not has_luau:
-        return
-    mise = repo / "mise.toml"
-    tools = mise_tools(mise) if mise.is_file() else None
-    if tools is None:
-        add(8, "정보", "TOOL-PIN", "mise.toml", "mise.toml 이 없거나 읽히지 않는다. 버전 핀이 없다(D-05).")
-    else:
-        diff = [f"{k} {tools.get(k, '없음')}(목표 {v})" for k, v in D05_TARGET.items() if tools.get(k) != v]
-        add(8, "정보", "TOOL-PIN", "mise.toml",
-            "핀: " + ", ".join(f"{k}={tools.get(k, '없음')}" for k in D05_TARGET) +
-            (". D-05 권고 목표와 다름: " + "; ".join(diff) if diff else ". D-05 권고 목표와 같다."),
-            "references/toolchain-and-worktrees.md#8-툴체인")
-    sty = repo / "stylua.toml"
-    alt = repo / ".stylua.toml"
-    sp = sty if sty.is_file() else (alt if alt.is_file() else None)
-    if sp is None:
-        add(8, "경고", "TOOL-NOSTYLUA", repo, "stylua.toml 이 없다. 설정 없이 돌면 f<<T>> 가 시프트로 바뀐다(D-02).")
-    else:
-        conf = stylua_conf(sp)
-        if conf is None:
-            add(8, "오류", "TOOL-SYNTAX", rel(sp, repo), "stylua.toml 파싱 실패.")
-        elif str(conf.get("syntax", "")).lower() != "luau":
-            add(8, "오류", "TOOL-SYNTAX", rel(sp, repo), "syntax = \"Luau\" 가 없다. f<<T>> 가 exit 0 으로 시프트가 된다(D-02, 재현됨).",
-                "references/toolchain-and-worktrees.md#8-툴체인")
-    if not (repo / ".luaurc").is_file():
-        add(8, "정보", "TOOL-LUAURC", repo, ".luaurc 가 없다(strict 모드·lint 기본값 미정).")
-    # 형제와 '같다'는 주석이 사실인지
-    sibs = {p.name for p in projects.iterdir() if p.is_dir()} - {repo.name}
-    for cfg in (mise, sp):
-        if not cfg or not cfg.is_file():
-            continue
-        for i, line in enumerate((read(cfg) or "").split("\n"), 1):
-            m = SIBLING_CLAIM.search(line)
-            if not line.lstrip().startswith("#") or not m:
+_SIBS = {}
+
+
+def sibling_repos(repo, projects):
+    """형제 저장소 경로. 자기 자신, 같은 git 저장소의 worktree, 위임·초안 사본(<repo>-agy 등)은 뺀다."""
+    key = (str(repo), str(projects))
+    if key not in _SIBS:
+        mine = common_dir(repo)
+        out = []
+        for p in sorted(projects.iterdir()) if projects.is_dir() else []:
+            if not p.is_dir() or p.resolve() == Path(repo).resolve() or p.name.endswith(COPY_SUFFIXES):
                 continue
-            # mise.toml 안에서 stylua.toml 모양을 말하면 stylua 설정끼리 비교한다
-            kind = "stylua" if (cfg.name != "mise.toml" or "stylua.toml" in line) else "mise"
-            named = [s for s in sibs if re.search(rf"(?<![\w-]){re.escape(s)}(?![\w-])", line)]
-            bad = []
-            for s in named:
-                if kind == "mise":
-                    other, mine_v, load = projects / s / "mise.toml", mise_tools(cfg), mise_tools
-                else:
-                    other = projects / s / "stylua.toml"
-                    other = other if other.is_file() else projects / s / ".stylua.toml"
-                    mine_v, load = (stylua_conf(sp) if sp else None), stylua_conf
-                theirs = load(other) if other.is_file() else None
-                if theirs is None or mine_v is None:
-                    bad.append(f"{s}({'mise.toml' if kind == 'mise' else 'stylua.toml'} 없음)")
-                    continue
-                keys = [k for k in D05_TARGET if k in mine_v or k in theirs] if kind == "mise" else sorted(set(mine_v) | set(theirs))
-                dk = [f"{k} {mine_v.get(k, '없음')}≠{theirs.get(k, '없음')}" for k in keys if mine_v.get(k) != theirs.get(k)]
-                if dk:
-                    bad.append(f"{s}({', '.join(dk)})")
-            if bad:
-                strong = not re.match(r"따", m.group(0))
-                add(8, "경고" if strong else "정보", "TOOL-CLAIM", f"{cfg.name}:{i}",
-                    f"형제와 {'같다' if strong else '따른다'}는 주석이 사실과 다르다: {'; '.join(bad)}",
-                    "references/toolchain-and-worktrees.md#형제와-같다는-주석")
+            if mine and (p / ".git").exists() and common_dir(p) == mine:
+                continue
+            out.append(p)
+        _SIBS[key] = out
+    return _SIBS[key]
+
+
+def pin_mismatch(repo, projects, mine, tools):
+    """mine(이 저장소 mise 핀)과 형제 저장소 핀이 다른 도구마다 '도구: 값(저장소, …)' 문자열.
+    D-05 처럼 목표값이 확정되지 않은 동안에는 목표와 비교하지 않고 저장소 사이 불일치만 본다."""
+    out = []
+    theirs = {}
+    for sib in sibling_repos(repo, projects):
+        t = mise_tools(sib / "mise.toml") if (sib / "mise.toml").is_file() else None
+        for k in tools:
+            if t and k in t:
+                theirs.setdefault(k, {}).setdefault(t[k], []).append(sib.name)
+    for k in tools:
+        others = {v: names for v, names in theirs.get(k, {}).items() if v != mine.get(k)}
+        if others:
+            out.append(f"{k} {mine.get(k, '없음')} ↔ " + ", ".join(f"{v}({'·'.join(n)})" for v, n in sorted(others.items())))
+    return out
+
+
+def detect_toolkits(repo, files, force=None):
+    """{이름: [감지 표식]}. force 가 있으면 그 목록을 감지와 무관하게 켠다('none' 이면 모두 끈다)."""
+    ctx = toolkit_ctx(repo, files, repo.parent, set(), None)
+    out = {}
+    for name, tk in TOOLKITS.items():
+        if force is not None:
+            if name in force:
+                out[name] = ["--toolkits 로 켬"]
+            continue
+        marks = tk.detect(ctx)
+        if marks:
+            out[name] = marks
+    return out
+
+
+def toolkit_ctx(repo, files, projects, only, kb):
+    def kb_path(name):
+        if kb:
+            return kb
+        cand = projects / f"{name}-kb"
+        return cand if cand.is_dir() else WORKSPACE / f"{name}-kb"
+    return SimpleNamespace(
+        repo=repo, files=files, projects=projects, env=ENV, want=lambda n: n in only, add=add, kb=kb_path,
+        read=read, md5=md5, run=run, rel=rel, inside=inside, strip_code=strip_code, rule_files=rule_files,
+        common_dir=common_dir, mise_tools=mise_tools, toml=toml_conf,
+        pin_mismatch=lambda mine, tools: pin_mismatch(repo, projects, mine, tools),
+    )
+
+
+def run_toolkits(repo, files, projects, only, kb, active):
+    ctx = toolkit_ctx(repo, files, projects, only, kb)
+    for name in active:
+        TOOLKITS[name].check(ctx)
 
 
 # ----------------------------------------------------- 9 worktree
 def check_worktrees(repo, now):
-    wts = worktrees(repo)
+    wts = worktrees(repo) if git_root(repo) else []
     sess = claude_sessions()
     if not wts:
         return []
@@ -980,7 +1040,7 @@ def check_worktrees(repo, now):
             add(9, "정보", "WT-ACTIVE", path, "쓰는 중일 수 있다(정리 금지). " + desc)
         else:
             add(9, "경고", "WT-CANDIDATE", path, "정리 후보. 삭제는 HUMAN_TODO 로. " + desc,
-                "references/toolchain-and-worktrees.md#9-worktree-위생")
+                "references/worktrees.md#9-worktree-위생")
     reg = {str(Path(w["worktree"]).resolve()) for w in wts}
     wd = main / ".claude" / "worktrees"
     if wd.is_dir():
@@ -993,13 +1053,18 @@ def check_worktrees(repo, now):
 # ----------------------------------------------------------- 출력
 SEV_ORDER = {"오류": 0, "경고": 1, "정보": 2}
 TITLES = {0: "실행 중인 세션", 1: "상시 로드량", 2: "rules 구성", 3: "스킬 상태", 4: "낡음과 모순",
-          5: "공유 지식 쏠림(luau-kb)", 6: "복제본 표류", 7: "설정", 8: "툴체인", 9: "worktree 위생"}
+          5: "공유 지식 쏠림(툴킷 KB)", 6: "복제본 표류", 7: "설정", 8: "툴체인(툴킷)", 9: "worktree 위생"}
 
 
 def render(target, extra, today):
     out = [f"# harness-doctor 진단: {target}", "",
            f"- scan.py v{VERSION}, {today}. 읽기 전용 검사. 판단이 필요한 항목은 경고·정보로 냈다.",
-           "- 집계: " + ", ".join(f"{s} {sum(1 for f in findings if f['sev'] == s)}" for s in SEV_ORDER), ""]
+           "- 집계: " + ", ".join(f"{s} {sum(1 for f in findings if f['sev'] == s)}" for s in SEV_ORDER)]
+    tks = extra.get("toolkits")
+    if tks is not None:
+        out.append("- 툴킷: " + ("; ".join(f"{k} ({', '.join(v[:3])}) → `{TOOLKITS[k].REFERENCE}`" for k, v in tks.items())
+                                 if tks else "감지 없음(코어 검사만)"))
+    out.append("")
     load = extra.get("load")
     if load:
         t = load["total"]
@@ -1024,8 +1089,20 @@ def main():
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--today", help="YYYY-MM-DD (기본: 오늘)")
     ap.add_argument("--projects", help="형제 저장소 루트 (기본: 저장소의 부모)")
-    ap.add_argument("--kb", help="luau-kb 경로 (기본: <projects>/luau-kb)")
+    ap.add_argument("--kb", help="툴킷 공유 지식 저장소 경로 (기본: <projects>/<툴킷>-kb, 없으면 <작업공간>/<툴킷>-kb)")
+    ap.add_argument("--toolkits", help="켤 툴킷을 감지와 무관하게 지정 (예: luau,web / none)")
+    ap.add_argument("--env", action="store_true", help="harness.env 값과 툴킷 목록만 보인다")
     a = ap.parse_args()
+    if a.env:
+        print(f"# harness.env: {ENV.get('_file') or '(없음 — 기본값)'}")
+        print(f"DOCTOR_ROOT={DOCTOR_ROOT or '(모름)'}\nWORKSPACE={WORKSPACE}\nCANON_HOME={CANON_HOME}\nUSER_HOME={USER_HOME}")
+        for k, v in sorted(ENV.items()):
+            if not k.startswith("_"):
+                print(f"{k}={v}")
+        wrap = heavy_wrap()
+        print(f"# 무거운 실행 래퍼: {' '.join(wrap) or '없음(끔)'}")
+        print("# 툴킷: " + ", ".join(f"{k} → {getattr(t, 'REFERENCE', '')}" for k, t in TOOLKITS.items()))
+        return 0
     today = dt.date.fromisoformat(a.today) if a.today else dt.date.today()
     only = {int(x) for x in a.only.split(",")} if a.only else set(range(10))
     extra = {}
@@ -1045,9 +1122,12 @@ def main():
                             "정본(home/.claude)에도 MANIFEST 링크에도 없는 사용자 스킬이다.")
         manifest = DOCTOR_ROOT / "home" / "MANIFEST" if DOCTOR_ROOT else None
         if manifest and manifest.is_file():
+            scope = {"HARNESS_DOCTOR_ROOT": str(DOCTOR_ROOT), "HARNESS_WORKSPACE": str(WORKSPACE)}
+            scope.update({k: v for k, v in ENV.items() if v and not k.startswith("_")})
             for line in (read(manifest) or "").split("\n"):
                 parts = line.split()
                 if len(parts) == 3 and parts[0] == "link":
+                    parts[2] = ENVLIB.expand(parts[2], scope) if ENVLIB else os.path.expandvars(parts[2])
                     if not Path(parts[2]).exists():
                         add(3, "오류", "LINK-TARGET", f"MANIFEST: {parts[1]}", f"링크 대상이 없다: {parts[2]}")
                     elif (Path(parts[2]) / "SKILL.md").is_file() and 3 in only:
@@ -1059,7 +1139,7 @@ def main():
                     add(7, "오류", "SET-JSON", p, f"JSON 파싱 실패: {err}")
                 for ev, mt, cmd in hook_cmds(s):
                     sc = script_of(cmd)
-                    if sc and not os.path.isfile(os.path.expanduser(sc)):
+                    if sc and not os.path.isfile(script_path(sc)):
                         add(7, "오류", "SET-HOOKPATH", p, f"{ev} 훅 스크립트가 없다: {sc}")
             add(7, "정보", "SET-SYNC", "tools/home-sync.sh", "정본과 실제의 차이는 `tools/home-sync.sh status` 로 본다.")
     else:
@@ -1069,25 +1149,32 @@ def main():
         if not target.is_dir():
             ap.error(f"디렉터리가 아니다: {target}")
         projects = Path(a.projects).resolve() if a.projects else target.parent
-        kb = Path(a.kb).resolve() if a.kb else projects / "luau-kb"
+        kb = Path(a.kb).resolve() if a.kb else None
         if a.sessions:
             only = {0}
         files = repo_files(target) if only - {0} else []
+        force = None if not a.toolkits else {x.strip() for x in a.toolkits.split(",")} - {"none"}
+        bad = (force or set()) - set(TOOLKITS)
+        if bad:
+            ap.error(f"모르는 툴킷: {', '.join(sorted(bad))} (있는 것: {', '.join(TOOLKITS)})")
+        active = detect_toolkits(target, files, force) if only - {0} else {}
+        if only - {0}:
+            extra["toolkits"] = active
         steps = [
             (0, lambda: extra.__setitem__("sessions", check_sessions(target))),
             (1, lambda: extra.__setitem__("load", check_load(target))),
             (2, lambda: extra.__setitem__("rules", check_rules(target, files))),
             (3, lambda: extra.__setitem__("skills", check_skills(target))),
             (4, lambda: check_stale(target, today)),
-            (5, lambda: check_kb(target)),
-            (6, lambda: check_drift(target, files, projects, kb)),
+            (6, lambda: check_drift(target, files, projects)),
             (7, lambda: check_settings(target, files)),
-            (8, lambda: check_toolchain(target, files, projects)),
             (9, lambda: extra.__setitem__("worktrees", check_worktrees(target, dt.datetime.now().timestamp()))),
         ]
         for n, fn in steps:
             if n in only:
                 fn()
+        if only & {5, 6, 8}:  # 툴킷 검사는 감지된 툴킷만, 항목 5(공유 지식)·6(사본)·8(툴체인)에 낸다
+            run_toolkits(target, files, projects, only, kb, active)
     if a.json:
         print(json.dumps({"target": str(target), "today": str(today), "findings": findings, **extra},
                          ensure_ascii=False, indent=1, default=str))

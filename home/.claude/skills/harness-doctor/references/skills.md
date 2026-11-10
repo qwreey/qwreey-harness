@@ -7,7 +7,7 @@
 
 ## 3. 스킬 상태
 
-**기준** (`claude-doctor/audit/01-official-docs.md` §2·§7)
+**기준** (`<doctor>/audit/01-official-docs.md` §2·§7)
 - `name`: 소문자, 숫자, 하이픈만 써서 64자 이내로 짓는다. 디렉터리 이름과 같게 둔다. `claude`, `anthropic`은 예약어다.
 - `description`과 `when_to_use`를 합쳐 1,536자를 넘으면 잘린다. "무엇을 하나 + 언제 쓰나"를 함께 적는다.
 - SKILL.md 본문은 500줄 이하로 둔다.
@@ -31,7 +31,7 @@
 
 scan의 frontmatter 파서는 간이 YAML이다. 판정이 미심쩍으면 공식 검사기로 교차 확인한다.
 - `claude plugin validate <스킬 디렉터리의 상위>`
-- 예: `claude plugin validate /code/Projects/stl-luau/.claude/skills`
+- 예: `claude plugin validate <저장소>/.claude/skills`
 
 **모델이 볼 것**
 - description이 3인칭으로 "무엇 + 언제"를 담는지, 다른 스킬과 트리거가 겹치지 않는지 본다.
@@ -49,7 +49,8 @@ scan의 frontmatter 파서는 간이 YAML이다. 판정이 미심쩍으면 공�
 `SKILL-SIDEFX`는 키워드 낌새일 뿐이다. 다음 키워드에 걸린다.
 - git 명령: `git commit`, `push`, `worktree add/remove`
 - 행동 동사: "커밋한다", "삭제한다"
-- 그 밖: `setpriv`, `choom -n`, `studio-sync`, `publish.py`
+- 그 밖: `setpriv`, `publish.py`·`deploy.sh`, 이 환경의 무거운 실행 래퍼(`harness.env` `HARNESS_HEAVY_WRAP`의 앞 두 낱말, 이 sandbox는 `choom -n`)
+- 툴킷이 더하는 낱말: luau `studio-sync`(Studio 쓰기). web은 아직 없음(후보 `npm publish`)
 
 판정 기준은 "모델이 스스로 이 스킬을 따라도 괜찮은가"다.
 - **사용자 전용으로 둘 것**: 스킬을 따르면 되돌리기 어렵거나 저장소 밖에 흔적이 남는 경우다.

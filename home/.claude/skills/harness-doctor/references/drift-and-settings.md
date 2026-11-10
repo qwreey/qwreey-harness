@@ -12,19 +12,17 @@
 
 | 코드 | 대상 | 정본 |
 |---|---|---|
-| `DRIFT-TYPEDEFS` | `globalTypes*.d.luau` | `/code/Projects/luau-kb/typedefs/globalTypes.d.luau` (md5 `be071eac…`) |
-| `DRIFT-HOOK` | `heavy-proc-guard.py` 사본 | `claude-doctor/home/.claude/hooks/heavy-proc-guard.py` |
+| `DRIFT-TYPEDEFS` | (툴킷 luau) `globalTypes*.d.luau` | luau-kb `typedefs/globalTypes.d.luau` — `toolkits/luau.md#typedefs-사본` |
+| `DRIFT-HOOK` | `heavy-proc-guard.py` 사본 | `<doctor>/home/.claude/hooks/heavy-proc-guard.py` |
 | `DRIFT-HOOKDUP` | 사용자 레벨과 같은 훅을 프로젝트 settings가 또 등록 | 사용자 레벨 `settings.json` |
-| `DRIFT-DELEGATE` | `agy-delegate.sh`, `skills/delegate-agy` 사본 | 통합안 `claude-doctor/drafts/delegate/` (P4) |
-| `DRIFT-UID` | 서로 다른 저장소가 같은 agy uid를 쓴다 | 통합안의 `registry.tsv` |
+| `DRIFT-DELEGATE` | `agy-delegate.sh`, `skills/delegate-agy` 사본 | 통합안 `<doctor>/drafts/delegate/` (P4) |
+| `DRIFT-UID` | 서로 다른 저장소가 같은 위임 uid를 쓴다. 저장소 안의 사본과 `harness.env`의 `HARNESS_DELEGATE_REGISTRY`(uid 표)를 함께 본다 | uid 표 |
 | `DRIFT-SKILLCOPY` | 같은 이름 스킬이 다른 저장소나 사용자 레벨에 있는데 내용이 다르다 | 원본 쪽(사례마다 확인) |
 
 같은 git 저장소의 다른 worktree(stl-luau ↔ stl-luau-doctor)는 사본으로 치지 않는다.
 
 **모델이 볼 것**
-- `DRIFT-TYPEDEFS`의 md5가 다르다고 곧 표류는 아니다. 그 저장소의 luau-lsp 핀과 짝인 판일 수 있다.
-  - 예: rbvm의 캐시 판, tbox의 `globalTypes.None.d.luau`
-  - 그 저장소 `mise.toml` 주석과 `luau-kb/typedefs/README.md`의 비교표를 확인한다.
+- 언어 고유 사본(luau의 typedefs)은 툴킷 문서의 판정 기준을 따른다.
 - 정본과 같은 사본은 지금 고칠 것이 없다. 참조로 바꾸는 일은 P5 범위다.
 
 ### 훅 중복
@@ -40,7 +38,7 @@
 ### 위임 사본
 
 agy 위임 도구는 4벌이다(quad, stl-luau, tbox, table-sim). 지금은 고치지 않는다.
-- 통합안과 걷어내기 순서는 `claude-doctor/drafts/delegate/README.md`와 `migration.md`에 있다.
+- 통합안과 걷어내기 순서는 `<doctor>/drafts/delegate/README.md`와 `migration.md`에 있다.
 - uid 충돌(`DRIFT-UID`)은 격리 보장을 깨므로 보고에 꼭 넣는다. 사례: quad와 tbox가 모두 61000.
   - 고치는 일은 P4 통합 때 한다. 대상 저장소에 세션이 있으면 인계한다.
 - `DRIFT-SKILLCOPY`는 어느 쪽이 정본인지부터 확인한다. CLAUDE.md의 "사본" 서술과 git log를 본다.
@@ -52,17 +50,18 @@ agy 위임 도구는 4벌이다(quad, stl-luau, tbox, table-sim). 지금은 고�
 |---|---|---|
 | `SET-JSON` | settings 파일이 JSON으로 읽히지 않는다 | 오류. 고칠 안 |
 | `SET-HOOKPATH` | 훅이 가리키는 스크립트가 없다(`$CLAUDE_PROJECT_DIR` 풀어서 확인) | 오류. 경로를 고치거나 훅 항목을 걷는다 |
-| `SET-PUSHDENY` | `git push` deny가 있다 | 정보. 고치지 않는다(아래) |
+| `SET-PUSHDENY` | `git push` deny가 있다 | 정보. 환경 정책(`HARNESS_AGENT_PUSH`)에 따라 다르다(아래) |
 | `SET-BROADALLOW` | `Bash(sed/cp/mv/curl/python3/…:*)` allow가 있다 | 읽기 전용만 남기는 안 |
 | `SET-LOCALIGNORE` | `settings.local.json`이 git에서 무시되지 않는다 | `.gitignore` 한 줄 |
 | `SET-WTIGNORE` | 경고: `.claude/worktrees/`가 무시되지 않는다. 정보: `.git/info/exclude`(이 기기 전용)로만 무시한다 | `.gitignore`에 `/.claude/worktrees/` 한 줄 |
 | `SET-UNTRACKED` | `.claude/`와 CLAUDE.md가 한 번도 커밋되지 않았다 | 사용자 결정 → HUMAN_TODO |
 | `SET-DIRTY` | 에이전트 문서에 미추적이나 미커밋 변경이 있다 | 정보. 세션이 작업 중일 수 있다 |
-| `SET-NOGIT` | git 저장소가 아니다 | 정보 |
+| `SET-NOGIT` | 경고: git 저장소가 아니다. 정보: 다른 저장소 안의 하위 디렉터리다(반입 사본 `intake/<이름>/`이면 정상, git 기반 검사는 건너뜀) | 반입 사본이면 없음 |
 
 **판단 근거**
-- **push deny**: 이 환경은 sandbox이고 git 계정이 에이전트 전용이다. 에이전트의 push가 정상 흐름이고, 사용자가 pull해서 업스트림에 올린다.
-  - 그래서 push deny를 권하지 않고, 걷는 것도 사용자 판단이다. `claude-doctor/HUMAN_TODO.md` "권한" 절에 이미 있는지만 확인한다.
+- **push deny**: 정책은 환경마다 다르다. `harness.env`의 `HARNESS_AGENT_PUSH`를 본다.
+  - `normal`(이 sandbox): git 계정이 에이전트 전용이라 에이전트 push가 정상 흐름이고, 사용자가 pull해서 업스트림에 올린다. push deny를 권하지 않고, 걷는 것도 사용자 판단이다. `<doctor>/HUMAN_TODO.md` "권한" 절에 이미 있는지만 확인한다.
+  - `deny`: deny가 정책과 맞다. 고칠 것이 없다. 값이 없으면 사용자에게 묻는다.
 - **`.gitignore` 보강**: 실행 중인 세션이 있는 저장소에서는 보류한다(`PLAN.md` P0). 그런 저장소는 인계 문서에 넣는다.
 - **미커밋 문서**: 에이전트가 대신 커밋하지 않는다. 사례: moonwave-luau의 `.claude/`가 한 번도 커밋되지 않았다.
 - **넓은 allow**: `fewer-permission-prompts` 스킬처럼 실제로 쓰인 읽기 전용 명령만 남기는 안을 낸다.
@@ -70,4 +69,5 @@ agy 위임 도구는 4벌이다(quad, stl-luau, tbox, table-sim). 지금은 고�
 **모델이 볼 것**
 - `settings.local.json`에 공유할 설정(훅, deny)이 숨어 있지 않은지 본다.
 - 훅의 matcher가 의도와 맞는지 본다. 예: `Bash` 대신 `*`를 쓰고 있지 않은지.
-- 사용자 레벨로 올릴 만한 공통 설정이 있으면 정본 `claude-doctor/home/.claude/settings.json`을 고치는 안을 낸다.
+- 사용자 레벨로 올릴 만한 공통 설정이 있으면 정본 `<doctor>/home/.claude/settings.json`을 고치는 안을 낸다.
+- 훅 명령의 경로는 `$HOME/.claude/hooks/…`나 `$CLAUDE_PROJECT_DIR/…`로 쓴다. 절대 경로(`/code/...`)는 다른 환경에서 깨진다. scan은 환경 변수를 풀어 `SET-HOOKPATH`를 본다.

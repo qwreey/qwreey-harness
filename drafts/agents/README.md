@@ -130,3 +130,48 @@ PLAN §3은 rbvm 감사자에 `memory: project`를 제안했다. 이 설계는 *
 | D1 | 배너만 고친 문서 | 본문 문장을 `파일:줄`로 인용 |
 | G1 | 감사자에게 "이 파일을 고쳐 봐"라고 프롬프트 | 훅이 Write/Edit/`sed -i`를 차단하고 가드 비교가 `unchanged` |
 | G2 | 마커 문구 확인 | 정의에 넣은 문구를 감사자가 자기 지시문에서 찾는지 묻는다. quad 2026-08-16 관측: "정의 반영 시점 불확실, `tools:`가 그대로 반영되지 않음". 지금 하네스에서도 그런지 다시 잰다 |
+
+## 9. 툴킷 일반화 제안 (2026-11-10, 아직 적용하지 않음)
+
+> 하네스를 툴킷(luau, web, rust …) 구조로 바꾸면서 낸 제안이다(`audit/14-toolkit-agnostic.md`). `luau-quality-auditor.md`를 다른 작업이 고치는 중이라 **파일은 바꾸지 않았다.** 그 작업이 끝난 뒤 사용자 승인을 받아 옮긴다.
+
+### 9-1. 지금 무엇이 Luau 전용인가
+
+다섯 관점의 **방법**(신선한 맥락, 읽기 전용, 증거 등급, 음성 대조군·프로브·측정, 기보고 제외)은 언어와 무관하다. Luau 전용은 **도구와 사례**다.
+
+| 감사자 | 언어 무관(본문에 남길 것) | Luau 전용(툴킷 지식으로 뺄 것) |
+|---|---|---|
+| type | any 누수·거짓 약속·검사되지 않는 자리·게이트 공백이라는 각도, 음성 대조군 절차, "진단 0건은 근거 아님" | `luau-analyze`·`luau-lsp`·신 솔버, `--flag:Luau…Limit`, `.luaurc` alias, `:: any` 문법, 스킬 luau-types·luau-verify |
+| runtime | 수명 주기 대칭, GC·약참조, 재진입·순서 가정, mock↔실제 엔진 차이, 값 경계, "엔진 동작은 문서 대조 또는 실측 필요" | `__mode`, `task.defer/spawn`, `collectgarbage`, Roblox 문서·Studio MCP 금지, `#`와 nil 구멍, 스킬 roblox-luau |
+| quality | 네이밍·관용구·구조·주석·테스트 구조, 프로젝트 규약 우선, 포매터 영역 제외 | luau-style, `structure-scan.py`(luau-style 스크립트), stylua, `const` 정책 |
+| perf | 같은 프로세스·같은 입력 비교, 워밍업·중앙값, 작은 N부터, N을 몰래 줄이지 않음, 잡음 ±5% | `os.clock`, luau CLI, `__index` 사슬, `select("#")`, 스킬 luau-perf. 메모리 예산 줄의 `/sys/fs/cgroup`·`choom -n 1000 -- prlimit`은 **환경**값(`harness.env` `HARNESS_HEAVY_WRAP`) |
+| docs | 전부 | 없음(예시의 `doc-check.py`만 quad 고유) |
+| `/audit` | 0~4단계 전부 | 관점 자동 선택 표의 `*.luau`, `subagent_type=<luau-…-auditor>` |
+| `audit-report-format` | 형식 전부 | 도구 버전 예시(`luau-analyze 0.734`), "음성 대조군(luau-verify)" 포인터 |
+| `auditor-readonly-guard.py` | 쓰기·git 차단 | 설치 명령 목록(`pesde`, `wally`, `rokit`, `aftman` / `npm`, `pnpm` / `cargo`)과 `mcp__roblox-studio__*` 차단 — 툴킷 표로 |
+
+### 9-2. 안
+
+**안 A (추천): 공통 감사자 5개 + 툴킷 감사 지식을 호출 때 주입**
+- 에이전트 이름에서 언어를 뺀다: `type-auditor`, `runtime-auditor`, `quality-auditor`, `perf-auditor`, `docs-auditor`. 본문은 9-1의 왼쪽 열만 남긴다.
+- frontmatter `skills:`는 정적이라 툴킷마다 고를 수 없다. 그래서 프리로드는 `audit-report-format` 하나로 두고, **툴킷 지식은 `/audit` 0단계가 고른다.**
+  1. 0단계에서 툴킷을 감지한다: `python3 -I ~/.claude/skills/harness-doctor/scripts/scan.py <루트> --json --only 8` 의 `toolkits` (harness-doctor와 같은 감지 표식).
+  2. 감사자 프롬프트에 "툴킷: luau. 먼저 Read: `~/.claude/skills/luau-types/SKILL.md`, `luau-verify/SKILL.md`"를 넣는다. 관점 × 툴킷 → 읽을 스킬 표는 각 `<툴킷>-kb`가 `audit-profile.md` 한 장으로 갖는다(luau-kb에 새 파일 — luau-kb 작업에서 만든다).
+  3. 툴킷이 둘 켜진 저장소(quad = luau + web 문서 사이트)는 범위의 파일 확장자로 고른다.
+- 좋은 점: 감사자 파일이 툴킷 수와 무관하게 5개. 툴킷을 더해도 감사자는 그대로다. 빈 툴킷(web 골격)도 "툴킷 지식 없음 — 일반 방법만"으로 돈다.
+- 비용: 프리로드 대신 Read라 감사자가 첫 몇 턴을 지식 읽기에 쓴다(스킬 2개 ≈ 수천 토큰). 읽었는지는 보고 머리의 "읽은 툴킷 지식" 줄로 확인한다.
+
+**안 B: 툴킷별 얇은 래퍼 에이전트**
+- 공통 본문은 스킬(`audit-method-<관점>`)로 빼고, `luau-type-auditor`는 `skills: [audit-report-format, audit-method-types, luau-types, luau-verify]` + 본문 3줄로 둔다. web은 `web-type-auditor`를 따로 만든다.
+- 좋은 점: 프리로드가 확실하다(지금 방식 유지, 평가 시나리오 G2와 맞음). 나쁜 점: 관점 5 × 툴킷 N 파일, `/audit`가 subagent_type을 툴킷으로 골라야 한다.
+
+추천은 **A**. 툴킷이 늘수록 B의 파일 수가 곱으로 는다. 다만 A의 "Read로 주입"이 프리로드만큼 지켜지는지는 평가 시나리오 G2처럼 한 번 잰다(sonnet 이상). 안 지켜지면 B로 간다.
+
+### 9-3. 옮길 때 같이 바꿀 것
+
+- `/audit` 0단계 3번 표: `*.luau` → "켜진 툴킷의 소스 확장자"(luau `.luau`, web `.ts/.tsx/.astro/.vue`). types·runtime 기본 선택 규칙은 그대로.
+- perf·runtime 본문의 메모리 예산 줄: `choom -n 1000 -- prlimit --data=<예산>` → "`harness.env`의 무거운 실행 래퍼로 감싸고 `prlimit --data=<예산>`" (래퍼가 없는 환경에서도 `prlimit`는 쓴다).
+- `auditor-readonly-guard.py`: 설치 명령·MCP 차단 목록을 `heavy-proc-guard.py`처럼 툴킷 표(`TOOLKIT_INSTALLERS`)로 나누고 `HARNESS_TOOLKITS`로 거른다. `test-guard.py` 34건이 그대로 통과해야 한다.
+- `audit-report-format`: 도구 버전 예시를 툴킷 중립으로(`<검사기> <버전> <플래그>`), luau 예시는 luau-kb `audit-profile.md`로.
+- quality 감사자의 구조 측정(`structure-scan.py`, 기준 800·1,500줄 — D-13)은 언어 무관 기준이다. 스크립트를 luau-style에서 하네스 공용 위치로 옮기는 안을 함께 본다(`drafts/hooks/structure-reminder.py`의 확장자별 기준과 같은 표를 쓰게).
+- 이름 바꿈의 영향: 저장소 문서가 부르는 것은 `/audit <관점>`이라 이름 변경 영향은 `/audit` 스킬과 rbvm `rbvm-api-parity` 프론트매터 정도다(§7).

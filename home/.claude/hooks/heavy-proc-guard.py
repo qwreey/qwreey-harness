@@ -10,14 +10,27 @@ inherited across exec, so `choom -n 1000 -- <cmd>` makes the heavy tree the firs
 Heuristic (cheap on purpose — a false positive only costs a retry with choom):
   block when the command mentions a heavy keyword AND some segment executes a program
   (luau / lune / bash / sh / python / node / hyperfine / ./x.sh), unless the command
-  already contains `choom` or is a git/gh command (commit messages mention these words).
+  already contains the wrapper or is a git/gh command (commit messages mention these words).
+
+Portable: the wrapper comes from ~/.claude/harness.env (HARNESS_HEAVY_WRAP). Empty, or its program not
+installed (no choom in this sandbox) -> the guard allows everything. Executors are a base set plus a
+per-toolkit table, filtered by HARNESS_TOOLKITS; HARNESS_HEAVY_EXECUTORS / _KEYWORDS add more.
 """
+import importlib.util
 import json
 import re
+import shutil
 import sys
+from pathlib import Path
 
-HEAVY = re.compile(r"(?<![A-Za-z])(bench|fuzz|perf|stress|soak|load-?test|hyperfine)", re.I)
-EXECUTORS = {"luau", "lune", "bash", "sh", "zsh", "python", "python3", "node", "hyperfine"}
+BASE_KEYWORDS = ["bench", "fuzz", "perf", "stress", "soak", "load-?test", "hyperfine"]
+BASE_EXECUTORS = {"bash", "sh", "zsh", "python", "python3", "node", "hyperfine"}
+# 툴킷마다 무거운 실행을 띄우는 실행기. 새 툴킷은 여기에 한 줄 더한다(harness-doctor references/toolkits/README.md).
+TOOLKIT_EXECUTORS = {
+    "luau": {"luau", "lune", "lute"},
+    "web": {"npm", "npx", "pnpm", "yarn", "bun", "deno", "vitest"},
+    "rust": {"cargo"},
+}
 PREFIX_WORDS = {"(", "{", "time", "nice", "env", "command", "exec", "nohup"}
 EXEMPT_HEADS = {"git", "gh"}
 
@@ -44,8 +57,37 @@ def segment_heads(cmd):
             yield words[i]
 
 
-def is_executor(head):
-    return head in EXECUTORS or head.endswith(".sh") or head.startswith("./")
+def is_executor(head, executors):
+    return head in executors or head.endswith(".sh") or head.startswith("./")
+
+
+def load_env():
+    """~/.claude/lib/harness_env.py 로 harness.env 를 읽는다. 없거나 깨졌으면 {}(= 기본값 auto)."""
+    home = Path(__file__).resolve().parent.parent
+    try:
+        spec = importlib.util.spec_from_file_location("harness_env", home / "lib" / "harness_env.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.load([Path(__file__).parent.parent / "harness.env", home / "harness.env"])
+    except Exception:
+        return {}
+
+
+def wrap_argv(env):
+    w = (env.get("HARNESS_HEAVY_WRAP", "auto") or "").strip()
+    if w == "auto":
+        w = "choom -n 1000 --" if shutil.which("choom") else ""
+    argv = w.split()
+    return argv if argv and shutil.which(argv[0]) else []
+
+
+def rules(env):
+    enabled = set((env.get("HARNESS_TOOLKITS") or "").split()) or set(TOOLKIT_EXECUTORS)
+    executors = set(BASE_EXECUTORS) | set((env.get("HARNESS_HEAVY_EXECUTORS") or "").split())
+    for tk in enabled:
+        executors |= TOOLKIT_EXECUTORS.get(tk, set())
+    kws = BASE_KEYWORDS + [re.escape(k) for k in (env.get("HARNESS_HEAVY_KEYWORDS") or "").split()]
+    return executors, re.compile(r"(?<![A-Za-z])(" + "|".join(kws) + ")", re.I)
 
 
 def main():
@@ -54,20 +96,29 @@ def main():
     except Exception:
         return 0
     cmd = (data.get("tool_input") or {}).get("command") or ""
-    # agy-delegate.sh puts choom in front of its own setpriv launch, so the whole agy tree
+    env = load_env()
+    wrap = wrap_argv(env)
+    if not wrap:  # 래퍼를 끈 환경이거나 래퍼 프로그램이 없다(choom 없는 sandbox) — 막지 않는다
+        return 0
+    executors, heavy = rules(env)
+    # delegate.sh / agy-delegate.sh puts choom in front of its own setpriv launch, so the whole agy tree
     # is already the preferred victim; its prompt text may mention bench/perf freely.
-    if "choom" in cmd or "agy-delegate.sh" in cmd or not HEAVY.search(cmd):
+    if wrap[0] in cmd or "delegate.sh" in cmd or not heavy.search(cmd):
         return 0
     heads = list(segment_heads(cmd))
     if heads and heads[0] in EXEMPT_HEADS:
         return 0
-    if not any(is_executor(h) for h in heads):
+    if not any(is_executor(h, executors) for h in heads):
         return 0
+    if wrap[0] == "choom":
+        how = ("명령 맨 앞에 `choom -n 1000 -p $$;`를 붙이거나(이 셸과 그 자식 전부가 1순위 희생자가 된다) "
+               "`choom -n 1000 -- prlimit --data=3221225472 -- <명령>`으로 감싸 다시 실행하라. ")
+    else:
+        how = f"`{' '.join(wrap)} <명령>`으로 감싸 다시 실행하라. "
     reason = (
         "heavy-proc-guard: 벤치/퍼저/성능 실측으로 보이는 실행은 OOM 희생자 순위를 올려서 띄울 것 "
         "(컨테이너 메모리 cgroup은 모든 Claude 세션이 공유하며, OOM이 Claude 프로세스를 죽인 적 있음 — quad 2026-09-28). "
-        "명령 맨 앞에 `choom -n 1000 -p $$;`를 붙이거나(이 셸과 그 자식 전부가 1순위 희생자가 된다) "
-        "`choom -n 1000 -- prlimit --data=3221225472 -- <명령>`으로 감싸 다시 실행하라. "
+        + how +
         "무거운 실행이 아닌데 걸렸다면(오탐) 같은 방법으로 감싸면 통과한다."
     )
     json.dump({"hookSpecificOutput": {

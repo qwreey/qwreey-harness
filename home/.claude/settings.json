@@ -9,11 +9,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /code/.claude/hooks/heavy-proc-guard.py"
+            "command": "python3 $HOME/.claude/hooks/heavy-proc-guard.py"
           },
           {
             "type": "command",
-            "command": "python3 /code/.claude/hooks/bash-bypass-reminder.py",
+            "command": "python3 $HOME/.claude/hooks/bash-bypass-reminder.py",
             "timeout": 10
           }
         ]
