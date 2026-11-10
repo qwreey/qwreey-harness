@@ -17,6 +17,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Agent|Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.claude/hooks/subagent-slots.py",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -26,6 +36,16 @@
           {
             "type": "command",
             "command": "python3 $HOME/.claude/hooks/structure-reminder.py",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.claude/hooks/subagent-slots.py",
             "timeout": 10
           }
         ]
@@ -39,6 +59,39 @@
             "type": "command",
             "command": "python3 $HOME/.claude/hooks/rearm-on-compact.py",
             "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.claude/hooks/subagent-slots.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.claude/hooks/subagent-slots.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.claude/hooks/subagent-slots.py",
+            "timeout": 10
           }
         ]
       }
@@ -93,5 +146,10 @@
       "**Org-specific CLIs**: None configured — `choom` (memory-isolation wrapper for heavy builds/benchmarks) and `mise` (toolchain manager) appear routinely in this repo's own docs and shell history but are generic dev tooling, not an org-specific CLI",
       "no additional routine-prefix qualifiers found"
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "python3 $HOME/.claude/statusline/harness-status.py",
+    "refreshInterval": 10
   }
 }

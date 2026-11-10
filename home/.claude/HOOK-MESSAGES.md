@@ -36,6 +36,10 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 | | 경고 한도(800) 초과, 세션 성장, 잘못된 예외 사유, 폴더 파일 과다 | warn |
 | | 유효한 예외 사유 안내, 접두 묶음 제안 | info |
 | rearm-on-compact | (출력 없음) | - |
+| subagent-slots | away 중 슬롯이 차서 deny(사유 `queue: wait for a running agent to finish, then spawn the next`) | action |
+| | away 예산 도달 → 직렬화 + 재고 리마인더(compact 회차·away 선언마다 한 번) | warn |
+| | attended 큰 팬아웃(동시 4+, opus 이상 2+, Workflow) → 사용자에게 규모 고지(팬아웃 묶음·회차마다 한 번) | warn |
+| | away 중 허용된 Workflow(내부 동시성은 슬롯 밖) | warn |
 
 ### 권장 배정: 세션 기록 플러그인(`plugins/session-log/`)과 이후 새 훅
 - pending(요약 안 된 세션) 알림: `warn`

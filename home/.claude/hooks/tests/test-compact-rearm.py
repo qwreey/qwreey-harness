@@ -54,6 +54,21 @@ for name, fn in (("bash-bypass-reminder", bypass), ("structure-reminder", struct
     res.append((name + ": other session unaffected by rearm", fn("b") == ""))
 res.append(("bash-bypass-reminder interpreter note carries level=info", 'level="info">' in json.loads(bypass("lv"))["hookSpecificOutput"]["additionalContext"]))
 res.append(("structure-reminder carries a level", bool(re.search(r'level="(info|warn|action)">', json.loads(struct("lv"))["hookSpecificOutput"]["additionalContext"]))))
+# 성장 기준점은 session_id 단위: compact 전 +200, 회차를 올린 뒤 +150 이면 합계 +350 으로 grow 알림이 나와야 한다
+grow = os.path.join(REPO, "src", "Grow.luau")
+
+
+def grow_edit(sid, total, added):
+    open(grow, "w").write("--!strict\n" + "local x = 1\n" * (total - 1))
+    return run("structure-reminder.py", {"session_id": sid, "cwd": REPO, "tool_name": "Edit",
+                                         "tool_input": {"file_path": grow, "old_string": "a", "new_string": "a" + "\n" * added}, "tool_response": {}})
+
+
+g1 = grow_edit("g", 1100, 200)
+res.append(("growth: +200 before compact is not a grow note", "grew" not in g1))
+rearm("g")
+g2 = grow_edit("g", 1250, 150)
+res.append(("growth: baseline survives compact (+200 then +150 -> grow note)", "grew 900 -> 1250" in g2))
 res.append(("rearm-on-compact prints nothing, bad stdin ok", run("rearm-on-compact.py", {}) == ""))
 bad = subprocess.run([sys.executable, "-I", os.path.join(H, "rearm-on-compact.py")], input="{no", capture_output=True, text=True, env=ENV)
 res.append(("rearm-on-compact survives bad stdin", bad.returncode == 0 and not bad.stdout))

@@ -38,7 +38,8 @@ audit 10 기준 이 세션들의 파일 수정은 Bash(sed -i·python) 쪽이 Ed
   같은 이름이면 기본 표의 해당 키를 덮어쓰고, 새 이름이면 툴킷을 더한다. 툴킷 안의 warn/hard/grow 가 최상위 값보다 앞선다.
   저장소가 더한 확장자는 Write/Edit 에서만 본다(Bash 경로 탐지는 기본 표의 확장자만 안다).
 끄기: 환경 변수 STRUCTURE_REMINDER=off
-상태 파일: $TMPDIR/claude-structure-reminder/<session_id>.c<compact 회차>.json (lib/compact_epoch.py. compact 뒤 다시 알린다)
+상태 파일: $TMPDIR/claude-structure-reminder/<session_id>.c<compact 회차>.json (알렸는지 여부. lib/compact_epoch.py. compact 뒤 다시 알린다)
+성장 기준점: $TMPDIR/claude-structure-reminder/<session_id>.base.json (session_id 단위. compact 회차가 올라도 유지한다)
 """
 import fnmatch
 import importlib.util
@@ -95,6 +96,13 @@ def harness_env():
         except Exception:
             _ENV = {}
     return _ENV
+
+
+def base_state_path(session_id):
+    """Growth baselines per session_id (not per compact epoch): a compact must not reset the "+N lines this session" baseline."""
+    d = os.path.join(tempfile.gettempdir(), "claude-structure-reminder")
+    os.makedirs(d, exist_ok=True)
+    return os.path.join(d, re.sub(r"[^\w-]", "", str(session_id or "nosession")) + ".base.json")
 
 
 def dedup_path(namespace, session_id):
@@ -218,7 +226,7 @@ def bash_paths(cmd, cwd):
     return out[:8]
 
 
-def check_file(path, tool, ti, data, state, created):
+def check_file(path, tool, ti, data, state, created, bases=None):
     """파일 하나의 길이·성장·폴더를 보고 알릴 문장들을 돌려준다."""
     path = os.path.abspath(path)
     if not os.path.isfile(path):
@@ -246,9 +254,12 @@ def check_file(path, tool, ti, data, state, created):
     seen_dirs = state.setdefault("dirs", [])
     entry = files.get(path)
     if entry is None:
-        add = added_lines(tool, ti)
-        base = 0 if created == "sure" else (n - add if add is not None else n)
-        entry = files[path] = {"base": max(0, base), "said": []}
+        bases = {} if bases is None else bases
+        if path not in bases:  # 성장 기준점은 세션 단위(compact 뒤에도 유지). 알림 여부(said)만 회차 단위다
+            add = added_lines(tool, ti)
+            base = 0 if created == "sure" else (n - add if add is not None else n)
+            bases[path] = max(0, base)
+        entry = files[path] = {"base": bases[path], "said": []}
 
     is_test = bool(TEST_PATH.search(rel) or (spec.get("test") and re.search(spec["test"], rel)))
     k = 2 if is_test else 1
@@ -353,6 +364,12 @@ def main():
         state = json.load(open(state_path))
     except Exception:
         state = {}
+    base_path = base_state_path(data.get("session_id"))
+    try:
+        bases = json.load(open(base_path))
+    except Exception:
+        bases = {}
+    n_bases = len(bases)
 
     notes = []
     for p in paths:
@@ -364,13 +381,15 @@ def main():
                 created = "sure"
             elif resp.get("type") is None and os.path.abspath(p) not in state.get("files", {}):
                 created = "guess"
-        notes += check_file(p, tool, ti, data, state, created)
+        notes += check_file(p, tool, ti, data, state, created, bases)
 
     if notes and not state.get("ref_said"):
         state["ref_said"] = True
         notes.append(Note(None, f"Limits and how to split: {REF}. The repo's .claude/structure.json can change the limits and the toolkit table."))
     try:
         json.dump(state, open(state_path, "w"))
+        if len(bases) != n_bases:
+            json.dump(bases, open(base_path, "w"))
     except OSError:
         pass
     if not notes:
