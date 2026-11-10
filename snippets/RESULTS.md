@@ -338,7 +338,9 @@
 | 타입 행 정정(교집합 원인, 모듈 필드 오타, 유니온 제네릭 조건, 클로저 좁히기 둘째 모양) | quad `research/kit-packaging-plan.md:73,91`, stl-luau-doctor `conventions.md:40`, `base/typing-limits.md:371-386`, devplorer `feedback/quad-upstream-2026-10-20.md:494` | 각 스니펫 참고 | `luau-types/references/solver-limits.md` §7 |
 | quad 테스트 게이트(-O1 만, 파일 이름만 단언, 헬퍼로 기대 줄, 손으로 센 level) | quad `scripts/test.sh:81-84`, `quad-base/test/mock.luau:854-858`, `spec.errorutil.luau:21-23`, `quad-base/src/Relate.luau:28-29` | `-O2` 에서 3건 실패 | `luau-testing/references/repo-practices.md` §3 |
 
-## rbx — `rbx-*` (roblox-luau 스킬, 2026-11-10)
+## rbx — `rbx-*` (2026-11-10, 처음엔 roblox-luau 스킬. 같은 날 스킬을 나눠 담당이 갈렸다)
+
+- 담당: `rbx-gc-*`·`rbx-require-cli.sh` → luau-runtime(엔진 없이 성립), `rbx-types-*` → luau-roblox(`api-types.md`), `rbx-parallel-*` → roblox-engine(`parallel-luau.md`)·luau-roblox. 접두는 바꾸지 않았다(외부 인용 보존).
 
 - 명령: `python3 -I tools/check_snippets.py --luau 0.734,0.742 --table snippets/rbx-*.luau` → **17개 전부 통과, rc=0**. 머리 `--@lsp-roblox` 인 14개는 하네스 Roblox 모드(luau-lsp 1.70.1·1.69.0, `--platform=roblox`, `typedefs/globalTypes.d.luau`, 새 솔버)로, 나머지 3개(`rbx-gc-*`)는 luau-analyze + `luau` 실행으로 돈다.
 - 여러 파일이 필요한 require 주장: `bash snippets/rbx-require-cli.sh` → 51개 확인 전부 ok, rc=0(luau 0.734·0.742, luau-lsp 1.70.1).

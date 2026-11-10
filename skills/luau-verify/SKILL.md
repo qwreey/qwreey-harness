@@ -1,19 +1,16 @@
 ---
 name: luau-verify
 description: >-
-  Luau 코드와 타입 주장을 실제로 검증하는 절차와 도구 사용법이다. luau-analyze 와 luau-lsp analyze 를
-  버전을 지정해 직접 호출하는 법(mise shim 이 버전 미지정 디렉터리에서 실패하는 함정 포함), 진단이 stderr 로
-  나오는 점과 종료 코드, 새 솔버와 옛 솔버(--solver=old)와 luau 0.734/0.742 비교, "진단 0건"을 믿기 위한
-  음성 대조군과 돌연변이 검사, .luaurc 와 --!strict(--fflags=DebugLuauForceStrictMode 로 강제), luau-analyze 의
-  숨은 --fflags 옵션, 스니펫 하네스 표식(-- expect-error, -- bug-present, --@run, -O2·-g0·--codegen 실행을 고정하는
-  --@run-opt/--@run-with, 바이트코드·인라인 remark·native 코드 크기를 보는 --@compile/--@inline-remarks/--@codegen,
-  Roblox 정의 파일로 검사하는 --@lsp-roblox), require 가 검사기와 런타임에서 갈리는 자리(symlink, .luaurc alias,
-  nonstrict 의 거짓 클린, 다른 파일로 풀리는 경로 오타), 게이트를 종료 코드로 판정하기, pesde·Rojo 링크 함정,
-  stylua 가 f<<T>> 를 망가뜨리는 조건, 러너(luau CLI 기본)와 const(D-01)와 버전 핀 정책, 그리고 luau-lsp 로
-  공개 API 의 hover·자동완성·추론 타입 표시(DX)를 확인하는 법(tools/lsp_probe.py)과 Claude Code LSP 연동(.lsp.json)을 다룬다.
-  타입 검사 결과를 믿어도 되는지 확인할 때, 재현 파일이나 스파이크를 만들 때, 검사 게이트를 짜거나 고칠 때,
-  라이브러리의 공개 API 가 에디터에서 어떻게 보이는지 확인할 때, luau·luau-lsp·stylua 버전을 올릴 때 쓴다.
-  타입 규칙 자체(무엇이 왜 안 잡히는가)는 luau-types, Roblox 위 타입·mock·Studio 절차는 luau-roblox, 엔진 동작은 roblox-engine 이 다룬다.
+  Luau 코드와 타입 주장을 실제로 검증하는 절차와 도구 사용법이다. luau-analyze·luau-lsp analyze 를 버전 경로로
+  직접 부르는 법(mise shim "No version is set" 함정), stderr 진단과 종료 코드, 새·옛 솔버와 luau 0.734/0.742 비교,
+  "진단 0건"을 믿기 위한 음성 대조군과 돌연변이 검사, .luaurc 와 --!strict·숨은 --fflags, 스니펫 하네스 표식
+  (-- expect-error, -- bug-present, --@run, --@run-opt, --@compile, --@codegen, --@lsp-roblox), require 가
+  검사기와 런타임에서 갈리는 자리(symlink, ./ 없는 alias, nonstrict 거짓 클린, 다른 파일로 풀리는 오타), 게이트
+  판정, pesde·Rojo 링크 함정, stylua 가 f<<T>> 를 망가뜨리는 조건, 러너·const(D-01)·버전 핀 정책, luau-lsp 로
+  공개 API 의 hover·자동완성(DX)을 보는 tools/lsp_probe.py 와 .lsp.json 을 다룬다. 타입 검사 결과를 믿어도 되는지
+  확인할 때, 재현 파일·스파이크를 만들 때, 검사 게이트를 짜거나 고칠 때, 공개 API 가 에디터에서 어떻게 보이는지
+  볼 때, 도구 버전을 올릴 때 쓴다. 타입 규칙 자체는 luau-types, require 경로 규칙은 luau-runtime, Roblox 위
+  타입·mock 은 luau-roblox 가 다룬다.
 ---
 # luau-verify
 

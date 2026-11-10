@@ -9,8 +9,8 @@
 ## 목차
 - §1 판정 원칙
 - §2 판정 표
-- §3 task 와 신호의 타이밍 → signals-and-events, tasks-and-threads
-- §4 Instance 수명과 Destroy → instance-lifecycle
+- §3 task 와 신호의 타이밍 → roblox-engine signals-and-events, tasks-and-threads
+- §4 Instance 수명과 Destroy → roblox-engine instance-lifecycle
 - §5 판정 절차
 
 ---
@@ -44,7 +44,7 @@ status: described (판정) / 각 행의 "근거" 열이 실측 출처
 | 물리, 네트워크 지연 | — | 항상 (`rbx-network-simulator`) | Studio 내장 skill |
 | 성능, GC 타이밍, 메모리 | 알고리즘 차원의 비교만 | 엔진 위 실제 비용 (`rbx-perf-profiling`). CLI 와 Studio 의 GC 타이밍은 다르다 | roblox-engine `perf.md`, roblox-engine `gc-in-roblox.md`, luau-runtime `gc-and-weak-tables.md` §4 |
 
-## §3 task 와 신호의 타이밍 → roblox-engine `signals-and-events.md`, roblox-engine `tasks-and-threads.md`
+## §3 task 와 신호의 타이밍 → roblox-engine `signals-and-events.md`, `tasks-and-threads.md`
 status: described · 원천 실측 요약(상세와 근거는 링크한 파일)
 
 - `luau` CLI(0.734, 0.742)에는 `task`, `game`, `Instance`, `wait` 전역이 없다. `typeof`, `getfenv`, `setfenv`, `coroutine` 은 있다(이 저장소 실측).

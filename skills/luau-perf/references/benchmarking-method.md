@@ -110,6 +110,6 @@ python3 -I bench/summarize.py bench/results/2026-11-10.tsv --stat min > /tmp/m.m
 ## §7 Roblox 안에서 재기
 status: described · 원천: drafts/gaps/native-codegen.md §8, roblox-engine 스킬
 
-- 엔진 API 비용(Instance 생성, 속성 대입, 바인더블 복사, 트윈)은 CLI 로 잴 수 없다. roblox-engine 스킬의 `references/perf.md`(Studio 기준치)와 `references/studio-mcp.md` §6(내장 `rbx-perf-profiling`)을 본다.
+- 엔진 API 비용(Instance 생성, 속성 대입, 바인더블 복사, 트윈)은 CLI 로 잴 수 없다. roblox-engine 스킬의 `references/perf.md`(Studio 기준치)와 luau-roblox 스킬의 `references/studio-mcp.md` §6(내장 `rbx-perf-profiling`)을 본다.
 - Studio 실행 컨텍스트에 따라 `collectgarbage("collect")` 가 막혀 있다. 할당 부하와 `task.wait` 로 GC 를 진행시키고 약한 표 canary 로 판정한다(`gc-and-memory.md` §5).
 - 네이티브 확인은 Script Profiler 의 `<native>` 표시, 코드 크기는 서버 콘솔의 `debug.dumpcodesize()` 다(`optimizer-and-native.md` §6).

@@ -1,6 +1,6 @@
 # AGENTS.md — luau-kb (Gemini, Codex 등 Claude Code 플러그인을 읽지 않는 에이전트용)
 
-이 저장소는 여러 Luau 저장소에 흩어져 있던 일반 Luau·Roblox 지식(타입 시스템의 한계, 검증 절차, 테스트, 성능, 스타일, Roblox 엔진 동작, 업스트림 변화)의 정본이다. 스킬 7개와 경로 조건부 rules 2개로 나뉜다. Claude Code 는 플러그인(`.claude-plugin/`)으로 읽고, 다른 에이전트는 아래 평문 경로를 직접 읽는다. 내용은 같다.
+이 저장소는 여러 Luau 저장소에 흩어져 있던 일반 Luau·Roblox 지식(타입 시스템의 한계, 검증 절차, 테스트, 성능, 스타일, Roblox 엔진 동작, 업스트림 변화)의 정본이다. 스킬 12개(문서 조회 도구 `tools/roblox_docs.py` 포함)와 경로 조건부 rules 2개로 나뉜다. Claude Code 는 플러그인(`.claude-plugin/`)으로 읽고, 다른 에이전트는 아래 평문 경로를 직접 읽는다. 내용은 같다.
 
 ## 언제 무엇을 읽나
 
@@ -11,15 +11,21 @@
 | 테스트·스펙 작성, 러너, 에러 메시지·사용자 줄 단언, `-O2` 로 테스트, mock 경계, GC·weak 프로브, 시간 의존 시험, 프레임워크(jest/TestEZ) 현황 | `/code/Projects/luau-kb/skills/luau-testing/SKILL.md` |
 | 코드가 느리다, 벤치마크 짜기·해석, 메타테이블·테이블·순회·호출·문자열 비용, 최적화 수준·인라인·native, 약한 표·GC 비용, 객체 크기 | `/code/Projects/luau-kb/skills/luau-perf/SKILL.md` |
 | 네이밍·관용구·모듈 구조·파일 분리·에러 처리·주석·포맷 같은 코드 스타일과 타입이 못 잡는 언어 함정 | `/code/Projects/luau-kb/skills/luau-style/SKILL.md` |
-| Roblox 엔진·서비스에 기대는 동작(시그널, Instance 수명, Tween, task, Actor, 원격·복제, 서비스), require 경로 해석(`init.luau`·`@self`·alias·symlink·Studio), weak 표 의미론과 누수, mock 작성, Roblox Studio MCP, Roblox API 문서, globalTypes 정의 파일 | `/code/Projects/luau-kb/skills/roblox-luau/SKILL.md` |
+| weak 표 의미론·누수 판정(ephemeron 없음, `__mode`), 코루틴 에러 삼킴·yield 불가 문맥, luau CLI 의 require 경로 해석(`init.luau`·`@self`·alias·symlink) — Roblox 엔진 없이 성립하는 것 | `/code/Projects/luau-kb/skills/luau-runtime/SKILL.md` |
+| Roblox 코드를 luau+mock 으로 시험할지 Studio 가 필요한지, mock 작성, Roblox Studio MCP, Roblox API 의 타입(`Instance.new`·`GetAttribute`·Enum), globalTypes 정의 파일·sourcemap | `/code/Projects/luau-kb/skills/luau-roblox/SKILL.md` |
+| Roblox 엔진 핵심 동작: 시그널(Deferred), Instance 수명·Destroy, Tween, `task`·경쟁, Actor·병렬, Studio 문자열 require·모듈 캐시, Roblox 안 GC 관찰, 엔진 비용 | `/code/Projects/luau-kb/skills/roblox-engine/SKILL.md` |
+| 원격·복제·네트워크 소유권·스트리밍, DataStore·MemoryStore·상품·글자 필터·Open Cloud | `/code/Projects/luau-kb/skills/roblox-net/SKILL.md` |
+| GUI 입력·레이아웃·톱바 인셋, DragDetector·물리·캐릭터·카메라·런타임 에셋 | `/code/Projects/luau-kb/skills/roblox-world/SKILL.md` |
+| Roblox 공식 문서 조회(API 시그니처, 보안·스레드 안전성, deprecated, 문서 근거 인용) | `/code/Projects/luau-kb/skills/roblox-docs/SKILL.md`, 도구 `python3 -I /code/Projects/luau-kb/tools/roblox_docs.py` |
 | luau·luau-lsp·stylua 를 올릴지, 새 문법·RFC 를 지금 써도 되는지, 알려진 결함이 상류에서 고쳐지는지 | `/code/Projects/luau-kb/skills/luau-upstream/SKILL.md` |
 | 공개 API 의 hover·자동완성·추론 타입(DX) 확인 | `/code/Projects/luau-kb/skills/luau-verify/references/checkers.md` §6, `/code/Projects/luau-kb/tools/lsp_probe.py` |
 | `.luau` 파일을 쓸 때 항상 지킬 짧은 규칙 | `/code/Projects/luau-kb/rules/luau-core.md` (경로 조건부 규칙, `/code/Projects/luau-kb/rules/README.md`) |
 | 파일 길이·분리·폴더 묶음 같은 코드 구조 규칙 | 정본은 사용자 레벨 `~/.claude/rules/code-structure.md`(claude-doctor `home/.claude/rules/code-structure.md`, 툴킷 공통). Luau 세부는 `/code/Projects/luau-kb/skills/luau-style/references/structure.md`·`splitting.md`. `/code/Projects/luau-kb/rules/code-structure.md` 는 이 안내만 둔다 |
 
 ### 주제가 여러 스킬에 걸칠 때의 정본
-- weak 표: 의미론(ephemeron 없음, `__mode`)·누수·Roblox 안 GC 관찰은 luau-runtime `gc-and-weak-tables.md`, 비용·객체 크기·클로저 캐시는 luau-perf `gc-and-memory.md`, 누수 판정 하네스·프로브 함정은 luau-testing `gc-and-time.md`.
-- require: 경로 해석 규칙(CLI·Studio)은 roblox-luau `require-and-modules.md`, 검사기 대 런타임 판정표는 luau-verify `checkers.md` §7, 쓰는 규칙(`@self`, 리터럴, 엔트리 이름)은 luau-style `modules.md`.
+- weak 표: 의미론(ephemeron 없음, `__mode`)·누수 판정은 luau-runtime `gc-and-weak-tables.md`, Roblox 안 GC 관찰·Instance weak 키는 roblox-engine `gc-in-roblox.md`·`instance-lifecycle.md` §4, 비용·객체 크기·클로저 캐시는 luau-perf `gc-and-memory.md`, 누수 판정 하네스·프로브 함정은 luau-testing `gc-and-time.md`.
+- require: 언어 차원 경로 해석(CLI)은 luau-runtime `require-by-string.md`, Studio 문자열 require·ModuleScript 캐시는 roblox-engine `require-in-roblox.md`, 검사기 대 런타임 판정표는 luau-verify `checkers.md` §7, 쓰는 규칙(`@self`, 리터럴, 엔트리 이름)은 luau-style `modules.md`.
+- 코루틴: 순수 의미론은 luau-runtime `coroutines.md`, Roblox `task` 라이브러리는 roblox-engine `tasks-and-threads.md`, 비용은 luau-perf `calls-and-closures.md`.
 - `-O2` 와 `error(msg, level)`: 경우별 표는 luau-testing `optimize-levels.md` §2, raise 헬퍼 처방은 luau-style `errors.md` §2, 인라인 규칙은 luau-perf `optimizer-and-native.md` §3.
 
 상세 references (각 SKILL.md 의 표가 절 번호까지 안내한다):
@@ -71,26 +77,39 @@ luau-style
 - `/code/Projects/luau-kb/skills/luau-style/references/quality.md` — 주석, 마커, 포맷, 테스트 관용, 검증과 보고
 - `/code/Projects/luau-kb/skills/luau-style/references/project-overrides.md` — 저장소마다 다른 값과 결정 상태
 
-roblox-luau
+luau-runtime
+- `/code/Projects/luau-kb/skills/luau-runtime/references/gc-and-weak-tables.md` — weak 표 의미론, 누수 조건과 판정, 프로브 함정, weak 설계 처방
+- `/code/Projects/luau-kb/skills/luau-runtime/references/coroutines.md` — 코루틴 에러 삼킴, yield 할 수 없는 문맥, 문맥 전파 없음
+- `/code/Projects/luau-kb/skills/luau-runtime/references/require-by-string.md` — luau CLI require 경로 해석, ambiguous 에러, alias, symlink, 정적 검사, 패키지 사본
+
+luau-roblox
 - `/code/Projects/luau-kb/skills/luau-roblox/references/env-dependence.md` — luau+mock 으로 충분한가, Studio 가 필요한가 (판정 표)
 - `/code/Projects/luau-kb/skills/luau-roblox/references/mocks.md` — mock 범위, 주입, 차이 기록, 충실도 검증
 - `/code/Projects/luau-kb/skills/luau-roblox/references/studio-mcp.md` — Studio MCP 도구, 여러 Studio 고르기, studio-sync 규칙
-- `/code/Projects/luau-kb/skills/roblox-docs/references/sources.md` — Roblox API 문서 찾기
 - `/code/Projects/luau-kb/skills/luau-roblox/references/api-types.md` — Instance·Enum·서비스·속성·엔진 호출의 타입
 - `/code/Projects/luau-kb/skills/luau-roblox/references/typedefs.md` — Roblox 정의 파일과 sourcemap 을 luau-lsp 에 넘기기
+
+roblox-engine
 - `/code/Projects/luau-kb/skills/roblox-engine/references/signals-and-events.md` — RBXScriptSignal 배달 시점·순서·끊기, 속성 변경 신호
-- `/code/Projects/luau-kb/skills/roblox-engine/references/instance-lifecycle.md` — Destroy, Destroying, 파괴된 Instance, userdata 신원
+- `/code/Projects/luau-kb/skills/roblox-engine/references/instance-lifecycle.md` — Destroy, Destroying, 파괴된 Instance, userdata 신원, 수명 묶기, 누수
 - `/code/Projects/luau-kb/skills/roblox-engine/references/instance-api.md` — 트리 API, Clone, Attribute·태그, QueryDescendants, 데이터 타입 값
 - `/code/Projects/luau-kb/skills/roblox-engine/references/tween-and-animation.md` — TweenService 엔진 사실
-- `/code/Projects/luau-kb/skills/roblox-engine/references/tasks-and-threads.md` — task 라이브러리, 코루틴 에러, 경쟁, 시계
+- `/code/Projects/luau-kb/skills/roblox-engine/references/tasks-and-threads.md` — task 라이브러리, 협력 스케줄링의 경쟁, 시한, 시계
 - `/code/Projects/luau-kb/skills/roblox-engine/references/parallel-luau.md` — Actor, 병렬 단계, 스레드 안전 등급, SharedTable
-- `/code/Projects/luau-kb/skills/luau-runtime/references/gc-and-weak-tables.md` — weak 표 의미론, 누수 조건, Roblox 안 GC 관찰
-- `/code/Projects/luau-kb/skills/roblox-luau/references/require-and-modules.md` — require-by-string 경로 해석(CLI·Studio), 모듈 캐시와 사본
-- `/code/Projects/luau-kb/skills/roblox-world/references/gui-and-input.md` — GUI 레이아웃·자동 크기·입력 전달
-- `/code/Projects/luau-kb/skills/roblox-net/references/remotes-and-replication.md` — 원격·바인더블 신뢰 경계, 복제, 네트워크 소유권, 스트리밍
-- `/code/Projects/luau-kb/skills/roblox-world/references/world-and-physics.md` — DragDetector, 물리, 캐릭터, 카메라, 런타임 에셋
-- `/code/Projects/luau-kb/skills/roblox-net/references/platform-services.md` — DataStore·MemoryStore·상품·글자 안전·게시 도구
+- `/code/Projects/luau-kb/skills/roblox-engine/references/require-in-roblox.md` — Studio 문자열 require, ModuleScript 캐시, VM 경계
+- `/code/Projects/luau-kb/skills/roblox-engine/references/gc-in-roblox.md` — Roblox 안 GC 관찰, Instance·연결이 얽힌 수거
 - `/code/Projects/luau-kb/skills/roblox-engine/references/perf.md` — Roblox 엔진 쪽 비용 기준치, 최적화 수준
+
+roblox-net
+- `/code/Projects/luau-kb/skills/roblox-net/references/remotes-and-replication.md` — 원격·바인더블 신뢰 경계, 복제, 네트워크 소유권, 스트리밍
+- `/code/Projects/luau-kb/skills/roblox-net/references/platform-services.md` — DataStore·MemoryStore·상품·글자 안전·게시 도구
+
+roblox-world
+- `/code/Projects/luau-kb/skills/roblox-world/references/gui-and-input.md` — GUI 레이아웃·자동 크기·입력 전달
+- `/code/Projects/luau-kb/skills/roblox-world/references/world-and-physics.md` — DragDetector, 물리, 캐릭터, 카메라, 런타임 에셋
+
+roblox-docs
+- `/code/Projects/luau-kb/skills/roblox-docs/references/sources.md` — 문서 조회 방식 비교, `tools/roblox_docs.py` 명령, 온라인 대체(llms.txt), 인용 규칙, 신뢰 경계
 
 luau-upstream
 - `/code/Projects/luau-kb/skills/luau-upstream/references/sources.md` — 업스트림을 어디서, 얼마나 자주 보나

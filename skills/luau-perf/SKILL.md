@@ -40,7 +40,7 @@ description: >-
 | `--!native`/`@native` 를 붙일까, 타입 주석이 native 에 주는 효과 | `references/optimizer-and-native.md` §6 |
 | 약한 테이블 비용, `__mode="ks"`, GC 시간, 객체 메모리 크기, 클로저 캐시 | `references/gc-and-memory.md` (ephemeron·weak 의미론은 luau-runtime `gc-and-weak-tables.md`) |
 | 해시 대 정렬 병합, 힙 짓기, `table.sort` 비교자, 결과 표 대 다중 반환, 자료구조 선택 | `references/algorithms-and-structures.md` |
-| Instance 생성·속성 대입·바인더블·트윈 비용, Studio 프로파일러, 라이브 최적화 수준 | roblox-engine 스킬 `references/perf.md`, `references/studio-mcp.md` §6 |
+| Instance 생성·속성 대입·바인더블·트윈 비용, Studio 프로파일러, 라이브 최적화 수준 | roblox-engine 스킬 `references/perf.md`, luau-roblox 스킬 `references/studio-mcp.md` §6 |
 
 ## 자주 밟는 함정 (요약, 0.742)
 - 메타테이블이 붙은 표의 `t[i]` 는 `-O1` 1.6 배, native 읽기 2.1 배·쓰기 4.4 배 느리다. 상수 문자열 필드와 안쪽 표는 영향 없다.

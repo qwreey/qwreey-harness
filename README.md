@@ -2,7 +2,7 @@
 
 여러 Luau 저장소(quad, stl-luau, rbvm, table-sim, devplorer, tbox 등)에 흩어져 있던 **일반 Luau·Roblox 지식**을 한 곳에 모은 정본 저장소다. 타입 시스템의 한계, 검증 절차, 테스트, 성능 실측, 코드 스타일, Roblox 엔진 동작, 업스트림 변화를 다룬다. 모든 "verified" 주장은 `snippets/` 의 실행 가능한 재현 파일(성능 수치는 `bench/`)과 짝이고, 그 파일은 luau 0.734 와 0.742 에서 하네스로 검사된다. 프로젝트 고유 설계(특정 라이브러리의 타입 이름, API)는 넣지 않는다.
 
-- Claude Code: 플러그인으로 설치해 스킬 `luau-kb:luau-types`, `luau-kb:luau-verify`, `luau-kb:luau-testing`, `luau-kb:luau-perf`, `luau-kb:luau-style`, `luau-kb:roblox-luau`, `luau-kb:luau-upstream` 으로 쓴다. `.lsp.json` 이 luau-lsp 를 LSP 도구로 붙인다(`.luau` 파일의 진단, hover, 정의 이동). `rules/` 의 경로 조건부 규칙은 사용자 홈 `~/.claude/rules/` 에 symlink 로 건다(`rules/README.md`).
+- Claude Code: 플러그인으로 설치해 스킬 `luau-kb:luau-types`, `luau-kb:luau-verify`, `luau-kb:luau-testing`, `luau-kb:luau-perf`, `luau-kb:luau-style`, `luau-kb:luau-runtime`, `luau-kb:luau-roblox`, `luau-kb:roblox-engine`, `luau-kb:roblox-net`, `luau-kb:roblox-world`, `luau-kb:roblox-docs`, `luau-kb:luau-upstream` 으로 쓴다. `.lsp.json` 이 luau-lsp 를 LSP 도구로 붙인다(`.luau` 파일의 진단, hover, 정의 이동). `rules/` 의 경로 조건부 규칙은 사용자 홈 `~/.claude/rules/` 에 symlink 로 건다(`rules/README.md`).
 - Gemini, Codex 등: `AGENTS.md` 가 같은 references 를 평문 경로로 안내한다.
 
 ## 구조
@@ -24,11 +24,19 @@ skills/
                          optimizer-and-native, gc-and-memory, algorithms-and-structures
   luau-style/            SKILL.md + references/ 8개 + scripts/
     references/          naming, idioms, modules, structure, errors, pitfalls, quality, project-overrides
-  roblox-luau/           SKILL.md + references/ 19개 (Roblox 엔진 의존 동작과 그 검증)
-    references/          env-dependence, mocks, studio-mcp, api-docs, api-types, typedefs, signals-and-events,
-                         instance-lifecycle, instance-api, tween-and-animation, tasks-and-threads, parallel-luau,
-                         gc-and-weak-tables, require-and-modules, gui-and-input, remotes-and-replication,
-                         world-and-physics, platform-services, perf
+  luau-runtime/          SKILL.md + references/ 3개 (Roblox 엔진 없이 성립하는 언어·런타임 의미론)
+    references/          gc-and-weak-tables, coroutines, require-by-string
+  luau-roblox/           SKILL.md + references/ 5개 (Roblox 위 Luau 의 타입과 검증: mock, Studio MCP, 정의 파일)
+    references/          env-dependence, mocks, studio-mcp, api-types, typedefs
+  roblox-engine/         SKILL.md + references/ 9개 (엔진 핵심 런타임)
+    references/          signals-and-events, instance-lifecycle, instance-api, tween-and-animation, tasks-and-threads,
+                         parallel-luau, require-in-roblox, gc-in-roblox, perf
+  roblox-net/            SKILL.md + references/ 2개 (원격·복제·플랫폼 서비스)
+    references/          remotes-and-replication, platform-services
+  roblox-world/          SKILL.md + references/ 2개 (GUI·물리·캐릭터)
+    references/          gui-and-input, world-and-physics
+  roblox-docs/           SKILL.md + references/ 1개 (tools/roblox_docs.py 사용법)
+    references/          sources
   luau-upstream/         SKILL.md + references/ 5개
     references/          sources, watchlist, syntax-adoption, version-bump, roadmap-notes
 rules/                   luau-core.md(**/*.luau), code-structure.md(안내만: 정본은 ~/.claude/rules/code-structure.md), README.md(배포 방식과 로드 실측)
@@ -42,6 +50,7 @@ tools/
   luau-lsp.sh, lsp/      .lsp.json 이 부르는 래퍼(바이너리·플랫폼 선택)와 --settings 파일
   dx-sample/             DX 프로브 실증용 샘플(Stack 라이브러리 + 소비자)
   upstream_check.py      업스트림 릴리스·RFC 확인 (luau-upstream)
+  roblox_docs.py         Roblox/creator-docs 원본을 캐시에 받아 search·get·api 로 조회 (roblox-docs)
 .lsp.json                Claude Code LSP: luau-lsp (tools/luau-lsp.sh)
 typedefs/                globalTypes.d.luau (quad 판 복사) + README.md (다른 복제본 7개와 md5 비교)
 decisions/               README(미결 목록) + 결정 요약 D-01(const), D-02(stylua), D-03(러너), D-04(type function), D-06(검사기)
@@ -85,7 +94,7 @@ python3 -I tools/lsp_probe.py tools/dx-sample/consumer.luau --hover 'new' --comp
 ## 원천과 범위
 
 - 원천(읽기 전용): `/code/Projects/quad/.claude/base/typing-limits.md`, `/code/Projects/stl-luau/.claude/base/typing-limits.md`, `stl-luau/.claude/audit/luau-solver-issues/`, `stl-luau/.claude/tools/{spike-diff.py,mutate.sh}`, `quad/scripts/doc-snippets.py`, 각 저장소의 `mise.toml`, `conventions.md`. `quad-changelog-check` 는 낡은 사본이라 근거로 쓰지 않았다.
-- 2차 증류(testing, perf, style, roblox-luau 보강, upstream)의 원천은 claude-doctor 후보표 `audit/08-quad-knowledge-mine.md`(ID `Q-`), `audit/09-other-knowledge-mine.md`(ID `S- R- T- D- X- M- O-`), `audit/11-knowledge-gaps.md` 와 `drafts/gaps/`, `drafts/style/` 이다. references 의 근거 칸에 후보 ID 가 남아 있다.
+- 2차 증류(testing, perf, style, roblox-luau 보강 — 2026-11-10 에 luau-runtime·luau-roblox·roblox-engine·roblox-net·roblox-world·roblox-docs 로 나눔, upstream)의 원천은 claude-doctor 후보표 `audit/08-quad-knowledge-mine.md`(ID `Q-`), `audit/09-other-knowledge-mine.md`(ID `S- R- T- D- X- M- O-`), `audit/11-knowledge-gaps.md` 와 `drafts/gaps/`, `drafts/style/` 이다. references 의 근거 칸에 후보 ID 가 남아 있다.
 - 재현해 보니 원천 서술이 틀린 것은 각 references 의 '정정' 절에 모았다. 저장소별 전달본은 claude-doctor `handoff/<repo>-corrections.md`(quad 는 `handoff/quad.md`)다.
 - 원문을 옮기지 않고 다시 썼다. 원천에서 다시 재 보니 뒤집힌 주장(싱글턴 보존, type function 안 `pcall`/`error()`, stylua 오염 조건)은 정정했다. 재현하지 못한 주장은 `described` 로 남겼다. 목록은 `snippets/RESULTS.md` 끝에 있다.
 - 아직 없는 것(설계안 claude-doctor audit 05 §4 기준): 업스트림 보고용 `luau-solver-bug-triage`, `luau-recheck`.
@@ -96,3 +105,19 @@ python3 -I tools/lsp_probe.py tools/dx-sample/consumer.luau --hover 'new' --comp
 2. 두 버전에서 하네스가 rc=0 인지 확인하고, `--table` 로 `snippets/RESULTS.md` 를 갱신한다.
 3. references 절에 `status`, `last-confirmed`, 근거를 단다. SKILL.md 는 100줄 이하로 두고 라우팅 표만 고친다.
 4. 정책 판단이 필요한 항목은 `decisions/README.md` 의 미결 목록에 올린다.
+
+## 옛 경로 (2026-11-10 roblox-luau 분리)
+
+`skills/roblox-luau/references/<파일>` 을 인용한 문서는 아래로 옮겨 읽는다.
+
+| 옛 파일 | 새 위치 |
+|---|---|
+| env-dependence, mocks, studio-mcp, typedefs, api-types | `skills/luau-roblox/references/` |
+| signals-and-events, instance-lifecycle, instance-api, tween-and-animation, tasks-and-threads(§3·§4 는 luau-runtime `coroutines.md`), parallel-luau, perf | `skills/roblox-engine/references/` |
+| remotes-and-replication, platform-services | `skills/roblox-net/references/` |
+| gui-and-input, world-and-physics | `skills/roblox-world/references/` |
+| gc-and-weak-tables | 의미론 `skills/luau-runtime/references/gc-and-weak-tables.md`, §6(Roblox 관찰) `skills/roblox-engine/references/gc-in-roblox.md` |
+| require-and-modules | §1–5·§8·§9 `skills/luau-runtime/references/require-by-string.md`, §6–7(Studio·캐시) `skills/roblox-engine/references/require-in-roblox.md` |
+| api-docs | `skills/roblox-docs/references/sources.md` §4 |
+
+스니펫 접두 `rbx-` 는 바꾸지 않았다(외부 인용 보존). `rbx-gc-*`·`rbx-require-cli.sh` 는 luau-runtime 근거다.
