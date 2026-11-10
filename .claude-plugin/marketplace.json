@@ -1,12 +1,20 @@
 {
   "name": "claude-doctor-market",
-  "owner": { "name": "qwreey", "email": "me@qwreey.moe" },
+  "owner": {
+    "name": "qwreey",
+    "email": "me@qwreey.moe"
+  },
   "description": "툴킷 무관 하네스 플러그인 마켓 (claude-doctor). Luau 지식은 luau-kb-market 에 따로 있다.",
   "plugins": [
     {
       "name": "session-log",
       "source": "./plugins/session-log",
       "description": "세션 기록 자동화: 분리 프로세스가 요약(haiku + 원문 대조)해 저장소 밖에 쌓고, 저장소의 메인 에이전트가 /session-import 로 받아 간다"
+    },
+    {
+      "name": "harness-onboarding",
+      "source": "./plugins/harness-onboarding",
+      "description": "온보딩 진입점 /harness-start: 역할·경험을 묻고, 개념(context, compact, memory, subagent, auto mode 등 15개)을 아는지 확인해 모르는 것만 쉽게 설명하고, 환경을 읽기만 해서 진단한 뒤, 개선안을 하나씩 동의받아 적용한다"
     }
   ]
 }
