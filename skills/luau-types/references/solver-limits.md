@@ -48,7 +48,7 @@ status: verified · last-confirmed: luau 0.742 (`--help` 와 스니펫) · 근�
 | S15 | 함수 ∩ 테이블 값이 never 로 아무 데나 대입 | `unions-function-table-intersection` | bug | bug | bug | 호출 거부 | unions-singletons.md §7 |
 | S16 | `setmetatable` 형 `__call` 인자 무검사 | 같은 파일 | bug | **fixed** | fixed | (문법 모름) | unions-singletons.md §7 |
 | S17 | 선언된 테이블의 제네릭 함수 필드 결과 무검사 | `solver-declared-generic-field` | bug | bug | bug | 잡음 | §4 아래 |
-| S18 | 줄어들지 않은 `index<…, M>` 결과가 아무 데나 대입 | `typefn-unreduced-index` | bug | bug | bug | (문법 모름) | type-functions.md §5 |
+| S18 | 줄어들지 않은 `index<…, M>` 결과가 아무 데나 대입 | `tf-builtin-unreduced-index` | bug | bug | bug | (문법 모름) | type-functions-limits.md B3 |
 | S19 | nonstrict `.luaurc` 아래 명백한 에러 0건 | `modes-luaurc-nonstrict-silences` | 동작 | 동작 | — | — | luau-verify 스킬 |
 
 ## §3 0.734 → 0.742 에서 바뀐 것
