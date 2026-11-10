@@ -22,7 +22,8 @@ see: [doc SKILL in "pack:luau-kb/luau-types"]
   3. luau-kb 로 옮겨 간 일반 원칙 절은 `status: superseded` + pack ID 로 갈음 — 검색은 pack 쪽 원본을 보여 준다.
   4. 날짜·이모지가 든 제목(`⭐ [2026-08-31 실측] …`)은 `id:` 로 절 ID 를 고정한다. 날짜는 `since:` 로 옮길 수 있다.
   5. 이 문서의 last_confirmed 가 luau 0.742 라서, 핀을 0.746 으로 올리면 stale 이 "버전 낡음"을 알린다(§18.4).
-  6. `see:` 의 pack 절 ID(`…variance.3-값-팬텀의-nil-구멍`)는 luau-kb 가 그 절에 `id:` 를 고정하지 않았을 때의 모양이다.
+  6. 이 문서는 추정 ~17k 토큰이라 자동으로 "절 단위"다(§21.3). 표로 시작하는 긴 절에는 `summary:` 를 둔다(§21.4, union-same-alias 절).
+  7. `see:` 의 pack 절 ID(`…variance.3-값-팬텀의-nil-구멍`)는 luau-kb 가 그 절에 `id:` 를 고정하지 않았을 때의 모양이다.
      제목의 "§3" 이 slug 에 "3-" 으로 남아 번호를 바꾸면 깨진다 — pack 쪽 `id:` 고정이 필요한 이유(§14).
 -->
 # Luau 타입 한계와 이 저장소의 현황
@@ -49,6 +50,7 @@ id: checker-luau-analyze · since: 2026-08-31 · evidence: verified · category:
 
 ## 유니온 자리에서 제네릭이 풀리는 조건 — 같은 별칭이어야 함 (2026-11-05, 질문 BE)
 id: union-same-alias · since: 2026-11-05 · evidence: verified · last-confirmed: luau 0.742 · category: luau/types/unions · source: spikes/77
+summary: 유니온 갈래가 인자와 **같은 별칭**이어야 T 가 풀린다(구조만 같으면 unknown) — 그래서 ArrData<T> 를 말단 모듈 Types 에 둠. 대가: 표 리터럴에 기대 타입이 안 내려감
 
 리스트 자리를 "평범한 표 또는 `Arr`" 로 받으려고 잰 것(luau 0.742, 프로브 `stl-luau-scratch/arr-split/probes`, 지키는 곳 `spikes/77`):
 (… 표 생략 …)
