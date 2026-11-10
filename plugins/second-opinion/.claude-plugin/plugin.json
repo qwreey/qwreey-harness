@@ -1,0 +1,8 @@
+{
+  "name": "second-opinion",
+  "version": "0.1.0",
+  "description": "정해진 시점의 독립 검토 두 갈래. second-opinion:context 는 대화를 이어받은 눈(기본 fork + 검토자 후행 프롬프트, 무거운 전환점은 다른 시스템 프롬프트)으로 흐름에서 놓친 것을 짚고, second-opinion:audit 은 새 컨텍스트의 읽기 전용 리뷰어가 diff·주장을 반증한다. 훅이 반복 실패·큰 커밋 시점을 알린다. advisor 는 평소에 쓰지 않는다(선택, 사용자 요청 시).",
+  "author": { "name": "qwreey", "email": "me@qwreey.moe" },
+  "license": "MIT",
+  "keywords": ["review", "second-opinion", "fork", "audit", "advisor-alternative", "subagent"]
+}

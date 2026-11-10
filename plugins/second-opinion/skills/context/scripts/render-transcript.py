@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """render-transcript — 세션 트랜스크립트를 '사용자 메시지, 메인 응답, 주입(서브에이전트 보고·훅), 도구 호출 요약' 텍스트로 옮긴다.
 
-쓰는 곳: second-opinion:context 의 '다른 프레임' 경로(second-opinion-context 에이전트에게 대화 사본을 줄 때).
+쓰는 곳: second-opinion:context 의 '다른 프레임' 경로(ask-other-frame.py 가 other-frame 에이전트 본문에 대화 사본을 줄 때).
 기본 경로(Agent fork)는 이 스크립트가 필요 없다. fork 는 대화를 그대로 물려받는다.
 
 audit/18 §11 실험에서 쓴 렌더러를 옮겼다. 그 실험에서 317k 토큰 맥락이 약 132k 토큰(270KB)으로 줄었다.

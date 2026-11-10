@@ -15,6 +15,11 @@
       "name": "harness-onboarding",
       "source": "./plugins/harness-onboarding",
       "description": "온보딩 진입점 /harness-start: 역할·경험을 묻고, 개념(context, compact, memory, subagent, auto mode 등 15개)을 아는지 확인해 모르는 것만 쉽게 설명하고, 환경을 읽기만 해서 진단한 뒤, 개선안을 하나씩 동의받아 적용한다"
+    },
+    {
+      "name": "second-opinion",
+      "source": "./plugins/second-opinion",
+      "description": "정해진 시점의 독립 검토: second-opinion:context(대화를 이어받은 fork 를 독립 검토자로 돌려 세워 놓친 것·방금 끝낸 설계의 반례를 묻는다), second-opinion:audit(새 컨텍스트 리뷰어가 diff·주장을 반증). 반복 실패·큰 커밋 알림 훅 포함. advisor 는 선택, 사용자 요청 시만"
     }
   ]
 }

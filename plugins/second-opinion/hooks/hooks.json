@@ -1,0 +1,40 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit|mcp__.*",
+        "hooks": [
+          { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/readonly-for-reviewers.py\"", "timeout": 10 }
+        ]
+      },
+      {
+        "matcher": "Bash|ExitPlanMode",
+        "hooks": [
+          { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/second-opinion-nudge.py\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/second-opinion-nudge.py\"", "timeout": 5 }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "^second-opinion:reviewer$",
+        "hooks": [
+          { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/second-opinion-nudge.py\"", "timeout": 5 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/second-opinion-nudge.py\"", "timeout": 10 }
+        ]
+      }
+    ]
+  }
+}

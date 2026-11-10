@@ -6,8 +6,11 @@ advisor 는 언제 불릴지 모델이 정해서 예측이 안 됐다(audit/18).
   2. PreToolUse(Bash)     `git commit` 이고 커밋될 diff 가 등급 임계 이상, 최근 검토 없음 → done 검토 권고
   3. Stop                 (기본 꺼짐, HARNESS_REVIEW_STOP=1) 커밋 안 된 diff 가 임계 이상, 최근 검토 없음 → done 검토 권고
   4. PreToolUse(ExitPlanMode) (기본 꺼짐, HARNESS_REVIEW_PLAN=deny|warn) high 등급에서 계획 검토 요구
-  5. SubagentStop(second-opinion-reviewer)  검토 완료 시각을 기록 → 2·3 이 다시 울리지 않게
+  5. SubagentStop(second-opinion:reviewer)  검토 완료 시각을 기록 → 2·3 이 다시 울리지 않게
 '접근 확정 전'은 잴 수 없어서 메인 판단(CLAUDE.md, 스킬)에 맡긴다. 이 저장소들에서 ExitPlanMode 사용은 0회였다(audit/18 §1.4).
+
+설치: second-opinion 플러그인의 hooks/hooks.json 이 등록한다. 공용 라이브러리(harness_env, compact_epoch)와 harness.env 는
+$CLAUDE_CONFIG_DIR(기본 ~/.claude) 아래 claude-doctor 하네스의 것을 쓰고, 없으면 내장 기본값으로 돈다(등급 mid, 상태는 $TMPDIR).
 
 규칙
   - 서브에이전트 안(agent_id 있음)에서는 아무것도 하지 않는다. 일꾼이 리뷰어를 또 띄우는 연쇄를 막는다($589 사고, audit/10 §2.2).
@@ -31,9 +34,9 @@ import tempfile
 import time
 from pathlib import Path
 
-HOME = Path(__file__).resolve().parent.parent  # ~/.claude
+HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"))  # 하네스 lib·harness.env 위치
 NS = "claude-second-opinion"
-REVIEWER = "second-opinion-reviewer"
+REVIEWERS = {"second-opinion:reviewer", "second-opinion-reviewer"}  # 플러그인 이름공간 + 예전 이름
 MODEL = {"high": "opus", "mid": "sonnet", "low": "sonnet"}
 BENIGN = re.compile(r"^\s*(grep|rg|egrep|fgrep|test|\[|diff|cmp|pgrep|pidof|which|command)\b")
 
@@ -137,8 +140,8 @@ def cooling(st: dict, vals: dict) -> bool:
 
 def done_advice(repo, tier, n, where) -> str:
     return (f"{where}: {n} changed lines in `{repo}` (review tier: {tier}) and no independent review has finished in this session recently.\n"
-            f"Before declaring this done, run the `second-opinion` skill with kind=done "
-            f"(Agent subagent_type=second-opinion-reviewer, model={MODEL.get(tier, 'sonnet')}), then relay its report verbatim. "
+            f"Before declaring this done, run the `second-opinion:audit` skill with kind=done "
+            f"(Agent subagent_type=second-opinion:reviewer, model={MODEL.get(tier, 'sonnet')}), then relay its report verbatim. "
             f"If a review is not worth it here (mechanical change, docs only, user said skip), say so in one line instead.")
 
 
@@ -155,7 +158,7 @@ def main() -> int:
     vals = env_vals()
 
     if ev == "SubagentStop":
-        if data.get("agent_type") == REVIEWER:
+        if data.get("agent_type") in REVIEWERS:
             open(last_review_path(sid), "w").write(str(time.time()))
         return 0
 
@@ -185,7 +188,7 @@ def main() -> int:
         if cnt[sig] == 2:
             emit(ev, wrap(
                 f"The same failure happened twice this session: `{sig[:200]}`.\n"
-                f"Before a third attempt, consider the `second-opinion` skill with kind=stuck "
+                f"Before a third attempt, consider the `second-opinion:audit` skill with kind=stuck "
                 f"(model={MODEL.get(tier, 'sonnet')}): give it the command, the error, and your current hypothesis. "
                 f"If the next step is already dictated by the error (typo, missing file), fix it and say so in one line."))
         return 0
@@ -222,7 +225,7 @@ def main() -> int:
         plan = str((data.get("tool_input") or {}).get("plan", ""))
         if tier != "high" or mode not in ("deny", "warn") or re.search(r"second-opinion:\s*(reviewed|skip)", plan):
             return 0
-        msg = ("This plan is for a high-tier repo. Get a kind=plan review first (`second-opinion` skill, model=opus), "
+        msg = ("This plan is for a high-tier repo. Get a kind=plan review first (`second-opinion:audit` skill, model=opus), "
                "add the line `second-opinion: reviewed` (or `second-opinion: skip` with a reason) to the plan, then exit plan mode again.")
         if mode == "deny":
             print(json.dumps({"hookSpecificOutput": {"hookEventName": ev, "permissionDecision": "deny",

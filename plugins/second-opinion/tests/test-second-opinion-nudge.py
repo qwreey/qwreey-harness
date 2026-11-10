@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """second-opinion-nudge 회귀. 실행: python3 -I test-second-opinion-nudge.py (exit 0 = 통과)
 
-임시 HOME(.claude/{hooks,lib,harness.env})과 임시 git 저장소를 만들고 훅에 이벤트 JSON 을 넣어 본다.
-lib 는 claude-doctor 정본(home/.claude/lib)을 복사해 쓴다.
+임시 HOME(.claude/{lib,harness.env})과 임시 git 저장소를 만들고 플러그인의 훅(hooks/second-opinion-nudge.py)에 이벤트 JSON 을 넣어 본다.
+lib 는 claude-doctor 정본(home/.claude/lib)을 복사해 쓴다. 하네스가 없는 환경(lib·harness.env 없음)도 따로 본다.
 """
 import json
 import os
@@ -12,16 +12,13 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-HOOK_SRC = os.path.join(os.path.dirname(HERE), "second-opinion-nudge.py")
-DOCTOR = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+HOOK = os.path.join(os.path.dirname(HERE), "hooks", "second-opinion-nudge.py")
+DOCTOR = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 T = tempfile.mkdtemp(prefix="so-nudge-")
 CH = os.path.join(T, "home", ".claude")
-os.makedirs(os.path.join(CH, "hooks"))
 shutil.copytree(os.path.join(DOCTOR, "home", ".claude", "lib"), os.path.join(CH, "lib"), ignore=shutil.ignore_patterns("__pycache__"))
-shutil.copy(HOOK_SRC, os.path.join(CH, "hooks"))
-HOOK = os.path.join(CH, "hooks", "second-opinion-nudge.py")
 open(os.path.join(CH, "harness.env"), "w").write("HARNESS_REVIEW_TIERS=hi=high docs=off\nHARNESS_REVIEW_LINES=high=10 mid=50\n")
-ENV = {k: v for k, v in os.environ.items() if not k.startswith("HARNESS_")}
+ENV = {k: v for k, v in os.environ.items() if not k.startswith("HARNESS_") and k != "CLAUDE_CONFIG_DIR"}
 ENV.update(TMPDIR=os.path.join(T, "tmp"), HOME=os.path.join(T, "home"), GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
            GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
 os.makedirs(ENV["TMPDIR"])
@@ -63,6 +60,7 @@ commit = lambda d, sid="s1", **kw: run({"hook_event_name": "PreToolUse", "sessio
 out = commit(HI)
 ctx = json.loads(out)["hookSpecificOutput"]["additionalContext"] if out else ""
 check("high: 20줄 커밋 → 알림", ctx.startswith('<harness-hook name="second-opinion" level="warn">') and "model=opus" in ctx)
+check("알림은 플러그인 이름을 쓴다", "second-opinion:audit" in ctx and "subagent_type=second-opinion:reviewer" in ctx)
 check("같은 diff 두 번째 → 조용", commit(HI) == "")
 open(os.path.join(HI, "c.txt"), "w").write("z\n" * 30)
 subprocess.run(["git", "-C", HI, "add", "c.txt"], check=True, env=ENV)
@@ -73,8 +71,10 @@ check("서브에이전트 안 → 조용", commit(HI, sid="s2", agent_id="agent-
 check("git 아닌 명령 → 조용", run({"hook_event_name": "PreToolUse", "session_id": "s3", "cwd": HI, "tool_name": "Bash",
                                     "tool_input": {"command": "git status"}}) == "")
 
-run({"hook_event_name": "SubagentStop", "session_id": "s4", "cwd": HI, "agent_type": "second-opinion-reviewer"})
-check("최근 검토가 있으면 → 조용", commit(HI, sid="s4") == "")
+run({"hook_event_name": "SubagentStop", "session_id": "s4", "cwd": HI, "agent_type": "second-opinion:reviewer"})
+check("최근 검토(second-opinion:reviewer)가 있으면 → 조용", commit(HI, sid="s4") == "")
+run({"hook_event_name": "SubagentStop", "session_id": "s4b", "cwd": HI, "agent_type": "general-purpose"})
+check("다른 에이전트 종료는 검토로 치지 않음", commit(HI, sid="s4b") != "")
 
 fail_ev = lambda sid, err, cmd="luau-lsp analyze src": run({"hook_event_name": "PostToolUseFailure", "session_id": sid, "cwd": MID,
                                                          "tool_name": "Bash", "tool_input": {"command": cmd}, "error": err})
@@ -95,6 +95,16 @@ plan = lambda sid, text, mode: run({"hook_event_name": "PreToolUse", "session_id
 out = plan("s10", "do X", "deny")
 check("plan deny → permissionDecision deny + action", '"deny"' in out and 'level=\\"action\\"' in out)
 check("plan 표시 있으면 통과", plan("s10", "do X\nsecond-opinion: reviewed", "deny") == "")
+
+# 하네스 없는 환경: lib·harness.env 가 없어도 기본값(mid, 200줄)으로 돈다
+bare = dict(ENV, HOME=os.path.join(T, "bare"))
+os.makedirs(os.path.join(T, "bare"))
+BIG = repo("big")
+open(os.path.join(BIG, "d.txt"), "w").write("w\n" * 250)
+subprocess.run(["git", "-C", BIG, "add", "d.txt"], check=True, env=ENV)
+out = run({"hook_event_name": "PreToolUse", "session_id": "s11", "cwd": BIG, "tool_name": "Bash",
+           "tool_input": {"command": "git commit -m x"}}, bare)
+check("하네스 없음: mid 기본, 250줄 → 알림(sonnet)", "model=sonnet" in out)
 
 shutil.rmtree(T, ignore_errors=True)
 print(f"{ok}/{ok + fail}")
