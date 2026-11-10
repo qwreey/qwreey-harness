@@ -6,6 +6,9 @@
 
 판정 기준과 근거: luau-style references/structure.md, claude-doctor audit/12-code-structure.md.
 저장소 루트에 .claude/structure.json 이 있으면 그 값(warn, hard, flat, ignore 글롭 목록)이 기본값을 덮는다.
+예외(사용자 결정 D-13): 파일 머리 10줄 안 `--@structure-exempt: <사유>`(TS·Go `//`, Python `#`) 또는
+structure.json "exempt": [{"path": 글롭, "reason": 사유}]. 사유가 비었거나 "나중에"·"귀찮"·"TODO" 같은 말이면 무효로 보고한다.
+유효한 예외는 기준 초과 수에서 빼고 "예외" 표에 사유와 함께 따로 낸다.
 
 쓰기 없음. git 은 log/show 만 쓴다(--history 를 줄 때만).
 """
@@ -32,10 +35,17 @@ TRIVIAL = re.compile(r"^(end|else|\}|\)|\},|\),|return|return nil|break|end\)|do
 IFCHAIN = re.compile(r"^\s*(if|elseif|else if|\}\s*else if)\s*\(?\s*([\w.]+)\s*===?\s*[\"']")
 HEAD_LINE = re.compile(r"^(if|elseif|local|const|for|while|return|switch|case)\b")
 PASCAL_PREFIX = re.compile(r"^([A-Z][a-z0-9]+)(?=[A-Z])")
+EXEMPT_MARK = re.compile(r"^\s*(?:--|//|#)\s*@structure-exempt\b\s*:?\s*(.*?)\s*(?:\]\])?\s*$")
+NOT_A_REASON = re.compile(r"^(?:[-.…~_?!\s]*|todo|tbd|fixme|later|wip|n/?a|none|x+|임시|나중에?|나중에 ?나눔|추후|일단|귀찮.*)$", re.I)
+
+
+def reason_ok(reason):
+    r = (reason or "").strip()
+    return bool(r) and not NOT_A_REASON.match(r) and "귀찮" not in r and len(re.sub(r"\W", "", r)) >= 2
 
 
 def load_cfg(root, args):
-    cfg = {"warn": args.warn, "hard": args.hard, "flat": args.flat, "ignore": []}
+    cfg = {"warn": args.warn, "hard": args.hard, "flat": args.flat, "ignore": [], "exempt": []}
     p = os.path.join(root, ".claude", "structure.json")
     if os.path.isfile(p):
         try:
@@ -70,6 +80,7 @@ def analyze_file(path):
     if lines and lines[-1] == "":
         lines.pop()
     head = "\n".join(lines[:6])
+    marker = next((m.group(1) for m in map(EXEMPT_MARK.match, lines[:10]) if m), None)
     code = [l for l in lines if l.strip() and not COMMENT.match(l)]
     literal = sum(1 for l in code if LITERAL_LINE.match(l))
     # 같은 변수를 문자열과 비교하는 if/elseif 사슬의 최대 길이(들여쓰기마다 따로 센다 — 갈래 안의 중첩 if 는 끊지 않는다)
@@ -101,12 +112,22 @@ def analyze_file(path):
     return {
         "lines": len(lines),
         "gen": bool(GEN_MARK.search(head)),
+        "marker": marker,
         "literal_ratio": round(literal / len(code), 2) if code else 0.0,
         "ifchain": longest[0], "ifchain_var": longest[1],
         "repeat_pair": top_pair[1], "repeat_pair_text": top_pair[0][:120],
         "repeat_line": top_line[1], "repeat_line_text": top_line[0][:120],
         "norm": norm,
     }
+
+
+def analyze_marker(path):
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for _, line in zip(range(10), f):
+            m = EXEMPT_MARK.match(line.rstrip("\n"))
+            if m:
+                return m.group(1)
+    return ""
 
 
 def families(files):
@@ -166,6 +187,17 @@ def scan(root, args):
             if a:
                 a["path"] = rel
                 a["test"] = bool(TEST_PATH.search(rel))
+                ex = None
+                if a.pop("marker") is not None:
+                    ex = (analyze_marker(os.path.join(root, rel)), "머리 표식")
+                else:
+                    for e in cfg.get("exempt") or []:
+                        if isinstance(e, dict) and fnmatch.fnmatch(rel, str(e.get("path") or "")):
+                            ex = (str(e.get("reason") or ""), "structure.json")
+                            break
+                a["exempt"] = ex[0] if ex and reason_ok(ex[0]) else None
+                a["exempt_bad"] = ex[0] if ex and not reason_ok(ex[0]) else None
+                a["exempt_from"] = ex[1] if ex else None
                 files.append(a)
     # 파일 사이 중복(정규화 6줄 창) — 복사된 모듈 찾기
     W = 6
@@ -193,13 +225,17 @@ def report(root, args):
     name = os.path.basename(os.path.abspath(root))
     src = [f for f in files if not f["gen"] and not f["test"]]
     L = sorted(f["lines"] for f in src)
+    Lc = [f["lines"] for f in src if not f["exempt"]]  # 기준 초과 수는 유효한 예외를 뺀다
     q = lambda p: L[min(len(L) - 1, int(len(L) * p))] if L else 0
     out = {"repo": name, "cfg": cfg, "summary": {
         "src_files": len(src), "src_lines": sum(L), "p50": q(.5), "p90": q(.9), "max": L[-1] if L else 0,
-        "over_warn": sum(x >= cfg["warn"] for x in L), "over_hard": sum(x >= cfg["hard"] for x in L),
+        "over_warn": sum(x >= cfg["warn"] for x in Lc), "over_hard": sum(x >= cfg["hard"] for x in Lc),
+        "exempt": sum(1 for f in files if f["exempt"]),
         "generated": sum(f["gen"] for f in files), "tests": sum(f["test"] for f in files)}}
-    big = sorted((f for f in files if not f["gen"]), key=lambda f: -f["lines"])
+    big = sorted((f for f in files if not f["gen"] and not f["exempt"]), key=lambda f: -f["lines"])
     out["long_files"] = [f for f in big if f["lines"] >= (cfg["warn"] * (2 if f["test"] else 1))][:20]
+    out["exempt_files"] = [f for f in files if f["exempt"]]
+    out["exempt_bad"] = [f for f in files if f["exempt_bad"] is not None]
     out["flat_dirs"] = [d for d in dirs if d["src"] >= cfg["flat"] and d["subdirs"] <= 2
                         and os.path.basename(d["dir"]).lower() not in HOMOGENEOUS_DIRS]
     out["family_dirs"] = [d for d in dirs if d["families"] and d["src"] >= 8
@@ -217,9 +253,14 @@ def show(o):
     s, c = o["summary"], o["cfg"]
     print(f"## {o['repo']}  (warn {c['warn']} / hard {c['hard']} / flat {c['flat']})")
     print(f"소스 {s['src_files']}개 {s['src_lines']}줄, p50 {s['p50']} p90 {s['p90']} 최대 {s['max']}, "
-          f"warn 이상 {s['over_warn']} · hard 이상 {s['over_hard']}, 생성물 {s['generated']} · 테스트 {s['tests']}")
+          f"warn 이상 {s['over_warn']} · hard 이상 {s['over_hard']}(예외 {s['exempt']}개 뺌), 생성물 {s['generated']} · 테스트 {s['tests']}")
     for title, key, fmt in [
-        ("긴 파일", "long_files", lambda f: f"{f['lines']:>6}  {f['path']}" + ("  [test]" if f["test"] else "")),
+        ("긴 파일", "long_files", lambda f: f"{f['lines']:>6}  {f['path']}" + ("  [test]" if f["test"] else "")
+                                       + ("  [예외 무효]" if f["exempt_bad"] is not None else "")),
+        ("예외 (사유 있음 — 기준 초과 수에서 뺌)", "exempt_files",
+         lambda f: f"{f['lines']:>6}  {f['path']}  사유: {f['exempt']} ({f['exempt_from']})"),
+        ("무효한 예외 (사유가 비었거나 사유가 아님)", "exempt_bad",
+         lambda f: f"{f['lines']:>6}  {f['path']}  \"{f['exempt_bad']}\" ({f['exempt_from']})"),
         ("평평한 폴더", "flat_dirs", lambda d: f"{d['src']:>6}  {d['dir']}/  (하위 폴더 {d['subdirs']})"),
         ("접두 가족", "family_dirs", lambda d: f"{d['dir']}/  " + "; ".join(f"{k}: {', '.join(v)}" for k, v in d["families"].items())),
         ("리터럴 위주(데이터 모듈 후보)", "literal_heavy", lambda f: f"{f['lines']:>6}  {f['path']}  리터럴 {int(f['literal_ratio']*100)}%"),

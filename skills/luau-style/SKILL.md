@@ -1,7 +1,7 @@
 ---
 name: luau-style
 description: >-
-  Luau 코드의 네이밍, 문법 관용구, 모듈과 require 경로, 파일 길이와 분리·폴더 묶음·데이터와 코드 나누기, 에러 처리, 주석, 포맷(stylua), 테스트 관용, 검증·보고 방식의
+  Luau 코드의 네이밍, 문법 관용구, 모듈과 require 경로, 파일 길이와 분리(분리 계획기 split-plan.py, 타입 하나를 여러 파일로 나누는 꼴, 기준 예외 표식)·폴더 묶음·데이터와 코드 나누기, 에러 처리, 주석, 포맷(stylua), 테스트 관용, 검증·보고 방식의
   근거와 좋은 예/나쁜 예를 저장소별 차이와 결정 상태(확정/제안)와 함께 제공한다. 타입 검사가 못 잡는 언어 함정
   (table.insert, 순회 중 변경, 가변 인자 nil, 패턴과 UTF-8, NaN 경계 검사, coroutine.resume 의 에러 삼킴)도 다룬다.
   .luau 파일을 새로 쓰거나 고칠 때, 리뷰·감사에서 스타일이나 관용구를 판정할 때, PascalCase/camelCase, const 대 local,
@@ -12,14 +12,14 @@ description: >-
 
 # luau-style
 
-공통 필수 규칙은 rules `luau-core.md`(`paths: **/*.luau`)와 `code-structure.md`(제안 D-13)에 한 줄씩 있다. 이 스킬은 그 **근거, 예시, 저장소별 차이, 결정 상태**를 담는다.
+공통 필수 규칙은 rules `luau-core.md`(`paths: **/*.luau`)와 `code-structure.md`(D-13 확정)에 한 줄씩 있다. 이 스킬은 그 **근거, 예시, 저장소별 차이, 결정 상태**를 담는다.
 저장소의 `.claude/rules/` 나 CLAUDE.md 가 다르게 정하면 **저장소가 이긴다**. 결정 상태와 저장소별 값은 `references/project-overrides.md` 에 있다.
 
 ## 1. 먼저 판단할 것
 
 ```
 편집하려는 .luau 파일이 있다
-├─ 사용자가 요청에서 이름·모양을 정했나? ── 예 → 그대로 쓴다(이 스킬의 기본값보다 우선)
+├─ 사용자가 요청에서 이름·모양을 정했나? ── 예 → 그 이름으로 쓴다. 규칙과 어긋나면 바꾸지 말고, 이유와 함께 이름 변경을 제안한다(일괄 수정은 승인 뒤, naming §3)
 ├─ 저장소 .claude/rules/*.md 또는 CLAUDE.md 에 스타일 규칙이 있나? ── 예 → 그것을 따른다. 아래는 빈칸만 채운다
 ├─ 같은 파일에 이미 관행이 있나(const/local, 주석 언어, 함수 케이스)? ── 예 → 파일 관행을 따른다(섞지 않는다)
 ├─ 같은 폴더 이웃 모듈의 관행이 있나? ── 예 → 이웃을 따른다
@@ -71,9 +71,10 @@ description: >-
 | `%a`·UTF-8·`%q` | `references/pitfalls.md` §4 |
 | `coroutine.resume` 에러, yield 경계, 한 번만 초기화 | `references/pitfalls.md` §6 |
 | 공유 설정 테이블, 얕은 clone | `references/pitfalls.md` §8 |
-| 파일이 너무 긴가, 어떻게 나누나, 폴더로 묶을까 (제안 D-13) | `references/structure.md` §2–5 |
+| 파일이 너무 긴가, 폴더로 묶을까, 기준을 넘겨 둘 이유가 있나(예외 표식) (D-13) | `references/structure.md` §2–5 |
+| 큰 파일을 어디서 자르나, 타입 하나를 여러 파일로, 전방 선언·닫개 상태 | `references/splitting.md`, `scripts/split-plan.py <파일>` |
 | 요청 표·세트 배치·색을 코드로 쓸까 표로 쓸까 생성할까 | `references/structure.md` §6 |
-| 저장소 구조를 숫자로 재고 싶다 | `scripts/structure-scan.py` (`references/structure.md` §8) |
+| 저장소 구조를 숫자로 재고 싶다, 성공·실패 사례 | `scripts/structure-scan.py`, `references/structure.md` §7–8 |
 | 저장소마다 다른 값, 결정 상태 | `references/project-overrides.md` |
 
 ## 3. 다섯 원칙

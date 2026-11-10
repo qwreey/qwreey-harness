@@ -2,22 +2,24 @@
 
 ## 이 파일이 답하는 질문
 - 이 파일에 기능을 더 붙여도 되나, 먼저 나눠야 하나?
-- 큰 파일을 어떻게 나누면 동작을 안 바꾸고 안전한가?
+- 기준을 넘어도 한 파일로 둘 확실한 이유는 무엇이고, 어떻게 기록하나?
+- 큰 파일을 어떻게 나누면 동작을 안 바꾸고 안전한가? (자를 자리와 전략은 `splitting.md`)
 - 새 모듈을 같은 폴더에 둘까, 폴더를 만들까?
 - 요청 목록·비용·세트 배치 같은 것을 코드로 쓸까, 표로 쓸까, 생성할까?
 
 ## 목차
 - §1 왜 이 문서가 있나 (사용자가 직접 지적한 다섯 사례)
-- §2 기준 수치와 예외 (제안 D-13)
+- §2 기준 수치와 예외 (D-13 확정)
+- §2a 예외 표식과 "확실한 이유"
 - §3 언제 나눌지 알아차리는 신호
 - §4 나누는 절차
-- §5 폴더 구성
+- §5 폴더 구성 — 일반 관례
 - §6 데이터와 코드 나누기
-- §7 실제 저장소의 좋은 예와 나쁜 예
-- §8 측정 도구
+- §7 실제 저장소의 사례 — 성공, 재성장, 실패
+- §8 측정 도구와 분리 계획기
 
 한 줄 규칙은 rules `code-structure.md` 에 있다. 저장소 `.claude/rules/`·`conventions.md`·`.claude/structure.json` 이 다르게 정하면 저장소가 이긴다.
-> 정책: 제안(D-13) — 사용자 확인 전. 수치 기준(800/1,500줄 등)과 장치(rules, 알림 훅)는 claude-doctor `decisions/D-13-file-structure.md` 의 제안이다. 저장소별로 `.claude/structure.json` 에서 값과 예외를 덮어쓸 수 있다.
+> 정책: 확정(D-13, 사용자 결정 2026-11-10). 경고 800, 강제 1,500줄, 테스트 두 배, 알림만(막지 않음). 확실한 이유가 있으면 기준을 넘어도 되지만 이유를 기록한다(§2a). 폴더 대분류는 저장소가 정한다. 저장소별로 `.claude/structure.json` 에서 값과 예외를 덮어쓸 수 있다.
 
 ---
 
@@ -36,9 +38,9 @@ status: described · 근거: claude-doctor `audit/12-code-structure.md` 사례 �
 - **한 파일에 계속 덧붙인다.** 처리기를 더할 때 처리기 표가 있는 파일에 붙인다. devplorer `Server/init.luau` 는 사흘에 692 → 4,101줄이 됐다. Edit 도구는 조각만 보여 줘서 모델은 파일 전체 길이를 잘 보지 못한다.
 - **새 모듈을 부르는 쪽 옆에 둔다.** 폴더 대신 이름 접두로 묶는다(`ExplorerActions`, `ExplorerControl`, `BookmarkMenu`).
 
-## §2 기준 수치와 예외 (제안 D-13)
-status: described · 근거: `decisions/D-13-file-structure.md` §1–3, `scripts/structure-scan.py` 로 10개 저장소를 읽기만 해서 잰 분포
-> 정책: 제안(D-13) — 사용자 확인 전. 수치는 저장소 `.claude/structure.json`(`warn`, `hard`, `flat`, `ignore`)으로 덮어쓸 수 있다.
+## §2 기준 수치와 예외 (D-13 확정)
+status: described · 근거: `decisions/D-13-file-structure.md` §1–3 과 "사용자 결정 (2026-11-10)", `scripts/structure-scan.py` 로 10개 저장소를 읽기만 해서 잰 분포
+> 정책: 확정(D-13, 2026-11-10). 수치는 저장소 `.claude/structure.json`(`warn`, `hard`, `flat`, `ignore`, `exempt`)으로 덮어쓸 수 있다.
 
 수치는 실측 분포에서 잡았다. 비테스트 Luau 파일의 p90 은 quad 443, devplorer 594, table-sim 834 줄이다. 사용자가 "너무 길다"고 한 가장 작은 파일은 1,194줄이었다.
 
@@ -54,14 +56,53 @@ status: described · 근거: `decisions/D-13-file-structure.md` §1–3, `script
 - **생성물**: 머리 6줄 안에 생성기 경로와 "손으로 고치지 않는다" 같은 표시가 있는 파일.
 - **순수 데이터 모듈**: 문자열 표나 아이콘 표처럼 로직이 없는 모듈. 길이보다 "로직이 섞였나"를 본다.
 - **같은 종류만 모인 폴더**: `tests/`, `stories/`, 타입마다 한 파일인 스키마 폴더. 평평한 것이 정상이다.
-- 저장소가 `.claude/structure.json` 의 `ignore` 에 사유와 함께 올린 파일.
+- 측정 대상이 아닌 것(외부 코드, 머리 표시 없는 생성물)은 `structure.json` 의 `ignore` 글롭으로 뺀다. **길이 예외는 `ignore` 가 아니라 §2a 의 사유 있는 예외로 둔다.**
 
-**강제 기준은 차단이 아니다.** 하던 수정은 마무리한다. 그 파일에 새 기능을 더하기 전에 분리안을 낸다.
+**강제 기준은 차단이 아니다.** 하던 수정은 마무리한다. 그 파일에 새 기능을 더하기 전에 분리안을 낸다. 분리안의 재료는 분리 계획기(§8, `splitting.md`)로 뽑는다.
+
+**타입 하나라는 것만으로는 예외가 아니다.** stl `Arr.luau`(3,030줄, 함수 145)도 예외로 두지 않는다(사용자 결정). 3,000줄이 넘으면 사람이 함수를 찾고 하나씩 확인하기 어렵다. 네임스페이스 모듈은 재수출로 나눠도 타입 손실이 없다(`splitting.md` §2, 실측).
+
+## §2a 예외 표식과 "확실한 이유"
+status: verified (표식 처리) / described (이유 판단) · last-confirmed: 2026-11-10 · 근거: claude-doctor `drafts/hooks/test-structure-reminder.py`(예외 12건 포함 44/44), `scripts/structure-scan.py`, `snippets/style-split-types.sh`
+
+에이전트는 확실한 이유가 있으면 기준을 넘겨도 된다. **이유는 반드시 남긴다. 이유 없는 예외는 두지 않는다.**
+
+**표식 (둘 다 받는다)**
+```lua
+--!strict
+--@structure-exempt: 상호 재귀 타입 묶음(Node<T> ↔ Item<T>) — 모듈 사이 순환 require 를 타입 검사가 거부한다(style-split-types S3)
+```
+- 파일 머리 10줄 안. TS·Go 는 `//@structure-exempt:`, Python 은 `#@structure-exempt:`.
+- 또는 저장소 `.claude/structure.json`:
+  ```json
+  { "exempt": [{ "path": "src/data/ClassIcons.luau", "reason": "순수 데이터 표(클래스 이름 → 아이콘), 로직 없음" }] }
+  ```
+- 둘 다 있으면 머리 표식이 앞선다.
+- **무효**: 사유가 비었거나, `나중에`·`귀찮아서`·`TODO`·`-` 처럼 사유가 아닌 말. 무효면 평소처럼 알리고 "무효"라고 덧붙인다. 측정기는 "무효한 예외" 표에 따로 낸다.
+- 유효한 예외 파일은 알림 훅이 경고·강제·성장 알림 대신 `예외 사유: …` 한 줄을 세션당 한 번 낸다. 측정기는 기준 초과 수에서 빼고 "예외" 표에 사유와 함께 낸다.
+
+**확실한 이유의 예**
+| 이유 | 왜 한 파일이어야 하나 | 근거 |
+|---|---|---|
+| 상호 재귀 타입 별칭 묶음 | 서로 참조하는 별칭을 두 모듈로 나누면 서로 require 해야 한다. 타입 검사가 순환 require 를 거부한다(0.734 `Cyclic module dependency`, 0.742+ `…only supported if all modules in the cycle use 'export' syntax`). 이 경우 **타입 파일**이 예외다. 그 타입을 쓰는 로직은 따로 나눌 수 있다 | `snippets/style-split-types.sh` S3, luau-types `recursion-and-limits.md` §4 |
+| 무거운 생성 타입 표면을 쓰는 코드 | 무거운 표면을 export 하면 too complex 이고, 같은 양을 모듈 안에서만 쓰면 통과한다. Studio 는 표시도 없이 검사를 끈다 | luau-types `type-functions-limits.md` L6, `recursion-and-limits.md` §5 |
+| 정의 모듈이 type function 을 프라이밍해야 함 | 정의 모듈이 한 번도 인스턴스화하지 않은 `export type function` 은 소비자에서 조용히 `*error-type*` 이다(lsp 1.69.0). 정의와 프라이밍 별칭을 같은 파일에 둔다 | luau-types `type-functions-limits.md` X1 |
+| 생성물 | 다시 만들 수 있고 손으로 고치지 않는다. 머리 생성 표시가 있으면 표식 없이도 빠진다 | §2 제외 |
+| 순수 데이터 표 | 로직이 없다. 길이보다 "로직이 섞였나"를 본다 | §6, audit/12 §2.5 (문자열 표 모듈 리터럴 90%, `ClassIcons.luau` 94%) |
+| 단일 파일 배포가 계약인 라이브러리 | 사용자가 파일 하나를 복사해 쓰는 것이 배포 방식이다(moonwave-luau `init.luau`) | audit/12 §5.3 |
+
+**반례 (사유가 아니다)**
+- "귀찮아서", "나중에 나눔", "일단" — 미루기다. 무효로 처리된다.
+- "타입 하나라서", "한 컨테이너의 API 라서" — 네임스페이스 재수출은 제네릭·명시 타입 인자까지 보존한다(`splitting.md` §2 S1).
+- "메서드가 같은 메타테이블에 있어서" — init 이 묶음 모듈의 함수로 메서드 표를 조립하면 된다(S2c).
+- "함수끼리 서로 불러서(전방 선언)" — 내부 표 늦은 조회로 끊는다(S4, quad Slot).
+- "비균일 재귀 별칭의 선언 순서 때문에" — 오히려 그 별칭을 다른 모듈에서 가져오면 순서 문제가 사라진다(`recursion-and-limits.md` §3 끝).
+- "닫개가 상태를 같이 쥐어서" — 나누기 어려운 이유이지 한 파일이어야 할 이유가 아니다. 먼저 상태 표로 꺼낸다(`splitting.md` §7). 이 이유로 미룬 한 게임 저장소의 화면 모듈은 다시 자랐다(§7).
 
 ## §3 언제 나눌지 알아차리는 신호
 status: described · 근거: `audit/12-code-structure.md` (table-sim 실측)
 
-1. **줄 수**가 §2 를 넘는다. 알림 훅(`structure-reminder`, 제안 D-13)이 있으면 편집 직후에 알린다.
+1. **줄 수**가 §2 를 넘는다. 알림 훅(`structure-reminder`, D-13)이 있으면 편집 직후에 알린다.
 2. **한 세션 성장**: 같은 파일에 둘째 기능을 붙이고 있다.
 3. **머리 주석이 "그리고"로 늘어난다.** 입구, 권한, 상태 보내기가 한 문단에 섞이면 신호다.
 4. **같은 머리가 반복된다.** 예: 같은 조회 한 줄이 58번, 같은 권한 검사 `if not can(…) then return "error.notAllowed" end` 가 37번.
@@ -81,14 +122,23 @@ status: described · 근거: quad `.claude/archive/surveys/2026-09-07-source-lay
 7. **옮긴 뒤 이음매 감사를 따로 돌린다.** 넘긴 상태가 값으로 묶였는지, 정리가 빠졌는지, 비동기 흐름이 바뀌었는지 본다. devplorer 는 이 감사에서 원래 있던 버그 여럿을 찾았다.
 8. **층 규칙은 `require` 를 grep 해서 확인한 뒤에 적는다.** 아래층이 위층을 부르지 않게 한다. devplorer 는 처음 적은 층 규칙이 실제 코드와 달라 거짓이었다.
 
-## §5 폴더 구성
-status: described · 근거: `decisions/D-13-file-structure.md` §3, devplorer `.claude/conventions.md:62-68`, `audit/12-code-structure.md`
+## §5 폴더 구성 — 일반 관례
+status: described · 근거: `decisions/D-13-file-structure.md` §3 과 사용자 결정 2, devplorer `.claude/conventions.md:62-68`, `audit/12-code-structure.md`
+
+**폴더 대분류는 저장소가 정한다**(사용자 결정 2026-11-10). 아래는 어느 저장소에서나 통한 일반 관례와, 세 저장소가 각자 고른 대분류 방식이다.
 
 - **기능마다 폴더를 두고, 입구는 `init.luau` 다.** 창이 있는 기능은 창 본체가 `init.luau` 다.
 - **접두 가족은 폴더로 접는다.** 형제 파일 셋 이상이 같은 접두를 쓰면 폴더 후보다. 예: `Ref` + `PreRef` + `PostRef` → `Ref/`, `ExplorerActions`·`ExplorerControl` → `Explorer/Actions`·`Explorer/Control`.
 - **폴더가 말해 주는 접두는 파일 이름에서 뺀다.** 부르는 쪽의 지역 이름은 `InspectRemotes` 처럼 알아보기 쉽게 써도 된다. 여러 곳에서 같은 이름으로 찾는 공용 모듈은 이름을 유지한다.
 - **혼자 서는 작은 모듈은 폴더를 만들지 않는다.**
-- **대분류(층·종류) 폴더를 둘지는 저장소가 정한다.** 가족 접기만 하는 저장소(quad), 층으로 나눈 저장소(devplorer 서버 `Core → Policy → Handlers → Window`), 종류로 나눈 저장소(stl `Collections/`·`Algorithms/`·`Traits/`)가 있다. 같은 저장소 안에서는 한 방식만 쓴다.
+- **조각 폴더 안의 층은 한 방향이다.** `Types` ← `Core`/`Ctor` ← 동작 묶음 ← `init`. 조각은 `init` 을 require 하지 않는다(순환, `splitting.md` §2 S3).
+- **대분류(층·종류) 폴더를 둘지는 저장소가 정한다.** 같은 저장소 안에서는 한 방식만 쓴다. 성공한 세 방식:
+
+  | 방식 | 저장소 | 언제 맞나 |
+  |---|---|---|
+  | 가족 접기만, 대분류 없음 | quad `quad-base/src/`(가족 폴더 `Slot/`·`Ref/`·`Attribute/`·`Dispatch/`) | 라이브러리 소스. 공개 이름이 곧 폴더 이름이면 찾기 쉽다 |
+  | 층 폴더 | devplorer 서버 `Core → Policy → Handlers → Window` | 의존 방향이 분명한 앱 서버. 아래층이 위층을 부르지 않는 것을 `require` grep 으로 검사한다(§4 의 8) |
+  | 종류 폴더 | stl `Collections/`·`Algorithms/`·`Traits/`·`Trees/`·`Node/` | 같은 계약을 따르는 구현이 여럿인 라이브러리. "트레이트 하나당 파일 하나"처럼 종류 안의 규칙을 같이 둔다 |
 - **테스트는 평평해도 된다.** `tests/core/<이름>.spec.luau` 처럼 소스 이름을 따라가면 찾기 쉽다.
 - **긴 파일을 당장 못 나누면 region 으로 접는다**(`--#region 이름` / `--#endregion 이름`, `quality.md` §1). 타입 모음처럼 한 파일이어야 하는 것에 맞다. 로직이 섞인 파일에서는 나누기를 대신하지 못한다.
 
@@ -135,28 +185,48 @@ status: described · 근거: `audit/12-code-structure.md` (table-sim 실측)
 - **한도·간격 값은 한 곳에.** 쿨다운이 지역 상수 여럿과 설정 모듈로 갈라지고 "마지막 시각" 표가 여덟 개면, `{ open = 3, sit = 2, … }` 표와 `cooldown(player, kind)` 하나로 모은다.
 - **다른 패키지에서 복사한 파일**은 머리에 원본 경로를 적고, 같은지 보는 검사를 둔다. "고치면 양쪽 다"라는 주석만으로는 갈라진다.
 
-## §7 실제 저장소의 좋은 예와 나쁜 예
-status: described · 근거: 각 저장소 커밋(읽기만 함), `audit/12-code-structure.md`
+## §7 실제 저장소의 사례 — 성공, 재성장, 실패
+status: described · last-confirmed: 2026-11-10 각 저장소 HEAD(`git show <커밋>:<경로> | wc -l` 로 읽기만 함) · 근거: 커밋, `audit/12-code-structure.md` §1·§2.4
 
-| 구분 | 예 | 무엇을 배우나 |
+**성공 — 나눈 뒤 다시 기준을 넘지 않았다**
+| 사례 | 전 → 나눈 직후 → 지금 | 어떤 구조가 왜 통했나 |
 |---|---|---|
-| 좋음 | devplorer `cfeedd1` — `Server/init.luau` 4,199 → 242줄, `Core/ Policy/ Handlers/ Window/` | 옮기기만, 층 규칙, 옛 경로 대조표, 옮긴 뒤 감사 |
-| 좋음 | quad `4ddb9c5a` — `Slot/{init,…}`, `Ref/{init,PreRef,PostRef}` | 접기 공짜 규칙, 늦은 조회로 재귀 끊기, 문서 경로 검사 |
-| 좋음 | stl `221cec9`·`4e07d1a` — `Collections/`, `Algorithms/`, `Traits/` 한 파일씩 | 시스템과 구현을 나눔 |
-| [비공개 프로젝트 세부 생략]
-| 좋음 | table-sim 의 생성 데이터 폴더 | 생성 데이터 분리와 머리 표시 |
-| 나쁨 | table-sim 서버 요청 모듈 3,501줄 | 요청 계약이 문자열과 손 검사로 흩어짐(§6 b) |
-| 나쁨 | table-sim 서버 객체 모듈 4,884줄, 함수 134개 | 여러 책임이 한 모듈 |
-| 나쁨 | table-sim `<비공개>` 1,457 → 3,223줄 | 나눈 뒤 남은 덩어리가 다시 자람(§3 의 7) |
-| 나쁨 | quad devui `Window/Manager.luau` 273 → 3,352줄 (이틀) | 단계마다 같은 파일에 덧붙임 |
-| 나쁨 | devplorer 옛 `App/` 평평한 항목 60개 | 폴더 대신 이름 접두로 묶음 |
+| quad `4ddb9c5a`(09-07) `Slot/`·`Ref/` | `Slot.luau` 1,194(+ 옮겨 온 `Dispatch/Slot` 51) → `Slot/` 7파일(최대 `init` 393) → 지금 8파일 합 2,175, 최대 `init` 629. `Ref/` 331 → 지금 392(최대 319). 커밋 72개 동안 800 을 넘은 파일 없음 | 가족 폴더 + `init.luau` 접기(바깥 require 무변경). 상호 재귀는 타입 붙은 내부 표 `S` 늦은 조회(`splitting.md` §3). 책임마다 파일(Owner·Elements·Raw·Tree·List)이 있어서 **합은 75% 늘었지만 각자 자기 파일에서 자랐다** |
+| devplorer `cfeedd1`(11-04) 서버 | `Server/init.luau` 4,199 → 507 → 같은 날 정리 커밋 넷으로 241. `Server/` 최대 파일 지금 413(`Handlers/Edit`) | 층 폴더 + `Handlers/init.luau` 가 묶음 표를 합치고 중복 키를 `assert`(`splitting.md` §4). 새 처리기가 묶음 파일로 가므로 init 에 붙을 자리가 없다. 다만 그 뒤 `Server/` 커밋이 7개뿐이라 관찰 기간이 짧다 |
+| stl `4e07d1a`·`beab32b`(10-13) `Traits/`·`Node/` | 트레이트: 시스템과 구현이 한 파일 → `Traits/` 한 파일씩(30~232) → 지금 7파일 34~175. `Node.luau` 73 → `Node/` 5파일(최대 157) → 지금 4파일 최대 230 | 종류 폴더 + "하나당 파일 하나" 규칙. 새 트레이트·노드 종류가 **새 파일**이 되므로 기존 파일이 자라지 않는다 |
 
-## §8 측정 도구
-status: described · 근거: `scripts/structure-scan.py` (읽기 전용, git 은 log/show 만)
+**재성장 — 나눈 단위는 남았지만 성장이 다른 곳으로 옮겨 갔다**
+| 사례 | 수치 | 무엇이 빠졌나 |
+|---|---|---|
+| stl 트레이트 **시스템** | `Trait.luau` 458(4e07d1a) → 10-15 `Trait/` 폴더(b8bb887) → 지금 `Trait/init.luau` 916 + 형제 4파일 573 | 구현은 종류 폴더로 갔지만 시스템 자체에는 나누는 규칙이 없었다. 커밋 35개 동안 init 에 붙었다(경고 기준 초과) |
+| table-sim `6c55ec2`(10-12) UI 진입 파일 | 3,243 → 147 → 지금 202 (성공). 그런데 화면 파일 셋이 710 → 1,341, 427 → 834, 392 → 744 로 자랐다 | 화면마다 파일로 나눈 것은 지켜졌다. 다음 단계("범위 대화 상자 넷을 하나로", `todos.md:117`)를 하지 않아 화면 하나가 다시 기준을 넘었다 |
+
+**실패 — 나눈 뒤 원래 파일이 다시 자랐다**
+| 사례 | 수치 | 무엇이 빠졌나 |
+|---|---|---|
+| table-sim `16923f3`(10-12) 큰 화면 모듈 | 1,851 → 1,457 → 지금 **3,223**(커밋 62개, 10-13~10-16 밤샘 작업에 55개). 떼어 낸 세 모듈도 각각 자랐다 | (1) 쉬운 가장자리(표시·효과)만 떼고 핵심(입력 처리 닫개 둘)은 남겼다. (2) 닫개가 같이 쥔 상태(입력 상태 플래그들)를 **먼저 상태 표로 꺼내는 단계**가 없었다(`todos.md:114-121` "옮기기가 아니라 다시 짜기"). (3) 남은 덩어리에 새 기능이 계속 붙었다. 그때는 길이 알림도 기준도 없었다. 지금 계획기는 두 닫개(1,248줄·475줄)를 닫개 덩어리로 짚는다 |
+
+**나쁜 예 (아직 나누지 않음)**
+| 예 | 무엇을 배우나 |
+|---|---|
+| table-sim 서버 요청 모듈 3,501줄 | 요청 계약이 문자열과 손 검사로 흩어짐(§6 b) |
+| table-sim 서버 객체 모듈 4,884줄, 함수 134개 | 여러 책임이 한 모듈 |
+| quad devui `Window/Manager.luau` 273 → 3,352줄 (이틀) | 단계마다 같은 닫개 공장에 덧붙임. 계획 `…/quad-Manager.md` |
+| devplorer 옛 `App/` 평평한 항목 60개 | 폴더 대신 이름 접두로 묶음 |
+| table-sim 의 생성 데이터 폴더 | (좋은 예) 생성 데이터 분리와 머리 표시 |
+
+## §8 측정 도구와 분리 계획기
+status: described · 근거: `scripts/structure-scan.py`, `scripts/split-plan.py` (둘 다 읽기 전용, git 은 log/show 만)
 
 ```bash
 python3 -I <luau-style 스킬 경로>/scripts/structure-scan.py <저장소> [--history 5] [--json]
 ```
 - 긴 파일, 평평한 폴더, 접두 가족, 리터럴 위주 파일, 긴 문자열 분기, 반복되는 머리, 파일 사이 복사, 성장 이력을 낸다. 성장 이력은 `git log --numstat --follow` 를 읽기만 한다.
 - 저장소 루트의 `.claude/structure.json` 이 있으면 그 값이 기본값을 덮는다.
-- 결과는 후보다. 데이터 모듈, 의도한 복사, 저장소가 정한 예외는 사람이 걸러 낸다.
+- 머리 표식과 `structure.json` 의 `exempt` 를 읽어, 유효한 예외는 "예외" 표에, 무효한 예외는 "무효한 예외" 표에 낸다(§2a).
+- 결과는 후보다. 데이터 모듈, 의도한 복사는 사람이 걸러 낸다.
+
+```bash
+python3 -I <luau-style 스킬 경로>/scripts/split-plan.py <큰 파일.luau> [--json] [--scope <함수>]
+```
+- 파일 하나의 응집 군집, 군집 사이 require, 순환과 끊을 간선, 경계를 넘는 전방 선언, 상태 배치, "옮기기만" 커밋 순서를 낸다. 강제 기준 알림이 이 명령을 같이 안내한다. 읽는 법과 전략은 `splitting.md`.

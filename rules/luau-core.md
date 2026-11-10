@@ -18,6 +18,7 @@ paths:
 ## 이름과 주석
 - 타입과 `require` 받은 모듈은 PascalCase, 지역 변수·지역 함수는 camelCase, 술어는 `isX`, `_` 접두는 내부로 쓴다. → [naming§1](../skills/luau-style/references/naming.md)
 - 그 밖의 케이스(네임스페이스 함수, 파일 이름)는 같은 폴더의 이웃 모듈을 따른다. → [naming§2](../skills/luau-style/references/naming.md)
+- 사용자가 정한 이름이 규칙과 어긋나면 바꾸지 말고, 이유와 함께 이름 변경을 제안한다(일괄 수정은 승인 뒤). → [naming§3](../skills/luau-style/references/naming.md)
 - 식별자와 에러 메시지는 영어로 쓰고, 주석은 그 파일에 이미 쓰인 언어로 쓴다. → [quality§1](../skills/luau-style/references/quality.md)
 - 주석에는 코드가 말하지 않는 "왜"를 쓴다. → [quality§1](../skills/luau-style/references/quality.md)
 

@@ -189,9 +189,42 @@
 읽는 법
 - 대부분의 항목은 규칙 없이도 지켰다. **rules 가 바꾼 것**: 모든 파일의 `--!strict`, 처음부터 `@self` (없음 조건은 둘 다 `./Inventory` 로 썼다가 런타임 실패 뒤 고침), 손으로 센 level 제거, 보고의 검증 범위 구분.
 - **skill 이 더한 것**: raise 헬퍼(스택 걷기), 에러 줄 단언, `-O1`·`-O2` 두 모드 실행. 비용은 rules 만일 때의 약 2배다.
-- skill 조건의 결함 둘: skill 1 은 `init.luau` 에 `--!strict` 를 빠뜨렸다. skill 2 는 사용자가 정한 `add(name, count)` 를 스킬의 "새 저장소 기본값"(Pascal, 제안 D-09)에 따라 `Add`·`New` 로 바꿨다. 그래서 `naming.md` §3 과 SKILL 결정 트리에 "사용자가 정한 이름이 기본값보다 우선"을 더했다(측정 뒤 수정, 재측정 안 함).
+- skill 조건의 결함 둘: skill 1 은 `init.luau` 에 `--!strict` 를 빠뜨렸다. skill 2 는 사용자가 정한 `add(name, count)` 를 스킬의 "새 저장소 기본값"(Pascal, 제안 D-09)에 따라 `Add`·`New` 로 바꿨다. 그래서 `naming.md` §3 과 SKILL 결정 트리에 "사용자가 정한 이름이 기본값보다 우선"을 더했다(측정 뒤 수정). 이 문구는 뒤에 "바꾸지 말고 제안"으로 다시 고쳐 재측정했다(아래 "이름 제안 원칙 재측정").
 - rules 만 둔 조건에서는 링크된 references 가 프로젝트에 없어 모델이 "규칙 본문만 따랐다"고 보고했다. 사용자 홈 배포(`~/.claude/rules` + `~/.claude/skills/luau-style`)에서는 상대 링크가 풀린다.
 - 표본이 조건마다 2회라 차이는 방향만 본다.
+
+### 타입 하나를 여러 파일로 나누기 — `style-split-types.sh` (2026-11-10)
+명령: `choom -n 1000 -- bash snippets/style-split-types.sh` (기본 0.734 0.742 0.746) → **세 버전 각 23건 ok, rc=0**. 파일이 여럿 필요해서 셸로 잰다.
+
+| 주장 | 0.734 | 0.742 | 0.746 |
+|---|---|---|---|
+| S1 `Types` + 동작 묶음 + `init` 재수출: 제네릭·콜백·`<<T>>` 보존 | ok | ok | ok |
+| S2a 설치자 `require(…)(Arr)` → 소비자에 `Key 'Sort' not found` (런타임은 됨) | ok | ok | ok |
+| S2b 다른 모듈이 `Methods.X =` → `Cannot add property` + 소비자 `does not have key` | ok | ok | ok |
+| S2c init 이 메서드 표 조립(`setmetatable<Types.Data<T>, typeof(mt)>`) → 깨끗, 어긋남 잡음 | ok | ok | ok |
+| S2d 묶음 안 `self:Push` → `Key 'Push' not found in table 'Data<T>'` | ok | ok | ok |
+| S2e `local o: Bag<number> = Bag.New()` 어긋남은 한 파일에서도 같음(나눈 탓 아님) | ok | ok | ok |
+| S3 묶음 → init 순환 require: 진단 + 런타임 실패. `Ctor.luau` 로 빼면 깨끗 | ok (`Cyclic module dependency`) | ok (`…use 'export' syntax`) | ok (0.742 와 같음) |
+| S4 타입 붙은 늦은 조회 표 `S`: 상호 재귀·시그니처·없는 이름·제네릭 필드, 등록 누락은 런타임 nil 호출 | ok | ok | ok |
+
+- 결론: 네임스페이스 모듈(stl `Arr`)은 재수출로 나눠도 타입 손실이 없다. "다른 모듈이 같은 표에 붙이기"는 런타임만 되고 타입에서 사라진다. 메타테이블 객체는 init 이 메서드 표를 조립하는 꼴로 나눈다. → `skills/luau-style/references/splitting.md` §2–3.
+- 0.742 부터 순환 진단 문구가 "export syntax" 를 언급한다. 새 export 문법이 순환을 허용하는지는 재지 않았다.
+
+### 이름 제안 원칙 재측정 (sonnet, 2026-11-10, rules + skill 조건 2회)
+위 "skill 2 가 `add` 를 `Add` 로 바꾼" 결함 뒤 문구를 바꿨다: "사용자가 정한 이름이 규칙과 어긋나면 바꾸지 말고, 이유와 함께 이름 변경을 제안한다(일괄 수정은 승인 뒤)"(`naming.md` §3, SKILL 결정 트리, rules `luau-core.md` 이름 절, 사용자 결정 D-13 의 4). 같은 과제·같은 명령·같은 채점(`/tmp/style-eval-tools/score.py`)으로 rules + skill 조건만 2회 다시 돌렸다(결과 `/tmp/style-eval2/`).
+
+| 항목 | skill 1 | skill 2 |
+|---|---|---|
+| 준수 (12항목, 정규식 거짓 양성 손보정) | 11 (`init.luau` `--!strict` 빠짐) | 11 (같음) |
+| 사용자 이름 `add`/`remove`/`count` 유지 | **O** | **O** |
+| 응답에 이름 변경 제안 | **O**: "타입 고유 연산은 Pascal(`Add` 등)이 맞습니다 … 바꿀지 알려 주세요. 승인 전에는 고치지 않습니다." | **O**: "이름 변경 제안 (승인 전에는 바꾸지 않았습니다) … `Add`, `Remove`, `Count` 로 바꾸면 됩니다. 반대로 `New`, `List` 를 소문자로 통일할 수도 있습니다." |
+| 이름을 정하지 않은 것 | `New` Pascal, `list` 소문자(사용자 이름에 맞춤) | `New`·`List` Pascal(기본값) |
+| rules 로드 / Skill 호출 | 예 / 1 | 예 / 1 |
+| 비용 USD / 시간 초 | 0.26 / 55 | 0.30 / 62 |
+
+- 기대대로 2회 모두 이름을 바꾸지 않았고, 이유를 붙인 제안을 보고에 따로 적었으며, 승인 전에는 고치지 않는다고 밝혔다.
+- 남은 결함은 전과 같다: 기존 `src/init.luau` 를 고칠 때 1행 `--!strict` 를 넣지 않았다.
+- 조건마다 2회라 방향만 본다.
 
 ## 검증·타입·테스트 추가분 (2026-11-10, 하네스 통합 뒤)
 
