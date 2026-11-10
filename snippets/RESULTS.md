@@ -125,3 +125,70 @@
 | type function 은 바깥 타입 별칭을 참조하지 못한다, `types.optional` 은 없다 | quad typing-limits §5·8.22 | 네 판 모두 별칭·제네릭 별칭·형제 type function·`types.optional` 이 됨(`tf-env-outer-alias-ok`) | 정정 |
 | `Types.Merge` 결과가 닫혀 있지 않아 모르는 키를 못 잡는다 | tbox CLAUDE.md:121 | 손으로 쓴 테이블 타입도 리터럴의 남는 키를 못 잡음. Merge 고유 아님(`tf-noalt-merge`) | 정정 |
 | `<U>(self: Ref<U?>) -> U` 로는 nil 을 못 벗긴다 | quad 8.14 | 메소드 제네릭은 맞음. 자유 함수 `<U>(r: Ref<U?>): U` 는 됨(`tf-noalt-stripnil`) | 범위 좁힘 |
+
+## style — `style-*` (luau-style 스킬, 2026-11-10)
+
+명령: `python3 -I tools/check_snippets.py --luau 0.734,0.742 --lsp 1.70.1 --table snippets/style-*.luau` → **13개 × 2 버전 전부 ok, rc=0**. 셸 스니펫 둘은 따로 돌렸다(`bash snippets/style-require-paths.sh` rc=0, 0.734·0.742 각 8건 ok / `bash snippets/style-stylua-pitfalls.sh` rc=0, stylua 2.5.2 4건 ok).
+
+| 스니펫 | luau 0.734 | luau 0.742 | luau-lsp 1.70.1 (참고) |
+|---|---|---|---|
+| `style-bare-function-global.luau` | ok (E1 B0 run) | ok (E1 B0 run) | 같음 |
+| `style-const-local-const-global.luau` | ok (E1 B0 run) | ok (E1 B0 run) | 같음 |
+| `style-const-reassign.luau` | ok (E1 B0) | ok (E1 B0) | 같음 |
+| `style-coroutine-resume-swallows.luau` | ok (E0 B0 run) | ok (E0 B0 run) | 같음 |
+| `style-error-level-o2.luau` | ok (E0 B0 run) | ok (E0 B0 run) | 같음 |
+| `style-error-prefix-and-rethrow.luau` | ok (E0 B0 run) | ok (E0 B0 run) | 같음 |
+| `style-ifexpr-vs-andor.luau` | ok (E0 B0 run) | ok (E0 B0 run) | 같음 |
+| `style-metatable-shadow-inherit.luau` | ok (E0 B0 run) | ok (E0 B0 run) | 같음 |
+| `style-nan-range-check.luau` | ok (E0 B0 run) | ok (E0 B0 run) | 같음 |
+| `style-pcall-arg-eval.luau` | ok (E0 B0 run) | ok (E0 B0 run) | 같음 |
+| `style-strings-ascii-utf8.luau` | ok (E0 B0 run) | ok (E0 B0 run) | 같음 |
+| `style-table-insert-pitfalls.luau` | ok (E1 B0 run) | ok (E1 B0 run) | 같음 |
+| `style-varargs-and-constructors.luau` | ok (E0 B0 run) | ok (E0 B0 run) | 같음 |
+
+- 실행 주장은 `assert` 로 고정했다. E0 인 파일은 대조군이 실행 단언 쪽에 있다(나쁜 꼴과 좋은 꼴을 같은 파일에서 둘 다 단언).
+- `style-error-level-o2` 의 음성 대조: `--!optimize 2` 줄을 지운 사본을 `luau -O1` 로 돌리면 "손으로 센 level 은 사용자 줄을 못 가리킨다" 단언이 **실패**한다(-O1 에서는 `user:2` 를 정확히 가리킴). 즉 이 스니펫은 `-O2` 에서만 통과한다.
+- 처음 판에서 사용자 코드를 `getfenv().loadstring` 으로 불렀더니 `-O2` 에서도 위치가 맞게 나왔다. `luau-compile --remarks -O2` 가 `inlining failed: module uses getfenv/setfenv` 를 보여 줬다. `_G.loadstring` 으로 바꿔 해결했다(같은 사실: `test-getfenv-inline-off.luau`).
+
+### 스니펫 밖에서 관측한 것 (style 담당)
+| 항목 | 결과 | 넘길 곳 |
+|---|---|---|
+| 한 변수 `for i in ipairs(t)` | 0.734·0.742 새 솔버가 `TypeError: Argument count mismatch. Function expects 2 arguments, but 2 are specified` 를 낸다. `for _, v in ipairs(t)`, `for k in pairs(t)`, `for _ in t` 는 깨끗하다. `utf8.codes` 도 같다 | luau-types (거짓 양성 후보, 스니펫 미작성) |
+| require 경로와 정적 검사 | strict 의 luau-analyze 는 없는 경로·동적 경로를 `Unknown require: unsupported path` 로 잡는다. nonstrict 는 0건, 있는 다른 파일로 풀리는 오배선은 strict 도 0건 | `style-require-paths.sh` R3, `verify-require.sh`·`rbx-require-cli.sh` 와 결론 같음 |
+
+### 정정 (references 의 '정정' 절에 원천 경로와 함께 있음)
+| 원래 주장 | 원천 | 실측 | 처리 |
+|---|---|---|---|
+| `local const x = 1` 은 린트 경고만 난다 | claude-doctor `decisions/D-01-const.md` §2 | `--!strict` 에서는 `Unknown global 'x'` TypeError. 린트만은 nonstrict 한정 | 정정(`idioms.md`) |
+| 맨 `function name()` 에 `GlobalUsedAsLocal` 린트가 난다 | quad `scripts/test.sh:33-35`(후보 Q-082) | 모듈 스코프 선언을 여러 곳에서 쓰면 진단·린트 0건 | 범위 좁힘(`idioms.md`) |
+| require 경로 오류는 정적 검사가 못 잡는다 | `decisions/D-12-require-paths.md` | strict 는 없는 경로를 잡는다. 못 잡는 건 nonstrict 와 오배선 | 정정(`modules.md`) |
+| 동적 require 경로는 `ambiguous` 에러 | `drafts/style` 초안 `modules.md:315` | CLI 런타임은 실행, strict analyze 만 거부 | 정정(`modules.md`) |
+| `tests/init.luau` 의 ambiguous 는 `src/init.luau` 와 이름이 겹쳐서 | tbox `CLAUDE.md:141-147` | 실제 함정은 `./` 가 루트를 가리키는 것. ambiguous 는 `X.luau`+`X/` 형제 | 정정(`modules.md`, 후보 X-04 판정) |
+| `table.insert(t, f())` 는 타입 검사가 못 잡는다 | moonwave `conventions.md:122-123`(후보 M-14) | 값 0개 경우는 strict 가 잡는다. 2개 경우만 못 잡음 | 범위 좁힘(`pitfalls.md`) |
+
+### rules·skill 효과 측정 (sonnet, 2026-11-10, Claude Code 2.1.316)
+- 과제: 빈 패키지(`src/init.luau` 에 `local Package = {} return Package`)에 "재고 모듈 `src/Inventory.luau` 추가, `Package.Inventory` 로 내보내기, tests/ 에 테스트를 만들어 실제로 돌리기". 규칙을 언급하지 않았다. 명령: `claude -p --model sonnet --allowedTools=Read,Write,Edit,Glob,Grep,Skill,Bash`.
+- 조건: 없음 / 프로젝트 `.claude/rules/luau-core.md`(복사본) / 같은 rules + 프로젝트 `.claude/skills/luau-style`(복사본). 각 2회. 사용자 홈의 다른 설정은 세 조건에 같게 걸렸다.
+- 채점: 산출 `.luau` 파일을 규칙 12항목으로 자동 검사한 뒤, 정규식 거짓 양성 3건(`pcall(function(` 1건, raise 헬퍼 안의 `error(msg, level)` 2건)을 손으로 고쳤다.
+
+| 항목 | 없음 1 | 없음 2 | rules 1 | rules 2 | +skill 1 | +skill 2 |
+|---|---|---|---|---|---|---|
+| 모든 새 파일 1행 `--!strict` | X (init·tests) | X (init·tests) | O | O | X (init) | O |
+| `and/or` 삼항 없음, 맨 `function` 없음, `local const` 없음, const/local 혼용 없음 | O | O | O | O | O | O |
+| `pcall(f(x))` 없음, require 모듈 Pascal, 에러 메시지 리터럴 | O | O | O | O | O | O |
+| `init.luau` 에서 `@self/Inventory` | O (`./` 로 썼다가 런타임 실패 뒤 고침) | O (같음) | O (처음부터) | O (처음부터) | O (처음부터) | O (처음부터) |
+| 테스트 엔트리가 `init.luau` 아님, 테스트 통과(재실행), analyze 0건 | O | O | O | O | O | O |
+| **준수 (12항목)** | **11** | **11** | **12** | **12** | **11** | **12** |
+| 손으로 센 `error(msg, 2·3)` | 3곳 | 3곳 | 0 | 0 | 0 (raise 헬퍼) | 0 (raise 헬퍼) |
+| `-O2` 로도 테스트 실행 | 아니오 | 아니오 | 아니오 | 아니오 | 예 | 예 |
+| 에러 줄 단언 테스트 | 아니오 | 아니오 | 아니오 | 아니오 | 예 | 예 |
+| 보고에서 검증 범위 구분("Studio 실측 안 함") | 아니오 | 아니오 | 예 | 예 | 예 | 예 |
+| rules 로드(stream 에 본문) / Skill 호출 | — / 0 | — / 0 | 예 / 0 | 예 / 0 | 예 / 1 | 예 / 1 |
+| 비용 USD / 시간 초 | 0.11 / 23 | 0.12 / 26 | 0.13 / 31 | 0.14 / 36 | 0.24 / 46 | 0.31 / 63 |
+
+읽는 법
+- 대부분의 항목은 규칙 없이도 지켰다. **rules 가 바꾼 것**: 모든 파일의 `--!strict`, 처음부터 `@self` (없음 조건은 둘 다 `./Inventory` 로 썼다가 런타임 실패 뒤 고침), 손으로 센 level 제거, 보고의 검증 범위 구분.
+- **skill 이 더한 것**: raise 헬퍼(스택 걷기), 에러 줄 단언, `-O1`·`-O2` 두 모드 실행. 비용은 rules 만일 때의 약 2배다.
+- skill 조건의 결함 둘: skill 1 은 `init.luau` 에 `--!strict` 를 빠뜨렸다. skill 2 는 사용자가 정한 `add(name, count)` 를 스킬의 "새 저장소 기본값"(Pascal, 제안 D-09)에 따라 `Add`·`New` 로 바꿨다. 그래서 `naming.md` §3 과 SKILL 결정 트리에 "사용자가 정한 이름이 기본값보다 우선"을 더했다(측정 뒤 수정, 재측정 안 함).
+- rules 만 둔 조건에서는 링크된 references 가 프로젝트에 없어 모델이 "규칙 본문만 따랐다"고 보고했다. 사용자 홈 배포(`~/.claude/rules` + `~/.claude/skills/luau-style`)에서는 상대 링크가 풀린다.
+- 표본이 조건마다 2회라 차이는 방향만 본다.
