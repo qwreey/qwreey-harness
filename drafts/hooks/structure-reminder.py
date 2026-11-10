@@ -18,7 +18,15 @@ Bash 는 파일을 바꿨을 법한 명령(sed -i, 리다이렉트, tee, patch, 
 audit 10 기준 이 세션들의 파일 수정은 Bash(sed -i·python) 쪽이 Edit 보다 열 배 많았다.
 테스트 파일은 줄 기준을 두 배로 본다. 머리 6줄에 생성물 표시가 있으면 보지 않는다.
 
-저장소 설정: <프로젝트>/.claude/structure.json — {"warn": 800, "hard": 1500, "grow": 300, "flat": 15, "ignore": ["glob", …]}
+예외(사용자 결정 D-13, 2026-11-10 — 확실한 이유가 있으면 기준을 넘어도 되지만 이유를 남긴다):
+  파일 머리 10줄 안  `--@structure-exempt: <사유>`  (TS·Go 는 `//@structure-exempt:`, Python 은 `#@structure-exempt:`)
+  또는 structure.json  "exempt": [{"path": "<글롭>", "reason": "<사유>"}]
+  사유가 비었거나 사유가 아닌 말("나중에", "귀찮", "TODO", "-")이면 무효다 — 평소처럼 알리고 무효라고 덧붙인다.
+  유효한 예외 파일은 경고·강제·성장 알림 대신 "예외 사유: …" 한 줄을 세션당 한 번만 낸다(경고 기준 이상일 때).
+강제 기준을 넘은 .luau 파일에는 분리 계획기(split-plan.py) 명령을 한 줄 붙인다.
+
+저장소 설정: <프로젝트>/.claude/structure.json — {"warn": 800, "hard": 1500, "grow": 300, "flat": 15, "ignore": ["glob", …],
+  "exempt": [{"path": "glob", "reason": "…"}]}.  ignore 는 측정 대상이 아닌 것(외부 코드·머리 표시 없는 생성물)에만 쓴다.
 끄기: 환경 변수 STRUCTURE_REMINDER=off
 상태 파일: $TMPDIR/claude-structure-reminder/<session_id>.json
 """
@@ -41,8 +49,29 @@ CODE = r"[\w./@-]+\.(?:luau|lua|tsx?|go|py|kt|rs|mjs|js)\b"
 INPLACE = re.compile(r"\bsed\s+(-\S*\s+)*-i|\bperl\s+(-\S*\s+)*-\S*p\S*i|\bawk\s+-i\s+inplace|\bpatch\b")
 REDIRECT = re.compile(r"(?<![0-9&])>>?\s*['\"]?(" + CODE + r")|\btee\s+(?:-a\s+)?['\"]?(" + CODE + r")")
 BASH_PATH = re.compile(CODE)
-DEFAULTS = {"warn": 800, "hard": 1500, "grow": 300, "flat": 15, "ignore": []}
+DEFAULTS = {"warn": 800, "hard": 1500, "grow": 300, "flat": 15, "ignore": [], "exempt": []}
 REF = "~/.claude/skills/luau-style/references/structure.md"
+PLANNER = "~/.claude/skills/luau-style/scripts/split-plan.py"
+EXEMPT_MARK = re.compile(r"^\s*(?:--|//|#)\s*@structure-exempt\b\s*:?\s*(.*?)\s*(?:\]\])?\s*$")
+# 사유가 아닌 말: 비었거나, 미루기·귀찮음·자리표시
+NOT_A_REASON = re.compile(r"^(?:[-.…~_?!\s]*|todo|tbd|fixme|later|wip|n/?a|none|x+|임시|나중에?|나중에 ?나눔|추후|일단|귀찮.*)$", re.I)
+
+
+def reason_ok(reason):
+    r = (reason or "").strip()
+    return bool(r) and not NOT_A_REASON.match(r) and "귀찮" not in r and len(re.sub(r"\W", "", r)) >= 2
+
+
+def exemption(head10, rel, cfg):
+    """(사유, 유효한가, 어디서) 또는 None. 머리 표식이 structure.json 보다 앞선다."""
+    for line in head10.split("\n"):
+        m = EXEMPT_MARK.match(line)
+        if m:
+            return m.group(1), reason_ok(m.group(1)), "머리 표식"
+    for e in cfg.get("exempt") or []:
+        if isinstance(e, dict) and fnmatch.fnmatch(rel, str(e.get("path") or "")):
+            return str(e.get("reason") or ""), reason_ok(e.get("reason")), "structure.json"
+    return None
 
 
 def project_root(path, data):
@@ -72,7 +101,7 @@ def count_lines(path):
     if b"\0" in raw[:1024]:
         return None, ""
     text = raw.decode("utf-8", "replace")
-    head = "\n".join(text.split("\n", 6)[:6])
+    head = "\n".join(text.split("\n", 10)[:10])
     return text.count("\n") + (0 if text.endswith("\n") or not text else 1), head
 
 
@@ -124,7 +153,7 @@ def check_file(path, tool, ti, data, state, created):
         n, head = count_lines(path)
     except OSError:
         return []
-    if n is None or GEN_MARK.search(head):
+    if n is None or GEN_MARK.search("\n".join(head.split("\n")[:6])):
         return []
     files = state.setdefault("files", {})
     seen_dirs = state.setdefault("dirs", [])
@@ -138,15 +167,29 @@ def check_file(path, tool, ti, data, state, created):
     warn, hard, grow = cfg["warn"] * k, cfg["hard"] * k, cfg["grow"] * k
     notes = []
     said = entry["said"]
-    if n >= hard and "hard" not in said:
+    ex = exemption(head, rel, cfg)
+    exempt = bool(ex and ex[1])
+    if exempt and n >= warn and "exempt" not in said:
+        said.append("exempt")
+        notes.append(f"`{rel}` ({n}줄)은 구조 예외입니다. 예외 사유: {ex[0]} ({ex[2]})")
+    if exempt:
+        pass  # 길이 알림 대신 위의 사유 한 줄만
+    elif n >= hard and "hard" not in said:
         said += ["hard", "warn"]
+        plan = (f" 나눌 묶음은 `python3 -I {PLANNER} {path}` 로 먼저 뽑아 보세요(읽기 전용)."
+                if path.endswith((".luau", ".lua")) else "")
         notes.append(f"`{rel}` 이 {n}줄로 강제 기준({hard}줄)을 넘었습니다. 지금 하던 수정은 마무리하되, 이 파일에 새 기능을 "
-                     f"더 덧붙이기 전에 분리안(어떤 묶음을 어디로, '옮기기만' 커밋을 먼저)을 사용자에게 제시하고 답을 받으세요.")
+                     f"더 덧붙이기 전에 분리안(어떤 묶음을 어디로, '옮기기만' 커밋을 먼저)을 사용자에게 제시하고 답을 받으세요.{plan}"
+                     f" 확실한 이유(타입 한계·생성물·순수 데이터)로 한 파일이어야 하면 머리에 `--@structure-exempt: <사유>` 를 답니다.")
     elif n >= warn and "warn" not in said:
         said.append("warn")
         notes.append(f"`{rel}` 이 {n}줄입니다(경고 기준 {warn}줄). 더 덧붙이기 전에 떼어 낼 책임 묶음이 있는지 보고, "
                      f"있으면 작업 보고에 분리 후보를 한 줄로 적으세요.")
-    if n - entry["base"] >= grow and n >= warn and "grow" not in said:
+    if ex and not ex[1] and n >= warn and "exempt-bad" not in said and said:
+        said.append("exempt-bad")
+        notes.append(f"`{rel}` 의 구조 예외({ex[2]})는 사유가 비었거나 사유가 아니어서(\"{ex[0]}\") 무효입니다. "
+                     f"이유를 적거나 표식을 지우세요.")
+    if not exempt and n - entry["base"] >= grow and n >= warn and "grow" not in said:
         said.append("grow")
         notes.append(f"이번 세션에 `{rel}` 이 {entry['base']} → {n}줄(+{n - entry['base']})로 늘었습니다. 새 코드를 한 파일에 "
                      f"계속 붙이고 있다면 새 모듈로 낼 수 있는지 먼저 보세요.")

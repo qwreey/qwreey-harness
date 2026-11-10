@@ -141,6 +141,36 @@ os.makedirs(os.path.dirname(outside))
 open(outside, "w").write("local x = 1\n" * 3000)
 case("Bash 프로젝트 밖 대상 → 조용", run("Bash", "", sid="b6", ti_extra={"command": f"sed -i 's/a/b/' {outside}"}), want_empty=True)
 
+# 예외 표식 (사용자 결정 D-13, 2026-11-10): 사유가 있으면 한 줄만, 없으면 무효
+ex1 = mk("src/ex/Types.luau", 2000, head="--!strict\n--@structure-exempt: 재귀 타입 묶음이 한 모듈 안에 있어야 함(luau-types recursion §3)")
+out = run("Edit", ex1, sid="e1", ti_extra=edit(1))
+case("예외 표식 → 예외 사유 한 줄", out, "예외 사유: 재귀 타입 묶음", not_sub="강제 기준")
+case("  … 성장 알림도 안 남", run("Edit", ex1, sid="e1b", ti_extra=edit(400)), "예외 사유", not_sub="늘었습니다")
+case("예외 파일 다시 → 조용", run("Edit", ex1, sid="e1", ti_extra=edit(1)), want_empty=True)
+ex2 = mk("src/ex/Empty.luau", 2000, head="--!strict\n-- @structure-exempt:")
+out = run("Edit", ex2, sid="e2", ti_extra=edit(1))
+case("빈 사유 → 강제 알림", out, "강제 기준")
+case("  … 무효라고 덧붙임", out, "무효")
+ex3 = mk("src/ex/Later.luau", 900, head="--@structure-exempt: 나중에")
+case("사유 '나중에' → 무효", run("Edit", ex3, sid="e3", ti_extra=edit(1)), "무효")
+ex4 = mk("src/ex/Lazy.luau", 900, head="--@structure-exempt: 귀찮아서")
+case("사유 '귀찮아서' → 무효", run("Edit", ex4, sid="e4", ti_extra=edit(1)), "무효")
+small_ex = mk("src/ex/Small.luau", 100, head="--@structure-exempt: 생성물")
+case("예외지만 경고 기준 아래 → 조용", run("Edit", small_ex, sid="e5", ti_extra=edit(1)), want_empty=True)
+json.dump({"exempt": [{"path": "src/data/*.luau", "reason": "순수 데이터 표(아이콘 이름 → 에셋 id)"},
+                      {"path": "src/blank/*.luau", "reason": ""}]},
+          open(os.path.join(REPO, ".claude", "structure.json"), "w"))
+d1 = mk("src/data/Icons.luau", 1800)
+case("structure.json exempt → 예외 사유", run("Edit", d1, sid="e6", ti_extra=edit(1)), "(structure.json)")
+d2 = mk("src/blank/Big.luau", 1800)
+case("structure.json 빈 reason → 무효", run("Edit", d2, sid="e7", ti_extra=edit(1)), "무효")
+os.remove(os.path.join(REPO, ".claude", "structure.json"))
+hp = mk("src/plan/Huge.luau", 1700)
+case("강제 기준 .luau → 분리 계획기 안내", run("Edit", hp, sid="p1", ti_extra=edit(1)), "split-plan.py")
+hts = os.path.join(REPO, "src/plan/huge.ts")
+open(hts, "w").write("const x = 1;\n" * 1700)
+case("강제 기준 .ts → 계획기 안내 없음", run("Edit", hts, sid="p2", ti_extra=edit(1)), "강제 기준", not_sub="split-plan.py")
+
 fails = [c for c in CASES if not c[0]]
 for ok, name, got in CASES:
     print(("PASS " if ok else "FAIL ") + name + ("" if ok else f"\n     got: {got!r}"))
