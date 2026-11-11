@@ -46,14 +46,18 @@ index.json                         rid → pending | imported(위치, 커밋) | 
 | 요약이 끝남 | 다음 PostToolUse·UserPromptSubmit 1회 | info | 새 절 수, 기록 경로, 대조 실패 수, pending 수 |
 | 세션 시작 | SessionStart | info / warn·action (level 마다 태그 하나) | 인계(startup·clear 만, 직전 다른 세션의 미해결, ≤800자; resume 은 맥락이 복원되므로 없음. 기록이 트랜스크립트보다 `SESSION_LOG_HANDOVER_LAG_LINES` 넘게 뒤처졌으면 항목 대신 "뒤처짐" 한 줄, 트랜스크립트가 `SESSION_LOG_HANDOVER_LIVE_MIN` 분 안에 바뀐 세션은 아직 일하는 중이라 생략) + pending + 찾는 법 한 줄 |
 | compact 뒤 | SessionStart(compact) | info / warn | 이 세션 기록 경로 + pending(새 회차라 다시) |
-| commit 직전 | PreToolUse(Bash, `git … commit`) | warn·action | pending 과 "같은 커밋에 넣기 좋음"(막지 않음) |
-| 인계·정리 | UserPromptSubmit(`/handover`·`/q:checkpoint`·인계 낱말), PreToolUse(Skill handover) | warn·action | pending |
+| commit 직전 | PreToolUse(Bash, `git … commit`) | warn | pending 과 정확한 명령 `session-log import`(막지 않음) |
+| 인계·정리 | UserPromptSubmit(`/handover`·`/q:checkpoint`·인계 낱말), PreToolUse(Skill handover) | info·warn | pending |
+| 기록을 읽음 | PostToolUse(Read·Grep, `records_read.py`) | info | 스냅샷이니 현재 파일·git log 로 확인하라는 한 줄(세션·에이전트·compact 회차마다 한 번). 큰 기록(`SESSION_LOG_READ_WARN_KB`, 16KB 초과)을 offset·limit 없이 읽으면 `/q:recall` 이나 검색 먼저 안내(그때마다) |
 | compact 직전 | PreCompact(manual·auto) stdout | warn | 상기: 사용자 지시 원문, 아직 기록 안 된 최근 사용자 발언, 결정, 미해결, 끝난 일, 기록 경로 |
 
 - dedup 단위는 **(session_id, compact 회차, 트리거)** 다.
   - 회차는 q 자기 것(`scripts/compact_epoch.py`, `$TMPDIR/claude-q-epoch/<sid>`)이고 hook.py 가 PreCompact 에서 올린다. PreCompact 는 SessionStart(compact)·PostCompact 보다 먼저라 읽는 훅(ambient·workspace_gate 포함)이 항상 올라간 값을 본다. 취소된 compact 는 알림을 한 번 더 낼 뿐이다.
   - 같은 모듈의 사본이 qwreey-advisor·qwreey-conventions 에 있고(정본은 q, 테스트가 바이트 동일성을 검사), 각자 자기 회차를 올린다. 하네스가 없어도 돈다.
-- pending 이 `SESSION_LOG_PENDING_STRONG_COUNT`(5)개 이상이거나 가장 오래된 것이 `…_DAYS`(7)일 이상이면 level=action 과 강한 문구를 쓴다.
+- pending 알림 level (action 은 쓰지 않는다: import 는 명령 하나라 막고 물을 일이 아니다)
+  - 보관 위치 설정됨: 평소 info, commit 직전이거나 `SESSION_LOG_PENDING_STRONG_COUNT`(5)개·`…_DAYS`(7)일 이상이면 warn. 내용은 `session-log import` 한 줄.
+  - 미설정: 평소 info, `SESSION_LOG_HOME_NUDGE_COUNT`(3)개 또는 `SESSION_LOG_HOME_NUDGE_DAYS`(3)일 이상(strong 도 포함)이면 warn 으로 위치를 사용자에게 제안하라고 한다(`docs/sessions/` 팀 공개, `.claude/records/` 에이전트 전용, 있으면 `handover/`·`handoff/`·`audit/` 같은 이력 폴더, 밖에 두기).
+  - `archive_only`: pending 알림이 없다.
 - 주입 안전
   - 인계와 상기에는 구조화된 항목만 넣는다: 개수, 경로, ⚠ 없는 미해결·결정 제목(110자), 대조를 통과한 사용자 인용.
   - 자유 텍스트 요약(`### 요약`)은 넣지 않는다.
@@ -61,24 +65,28 @@ index.json                         rid → pending | imported(위치, 커밋) | 
 - 한 출력에 알림이 여럿이면 태그 하나에 가장 높은 level 을 단다(규약 `HOOK-MESSAGES.md`).
 - 메시지 문자열은 모두 `scripts/sllib/messages.py` 에 있다.
 
-## 받아 가기
+## 받아 가기와 보관 위치
+기록은 그 시점의 스냅샷이다. 낡아도 되고 최신으로 유지하지 않는다. 읽는 쪽이 낡았을 수 있음을 알고 확인하면 된다.
 ```
+session-log import [rid…]               # 대기 전부(또는 고른 것)를 보관 폴더로 그대로 복사 + imported. 고르거나 고쳐 쓰지 않는다
+session-log dismiss <rid…> [--reason …]
+session-log home [PATH | --archive-only | --unset]   # 저장소 보관 폴더 보기·저장
 session-log pending                     # rid  ~토큰  절 수  생성일  [⚠대조 실패] + 요약 한 줄
 session-log show <rid> [--section N]
-session-log import <rid…> [--to .claude/session/] [--force]   # 복사 + imported
-session-log import <rid…> --merged-into <path>                # 저장소 관례대로 합쳤으면 표시만
-session-log dismiss <rid…> [--reason …]
-session-log status                      # 세션별 오프셋·비용·실패, imported 기록의 커밋(git log 로 찾아 채움)
+session-log status                      # 세션별 오프셋·비용·실패, imported 기록의 커밋
 session-log flush [--force] [--wait]    # 지금 요약(/q:checkpoint)
 session-log backfill --plan plan.json [--budget 4] [--dry-run]
 ```
+- 보관 위치는 저장소의 `.claude/session-log.json` 이다: `{"records_home": "docs/sessions"}` 또는 `{"archive_only": true}`. 커밋하면 동료가 같은 위치를 쓴다. 외부 저장소 `project.json` 은 기계마다 달라 공유가 안 되고, `.claude/conventions.json` 은 qwreey-conventions 의 스키마라 q 전용 파일로 나눴다.
+- 위치가 없으면 import 는 `.claude/records/` 를 쓰고 알려 준다. `archive_only` 면 `--to` 가 없는 import 를 거절한다.
+- 복사본은 frontmatter 바로 뒤에 두 줄 머리말(세션 id, 덮는 기간, 원본 트랜스크립트, "스냅샷이라 낡았을 수 있으니 현재 파일·git log 로 확인")만 붙고 본문은 그대로다.
+- 가져간 뒤 새 절이 붙으면 다시 pending 이 되고, 다음 import 가 같은 파일을 늘어난 판으로 덮는다.
 - `bin/session-log` 이 PATH 에 없으면 `"${CLAUDE_PLUGIN_ROOT}/bin/session-log"` 로 부른다.
-- 가져간 뒤 새 절이 붙으면 다시 pending 이 된다.
-- 스킬: `/q:import`(목록을 보고 저장소 관례대로 합치거나 고른다), `/q:checkpoint`(지금 flush 하고 새 미해결·지시만 본다).
+- 스킬: `/q:import`(한 줄 import, 위치 없으면 사용자에게 한 번 묻기), `/q:recall`(옛 논의 찾기: haiku 가 위치만 찾고 sonnet 이 그 절만 읽어 요약하며 현재 상태와 대조, 메인이 행동 전에 검증), `/q:checkpoint`(지금 flush 하고 새 미해결·지시만 본다).
 
 ## 설정
 우선순위는 환경 변수 > `harness.env`(`$HARNESS_ENV` → `$CLAUDE_CONFIG_DIR/harness.env` → `~/.claude/harness.env`, `SESSION_LOG_*` 키만) > 기본값이다. 목록과 기본값은 `scripts/sllib/config.py` `DEFAULTS` 에 있다.
-- 주요 키: `SESSION_LOG_HOME`, `SESSION_LOG_MODEL`(haiku), `SESSION_LOG_DISABLE`, `SESSION_LOG_COOLDOWN_MIN`(20), `SESSION_LOG_GROW_KB`(512), `SESSION_LOG_HANDOVER_CHARS`(800), `SESSION_LOG_HANDOVER_LAG_LINES`(400), `SESSION_LOG_HANDOVER_LIVE_MIN`(10), `SESSION_LOG_PRECOMPACT_CHARS`(3000), `SESSION_LOG_PENDING_STRONG_COUNT`(5), `SESSION_LOG_PENDING_STRONG_DAYS`(7), `SESSION_LOG_MAX_PARALLEL`(2).
+- 주요 키: `SESSION_LOG_HOME`, `SESSION_LOG_MODEL`(haiku), `SESSION_LOG_DISABLE`, `SESSION_LOG_COOLDOWN_MIN`(20), `SESSION_LOG_GROW_KB`(512), `SESSION_LOG_HANDOVER_CHARS`(800), `SESSION_LOG_HANDOVER_LAG_LINES`(400), `SESSION_LOG_HANDOVER_LIVE_MIN`(10), `SESSION_LOG_PRECOMPACT_CHARS`(3000), `SESSION_LOG_PENDING_STRONG_COUNT`(5), `SESSION_LOG_PENDING_STRONG_DAYS`(7), `SESSION_LOG_HOME_NUDGE_COUNT`(3), `SESSION_LOG_HOME_NUDGE_DAYS`(3), `SESSION_LOG_READ_WARN_KB`(16), `SESSION_LOG_MAX_PARALLEL`(2).
 - harness.env 제안(하네스 담당이 정본에 넣을 때): `SESSION_LOG_HOME=${XDG_DATA_HOME:-~/.local/share}/session-log` 를 명시하고, 필요하면 `SESSION_LOG_MODEL=haiku` 를 둔다. 다른 sandbox 로 옮길 때는 이 두 키만 본다.
 
 ## coderag 연결 (메모)
@@ -86,7 +94,7 @@ session-log backfill --plan plan.json [--budget 4] [--dry-run]
 - 예: global 설정에 `[[contexts.docs.targets]] module = "session-log" source = "~/.local/share/session-log" options = { exclude = [".state"] }`.
   - 저장소별로 나누려면 `source = "…/session-log/<project-key>/records"`.
   - 점 디렉터리는 기본 제외라 `.state/` 는 저절로 빠진다.
-- 가져간 사본은 저장소 `.claude/` 아래에 있으므로 coderag 의 프로젝트 문서 루트에서 그대로 잡힌다.
+- 가져간 사본은 저장소 보관 폴더에 있어 coderag 의 프로젝트 문서 루트에서 잡힌다(점 디렉터리 `.claude/records/` 는 설정에 따라).
 
 ## 의존성과 이식성
 - `python3`(표준 라이브러리만, `-I` 로 실행), `claude`(PATH), `git`(선택: import 커밋 조회), `setsid`(없으면 `start_new_session`).

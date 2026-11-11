@@ -29,6 +29,9 @@ DEFAULTS = {
     "SESSION_LOG_PRECOMPACT_CHARS": "3000",  # PreCompact 상기 주입 상한
     "SESSION_LOG_PENDING_STRONG_COUNT": "5",  # pending 이 이 개수 이상이면 강한 문구
     "SESSION_LOG_PENDING_STRONG_DAYS": "7",   # 가장 오래된 pending 이 이 일수 이상이면 강한 문구
+    "SESSION_LOG_HOME_NUDGE_COUNT": "3",     # 보관 위치가 없고 pending 이 이 개수 이상이면 위치를 정하자고 제안한다(세션 하나가 기록 하나라 세 번 쌓였다면 우연이 아니다)
+    "SESSION_LOG_HOME_NUDGE_DAYS": "3",      # 또는 가장 오래된 pending 이 이 일수 이상이면(주중 작업이 한 바퀴 돈 셈)
+    "SESSION_LOG_READ_WARN_KB": "16",        # 기록을 offset·limit 없이 읽을 때 이 크기 넘으면 먼저 검색하라고 안내한다(한글 기준 약 8k 토큰)
     "SESSION_LOG_RECORD_MAX_KB": "64",   # 기록 파일이 이보다 크면 -2, -3 으로 나눈다
 }
 

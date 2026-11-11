@@ -13,7 +13,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from . import config, extract as ex, messages
+from . import config, extract as ex, messages, records_home
 from .paths import short_home
 from .store import Store, escape_tags, parse_sections
 
@@ -138,12 +138,20 @@ def handover(store: Store, sid: str, source: str, transcript: str = "") -> str:
 
 
 def pending_line(store: Store, trigger: str) -> tuple[str, str]:
-    """(level, text). 임계를 넘으면 action, 아니면 warn."""
+    """(level, text). archive_only 면 알리지 않는다. 위치가 정해졌으면 import 한 줄(commit 직전·오래 쌓임만 warn),
+    위치가 없는데 쌓였으면 위치를 제안하라는 warn. action 은 쓰지 않는다: import 는 명령 하나라 막고 물을 일이 아니다."""
+    if records_home.archive_only(store.root):
+        return "info", ""
     count, oldest, days = store.pending_summary()
     if not count:
-        return "warn", ""
+        return "info", ""
     strong = count >= config.num("SESSION_LOG_PENDING_STRONG_COUNT") or days >= config.num("SESSION_LOG_PENDING_STRONG_DAYS")
-    return ("action" if strong else "warn"), messages.pending(count, oldest, days, trigger, strong)
+    home = records_home.home_rel(store.root)
+    if home:
+        return ("warn" if strong or trigger == "commit" else "info"), messages.pending(count, oldest, days, trigger, strong, home + "/")
+    if strong or count >= config.num("SESSION_LOG_HOME_NUDGE_COUNT") or days >= config.num("SESSION_LOG_HOME_NUDGE_DAYS"):
+        return "warn", messages.pending_propose(count, oldest, days, records_home.history_dirs(store.root))
+    return "info", messages.pending(count, oldest, days, trigger)
 
 
 # ---- 요약 완료 알림 ----
@@ -154,7 +162,8 @@ def saved_line(store: Store, notices: list[dict]) -> str:
     rids = list(dict.fromkeys(r for x in notices for r in x.get("rids", [])))
     files = [short_home(store.record_path(r)) for r in rids]
     flagged = sum(x.get("flagged", 0) for x in notices)
-    return messages.saved(n, files, len(store.pending()), flagged)
+    pending = 0 if records_home.archive_only(store.root) else len(store.pending())
+    return messages.saved(n, files, pending, flagged)
 
 
 # ---- PreCompact ----

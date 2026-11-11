@@ -23,7 +23,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import compact_epoch  # noqa: E402
-from sllib import brief, config, messages  # noqa: E402
+from sllib import brief, config, messages, records_home  # noqa: E402
 from sllib.paths import project_root, short_home  # noqa: E402
 from sllib.store import Store  # noqa: E402
 
@@ -125,7 +125,7 @@ def main() -> None:
             if errs:
                 parts.append(("warn", messages.failed(errs, short_home(store.state / "errors.log"))))
             if source != "compact" and store.index():
-                parts.append(("info", messages.records_hint(short_home(store.records))))
+                parts.append(("info", messages.records_hint(short_home(store.records), records_home.home_rel(store.root))))
             seq = store.notice_seq()
             if seq > hs.get("notice_seq", 0):  # 아직 전하지 않은 요약 완료 알림
                 parts.insert(0, ("info", brief.saved_line(store, store.notices_after(hs.get("notice_seq", 0)))))

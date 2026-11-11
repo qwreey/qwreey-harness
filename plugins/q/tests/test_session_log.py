@@ -236,16 +236,59 @@ class TestImport(Env):
         out = subprocess.run(cli + ["pending"], capture_output=True, text=True).stdout
         self.assertIn(rid, out)
         self.assertIn("~", out)
-        subprocess.run(cli + ["import", rid], check=True, capture_output=True)
-        self.assertTrue((self.proj / ".claude/session" / f"{rid}.md").exists())
+        subprocess.run(cli + ["import"], check=True, capture_output=True)  # rid 생략: 대기 전부
+        dst = self.proj / ".claude/records" / f"{rid}.md"
+        self.assertTrue(dst.exists())
+        body = st.record_path(rid).read_text()
+        got = dst.read_text()
+        self.assertIn("그 시점의 스냅샷", got)
+        self.assertIn("기간 2026-11-10", got)
+        self.assertIn("원본 트랜스크립트", got)
+        self.assertTrue(got.startswith("---\ntitle: "))               # frontmatter 가 맨 앞
+        fm_end = body.index("\n---\n", 4) + 5
+        self.assertEqual(got[:fm_end], body[:fm_end])                   # frontmatter 그대로
+        self.assertEqual(got[got.index("\n## "):], body[body.index("\n## "):])  # 본문 그대로, 머리말만 추가
+        self.assertLessEqual(got[fm_end:got.index("\n## ")].count("> "), 2)
         self.assertEqual(st.index()[rid]["status"], "imported")
         self.assertEqual(st.pending(), [])
         # 가져간 뒤 새 절이 붙으면 다시 pending
         self.write(human("추가 1234", ts="2026-11-10T03:00:00Z"), mode="a")
         worker.flush(st, self.sid, str(self.tp), "x", force=True)
         self.assertEqual(len(st.pending()), 1)
+        subprocess.run(cli + ["import"], check=True, capture_output=True)  # 늘어난 판을 덮어쓴다
+        self.assertIn("추가 1234", dst.read_text())
+        self.assertEqual(st.pending(), [])
+        worker.flush(st, self.sid, str(self.tp), "x", force=True)
+        self.write(human("또 5678", ts="2026-11-10T04:00:00Z"), mode="a")
+        worker.flush(st, self.sid, str(self.tp), "x", force=True)
         subprocess.run(cli + ["dismiss", rid], check=True, capture_output=True)
         self.assertEqual(st.pending(), [])
+
+    def test_home_setting_and_import_target(self):
+        from sllib import worker, records_home
+        self.base_transcript()
+        st = self.store()
+        rid = worker.flush(st, self.sid, str(self.tp), "x", force=True)["rids"][0]
+        cli = [sys.executable, "-I", str(SCRIPTS / "cli.py"), "--project", str(self.proj)]
+        subprocess.run(cli + ["home", "docs/sessions/"], check=True, capture_output=True)
+        self.assertEqual(json.loads((self.proj / ".claude/session-log.json").read_text()), {"records_home": "docs/sessions"})
+        subprocess.run(cli + ["import"], check=True, capture_output=True)
+        self.assertTrue((self.proj / "docs/sessions" / f"{rid}.md").exists())
+        bad = subprocess.run(cli + ["home", "/tmp"], capture_output=True, text=True)
+        self.assertNotEqual(bad.returncode, 0)
+        subprocess.run(cli + ["home", "--archive-only"], check=True, capture_output=True)
+        self.assertTrue(records_home.archive_only(self.proj))
+        r = subprocess.run(cli + ["import"], capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0)
+        subprocess.run(cli + ["home", "--unset"], check=True, capture_output=True)
+        self.assertFalse((self.proj / ".claude/session-log.json").exists())
+
+    def test_period_formats(self):
+        from sllib.records_home import period
+        self.assertEqual(period("## 2026-11-10 01:00–02:00 · x\n"), "2026-11-10 01:00 ~ 2026-11-10 02:00")
+        self.assertEqual(period("## 2026-11-10 01:00–02:00 · x\n## 2026-11-11 03:00 – 2026-11-12 04:00 · y\n"),
+                         "2026-11-10 01:00 ~ 2026-11-12 04:00")
+        self.assertEqual(period("no heads"), "")
 
 
 class TestHooks(Env):
@@ -265,7 +308,7 @@ class TestHooks(Env):
     def test_session_start_handover_and_pending_once(self):
         st = self.seed()
         self.other_session()
-        out = self.ctx(self.hook("SessionStart", self.payload(source="startup"), {"SESSION_LOG_HANDOVER_LIVE_MIN": "0"}))
+        out = self.ctx(self.hook("SessionStart", self.payload(source="startup"), {"SESSION_LOG_HANDOVER_LIVE_MIN": "0", "SESSION_LOG_HOME_NUDGE_COUNT": "2"}))
         self.assertIn('level="info"', out)
         self.assertIn('level="warn"', out)               # 인계(info)와 pending(warn)은 태그가 따로다
         self.assertEqual(out.count("<harness-hook"), 2)
@@ -273,7 +316,8 @@ class TestHooks(Env):
         self.assertIn("‹system-reminder›", out)          # 태그 무력화
         self.assertNotIn("<system-reminder>", out)
         self.assertNotIn("99999", out)                    # ⚠ 항목은 넣지 않는다
-        self.assertIn("2 auto-summarized session records pending import", out)
+        self.assertIn("no records home", out)
+        self.assertIn("2 auto-summarized session records have piled up", out)
         self.assertNotIn("가짜 요약이다", out)            # 자유 텍스트 요약은 넣지 않는다
         self.assertLessEqual(len(out.split("</harness-hook>")[0]), 800 + 200)
         out2 = self.ctx(self.hook("SessionStart", self.payload(source="startup"), {"SESSION_LOG_HANDOVER_LIVE_MIN": "0"}))
@@ -388,16 +432,49 @@ class TestHooks(Env):
         self.other_session()
         out = self.start(env={"SESSION_LOG_PENDING_STRONG_COUNT": "1"})
         first, second = out.split("</harness-hook>")[:2]
-        self.assertIn('level="action"', first + second)
+        self.assertIn('level="warn"', first + second)
         info = [t for t in (first, second) if "Handover from" in t][0]
         self.assertIn('level="info"', info)
-        self.assertNotIn("Import or dismiss", info)
+        self.assertNotIn("records home", info)
 
     def test_strong_wording(self):
         self.seed()
         out = self.ctx(self.hook("SessionStart", self.payload(source="startup"), {"SESSION_LOG_PENDING_STRONG_COUNT": "1"}))
-        self.assertIn('level="action"', out)
-        self.assertIn("Import or dismiss them soon", out)
+        self.assertIn('level="warn"', out)
+        self.assertNotIn('level="action"', out)
+        self.assertIn("this repo has no records home", out)
+        self.assertIn("docs/sessions/", out)
+        self.assertIn("session-log home --archive-only", out)
+
+    def test_pending_levels_by_home_state(self):
+        self.seed()
+        start = lambda env=None: self.ctx(self.hook("SessionStart", self.payload(source="startup"), env))
+        out = start()                                         # 미설정, 1개: 조용한 info
+        self.assertIn('level="info"', out)
+        self.assertNotIn("records home", out)
+        # 개수 문턱(3) 미만이어도 오래되면 제안
+        self.assertIn("no records home", self.ctx(self.hook("SessionStart", dict(self.payload(source="startup"), session_id="s1"), {"SESSION_LOG_HOME_NUDGE_DAYS": "-1"})))
+        (self.proj / "handoff").mkdir()
+        self.assertIn("`handoff/`", self.ctx(self.hook("SessionStart", dict(self.payload(source="startup"), session_id="s2"), {"SESSION_LOG_HOME_NUDGE_COUNT": "1"})))
+        from sllib import records_home
+        records_home.save(self.proj, home="docs/sessions")
+        c = self.ctx(self.hook("PreToolUse", self.payload(tool_name="Bash", tool_input={"command": "git commit -m x"})))
+        self.assertIn('level="warn"', c)                      # 설정됨 + commit: warn 과 정확한 명령
+        self.assertIn("`session-log import` copies them verbatim into docs/sessions/", c)
+        self.assertNotIn("no records home", c)
+        s3 = self.ctx(self.hook("SessionStart", dict(self.payload(source="startup"), session_id="s3")))
+        self.assertIn('level="info"', s3)                     # 설정됨 + 평상시: info
+        records_home.save(self.proj, archive=True)
+        s4 = self.ctx(self.hook("SessionStart", dict(self.payload(source="startup"), session_id="s4"), {"SESSION_LOG_PENDING_STRONG_COUNT": "1"}))
+        self.assertNotIn("pending import", s4)
+        self.assertNotIn("piled up", s4)
+
+    def test_records_hint_mentions_recall(self):
+        self.seed()
+        out = self.ctx(self.hook("SessionStart", self.payload(source="startup")))
+        self.assertIn("/q:recall", out)
+        self.assertIn("may be stale", out)
+
 
     def test_hook_speed(self):
         import time
@@ -406,6 +483,50 @@ class TestHooks(Env):
         for _ in range(5):
             self.hook("PostToolUse", self.payload(tool_name="Read"))
         self.assertLess((time.time() - t0) / 5, 0.5)
+
+
+class TestRecordsRead(Env):
+    def run_hook(self, tool, inp, sid="r1", agent=None, root=None):
+        payload = {"session_id": sid, "tool_name": tool, "tool_input": inp, "cwd": str(root or self.proj)}
+        if agent:
+            payload["agent_id"] = agent
+        p = subprocess.run([sys.executable, "-I", str(SCRIPTS / "records_read.py")], input=json.dumps(payload),
+                           capture_output=True, text=True, env=dict(os.environ), timeout=30)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        return json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"] if p.stdout.strip() else ""
+
+    def test_store_and_home_reads(self):
+        from sllib import records_home
+        recdir = self.home / "key" / "records"
+        recdir.mkdir(parents=True)
+        small = recdir / "a.md"; small.write_text("x" * 100)
+        big = recdir / "b.md"; big.write_text("y" * 40000)
+        out = self.run_hook("Read", {"file_path": str(small)})
+        self.assertIn("snapshots", out)
+        self.assertIn('level="info"', out)
+        self.assertEqual(self.run_hook("Read", {"file_path": str(small)}), "")            # 같은 (세션, 회차)엔 한 번
+        self.assertIn("snapshots", self.run_hook("Grep", {"path": str(recdir), "pattern": "x"}, agent="sub1"))  # 에이전트는 따로
+        self.assertIn("/q:recall", self.run_hook("Read", {"file_path": str(big)}))           # 큰 기록, 범위 없음
+        self.assertIn("/q:recall", self.run_hook("Read", {"file_path": str(big)}))           # 반복되면 다시
+        self.assertEqual(self.run_hook("Read", {"file_path": str(big), "limit": 50}, sid="r2") .count("large"), 0)  # 범위가 있으면 일반 안내
+        # 다른 파일은 조용
+        other = self.proj / "x.md"; other.write_text("z")
+        self.assertEqual(self.run_hook("Read", {"file_path": str(other)}), "")
+        # 저장소 보관 폴더
+        records_home.save(self.proj, home="docs/sessions")
+        (self.proj / "docs/sessions").mkdir(parents=True)
+        f = self.proj / "docs/sessions/r.md"; f.write_text("q")
+        self.assertIn("snapshots", self.run_hook("Read", {"file_path": str(f)}, sid="r3"))
+        # compact 회차가 오르면 다시
+        subprocess.run([sys.executable, "-I", str(SCRIPTS / "compact_epoch.py"), "q"], input=json.dumps({"session_id": "r3"}),
+                       text=True, check=True, env=dict(os.environ))  # tempfile.gettempdir() 캐시를 피해 자식 프로세스에서 올린다
+        self.assertIn("snapshots", self.run_hook("Read", {"file_path": str(f)}, sid="r3"))
+
+    def test_fast_exit_on_unrelated(self):
+        t0 = time.time()
+        for _ in range(5):
+            self.assertEqual(self.run_hook("Read", {"file_path": "/etc/hostname"}), "")
+        self.assertLess((time.time() - t0) / 5, 0.3)
 
 
 if __name__ == "__main__":

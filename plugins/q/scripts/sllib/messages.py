@@ -44,7 +44,8 @@ def saved(n_sections: int, files: list[str], pending: int, flagged: int) -> str:
     s = f"Session log: saved {n_sections} new section{'s' if n_sections != 1 else ''} to {where}."
     if flagged:
         s += f" {flagged} item{'s' if flagged != 1 else ''} failed the source check and are marked ⚠."
-    s += f" {pending} record{'s' if pending != 1 else ''} pending import (`session-log pending`)."
+    if pending:
+        s += f" {pending} record{'s' if pending != 1 else ''} pending import (`session-log pending`)."
     return s
 
 
@@ -61,22 +62,36 @@ def after_compact(record: str | None, store: str) -> str:
 # ---- pending(받아 가지 않은 기록) 알림 --------------------------------------------------
 REASONS = {
     "session_start": "",
-    "commit": "You are about to commit — a good moment to import them into the same commit.",
+    "commit": "You are about to commit: import now and include the files in this commit.",
     "precompact": "Compaction is about to drop details; importing keeps them in the repo.",
     "handover": "A handover is a good time to import or dismiss them.",
 }
 
 
-def pending(count: int, oldest_date: str, oldest_days: int, trigger: str, strong: bool) -> str:
-    rec = f"{count} auto-summarized session record{'s' if count != 1 else ''}"
-    if strong:
-        head = (f"Session log: {rec} are waiting outside the repo (oldest since {oldest_date}, {oldest_days} days). "
-                "Import or dismiss them soon with /q:import — they are not in git until imported.")
-    else:
-        head = (f"Session log: {rec} pending import (oldest waiting since {oldest_date}). "
-                "Review with /q:import or `session-log pending` when convenient.")
+def _rec(count: int) -> str:
+    return f"{count} auto-summarized session record{'s' if count != 1 else ''}"
+
+
+def pending(count: int, oldest_date: str, oldest_days: int, trigger: str, strong: bool = False, home: str | None = None) -> str:
+    """보관 위치가 정해져 있거나(home) 아직 쌓이지 않았을 때의 알림. import 는 명령 하나다."""
+    where = home or ".claude/records/"
+    head = (f"Session log: {_rec(count)} pending import (oldest since {oldest_date}, {oldest_days} days), "
+            f"not in git yet. `session-log import` copies them verbatim into {where} "
+            "(no curation; each gets a snapshot header); `session-log dismiss <rid…>` drops them.")
     reason = REASONS.get(trigger, "")
     return head + (" " + reason if reason else "") + (" (Not blocking.)" if trigger == "commit" else "")
+
+
+def pending_propose(count: int, oldest_date: str, oldest_days: int, history: list[str]) -> str:
+    """보관 위치가 없는데 기록이 쌓였을 때: 사용자에게 위치를 제안하라는 warn."""
+    opts = ["`docs/sessions/` (team-visible)", "`.claude/records/` (for agents only)"]
+    if history:
+        opts.append("the existing history dir " + " or ".join(f"`{h}`" for h in history))
+    opts.append("keep them outside the repo as an archive only (`session-log home --archive-only`; turns off these reminders)")
+    return (f"Session log: {_rec(count)} have piled up outside the repo (oldest since {oldest_date}, {oldest_days} days) and this repo has no records home. "
+            "Propose a location to the user, one of: " + "; ".join(opts) + ". "
+            "Save the choice with `session-log home <path>` (commit `.claude/session-log.json` so coworkers share it), "
+            "then run `session-log import`.")
 
 
 # ---- SessionStart 인계 ----------------------------------------------------------------
@@ -89,9 +104,18 @@ def handover_behind(sid8: str, when: str, end: int, total: int) -> str:
             "so its open items are not shown.")
 
 
-def records_hint(store_records: str) -> str:
-    return (f"Session records: find them with coderag (global docs) or under {store_records}; "
-            "verify decisions/numbers against the cited transcript lines (L…).")
+def records_hint(store_records: str, home: str | None = None) -> str:
+    where = f"{store_records}" + (f" or {home}" if home else "")
+    return (f"Session records ({where}) are snapshots and may be stale. To look something up use /q:recall (locate, then summarize, in subagents) "
+            "instead of reading them here; check any decision or number against current files and the git log before relying on it.")
+
+
+# ---- 기록을 읽을 때(PostToolUse Read·Grep) ----
+RECORD_READ = ("You read a session record. Records are snapshots of what was discussed then and may be stale: "
+               "verify any decision or fact against current files and the git log before acting on it.")
+RECORD_READ_LARGE = ("This session record is large ({kb} KB) and was read without offset/limit. Records are snapshots and may be stale. "
+                     "Use /q:recall (subagents locate and summarize the needed sections), or search first (coderag global docs, or grep) "
+                     "and read only the needed section with offset/limit; verify what you rely on against current files and the git log.")
 
 
 def more(n: int) -> str:

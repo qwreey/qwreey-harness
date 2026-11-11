@@ -3,8 +3,8 @@
 
   session-log pending [--json]                  받아 가지 않은 기록 목록(~토큰, 요약 한 줄)
   session-log show <rid> [--section N]          기록 보기
-  session-log import <rid…> [--to DIR] [--force]  저장소로 복사(기본 DIR=.claude/session/)하고 imported 로 표시
-  session-log import <rid…> --merged-into PATH   저장소 관례대로 합쳐 넣었으면 복사 없이 imported 로 표시
+  session-log import [rid…] [--to DIR] [--force]  대기 기록(rid 생략 시 전부)을 보관 폴더로 그대로 복사하고 imported 로 표시. 머리말 두 줄만 붙는다
+  session-log home [PATH | --archive-only | --unset]  저장소 보관 폴더 보기·저장(.claude/session-log.json, 커밋해 공유)
   session-log dismiss <rid…> [--reason TEXT]    고르지 않은 기록을 dismissed 로
   session-log flush [--session SID] [--transcript P] [--trigger T] [--force] [--wait]   지금 요약(수동 /q:checkpoint)
   session-log status                            저장소 위치·세션별 상태·최근 오류
@@ -18,7 +18,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import sys
 import time
 from datetime import datetime
@@ -27,7 +26,7 @@ from pathlib import Path
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from sllib import brief, config, extract as ex, summarize, verify, worker  # noqa: E402
+from sllib import brief, config, extract as ex, records_home, summarize, verify, worker  # noqa: E402
 from sllib.paths import find_transcript, latest_transcript_for, project_root, short_home  # noqa: E402
 from sllib.store import Store, fmt_tokens, token_estimate  # noqa: E402
 
@@ -87,29 +86,60 @@ def cmd_show(a):
 
 
 def cmd_import(a):
+    """대기 중인 기록을 보관 폴더로 그대로 복사하고 imported 로 표시한다. 고르거나 고쳐 쓰지 않는다."""
     st = store_for(a)
     idx = st.index()
-    to_dir = (st.root / a.to) if not os.path.isabs(a.to) else Path(a.to)
-    for rid in a.rid:
+    if a.to:
+        to = a.to
+    elif records_home.archive_only(st.root):
+        sys.exit("이 저장소는 기록을 저장소 밖에만 둔다(archive_only). 가져가려면 --to DIR 을 주거나 `session-log home <경로>` 로 바꾼다.")
+    else:
+        to = records_home.home_rel(st.root) or records_home.DEFAULT_HOME
+        if not records_home.home_rel(st.root):
+            print(f"보관 위치가 정해지지 않아 {to}/ 를 쓴다. 정하려면 `session-log home <경로>`.")
+    to_dir = (st.root / to) if not os.path.isabs(to) else Path(to)
+    rids = a.rid or [e["rid"] for e in st.pending()]
+    if not rids:
+        print("pending 없음"); return
+    now = datetime.now().isoformat(timespec="seconds")
+    n = 0
+    for rid in rids:
         if rid not in idx:
             print(f"없음: {rid}", file=sys.stderr); continue
-        if a.merged_into:  # 저장소 관례대로 합쳐 넣었다 → 복사하지 않고 표시만
-            st.mark(rid, status="imported", imported_to=a.merged_into, imported_at=datetime.now().isoformat(timespec="seconds"),
-                    imported_sections=idx[rid].get("sections", 0), imported_commit="", merged=True)
-            print(f"imported {rid} (merged into {a.merged_into})")
-            continue
         dst = to_dir / f"{rid}.md"
-        if dst.exists() and not a.force:
-            print(f"이미 있음(--force 로 덮어씀): {dst}", file=sys.stderr); continue
-        to_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(st.record_path(rid), dst)
         try:
             rel = str(dst.relative_to(st.root))
         except ValueError:
             rel = str(dst)
-        st.mark(rid, status="imported", imported_to=rel, imported_at=datetime.now().isoformat(timespec="seconds"),
+        # 새 절이 붙어 다시 pending 이 된 기록은 같은 파일의 늘어난 판이라 덮어쓴다
+        if dst.exists() and idx[rid].get("imported_to") != rel and not a.force:
+            print(f"이미 있음(--force 로 덮어씀): {dst}", file=sys.stderr); continue
+        to_dir.mkdir(parents=True, exist_ok=True)
+        text = st.record_path(rid).read_text(encoding="utf-8")
+        dst.write_text(records_home.with_header(text, rid), encoding="utf-8")
+        st.mark(rid, status="imported", imported_to=rel, imported_at=now,
                 imported_sections=idx[rid].get("sections", 0), imported_commit="")
         print(f"imported {rid} → {dst}")
+        n += 1
+    if n:
+        print(f"{n}개 복사. 다음 커밋에 {to}/ 를 넣는다(플러그인은 git 을 건드리지 않는다).")
+
+
+def cmd_home(a):
+    st = store_for(a)
+    if a.path or a.archive_only or a.unset:
+        try:
+            d = records_home.save(st.root, home=a.path, archive=a.archive_only, unset=a.unset)
+        except ValueError as e:
+            sys.exit(str(e))
+        print(f"saved {records_home.FILE}: {json.dumps(d, ensure_ascii=False) if d else '(unset)'}\n"
+              "이 파일을 커밋하면 동료도 같은 위치를 쓴다.")
+        return
+    if records_home.archive_only(st.root):
+        print("archive_only: 기록은 저장소 밖에만 둔다(pending 알림 꺼짐)")
+    else:
+        h = records_home.home_rel(st.root)
+        print(f"records home: {h + '/' if h else '(미설정; import 는 ' + records_home.DEFAULT_HOME + '/ 를 쓴다)'}")
 
 
 def cmd_dismiss(a):
@@ -267,9 +297,10 @@ def main():
     sp = ap.add_subparsers(dest="cmd", required=True)
     p = sp.add_parser("pending"); p.add_argument("--json", action="store_true"); p.set_defaults(f=cmd_pending)
     p = sp.add_parser("show"); p.add_argument("rid"); p.add_argument("--section", type=int); p.set_defaults(f=cmd_show)
-    p = sp.add_parser("import"); p.add_argument("rid", nargs="+"); p.add_argument("--to", default=".claude/session/")
-    p.add_argument("--force", action="store_true"); p.add_argument("--merged-into", help="합쳐 넣은 저장소 파일(복사 없이 imported 표시)")
-    p.set_defaults(f=cmd_import)
+    p = sp.add_parser("import"); p.add_argument("rid", nargs="*"); p.add_argument("--to", help="보관 폴더(기본: 설정된 records home)")
+    p.add_argument("--force", action="store_true"); p.set_defaults(f=cmd_import)
+    p = sp.add_parser("home"); p.add_argument("path", nargs="?"); p.add_argument("--archive-only", action="store_true")
+    p.add_argument("--unset", action="store_true"); p.set_defaults(f=cmd_home)
     p = sp.add_parser("dismiss"); p.add_argument("rid", nargs="+"); p.add_argument("--reason"); p.set_defaults(f=cmd_dismiss)
     p = sp.add_parser("flush")
     for o in ("--session", "--transcript"):
