@@ -1,10 +1,10 @@
 """서브에이전트 슬롯·비용 원장 (session_id 단위). 표준 라이브러리만.
 
-쓰는 곳: hooks/subagent-slots.py(기록), statusline/harness-status.py(읽기), skills/q:away·back(이 파일의 CLI).
+쓰는 곳: scripts/subagent-slots.py(기록), statusline/harness-status.py(읽기), skills/q:away·back(이 파일의 CLI). statusline 은 설치된 q 의 사본을 찾아 읽는다.
 설계: audit/21-cost-disclosure.md. 훅 메시지는 HOOK-MESSAGES.md 규약을 따른다.
 
 상태 파일: $TMPDIR/claude-subagent-slots/<sid>.json (+ .lock). compact 회차로 나누지 않는다(실행 중 수는 compact 와 무관).
-알림 dedup 만 키에 회차를 넣는다(lib/compact_epoch.py).
+알림 dedup 만 키에 회차를 넣는다(compact_epoch.py, q 자기 회차).
 
 실측(2026-11-10, claude 2.1.316, audit/21 §1):
 - PreToolUse(Agent) tool_input: description, prompt, subagent_type, model(별칭), run_in_background, isolation.
@@ -26,7 +26,9 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
-HOME = Path(__file__).resolve().parent.parent
+HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")  # 사용자 설정 위치(harness.env, lib/harness_env.py, projects/)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import compact_epoch  # noqa: E402
 NS = "claude-subagent-slots"
 
 # 공식 가격(USD / MTok): https://platform.claude.com/docs/en/about-claude/pricing (2026-11-10 열람)
@@ -105,10 +107,7 @@ def num(cfg, key, kind=float):
 
 
 def epoch(sid):
-    try:
-        return _load_mod("compact_epoch").epoch(sid)
-    except Exception:
-        return 0
+    return compact_epoch.epoch("q", sid)
 
 
 # ---------- 모델·가격 ----------

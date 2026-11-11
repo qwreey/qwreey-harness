@@ -50,6 +50,9 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import compact_epoch  # noqa: E402
+
 # 툴킷 표: 확장자·예외 표식 주석·생성물 접미사·건너뛸 폴더·테스트 판정. 새 툴킷은 한 줄 더한다(또는 저장소 structure.json 의 toolkits).
 TOOLKITS = {
     "luau": {"ext": [".luau", ".lua"], "comment": ["--"], "skip_suffix": [".d.luau"]},
@@ -87,7 +90,7 @@ def harness_env():
     """~/.claude/lib/harness_env.py 로 harness.env 를 읽는다(한 번). 없거나 깨졌으면 {}."""
     global _ENV
     if _ENV is None:
-        home = Path(__file__).resolve().parent.parent
+        home = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
         try:
             spec = importlib.util.spec_from_file_location("harness_env", home / "lib" / "harness_env.py")
             mod = importlib.util.module_from_spec(spec)
@@ -106,17 +109,8 @@ def base_state_path(session_id):
 
 
 def dedup_path(namespace, session_id, agent_id=None):
-    """State file keyed by (session_id, compact epoch) via lib/compact_epoch.py; falls back to session_id only."""
-    try:
-        spec = importlib.util.spec_from_file_location("compact_epoch", Path(__file__).resolve().parent.parent / "lib" / "compact_epoch.py")
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod.state_path(namespace, session_id, agent_id)
-    except Exception:
-        d = os.path.join(tempfile.gettempdir(), namespace)
-        os.makedirs(d, exist_ok=True)
-        who = ".a" + re.sub(r"[^\w-]", "", str(agent_id)) if agent_id else ""
-        return os.path.join(d, re.sub(r"[^\w-]", "", str(session_id or "nosession")) + who + ".json")
+    """State file keyed by (session_id, compact epoch): compact_epoch.py(이 플러그인 자기 회차)."""
+    return compact_epoch.state_path("qwreey-conventions", namespace, session_id, agent_id)
 
 
 def find_planner():

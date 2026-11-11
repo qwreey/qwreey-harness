@@ -10,7 +10,7 @@
   - 스킬은 description 이 맞을 때만 로드되므로, 스크립트로 일괄 수정할 때는 규약을 놓치기 쉽다.
 
 종류마다 세션당 한 번만 알린다. rules 파일 안내는 파일마다 세션당 한 번이다.
-상태 파일 위치: $TMPDIR/claude-bypass-reminder/<session_id>.c<compact 회차>[.a<agent_id>].json (lib/compact_epoch.py. compact 뒤 다시 알린다)
+상태 파일 위치: $TMPDIR/claude-bypass-reminder/<session_id>.c<compact 회차>[.a<agent_id>].json (compact_epoch.py. compact 뒤 다시 알린다)
 """
 import fnmatch
 import importlib.util
@@ -21,6 +21,9 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import compact_epoch  # noqa: E402
+
 INTERP = {"python", "python3", "node", "deno", "bun", "perl", "ruby", "lua", "luau", "lune", "lute"}
 PREFIX = {"(", "{", "time", "nice", "env", "command", "exec", "nohup", "sudo", "choom", "prlimit", "timeout", "--"}
 INPLACE = re.compile(r"\bsed\s+(-\S*\s+)*-i|\bperl\s+(-\S*\s+)*-\S*p\S*i|\bawk\s+-i\s+inplace|\bpatch\b|\bgit\s+apply\b")
@@ -30,17 +33,8 @@ PATHLIKE = re.compile(r"[\w./@-]+" + CODE_EXT + r"\b")
 
 
 def dedup_path(namespace, session_id, agent_id=None):
-    """State file keyed by (session_id, compact epoch) via lib/compact_epoch.py; falls back to session_id only."""
-    try:
-        spec = importlib.util.spec_from_file_location("compact_epoch", Path(__file__).resolve().parent.parent / "lib" / "compact_epoch.py")
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod.state_path(namespace, session_id, agent_id)
-    except Exception:
-        d = os.path.join(tempfile.gettempdir(), namespace)
-        os.makedirs(d, exist_ok=True)
-        who = ".a" + re.sub(r"[^\w-]", "", str(agent_id)) if agent_id else ""
-        return os.path.join(d, re.sub(r"[^\w-]", "", str(session_id or "nosession")) + who + ".json")
+    """State file keyed by (session_id, compact epoch): compact_epoch.py(이 플러그인 자기 회차)."""
+    return compact_epoch.state_path("qwreey-conventions", namespace, session_id, agent_id)
 
 
 def heads(cmd):

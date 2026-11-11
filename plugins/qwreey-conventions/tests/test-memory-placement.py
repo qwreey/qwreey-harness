@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""memory-placement 훅과 lib/memory_signals.py 회귀. 실행: python3 -I test-memory-placement.py  (exit 0 = 통과)
+"""memory-placement 훅과 hooks/memory_signals.py 회귀. 실행: python3 -I test-memory-placement.py  (exit 0 = 통과)
 
 임시 HOME(CLAUDE_CONFIG_DIR) 아래에 프로젝트 키 메모리 디렉터리를 만들고 훅에 PostToolUse JSON 을 넣는다. 상태는 TMPDIR 로 격리한다.
 """
@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOOK = os.path.join(ROOT, "hooks", "memory-placement.py")
 T = tempfile.mkdtemp(prefix="mem-place-")
 CFG = os.path.join(T, "cfg")
@@ -105,7 +105,7 @@ check("autoMemoryDirectory honored", "x.md" in call(cp, sid="s4", cwd=os.path.jo
 check("relative autoMemoryDirectory not treated as memory", call(os.path.join(T, "proj", ".claude", "memory", "y.md"), sid="s5", cwd=os.path.join(T, "proj")) == "")
 
 # lib: key rule and resolve_key
-sys.path.insert(0, os.path.join(ROOT, "lib"))
+sys.path.insert(0, os.path.join(ROOT, "hooks"))
 import memory_signals as ms  # noqa: E402
 check("key_of dot underscore", ms.key_of("/tmp/memexpA.dot_1") == "-tmp-memexpA-dot-1")
 check("key_of hidden dir", ms.key_of("/code/.claude") == "-code--claude")

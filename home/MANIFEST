@@ -4,15 +4,6 @@
 CLAUDE.md
 harness.env
 lib/harness_env.py
-hooks/heavy-proc-guard.py
-hooks/bash-bypass-reminder.py
-hooks/structure-reminder.py
-hooks/memory-placement.py
-lib/memory_signals.py
-hooks/rearm-on-compact.py
-lib/compact_epoch.py
-hooks/subagent-slots.py
-lib/subagent_ledger.py
 statusline/harness-status.py
 
 # 심볼릭 링크: link <~/.claude 기준 경로> <대상>

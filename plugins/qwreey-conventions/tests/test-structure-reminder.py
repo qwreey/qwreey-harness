@@ -11,7 +11,7 @@ import subprocess
 import sys
 import tempfile
 
-HOOK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "structure-reminder.py")
+HOOK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks", "structure-reminder.py")
 T = tempfile.mkdtemp(prefix="structrem-")
 REPO = os.path.join(T, "repo")
 STATE = os.path.join(T, "state")

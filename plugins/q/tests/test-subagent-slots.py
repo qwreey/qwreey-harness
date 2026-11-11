@@ -11,14 +11,22 @@ import sys
 import tempfile
 import time
 
-H = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-HOME = os.path.dirname(H)
-LEDGER = os.path.join(HOME, "lib", "subagent_ledger.py")
+Q = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+H = os.path.join(Q, "scripts")
+HOME = os.path.join(os.path.dirname(os.path.dirname(Q)), "home", ".claude")  # 정본 사용자 설정(statusline, harness.env)
+LEDGER = os.path.join(H, "subagent_ledger.py")
 T = tempfile.mkdtemp(prefix="slots-")
+# 사용자 설정 디렉터리 흉내: 설치된 q(이 저장소의 사본)를 가리키는 installed_plugins.json + 정본 harness.env·lib
+CFG = os.path.join(T, "cfg")
+os.makedirs(os.path.join(CFG, "plugins"))
+os.symlink(os.path.join(HOME, "lib"), os.path.join(CFG, "lib"))
+os.symlink(os.path.join(HOME, "harness.env"), os.path.join(CFG, "harness.env"))
+json.dump({"version": 2, "plugins": {"q@claude-doctor-market": [{"scope": "user", "installPath": Q, "lastUpdated": "2026-01-01T00:00:00Z"}]}},
+          open(os.path.join(CFG, "plugins", "installed_plugins.json"), "w"))
 PROJ = os.path.join(T, "proj")
 os.makedirs(os.path.join(PROJ, ".claude"))
 BASE_ENV = {k: v for k, v in os.environ.items() if not k.startswith(("HARNESS_SUBAGENT", "HARNESS_FANOUT", "HARNESS_AWAY", "HARNESS_SLOTS"))}
-ENV = dict(BASE_ENV, TMPDIR=T, CLAUDE_PROJECT_DIR=PROJ, NO_COLOR="1",  # statusline 문자열 비교는 색 없이
+ENV = dict(BASE_ENV, TMPDIR=T, CLAUDE_CONFIG_DIR=CFG, CLAUDE_PROJECT_DIR=PROJ, NO_COLOR="1",  # statusline 문자열 비교는 색 없이
            HARNESS_STATUSLINE_STYLE="plain")  # 스크립트 옆(정본) harness.env 의 개인 스타일에 휘둘리지 않게
 res = []
 
@@ -106,7 +114,7 @@ class S:
 
 
 # ---- 비용 계산: probe(2026-11-10) 의 sonnet-5-5 서브에이전트 1개 = $0.043544 ----
-sys.path.insert(0, os.path.join(HOME, "lib"))
+sys.path.insert(0, H)
 import subagent_ledger as L  # noqa: E402
 
 check("price: sonnet 5.5 cache write 5m/1h + read + out", abs(L.usage_usd("claude-sonnet-5-5", {
@@ -140,7 +148,7 @@ check("attended: running back to 0 after stops", s.state()["running"] == {})
 o1, a1 = s.launch("opus")
 o2, a2 = s.launch("opus")
 check("attended: 1 opus silent, 2nd opus -> warn (new burst)", ctx(o1) == "" and "opus-or-above: 2" in ctx(o2))
-subprocess.run([sys.executable, "-I", os.path.join(H, "rearm-on-compact.py")], input=json.dumps({"session_id": "att", "source": "compact"}), text=True, env=ENV)
+subprocess.run([sys.executable, "-I", os.path.join(H, "compact_epoch.py"), "q"], input=json.dumps({"session_id": "att", "source": "compact"}), text=True, env=ENV)
 o3, a3 = s.launch("opus")
 check("attended: compact epoch re-arms the warn in the same burst", "Large fan-out" in ctx(o3))
 _, ow = s.pre(tool="Workflow")
@@ -353,7 +361,7 @@ check("pct statusline: HALT", "AWAY HALT" in sline("pc", rl(81, 65)))
 _, wfl = pc.pre(tool="Workflow")
 check("stage 2: Workflow also denied", denied(wfl) and "halt:" in reason(wfl))
 check("stage 2: full instruction once, short afterwards", "progress file" in reason(pe) and "progress file" in reason(wfl) and len(reason(wfl)) < len(reason(pe)))
-subprocess.run([sys.executable, "-I", os.path.join(H, "rearm-on-compact.py")], input=json.dumps({"session_id": "pc", "source": "compact"}), text=True, env=ENV)
+subprocess.run([sys.executable, "-I", os.path.join(H, "compact_epoch.py"), "q"], input=json.dumps({"session_id": "pc", "source": "compact"}), text=True, env=ENV)
 pf = pc.pre()[1]
 check("stage 2: full instruction again after compact (dedup per epoch)", "wait for the user" in reason(pf) and len(reason(pf)) > 300)
 check("stage 2: denied calls reserve nothing and count as queued", pc.state()["reserved"] == {} and pc.state()["away"]["queued"] >= 4)
@@ -482,7 +490,7 @@ check("main-solo: stage 2 -> action 'halt:' with progress-file instruction", 'le
 check("main-solo: stage 2 only once per epoch", post_read(m) is None)
 check("main-solo: nothing is stopped (no decision field)", "permissionDecision" not in json.dumps(o2) and "decision" not in o2)
 check("main-solo: subagent (agent_id) call gets nothing", post_read(m, agent="zz") is None)
-subprocess.run([sys.executable, "-I", os.path.join(H, "rearm-on-compact.py")], input=json.dumps({"session_id": "m1", "source": "compact"}), text=True, env=ENV)
+subprocess.run([sys.executable, "-I", os.path.join(H, "compact_epoch.py"), "q"], input=json.dumps({"session_id": "m1", "source": "compact"}), text=True, env=ENV)
 check("main-solo: new compact epoch -> stage 2 again", "halt:" in ctx(post_read(m)))
 m2 = S("m2")
 open(m2.tp, "a").write(usage_line("mx1", "claude-opus-5-5", out=900_000))  # $22.5 before away
@@ -563,6 +571,34 @@ repo_out = subprocess.run([sys.executable, "-I", SL], input=json.dumps(dict(SAMP
                           capture_output=True, text=True, env={k: v for k, v in ENV.items() if k != "HARNESS_STATUSLINE_STYLE"}).stdout.strip()
 check("repo harness.env sets style (env var unset)", repo_out == "Opus 34% · 5h 92%", repo_out)
 os.remove(os.path.join(PROJ, ".claude", "harness.env"))
+
+# ---- statusline: 설치된 q 찾기 ----
+def sl_out(cfg_dir):
+    env = dict(ENV, CLAUDE_CONFIG_DIR=cfg_dir)
+    return subprocess.run([sys.executable, "-I", SL], input=json.dumps({"session_id": "away", "model": {"display_name": "Opus"}}),
+                          capture_output=True, text=True, env=env)
+
+
+def registry(entries):
+    d = os.path.join(T, "cfg2")
+    os.makedirs(os.path.join(d, "plugins"), exist_ok=True)
+    json.dump({"version": 2, "plugins": {"q@claude-doctor-market": entries}}, open(os.path.join(d, "plugins", "installed_plugins.json"), "w"))
+    return d
+
+
+r = sl_out(os.path.join(T, "no-such-config"))
+check("statusline: q not installed -> no agents/away segment, no error", r.returncode == 0 and r.stdout.strip() == "Opus" and r.stderr == "", (r.stdout, r.stderr))
+r = sl_out(registry([{"scope": "user", "installPath": os.path.join(T, "gone")}]))
+check("statusline: registry points at missing install -> omitted", r.returncode == 0 and "agents" not in r.stdout, r.stdout)
+r = sl_out(registry([{"scope": "user", "installPath": os.path.join(T, "gone")}, {"scope": "local", "installPath": Q}]))
+check("statusline: picks the install that exists", "agents" in r.stdout, r.stdout)
+fake = os.path.join(T, "fakeq", "scripts")
+os.makedirs(fake)
+open(os.path.join(fake, "subagent_ledger.py"), "w").write("raise RuntimeError('broken')\n")
+r = sl_out(registry([{"scope": "user", "installPath": Q}, {"scope": "local", "installPath": os.path.dirname(fake)}]))
+check("statusline: narrower scope wins deterministically (broken copy -> omitted, no crash)", r.returncode == 0 and "agents" not in r.stdout, r.stdout)
+r = sl_out(registry([{"scope": "user", "installPath": os.path.dirname(fake), "lastUpdated": "2026-01-01"}, {"scope": "user", "installPath": Q, "lastUpdated": "2026-02-01"}]))
+check("statusline: same scope -> later lastUpdated wins", "agents" in r.stdout, r.stdout)
 
 for name, ok in res:
     print(("PASS " if ok else "FAIL ") + name)

@@ -1,5 +1,8 @@
 """Auto memory helpers shared by hooks/memory-placement.py and the /q:doctor memory checks. Standard library only.
 
+Canonical copy: plugins/qwreey-conventions/hooks/memory_signals.py. The copy in plugins/q/skills/doctor/scripts/ must stay
+byte-identical (tools/tests/test-vendored-copies.py checks it); edit the canonical file, then copy.
+
 Why: auto memory (~/.claude/projects/<key>/memory/) is machine-local. Knowledge that belongs to a repository
 (paths, build commands, conventions, pitfalls) written there does not travel with the repo, to another clone,
 another machine or a teammate (audit/23). This module decides "does this memory text look like repo knowledge".

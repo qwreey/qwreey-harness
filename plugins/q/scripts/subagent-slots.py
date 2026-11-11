@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """서브에이전트 고지·슬롯 훅. 한 파일이 이벤트 이름으로 나눠 처리한다.
 
-등록(settings.json): PreToolUse(Agent|Workflow), PostToolUse(모든 도구), SubagentStart, SubagentStop, Stop.
-설계: audit/21-cost-disclosure.md. 원장: lib/subagent_ledger.py. 메시지 규약: HOOK-MESSAGES.md.
+등록(q 플러그인 hooks/hooks.json): PreToolUse(Agent|Workflow), PostToolUse(모든 도구), SubagentStart, SubagentStop, Stop.
+설계: audit/21-cost-disclosure.md. 원장: subagent_ledger.py(같은 디렉터리). 메시지 규약: HOOK-MESSAGES.md.
 
 - attended(기본): 막지 않는다. 큰 팬아웃(동시 N 개 이상, opus 이상 M 개 이상, Workflow)이면 warn 으로
   "사용자에게 규모를 고지하라"를 낸다. 팬아웃 한 묶음(실행 중 0 에서 시작해 다시 0 이 될 때까지)마다·compact 회차마다 한 번.
@@ -13,7 +13,7 @@
   평소(away 아님)에는 상태 파일을 열어 away.on 만 보고 즉시 끝난다(원장 모듈을 적재하지 않는다).
   예산 단위는 USD·에이전트 수·한도 %(statusline 이 쓴 <sid>.limits.json 을 읽는다).
 - 세는 법: PreToolUse 에서 예약(+1) → PostToolUse(async_launched)·SubagentStart 에서 실행 중으로 → SubagentStop 에서 −1.
-  어긋남 복구: lib/subagent_ledger.live() (background_tasks, meta.json, 트랜스크립트 mtime, 예약 TTL). 수동: /q:away reset.
+  어긋남 복구: subagent_ledger.live() (background_tasks, meta.json, 트랜스크립트 mtime, 예약 TTL). 수동: /q:away reset.
 끄기: HARNESS_SUBAGENT_SLOTS=off. 실패해도 아무것도 막지 않는다(예외는 삼킨다).
 """
 import os
@@ -33,14 +33,14 @@ def _late():
     import time as _t
     from pathlib import Path as _P
     time, Path = _t, _P
-    HOME = _P(__file__).resolve().parent.parent
+    HOME = _P(os.environ.get("CLAUDE_CONFIG_DIR") or _P.home() / ".claude")  # 사용자 정의 에이전트(agents/) 위치
 
 
 BUILTIN = {"general-purpose", "fork", "Explore", "Plan", "claude", "statusline-setup", "claude-code-guide"}
 
 
 def load_ledger():
-    spec = importlib.util.spec_from_file_location("subagent_ledger", HOME / "lib" / "subagent_ledger.py")
+    spec = importlib.util.spec_from_file_location("subagent_ledger", Path(__file__).resolve().with_name("subagent_ledger.py"))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -204,7 +204,7 @@ def pre_workflow(L, st, data, cfg, now):
 def quick_not_away(raw):
     """모든 도구의 PostToolUse 가 지나가는 길. json 을 적재하기 전에 원문에서 session_id 만 뽑아 상태 파일의 away.on 을 본다.
     '확실히 away 가 아님'일 때만 True(그대로 종료). 조금이라도 불확실하면 False 라 정상 경로가 판단한다.
-    상태 파일 위치는 lib/subagent_ledger.state_path 와 같은 규칙(테스트가 일치를 확인한다)."""
+    상태 파일 위치는 subagent_ledger.state_path 와 같은 규칙(테스트가 일치를 확인한다)."""
     if '"PostToolUse"' not in raw or '"Agent"' in raw or '"Task"' in raw:
         return False
     i = raw.find('"session_id"')

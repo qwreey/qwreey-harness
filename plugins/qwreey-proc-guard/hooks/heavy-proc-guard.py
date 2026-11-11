@@ -18,6 +18,7 @@ per-toolkit table, filtered by HARNESS_TOOLKITS; HARNESS_HEAVY_EXECUTORS / _KEYW
 """
 import importlib.util
 import json
+import os
 import re
 import shutil
 import sys
@@ -63,12 +64,12 @@ def is_executor(head, executors):
 
 def load_env():
     """~/.claude/lib/harness_env.py 로 harness.env 를 읽는다. 없거나 깨졌으면 {}(= 기본값 auto)."""
-    home = Path(__file__).resolve().parent.parent
+    home = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
     try:
         spec = importlib.util.spec_from_file_location("harness_env", home / "lib" / "harness_env.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
-        return mod.load([Path(__file__).parent.parent / "harness.env", home / "harness.env"])
+        return mod.load([home / "harness.env"])
     except Exception:
         return {}
 

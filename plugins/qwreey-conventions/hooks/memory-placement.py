@@ -7,32 +7,25 @@
   메모리에만 들어가면 다른 clone·다른 기기·동료에게 가지 않고, 폴더를 옮기면 키가 바뀌어 끊긴다(audit/23).
 실측(2.1.316): 메모리 쓰기는 일반 Write 도구라 이 훅이 file_path 를 받는다. MEMORY.md 도 Write 로 쓰인다.
 동작: file_path 가 auto memory 디렉터리 안(기본 <config>/projects/*/memory/ 또는 autoMemoryDirectory)일 때만, MEMORY.md 가 아닌 파일의
-  디스크 내용을 lib/memory_signals.py 로 분류한다. type: user 는 항상 조용하다. 환경 표현(sandbox, 이 기기 등)은 점수를 깎는다.
-알림 중복: 같은 파일은 (session_id, 호출한 쪽, compact 회차)당 한 번. lib/compact_epoch.py 의 state_path 를 쓴다.
+  디스크 내용을 memory_signals.py 로 분류한다. type: user 는 항상 조용하다. 환경 표현(sandbox, 이 기기 등)은 점수를 깎는다.
+알림 중복: 같은 파일은 (session_id, 호출한 쪽, compact 회차)당 한 번. compact_epoch.py(이 플러그인 자기 회차)의 state_path 를 쓴다.
 끄기: 환경 변수 MEMORY_PLACEMENT=off
 """
-import importlib.util
 import json
 import os
 import sys
 from pathlib import Path
 
 NS = "claude-memory-placement"
-LIB = Path(__file__).resolve().parent.parent / "lib"
-
-
-def load(name):
-    spec = importlib.util.spec_from_file_location(name, LIB / f"{name}.py")
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import compact_epoch  # noqa: E402
+import memory_signals  # noqa: E402
 
 
 def seen_before(data, file_path):
     """True if this file was already reported in this (session, caller, compact epoch). Records it otherwise."""
     try:
-        ce = load("compact_epoch")
-        p = ce.state_path(NS, data.get("session_id"), data.get("agent_id"))
+        p = compact_epoch.state_path("qwreey-conventions", NS, data.get("session_id"), data.get("agent_id"))
     except Exception:
         return False
     try:
@@ -70,7 +63,7 @@ def main():
         fp = (data.get("tool_input") or {}).get("file_path")
         if not fp or Path(fp).name == "MEMORY.md" or not fp.endswith(".md"):
             return 0
-        ms = load("memory_signals")
+        ms = memory_signals
         if not ms.is_memory_path(fp, data.get("cwd")):
             return 0
         text = Path(fp).read_text(errors="replace")[:200_000]
