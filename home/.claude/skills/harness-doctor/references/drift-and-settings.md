@@ -69,5 +69,5 @@ agy 위임 도구는 4벌이다(quad, stl-luau, tbox, table-sim). 지금은 고�
 **모델이 볼 것**
 - `settings.local.json`에 공유할 설정(훅, deny)이 숨어 있지 않은지 본다.
 - 훅의 matcher가 의도와 맞는지 본다. 예: `Bash` 대신 `*`를 쓰고 있지 않은지.
-- 사용자 레벨로 올릴 만한 공통 설정이 있으면 정본 `<doctor>/home/.claude/settings.json`을 고치는 안을 낸다.
+- 사용자 레벨로 올릴 만한 공통 설정이 있으면 `<doctor>/home/settings-migrations/` 에 새 마이그레이션을 추가하는 안을 낸다.
 - 훅 명령의 경로는 `$HOME/.claude/hooks/…`나 `$CLAUDE_PROJECT_DIR/…`로 쓴다. 절대 경로(`/code/...`)는 다른 환경에서 깨진다. scan은 환경 변수를 풀어 `SET-HOOKPATH`를 본다.

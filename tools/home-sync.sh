@@ -182,17 +182,6 @@ case "$cmd" in
       fi
     done ;;
   apply)
-    # 실제 settings.json 에만 있는 최상위 키(예: /config, /auto-mode-setup 이 만든 것)가 있으면
-    # 통째 cp 가 그 키를 지운다. 멈추고 알린다. 덮어쓰려면 HOME_SYNC_FORCE=1.
-    if [[ -f "$DST/settings.json" && -f "$SRC/settings.json" && "${HOME_SYNC_FORCE:-}" != 1 ]]; then
-      extra=$(jq -rn --slurpfile r "$DST/settings.json" --slurpfile c "$SRC/settings.json" '(($r[0]|keys) - ($c[0]|keys)) | join(", ")' 2>/dev/null)
-      if [[ -n "$extra" ]]; then
-        echo "중단: 실제 settings.json 에만 있는 키가 있다: $extra" >&2
-        echo "  정본으로 가져오려면: jq 로 정본에 합친 뒤 다시 apply (또는 pull 로 파일째 가져오기)" >&2
-        echo "  지워도 되면: HOME_SYNC_FORCE=1 $0 apply" >&2
-        exit 2
-      fi
-    fi
     if [[ -d "$MIG_DIR" ]]; then migrate run || exit $?; fi
     links apply
     for f in "${FILES[@]}"; do

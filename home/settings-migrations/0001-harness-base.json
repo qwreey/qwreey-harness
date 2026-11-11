@@ -95,7 +95,8 @@
         "type": "command",
         "command": "python3 $HOME/.claude/statusline/harness-status.py",
         "refreshInterval": 10
-      }
+      },
+      "keep_existing": true
     },
     {
       "op": "set",
