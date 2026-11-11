@@ -2,6 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register, EngineInterface } from 'claude-code'
 
 import type { QuiSnap } from '../types'
+import { parseHint } from './hint'
 
 // 모든 표시 값은 이 atom 하나에 모은다. 쓰면 읽는 그림이 다시 그려진다.
 const snap = atom({ plugin: 'q-ui', key: 'snap' } as const, null)
@@ -83,7 +84,23 @@ const readStyle = async ($: EngineInterface, option: unknown) => {
   return v?.trim().toLowerCase() === 'nerd' ? 'nerd' : 'plain'
 }
 
-const S = { style: 'plain' as 'plain' | 'nerd', cwdName: '', cwdPath: '', model: '', effort: '' }
+const S = {
+  style: 'plain' as 'plain' | 'nerd', cwdName: '', cwdPath: '', model: '', effort: '',
+  site: 'prompt-hint' as string, hint: 'merge' as string,
+}
+
+// statusline 이 이 파일이 새것이면 자기 줄을 숨긴다(away 표시와 limits.json 기록은 남긴다).
+// 갱신이 멎으면(mod 가 꺼지거나 세션이 죽으면) 90초 뒤 statusline 이 저절로 돌아온다.
+const MARKER_EVERY = 30_000
+async function writeMarker($: EngineInterface) {
+  try {
+    const sid = await $.session.id()
+    const dir = `${(await $.env.get('TMPDIR')) || '/tmp'}/claude-subagent-slots`
+    await $.fs.write(`${dir}/${sid}.qui-mod`, String(Date.now()))
+  } catch {
+    // 못 쓰면 statusline 이 그대로 남는다(중복이지만 정보는 잃지 않는다).
+  }
+}
 
 async function patch($: EngineInterface, p: Partial<QuiSnap>) {
     await update($, snap, (old): QuiSnap => {
@@ -123,25 +140,15 @@ async function readGit($: EngineInterface) {
   }
 
 
-async function draw($: EngineInterface, e: any, columns: number | undefined, modes: readonly string[]) {
-  const s = await read($, snap)
-  if (!s) return null
-  const nerd = S.style === 'nerd'
-  const { Box, Text } = $.ui.resolve(e)
-  let segs = bundles(s, nerd, S.cwdName)
-  const sepText = nerd ? ' │ ' : ' · '
-  const lead = modes.length ? `${modes.join(' & ')}${sepText}` : ''
-  // 좁으면 뒤 묶음부터 통째로 뺀다. 푸터 왼쪽 문구가 쓰는 자리를 못 재므로 보수적으로 절반만 쓴다.
-  const budget = columns ? Math.floor(columns * 0.5) : 10 ** 6
-  const width = () => lead.length + segs.reduce((n, g) => n + g.len, 0) + sepText.length * Math.max(0, segs.length - 1)
-  while (segs.length > 1 && width() > budget) segs = segs.slice(0, -1)
-  if (!segs.length) return null
+type Part = { color?: string; bold?: boolean; text: string }
+
+const render = (ui: ReturnType<EngineInterface['ui']['resolve']>, parts: Part[][], seps: string[]) => {
+  const { Box, Text } = ui
   return (
     <Box>
-      {lead ? <Text>{lead}</Text> : null}
-      {segs.flatMap((g, i) => [
-        ...(i ? [<Text key={`s${i}`}>{sepText}</Text>] : []),
-        ...g.parts.map((p, j) => (
+      {parts.flatMap((g, i) => [
+        ...(i ? [<Text key={`s${i}`}>{seps[i - 1]}</Text>] : []),
+        ...g.map((p, j) => (
           <Text key={`${i}.${j}`} color={p.color} bold={p.bold}>
             {p.text}
           </Text>
@@ -151,10 +158,63 @@ async function draw($: EngineInterface, e: any, columns: number | undefined, mod
   )
 }
 
+/** 묶음들을 폭에 맞춰 뒤에서부터 통째로 뺀다(첫 묶음은 남긴다). */
+const fitSegs = (segs: Seg[], extra: number, sepLen: number, budget: number) => {
+  const width = () => extra + segs.reduce((n, g) => n + g.len, 0) + sepLen * Math.max(0, segs.length - 1)
+  while (segs.length > 1 && width() > budget) segs = segs.slice(0, -1)
+  return segs
+}
+
+/** SessionMode 자리(site=session-mode): 이전 시제품과 같다. 모드 라벨 + 묶음. */
+async function drawMode($: EngineInterface, e: any, columns: number | undefined, modes: readonly string[]) {
+  const s = await read($, snap)
+  if (!s) return null
+  const nerd = S.style === 'nerd'
+  const sepText = nerd ? ' │ ' : ' · '
+  const lead = modes.length ? `${modes.join(' & ')}${sepText}` : ''
+  const budget = columns ? Math.floor(columns * 0.5) : 10 ** 6
+  const segs = fitSegs(bundles(s, nerd, S.cwdName), lead.length, sepText.length, budget)
+  if (!segs.length) return null
+  const ui = $.ui.resolve(e)
+  return render(ui, [...(lead ? [[{ text: lead.slice(0, -sepText.length) }]] : []), ...segs.map(g => g.parts)], Array<string>(segs.length + 1).fill(sepText))
+}
+
+/** 힌트 줄: `모드 · 프로젝트 │ 모델 │ 한도 │ 비용 · N agents`. 좁으면 비용부터 뺀다(agents 는 남긴다). */
+async function drawHint($: EngineInterface, e: any, columns: number | undefined, mode: string, agents: number, rest: string) {
+  const s = await read($, snap)
+  if (!s) return null
+  const nerd = S.style === 'nerd'
+  const sepText = nerd ? ' │ ' : ' · '
+  const dot = ' · '
+  const agentText = agents ? `${agents} agent${agents > 1 ? 's' : ''}` : ''
+  const budget = columns ? Math.max(20, columns - 4) : 10 ** 6
+  const extra = (mode ? mode.length + dot.length : 0) + (agentText ? agentText.length + dot.length : 0) + (rest ? rest.length + dot.length : 0)
+  const segs = fitSegs(bundles(s, nerd, S.cwdName), extra, sepText.length, budget)
+  const ui = $.ui.resolve(e)
+  const groups: Part[][] = []
+  const seps: string[] = []
+  const push = (g: Part[], sep: string) => { if (groups.length) seps.push(sep); groups.push(g) }
+  if (mode) push([{ color: 'magenta', bold: true, text: mode }], dot)
+  segs.forEach((g, i) => push(g.parts, i === 0 && mode ? dot : sepText))
+  if (agentText) push([{ color: 'blue', text: agentText }], dot)
+  if (rest) push([{ text: rest }], dot)
+  return groups.length ? render(ui, groups, seps) : null
+}
+
+/** 엔진 힌트 뒤에 붙이는 dim 문자열(tail). 색 없는 한 줄이라 묶음만 잇는다. */
+async function tailText($: EngineInterface, columns: number | undefined, used: number) {
+  const s = await read($, snap)
+  if (!s) return undefined
+  const sepText = S.style === 'nerd' ? ' │ ' : ' · '
+  const segs = fitSegs(bundles(s, S.style === 'nerd', S.cwdName), used + 3, sepText.length, columns ? columns - 4 : 10 ** 6)
+  return segs.length ? segs.map(g => g.parts.map(p => p.text).join('')).join(sepText) : undefined
+}
 
 export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     S.style = await readStyle($, options.style)
+    S.site = String(options.site ?? 'prompt-hint')
+    S.hint = String(options.hint ?? 'merge')
     S.cwdPath = e.cwd
     S.cwdName = e.cwd.replace(/\/+$/, '').split('/').pop() || e.cwd
     S.model = modelName(await $.session.model())
@@ -162,6 +222,10 @@ export const register: Register = (on, options) => {
     await readUsage($)
     await readGit($)
     $.clock.every(10_000, () => void readGit($))
+    if (S.site !== 'off') {
+      await writeMarker($)
+      $.clock.every(MARKER_EVERY, () => void writeMarker($))
+    }
     return next(e)
   })
 
@@ -185,14 +249,32 @@ export const register: Register = (on, options) => {
     yield* next(e)
   })
 
+  // site=session-mode 에서만 오른쪽 모드 표지 자리를 쓴다. 기본(prompt-hint)에서는 엔진 원래 표시를 그대로 둔다.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
-    if (options.site === 'prompt-hint') return next(e)
-    return (await draw($, e, e.viewport?.columns, e.props.modes)) ?? next(e)
+    if (S.site !== 'session-mode') return next(e)
+    return (await drawMode($, e, e.viewport?.columns, e.props.modes)) ?? next(e)
   })
 
-  // 실험: 힌트 줄 전체를 대체한다. 줄이 비는지 / 알약이 사라지는지는 실제 TUI 에서만 확인된다.
+  // 힌트 줄(auto mode 줄 + "← N agent" 알약이 있는 줄).
+  //  - hint=keep: 엔진 줄은 그대로(알약이 살아 있다), 묶음만 dim tail 로 덧붙인다.
+  //  - hint=merge: 한가할 때만 한 줄로 합친다. 작업 중·권한 대기·입력 중 등 엔진 안내가 중요하면 엔진 줄 + tail.
+  //  - hint=replace: 항상 자기 줄. 중요한 안내가 있으면 그 글자를 줄 끝에 옮겨 적는다(알약은 못 누른다).
   on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
-    if (options.site !== 'prompt-hint') return next(e)
-    return (await draw($, e, e.viewport?.columns, [])) ?? next(e)
+    if (S.site !== 'prompt-hint') return next(e)
+    const columns = e.viewport?.columns
+    const { hint, isWorking, tail } = e.props
+    const info = parseHint(hint)
+    const idle = info.idle && !isWorking
+    if (S.hint === 'replace' || (S.hint === 'merge' && idle)) {
+      const rest = idle ? '' : hint.replace(/\s+/g, ' ').trim()
+      const tree = await drawHint($, e, columns, info.mode, info.agents, rest)
+      return tree ?? next(e)
+    }
+    // keep, 또는 merge 인데 엔진 안내가 중요한 때: 엔진 줄 + tail.
+    if (S.hint === 'keep' || S.hint === 'merge') {
+      const t = await tailText($, columns, hint.length + (tail ? tail.length + 1 : 0))
+      return next(t ? { ...e, props: { ...e.props, tail: [tail, t].filter(Boolean).join(' ') } } : e)
+    }
+    return next(e)
   })
 }

@@ -1,0 +1,7 @@
+{
+  "name": "q-ui-dev",
+  "private": true,
+  "description": "q-ui 개발용(타입 검사만). 플러그인 실행에는 쓰이지 않는다.",
+  "scripts": { "typecheck": "tsc -p ." },
+  "devDependencies": { "typescript": "^5.6.0" }
+}

@@ -219,12 +219,86 @@ statusLine 자체를 지우면 안 된다: `harness-status.py` 가 away 훅이 �
 - `claude plugin test plugins/q-ui`: 2/2 통과. `$.ui.mount` 로 SessionMode 를 단위 렌더해 plain 은 `auto · claude-doctor:main* · Opus 5.5 ctx 30% · limit 5h 12% wk 31% reset 2h01m · $12.34`, nerd 는 묶음당 아이콘 하나와 ` │ ` 구분자를 확인했다. 이 시험은 트리까지만 보며 실제 터미널 그리기(줄 수)는 보지 않는다.
 - 제약 확인: 훅은 `$` 를 최상위 함수 선언으로만 넘길 수 있다(validate 가 막음). 그래서 헬퍼가 `register` 밖에 있다.
 
-### 8.8 사용자 시험 절차
-1. 새 터미널에서 `cd /code/Projects/claude-doctor && claude --plugin-dir plugins/q-ui`(설치·settings 변경 없음, 그 세션만). nerd 를 보려면 `HARNESS_STATUSLINE_STYLE=nerd claude --plugin-dir plugins/q-ui`.
-2. 볼 것: (1) 푸터 오른쪽(또는 모드 표지 자리)에 `name:branch* │ 모델 … │ 한도 … │ $` 가 나오는가. (2) "auto mode on (shift+tab…)" 와 "← 1 agent" 가 그대로인가, 사라졌는가. (3) 하단 줄 수가 줄었는가(statusLine 을 끄지 않은 상태에서는 오히려 중복이니, 비교하려면 `HARNESS_STATUSLINE_STYLE=off` 를 환경에 주고 `style` 옵션으로 nerd 를 고정: `claude --plugin-dir plugins/q-ui` 후 `/plugin` 설정에서 style=nerd). (4) 서브에이전트를 하나 띄웠을 때 푸터가 어떻게 되는지. (5) 줄이 너무 길어 잘리는지(좁은 창).
-3. 안 보이면 `claude --debug --plugin-dir plugins/q-ui` 로 `q-ui:` 줄을 본다. `site=prompt-hint` 도 같은 방식으로 시험(옵션은 `/plugin` 의 q-ui 설정).
-4. 끄기: 세션을 닫으면 그만이다(`--plugin-dir` 은 그 세션만). 설치했다면 `/plugin` 에서 q-ui 를 끄거나 `enabledPlugins` 의 `q-ui@claude-doctor-market` 을 false 로. 훅이 깨져도 엔진 푸터로 돌아간다.
-5. 결과(어느 줄이 어떻게 됐는지)를 알려 주면 8.5 의 갈림길과 0005 초안의 `proposed_ops` 를 확정한다.
+### 8.8 사용자 시험 절차 (2차 갱신: 아래 8.10 이 현재 절차)
+1차 절차는 8.10 으로 대체됐다.
+
+### 8.9 2차: cc-opencode 조사, 힌트 줄 합치기, 중복 해결 (2026-11-11)
+사용자 시험(1차): `site=session-mode` 에서 "auto mode on (shift+tab to cycle) · ← 1 agent" 줄은 그대로였고, statusline 이 왼쪽(원래 statusLine)과 오른쪽(mod)에 두 번 나왔다. SessionMode 는 오른쪽 모드 표지 자리였고 auto mode 줄은 PromptHint 쪽이다. 사용자 승인(2026-11-11): 코드 악의성 검사만 하고 빌드·실행하는 것까지 clone 허용.
+
+**cc-opencode 실행 전 악의성 검사**(`/code/.cache/cc-opencode`, 커밋 `b00a7a6e99d00116e1c07ab4e5f80c94381bd0ca`, 읽기만 함, 아무것도 실행하지 않음)
+
+| 항목 | 결과 |
+|---|---|
+| 규모 | 추적 파일 23개, 89.6 KB. 플러그인 2개(opencode-look, toolbox)와 테마 JSON 2개 |
+| package.json, lockfile, 의존성 | 없음(`find` 로 확인). npm 설치·빌드 단계 자체가 없다. scripts/pre·post·install·prepare 해당 없음 |
+| 레지스트리 외 URL, git 의존성 | 없음 |
+| 네트워크 호출 | fetch·http·WebSocket·XMLHttpRequest·curl 0건(소스의 URL 문자열도 없음). 단 toolbox 는 사용자가 설정한 MCP 서버를 `$.mcp.call`(pulse `stop_timer` 는 `$.ui.ask` 확인 뒤, 캘린더 조회)로 부른다 |
+| 파일 쓰기 | `$.fs.write`/writeFile 등 0건. 읽기만: `$.fs.read`/`$.fs.list` 로 `~/.claude/sessions/<pid>.json`(toolbox 의 세션 목록). 자격 증명·셸 rc·ssh 접근 0건 |
+| 프로세스 실행 | `$.process.run` 2곳: `claude mcp list`(120초 제한), `/bin/ps -o pid=,lstart= -p <pid들>`. child_process·spawn·exec 직접 호출 0건 |
+| eval, Function, 난독화, base64, 긴 인코딩 덩어리 | 0건. 제로폭·방향 제어 등 숨은 문자 0건 |
+| 매니페스트 | plugin.json 은 이름·설명만. hooks.json 은 `{"modules":["./register.tsx"]}` 뿐(명령 훅·MCP 등록·권한 요청 없음). `.gitignore` 정상 |
+| 테마 JSON | 색 값만 |
+| 라이선스 | **LICENSE 파일 없음**, README 에도 명시 없음(미확인: 권리 불명). 이 저장소는 코드를 복사하지 않고 원칙만 빌린다 |
+| 판정 | **깨끗함.** 읽기 중심이고, 쓰는 일은 사용자가 확인하는 MCP 호출 하나뿐. 설치할 의존성이 없어 `npm` 단계는 필요 없었다 |
+
+주의: `types/index.d.ts`, `tsconfig.json` 이 `.claude-plugin/types`(Claude Code 가 로드 때 쓰는 타입)를 가정해서, 비설치 검증은 이 저장소에서 하지 않았다. cc-opencode 코드는 실행하지 않았다(렌더 테스트 포함). 읽은 것만으로 아래를 정리했다.
+
+**cc-opencode 가 쓰는 자리와 API**
+- opencode-look: `ui.render` 훅 — UserMessage(왼쪽 막대 `▍` + 메시지 배경 블록, 위아래 한 줄 여백), AssistantMessage(자체 마크다운: 굵게·기울임·코드·목록·제목을 테마 색 역할로 칠함, 코드블록·표는 엔진 `Markdown` 에 위임), TurnDuration(`▣  Done · Opus 5.5 · 27.5s`), **PromptHint**, ToolUse·ToolResult·ToolGroup·ToolProgress·CommandOutput·InfoNotice·Spinner(`next(e)` 결과를 좌우 여백 `Box` 로 감싸 들여쓰기만). 모델·effort 는 `$.config.list()` 를 30초마다 읽는다.
+- 색은 고정값이 아니라 테마 역할 이름(`claude`, `warning`, `success`, `suggestion`, `inactive`, `userMessageBackground`)이다. 같은 모드가 어느 테마에서도 맞고, 테마 JSON 은 별도 파일(`~/.claude/themes/`)로 준다.
+- toolbox: `$.ui.mount`/`open` 의 측면 Pane, `session.measure`(토큰·비용), `$.session.usage()`, `$.command.register`(`/toolbox`), `$.clock.every`.
+- **auto mode 줄과 "← N agent" 는 다루지 않는다.** PromptHint 를 `<Text>Claude · 모델 · effort {hint} {tail}</Text>` 한 줄로 다시 그리는데 `hint` 문자열(엔진이 그린 줄을 그대로 읽은 것)을 통째로 뒤에 붙일 뿐이라 auto mode 문구와 알약 글자가 그대로 남는다. 즉 "줄을 없앤" 사례는 아니고, 그 줄 앞에 정보를 덧붙인 사례다. 알약 클릭성은 대체 트리라 사라진다(문서: tail 만 엔진 줄을 살림).
+- 스피너: Spinner 는 건드리지 않고 들여쓰기만(위).
+
+**빌린 디자인 원칙**(opencode 를 복제하지 않고 원칙만)
+1. 정보 위계: 강조는 한 가지 색(accent)에 모으고 나머지는 흐리게 한다(cc-opencode 는 MUTED 로 부가 정보). 우리는 사용자 결정(흐린 글자 금지, 묶음마다 아이콘 하나)을 우선해 "흐림" 대신 색 역할 구분만 쓴다.
+2. 한 줄에 맥락 하나: `Claude · 모델 · effort` 처럼 가장 자주 보는 것을 왼쪽에, 부가는 뒤에. 우리 줄: `모드 · 프로젝트:브랜치 │ 모델 effort ctx │ 한도 │ 비용 · N agents`.
+3. 여백: 좌우 gutter(3칸)를 통일해 모든 줄이 같은 열에서 시작한다. 이번 변경에는 적용하지 않았다(엔진 줄과의 정렬을 실제 TUI 에서 봐야 한다). 후속 후보.
+4. 테마 색 역할 이름 사용(고정 RGB 금지). q-ui 는 지금 색 이름(green/yellow/red/cyan/magenta/blue)을 쓴다. 후속 후보: 테마 역할(`success`/`warning`/`error`)로 바꾸면 사용자 테마에 맞는다(역할 키가 `Text color` 에서 통하는지는 cc-opencode 가 쓰므로 가능하다고 본다, 이 저장소 시험은 아직).
+
+**q-ui 2차 변경**
+- 옵션(userConfig): `site` = `prompt-hint`(기본) | `session-mode` | `off`, `hint` = `merge`(기본) | `replace` | `keep`, `style` = `auto` | `plain` | `nerd`.
+- 기본(site=prompt-hint): **SessionMode 는 엔진 원래 표시로 돌려준다**(훅이 `next(e)`). 오른쪽 중복이 없어진다. `site=session-mode` 는 1차 동작(오른쪽에 그림, 힌트 줄은 엔진 그대로).
+- 힌트 줄(PromptHint)에서 `hint` 문자열을 `hooks/hint.ts` 의 `parseHint` 로 읽어 모드 이름(`auto`, `plan`, …)과 알약 N(`← 1 agent`)을 뽑고 한가한지(`idle`: 모드·알약·`? for shortcuts` 외 글자가 없음) 판정한다.
+  - `merge`: 한가하면 `모드 · 프로젝트 │ 모델 │ 한도 │ 비용 · N agents` 한 줄로 **대체**한다. 작업 중(`isWorking`)이거나 모르는 문구(`esc to interrupt`, 권한 대기 등)면 **엔진 줄을 살리고** 묶음을 `tail`(엔진이 dim 으로 이어 붙이고 폭에서 자름)로만 덧붙인다.
+  - `keep`: 항상 엔진 줄 + `tail`. 알약이 계속 살아 있다.
+  - `replace`: 항상 자기 줄, 중요한 안내가 있으면 글자를 줄 끝에 옮겨 적는다(알약 클릭 불가).
+- 좁은 폭: 비용 → 한도 → 모델 순으로 뒤 묶음부터 통째로 뺀다. 프로젝트와 `N agents` 는 남긴다(폭에서 4칸 뺀 값 기준).
+- **statusLine 중복 해결: (a) 표지 파일을 골랐다.** mod 가 켜지면 `$TMPDIR/claude-subagent-slots/<sid>.qui-mod` 를 30초마다 갱신하고, `harness-status.py` 는 이 파일의 mtime 이 90초 안이면 줄을 비우고 **away 표시만** 낸다(away 는 mod 가 모르는 정보). `limits.json` 기록은 그대로다. 이유: (b) `HARNESS_STATUSLINE_STYLE=off` 는 사용자 전역 설정이라 mod 를 끄거나 `--plugin-dir` 없이 연 세션에서 statusline 이 사라지고(되돌리기 잊기 쉬움), 어떤 mod 에서도 away 표시를 같이 잃는다. (a) 는 세션별이고 mod 가 멎으면 90초 뒤 statusline 이 저절로 돌아온다. 비용: 스크립트에 12줄, 테스트 4개. 이것으로 settings.json·harness.env 는 건드리지 않고 `pluginConfigs` 는 선택이다(`settings-migration-draft.json` 갱신).
+- `style=auto` 는 이전과 같이 `HARNESS_STATUSLINE_STYLE`(env 또는 `~/.claude/harness.env`)이 nerd 일 때만 nerd.
+- 개발 환경: `plugins/q-ui/package.json`(private, devDependency `typescript`), `.gitignore`(node_modules). `npm install --ignore-scripts` 로 설치했다. 다른 저장소 node_modules 는 쓰지 않았다.
+
+**스피너 커스텀 가능성(제안, 미구현)**
+- `ui.render` 의 `Spinner`: props `word`(`Sauteing`), `message`, `suffix`(`…`), `mode`(`requesting|responding|thinking|tool-input|tool-use`). 문서: "세 가지(word/message/suffix)를 다시 쓰거나, 모두 대체하는 트리를 그린다". 경과 시간·토큰·effort 는 엔진이 붙여 두므로 트리 대체 시 우리가 다시 그려야 한다(`$.session.usage()`, 시작 시각 필요).
+- 제안 순서: (1) `word` 를 `mode` 별 짧은 글자(`thinking`/`tool`/`writing`)로 바꾸는 최소 변경(위험 낮음, 줄 폭 그대로), (2) 필요하면 `suffix` 로 `…` 대신 도형, (3) 트리 대체는 opencode 식 `▣`/막대 애니메이션이 필요할 때만. 프레임 애니메이션 API(`$.clock.every` 로 상태 atom 갱신 → 재렌더)는 있으나 재렌더 비용·깜박임은 미확인. 사용자가 스피너 형태(글자 vs 도형)를 정하면 구현한다.
+
+**검증**(Claude Code 2.1.316 타입)
+- `tsc -p plugins/q-ui`(strict + noUncheckedIndexedAccess): 오류 0.
+- `claude plugin validate plugins/q-ui`: 통과(경고는 아이콘 없음뿐).
+- `claude plugin test plugins/q-ui`: 11/11. 렌더 테스트: 한가함(plain 한 줄 `auto · claude-doctor:main* · Opus 5.5 ctx 30% · limit 5h 12% wk 31% reset 2h01m · $12.34 · 1 agent`), nerd, 좁은 폭(50칸: 비용 등이 빠지고 agents 는 남음), 작업 중 / 권한 대기 문구는 엔진 힌트 + tail, keep, SessionMode 기본은 엔진 그대로, site=session-mode, 표지 파일 쓰기(on/off), `parseHint` 단위.
+- `python3 -I home/.claude/hooks/tests/test-subagent-slots.py`: 136/136(표지 4개 포함: 줄 비움, limits.json 유지, 90초 지나면 복귀, 표지 없음).
+- 테스트의 한계: 엔진 줄은 스텁(`hint` + `tail` 을 그리는 가짜)이라 실제 줄 수·알약 위치는 TUI 에서만 보인다.
+
+**미확인**
+- 실제 `hint` 문자열이 `auto mode on (shift+tab to cycle) · ← 1 agent` 모양인지(사용자 시험 문구에서 추정, 다른 모드는 `plan mode on`, `accept edits on`, `bypass permissions on` 일 것으로 추정). 모르는 모양은 한가함이 아니라고 보고 엔진 줄을 살리므로 최악은 "합쳐지지 않음".
+- `PromptHint` 대체 트리가 엔진의 알약(`← 1 agent`)을 정말 지우는지(문서는 `tail` 만 엔진 줄을 살린다고 하므로 대체 시 사라진다고 본다). 대체 트리에서 N agents 는 글자일 뿐 클릭 불가.
+- 엔진 `$TMPDIR` 와 statusLine 자식 프로세스의 `$TMPDIR` 가 같은지(같은 프로세스 트리라 보지만 시험 필요). 다르면 표지가 안 보여 중복이 남는다(정보 손실은 없음).
+- statusLine 출력이 비면 상태 행 자체가 사라지는지(away 가 없으면 빈 출력).
+- `tail` 이 폭을 넘을 때의 모양(문서: 줄 끝에서 자름, 4칸 미만이면 생략).
+- `fs.write` 가 플러그인 환경에서 `$TMPDIR` 쓰기를 거부당하는지(거부되면 조용히 실패, statusline 그대로).
+- cc-opencode 라이선스(없음).
+
+### 8.10 사용자 시험 절차 (2차)
+1. 새 터미널에서 `cd /code/Projects/claude-doctor && claude --plugin-dir plugins/q-ui`(설치·settings 변경 없음, 그 세션만). nerd 는 `HARNESS_STATUSLINE_STYLE=nerd claude --plugin-dir plugins/q-ui`.
+2. 볼 것(약 30초 안에 statusline 이 사라진다: 표지 파일이 써져야 하니 첫 줄 직후 한 번 갱신을 기다림):
+   - 프롬프트 아래 한 줄이 `auto · claude-doctor:main* │ Opus … │ 한도 … │ $… · N agents` 로 바뀌었나(한가할 때).
+   - 푸터 오른쪽에 중복이 없나(기본 site=prompt-hint 라 엔진 표시 그대로).
+   - 원래 statusLine 줄이 사라졌나(away 중이면 AWAY 줄만 남는다). 사라지지 않으면 `$TMPDIR` 불일치 의심: `ls "${TMPDIR:-/tmp}"/claude-subagent-slots/*.qui-mod`.
+   - 서브에이전트를 띄우면 `N agents` 가 맞게 바뀌나. 작업 중(esc to interrupt)·권한 대기에서 엔진 힌트가 보이고 묶음이 dim 으로 뒤에 붙나.
+   - 창을 좁혔을 때 비용부터 사라지고 agents 는 남나. 줄 수가 하나 줄었나.
+3. 옵션 바꾸기: `/plugin` 의 q-ui 설정(또는 settings.json `pluginConfigs["q-ui"].options`)에서 `hint`(merge/replace/keep), `site`(prompt-hint/session-mode/off), `style`(auto/plain/nerd). 알약을 눌러야 하면 `hint=keep`. 1차 동작은 `site=session-mode`.
+4. 끄기: 세션을 닫으면 끝(`--plugin-dir` 은 그 세션만). 옵션 `site=off` 는 mod 를 로드한 채 아무것도 안 그리고 표지도 안 쓴다. 표지는 90초 안에 낡아 statusline 이 돌아온다.
+5. 안 보이면 `claude --debug --plugin-dir plugins/q-ui` 로 `q-ui:` 줄. 결과(어느 줄이 어떻게 됐는지, 특히 hint 원문)를 알려 주면 `parseHint` 를 맞추고 0005 초안을 확정한다.
 
 ## 9. 사용자 결정이 필요한 것
 1. `~/.claude/settings.json` 의 `statusLine`(0001 마이그레이션이 이미 넣음)은 그대로 쓰므로 새 마이그레이션은 만들지 않았다. 사용자 harness.env 에서 `nerd` 를 켤지.

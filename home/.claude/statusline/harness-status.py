@@ -6,6 +6,7 @@ settings.json: "statusLine": {"type": "command", "command": "python3 $HOME/.clau
 - 어떤 스타일이든(off 포함) rate_limits 를 $TMPDIR/claude-subagent-slots/<sid>.limits.json 에 적는다. away 훅이 이 파일을 읽는다.
 - 설정(harness.env 키, 환경 변수 > 저장소 <project>/.claude/harness.env > 사용자 ~/.claude/harness.env, 전부 HARNESS_STATUSLINE_ 접두):
   STYLE=plain(기본)|nerd|minimal|off, LINES=1(기본)|2, COST=always(기본, 구독 여부와 무관한 작업량 지표)|auto(구독자면 숨김)|never, WARN_PCT=70, HOT_PCT=90
+- q-ui mod 가 켜져 있으면($TMPDIR/claude-subagent-slots/<sid>.qui-mod 가 90초 안에 갱신됨) 줄을 비우고 away 표시만 낸다. limits.json 기록은 그대로.
 - 폭이 좁으면(COLUMNS) 뒤 항목부터 통째로 뺀다. NO_COLOR 가 있으면 색을 쓰지 않는다.
 - 비용은 cost.total_cost_usd(목록가 환산, 서브에이전트 포함)다. away 예산은 원장 기준이다.
 예(plain): `claude-doctor (main*) · Opus high ctx 34% · limit 5h 20% wk 50% reset 2h10m · agents 2 (opus 1, sonnet 1) · AWAY $3.10/$15 slots 2`
@@ -229,6 +230,20 @@ def fit(segs, line, cols):
     return row
 
 
+QUI_FRESH_SEC = 90.0  # q-ui mod 는 30초마다 표지 파일을 갱신한다. 이보다 오래되면 mod 가 꺼진 것으로 본다.
+
+
+def qui_active(sid):
+    """q-ui mod(힌트 줄에 같은 정보를 그린다)가 켜져 있으면 True. 표지 파일: $TMPDIR/claude-subagent-slots/<sid>.qui-mod"""
+    if not sid or not isinstance(sid, str):
+        return False
+    try:
+        p = os.path.join(os.environ.get("TMPDIR") or "/tmp", "claude-subagent-slots", f"{sid}.qui-mod")
+        return time.time() - os.path.getmtime(p) <= QUI_FRESH_SEC
+    except OSError:
+        return False
+
+
 def main():
     try:
         d = json.load(sys.stdin)
@@ -275,6 +290,11 @@ def main():
     if cfg["STYLE"] == "off":
         return 0
     paint = Paint()
+    if qui_active(sid):
+        # mod 가 같은 정보를 힌트 줄에 그리므로 중복을 피해 줄을 비운다. away 는 mod 가 모르는 정보라 남긴다.
+        if away.get("text"):
+            print(paint(away["color"], away["text"]))
+        return 0
     try:
         cols = int(os.environ.get("COLUMNS", "0")) - 4  # 화면 가장자리의 기본 여백
     except ValueError:

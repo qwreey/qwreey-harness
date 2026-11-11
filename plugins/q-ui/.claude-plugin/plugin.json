@@ -1,24 +1,31 @@
 {
   "name": "q-ui",
-  "version": "0.1.0",
-  "description": "하단 혼잡 줄이기 시제품(mod): 프롬프트 푸터의 SessionMode 자리를 모드 + 프로젝트·모델·한도·비용 한 줄로 다시 그린다. 끄면 원래 푸터로 돌아간다.",
+  "version": "0.2.0",
+  "description": "하단 혼잡 줄이기 시제품(mod): 프롬프트 아래 힌트 줄(auto mode · ← N agent)에 모드·프로젝트·모델·한도·비용·agents 를 한 줄로 합쳐 그린다. 켜진 동안 원래 statusLine 은 away 표시만 남기고 조용해진다. 끄면 원래대로.",
   "author": { "name": "qwreey", "email": "me@qwreey.moe" },
   "license": "MIT",
   "types": "./types/index.d.ts",
   "userConfig": {
-    "style": {
-      "type": "string",
-      "title": "표시 스타일",
-      "description": "auto 는 HARNESS_STATUSLINE_STYLE 을 따른다(nerd 면 nerd, 그 밖에는 plain). statusline 을 STYLE=off 로 조용히 만든 경우 여기서 nerd 를 고른다.",
-      "default": "auto",
-      "options": ["auto", "plain", "nerd"]
-    },
     "site": {
       "type": "string",
       "title": "다시 그릴 자리",
-      "description": "session-mode: 푸터 오른쪽 모드 표지 자리(문서상 안전). prompt-hint: 프롬프트 아래 힌트 줄 전체를 대체(실험, '← 1 agent' 알약까지 사라질 수 있음).",
-      "default": "session-mode",
-      "options": ["session-mode", "prompt-hint"]
+      "description": "prompt-hint(기본): 프롬프트 아래 힌트 줄. session-mode: 푸터 오른쪽 모드 표지 자리(이전 시제품, 힌트 줄은 엔진 그대로). off: 아무것도 그리지 않고 statusLine 도 그대로.",
+      "default": "prompt-hint",
+      "options": ["prompt-hint", "session-mode", "off"]
+    },
+    "hint": {
+      "type": "string",
+      "title": "힌트 줄 처리(site=prompt-hint)",
+      "description": "merge(기본): 한가할 때만 한 줄로 합치고 작업 중·권한 대기 등에는 엔진 줄 + 요약 덧붙임. replace: 항상 자기 줄(알약 클릭 불가). keep: 엔진 줄 그대로 + 요약 덧붙임.",
+      "default": "merge",
+      "options": ["merge", "replace", "keep"]
+    },
+    "style": {
+      "type": "string",
+      "title": "표시 스타일",
+      "description": "auto 는 HARNESS_STATUSLINE_STYLE 을 따른다(nerd 면 nerd, 그 밖에는 plain). nerd 는 Nerd Font 아이콘과 │ 구분.",
+      "default": "auto",
+      "options": ["auto", "plain", "nerd"]
     }
   }
 }
