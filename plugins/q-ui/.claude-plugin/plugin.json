@@ -1,0 +1,24 @@
+{
+  "name": "q-ui",
+  "version": "0.1.0",
+  "description": "하단 혼잡 줄이기 시제품(mod): 프롬프트 푸터의 SessionMode 자리를 모드 + 프로젝트·모델·한도·비용 한 줄로 다시 그린다. 끄면 원래 푸터로 돌아간다.",
+  "author": { "name": "qwreey", "email": "me@qwreey.moe" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "style": {
+      "type": "string",
+      "title": "표시 스타일",
+      "description": "auto 는 HARNESS_STATUSLINE_STYLE 을 따른다(nerd 면 nerd, 그 밖에는 plain). statusline 을 STYLE=off 로 조용히 만든 경우 여기서 nerd 를 고른다.",
+      "default": "auto",
+      "options": ["auto", "plain", "nerd"]
+    },
+    "site": {
+      "type": "string",
+      "title": "다시 그릴 자리",
+      "description": "session-mode: 푸터 오른쪽 모드 표지 자리(문서상 안전). prompt-hint: 프롬프트 아래 힌트 줄 전체를 대체(실험, '← 1 agent' 알약까지 사라질 수 있음).",
+      "default": "session-mode",
+      "options": ["session-mode", "prompt-hint"]
+    }
+  }
+}

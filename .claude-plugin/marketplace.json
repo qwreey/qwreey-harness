@@ -15,6 +15,11 @@
       "name": "second-opinion",
       "source": "./plugins/second-opinion",
       "description": "정해진 시점의 독립 검토: second-opinion:context(대화를 이어받은 fork 를 독립 검토자로 돌려 세워 놓친 것·방금 끝낸 설계의 반례를 묻는다), second-opinion:audit(새 컨텍스트 리뷰어가 diff·주장을 반증). 반복 실패·큰 커밋 알림 훅 포함. advisor 는 선택, 사용자 요청 시만"
+    },
+    {
+      "name": "q-ui",
+      "source": "./plugins/q-ui",
+      "description": "시제품(mod, 선택): 프롬프트 푸터 SessionMode 자리를 모드 + 프로젝트·모델·한도·비용 한 줄로 다시 그려 하단 줄을 줄인다. 끄면 원래대로. 켜고 끄기는 audit/22 §8"
     }
   ]
 }

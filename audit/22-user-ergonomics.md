@@ -166,10 +166,71 @@ nerd 의 글리프는 Nerd Font(Font Awesome 영역: folder f07b, branch e0a0, m
 ### 회귀
 기존 statusline 테스트 전부 통과(132/132). 바뀐 것: 테스트 `ENV` 에 `NO_COLOR=1` 추가(색 없이 문자열 비교), 프로젝트명이 입력에 있으면 줄 맨 앞에 붙는 것은 의도된 변경이다. 한도 줄은 `limit 5h 20% wk 50%` 뒤에 `reset …` 이 붙는다. 비용은 기본으로 늘 보인다(사용자 결정으로 기본값 `always`, 숨기려면 `COST=auto`).
 
-## 8. 사용자 결정이 필요한 것
+## 8. mod 로 하단 통합 (q-ui 시제품)
+CLI 2.1.316 의 `plugin-authoring` 스킬과 그 타입 파일(`claude-code.d.ts`, 22,834줄)을 읽고 만들었다. 인터랙티브 TUI 는 이 환경에서 볼 수 없어 **실제 화면에서 줄이 줄어드는지는 미확인**이다. 아래 "가능/불가"는 타입 문서와 단위 렌더 시험까지만 근거한다.
+
+### 8.1 SessionMode 의 실체 (바로 잡을 점)
+문서: "The dim mode labels at the right of the prompt footer (`focus`, `memory paused`), joined by ` & `. One instance." props 는 `modes: readonly string[]` 하나다. 즉 **푸터 오른쪽의 흐린 모드 표지** 자리다. 사용자 화면의 "auto mode on (shift+tab to cycle)" 와 "← 1 agent" 가 이 자리에 속하는지는 **미확인**이다(`modes` 에 권한 모드가 들어오는지 확인할 방법이 타입에 없다). 그래서 시제품은 두 자리를 다 준비했다.
+| 자리 | 문서상 정체 | q-ui 옵션 |
+|---|---|---|
+| `SessionMode` | 푸터 오른쪽 모드 표지(`modes` 를 고쳐 쓰거나 자기 트리를 그림) | `site=session-mode`(기본) |
+| `PromptHint` | 프롬프트 아래 힌트 줄(`? for shortcuts`, `esc to interrupt`, "the pills beside them"). `hint` 문자열을 고쳐 쓰면 줄이 **통째로 대체**된다. `tail` 은 끝에 덧붙일 뿐(터미널은 엔진 줄을 유지) | `site=prompt-hint`(실험) |
+"← 1 agent" 는 이름 모를 "알약(pill)" 일 가능성이 크고, 그러면 PromptHint 쪽이다. 시험에서 어느 쪽이 사라지는지로 결정한다.
+
+### 8.2 가능 / 불가 / 미확인
+| 구분 | 내용 |
+|---|---|
+| 가능 | `ui.render` 가 `{component:'SessionMode'}` 에 자기 트리(Box/Text, 색·bold)를 그림. `next(e)` 를 부르면 엔진 원본. 터미널·데스크톱에서만 호출됨 |
+| 가능 | 읽기: 모델 id `$.session.model()`, 컨텍스트 %·비용·한도(5h/7d, `percentUsed`, `resetsAt`) `$.session.usage()` 와 `session.measure` 이벤트(변할 때만, 한도는 1%p 단위), cwd `$.session.cwd()`, 세션 id, 에이전트 목록 `$.agent.list()`(id·type·status), 환경 변수 `$.env.get`, 파일 `$.fs.read`(4 MiB 까지), 프로세스 `$.process.run`(git) |
+| 가능 | effort: `turn.step` 이벤트의 `e.effort`(요청이 나갈 때). 첫 요청 전에는 비어 있다 |
+| 가능 | 갱신: `$.state`/atom 을 쓰면 읽는 그림이 다시 그려짐. `$.ui.invalidate('ui.render')` 는 초당 10회(터미널 표시 중 30) 한도 |
+| 가능 | 끄기: 플러그인을 끄면 훅이 없어져 원래 푸터. 훅이 던지거나 트리가 틀리면 그 훅만 건너뛰고 엔진 원본을 그림 |
+| 불가 | **권한 모드(auto/plan/default)를 읽는 `$` 메서드는 없다.** `tool.call` 등 이벤트 입력에도 현재 모드는 없다(`setMode` 는 권한 갱신 타입에만). 모드 표지는 `e.props.modes` 에 엔진이 넣어 준 것만 쓸 수 있다 |
+| 불가 | 모델 표시 이름("Opus 5.5")은 주지 않는다. id 를 정규식으로 바꿈(모르는 모양이면 id 그대로) |
+| 불가 | git 브랜치: `SessionRepo` 에 브랜치가 없다. `$.process.run(['git', …])` 로 직접 구한다(10초 캐시) |
+| 불가(문서상) | 엔진 줄을 "숨기는" 전용 API 는 없다. 줄 수는 그 자리 트리가 비는지에 달렸다. SessionMode 가 빈 트리를 내면 사라지는지는 **미확인**(타입 문서에 "empty 면 행이 없어진다"는 말이 없다) |
+| 미확인 | 푸터의 "auto mode on" 문구와 "← 1 agent" 가 SessionMode 에 속하는지, 줄 수가 실제로 줄어드는지, statusLine 출력이 비면 그 행이 사라지는지, `$.fs.read` 가 `~/.claude/harness.env` 를 허용하는지(실패하면 plain 으로 폴백), 매 렌더 비용 |
+한도 파일(`$TMPDIR/claude-subagent-slots/<sid>.limits.json`)은 **읽을 필요가 없었다**: `$.session.usage().rateLimits` 가 statusline 과 같은 값을 준다. 그래서 mod 는 그 파일을 건드리지 않는다.
+
+### 8.3 시제품 구성 (`plugins/q-ui/`)
+- `.claude-plugin/plugin.json`(옵션 `style` auto|plain|nerd, `site` session-mode|prompt-hint), `hooks/hooks.json`, `hooks/register.tsx`, `types/index.d.ts`(상태 계약 `q-ui.snap`), `tests/render.test.tsx`.
+- 훅: `session.start`(스타일·모델·git 읽기, 10초 타이머로 git 갱신), `session.measure`(한도·컨텍스트·비용), `turn.step`(모델·effort, 스트리밍 제너레이터), `ui.render` SessionMode / PromptHint.
+- 그림: `[모드 &…] · name:branch* │ 모델 effort ctx % │ 한도 5h wk reset │ $비용`. 묶음마다 아이콘 하나(nerd, harness-status.py 와 같은 코드포인트), 흐린 색 없음, 좁으면 뒤 묶음부터 통째로 뺌(폭의 절반 기준, 푸터 왼쪽을 못 재서 보수적).
+- 스타일: 옵션 `style=auto` 면 `HARNESS_STATUSLINE_STYLE`(환경 변수, 없으면 `~/.claude/harness.env`)이 `nerd` 일 때만 nerd, 그 밖(off·minimal 포함)은 plain.
+- 서브에이전트·away 묶음은 옮기지 않았다(`$.agent.list()` 로 가능하나 시제품 범위 밖). "← 1 agent" 는 엔진 알약이 그대로 남는다(8.5).
+- marketplace.json 에 `q-ui` 항목을 추가했다(설치는 하지 않음).
+
+### 8.4 statusLine 중복 제거 제안
+statusLine 자체를 지우면 안 된다: `harness-status.py` 가 away 훅이 읽는 `limits.json` 을 쓴다. 제안: 스크립트는 그대로 두고 사용자 harness.env 에 `HARNESS_STATUSLINE_STYLE=off`(그러면 출력은 비고 `limits.json` 만 계속 쓴다)를 넣고, q-ui 는 `pluginConfigs` 로 `style=nerd` 를 명시한다. 출력이 빈 statusLine 이 행을 없애는지는 미확인이다. 마이그레이션 초안: `plugins/q-ui/settings-migration-draft.json (적용 디렉터리 밖에 둔다: settings-migrate 는 그 디렉터리의 *.json 을 모두 적용·기록하므로, 빈 초안이 들어가면 그 번호가 고정된다)`(`draft: true`, `ops` 는 비어 있고 제안은 `proposed_ops`). 주의: `settings-migrate.py` 는 `*.json` 을 전부 읽으므로 이 파일이 있는 채로 `apply` 하면 아무 것도 안 바꾸고 id 만 기록된다. 적용 전에 지우거나 이름을 바꿀 것. 장기적으로는 mod 가 `limits.json` 을 대신 써 주면 statusLine 을 완전히 끌 수 있다(미구현).
+
+### 8.5 "← 1 agent" 처리
+1. 엔진 알약이 그대로 남는 경우(SessionMode 만 그릴 때): 줄은 줄지 않는다. 할 수 있는 것은 같은 줄에 `$.agent.list()` 로 센 "agents N" 묶음을 더해 의미 중복을 감수하는 정도.
+2. `site=prompt-hint` 가 알약까지 대체하면: 우리 줄이 힌트 줄을 통째로 차지해 `esc to interrupt`·`? for shortcuts` 도 같이 사라진다. 작업 중에 힌트가 필요하면 `e.props.isWorking` 일 때 `next(e)` 로 엔진 줄을 돌려주는 분기를 넣어야 한다(미구현, 시험 결과를 보고 결정).
+3. 어느 쪽도 안 되면 불가로 결론짓고, 줄을 줄이는 길은 statusLine 한 줄만 두는 현 상태다.
+
+### 8.6 버전 위험
+- 문서 자체가 "EARLY ACCESS: this surface may change between releases without notice". 이 코드는 2.1.316 타입으로 `tsc`·`claude plugin validate`·`claude plugin test` 를 통과했다.
+- 깨지는 모습: (a) 트리가 틀리면 그 훅만 건너뛰고 엔진 푸터가 원래대로 나온다(그림이 안 바뀜). (b) `SessionMode` 이름이 바뀌면 훅이 한 번도 안 불려 같은 증상. (c) 호출 메서드가 없어지면 모듈 로드 실패. 어느 경우도 화면이 망가지기보다 "mod 가 안 보임" 으로 나타난다.
+- 감지: `claude plugin validate plugins/q-ui`(호출한 `$` 목록 검증), 타입 검사(`.claude-plugin/types` 가 로드 때마다 새로 써지므로 `tsc -p plugins/q-ui`), `claude plugin test plugins/q-ui`, 실행 중엔 `claude --debug` 의 `q-ui: ui.render hook skipped …` 줄. 업데이트 뒤에는 세 명령을 다시 돌리고 `claude --version` 을 기록해 두면 된다.
+
+### 8.7 검증 결과
+- `claude plugin validate plugins/q-ui`: 통과(오류 0; 플러그인 디렉터리용 경고는 아이콘 없음뿐).
+- `tsc`(스킬 타입 파일 기준, strict): 오류 0.
+- `claude plugin test plugins/q-ui`: 2/2 통과. `$.ui.mount` 로 SessionMode 를 단위 렌더해 plain 은 `auto · claude-doctor:main* · Opus 5.5 ctx 30% · limit 5h 12% wk 31% reset 2h01m · $12.34`, nerd 는 묶음당 아이콘 하나와 ` │ ` 구분자를 확인했다. 이 시험은 트리까지만 보며 실제 터미널 그리기(줄 수)는 보지 않는다.
+- 제약 확인: 훅은 `$` 를 최상위 함수 선언으로만 넘길 수 있다(validate 가 막음). 그래서 헬퍼가 `register` 밖에 있다.
+
+### 8.8 사용자 시험 절차
+1. 새 터미널에서 `cd /code/Projects/claude-doctor && claude --plugin-dir plugins/q-ui`(설치·settings 변경 없음, 그 세션만). nerd 를 보려면 `HARNESS_STATUSLINE_STYLE=nerd claude --plugin-dir plugins/q-ui`.
+2. 볼 것: (1) 푸터 오른쪽(또는 모드 표지 자리)에 `name:branch* │ 모델 … │ 한도 … │ $` 가 나오는가. (2) "auto mode on (shift+tab…)" 와 "← 1 agent" 가 그대로인가, 사라졌는가. (3) 하단 줄 수가 줄었는가(statusLine 을 끄지 않은 상태에서는 오히려 중복이니, 비교하려면 `HARNESS_STATUSLINE_STYLE=off` 를 환경에 주고 `style` 옵션으로 nerd 를 고정: `claude --plugin-dir plugins/q-ui` 후 `/plugin` 설정에서 style=nerd). (4) 서브에이전트를 하나 띄웠을 때 푸터가 어떻게 되는지. (5) 줄이 너무 길어 잘리는지(좁은 창).
+3. 안 보이면 `claude --debug --plugin-dir plugins/q-ui` 로 `q-ui:` 줄을 본다. `site=prompt-hint` 도 같은 방식으로 시험(옵션은 `/plugin` 의 q-ui 설정).
+4. 끄기: 세션을 닫으면 그만이다(`--plugin-dir` 은 그 세션만). 설치했다면 `/plugin` 에서 q-ui 를 끄거나 `enabledPlugins` 의 `q-ui@claude-doctor-market` 을 false 로. 훅이 깨져도 엔진 푸터로 돌아간다.
+5. 결과(어느 줄이 어떻게 됐는지)를 알려 주면 8.5 의 갈림길과 0005 초안의 `proposed_ops` 를 확정한다.
+
+## 9. 사용자 결정이 필요한 것
 1. `~/.claude/settings.json` 의 `statusLine`(0001 마이그레이션이 이미 넣음)은 그대로 쓰므로 새 마이그레이션은 만들지 않았다. 사용자 harness.env 에서 `nerd` 를 켤지.
 2. 탭 제목 훅(§4)을 만들지. 만든다면 Claude Code 자체 제목과의 충돌을 실측해야 한다.
 3. 구독자에게도 비용을 보일지(`COST=always`) — 기본은 숨김.
 4. 응답 형식 3줄(§6)을 사용자 CLAUDE.md 에 넣을지, output style 로 할지.
 5. 사용자 정의 테마 예시를 하네스가 제안할지(취향이라 기본은 안 넣음).
 6. ui-themes 를 직접 설치해 볼지(서드파티 코드라 사용자 확인 필요).
+7. q-ui mod 를 켤지, 켠다면 statusLine 을 `STYLE=off` 로 조용히 만들지(§8.4, 0005 초안).
