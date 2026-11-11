@@ -5,7 +5,7 @@ settings.json: "statusLine": {"type": "command", "command": "python3 $HOME/.clau
 - 읽기 전용. 잠금을 잡지 않고 원장(lib/subagent_ledger.py) 파일을 읽기만 한다. 실패해도 있는 것만 낸다.
 - 어떤 스타일이든(off 포함) rate_limits 를 $TMPDIR/claude-subagent-slots/<sid>.limits.json 에 적는다. away 훅이 이 파일을 읽는다.
 - 설정(harness.env 키, 환경 변수 > 저장소 <project>/.claude/harness.env > 사용자 ~/.claude/harness.env, 전부 HARNESS_STATUSLINE_ 접두):
-  STYLE=plain(기본)|nerd|minimal|off, LINES=1(기본)|2, COST=auto(구독자가 아니면)|always|never, WARN_PCT=70, HOT_PCT=90
+  STYLE=plain(기본)|nerd|minimal|off, LINES=1(기본)|2, COST=always(기본, 구독 여부와 무관한 작업량 지표)|auto(구독자면 숨김)|never, WARN_PCT=70, HOT_PCT=90
 - 폭이 좁으면(COLUMNS) 뒤 항목부터 통째로 뺀다. NO_COLOR 가 있으면 색을 쓰지 않는다.
 - 비용은 cost.total_cost_usd(목록가 환산, 서브에이전트 포함)다. away 예산은 원장 기준이다.
 예(plain): `claude-doctor (main*) · Opus high ctx 34% · limit 5h 20% wk 50% reset 2h10m · agents 2 (opus 1, sonnet 1) · AWAY $3.10/$15 slots 2`
@@ -21,7 +21,7 @@ from pathlib import Path
 
 HOME = Path(__file__).resolve().parent.parent
 PREFIX = "HARNESS_STATUSLINE_"
-DEFAULTS = {"STYLE": "plain", "LINES": "1", "COST": "auto", "WARN_PCT": "70", "HOT_PCT": "90"}
+DEFAULTS = {"STYLE": "plain", "LINES": "1", "COST": "always", "WARN_PCT": "70", "HOT_PCT": "90"}
 STYLES = ("plain", "nerd", "minimal", "off")
 GIT_TTL = 10.0  # 더러움 표시(git status)만 캐시한다. 브랜치는 .git/HEAD 를 직접 읽어서 싸다.
 
