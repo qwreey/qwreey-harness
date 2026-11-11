@@ -18,7 +18,8 @@ T = tempfile.mkdtemp(prefix="slots-")
 PROJ = os.path.join(T, "proj")
 os.makedirs(os.path.join(PROJ, ".claude"))
 BASE_ENV = {k: v for k, v in os.environ.items() if not k.startswith(("HARNESS_SUBAGENT", "HARNESS_FANOUT", "HARNESS_AWAY", "HARNESS_SLOTS"))}
-ENV = dict(BASE_ENV, TMPDIR=T, CLAUDE_PROJECT_DIR=PROJ, NO_COLOR="1")  # statusline 문자열 비교는 색 없이
+ENV = dict(BASE_ENV, TMPDIR=T, CLAUDE_PROJECT_DIR=PROJ, NO_COLOR="1",  # statusline 문자열 비교는 색 없이
+           HARNESS_STATUSLINE_STYLE="plain")  # 스크립트 옆(정본) harness.env 의 개인 스타일에 휘둘리지 않게
 res = []
 
 
@@ -559,7 +560,7 @@ check("non-subscriber shows cost", "$3.50" in sty("plain", inp=nosub))
 check("narrow COLUMNS drops trailing segments", sty("plain", {"COLUMNS": "50"}).strip() == "gitproj (feat-x) · Opus high ctx 34%", sty("plain", {"COLUMNS": "50"}))
 open(os.path.join(PROJ, ".claude", "harness.env"), "w").write("HARNESS_STATUSLINE_STYLE=minimal\n")
 repo_out = subprocess.run([sys.executable, "-I", SL], input=json.dumps(dict(SAMPLE, workspace={"current_dir": PROJ, "project_dir": PROJ})),
-                          capture_output=True, text=True, env=ENV).stdout.strip()
+                          capture_output=True, text=True, env={k: v for k, v in ENV.items() if k != "HARNESS_STATUSLINE_STYLE"}).stdout.strip()
 check("repo harness.env sets style (env var unset)", repo_out == "Opus 34% · 5h 92%", repo_out)
 os.remove(os.path.join(PROJ, ".claude", "harness.env"))
 
