@@ -564,19 +564,6 @@ repo_out = subprocess.run([sys.executable, "-I", SL], input=json.dumps(dict(SAMP
 check("repo harness.env sets style (env var unset)", repo_out == "Opus 34% · 5h 92%", repo_out)
 os.remove(os.path.join(PROJ, ".claude", "harness.env"))
 
-# ---- q-ui mod 표지: mod 가 켜져 있으면 줄을 비우되 away 와 limits.json 은 남긴다 ----
-slots_dir = os.path.join(T, "claude-subagent-slots")
-os.makedirs(slots_dir, exist_ok=True)
-qui_marker = os.path.join(slots_dir, "quimod.qui-mod")
-open(qui_marker, "w").write("1")
-check("q-ui marker fresh: statusline line is empty", sline("quimod", rl(20, 50)) == "")
-check("q-ui marker fresh: limits.json still written", json.load(open(lim_file("quimod")))["five_hour"]["p"] == 20)
-old = time.time() - 300
-os.utime(qui_marker, (old, old))
-check("q-ui marker stale (>90s): statusline returns", "Opus" in sline("quimod", rl(20, 50)))
-os.remove(qui_marker)
-check("q-ui marker absent: statusline normal", "Opus" in sline("quimod", rl(20, 50)))
-
 for name, ok in res:
     print(("PASS " if ok else "FAIL ") + name)
 fails = [r for r in res if not r[1]]

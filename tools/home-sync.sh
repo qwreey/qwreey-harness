@@ -148,6 +148,26 @@ write_state() { # 현재 MANIFEST + 아직 실제에 남은 고아를 기록한�
   fi
 }
 
+plugins_report() { # settings 의 enabledPlugins(true) 중 아직 설치 안 된 것을 알리고, 원하면 설치한다
+  local want have missing p m src
+  [[ -f "$DST/settings.json" ]] && command -v claude >/dev/null || return 0
+  [[ "$DST" == "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" ]] || return 0   # 임시 CLAUDE_HOME 시험에서는 실제 CLI 상태와 무관
+  want=$(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true) | .key' "$DST/settings.json" | grep -v '@builtin$' || true)
+  have=$(claude plugin list --json 2>/dev/null | jq -r '.[]?.id' 2>/dev/null || true)
+  missing=$(comm -23 <(sort -u <<<"$want") <(sort -u <<<"$have") | sed '/^$/d')
+  [[ -z "$missing" ]] && { echo "plugins: settings 에 켠 플러그인이 모두 설치돼 있다"; return 0; }
+  echo "plugins: settings 에 켜져 있지만 설치 안 됨(새 대화형 세션을 열면 설치될 수 있다):"
+  for p in $missing; do
+    m=${p#*@}; src=$(jq -r --arg m "$m" '.extraKnownMarketplaces[$m].source | if .source == "directory" then .path else (.repo // .url // empty) end' "$DST/settings.json" 2>/dev/null)
+    echo "  $p   →  ${src:+claude plugin marketplace add $src && }claude plugin install $p"
+    if [[ "${HOME_SYNC_INSTALL_PLUGINS:-}" == 1 ]]; then
+      [[ -n "$src" ]] && { claude plugin marketplace list 2>/dev/null | grep -q " $m\$\|❯ $m" || claude plugin marketplace add "$src"; }
+      claude plugin install "$p"
+    fi
+  done
+  [[ "${HOME_SYNC_INSTALL_PLUGINS:-}" == 1 ]] || echo "  지금 설치하려면: HOME_SYNC_INSTALL_PLUGINS=1 $0 apply (또는 위 명령을 직접)"
+}
+
 cmd=${1:-status}
 case "$cmd" in
   status)
@@ -160,7 +180,8 @@ case "$cmd" in
       elif [[ "$SRC/$f" -nt "$DST/$f" ]]; then printf '%-40s 다름 (정본이 더 새로움 → diff 후 apply)\n' "$f"
       else printf '%-40s 다름 (실제가 더 새로움 → pull 검토)\n' "$f"; fi
     done
-    orphans_report ;;
+    orphans_report
+    plugins_report ;;
   diff)
     links diff
     if [[ -d "$MIG_DIR" ]]; then
@@ -192,7 +213,8 @@ case "$cmd" in
       fi
     done
     write_state
-    [[ -f "$DST/settings.json" ]] && { jq -e . "$DST/settings.json" >/dev/null && echo "settings.json JSON OK"; } ;;
+    [[ -f "$DST/settings.json" ]] && { jq -e . "$DST/settings.json" >/dev/null && echo "settings.json JSON OK"; }
+    plugins_report ;;
   new-migration)
     slug=${2:?usage: $0 new-migration <slug>}
     [[ $slug =~ ^[a-z0-9][a-z0-9-]*$ ]] || { echo "slug 는 소문자·숫자·하이픈" >&2; exit 2; }
