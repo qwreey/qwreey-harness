@@ -1,6 +1,6 @@
 ---
 name: inherit-advisor
-description: A self-check you run on your own initiative, for your own use: forks you, with this conversation's prompt cache, into a reviewer that steps out of your role and challenges your reasoning (premises, missed requests, the design you just called done). Reach for it whenever you want another view on your own thinking, whether or not the user asked; the findings feed your next step, not a report. 한 번 더 봐줘, 다른 눈으로 검토.
+description: Get a second opinion on your own thinking. Forks you, with this conversation's prompt cache, into a reviewer that steps out of your role and challenges your reasoning, not your diff. Reach for it whenever you want another view, and before you act on a conclusion that only you have checked and that would be costly to get wrong. The call is yours: the review serves your next step, so the user does not need to ask. 한 번 더 봐줘, 다른 눈으로 검토.
 argument-hint: "[reqs] [one-line note]"
 ---
 

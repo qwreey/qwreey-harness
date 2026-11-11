@@ -1,6 +1,6 @@
 ---
 name: fresh-advisor
-description: A self-check you run on your own initiative, for your own use: spawns a read-only reviewer in a new context that gets your claims in a short brief, reads the changes and the user's own words itself, and tries to refute what you say is done or true. Where a code review hunts defects in a diff, this tests your claims against what the user asked. Reach for it whenever you want your claims tested by someone who does not share your assumptions. 커밋 전 검토, 완료 전 검증.
+description: Get a second opinion from fresh eyes. Spawns a read-only reviewer in a new context with a short brief; it reads the changes and the user's own words itself and tries to refute your claims. Where a code review hunts defects in a diff, this tests your claims against what the user asked. Reach for it before you tell the user that something only you have verified is done or true; no one needs to ask. 완료 전 검증, 내 주장 반박.
 argument-hint: "[plan|stuck|done] [scope or one-line note]"
 ---
 
