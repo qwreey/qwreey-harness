@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
-FAKE = Path(__file__).resolve().parent / "fake_claude.py"
+FAKE = Path(__file__).resolve().parent / "fixtures" / "fake_claude.py"
 
 
 def rec(**o):
