@@ -9,7 +9,7 @@
   python3 -I scan.py --env              읽은 harness.env 값과 쓸 수 있는 툴킷을 보인다
 
 항목 번호: 0 세션, 1 상시 로드, 2 rules, 3 스킬, 4 낡음·모순, 5 공유 지식 후보(툴킷),
-          6 복제본 표류, 7 설정, 8 툴체인(툴킷), 9 worktree.
+          6 복제본 표류, 7 설정, 8 툴체인(툴킷), 9 worktree, 10 메모리 이식성(memory_checks.py).
 코어(이 파일)는 언어와 무관한 검사만 한다. 언어·툴체인 검사는 toolkits/<이름>.py 가 맡고,
 저장소마다 감지 표식이 있을 때만 켠다(--toolkits 로 강제). 환경 고유값은 ~/.claude/harness.env 에서 읽는다.
 판단이 필요한 것은 '경고'나 '정보'로만 낸다. 고칠지는 모델과 사용자가 정한다.
@@ -1002,6 +1002,18 @@ def run_toolkits(repo, files, projects, only, kb, active):
         TOOLKITS[name].check(ctx)
 
 
+# ----------------------------------------------------- 10 메모리 이식성 (구현은 memory_checks.py)
+def check_memory(repo, user=False):
+    spec = importlib.util.spec_from_file_location("memory_checks", HERE.parent / "memory_checks.py")
+    mc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mc)
+    ms = mc.load_signals([USER_HOME / "lib", CANON_HOME / "lib"])
+    if ms is None:
+        add(10, "정보", "MEM-SKIP", USER_HOME / "lib", "lib/memory_signals.py 가 없어 메모리 검사를 건너뛴다(정본 적용 전)")
+        return
+    mc.run(add, ms, USER_HOME, repo=repo, user=user)
+
+
 # ----------------------------------------------------- 9 worktree
 def check_worktrees(repo, now):
     wts = worktrees(repo) if git_root(repo) else []
@@ -1053,7 +1065,7 @@ def check_worktrees(repo, now):
 
 # ----------------------------------------------------------- 출력
 SEV_ORDER = {"오류": 0, "경고": 1, "정보": 2}
-TITLES = {0: "실행 중인 세션", 1: "상시 로드량", 2: "rules 구성", 3: "스킬 상태", 4: "낡음과 모순",
+TITLES = {10: "메모리 이식성", 0: "실행 중인 세션", 1: "상시 로드량", 2: "rules 구성", 3: "스킬 상태", 4: "낡음과 모순",
           5: "공유 지식 쏠림(툴킷 KB)", 6: "복제본 표류", 7: "설정", 8: "툴체인(툴킷)", 9: "worktree 위생"}
 
 
@@ -1105,7 +1117,7 @@ def main():
         print("# 툴킷: " + ", ".join(f"{k} → {getattr(t, 'REFERENCE', '')}" for k, t in TOOLKITS.items()))
         return 0
     today = dt.date.fromisoformat(a.today) if a.today else dt.date.today()
-    only = {int(x) for x in a.only.split(",")} if a.only else set(range(10))
+    only = {int(x) for x in a.only.split(",")} if a.only else set(range(11))
     extra = {}
     if a.user:
         target = CANON_HOME
@@ -1121,6 +1133,8 @@ def main():
                         extra["skills"].append(check_skill(sd, USER_HOME))
                         add(3, "정보", "SKILL-UNMANAGED", USER_HOME / "skills" / sd.name,
                             "정본(home/.claude)에도 MANIFEST 링크에도 없는 사용자 스킬이다.")
+        if 10 in only:
+            check_memory(None, user=True)
         manifest = DOCTOR_ROOT / "home" / "MANIFEST" if DOCTOR_ROOT else None
         if manifest and manifest.is_file():
             scope = {"HARNESS_DOCTOR_ROOT": str(DOCTOR_ROOT), "HARNESS_WORKSPACE": str(WORKSPACE)}
@@ -1169,6 +1183,7 @@ def main():
             (4, lambda: check_stale(target, today)),
             (6, lambda: check_drift(target, files, projects)),
             (7, lambda: check_settings(target, files)),
+            (10, lambda: check_memory(target)),
             (9, lambda: extra.__setitem__("worktrees", check_worktrees(target, dt.datetime.now().timestamp()))),
         ]
         for n, fn in steps:

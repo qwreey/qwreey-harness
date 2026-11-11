@@ -33,6 +33,7 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 | | 해당 rules 파일 안내 | warn |
 | | 인터프리터로 읽기·수정 | info |
 | structure-reminder | 강제 한도(1,500) 초과 | action |
+| memory-placement | auto memory 에 저장소 지식으로 보이는 내용을 씀(경로·명령·규약 신호) | warn |
 | | 경고 한도(800) 초과, 세션 성장, 잘못된 예외 사유, 폴더 파일 과다 | warn |
 | | 유효한 예외 사유 안내, 접두 묶음 제안 | info |
 | rearm-on-compact | (출력 없음) | - |

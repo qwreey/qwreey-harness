@@ -65,6 +65,7 @@ Claude Code 내장 `/doctor`처럼 진단부터 한다. 대상은 작업공간 �
 | 7 | 설정 | 코어 | `SET-` | `references/drift-and-settings.md` |
 | 8 | 툴체인 | 툴킷 | `TOOL-`, `<툴킷>-` | 툴킷 문서 |
 | 9 | worktree 위생 | 코어 | `WT-` | `references/worktrees.md` |
+| 10 | 메모리 이식성(고아 키, 저장소 지식, MEMORY.md 크기) | 코어 | `MEM-` | `references/memory-portability.md` |
 | - | 툴킷 구조, 새 툴킷 추가 | | | `references/toolkits/README.md` |
 | - | 툴킷 luau (Luau/Roblox) | 툴킷 | `TOOL-`, `KB-`, `DRIFT-TYPEDEFS` | `references/toolkits/luau.md` |
 | - | 툴킷 web (골격, 감지만) | 툴킷 | (예약 `WEB-`) | `references/toolkits/web.md` |

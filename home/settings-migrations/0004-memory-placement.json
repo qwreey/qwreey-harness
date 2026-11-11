@@ -1,0 +1,15 @@
+{
+  "id": "0004-memory-placement",
+  "why": "auto memory 이식성: 메모리에 쓴 내용이 저장소 지식으로 보이면 알리는 PostToolUse 훅(memory-placement, level=warn, 막지 않음). audit/23",
+  "ops": [
+    {
+      "op": "hook-upsert",
+      "event": "PostToolUse",
+      "command": "python3 $HOME/.claude/hooks/memory-placement.py",
+      "matcher": "Write|Edit|MultiEdit",
+      "fields": {
+        "timeout": 10
+      }
+    }
+  ]
+}

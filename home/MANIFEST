@@ -8,6 +8,8 @@ hooks/heavy-proc-guard.py
 hooks/bash-bypass-reminder.py
 hooks/structure-reminder.py
 hooks/comment-hygiene.py
+hooks/memory-placement.py
+lib/memory_signals.py
 hooks/rearm-on-compact.py
 lib/compact_epoch.py
 hooks/subagent-slots.py
@@ -22,4 +24,5 @@ statusline/harness-status.py
 link rules/luau-core.md ${HARNESS_WORKSPACE}/luau-kb/rules/luau-core.md
 rules/code-structure.md
 rules/comments.md
+rules/memory.md
 rules/web-security.md
