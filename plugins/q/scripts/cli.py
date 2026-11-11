@@ -171,7 +171,7 @@ def cmd_brief(a):
     if a.kind == "precompact":
         print(brief.precompact(st, sid, tp))
     else:
-        print(brief.handover(st, sid, a.source))
+        print(brief.handover(st, sid, a.source, tp))
         print(brief.pending_line(st, "session_start")[1])
 
 

@@ -19,12 +19,18 @@ def wrap(body: str, level: str = "info") -> str:
 
 
 def wrap_parts(parts: list[tuple[str, str]]) -> str:
-    """[(level, text)] → 태그 하나. 규약: 한 태그에 알림이 여럿이면 가장 높은 level 을 단다(info < warn < action)."""
-    parts = [(lv, t) for lv, t in parts if t]
-    if not parts:
-        return ""
-    top = max((lv for lv, _ in parts), key=lambda lv: LEVELS.index(lv) if lv in LEVELS else 0)
-    return wrap("\n".join(t for _, t in parts), top)
+    """[(level, text)] → level 마다 태그 하나(처음 나온 순서). 낮은 level 알림이 같은 태그의 높은 level 에 끌려
+    올라가지 않게 한다(예: 인계 info 가 pending action 으로 읽히는 일)."""
+    order: list[str] = []
+    by: dict[str, list[str]] = {}
+    for lv, t in parts:
+        if not t:
+            continue
+        lv = lv if lv in LEVELS else "info"
+        if lv not in by:
+            order.append(lv); by[lv] = []
+        by[lv].append(t)
+    return "\n".join(wrap("\n".join(by[lv]), lv) for lv in order)
 
 
 # ---- 요약 완료·진행 알림 -------------------------------------------------------------
@@ -74,9 +80,13 @@ def pending(count: int, oldest_date: str, oldest_days: int, trigger: str, strong
 
 
 # ---- SessionStart 인계 ----------------------------------------------------------------
-def handover_head(sid8: str, when: str, same: bool) -> str:
-    who = "this session" if same else f"session {sid8}"
-    return f"Handover from {who} (last log entry {when}), open items:"
+def handover_head(sid8: str, when: str) -> str:
+    return f"Handover from session {sid8} (last log entry {when}), open items:"
+
+
+def handover_behind(sid8: str, when: str, end: int, total: int) -> str:
+    return (f"Handover from session {sid8} (last log entry {when}): its record is behind, summarized to L{end} of {total}, "
+            "so its open items are not shown.")
 
 
 def records_hint(store_records: str) -> str:

@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -263,17 +264,19 @@ class TestHooks(Env):
 
     def test_session_start_handover_and_pending_once(self):
         st = self.seed()
-        out = self.ctx(self.hook("SessionStart", self.payload(source="resume")))
-        self.assertIn('<harness-hook name="session-log" level="warn">', out)  # 인계(info)+pending(warn) → 한 태그, 높은 쪽
-        self.assertEqual(out.count("<harness-hook"), 1)
-        self.assertIn("Handover from this session", out)
+        self.other_session()
+        out = self.ctx(self.hook("SessionStart", self.payload(source="startup"), {"SESSION_LOG_HANDOVER_LIVE_MIN": "0"}))
+        self.assertIn('level="info"', out)
+        self.assertIn('level="warn"', out)               # 인계(info)와 pending(warn)은 태그가 따로다
+        self.assertEqual(out.count("<harness-hook"), 2)
+        self.assertIn("Handover from session other-s", out)
         self.assertIn("‹system-reminder›", out)          # 태그 무력화
         self.assertNotIn("<system-reminder>", out)
         self.assertNotIn("99999", out)                    # ⚠ 항목은 넣지 않는다
-        self.assertIn("1 auto-summarized session record pending import", out)
+        self.assertIn("2 auto-summarized session records pending import", out)
         self.assertNotIn("가짜 요약이다", out)            # 자유 텍스트 요약은 넣지 않는다
         self.assertLessEqual(len(out.split("</harness-hook>")[0]), 800 + 200)
-        out2 = self.ctx(self.hook("SessionStart", self.payload(source="resume")))
+        out2 = self.ctx(self.hook("SessionStart", self.payload(source="startup"), {"SESSION_LOG_HANDOVER_LIVE_MIN": "0"}))
         self.assertNotIn("pending import", out2)          # 같은 회차에는 한 번
 
     def test_pending_reappears_after_compact(self):
@@ -320,11 +323,75 @@ class TestHooks(Env):
         self.assertEqual(self.hook("SessionStart", self.payload(source="resume"), {"SESSION_LOG_NESTED": "1"}), "")
         self.assertEqual(self.hook("SessionStart", self.payload(source="resume", agent_id="a1")), "")
 
+    def other_session(self, extra_lines=0, age_s=3600):
+        """다른 세션(other-sess)의 기록을 만든다. 같은 디렉터리에 트랜스크립트가 있고 mtime 이 age_s 초 전이다."""
+        from sllib import worker
+        osid = "other-sess-bbbb"
+        otp = self.tp.parent / f"{osid}.jsonl"
+        otp.write_text(human("다른 세션 지시 7777", cwd=str(self.proj)) + agent("네") , encoding="utf-8")
+        worker.flush(self.store(), osid, str(otp), "x", force=True)
+        with open(otp, "a", encoding="utf-8") as f:
+            f.write("".join(agent("더") for _ in range(extra_lines)))
+        t = time.time() - age_s
+        os.utime(otp, (t, t))
+        return otp
+
+    def start(self, source="startup", env=None):
+        e = {"SESSION_LOG_HANDOVER_LIVE_MIN": "0"}
+        e.update(env or {})
+        return self.ctx(self.hook("SessionStart", self.payload(source=source), e))
+
     def test_stale_handover_skipped(self):
         self.seed()
-        out = self.ctx(self.hook("SessionStart", self.payload(source="resume"), {"SESSION_LOG_HANDOVER_MAX_DAYS": "-1"}))
+        self.other_session()
+        out = self.start(env={"SESSION_LOG_HANDOVER_MAX_DAYS": "-1"})
         self.assertNotIn("Handover from", out)
         self.assertIn("pending import", out)
+
+    def test_no_handover_on_resume(self):
+        self.seed()
+        self.other_session()
+        out = self.start("resume")
+        self.assertNotIn("Handover from", out)           # 같은 세션도 다른 세션도 없다
+        self.assertIn("pending import", out)
+
+    def test_handover_lag_guard(self):
+        self.seed()
+        self.other_session(extra_lines=50)
+        out = self.start(env={"SESSION_LOG_HANDOVER_LAG_LINES": "10"})
+        self.assertIn("record is behind, summarized to L2 of 52", out)
+        self.assertNotIn("open items:", out)
+        self.assertNotIn("다음 단계", out)
+        out2 = self.start(env={"SESSION_LOG_HANDOVER_LAG_LINES": "100"})  # 문턱 안이면 항목을 보인다
+        self.assertIn("Handover from session other-s", out2)
+        self.assertNotIn("is behind", out2)
+
+    def test_handover_lag_guard_without_transcript_keeps_old(self):
+        self.seed()
+        otp = self.other_session(extra_lines=50)
+        otp.unlink()
+        out = self.start(env={"SESSION_LOG_HANDOVER_LAG_LINES": "10"})
+        self.assertIn("Handover from session other-s", out)
+
+    def test_handover_live_guard(self):
+        self.seed()
+        self.other_session(age_s=30)
+        out = self.start(env={"SESSION_LOG_HANDOVER_LIVE_MIN": "10"})
+        self.assertNotIn("Handover from", out)
+        self.assertNotIn("is behind", out)
+        self.assertIn("pending import", out)
+        self.other_session(age_s=3600)
+        self.assertIn("Handover from session other-s", self.start(env={"SESSION_LOG_HANDOVER_LIVE_MIN": "10"}))
+
+    def test_handover_not_promoted_by_pending_action(self):
+        self.seed()
+        self.other_session()
+        out = self.start(env={"SESSION_LOG_PENDING_STRONG_COUNT": "1"})
+        first, second = out.split("</harness-hook>")[:2]
+        self.assertIn('level="action"', first + second)
+        info = [t for t in (first, second) if "Handover from" in t][0]
+        self.assertIn('level="info"', info)
+        self.assertNotIn("Import or dismiss", info)
 
     def test_strong_wording(self):
         self.seed()

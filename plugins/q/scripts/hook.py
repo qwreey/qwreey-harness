@@ -115,7 +115,7 @@ def main() -> None:
             if rids:
                 parts.append(("info", messages.after_compact(short_home(store.record_path(sorted(rids)[-1])), short_home(store.records))))
         elif store.exists():
-            h = brief.handover(store, sid, source)
+            h = brief.handover(store, sid, source, transcript)
             if h:
                 parts.append(("info", h))
         if store.exists():

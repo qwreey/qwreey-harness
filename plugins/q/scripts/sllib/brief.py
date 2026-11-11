@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -74,11 +75,44 @@ def latest_other_session(store: Store, sid: str) -> str | None:
 
 
 # ---- SessionStart ----
-def handover(store: Store, sid: str, source: str) -> str:
+NOTE_END_RX = re.compile(r"note: L\d+[–-]L(\d+)\s*$")
+
+
+def _line_count(path: Path) -> int | None:
+    """트랜스크립트의 줄 수(개행 개수). 못 읽으면 None."""
+    n = 0
+    try:
+        with open(path, "rb") as f:
+            while chunk := f.read(1 << 20):
+                n += chunk.count(b"\n")
+    except OSError:
+        return None
+    return n
+
+
+def handover(store: Store, sid: str, source: str, transcript: str = "") -> str:
+    """startup·clear 에서만 직전 다른 세션의 미해결을 넘긴다.
+
+    resume 은 대화 맥락이 그대로 복원되므로 이 세션의 미해결은 이미 맥락에 있고, 다른 세션의 일을 끌어오면
+    "이 대화를 잇는다"는 뜻과 어긋난다. 그래서 resume 은 아무것도 넣지 않는다.
+    다른 세션의 트랜스크립트는 이 세션의 transcript_path 와 같은 디렉터리의 <session_id>.jsonl 로 찾는다.
+    """
+    if source not in ("startup", "clear"):
+        return ""
     limit = int(config.num("SESSION_LOG_HANDOVER_CHARS"))
-    target = sid if source == "resume" else latest_other_session(store, sid)
+    target = latest_other_session(store, sid)
     if not target:
         return ""
+    other = Path(transcript).parent / f"{target}.jsonl" if transcript else None
+    if other is not None and not other.is_file():
+        other = None  # 못 찾으면 가드 없이 옛 동작
+    # 살아 있는 세션의 미해결은 인계가 아니라 그 세션 자신의 진행 중 작업이다
+    if other is not None:
+        try:
+            if time.time() - other.stat().st_mtime < config.num("SESSION_LOG_HANDOVER_LIVE_MIN") * 60:
+                return ""
+        except OSError:
+            pass
     secs, path = record_sections(store, target)
     if not secs:
         return ""
@@ -89,11 +123,16 @@ def handover(store: Store, sid: str, source: str) -> str:
         age = 0
     if age > config.num("SESSION_LOG_HANDOVER_MAX_DAYS"):
         return ""
+    when = last["head"].split(" · ")[0]
+    # 기록이 트랜스크립트 끝보다 많이 뒤처졌으면 미해결 항목이 이미 해결됐을 수 있어 보여 주지 않는다
+    m = NOTE_END_RX.search(last["meta"])
+    total = _line_count(other) if (m and other is not None) else None
+    if m and total is not None and total - int(m.group(1)) > config.num("SESSION_LOG_HANDOVER_LAG_LINES"):
+        return messages.handover_behind(target[:8], when, int(m.group(1)), total)
     items = [_item_title(i) for i in _clean(last["parts"].get("미해결과 다음 단계", []))]
     if not items:
         return ""
-    when = last["head"].split(" · ")[0]
-    head = messages.handover_head(target[:8], when, target == sid)
+    head = messages.handover_head(target[:8], when)
     tail = [f"Record: {short_home(path)}"] if path else []
     return fit(head, items, limit, tail)
 

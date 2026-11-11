@@ -24,6 +24,8 @@ DEFAULTS = {
     "SESSION_LOG_MAX_PARALLEL": "2",     # 기계 전체 동시 요약 상한
     "SESSION_LOG_HANDOVER_CHARS": "800",     # SessionStart 인계 상한
     "SESSION_LOG_HANDOVER_MAX_DAYS": "3",    # 마지막 절이 이보다 오래되면 인계하지 않는다(소급 기록 등)
+    "SESSION_LOG_HANDOVER_LAG_LINES": "400",  # 마지막 절 끝줄이 트랜스크립트 끝보다 이만큼 넘게 뒤처지면 미해결을 보이지 않는다(요약은 512KB 자랄 때마다라 평소 뒤처짐은 수백 줄 이하, 낡은 항목은 이미 해결됐을 수 있다)
+    "SESSION_LOG_HANDOVER_LIVE_MIN": "10",   # 다른 세션 트랜스크립트가 이 분 안에 바뀌었으면 아직 일하는 중이라 인계하지 않는다
     "SESSION_LOG_PRECOMPACT_CHARS": "3000",  # PreCompact 상기 주입 상한
     "SESSION_LOG_PENDING_STRONG_COUNT": "5",  # pending 이 이 개수 이상이면 강한 문구
     "SESSION_LOG_PENDING_STRONG_DAYS": "7",   # 가장 오래된 pending 이 이 일수 이상이면 강한 문구

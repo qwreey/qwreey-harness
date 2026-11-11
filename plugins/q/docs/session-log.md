@@ -44,7 +44,7 @@ index.json                         rid → pending | imported(위치, 커밋) | 
 |---|---|---|---|
 | 요약을 시작함(쿨다운 트리거) | PostToolUse·UserPromptSubmit | info | 구간과 "끝나면 알린다" |
 | 요약이 끝남 | 다음 PostToolUse·UserPromptSubmit 1회 | info | 새 절 수, 기록 경로, 대조 실패 수, pending 수 |
-| 세션 시작 | SessionStart | info / warn·action | 인계(직전 다른 세션 또는 resume 이면 이 세션의 미해결, ≤800자) + pending + 찾는 법 한 줄 |
+| 세션 시작 | SessionStart | info / warn·action (level 마다 태그 하나) | 인계(startup·clear 만, 직전 다른 세션의 미해결, ≤800자; resume 은 맥락이 복원되므로 없음. 기록이 트랜스크립트보다 `SESSION_LOG_HANDOVER_LAG_LINES` 넘게 뒤처졌으면 항목 대신 "뒤처짐" 한 줄, 트랜스크립트가 `SESSION_LOG_HANDOVER_LIVE_MIN` 분 안에 바뀐 세션은 아직 일하는 중이라 생략) + pending + 찾는 법 한 줄 |
 | compact 뒤 | SessionStart(compact) | info / warn | 이 세션 기록 경로 + pending(새 회차라 다시) |
 | commit 직전 | PreToolUse(Bash, `git … commit`) | warn·action | pending 과 "같은 커밋에 넣기 좋음"(막지 않음) |
 | 인계·정리 | UserPromptSubmit(`/handover`·`/q:checkpoint`·인계 낱말), PreToolUse(Skill handover) | warn·action | pending |
@@ -78,7 +78,7 @@ session-log backfill --plan plan.json [--budget 4] [--dry-run]
 
 ## 설정
 우선순위는 환경 변수 > `harness.env`(`$HARNESS_ENV` → `$CLAUDE_CONFIG_DIR/harness.env` → `~/.claude/harness.env`, `SESSION_LOG_*` 키만) > 기본값이다. 목록과 기본값은 `scripts/sllib/config.py` `DEFAULTS` 에 있다.
-- 주요 키: `SESSION_LOG_HOME`, `SESSION_LOG_MODEL`(haiku), `SESSION_LOG_DISABLE`, `SESSION_LOG_COOLDOWN_MIN`(20), `SESSION_LOG_GROW_KB`(512), `SESSION_LOG_HANDOVER_CHARS`(800), `SESSION_LOG_PRECOMPACT_CHARS`(3000), `SESSION_LOG_PENDING_STRONG_COUNT`(5), `SESSION_LOG_PENDING_STRONG_DAYS`(7), `SESSION_LOG_MAX_PARALLEL`(2).
+- 주요 키: `SESSION_LOG_HOME`, `SESSION_LOG_MODEL`(haiku), `SESSION_LOG_DISABLE`, `SESSION_LOG_COOLDOWN_MIN`(20), `SESSION_LOG_GROW_KB`(512), `SESSION_LOG_HANDOVER_CHARS`(800), `SESSION_LOG_HANDOVER_LAG_LINES`(400), `SESSION_LOG_HANDOVER_LIVE_MIN`(10), `SESSION_LOG_PRECOMPACT_CHARS`(3000), `SESSION_LOG_PENDING_STRONG_COUNT`(5), `SESSION_LOG_PENDING_STRONG_DAYS`(7), `SESSION_LOG_MAX_PARALLEL`(2).
 - harness.env 제안(하네스 담당이 정본에 넣을 때): `SESSION_LOG_HOME=${XDG_DATA_HOME:-~/.local/share}/session-log` 를 명시하고, 필요하면 `SESSION_LOG_MODEL=haiku` 를 둔다. 다른 sandbox 로 옮길 때는 이 두 키만 본다.
 
 ## coderag 연결 (메모)
