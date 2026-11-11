@@ -1,0 +1,65 @@
+{
+  "id": "0006-hooks-to-plugins",
+  "why": "user-level 훅 6개를 플러그인으로 옮겼다(heavy-proc-guard -> qwreey-proc-guard 새 플러그인, bash-bypass-reminder·structure-reminder·memory-placement -> qwreey-conventions, subagent-slots -> q, rearm-on-compact 는 각 플러그인의 PreCompact 회차로 대체해 없앰). 옛 user-level 등록을 걷고 새 플러그인을 켠다. 플러그인 갱신과 같은 시점에 apply 해야 한다: 갱신 전에 apply 하면 그 사이 훅이 없고, 갱신 뒤 apply 전에는 훅이 두 번 돈다. 순서는 HUMAN_TODO 의 '훅을 플러그인으로 옮긴 뒤'. hook-remove 는 command 로만 찾으므로 subagent-slots 는 이벤트마다 하나씩 둔다. q 는 0002 가 이미 켰다",
+  "ops": [
+    {
+      "op": "hook-remove",
+      "event": "PreToolUse",
+      "command": "python3 $HOME/.claude/hooks/heavy-proc-guard.py"
+    },
+    {
+      "op": "hook-remove",
+      "event": "PreToolUse",
+      "command": "python3 $HOME/.claude/hooks/bash-bypass-reminder.py"
+    },
+    {
+      "op": "hook-remove",
+      "event": "PreToolUse",
+      "command": "python3 $HOME/.claude/hooks/subagent-slots.py"
+    },
+    {
+      "op": "hook-remove",
+      "event": "PostToolUse",
+      "command": "python3 $HOME/.claude/hooks/structure-reminder.py"
+    },
+    {
+      "op": "hook-remove",
+      "event": "PostToolUse",
+      "command": "python3 $HOME/.claude/hooks/memory-placement.py"
+    },
+    {
+      "op": "hook-remove",
+      "event": "PostToolUse",
+      "command": "python3 $HOME/.claude/hooks/subagent-slots.py"
+    },
+    {
+      "op": "hook-remove",
+      "event": "SessionStart",
+      "command": "python3 $HOME/.claude/hooks/rearm-on-compact.py"
+    },
+    {
+      "op": "hook-remove",
+      "event": "SubagentStart",
+      "command": "python3 $HOME/.claude/hooks/subagent-slots.py"
+    },
+    {
+      "op": "hook-remove",
+      "event": "SubagentStop",
+      "command": "python3 $HOME/.claude/hooks/subagent-slots.py"
+    },
+    {
+      "op": "hook-remove",
+      "event": "Stop",
+      "command": "python3 $HOME/.claude/hooks/subagent-slots.py"
+    },
+    {
+      "op": "set",
+      "path": [
+        "enabledPlugins",
+        "qwreey-proc-guard@claude-doctor-market"
+      ],
+      "value": true,
+      "keep_existing": true
+    }
+  ]
+}

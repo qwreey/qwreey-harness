@@ -89,6 +89,22 @@ class T(unittest.TestCase):
         e.run()
         self.assertNotIn("hooks", e.get())
 
+    def test_hook_remove_by_command_across_groups_keeps_others(self):
+        sub = "python3 $HOME/.claude/hooks/subagent-slots.py"
+        mine = {"type": "command", "command": "mine.sh"}
+        s = {"hooks": {"PostToolUse": [{"matcher": "Agent|Workflow", "hooks": [{"type": "command", "command": sub}, mine]},
+                                       {"matcher": "*", "hooks": [{"type": "command", "command": sub}]}],
+                       "Stop": [{"hooks": [{"type": "command", "command": sub}]}]},
+             "statusLine": {"type": "command", "command": "python3 $HOME/.claude/statusline/harness-status.py"}}
+        e = Env(self, s, [mig("0006-a", {"op": "hook-remove", "event": "PostToolUse", "command": sub},
+                              {"op": "hook-remove", "event": "Stop", "command": sub},
+                              {"op": "set", "path": ["enabledPlugins", "p@claude-doctor-market"], "value": True, "keep_existing": True})])
+        e.run()
+        out = e.get()
+        self.assertEqual(out["hooks"], {"PostToolUse": [{"matcher": "Agent|Workflow", "hooks": [mine]}]})  # 같은 command 는 모든 그룹에서 빠지고 남의 훅·빈 그룹 정리
+        self.assertEqual(out["statusLine"], s["statusLine"])
+        self.assertTrue(out["enabledPlugins"]["p@claude-doctor-market"])
+
     def test_unmanaged_top_keys_kept(self):
         auto = {"environment": ["x"]}
         e = Env(self, {"autoMode": auto, "theme": "dark"}, [mig("0001-a", {"op": "set", "path": "cleanupPeriodDays", "value": 5})])

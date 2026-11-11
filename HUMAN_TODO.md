@@ -23,6 +23,12 @@
   - `~/.claude/hooks/{heavy-proc-guard,bash-bypass-reminder,structure-reminder,memory-placement,subagent-slots,rearm-on-compact}.py`
   - `~/.claude/lib/{compact_epoch,memory_signals,subagent_ledger}.py` (`lib/harness_env.py` 는 남긴다)
   - 옛 훅이 settings 에 남아 있는 채로 파일만 지우면 훅 오류가 나므로 마이그레이션 0006 을 먼저 적용한다
+  - **순서**(갱신 전에 apply 하면 그 사이 훅이 없고, 갱신 뒤 apply 전에는 훅이 두 번 돈다):
+    1. `claude plugin marketplace update claude-doctor-market`
+    2. q, qwreey-advisor, qwreey-conventions 를 갱신하고 qwreey-proc-guard 를 설치한다
+    3. `tools/home-sync.sh diff` 로 검토한 뒤 `apply`(0006 이 옛 훅 등록을 걷고 qwreey-proc-guard 를 켠다)
+    4. 위 고아 파일을 지운다
+    5. 새 세션을 시작한다
 
 ## 권한
 - [ ] plugin.json 의 license 필드(session-log 는 MIT 로 적혀 있음)와 luau-kb·coderag LICENSE 를 함께 결정 (auto 모드 분류기가 막거나, 사용자 판단 사항)

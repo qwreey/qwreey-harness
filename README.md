@@ -42,7 +42,7 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
      적용 뒤 내가 끈 값은 되돌리지 않는다. 실패하면 그 마이그레이션만 되돌린다. `diff` 는 연산별 변경/no-op 과 결과 diff, `new-migration <slug>` 는 빈 파일을 만든다.
      **적용된 마이그레이션은 고치지 않는다.** 한 번이라도 apply 한 id 는 다시 돌지 않으므로, 바꿀 것은 새 번호(0002, 0003 …)로 추가한다. 0001 은 첫 apply 전까지만 고칠 수 있다.
    - **플러그인:** 마이그레이션은 `extraKnownMarketplaces`·`enabledPlugins` 로 "무엇을 켤지" 만 선언한다(공식 배포 방식과 같음). 실제 설치는 Claude Code 가 세션을 시작할 때 한다(사용자 레벨 settings 에서도 확인, 2026-11-11: apply 뒤 새 세션에서 q·qwreey-advisor 이 손으로 설치하지 않았는데 설치되고 쓰였다). `status`/`apply` 끝에 설치 안 된 것과 설치 명령을 보여 준다. 바로 설치하려면 `HOME_SYNC_INSTALL_PLUGINS=1 tools/home-sync.sh apply`.
-   - 훅 명령은 `$HOME/.claude/hooks/...` 를 쓴다. `CLAUDE_CONFIG_DIR` 로 설정 디렉터리를 옮겼다면 `settings.json` 의 훅 경로를 그에 맞게 고친다.
+   - 훅은 플러그인(`q`, `qwreey-advisor`, `qwreey-conventions`, `qwreey-proc-guard`)이 등록하므로 settings.json 에 훅 명령이 없다(옛 user-level 훅 등록은 마이그레이션 0006 이 걷는다). 남는 것은 statusLine 의 `$HOME/.claude/statusline/harness-status.py` 뿐이라 `CLAUDE_CONFIG_DIR` 로 설정 디렉터리를 옮겼다면 그 경로만 고친다. 훅은 사용자 설정을 `$CLAUDE_CONFIG_DIR`(기본 `~/.claude`)에서 읽는다.
 5. **플러그인 마켓**(luau 툴킷): `claude plugin marketplace add <작업공간>/luau-kb` 후 `claude plugin install luau-kb@luau-kb-market`.
    - 지금 이 sandbox 는 MANIFEST 의 `link skills/luau-*` 심볼릭 링크로 소비한다. 플러그인으로 옮기면 그 링크 줄을 지운다(둘 다 두면 스킬이 겹친다).
 6. **q 플러그인**: `claude plugin marketplace add <claude-doctor 폴더>` 후 `claude plugin install q@claude-doctor-market`(마이그레이션 0002 가 켠다). 옛 `~/.claude/skills/{away,back,harness-doctor}` 는 apply 가 지우지 않는다: `tools/home-sync.sh status` 의 고아 보고를 보고 직접 정리한다.
