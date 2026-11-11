@@ -16,7 +16,7 @@ paths:
 ---
 # Code structure (file length, folders, data) - all toolkits
 
-> Policy: decided as D-13 (2026-11-10). If the repo's `.claude/rules/`, `conventions.md`, or `.claude/structure.json` says otherwise, follow the repo.
+> If the repo's `.claude/rules/`, `conventions.md`, or `.claude/structure.json` says otherwise, follow the repo.
 > Pairs with the PostToolUse hook `structure-reminder`. The hook only informs; it never blocks.
 
 ## File length

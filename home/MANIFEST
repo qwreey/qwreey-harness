@@ -7,7 +7,6 @@ lib/harness_env.py
 hooks/heavy-proc-guard.py
 hooks/bash-bypass-reminder.py
 hooks/structure-reminder.py
-hooks/comment-hygiene.py
 hooks/memory-placement.py
 lib/memory_signals.py
 hooks/rearm-on-compact.py
@@ -23,6 +22,7 @@ statusline/harness-status.py
 # 툴킷 luau — 공유 지식 luau-kb (플러그인 마켓으로 옮기면 이 줄들은 지운다)
 link rules/luau-core.md ${HARNESS_WORKSPACE}/luau-kb/rules/luau-core.md
 rules/code-structure.md
+rules/agent-docs.md
 rules/comments.md
 rules/memory.md
 rules/web-security.md

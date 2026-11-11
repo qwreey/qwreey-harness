@@ -1,28 +1,31 @@
 #!/usr/bin/env python3
-"""PostToolUse(Write|Edit|MultiEdit) 알림: 이번에 추가한 주석 줄에 작업 이력(원장 번호·날짜·라운드·세션/감사 경로·결정 문구)이 있으면 알린다.
+"""PostToolUse(Write|Edit|MultiEdit) 알림: 이번에 추가한 줄이 주석\u00b7모델용 문서 관례를 벗어난 것 같으면 한 줄로 알린다.
 
-막지 않는다(decision 없음). additionalContext(level=info)만 주입한다.
-
-왜: quad 에서 설계 시각·원장 번호(H-973, Q188)·감사 라운드·.claude/ 경로가 주석에 쌓여 주석을 갈아엎어야 했다(2026-11-11 사용자).
-규약(rules/comments.md): 주석은 코드가 지금 왜 이런가만 쓴다. 이력은 커밋 메시지·CHANGELOG·원장 문서로 보낸다.
-추적이 필요하면 이유 문장 뒤에 `Ref: <날짜> <원장> <문서 §>` 꼬리 한 줄만 붙인다. 번호는 지우지 않는다.
+막지 않는다(decision 없음). additionalContext(level=info) 한 줄만 주입하고, 고치는 법은 스킬(conventions:comments, conventions:agent-docs)이 가진다.
 
 보는 것: 이번에 추가된 줄만. Edit/MultiEdit 는 new_string 에서 old_string 에 없던 줄, Write 는 새 파일이면 전체, 덮어쓰기면
-  tool_response.originalFile 과의 차이(없으면 structuredPatch 의 + 줄, 둘 다 없으면 보지 않는다 — 옛 줄을 새로 오인하지 않으려고).
-그중 주석 줄만. 파일 전체를 확장자별 간이 렉서로 읽어(문자열 리터럴 안의 `--`·`//`·`#` 는 주석이 아니다) 줄마다 주석 조각을 얻는다.
-  주석 문법: `--`·`--[[ ]]`(luau/lua), `//`·`/* */`(c 계열), `#`(py·sh), `<!-- -->`(html·astro).
-탐지(저장소가 덮어쓸 수 있다): ledger `\\b[A-Z]{1,2}-?\\d{2,4}\\b`, date, round, path(.claude/ session/ audit/), decision("사용자 결정", "per user" 등).
-허용: 줄이 `Ref:` 꼬리이고 같은 주석 덩어리(이어진 주석 줄)에 이유 문장(단어 3개 이상, 탐지 토큰 제외)이 있으면 통과.
-  `---` 문서 주석 안의 번호는 통과가 아니다. Ref 줄은 문서 블록 위에 두면 같은 덩어리라 통과한다.
-제외: 확장자 표 밖, 마크다운, 생성 파일(머리 6줄 표시), 픽스처·testdata·node_modules 등, 설정의 exclude.
+  tool_response.originalFile 과의 차이(없으면 structuredPatch 의 + 줄, 둘 다 없으면 보지 않는다. 옛 줄을 새로 오인하지 않으려고).
 
-저장소 설정: <프로젝트>/.claude/comments.json —
-  {"allow_ref_tail": true, "public_ids": ["Quad\\\\d{4}"], "exclude": ["docs/**", "*.md"],
-   "patterns": {"ledger": "<정규식>", "date": null}, "min_reason_words": 3}
-  public_ids: 줄에서 먼저 지우고 검사하는 공개 식별자 정규식(내장 목록에 더한다). patterns: 이름별로 덮어쓰기, null 이면 끈다.
-끄기: 환경 변수 COMMENT_HYGIENE=off
-알림 중복: 같은 파일은 (session_id, 호출한 쪽, compact 회차)당 한 번. lib/compact_epoch.py 의 state_path 를 쓴다.
-상태 파일: $TMPDIR/claude-comment-hygiene/<session_id>.c<회차>[.a<agent_id>].json
+코드 파일(주석 줄만; 파일 전체를 확장자별 간이 렉서로 읽어 문자열 리터럴 안의 `--`\u00b7`//`\u00b7`#` 는 주석이 아니다)
+  - history marker: 원장 번호\u00b7날짜\u00b7라운드\u00b7작업 이력 경로\u00b7결정 문구. `Ref:` 꼬리는 같은 주석 덩어리에 이유 문장이 있으면 통과
+  - non-keyboard symbol: 사람이 키보드로 치지 않는 문자(기호, 곡선 따옴표, 전각, 이모지). ASCII 와 자연어 글자(한글 등)는 통과
+  - invisible character: 보이지 않는 문자\u00b7방향 제어 문자. 주석이 아니라 추가된 줄 전체에서 본다
+  - language mismatch: 파일 주석의 90% 이상이 한 문자 체계(기존 10줄 이상)인데 추가된 줄이 다른 체계 단어를 3개 이상 쓴다.
+    새 파일은 저장소 comment_language, 없으면 같은 폴더 형제 파일의 다수, 그것도 없으면 검사하지 않는다. 지시자 줄(--!strict, eslint-disable 등)은 뺀다
+모델용 문서(CLAUDE.md, SKILL.md, agents/*.md, .claude/rules/*.md, skills/**/*.md; 추가된 줄만, frontmatter\u00b7코드 펜스\u00b7인라인 코드\u00b7URL\u00b7경로 토큰 안은 통과)
+  - 입구 문서: 날짜, audit/session/handoff 경로, 라운드, 결정 문구, 실측 표지, 변경 서술, 같은 줄에 .md 경로가 없는 원장 id
+  - skills/**/references/*.md: 결정 문구, 라운드, audit/N 근거, 실측 표지, 정정 배너만(날짜\u00b7id\u00b7"previously" 는 통과)
+  - `status:` 줄은 통과
+제외: 확장자 표 밖, 생성 파일(머리 6줄 표시), 픽스처\u00b7testdata\u00b7node_modules 등, 설정의 exclude.
+
+저장소 설정: <프로젝트>/.claude/comments.json
+  {"allow_ref_tail": true, "comment_language": "en", "allow_chars": ["emoji", "x"], "public_ids": ["Quad\\\\d{4}"],
+   "exclude": ["docs/**", "*.md"], "patterns": {"ledger": "<정규식>", "date": null}, "min_reason_words": 3}
+  allow_chars: "emoji" 는 이모지를 끄고, 그 밖의 항목은 허용할 글자들이다. public_ids: 줄에서 먼저 지우고 검사하는 공개 식별자 정규식.
+  patterns: 이름별로 덮어쓰기, null 이면 끈다.
+끄기: 환경 변수 CONVENTIONS_CHECK=off
+알림 중복: (session_id, 호출한 쪽, 파일)마다 한 번. 하네스의 lib/compact_epoch.py 가 있으면 compact 회차도 구분하고, 없으면 내장 대체를 쓴다.
+상태 파일: $TMPDIR/claude-conventions/<session_id>[.c<회차>][.a<agent_id>].json
 """
 import fnmatch
 import importlib.util
@@ -30,11 +33,13 @@ import json
 import os
 import re
 import sys
+import unicodedata
 from collections import Counter
 from pathlib import Path
 
-NS = "claude-comment-hygiene"
-REF = "~/.claude/rules/comments.md"
+NAME = "conventions"
+NS = "claude-" + NAME
+HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"))
 MAX_BYTES = 1_000_000
 
 # 확장자 -> 렉서 계열
@@ -49,16 +54,50 @@ PATTERNS = {
     "ledger": r"\b[A-Z]{1,2}-?\d{2,4}\b",
     "date": r"\b20\d\d-\d\d-\d\d\b",
     "round": r"\bround\s*\d+\b|라운드\s*\d+|감사\s*\d+\s*차",
-    "path": r"\.claude/|\bsession/|\baudit/",
+    "path": r"\.claude/|(?<![\w-])session/|(?<![\w-])audit/",
     "decision": r"사용자\s*(?:결정|지시|요청|합의|말)|\bper (?:the )?user\b|\bas (?:the user )?(?:discussed|decided|agreed)\b|\bthe user (?:decided|asked|wanted|requested)\b",
 }
-LABEL = {"ledger": "ledger id", "date": "date", "round": "round", "path": "work-history path", "decision": "decision phrase"}
-# 내장 공개 식별자·표준 번호: 줄에서 먼저 지운 뒤 검사한다. 저장소 public_ids 는 여기에 더한다.
+# 내장 공개 식별자\u00b7표준 번호: 줄에서 먼저 지운 뒤 검사한다. 저장소 public_ids 는 여기에 더한다.
 BUILTIN_PUBLIC = [r"error-code:\s*\S+", r"\bR(?:6|15)\b", r"\bES\d{4}\b", r"\bH26[45]\b", r"\bUTF-?\d+\b", r"\bSHA-?\d+\b", r"\bP\d{2,3}\b(?=\s*(?:p|fps|hz))",
                   r"\b[A-Z]{1,2}\d{2,4}(?=px|pt|ms|hz|fps|kb|mb|gb)"]
 REF_LINE = re.compile(r"^\s*Ref\s*:", re.I)
-WORD = re.compile(r"[A-Za-zÀ-ɏ]{2,}|[가-힣]{2,}")
-DEFAULTS = {"allow_ref_tail": True, "public_ids": [], "exclude": [], "patterns": {}, "min_reason_words": 3}
+WORD = re.compile(r"[A-Za-z\u00c0-\u024f]{2,}|[가-힣]{2,}")
+DEFAULTS = {"allow_ref_tail": True, "public_ids": [], "exclude": [], "patterns": {}, "min_reason_words": 3,
+            "comment_language": None, "allow_chars": []}
+
+# 모델용 문서 패턴. 날짜\u00b7round\u00b7결정 문구는 위 PATTERNS 와 설정 덮어쓰기를 공유한다.
+DOC_PATTERNS = {
+    "decision": r"사용자\s*(?:결정|합의)|\bper (?:the )?user\b|\bas (?:the user )?(?:discussed|decided|agreed)\b|\bthe user decided\b|사용자\s*20\d\d",
+    "path": r"(?<![\w-])(?:audit|session|handoff)/",
+    "ref_path": r"(?<![\w-])audit/\d+",
+    "tag": r"\[(?:실측|측정|추정|추론|measured|estimated?|inferred)[^\]]*\]",
+    "narration": r"\b(?:previously|recently)\b|\bas of\b(?!\s+(?:v?\d|luau|version))|현재 기준|지난\s?(?:주|번)|요즘|사실 정정|\bfact fix\b",
+    "banner": r"사실 정정|\bfact fix\b|정정\s*:|\bcorrection\s*:",
+    "ledger": r"\b[A-Z]{1,2}-\d{2,4}\b",
+}
+DOC_ENTRY = ("date", "path", "round", "decision", "tag", "narration", "ledger")
+DOC_REFERENCE = ("decision", "round", "ref_path", "tag", "banner")
+DOC_STATUS = re.compile(r"^\s*(?:[-*>]\s*)?\**status\**\s*:", re.I)
+INLINE_CODE = re.compile(r"`[^`]*`")
+URL = re.compile(r"https?://\S+")
+PATH_TOKEN = re.compile(r"\S*/\S*|\S+\.\w{1,5}\b")
+HAS_MD_PATH = re.compile(r"\S+\.md\b")
+
+# 보이지 않는 문자\u00b7방향 제어 문자(소프트 하이픈, NBSP, ZW*, 방향 표식\u00b7임베딩\u00b7고립, WORD JOINER, BOM)
+INVISIBLE = re.compile("[\u00ad\u00a0\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]")
+EMOJI_RANGES = ((0x1F000, 0x1FAFF), (0x2600, 0x27BF), (0x2B00, 0x2BFF), (0xFE00, 0xFE0F), (0x20E3, 0x20E3))
+FULLWIDTH_RANGES = ((0x3000, 0x3000), (0xFF01, 0xFF5E), (0xFFE0, 0xFFE6))
+
+# 지시자 줄: 도구에게 하는 말이라 언어 판정에서 뺀다
+DIRECTIVE = re.compile(r"^\s*(?:!|@|-\*-|eslint|prettier|noqa|type:|pyright|pylint|mypy|selene|stylua|luau-lsp|region|endregion|nolint|lint:|coding[:=]|vim:|go:|nocheck|<reference)", re.I)
+SCRIPT_WORDS = {"latin": re.compile(r"[A-Za-z\u00c0-\u024f]{3,}"), "hangul": re.compile(r"[가-힣]+"),
+                "cjk": re.compile(r"[\u3040-\u30ff\u3400-\u9fff]+"), "cyrillic": re.compile(r"[\u0400-\u04ff]{2,}")}
+LANG_SCRIPT = {"en": "latin", "ko": "hangul", "ja": "cjk", "zh": "cjk", "ru": "cyrillic"}
+# 주석 안의 코드 조각(타입 표기, 대입, 블록)은 문장이 아니라 언어 판정에서 뺀다
+CODE_LIKE = re.compile(r"::|=|[{};]|^\s*`{3}")
+LANG_MIN_LINES = 10
+LANG_SHARE = 0.9
+LANG_MIN_WORDS = 3
 
 
 # ---------- 간이 렉서 ----------
@@ -134,7 +173,7 @@ def find_close(s, pos, close):
 
 
 def open_comment_or_string(s, pos, fam):
-    """pos 에서 주석·문자열이 시작하면 (kind, 닫는 표식, 여는 표식 길이). 아니면 None."""
+    """pos 에서 주석\u00b7문자열이 시작하면 (kind, 닫는 표식, 여는 표식 길이). 아니면 None."""
     ch = s[pos]
     if fam == "lua":
         if s.startswith("--", pos):
@@ -189,7 +228,7 @@ def comment_body(seg):
     return re.sub(r"^[\s\-/#*!]+", "", seg).rstrip(" \t*/-")
 
 
-# ---------- 설정·경로 ----------
+# ---------- 설정\u00b7경로 ----------
 
 def project_root(path, data):
     env = os.environ.get("CLAUDE_PROJECT_DIR")
@@ -246,6 +285,122 @@ def excluded(path, rel, cfg):
     return False
 
 
+# ---------- 문자\u00b7언어 ----------
+
+def odd_chars(text, allow):
+    """키보드로 치지 않는 문자(기호, 곡선 따옴표, 전각, 이모지)가 있으면 True. ASCII 와 자연어 글자\u00b7숫자는 통과."""
+    allow_emoji = "emoji" in allow
+    literal = "".join(a for a in allow if a != "emoji")
+    for ch in text:
+        cp = ord(ch)
+        if cp < 0x80 or ch in literal or INVISIBLE.match(ch):
+            continue
+        if any(a <= cp <= b for a, b in EMOJI_RANGES):
+            if allow_emoji:
+                continue
+            return True
+        if any(a <= cp <= b for a, b in FULLWIDTH_RANGES):
+            return True
+        cat = unicodedata.category(ch)
+        if cat[0] in "LM" or cat == "Nd":
+            continue
+        return True
+    return False
+
+
+def invisible_lines(text, added):
+    """추가된 줄 중 보이지 않는 문자가 있는 줄 번호(1 기반). 파일 맨 앞 BOM 은 인코딩 표지라 통과."""
+    out = []
+    for idx, line in enumerate(text.split("\n")):
+        if idx not in added:
+            continue
+        if idx == 0 and line.startswith("\ufeff"):
+            line = line[1:]
+        if INVISIBLE.search(line):
+            out.append(idx + 1)
+    return out
+
+
+def word_counts(seg):
+    seg = INLINE_CODE.sub(" ", URL.sub(" ", seg))
+    return {name: len(rx.findall(seg)) for name, rx in SCRIPT_WORDS.items()}
+
+
+def line_script(counts):
+    top = max(counts.values())
+    if top == 0:
+        return None
+    best = [k for k, v in counts.items() if v == top]
+    return best[0] if len(best) == 1 else None
+
+
+def comment_stats(rows, skip=frozenset()):
+    """주석 줄(지시자 제외, skip 줄 제외)의 문자 체계 분포."""
+    cnt = Counter()
+    for i, r in enumerate(rows):
+        if i in skip or not r["c"] or any(DIRECTIVE.match(c) for c in r["c"]):
+            continue
+        s = line_script(word_counts(" ".join(r["c"])))
+        if s:
+            cnt[s] += 1
+    return cnt
+
+
+def majority(cnt):
+    total = sum(cnt.values())
+    if total < LANG_MIN_LINES:
+        return None
+    script, n = cnt.most_common(1)[0]
+    return script if n / total >= LANG_SHARE else None
+
+
+def sibling_majority(path, fam_ext):
+    d = os.path.dirname(path)
+    cnt = Counter()
+    try:
+        names = sorted(n for n in os.listdir(d) if n.endswith(fam_ext))
+    except OSError:
+        return None
+    fam = FAMILY.get(fam_ext)
+    for n in [n for n in names if os.path.join(d, n) != path][:20]:
+        try:
+            p = os.path.join(d, n)
+            if os.path.getsize(p) > 200_000:
+                continue
+            cnt += comment_stats(lex(Path(p).read_text(encoding="utf-8"), fam))
+        except (OSError, UnicodeDecodeError):
+            continue
+    return majority(cnt)
+
+
+def expected_script(rows, added, cfg, path, ext):
+    """이 파일 주석이 따를 문자 체계. 파일 다수 -> 저장소 comment_language -> 형제 파일 다수 -> None(검사 안 함)."""
+    own = majority(comment_stats(rows, skip=added))
+    if own:
+        return own
+    lang = cfg.get("comment_language")
+    if isinstance(lang, str) and lang.lower()[:2] in LANG_SCRIPT:
+        return LANG_SCRIPT[lang.lower()[:2]]
+    return sibling_majority(path, ext)
+
+
+def language_lines(rows, added, expected):
+    """추가된 줄 중 다른 문자 체계가 우세한 줄들의 단어가 LANG_MIN_WORDS 개 이상이면 그 줄 번호(1 기반)."""
+    hits, words = [], 0
+    for i in sorted(added):
+        if i >= len(rows) or not rows[i]["c"] or any(DIRECTIVE.match(c) for c in rows[i]["c"]):
+            continue
+        joined = " ".join(rows[i]["c"])
+        if CODE_LIKE.search(joined):
+            continue
+        counts = word_counts(joined)
+        other = sum(v for k, v in counts.items() if k != expected)
+        if other >= 2 and other > counts.get(expected, 0):
+            hits.append(i + 1)
+            words += other
+    return hits if words >= LANG_MIN_WORDS else []
+
+
 # ---------- 검사 ----------
 
 def scan(body, pats, pub):
@@ -266,10 +421,11 @@ def reason_words(body, pats):
 
 
 def check_lines(rows, added, pats, pub, cfg):
-    """rows: lex 결과, added: 추가된 줄 번호(0 기반) 집합. [(줄 번호(1 기반), 설명)] 를 돌려준다."""
+    """rows: lex 결과, added: 추가된 줄 번호(0 기반) 집합. [(줄 번호(1 기반), 범주)] 를 돌려준다(한 줄에 범주가 여럿일 수 있다)."""
     # 주석 덩어리: 코드 없이 주석만 있는 줄이 이어진 것. 코드와 한 줄에 있는 주석은 줄마다 따로.
     segs = [" ".join(comment_body(c) for c in r["c"]) if r["c"] else None for r in rows]
     standalone = [bool(r["c"]) and not r["code"] for r in rows]
+    allow = cfg.get("allow_chars") or []
     problems = []
     i, n = 0, len(rows)
     min_words = int(cfg.get("min_reason_words", 3))
@@ -291,21 +447,91 @@ def check_lines(rows, added, pats, pub, cfg):
             if k not in added or not segs[k]:
                 continue
             body = segs[k]
-            is_ref = bool(REF_LINE.match(body))
-            if is_ref and cfg.get("allow_ref_tail", True):
-                if has_reason:
-                    continue
-                problems.append((k + 1, "`Ref:` tail without a reason sentence in the same comment"))
+            if any(DIRECTIVE.match(c) for c in rows[k]["c"]):
                 continue
-            hits, _ = scan(body, pats, pub)
-            if hits:
-                seen = []
-                for kind, tok in hits:
-                    d = f"{LABEL.get(kind, kind)} `{tok[:24]}`"
-                    if d not in seen:
-                        seen.append(d)
-                problems.append((k + 1, ", ".join(seen[:3])))
+            if odd_chars(body, allow):
+                problems.append((k + 1, "non-keyboard symbol"))
+            if REF_LINE.match(body) and cfg.get("allow_ref_tail", True):
+                if not has_reason:
+                    problems.append((k + 1, "Ref tail without a reason sentence"))
+                continue
+            if scan(body, pats, pub)[0]:
+                problems.append((k + 1, "history marker"))
     return problems
+
+
+def doc_class(rel):
+    """모델용 문서면 "entry" 나 "reference", 아니면 None."""
+    parts = Path(rel).parts
+    name = parts[-1]
+    if not name.endswith(".md"):
+        return None
+    if "skills" in parts[:-1]:
+        after = parts[parts.index("skills") + 1:-1]
+        return "reference" if "references" in after else "entry"
+    if name in ("CLAUDE.md", "SKILL.md") or (len(parts) > 1 and parts[-2] == "agents"):
+        return "entry"
+    if ".claude" in parts[:-1] and "rules" in parts[:-1]:
+        return "entry"
+    return None
+
+
+def doc_lines(text):
+    """(줄 번호 0 기반, 검사할 줄) 쌍. frontmatter 와 코드 펜스 안은 뺀다."""
+    out, fence, front = [], None, False
+    for idx, line in enumerate(text.split("\n")):
+        if idx == 0 and line.strip() == "---":
+            front = True
+            continue
+        if front:
+            front = line.strip() != "---"
+            continue
+        m = re.match(r"^\s*(`{3,}|~{3,})", line)
+        if m:
+            if fence is None:
+                fence = m.group(1)[0]
+            elif m.group(1)[0] == fence:
+                fence = None
+            continue
+        if fence is None:
+            out.append((idx, line))
+    return out
+
+
+def doc_check(text, added, rel, cfg, pats, pub):
+    """모델용 문서에서 추가된 줄의 이력 표지. [(줄 번호(1 기반), 범주)]."""
+    cls = doc_class(rel)
+    if not cls:
+        return []
+    names = DOC_ENTRY if cls == "entry" else DOC_REFERENCE
+    rx = {}
+    for k in names:
+        if k in ("date", "round", "decision"):
+            if k == "decision" and k in pats:
+                rx[k] = re.compile(DOC_PATTERNS[k], re.I)
+            elif k in pats:
+                rx[k] = pats[k]
+        else:
+            rx[k] = re.compile(DOC_PATTERNS[k], re.I if k in ("narration", "banner", "tag") else 0)
+    out = []
+    for idx, line in doc_lines(text):
+        if idx not in added or DOC_STATUS.match(line):
+            continue
+        s = URL.sub(" ", INLINE_CODE.sub(" ", line))
+        for p in pub:
+            s = p.sub(" ", s)
+        bare = PATH_TOKEN.sub(" ", s)  # 경로\u00b7파일명 속 날짜나 id 는 이력이 아니다
+        hit = False
+        for k, r in rx.items():
+            if k in ("path", "ref_path"):
+                hit = hit or bool(r.search(s))
+            elif k == "ledger":
+                hit = hit or (bool(r.search(bare)) and not HAS_MD_PATH.search(s))
+            else:
+                hit = hit or bool(r.search(bare if k == "date" else s))
+        if hit:
+            out.append((idx + 1, "history marker"))
+    return out
 
 
 def added_set(old, new, base_line):
@@ -379,9 +605,12 @@ def collect(tool, ti, resp, text):
     return text, added
 
 
-def dedup_path(sid, agent_id):
+
+
+def state_file(sid, agent_id):
+    """하네스 lib/compact_epoch.py 가 있으면 compact 회차까지 구분하고, 없으면 세션\u00b7에이전트로만 구분한다."""
     try:
-        spec = importlib.util.spec_from_file_location("compact_epoch", Path(__file__).resolve().parent.parent / "lib" / "compact_epoch.py")
+        spec = importlib.util.spec_from_file_location("compact_epoch", HOME / "lib" / "compact_epoch.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         return mod.state_path(NS, sid, agent_id)
@@ -393,8 +622,14 @@ def dedup_path(sid, agent_id):
         return os.path.join(d, re.sub(r"[^\w-]", "", str(sid or "nosession")) + who + ".json")
 
 
+def line_list(lines):
+    nums = sorted(set(lines))
+    shown = ", ".join(f"L{n}" for n in nums[:5])
+    return shown + (f" (+{len(nums) - 5} more)" if len(nums) > 5 else "")
+
+
 def main():
-    if os.environ.get("COMMENT_HYGIENE", "").lower() == "off":
+    if os.environ.get("CONVENTIONS_CHECK", "").lower() == "off":
         return 0
     try:
         data = json.load(sys.stdin)
@@ -407,13 +642,14 @@ def main():
     path = ti.get("file_path") or ""
     ext = os.path.splitext(path)[1].lower()
     fam = FAMILY.get(ext)
-    if not path or not fam:
+    if not path:
         return 0
     resp = data.get("tool_response") if isinstance(data.get("tool_response"), dict) else {}
     root = project_root(path, data)
     cfg = load_cfg(root)
     rel = os.path.relpath(path, root)
-    if excluded(path, rel, cfg):
+    kind = "comment" if fam else ("doc" if doc_class(rel) else None)
+    if not kind or excluded(path, rel, cfg):
         return 0
     try:
         text = Path(path).read_text(encoding="utf-8") if os.path.getsize(path) <= MAX_BYTES else None
@@ -423,14 +659,22 @@ def main():
     if not got:
         return 0
     text, added = got
-    if not added or any(GEN_MARK.search(l) for l in text.split("\n", 6)[:6]):
+    if not added or (kind == "comment" and any(GEN_MARK.search(l) for l in text.split("\n", 6)[:6])):
         return 0
     pats, pub = compile_patterns(cfg)
-    problems = check_lines(lex(text, fam), added, pats, pub, cfg)
+    if kind == "comment":
+        rows = lex(text, fam)
+        problems = check_lines(rows, added, pats, pub, cfg)
+        exp = expected_script(rows, added, cfg, path, ext)
+        if exp:
+            problems += [(ln, "language mismatch") for ln in language_lines(rows, added, exp)]
+    else:
+        problems = doc_check(text, added, rel, cfg, pats, pub)
+    problems += [(ln, "invisible character") for ln in invisible_lines(text, added)]
     if not problems:
         return 0
 
-    state_path = dedup_path(data.get("session_id"), data.get("agent_id"))
+    state_path = state_file(data.get("session_id"), data.get("agent_id"))
     try:
         state = json.load(open(state_path))
     except Exception:
@@ -444,15 +688,11 @@ def main():
     except OSError:
         pass
 
-    shown = "; ".join(f"L{ln} {why}" for ln, why in problems[:5])
-    more = f" (+{len(problems) - 5} more)" if len(problems) > 5 else ""
-    body = (f"Comment lines you added in `{rel}` carry work history: {shown}{more}. "
-            f"A comment says why the code is this way now; history goes to the commit message, CHANGELOG, or ledger doc. "
-            f"If the repo tracks ledgers, keep the reason sentence and move the number to one `Ref: <date> <ledger> <doc section>` tail line. "
-            f"Do not delete numbers and do not rewrite old comments in bulk; fix only lines you touch. Rules: {REF}.")
-    json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse",
-                                      "additionalContext": f'<harness-hook name="comment-hygiene" level="info">\n{body}\n</harness-hook>'}},
-              sys.stdout, ensure_ascii=False)
+    cats = list(dict.fromkeys(c for _, c in sorted(problems)))
+    what, skill = ("comment", "comments") if kind == "comment" else ("agent-doc", "agent-docs")
+    msg = (f'<harness-hook name="{NAME}" level="info">{rel} {line_list([ln for ln, _ in problems])} may not follow the {what} conventions '
+           f'({", ".join(cats)}). Load the {NAME}:{skill} skill and fix the lines you added.</harness-hook>')
+    json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": msg}}, sys.stdout, ensure_ascii=False)
     return 0
 
 
