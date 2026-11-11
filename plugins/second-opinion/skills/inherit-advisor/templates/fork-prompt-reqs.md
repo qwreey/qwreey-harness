@@ -1,1 +1,1 @@
-먼저 대화의 사용자 메시지만 다시 훑어 요구·질문·제약 목록을 만들고, 각각이 지금 결과에 반영됐는지(반영/부분/미반영/확인 불가) 대조한 뒤 부분·미반영만 짧게 표로 보인다.
+First re-read only the user messages in the conversation and list their requests, questions, and constraints. Check each against the current result (covered / partial / missing / cannot judge), then show only the partial and missing ones in a short table.

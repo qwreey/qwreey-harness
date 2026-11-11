@@ -44,7 +44,7 @@ claude plugin install second-opinion@claude-doctor-market
 
 - 플러그인 에이전트는 frontmatter 의 `hooks`·`permissionMode`·`mcpServers` 를 무시한다. 그래서 읽기 전용 가드는 에이전트 파일이 아니라 플러그인 `hooks/hooks.json` 의 PreToolUse 에 있고, 입력의 `agent_type` 으로 이 플러그인의 검토자만 고른다.
 - fork 는 메인과 같은 모델로만 돈다. 메인이 방금 응답한 직후(캐시가 따뜻할 때) 부른다. 캐시가 식었으면 맥락 전체를 다시 써서 30만 토큰에서 opus 약 $1.5 가 더 든다.
-- 리뷰어 보고는 요약하지 않고 그대로 사용자에게 보인다.
+- 모델이 스스로 부른 검토는 메인이 발견을 확인해 받아들임/버림을 1~3줄로 알리고, 사용자가 요청한 검토는 보고 전문을 한국어로 보인다.
 
 ## 테스트
 

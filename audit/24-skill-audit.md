@@ -106,6 +106,11 @@
 5. **`§N` 라우팅은 유지**, `audit/NN §N` 근거 인용은 rationale 로. 전자는 공식이 권하는 progressive disclosure, 후자는 이력이다.
 6. **참조는 한 단계 깊이, 100줄 넘는 reference 는 목차** (B). luau-kb 가 이미 지키고 있는지 표본 확인(`luau-types/references` 1,421줄 합계)은 했으나 개별 목차 유무는 미확인.
 7. **frontmatter 기준**: `disable-model-invocation: true` 는 부작용·시점 통제가 필요한 워크플로(away, back, doctor, start 처럼 승인 흐름)에만. 지식 스킬(luau-kb)은 기본값. `allowed-tools` 는 그 스킬이 실제로 쓰는 명령에 한정(q:away 처럼 `Bash(python3 *subagent_ledger.py *)` 수준).
+9. **Claude is smart: 나열 대신 원리.** 발동 상황을 "결론·결정·계획", "apply·install", "diff·코드" 처럼 늘어놓으면 오히려 좁아진다. 원리 한 줄로 넓게 쓰고, 선택지는 줄이고, 지시마다 이유를 설명한다(공식 best-practices, skill-creator "Explain the why"). "대화 전체를 읽는다" 같은 비싸 보이는 표현 대신 "prompt cache 와 함께 fork" 처럼 맥락으로 비용을 알린다.
+10. **description 은 언제 + 무엇, 본문은 사용법.** 모델은 description 으로 부를지 정한 뒤 "어떻게 부르지?" 하고 본문을 연다. 본문에 "When" 절이나 description 을 되풀이하는 머리줄을 두지 않는다. description 은 skill-creator 가 말하듯 조금 pushy(undertriggering 방지)하게 쓴다.
+11. **발동 조건은 에이전트 자신의 필요로.** "사용자가 기댈 것" 이 아니라 "내 생각에 다른 의견을 듣고 싶을 때, 놓친 것을 점검하고 싶을 때". 사용자 요청을 기다리지 않아도 된다고 적는다.
+12. **모델 사이 텍스트는 영어, 사람에게 그대로 전할 문구만 한국어.** fork·리뷰어에게 주는 지시와 그 출력은 영어(메인이 읽고 쓸모 있어야 한다). 사용자에게 전할 때만 메인이 한국어로 옮긴다. 사용자 원문 인용은 원문 언어 그대로. 이전 "언어 정책 제안" 3번(후행 프롬프트 한국어 유지)은 §9 A/B 로 대체됐다.
+13. **결과 처리**: 스스로 부른 검토는 메인이 확인해 받아들임/버림을 1~3줄로 알리고, 사용자가 요청한 검토는 전문을 보인다.
 8. **평가**: 큰 개편 전에 should/should-not trigger 질의 20개 정도(영어 10, 한국어 10)를 skill-creator 의 description 최적화 방식으로 돌려 기준선을 만든다. `/skill-doctor` 로 컨텍스트 비용 상위를 확인한다. 현재 이 하네스에 이런 트리거 실측이 있는지(`/tmp/trig` 에 흔적)는 이 감사에서 읽지 않았다.
 
 ### 언어 정책 제안
@@ -282,3 +287,35 @@ Same as `second-opinion:audit` section 4. Show the report to the user unsummariz
 - **발동 점검**(sonnet `-p`, 맥락 있는 조건, 약 $0.19): "동료 머신에 설치해도 되는가" 결론 직전에 모델이 `inherit-advisor` 를 스스로 불렀고, 표지 형식의 Agent 호출을 보냈으며, fork 트랜스크립트에서 템플릿 전문(역할 전환 + `next` 채움)을 확인했다(1/1, 표본 1).
 - **전후 크기**(description 자 / SKILL.md 줄): context 475/78 -> inherit-advisor 500 이하/42, audit 482/67 -> fresh-advisor 489/65, other-frame 신설 398/24. inherit-advisor 는 후행 프롬프트 원문과 요구 대조 줄이 `templates/` 로 나가 본문이 줄었다.
 - 동작은 바꾸지 않았다(리뷰어 절차, ledger, 가드, nudge 시점). nudge 훅 메시지의 스킬 이름만 새 이름으로 바꿨고, ledger 는 옛 `--kind context|audit` 를 계속 받는다(`inherit` 추가).
+
+## 9. 3단계 결과 (2026-11-11)
+
+범위: `plugins/second-opinion` 의 fork·리뷰어 지시·출력 영어화, 본문 사용법화, CLAUDE.md 정본의 second opinion 절, 이 문서. 커밋하지 않았다.
+
+**A/B: fork 후행 템플릿, 한국어 V2 대 영어판** (sonnet, `claude -p --resume --fork-session`, 도구 없음, 각 2회)
+- 장면: §12 의 원본 장면(30만 토큰 사본)은 재현할 수 없어 비슷한 합성 장면을 새로 만들었다(`/code/.cache/so-ab/w/scene.md`). 사용자가 훅의 `seen.json` 중복 방지 설계를 맡기고, 메인이 "설계 끝, 로컬 테스트 통과"로 말한 뒤 동료 배포 안내를 쓰려는 지점. 심은 약점: 읽기-수정-쓰기 경합(방금 끝낸 설계의 반례), 근거 없는 "테스트 통과", 답 못 받은 Windows 질문, 24시간 TTL 임의 결정. 한계: 도구 없음(도구 호출 수는 못 잼), 메인의 마지막 응답이 이미 일부 약점을 스스로 적었다, 판정은 같은 에이전트 한 명이 매겼고 표본이 작다. 방향만 읽는다.
+
+| 판 | 끝난 설계를 다시 여는가 | 1인칭·변호 | 심은 약점 회수 | 출력 토큰 | 비용 |
+|---|---|---|---|---|---|
+| ko-1 | 예(경합 3종) | 없음 | 4/4 + 자리표시자 | 3,887 | $0.083 |
+| ko-2 | 예(경합 4종) | 없음 | 4/4 + 자리표시자 | 4,325 | $0.088 |
+| en-1 | 예(갱신 유실, 동시 중복) | 없음 | 4/4 + 자리표시자 | 2,220 | $0.065 |
+| en-2 | 예(갱신 유실, 동시 중복, Windows) | 없음 | 4/4 + 자리표시자 | 2,156 | $0.055 |
+
+- 핵심 효과는 같았고 영어판은 출력 토큰이 약 절반, 비용은 약 25~30% 낮았다. 영어판을 채택한다. 비용 하락은 출력 길이가 줄어서이며, 맥락이 큰 실제 fork 에서는 캐시 읽기가 비용 대부분이라 차이가 더 작을 것이다(추정).
+- 합계(A/B 4회 + 장면 준비 + 끝에서 끝까지 시도): 약 $0.9, 상한 $2 이내.
+
+**끝에서 끝까지**
+- 맥락이 있는 합성 대화 3종과 실제 파일을 읽는 장면 1종(`-p`, sonnet, `--plugin-dir`)에서 모델은 `inherit-advisor` 를 **스스로 부르지 않았다**(0/4). 매번 직접 약점을 짚고 "설치 보류" 로 결론 냈다. 즉 이 장면들은 모델이 혼자 풀 수 있어 발동 필요가 생기지 않았다. 자발 발동 확인은 이번에 못 했다(§8 의 1/1 과 합쳐도 표본 1).
+- 지시로 부르게 한 경로(skill 호출 지시): Skill -> 표지 Agent(fork) 호출 -> 훅이 영어 템플릿으로 펼침(fork 트랜스크립트에서 "Role switch" 확인) -> 결과 처리와 ledger 호출까지 동작. 모델이 ledger `--verdict partial` 을 써서(허용값 아님) 본문에 허용값을 적었다.
+
+**전후 크기** (SKILL.md 줄 / description 자는 최종본 기준)
+- inherit-advisor 42 -> 40, fresh-advisor 65 -> 56, other-frame 24 -> 28(호출·돌아오는 것·받은 뒤 구조를 갖춰 늘었다), agents/reviewer 63 -> 63, agents/other-frame 27 -> 27, brief.md 17 -> 17(영어).
+- 본문에서 "When" 절, 비용 수치(rationale 로), description 되풀이 머리줄을 뺐다. description 에서 서로를 가리키는 문장을 뺐다.
+
+**동작 변경 없음**: 가드, nudge 시점, ledger, 스크립트 옵션. 예외 하나: nudge 훅 메시지의 "relay its report verbatim" 을 "handle its findings as the skill says" 로 바꿨다(결과 처리 규칙과 충돌해서).
+
+**luau-kb(고치지 않음), 이 원칙으로 다시 볼 곳**
+- 12개 스킬 전부(`/code/Projects/luau-kb/skills/*/SKILL.md`)의 description: 나열형 상황·키워드가 많은지(원칙 9), pushy 한지(10), 에이전트의 필요 기준인지(11).
+- 본문 머리의 "When to use" 류 절과 description 되풀이(원칙 10).
+- 언어 정책(원칙 12): 스킬 전환 순서의 마지막 단계에서 영어/한국어 혼합 정리.

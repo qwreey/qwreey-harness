@@ -141,7 +141,7 @@ def cooling(st: dict, vals: dict) -> bool:
 def done_advice(repo, tier, n, where) -> str:
     return (f"{where}: {n} changed lines in `{repo}` (review tier: {tier}) and no independent review has finished in this session recently.\n"
             f"Before declaring this done, run the `second-opinion:fresh-advisor` skill with kind=done "
-            f"(Agent subagent_type=second-opinion:reviewer, model={MODEL.get(tier, 'sonnet')}), then relay its report verbatim. "
+            f"(Agent subagent_type=second-opinion:reviewer, model={MODEL.get(tier, 'sonnet')}), then handle its findings as the skill says. "
             f"If a review is not worth it here (mechanical change, docs only, user said skip), say so in one line instead.")
 
 

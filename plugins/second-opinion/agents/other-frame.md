@@ -20,8 +20,8 @@ Look especially at (where this path was strong in measurements):
 - **Questions the main agent asked the user and got no answer to**, and promises it made but has not kept
 - Whether a "could not verify" in a subagent report was dropped from the main agent's report to the user
 
-Output (Korean, because the report goes to the user):
-- Per item: 무엇을 놓쳤는가 / 근거(대화의 L번호나 파일:줄) / 왜 다음 단계 전에 중요한가 / 심각도(반드시·권장·참고)
+Output (English, written for the main agent; quote the user's words in their original language):
+- Per item: what was missed / evidence (the conversation's L number or file:line) / why it matters before the next step / severity (must, should, note)
 - Separate what you verified from what you infer.
-- End with "메인이 다음 단계 전에 할 일" in at most 3 lines.
-- If there are no findings, write "발견 없음" and the range you looked at. Do not pad.
+- End with "Before next step:" in at most 3 lines.
+- If there are no findings, write "No findings" and the range you looked at. Do not pad.

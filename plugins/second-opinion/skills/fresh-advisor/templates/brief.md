@@ -1,17 +1,17 @@
-검토 종류: <plan | stuck | done>
-저장소: <절대 경로>        범위: <예: git diff HEAD~3..HEAD, 또는 경로 목록, 또는 계획 파일 경로>
-트랜스크립트: <알면 경로. 모르면 이 줄을 지운다(리뷰어가 CLAUDE_CODE_SESSION_ID 로 찾는다)>
+Kind: <plan | stuck | done>
+Repo: <absolute path>        Scope: <e.g. git diff HEAD~3..HEAD, a path list, or a plan file path>
+Transcript: <path if known. If not, delete this line (the reviewer finds it via CLAUDE_CODE_SESSION_ID)>
 
-목표: <한두 줄. 사용자 요구의 요약이 아니라 이번 작업 단위의 목표>
-제약: <지켜야 할 것. 예: 공개 API 유지, 다른 저장소 읽기 전용, ~/.claude 는 정본만 수정>
-기각된 갈래: <다시 내지 말 것. 없으면 "없음">
-영향받을 수 있는 병행 작업: <다른 에이전트·세션이 하는 일 한 줄씩. "범위 밖"이라고 쓰지 않는다. 없으면 "없음">
-답을 못 받은 질문: <내가 사용자에게 묻고 답을 못 받은 것. 없으면 "없음">
+Goal: <one or two lines. The goal of this work unit, not a summary of the user's requirements>
+Constraints: <what must hold. e.g. keep the public API, other repos read-only, ~/.claude only via the canonical source>
+Rejected approaches: <do not bring these back. "none" if none>
+Parallel work that may be affected: <one line per other agent or session. Never write "out of scope". "none" if none>
+Unanswered questions: <what I asked the user and got no answer to. "none" if none>
 
-검증할 주장 (내가 사용자에게 말하려는 것):
-1. <예: "테스트 4개가 모두 통과한다">
-2. <예: "MANIFEST 에 새 파일을 모두 올렸다">
-3. <예: "compact 뒤에도 알림이 다시 나온다(수동 /compact 로만 확인)">
+Claims to verify (what I am about to tell the user):
+1. <e.g. "all 4 tests pass">
+2. <e.g. "every new file is listed in MANIFEST">
+3. <e.g. "the notice reappears after compact (checked only with a manual /compact)">
 
-가장 자신 없는 곳: <한 줄. 비워 두지 않는다>
-(stuck 일 때) 반복된 실패: <명령과 첫 줄 오류, 지금 가설>
+Least sure about: <one line. Never leave it blank>
+(stuck only) Repeated failure: <command and first line of the error, current hypothesis>

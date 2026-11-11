@@ -20,3 +20,6 @@ SKILL.md 에서 옮겨 온 내용이다(지시가 아니라 근거).
 ## 측정 도구
 - 검토 효과: `review-ledger.py stats` - 종류·검토자·트리거별 발견, 채택률, "발견 없음" 비율. 채택률이 낮은 트리거는 임계를 올리거나 끈다.
 - advisor 와 비교: `advisor-stats.py --all` - advisor 호출 수, 결과 종류, 토큰, API 환산 비용, 직후 메인 반응.
+
+## 비용 수치 (SKILL.md 에서 이동)
+- opus 1회 약 $1, sonnet 약 $0.4, 2~3분. 작업 단위당 `done` 한 번.

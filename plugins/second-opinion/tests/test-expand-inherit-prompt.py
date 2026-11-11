@@ -28,14 +28,14 @@ def check(name, ok):
 
 
 rc, o = run({"subagent_type": "fork", "description": "d", "prompt": TAG + "\nnext: 커밋한다"})
-check("fork 표지는 템플릿으로 펼쳐진다", rc == 0 and o and o["updatedInput"]["prompt"] == TPL.replace("<다음 단계 한 줄>", "커밋한다"))
+check("fork 표지는 템플릿으로 펼쳐진다", rc == 0 and o and o["updatedInput"]["prompt"] == TPL.replace("<next step in one line>", "커밋한다"))
 check("permissionDecision allow 와 나머지 입력 보존", o and o["permissionDecision"] == "allow" and o["updatedInput"]["description"] == "d" and o["updatedInput"]["subagent_type"] == "fork")
 check("요구 대조 줄이 없다(옵션 없음)", o and REQ not in o["updatedInput"]["prompt"])
 
 rc, o = run({"subagent_type": "fork", "prompt": TAG + "\nnext: x\noptions: reqs"})
 lines = o["updatedInput"]["prompt"].split("\n") if o else []
-i = next((k for k, l in enumerate(lines) if l.startswith("요청:")), -1)
-check("options: reqs 는 요청: 줄 바로 뒤에 들어간다", i >= 0 and lines[i + 1] == REQ)
+i = next((k for k, l in enumerate(lines) if l.startswith("Request:")), -1)
+check("options: reqs 는 Request: 줄 바로 뒤에 들어간다", i >= 0 and lines[i + 1] == REQ)
 
 for name, ti in [
     ("fork 가 아니면 통과", {"subagent_type": "second-opinion:reviewer", "prompt": TAG + "\nnext: x"}),

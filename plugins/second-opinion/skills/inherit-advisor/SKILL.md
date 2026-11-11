@@ -1,42 +1,40 @@
 ---
 name: inherit-advisor
-description: Second opinion from a fork that has read this whole conversation and now acts as an independent reviewer, looking for what the flow missed, wrong premises, unchecked assumptions, counterexamples to the design just done. Call it right before telling the user a conclusion, decision, or direction change, before moving on after reporting a work unit done, and before hard-to-undo steps such as apply or install guidance. For code/diff correctness, see fresh-advisor. 한 번 더 봐줘, 다른 눈으로 검토, 맥락 검토.
+description: A self-check you run on your own initiative, for your own use: forks you, with this conversation's prompt cache, into a reviewer that steps out of your role and challenges your reasoning (premises, missed requests, the design you just called done). Reach for it whenever you want another view on your own thinking, whether or not the user asked; the findings feed your next step, not a report. 한 번 더 봐줘, 다른 눈으로 검토.
 argument-hint: "[reqs] [one-line note]"
 ---
 
 # second-opinion:inherit-advisor
 
-A fork of this session reviews the conversation as an independent reviewer. You pick it up yourself, the way you would an advisor, at the moments below. It does not call the built-in `advisor` tool. Rationale, measurements, cost: `references/rationale.md`.
-
-## When
-
-- About to tell the user a conclusion, a decision, or a change of direction.
-- Reported a work unit as done and about to move to the next one.
-- About to give apply, deploy, or install guidance, or any step that is hard to undo.
-- Big turning point in a long session (right after compact, tidying pending decisions): add `options: reqs`.
-
-Once per turning point. If the repo tier (`HARNESS_REVIEW_TIERS`) is `off`, call it only when the user asks.
-
-## How
-
-Send a short marker. A plugin hook replaces it with the full review prompt; the marker alone already tells the fork to review only.
+## Call
 
 ```
 Agent(subagent_type="fork", description="second opinion: inherit-advisor",
-      prompt="[second-opinion:inherit] Review only. Do not continue the work, edit files, or commit.\nnext: <one line: what main is about to do or say>\noptions: reqs")
+      prompt="[second-opinion:inherit] Review only. Do not continue the work, edit files, or commit.\nnext: <one line: what you are about to do or say>\noptions: reqs")
 ```
 
-- `next:` is one line in Korean or English. Keep it factual; do not add suspicions from this session (the fork then looks only there).
-- `options: reqs` adds the requirement check (re-read the user's messages and match each against the result). Add it only when the user asks for it, or at a big turning point.
-- Call it right after your latest response while the cache is warm. The fork runs on the main model. Cost is about $0.5-0.6 per fork at 300k tokens on opus; tell the user when it is non-trivial.
-- Template and option fragment: `templates/fork-prompt.md`, `templates/fork-prompt-reqs.md`. If the hook did not run, the marker's instruction still holds; do not paste the template by hand.
+A plugin hook expands this marker into the full review prompt (`templates/fork-prompt.md`). If the hook does not run, the marker still limits the fork to review, so do not paste the template by hand. The built-in `advisor` tool is not involved.
 
-## Result
+## Arguments
 
-Head the report "inherit-advisor 검토(fork)" so it does not read as your own text. Show it to the user unsummarized, mark each finding accepted / rejected / needs check with evidence, then record it:
+- `next:` one factual line about what you are about to do or say. Leave your suspicions out: the fork would look only there and skip the rest.
+- `options: reqs` (optional) adds a check of the user's messages against the result. It searches wider, so use it at a big turning point (after a compact, when pending decisions are being tidied) or when the user asks.
+- Call it right after your latest response, while the cache is still warm. The fork runs on your model.
+- Once per turning point. If the repo tier (`HARNESS_REVIEW_TIERS`) is `off`, call it only when the user asks.
+
+## What comes back
+
+An English report written for you. Each item has what was missed, evidence, why it matters before the next step, and severity (must / should / note). Checked facts are separated from inference, and it ends with "Before next step:" in at most 3 lines. A category with nothing is marked n/a with a reason.
+
+## After you get it
+
+1. Check each finding against the facts. Accept or reject it with evidence. A finding that contradicts what is verifiably done (says something is undone that is done) is rejected after you verify.
+2. You called it yourself: act on it, and tell the user in 1-3 lines what you accepted and rejected. The full report stays in the transcript.
+   The user asked for it: show the report in full, in Korean, headed "inherit-advisor 검토(fork)", then mark each finding accepted / rejected / needs check.
+3. Record it (`--verdict` is one of 진행 | 고친뒤진행 | 다시생각 | 발견없음 | 실패):
 
 ```bash
 python3 -I "${CLAUDE_PLUGIN_ROOT}/skills/fresh-advisor/scripts/review-ledger.py" add --kind inherit --reviewer fork --verdict <...> --found N --adopted N
 ```
 
-If a finding contradicts the facts (claims something undone that is done), verify, then reject it with evidence.
+Rationale, measurements, and cost: `references/rationale.md`.

@@ -14,8 +14,8 @@ import os
 import sys
 
 TAG = "[second-opinion:inherit]"
-NEXT_PLACEHOLDER = "<다음 단계 한 줄>"
-REQ_AFTER = "요청:"
+NEXT_PLACEHOLDER = "<next step in one line>"
+REQ_AFTER = "Request:"
 ROOT = os.environ.get("CLAUDE_PLUGIN_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TPL_DIR = os.path.join(ROOT, "skills", "inherit-advisor", "templates")
 
