@@ -43,7 +43,7 @@ last_confirmed:
 - §3 pcall·xpcall 함정
 - §4 믿을 수 없는 값을 검증할 때
 - §5 에러 테스트
-- §6 저장소별 형식 (제안 D-10)
+- §6 저장소별 형식 (결정 D-10)
 
 ---
 
@@ -90,7 +90,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippe
   `debug.info(level)` 과 `error(msg, level)` 은 같은 프레임을 기준으로 센다. 그래서 `raise` 자신이 인라인돼도 결과가 맞는다(스니펫에서 `-O1`·`-O2` 모두 확인).
 - 공개 함수에 층 태그를 달고 태그 프레임을 찾는 방식도 있다. 이때 태그는 **대입으로 만든 필드 함수**(`function M.f`)에만 단다. 로컬 함수와 테이블 리터럴 필드는 인라인돼 태그가 사라진다.
 
-> 정책: 제안(D-10) — 사용자 확인 전. "라이브러리 코드에서는 손으로 센 `error(msg, 2)` 대신 저장소 raise 헬퍼를 쓴다"를 공통 의무로 할지, 앱 코드에도 적용할지는 아직 묻는 중이다. 공통 rules 에는 "저장소에 raise 헬퍼가 있으면 그것을 쓴다"만 두었다.
+> 정책: 결정(D-10, 2026-11-11). "라이브러리 코드에서는 손으로 센 `error(msg, 2)` 대신 저장소 raise 헬퍼를 쓴다(필요하면 줄 단언 테스트)"는 라이브러리의 의무이고 앱 코드는 권장이다. 공통 rules 에는 "저장소에 raise 헬퍼가 있으면 그것을 쓴다"를 둔다.
 
 ## §3 pcall·xpcall 함정
 status: verified (①②④) / described (③) · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/style-pcall-arg-eval.luau`, `snippets/style-error-prefix-and-rethrow.luau`, quad `.claude/audit/fallback-xpcall-verification.md:16-27`, moonwave-luau `.claude/known-issues.md:117-127` · 후보 D-R38, D-R39, Q-096, Q-098, S-117
@@ -133,9 +133,9 @@ status: described (규칙) / verified (줄 측정: `snippets/test-user-line-asse
 - `pcall(Arr.At, …)` 처럼 C 가 직접 부르면 위치가 없다(§3-4). 사용자 함수로 감싼다.
 - 에러 위치 테스트는 `-O1` 과 `-O2` 두 모드로 돌린다. 방법은 `luau-testing` 의 optimize-levels, 단언 헬퍼는 assertions 에 있다.
 
-## §6 저장소별 형식 (제안 D-10)
+## §6 저장소별 형식 (결정 D-10)
 status: described · 근거: claude-doctor `decisions/D-10-error-handling.md` §1
-> 정책: 제안(D-10) — 사용자 확인 전. 메시지 형식(번호, 접두, 대소문자)은 각 저장소의 공개 계약이라 맞추지 않자는 제안이다. 저장소 rules 가 정한다.
+> 정책: 결정(D-10, 2026-11-11). 메시지 형식(번호, 접두, 대소문자)은 각 저장소의 공개 계약이라 맞추지 않는다. 저장소 rules 가 정한다.
 
 - 저장소 rules 에 형식이 있으면 그대로 따른다. 예: `Subject: reason (got X)` 꼴, `Module: 설명` 꼴, 소문자로 시작하는 문장 꼴.
 - 형식에 오류 번호를 넣는 저장소는 그 번호가 공개 계약이다. 번호를 바꾸거나 재사용하지 않는다.

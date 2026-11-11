@@ -41,7 +41,7 @@ last_confirmed:
 - §2 모듈 모양
 - §3 require 경로 규칙
 - §4 패키지 사본과 타입 전용 require
-- §5 모듈 필드 읽기 (제안 D-11)
+- §5 모듈 필드 읽기 (결정 D-11)
 - §6 엔진 무관 로직 떼어 두기
 - (파일 길이, 폴더 구조, 층, 데이터 분리는 `structure.md`)
 
@@ -85,7 +85,7 @@ local Types = require("@self/types") -- 좋은 예
 - Studio 의 문자열 require 규칙은 `roblox-engine` 담당이다. → roblox-engine `../../roblox-engine/references/require-in-roblox.md` §1
 
 **`@game/…` 절대 경로** (status: described · 근거: claude-doctor `decisions/D-12-require-paths.md`)
-> 정책: 제안(D-12) — 사용자 확인 전. 제안은 "위치가 바뀌는 번들에서만 금지"이다.
+> 정책: 결정(D-12, 2026-11-11). `@game/` 은 "위치가 바뀌는 번들에서만 금지"이다.
 - 클라이언트로 복제돼 위치가 바뀌는 번들에서는 쓰지 않는다(devplorer).
 - 고정 위치에서만 도는 코드는 쓴다(table-sim). 저장소 rules 가 정한다.
 
@@ -96,9 +96,9 @@ status: described · 정본: roblox-engine `../../roblox-engine/references/requi
 - 타입만 쓰려는 `require` 도 런타임에 실행된다. 타입 전용 모듈은 가벼운 types 패키지로 분리해 일반 의존성으로 둔다. → 정본 §8
 - require 되는 순간 Instance 같은 수명 있는 값을 만들어 모듈 변수에 쥐지 않는다. → 정본 §8
 
-## §5 모듈 필드 읽기 (제안 D-11)
+## §5 모듈 필드 읽기 (결정 D-11)
 status: described · 근거: claude-doctor `decisions/D-11-object-shape-and-field-access.md`, devplorer `.claude/conventions.md:71` · 후보 D-C04
-> 정책: 제안(D-11) — 사용자 확인 전. 두 입장은 조건이 달라 모순이 아니다. 저장소 rules 가 다르게 정하면 그쪽을 따른다.
+> 정책: 결정(D-11, 2026-11-11). 두 입장은 조건이 달라 모순이 아니다. 저장소 rules 가 다르게 정하면 그쪽을 따른다.
 
 **(a) 나중에 주입되거나 다시 대입되는 값은 부를 때마다 `Module.x` 로 읽는다.**
 ```lua

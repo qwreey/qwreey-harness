@@ -30,7 +30,7 @@ description: >-
 이 코드는 어디서 도나?
 ├─ Roblox 전역(Instance, game, Vector3)을 쓴다 → 검사는 luau-lsp + 정의 파일 (quality §5, luau-verify)
 ├─ 순수 Luau → luau-analyze 로 검사, `luau` CLI 로 테스트 (공개 API 면 DX 확인에 luau-lsp 도)
-└─ 복제돼 위치가 바뀌는 번들 → `@game/` 절대 require 를 쓰지 않는다 (modules §3, 제안 D-12)
+└─ 복제돼 위치가 바뀌는 번들 → `@game/` 절대 require 를 쓰지 않는다 (modules §3, 결정 D-12)
 ```
 
 ```

@@ -66,7 +66,7 @@ local function isHeap(v: unknown): boolean … end
 
 ## §2 저장소마다 다른 것 — 이웃을 따르는 법
 status: described · last-confirmed: 2026-11-10 실태 · 근거: `decisions/D-09-naming-casing.md` §1
-> 정책: 제안(D-09) — 사용자 확인 전. 제안은 "§1 의 다섯만 공통으로 강제하고 나머지는 저장소 rules 가 정한다"이다. 저장소 rules 가 있으면 그것이 이긴다.
+> 정책: 결정(D-09, 2026-11-11). "§1 의 다섯만 공통으로 강제하고 나머지는 저장소 rules 가 정한다". 저장소 rules 가 있으면 그것이 이긴다.
 
 **규칙: 같은 폴더의 이웃 모듈을 열어, 같은 종류의 이름이 어떤 케이스인지 보고 따른다.** 한 저장소 안에서 새로 섞지 않는다.
 
@@ -79,7 +79,7 @@ status: described · last-confirmed: 2026-11-10 실태 · 근거: `decisions/D-0
 
 ## §3 새 저장소의 기본값
 status: described · 근거: quad `.claude/base/architecture.md:688`(2026-09-15 개정), stl-luau `.claude/conventions.md:14` — 두 저장소의 기준 문장이 같다
-> 정책: 제안(D-09) — 사용자 확인 전. 새 저장소의 기본값을 이 기준으로 할지는 아직 묻는 중이다. 저장소 rules 가 정하면 그쪽을 따른다.
+> 정책: 결정(D-09, 2026-11-11). 이 기준(값을 만들거나 감싸는 공개 함수는 Pascal, 그 밖은 camel)을 새 저장소 기본값으로 쓴다. 이미 camel 인 저장소를 고치지는 않는다. 저장소 rules 가 정하면 그쪽을 따른다.
 
 > **값을 만들거나 감싸는 함수(생성자·팩토리·슈거)와 그 타입 고유의 연산은 PascalCase. 판별 술어·생명주기 조작·주입 계약·엔진 내부 멤버는 camelCase.**
 
