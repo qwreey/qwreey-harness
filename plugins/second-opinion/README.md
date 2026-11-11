@@ -1,17 +1,15 @@
 # second-opinion
 
-정해진 시점에 모델이 스스로 집어 드는 독립 검토. 비용이 큰 변형(other-frame)은 사용자가 고른다. 근거와 실측은 claude-doctor `audit/18-second-opinion.md` §9·§11·§12. 스킬별 설계 근거는 `docs/rationale-<스킬>.md`(유지보수자용, 모델이 읽지 않는다).
+모델이 스스로 집어 드는 독립 검토. 근거와 실측은 claude-doctor `audit/18-second-opinion.md` §9·§11·§12. 스킬별 설계 근거는 `docs/rationale-<스킬>.md`(유지보수자용, 모델이 읽지 않는다).
 
 | 구성 | 이름 | 하는 일 |
 |---|---|---|
 | 스킬 | `second-opinion:inherit-advisor` | 대화를 이어받은 fork 를 "독립 검토자"로 돌려 세워, 흐름에서 놓친 것·숨은 전제·방금 끝낸 설계의 반례를 묻는다. 결론·결정을 말하기 전, 끝났다고 보고 넘어가기 전. 메인은 표지만 보내고 훅이 후행 프롬프트로 펼친다. 1회 약 $0.5~0.6(30만 토큰 맥락, opus) |
 | 스킬 | `second-opinion:fresh-advisor` | 새 컨텍스트 리뷰어에게 짧은 브리프만 주고 diff·주장을 반증하게 한다. 커밋·완료 전, 같은 실패 2회, 구현 검증. opus 약 $1, sonnet 약 $0.4 |
-| 스킬 | `second-opinion:other-frame` | 사용자 명령(`disable-model-invocation`). 대화 사본을 다른 시스템 프롬프트로 읽혀 검토한다. 맥락 크기에 비례해 비싸다 |
 | 에이전트 | `second-opinion:reviewer` | fresh-advisor 의 읽기 전용 리뷰어(기본 opus, 호출 때 model 로 낮춘다) |
-| 에이전트 | `second-opinion:other-frame` | other-frame 스킬이 쓰는 에이전트. `ask-other-frame.py` 가 이 본문을 다른 시스템 프롬프트로 써서 대화 사본을 읽힌다 |
 | 훅 | `hooks/second-opinion-nudge.py` | 같은 실패 2회, 임계 이상 커밋(기본 high 40줄·mid 200줄)에서 검토를 권한다. 막지 않는다. 서브에이전트 안에서는 조용하다 |
 | 훅 | `hooks/expand-inherit-prompt.py` | PreToolUse(Agent). fork 호출의 표지 prompt 를 `templates/fork-prompt.md` 원문으로 바꾼다(`updatedInput` + allow). 표지가 아니면 통과 |
-| 훅 | `hooks/readonly-for-reviewers.py` | 위 두 에이전트에게만 읽기 전용 가드(`auditor-readonly-guard.py`)를 건다 |
+| 훅 | `hooks/readonly-for-reviewers.py` | 리뷰어 에이전트에게만 읽기 전용 가드(`auditor-readonly-guard.py`)를 건다 |
 
 이 스킬들은 내장 `advisor` 도구를 부르지 않는다. 내장 advisor 도구는 가격 대비 효용이 diff 기반 리뷰보다 낮아 사용자가 요청할 때만 쓴다.
 

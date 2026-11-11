@@ -10,8 +10,7 @@ HOOK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
 CASES = [
     # (기대 종료 코드, agent_type, 도구, 입력)
     (2, "second-opinion:reviewer", "Bash", {"command": "rm -rf src"}),
-    (2, "second-opinion:other-frame", "Write", {"file_path": "/code/Projects/x/a.md"}),
-    (2, "second-opinion-context", "Bash", {"command": "git commit -am x"}),
+    (0, "second-opinion-context", "Bash", {"command": "git commit -am x"}),
     (0, "second-opinion:reviewer", "Bash", {"command": "git diff HEAD~1 -- src"}),
     (0, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/S1/probe.luau"}),
     (0, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/0b1f2c3d-aaaa-bbbb-cccc-123456789012/probe.luau"}),  # run 폴더

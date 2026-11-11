@@ -10,7 +10,7 @@
   review-ledger.py add --kind done --reviewer opus-sub --trigger hook:commit --verdict 고친뒤진행 \
                        --found 4 --adopted 3 --must 1 [--repo DIR] [--note "..."] [--caller main|subagent] [--ref srvtoolu_… | agent-…]
   review-ledger.py stats [--since YYYY-MM-DD] [--repo NAME]
-  kind: plan | stuck | done | adhoc | inherit (옛 context|audit 도 받는다)        reviewer: opus-sub | sonnet-sub | fork | ctx-opus | ctx-sonnet | codex | agy | advisor-opus | advisor-fable
+  kind: plan | stuck | done | adhoc | inherit (옛 context|audit 도 받는다)        reviewer: opus-sub | sonnet-sub | fork | codex | agy | advisor-opus | advisor-fable
   verdict: 진행 | 고친뒤진행 | 다시생각 | 발견없음 | 실패
 advisor 는 조언 본문이 암호화돼 있어 found/adopted 를 메인이 응답에서 밝힌 수로 적는다(advisor-stats.py 의 '직후 첫 텍스트' 참고).
 """
