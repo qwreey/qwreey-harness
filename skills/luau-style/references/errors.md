@@ -60,7 +60,7 @@ status: verified (①–④) / described (리터럴 원칙) · last-confirmed: l
 - 내부 불변식 위반(자기 버그)은 `error(msg, 1)` 로 그 자리를 가리킨다. 인라인돼도 throw 한 줄이 맞게 찍힌다(§2).
 
 ## §2 level 과 `-O2` 인라인
-status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/style-error-level-o2.luau`, `snippets/opt-o2-error-level.luau`·`snippets/opt-o1-error-level.luau`(인라인 경우별, 최적화 담당), `snippets/test-o2-line-probe.luau` · 결정 문서: `decisions/D-10-error-handling.md` §2 와 정정 · 후보 S-116, Q-097, Q-088
+status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/style-error-level-o2.luau`, `snippets/opt-o2-error-level.luau`·`snippets/opt-o1-error-level.luau`(인라인 경우별, 최적화 담당), `snippets/test-o2-line-probe.luau` · 결정 문서: claude-doctor `decisions/D-10-error-handling.md` §2 와 정정 · 후보 S-116, Q-097, Q-088
 
 `error(msg, n)` 의 n 은 "error 를 부른 함수에서 몇 프레임 위인가"다. 인라인된 함수에는 프레임이 없어서 n 이 밀린다.
 
@@ -122,7 +122,7 @@ status: verified (NaN) / described (메타메서드·패턴) · last-confirmed: 
 - **사용자가 준 Lua 패턴은 생성 시점에 확인한다**(`pcall(string.match, "", p)`). 매칭 때 터지면 에러 자리가 엉뚱하다.
 
 ## §5 에러 테스트
-status: described (규칙) / verified (줄 측정: `snippets/test-user-line-assert.luau`, `snippets/test-o2-line-probe.luau`) · 근거: stl-luau `.claude/conventions.md:138`, `decisions/D-10-error-handling.md` §2 · 후보 S-118
+status: described (규칙) / verified (줄 측정: `snippets/test-user-line-assert.luau`, `snippets/test-o2-line-probe.luau`) · 근거: stl-luau `.claude/conventions.md:138`, claude-doctor `decisions/D-10-error-handling.md` §2 · 후보 S-118
 
 - 라이브러리의 새 raise 자리마다 **메시지와 정확한 사용자 줄**을 같이 단언한다. 메시지만 보면 level 이 틀려도 통과한다.
   ```lua
@@ -134,7 +134,7 @@ status: described (규칙) / verified (줄 측정: `snippets/test-user-line-asse
 - 에러 위치 테스트는 `-O1` 과 `-O2` 두 모드로 돌린다. 방법은 `luau-testing` 의 optimize-levels, 단언 헬퍼는 assertions 에 있다.
 
 ## §6 저장소별 형식 (제안 D-10)
-status: described · 근거: `decisions/D-10-error-handling.md` §1
+status: described · 근거: claude-doctor `decisions/D-10-error-handling.md` §1
 > 정책: 제안(D-10) — 사용자 확인 전. 메시지 형식(번호, 접두, 대소문자)은 각 저장소의 공개 계약이라 맞추지 않자는 제안이다. 저장소 rules 가 정한다.
 
 - 저장소 rules 에 형식이 있으면 그대로 따른다. 예: `Subject: reason (got X)` 꼴, `Module: 설명` 꼴, 소문자로 시작하는 문장 꼴.

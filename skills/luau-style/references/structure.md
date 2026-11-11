@@ -66,7 +66,7 @@ status: described · 근거: claude-doctor `audit/12-code-structure.md` 사례 �
 - **새 모듈을 부르는 쪽 옆에 둔다.** 폴더 대신 이름 접두로 묶는다(`ExplorerActions`, `ExplorerControl`, `BookmarkMenu`).
 
 ## §2 기준 수치와 예외 (D-13 확정)
-status: described · 근거: `decisions/D-13-file-structure.md` §1–3 과 "사용자 결정 (2026-11-10)", `scripts/structure-scan.py` 로 10개 저장소를 읽기만 해서 잰 분포
+status: described · 근거: claude-doctor `decisions/D-13-file-structure.md` §1–3 과 "사용자 결정 (2026-11-10)", `scripts/structure-scan.py` 로 10개 저장소를 읽기만 해서 잰 분포
 > 정책: 확정(D-13, 2026-11-10). 수치는 저장소 `.claude/structure.json`(`warn`, `hard`, `flat`, `ignore`, `exempt`)으로 덮어쓸 수 있다.
 
 수치는 실측 분포에서 잡았다. 비테스트 Luau 파일의 p90 은 quad 443, devplorer 594, table-sim 834 줄이다. 사용자가 "너무 길다"고 한 가장 작은 파일은 1,194줄이었다.
@@ -150,7 +150,7 @@ status: described · 근거: quad `.claude/archive/surveys/2026-09-07-source-lay
 8. **층 규칙은 `require` 를 grep 해서 확인한 뒤에 적는다.** 아래층이 위층을 부르지 않게 한다. devplorer 는 처음 적은 층 규칙이 실제 코드와 달라 거짓이었다.
 
 ## §5 폴더 구성 — 일반 관례
-status: described · 근거: `decisions/D-13-file-structure.md` §3 과 사용자 결정 2, devplorer `.claude/conventions.md:62-68`, `audit/12-code-structure.md`
+status: described · 근거: claude-doctor `decisions/D-13-file-structure.md` §3 과 사용자 결정 2, devplorer `.claude/conventions.md:62-68`, `audit/12-code-structure.md`
 
 **폴더 대분류는 저장소가 정한다**(사용자 결정 2026-11-10). 아래는 어느 저장소에서나 통한 일반 관례와, 세 저장소가 각자 고른 대분류 방식이다.
 

@@ -84,7 +84,7 @@ local Types = require("@self/types") -- 좋은 예
 - 워크스페이스 symlink 는 CLI 가 따라가지 않으니 실행 검증은 `cp -rL` 사본에서 한다. → 정본 §4
 - Studio 의 문자열 require 규칙은 `roblox-engine` 담당이다. → roblox-engine `../../roblox-engine/references/require-in-roblox.md` §1
 
-**`@game/…` 절대 경로** (status: described · 근거: `decisions/D-12-require-paths.md`)
+**`@game/…` 절대 경로** (status: described · 근거: claude-doctor `decisions/D-12-require-paths.md`)
 > 정책: 제안(D-12) — 사용자 확인 전. 제안은 "위치가 바뀌는 번들에서만 금지"이다.
 - 클라이언트로 복제돼 위치가 바뀌는 번들에서는 쓰지 않는다(devplorer).
 - 고정 위치에서만 도는 코드는 쓴다(table-sim). 저장소 rules 가 정한다.
@@ -97,7 +97,7 @@ status: described · 정본: roblox-engine `../../roblox-engine/references/requi
 - require 되는 순간 Instance 같은 수명 있는 값을 만들어 모듈 변수에 쥐지 않는다. → 정본 §8
 
 ## §5 모듈 필드 읽기 (제안 D-11)
-status: described · 근거: `decisions/D-11-object-shape-and-field-access.md`, devplorer `.claude/conventions.md:71` · 후보 D-C04
+status: described · 근거: claude-doctor `decisions/D-11-object-shape-and-field-access.md`, devplorer `.claude/conventions.md:71` · 후보 D-C04
 > 정책: 제안(D-11) — 사용자 확인 전. 두 입장은 조건이 달라 모순이 아니다. 저장소 rules 가 다르게 정하면 그쪽을 따른다.
 
 **(a) 나중에 주입되거나 다시 대입되는 값은 부를 때마다 `Module.x` 로 읽는다.**
