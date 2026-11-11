@@ -8,7 +8,8 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 | `home/.claude/` | `~/.claude` 관리 파일의 정본(CLAUDE.md, settings.json, harness.env, hooks/, lib/, statusline/. 사용자 호출 스킬은 `q` 플러그인으로 옮겼다). 목록 `home/MANIFEST` |
 | `tools/home-sync.sh` | 정본 ↔ 실제 `~/.claude` 동기화(status / diff / apply / pull / new-migration / env). settings.json 은 복사가 아니라 `home/settings-migrations/` 마이그레이션(`tools/settings-migrate.py`) |
 | `plugins/q/` | 사람이 치는 명령 플러그인 `q`(`/q:` 만 치면 전부 나온다): `/q:start` 온보딩, `/q:doctor` 진단(코어 검사 + `skills/doctor/scripts/toolkits/<이름>.py`), `/q:away`·`/q:back` 자리 비움, `/q:checkpoint`·`/q:import` 세션 기록. session-log 훅 포함. 이름은 사용자명 qwreey 에서 왔다. 설명 `plugins/q/docs/` |
-| `plugins/second-opinion/` | 모델이 부르는 독립 검토(별도 플러그인). luau 지식은 `luau-kb` 플러그인 |
+| `plugins/qwreey-advisor/` | 모델이 부르는 독립 검토(별도 플러그인). luau 지식은 `luau-kb` 플러그인 |
+| `plugins/qwreey-conventions/` | 코드 주석·모델용 문서 관례(스킬 `comments`, `agent-docs`)와 추가한 줄을 한 줄로 알리는 훅. 옛 user-level `comment-hygiene` 훅을 대체 |
 | `decisions/` | 저장소 사이 갈린 규약의 합의안(D-xx)과 사용자 결정 현황 |
 | `drafts/` | 설치 전 초안(감사 에이전트, 위임, 스타일, 훅) |
 | `intake/` | 외부 프로젝트 반입 자리(사본은 git 에서 제외). 절차 `intake/README.md` |
@@ -39,7 +40,7 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
      apply 는 아직 적용 안 한 것만 순서대로 **한 번씩** 적용해 id 를 `~/.claude/.home-sync-migrations` 에 기록한다. 마이그레이션에 없는 값(내가 `/plugin`·`/config` 로 만든 것)은 건드리지 않고,
      적용 뒤 내가 끈 값은 되돌리지 않는다. 실패하면 그 마이그레이션만 되돌린다. `diff` 는 연산별 변경/no-op 과 결과 diff, `new-migration <slug>` 는 빈 파일을 만든다.
      **적용된 마이그레이션은 고치지 않는다.** 한 번이라도 apply 한 id 는 다시 돌지 않으므로, 바꿀 것은 새 번호(0002, 0003 …)로 추가한다. 0001 은 첫 apply 전까지만 고칠 수 있다.
-   - **플러그인:** 마이그레이션은 `extraKnownMarketplaces`·`enabledPlugins` 로 "무엇을 켤지" 만 선언한다(공식 배포 방식과 같음). 실제 설치는 Claude Code 가 세션을 시작할 때 한다(사용자 레벨 settings 에서도 확인, 2026-11-11: apply 뒤 새 세션에서 q·second-opinion 이 손으로 설치하지 않았는데 설치되고 쓰였다). `status`/`apply` 끝에는 `status`/`apply` 끝에 설치 안 된 것과 설치 명령을 보여 준다. 바로 설치하려면 `HOME_SYNC_INSTALL_PLUGINS=1 tools/home-sync.sh apply`.
+   - **플러그인:** 마이그레이션은 `extraKnownMarketplaces`·`enabledPlugins` 로 "무엇을 켤지" 만 선언한다(공식 배포 방식과 같음). 실제 설치는 Claude Code 가 세션을 시작할 때 한다(사용자 레벨 settings 에서도 확인, 2026-11-11: apply 뒤 새 세션에서 q·qwreey-advisor 이 손으로 설치하지 않았는데 설치되고 쓰였다). `status`/`apply` 끝에는 `status`/`apply` 끝에 설치 안 된 것과 설치 명령을 보여 준다. 바로 설치하려면 `HOME_SYNC_INSTALL_PLUGINS=1 tools/home-sync.sh apply`.
    - 훅 명령은 `$HOME/.claude/hooks/...` 를 쓴다. `CLAUDE_CONFIG_DIR` 로 설정 디렉터리를 옮겼다면 `settings.json` 의 훅 경로를 그에 맞게 고친다.
 5. **플러그인 마켓**(luau 툴킷): `claude plugin marketplace add <작업공간>/luau-kb` 후 `claude plugin install luau-kb@luau-kb-market`.
    - 지금 이 sandbox 는 MANIFEST 의 `link skills/luau-*` 심볼릭 링크로 소비한다. 플러그인으로 옮기면 그 링크 줄을 지운다(둘 다 두면 스킬이 겹친다).

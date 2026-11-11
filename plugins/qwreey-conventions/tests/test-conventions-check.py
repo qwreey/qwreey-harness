@@ -277,6 +277,45 @@ os.remove(os.path.join(REPO, ".claude", "conventions.json"))
 check("comments.json is the fallback", write_new("z/k.luau", "-- x \u2014 y\n", sid="z10") == "")
 os.remove(os.path.join(REPO, ".claude", "comments.json"))
 
+# ---- 남은 기존 주석 보고(Stop) ----
+def stop(sid, env_extra=None):
+    d = {"session_id": sid, "cwd": REPO, "hook_event_name": "Stop", "stop_hook_active": False}
+    env = dict(os.environ, TMPDIR=T, CLAUDE_PROJECT_DIR=REPO, CLAUDE_CONFIG_DIR=LIBHOME)
+    env.pop("CONVENTIONS_CHECK", None)
+    env.update(env_extra or {})
+    p = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(d), capture_output=True, text=True, env=env, timeout=10)
+    assert p.returncode == 0, p.stderr
+    return json.loads(p.stdout) if p.stdout.strip() else None
+
+
+old_file = "-- Old note \u2014 keep (H-973)\n-- Another \u2192 one\nlocal a = 1\n-- Clamp the index so reads stay in range.\n"
+edit_new = "local a = 2\n"
+check("Stop with nothing recorded -> silent", stop("L0") is None)
+edit("l/old.luau", "local a = 1\n", edit_new, old_file.replace("local a = 1", "local a = 2"), sid="L1")
+r = stop("L1")
+msg = (r or {}).get("systemMessage", "")
+check("Stop reports leftover counts to the user (systemMessage only)", r is not None and set(r) == {"systemMessage"}
+      and "l/old.luau(이력 1, 기호 2)" in msg and "요청하실 때만" in msg)
+check("Stop does not repeat an unchanged report", stop("L1") is None)
+# 추가한 줄의 문제는 알림 쪽이 맡고 남은 기존 주석 집계에는 넣지 않는다
+n = edit("l/new.luau", "local a = 1\n", "local a = 1 -- x \u2014 y\n", "local a = 1 -- x \u2014 y\n", sid="L2")
+check("added-line problem is notified, not counted as leftover", "non-keyboard symbol" in n and stop("L2") is None)
+# 서브에이전트가 쌓은 것도 메인 Stop 이 모아 보인다
+edit("l/sub.rs", "let a = 1;\n", "let a = 2;\n", "// old \u2026 note\nlet a = 2;\n", sid="L3", agent="ag1")
+check("subagent leftovers appear in the main Stop line", "l/sub.rs(기호 1)" in (stop("L3") or {}).get("systemMessage", ""))
+# 고치면 사라지고, 파일이 지워져도 보고하지 않는다
+edit("l/fix.luau", "local a = 1\n", "local a = 2\n", "-- old \u2192 x\nlocal a = 2\n", sid="L4")
+edit("l/fix.luau", "-- old \u2192 x\n", "-- old to x\n", "-- old to x\nlocal a = 2\n", sid="L4")
+check("fixed file drops out of the report", stop("L4") is None)
+edit("l/gone.luau", "local a = 1\n", "local a = 2\n", "-- old \u2192 x\nlocal a = 2\n", sid="L5")
+os.remove(os.path.join(REPO, "l/gone.luau"))
+check("deleted file is not reported", stop("L5") is None)
+# 모델용 문서의 기존 이력도 센다
+edit("skills/x/SKILL.md", "Run it.\n", "Run it now.\n", "Decided 2026-11-10 by the user.\nRun it now.\n", sid="L6")
+check("agent-doc leftovers are counted", "SKILL.md(이력 1)" in (stop("L6") or {}).get("systemMessage", ""))
+edit("l/off.luau", "local a = 1\n", "local a = 2\n", "-- old \u2192 x\nlocal a = 2\n", sid="L7")
+check("CONVENTIONS_CHECK=off silences Stop", stop("L7", {"CONVENTIONS_CHECK": "off"}) is None and stop("L7") is not None)
+
 # ---- 오탐 표본: 이유 문장만 있는 일반 주석 ----
 clean = """--!strict
 -- Walk children in reverse so removals do not shift unvisited indices.

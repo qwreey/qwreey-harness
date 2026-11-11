@@ -16,9 +16,11 @@ The notice names a file and the line numbers you added, with the category. Fix t
 
 1. Decide per line with the test above. A sentence that changes behavior stays, rewritten as a present-tense fact.
 2. A sentence that only records how the rule came about moves out (below).
-3. Do not touch lines you did not add, and do not start a cleanup of the whole file unprompted. Bulk cleanup is for when the user signals there is room for it.
+3. Do not touch lines you did not add, and do not start a cleanup of the whole file unprompted. Bulk cleanup is for when the user signals there is room for it. Old problems in the files you edited are counted quietly and shown to the user once at turn end as one Korean line; the hook shows it, you do not repeat it.
 
 If the flagged text is a deliberate exception (for example a trigger phrase that must be quoted), leave it and mention it once in your final report.
+
+Example. Before: `Since 2026-11-10 (audit/18) the hook only reads added lines; previously it scanned whole files.` After: `The hook reads only the lines added by the current edit.` The dates, the audit path and the old behavior go to the commit message.
 
 ## What stays
 
@@ -37,13 +39,13 @@ If the flagged text is a deliberate exception (for example a trigger phrase that
 - Correction banners (`fact fix`, `correction:`). Apply the correction to the text and drop the banner.
 - User quotes that explain history rather than instruct.
 
-**Move, do not delete.** Put the history in a place that already exists: the commit message (the default), a ledger or decisions file the repo keeps, or a CHANGELOG. Do not create a new file just to hold history. If a sentence is both history and useful, split it: the fact stays, the provenance moves.
+**Move, do not delete.** Deleting provenance loses what a later maintainer may need to trace a decision, so put the history in a place that already exists: the commit message (the default), a ledger or decisions file the repo keeps, or a CHANGELOG. Do not create a new file just to hold history. If a sentence is both history and useful, split it: the fact stays, the provenance moves.
 
 ## Entry documents and references
 
 | Kind | Files | Flagged |
 |---|---|---|
-| Entry | CLAUDE.md, SKILL.md, agents, rules, other files directly under a skill | dates, `audit/`, `session/`, `handoff/` paths, round numbers, decision phrases, measurement tags, change narration, a ledger id with no `.md` path on the same line |
+| Entry | CLAUDE.md, SKILL.md, agents, rules, other files under a skill outside `references/` | dates, `audit/`, `session/`, `handoff/` paths, round numbers, decision phrases, measurement tags, change narration, a ledger id with no `.md` path on the same line |
 | Reference | `skills/**/references/*.md` | decision phrases, round numbers, `audit/<n>` provenance, measurement tags, correction banners |
 
 References may carry dates, ids and `previously X` because their job includes explaining old patterns. The entry document is what is loaded every time, so it stays lean.
@@ -63,4 +65,4 @@ Research ledgers whose numbers are the structure (numbered entries that other do
 - Skill description: what it does plus when to use it, in English, third person, a little pushy so it is not under-triggered, with a few Korean trigger phrases at the end. The body is usage: how to call, what comes back, what to do next.
 - Text that passes between models (skills, agent prompts, hook messages) is English. Only wording meant for the user is Korean.
 - Explain the principle once rather than listing cases; the model generalizes.
-- Rationale for maintainers goes in a docs folder outside the skill, not in the body.
+- Rationale for maintainers goes in the skill's own `references/rationale.md` (opened on demand, linked in one line from the body) or in a docs folder outside the skill, not in the body.

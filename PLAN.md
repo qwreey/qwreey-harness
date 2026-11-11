@@ -155,14 +155,14 @@
 - **공유와 배포는 플러그인으로 한다.**
   - luau-kb 는 툴킷 pack 플러그인으로, Luau 저장소에서만 켠다.
   - 사람이 치는 명령은 짧은 이름공간 `q` 에 모은다(`/q:start`·`doctor`·`away`·`back`·`checkpoint`·`import`).
-  - 모델이 부르는 second-opinion 은 별도 플러그인이다.
+  - 모델이 부르는 qwreey-advisor 는 별도 플러그인이다.
   - rules 와 CLAUDE.md 는 플러그인에 담을 수 없으므로 home-sync 로 반영한다. settings 는 마이그레이션으로 반영한다.
 - **비용은 막지 않고 알리고 줄 세운다.** 근거(사용자): "강제라면 위임해 두고 갔는데 멈춰 버려 오히려 손해", "전체 예산을 한계치로 두고 하나가 끝나면 다음을 돌리는 게 실제로 좋더라", "작은 패스를 여러 번 하는 게 토큰이 덜 든다".
   - 사용자가 있을 때는 팬아웃 전에 고지한다(말은 2개부터, 훅 warn 은 4개부터).
   - away 상태에서는 예산 상한과 슬롯으로 직렬화한다. 2배를 넘으면 기록하고 기다린다.
   - 예산 단위는 요금제에 맞춘다(USD 또는 한도 %).
   - 구현: CLAUDE.md "모델 사용과 서브에이전트 비용", `hooks/subagent-slots.py`, audit/21.
-- **second opinion:** 내장 advisor 도구는 사용자가 요청할 때만 쓴다. 근거(사용자): 가격 대비 효용이 diff 기반 리뷰보다 너무 낮다. 흐름 검토는 `second-opinion:inherit-advisor`(fork + 표지를 훅이 후행 프롬프트로 펼침), diff 검토는 `second-opinion:fresh-advisor` 로 한다. 근거 실험은 audit/18 §9·§11·§12.
+- **second opinion:** 내장 advisor 도구는 사용자가 요청할 때만 쓴다. 근거(사용자): 가격 대비 효용이 diff 기반 리뷰보다 너무 낮다. 흐름 검토는 `qwreey-advisor:inherit-advisor`(fork + 표지를 훅이 후행 프롬프트로 펼침), diff 검토는 `qwreey-advisor:fresh-advisor` 로 한다. 근거 실험은 audit/18 §9·§11·§12.
 - **사용자 가시성도 개선 대상이다.** statusline, 테마, 응답 형식이 해당한다. 주관적이므로 설치는 묻고, 켜고 끌 수 있게 둔다(audit/22).
 
 ## 4. 사용자가 결정할 것

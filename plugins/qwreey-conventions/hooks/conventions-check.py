@@ -3,6 +3,10 @@
 
 막지 않는다(decision 없음). additionalContext(level=info) 한 줄만 주입하고, 고치는 법은 스킬(qwreey-conventions:comments, qwreey-conventions:agent-docs)이 가진다.
 
+남은 기존 주석 보고: 같은 PostToolUse 에서 이번에 추가하지 않은 줄의 문제를 범주별(이력, 기호, 이스케이프, 보이지 않는 문자) 줄 수로 세어
+  $TMPDIR/claude-conventions/<session_id>.left.<main|agent_id>.json 에 조용히 쌓는다(파일마다 마지막 편집 기준). Stop 에서 모든 호출한 쪽 기록을 합쳐
+  사용자에게 한 줄을 systemMessage 로 보인다(내용이 바뀐 때만). 고치지 않는다. 모델 턴을 늘리지 않으려고 Stop 의 additionalContext 나 decision 은 쓰지 않는다.
+
 보는 것: 이번에 추가된 줄만. Edit/MultiEdit 는 new_string 에서 old_string 에 없던 줄, Write 는 새 파일이면 전체, 덮어쓰기면
   tool_response.originalFile 과의 차이(없으면 structuredPatch 의 + 줄, 둘 다 없으면 보지 않는다. 옛 줄을 새로 오인하지 않으려고).
 
@@ -697,6 +701,93 @@ def line_list(lines):
     return shown + (f" (+{len(nums) - 5} more)" if len(nums) > 5 else "")
 
 
+# ---------- 남은 기존 주석 보고 ----------
+# 편집할 때마다 "이번에 추가하지 않은 줄"의 문제를 범주별로 세어 (세션, 호출한 쪽)별 파일에 조용히 쌓고,
+# 메인 에이전트의 Stop 에서 사용자에게 한 줄(systemMessage)로 보여 준다. 모델 턴을 늘리지 않고 고치지도 않는다.
+LEFT_LABEL = {"history marker": "이력", "Ref tail without a reason sentence": "이력", "non-keyboard symbol": "기호",
+              "escaped character": "이스케이프", "invisible character": "보이지 않는 문자"}
+LEFT_MAX_FILES = 5
+
+
+def left_dir():
+    import tempfile
+    d = os.path.join(tempfile.gettempdir(), NS)
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def left_path(sid, agent_id, d=None):
+    who = re.sub(r"[^\w-]", "", str(agent_id)) if agent_id else "main"
+    return os.path.join(d or left_dir(), re.sub(r"[^\w-]", "", str(sid or "nosession")) + ".left." + who + ".json")
+
+
+def record_leftovers(data, path, rel, kind, text, added, rows, cfg, pats, pub):
+    """이번 편집에서 추가하지 않은 줄의 문제를 범주별 줄 수로 세어 쌓는다. 같은 파일은 마지막 편집 기준으로 덮어쓴다."""
+    try:
+        old = set(range(text.count("\n") + 1)) - added
+        probs = check_lines(rows, old, pats, pub, cfg) if kind == "comment" else doc_check(text, old, rel, cfg, pats, pub)
+        probs += [(ln, "invisible character") for ln in invisible_lines(text, old)]
+        cnt = Counter()
+        for ln, cat in set(probs):
+            cnt[LEFT_LABEL.get(cat, cat)] += 1
+        fp = left_path(data.get("session_id"), data.get("agent_id"))
+        try:
+            rec = json.load(open(fp))
+        except Exception:
+            rec = {}
+        key = os.path.abspath(path)
+        if cnt:
+            import time
+            rec[key] = {"rel": rel, "n": dict(cnt), "t": time.time()}
+        elif key in rec:
+            del rec[key]
+        else:
+            return
+        json.dump(rec, open(fp, "w"), ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def leftover_message(sid, d=None):
+    """세션의 모든 호출한 쪽 기록을 합쳐 사용자용 한 줄. 같은 파일은 가장 최근 기록을 쓴다. 없으면 None."""
+    import glob
+    prefix = re.sub(r"[^\w-]", "", str(sid or "nosession")) + ".left."
+    best = {}
+    for fp in glob.glob(os.path.join(d or left_dir(), prefix + "*.json")):
+        try:
+            for k, v in json.load(open(fp)).items():
+                if k not in best or v["t"] > best[k]["t"]:
+                    best[k] = v
+        except Exception:
+            continue
+    items = [(v["rel"], v["n"]) for k, v in sorted(best.items(), key=lambda kv: kv[1]["rel"]) if v["n"] and os.path.exists(k)]
+    if not items:
+        return None
+    order = ["이력", "기호", "이스케이프", "보이지 않는 문자"]
+    shown = ", ".join(f"{rel}(" + ", ".join(f"{c} {n[c]}" for c in order if c in n) + ")" for rel, n in items[:LEFT_MAX_FILES])
+    more = f" 외 {len(items) - LEFT_MAX_FILES}개" if len(items) > LEFT_MAX_FILES else ""
+    return f"손댄 파일에 기존 주석 문제가 남아 있음: {shown}{more}. 정리는 요청하실 때만."
+
+
+def report_leftovers(data):
+    """Stop: 내용이 바뀌었을 때만 한 번 사용자에게 보인다(턴을 늘리지 않으려고 additionalContext 가 아니라 systemMessage)."""
+    msg = leftover_message(data.get("session_id"))
+    if not msg:
+        return 0
+    mark = os.path.join(left_dir(), re.sub(r"[^\w-]", "", str(data.get("session_id") or "nosession")) + ".reported.json")
+    try:
+        if json.load(open(mark)).get("msg") == msg:
+            return 0
+    except Exception:
+        pass
+    try:
+        json.dump({"msg": msg}, open(mark, "w"), ensure_ascii=False)
+    except OSError:
+        pass
+    json.dump({"systemMessage": msg}, sys.stdout, ensure_ascii=False)
+    return 0
+
+
 def main():
     if os.environ.get("CONVENTIONS_CHECK", "").lower() == "off":
         return 0
@@ -704,6 +795,8 @@ def main():
         data = json.load(sys.stdin)
     except Exception:
         return 0
+    if data.get("hook_event_name") == "Stop":
+        return report_leftovers(data)
     tool = data.get("tool_name") or ""
     if tool not in ("Write", "Edit", "MultiEdit"):
         return 0
@@ -728,11 +821,14 @@ def main():
     if not got:
         return 0
     text, added = got
-    if not added or (kind == "comment" and any(GEN_MARK.search(l) for l in text.split("\n", 6)[:6])):
+    if kind == "comment" and any(GEN_MARK.search(l) for l in text.split("\n", 6)[:6]):
         return 0
     pats, pub = compile_patterns(cfg)
+    rows = lex(text, fam) if kind == "comment" else None
+    record_leftovers(data, path, rel, kind, text, added, rows, cfg, pats, pub)
+    if not added:
+        return 0
     if kind == "comment":
-        rows = lex(text, fam)
         problems = check_lines(rows, added, pats, pub, cfg)
         exp = expected_script(rows, added, cfg, path, ext)
         if exp:

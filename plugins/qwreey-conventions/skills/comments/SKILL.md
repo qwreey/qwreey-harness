@@ -21,6 +21,8 @@ The notice names a file and, per category, the line numbers you added, for examp
 | invisible character | Delete the code point the notice names (for example `U+00A0`). If the line is otherwise fine, rewrite it with a plain space. |
 | language mismatch | Rewrite the comment in the file's comment language. |
 
+Example. Notice: `L12 history marker`. Line 12 is `-- Clamp the index (added in round 3, see H-973).` Rewrite it as `-- Clamp the index so the loop never reads past the end.` and put `round 3, H-973` in the commit message. When the repo keeps a ledger, add the `Ref:` tail instead.
+
 If a flagged line is a public id or a deliberate exception, leave it and mention it once in your final report. The notice is a nudge, not a verdict.
 
 ## What a comment says
@@ -30,6 +32,8 @@ If a flagged line is a public id or a deliberate exception, leave it and mention
 - Test: if deleting the sentence would not change how a future editor treats the code, it is not a comment.
 
 History goes to one of three places: the commit message (default), a CHANGELOG, or a ledger document the repo already keeps. Do not create a new file to hold history.
+
+Public ids are not history: error codes the project documents for users, standard and spec numbers (UTF-8, H264, ES2020), and issue links meant for readers stay in comments.
 
 ## Pointers to a ledger
 
@@ -41,7 +45,7 @@ When the repo tracks ledgers, write the reason as a sentence first, then one tai
 ```
 
 - Never leave a bare id or date as the whole comment.
-- Existing ids and numbers are never deleted. Removing the way back to the ledger destroys information. Move them into a `Ref:` tail.
+- An id or number already in the code is never deleted, because removing the way back to the ledger destroys information. Move it into a `Ref:` tail. History you are writing now (who decided, which round) goes to the commit message instead.
 - A documentation block (`---`, `///`, `/** */`) puts the `Ref:` line above the block, in the same comment run.
 
 ## Characters
@@ -105,14 +109,12 @@ Write for a person reading in a diff or a terminal.
 - `comment_language`: `en`, `ko`, `ja`, `zh`, `ru`. Used for new files.
 - `allow_chars`: `"emoji"` allows emoji; any other entry is a string of characters to allow.
 - `public_ids`: regexes for identifiers that are not history.
-- `exclude`: path globs the hook skips. `patterns` can override or disable a detector, `allow_ref_tail` turns the `Ref:` allowance off.
+- `exclude`: path globs the hook skips. `patterns` can override or disable a detector (`null` disables), `allow_ref_tail` turns the `Ref:` allowance off, `min_reason_words` (default 3) is how many words a reason sentence needs before a `Ref:` tail counts as backed.
 - Environment variable `CONVENTIONS_CHECK=off` silences the hook.
 - A repo's own `.claude/rules/` or conventions file wins over this skill.
 
-## Public ids are not history
-
-Error codes the project documents for users, standard and spec numbers (UTF-8, H264, ES2020), and issue links meant for readers stay in comments.
-
 ## Existing comments
 
-Fix only lines you touch anyway. Do not rewrite old comments in bulk or start a cleanup pass unprompted. A bulk cleanup is for when the user signals there is room for it.
+Fix only lines you touch anyway. Do not rewrite old comments in bulk or start a cleanup pass unprompted, because a diff full of unrelated comment edits hides the real change. A bulk cleanup is for when the user signals there is room for it.
+
+Old comment problems in the files you edited are counted quietly and shown to the user once at the end of the turn, as one Korean line (`손댄 파일에 기존 주석 문제가 남아 있음: a.luau(이력 3, 기호 12) ...`). The hook shows it itself; you do not need to repeat it. A subagent adds nothing, since the main session's line already includes subagent edits.
