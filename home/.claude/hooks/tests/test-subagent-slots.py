@@ -18,12 +18,14 @@ T = tempfile.mkdtemp(prefix="slots-")
 PROJ = os.path.join(T, "proj")
 os.makedirs(os.path.join(PROJ, ".claude"))
 BASE_ENV = {k: v for k, v in os.environ.items() if not k.startswith(("HARNESS_SUBAGENT", "HARNESS_FANOUT", "HARNESS_AWAY", "HARNESS_SLOTS"))}
-ENV = dict(BASE_ENV, TMPDIR=T, CLAUDE_PROJECT_DIR=PROJ)
+ENV = dict(BASE_ENV, TMPDIR=T, CLAUDE_PROJECT_DIR=PROJ, NO_COLOR="1")  # statusline 문자열 비교는 색 없이
 res = []
 
 
-def check(name, ok):
+def check(name, ok, detail=None):
     res.append((name, bool(ok)))
+    if not ok and detail is not None:
+        print("  detail:", repr(detail))
 
 
 def transcript(sid):
@@ -188,7 +190,7 @@ check("budget over: never stops the session (deny is per call)", all(not denied(
 sl = subprocess.run([sys.executable, "-I", os.path.join(HOME, "statusline", "harness-status.py")],
                     input=json.dumps({"session_id": "away", "model": {"display_name": "Opus"}, "context_window": {"used_percentage": 34.4},
                                       "cost": {"total_cost_usd": 12.4}}), capture_output=True, text=True, env=ENV).stdout.strip()
-check("statusline: model, ctx, cost, agents, away OVER", sl.startswith("Opus ctx 34% · $12.40 · agents 1 (sonnet 1)") and "AWAY OVER $120.00/$100 slots 1" in sl)
+check("statusline: model, ctx, cost, agents, away OVER", sl.startswith("Opus ctx 34% · $12.40 · agents 1 (sonnet 1)") and "AWAY OVER $120.00/$100 slots 1" in sl, sl)
 t0 = time.time()
 for _ in range(5):
     subprocess.run([sys.executable, "-I", os.path.join(HOME, "statusline", "harness-status.py")], input="{}", capture_output=True, text=True, env=ENV)
@@ -519,6 +521,47 @@ check("off switch -> no output", hook({"session_id": "off", "hook_event_name": "
 bad = subprocess.run([sys.executable, "-I", os.path.join(H, "subagent-slots.py")], input="{no", capture_output=True, text=True, env=ENV)
 check("bad stdin -> exit 0, silent", bad.returncode == 0 and not bad.stdout)
 check("other tools ignored", hook({"session_id": "x", "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {}}) is None)
+
+# ---- statusline 스타일 (ANSI 를 벗긴 텍스트로 비교) ----
+import re
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
+git_proj = os.path.join(T, "gitproj")
+os.makedirs(os.path.join(git_proj, ".git"))
+open(os.path.join(git_proj, ".git", "HEAD"), "w").write("ref: refs/heads/feat-x\n")
+SAMPLE = {"session_id": "sty", "model": {"display_name": "Opus"}, "effort": {"level": "high"}, "context_window": {"used_percentage": 34.4},
+          "workspace": {"current_dir": git_proj, "project_dir": git_proj},
+          "rate_limits": {"five_hour": {"used_percentage": 92, "resets_at": time.time() + 7530}, "seven_day": {"used_percentage": 50, "resets_at": time.time() + 400000}}}
+
+
+def sty(style, extra=None, inp=SAMPLE, color=False):
+    e = {k: v for k, v in ENV.items() if k != "NO_COLOR"}
+    if not color:
+        e["NO_COLOR"] = "1"
+    e.update(extra or {}, HARNESS_STATUSLINE_STYLE=style)
+    return subprocess.run([sys.executable, "-I", SL], input=json.dumps(inp), capture_output=True, text=True, env=e).stdout
+
+
+plain = sty("plain").strip()
+check("style plain", plain == "gitproj (feat-x) · Opus high ctx 34% · limit 5h 92% wk 50% reset 2h05m", plain)
+check("style plain: no cost for subscribers", "$" not in plain)
+nerd = sty("nerd").strip()
+check("style nerd: icons + same facts", "\uf07b gitproj" in nerd and "\ue0a0 feat-x" in nerd and "34%" in nerd and "92%" in nerd)
+check("style minimal", sty("minimal").strip() == "Opus 34% · 5h 92%", sty("minimal"))
+check("style off: empty, limits file still written", sty("off") == "" and json.load(open(lim_file("sty")))["five_hour"]["p"] == 92)
+two = sty("plain", {"HARNESS_STATUSLINE_LINES": "2"}).splitlines()
+check("two lines option", len(two) == 2 and two[0].startswith("gitproj") and two[1].startswith("limit"), two)
+col = sty("plain", color=True)
+check("color on: ANSI present, stripped equals plain", "\x1b[" in col and ANSI.sub("", col).strip() == plain)
+check("color: 92% red, 34% green", "\x1b[31mlimit 5h 92%" in col and "\x1b[32mctx 34%" in col, col)
+check("NO_COLOR respected", "\x1b[" not in sty("plain"))
+nosub = dict(SAMPLE); nosub.pop("rate_limits"); nosub["cost"] = {"total_cost_usd": 3.5}
+check("non-subscriber shows cost", "$3.50" in sty("plain", inp=nosub))
+check("narrow COLUMNS drops trailing segments", sty("plain", {"COLUMNS": "50"}).strip() == "gitproj (feat-x) · Opus high ctx 34%", sty("plain", {"COLUMNS": "50"}))
+open(os.path.join(PROJ, ".claude", "harness.env"), "w").write("HARNESS_STATUSLINE_STYLE=minimal\n")
+repo_out = subprocess.run([sys.executable, "-I", SL], input=json.dumps(dict(SAMPLE, workspace={"current_dir": PROJ, "project_dir": PROJ})),
+                          capture_output=True, text=True, env=ENV).stdout.strip()
+check("repo harness.env sets style (env var unset)", repo_out == "Opus 34% · 5h 92%", repo_out)
+os.remove(os.path.join(PROJ, ".claude", "harness.env"))
 
 for name, ok in res:
     print(("PASS " if ok else "FAIL ") + name)
