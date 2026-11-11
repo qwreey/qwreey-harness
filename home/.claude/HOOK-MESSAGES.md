@@ -46,7 +46,7 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 |   (이중 구조) | 메인의 말 고지는 CLAUDE.md 가 2개부터, 훅 warn 은 4개부터다. 의도된 설계: 훅은 메인이 고지를 놓쳤을 때의 보강이라 일부러 더 늦게 울린다(둘 다 2면 warn 이 잦아 무뎌진다). `audit/21` §5-3 | - |
 | | away 중 허용된 Workflow(내부 동시성은 슬롯 밖) | warn |
 
-### 권장 배정: 세션 기록 플러그인(`plugins/session-log/`)과 이후 새 훅
+### 권장 배정: 세션 기록 플러그인(`plugins/q/` 의 session-log 훅)과 이후 새 훅
 - pending(요약 안 된 세션) 알림: `warn`
 - pending 개수나 경과 기간이 임계를 넘으면: `action`
 - 요약 완료 알림: `info`

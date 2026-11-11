@@ -13,13 +13,10 @@ lib/compact_epoch.py
 hooks/subagent-slots.py
 lib/subagent_ledger.py
 statusline/harness-status.py
-skills/away/SKILL.md
-skills/back/SKILL.md
 
 # 심볼릭 링크: link <~/.claude 기준 경로> <대상>
 # 대상에는 ${HARNESS_WORKSPACE}, ${HARNESS_DOCTOR_ROOT} 같은 harness.env 변수를 쓴다(home-sync 가 푼다).
 # 기본값: HARNESS_DOCTOR_ROOT = 이 클론, HARNESS_WORKSPACE = 그 부모. 대상이 없으면 status 에 보이고 apply 는 건너뛴다.
-link skills/harness-doctor ${HARNESS_DOCTOR_ROOT}/home/.claude/skills/harness-doctor
 
 # 툴킷 luau — 공유 지식 luau-kb (플러그인 마켓으로 옮기면 이 줄들은 지운다)
 link rules/luau-core.md ${HARNESS_WORKSPACE}/luau-kb/rules/luau-core.md

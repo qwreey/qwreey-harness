@@ -1,4 +1,4 @@
-"""harness.env 읽기. 하네스 훅과 harness-doctor 가 같이 쓴다(표준 라이브러리만).
+"""harness.env 읽기. 하네스 훅과 /q:doctor 가 같이 쓴다(표준 라이브러리만).
 
 파일 형식: 한 줄에 `KEY=VALUE`. `#` 로 시작하는 줄과 빈 줄은 무시한다.
 - 값의 바깥 따옴표('…' 또는 "…")는 벗긴다. 줄 끝 주석은 따옴표 밖의 ` #` 부터다.
@@ -24,7 +24,7 @@ DEFAULTS = {
     # 무거운 실행 판정에 더할 실행기·키워드(공백 구분). 툴킷 기본표(heavy-proc-guard)에 더해진다.
     "HARNESS_HEAVY_EXECUTORS": "",
     "HARNESS_HEAVY_KEYWORDS": "",
-    # 켤 툴킷(공백 구분). 비면 전부. harness-doctor 는 이 목록 안에서 저장소마다 자동 감지한다.
+    # 켤 툴킷(공백 구분). 비면 전부. /q:doctor 는 이 목록 안에서 저장소마다 자동 감지한다.
     "HARNESS_TOOLKITS": "",
     # 위임(agy·codex) uid 표 위치. 비면 uid 충돌 검사는 저장소 안의 사본만 본다.
     "HARNESS_DELEGATE_REGISTRY": "",

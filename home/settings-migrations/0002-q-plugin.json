@@ -1,0 +1,14 @@
+{
+  "id": "0002-q-plugin",
+  "why": "사용자 호출 명령을 q 플러그인(/q:start, /q:doctor, /q:away, /q:back, /q:checkpoint, /q:import)으로 모음. session-log·harness-onboarding 는 q 에 합쳐졌다. 옛 이름이 켜져 있던 사용자를 위해 끄는 연산도 둔다(없으면 무동작)",
+  "ops": [
+    {
+      "op": "set",
+      "path": ["enabledPlugins", "q@claude-doctor-market"],
+      "value": true,
+      "keep_existing": true
+    },
+    { "op": "delete", "path": ["enabledPlugins", "session-log@claude-doctor-market"] },
+    { "op": "delete", "path": ["enabledPlugins", "harness-onboarding@claude-doctor-market"] }
+  ]
+}

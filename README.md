@@ -1,13 +1,14 @@
 # claude-doctor
 
-Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/harness-doctor` 진단, 감사 에이전트 초안, 규약 합의안)를 관리하는 저장소다.
+Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, 감사 에이전트 초안, 규약 합의안)를 관리하는 저장소다.
 특정 언어나 sandbox 에 묶이지 않게 짰다. 언어별 검사는 **툴킷**(지금 luau, web 골격), 환경 고유값은 **`home/.claude/harness.env`** 한 곳에 둔다.
 
 | 위치 | 무엇 |
 |---|---|
-| `home/.claude/` | `~/.claude` 관리 파일의 정본(CLAUDE.md, settings.json, harness.env, hooks/, lib/, skills/harness-doctor). 목록 `home/MANIFEST` |
+| `home/.claude/` | `~/.claude` 관리 파일의 정본(CLAUDE.md, settings.json, harness.env, hooks/, lib/, statusline/. 사용자 호출 스킬은 `q` 플러그인으로 옮겼다). 목록 `home/MANIFEST` |
 | `tools/home-sync.sh` | 정본 ↔ 실제 `~/.claude` 동기화(status / diff / apply / pull / new-migration / env). settings.json 은 복사가 아니라 `home/settings-migrations/` 마이그레이션(`tools/settings-migrate.py`) |
-| `home/.claude/skills/harness-doctor/` | 하네스 진단 스킬. 코어 검사 + `scripts/toolkits/<이름>.py` |
+| `plugins/q/` | 사람이 치는 명령 플러그인 `q`(`/q:` 만 치면 전부 나온다): `/q:start` 온보딩, `/q:doctor` 진단(코어 검사 + `skills/doctor/scripts/toolkits/<이름>.py`), `/q:away`·`/q:back` 자리 비움, `/q:checkpoint`·`/q:import` 세션 기록. session-log 훅 포함. 이름은 사용자명 qwreey 에서 왔다. 설명 `plugins/q/docs/` |
+| `plugins/second-opinion/` | 모델이 부르는 독립 검토(별도 플러그인). luau 지식은 `luau-kb` 플러그인 |
 | `decisions/` | 저장소 사이 갈린 규약의 합의안(D-xx)과 사용자 결정 현황 |
 | `drafts/` | 설치 전 초안(감사 에이전트, 위임, 스타일, 훅) |
 | `intake/` | 외부 프로젝트 반입 자리(사본은 git 에서 제외). 절차 `intake/README.md` |
@@ -41,10 +42,11 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/harness-doctor` 진
    - 훅 명령은 `$HOME/.claude/hooks/...` 를 쓴다. `CLAUDE_CONFIG_DIR` 로 설정 디렉터리를 옮겼다면 `settings.json` 의 훅 경로를 그에 맞게 고친다.
 5. **플러그인 마켓**(luau 툴킷): `claude plugin marketplace add <작업공간>/luau-kb` 후 `claude plugin install luau-kb@luau-kb-market`.
    - 지금 이 sandbox 는 MANIFEST 의 `link skills/luau-*` 심볼릭 링크로 소비한다. 플러그인으로 옮기면 그 링크 줄을 지운다(둘 다 두면 스킬이 겹친다).
-6. **진단**: Claude Code 에서 `/harness-doctor --user`, 그다음 `/harness-doctor <저장소>`.
-   스크립트만 돌리려면 `python3 -I ~/.claude/skills/harness-doctor/scripts/scan.py --env` 와 `... scan.py <저장소>`.
+6. **q 플러그인**: `claude plugin marketplace add <claude-doctor 폴더>` 후 `claude plugin install q@claude-doctor-market`(마이그레이션 0002 가 켠다). 옛 `~/.claude/skills/{away,back,harness-doctor}` 는 apply 가 지우지 않는다: `tools/home-sync.sh status` 의 고아 보고를 보고 직접 정리한다.
+7. **진단**: Claude Code 에서 `/q:doctor --user`, 그다음 `/q:doctor <저장소>`.
+   스크립트만 돌리려면 `python3 -I <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py --env` 와 `... scan.py <저장소>`. 플러그인 캐시에서 돌 때는 `HARNESS_DOCTOR_ROOT`(harness.env)로 이 폴더를 알려야 정본 검사가 켜진다.
 
 ## 새 언어·툴체인
 
-`home/.claude/skills/harness-doctor/references/toolkits/README.md` 의 "새 툴킷 추가하기"를 따른다.
+`plugins/q/skills/doctor/references/toolkits/README.md` 의 "새 툴킷 추가하기"를 따른다.
 coderag 의 지식 계층과 같은 구도다: 코어 = global, 툴킷 + `<툴킷>-kb` = pack, 대상 저장소 = project.

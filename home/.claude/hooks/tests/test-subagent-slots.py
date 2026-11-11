@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """subagent-slots 훅·원장·statusline 회귀. 실행: python3 -I test-subagent-slots.py (exit 0 = 통과)
 
-슬롯 계산, 예산 소진(USD·에이전트 수), 팬아웃 dedup(묶음·compact 회차), 카운터 복구, /away·/back, statusline, 비용 계산.
+슬롯 계산, 예산 소진(USD·에이전트 수), 팬아웃 dedup(묶음·compact 회차), 카운터 복구, /q:away·/q:back, statusline, 비용 계산.
 """
 import json
 import os
@@ -155,7 +155,7 @@ os.remove(os.path.join(PROJ, ".claude", "harness.env"))
 # ---- away: 슬롯 2 로 줄 세우기 ----
 w = S("away")
 out = cli("away", "away", "100", "2")
-check("/away prints confirmation", "away 모드 켬" in out and "슬롯 2" in out)
+check("/q:away prints confirmation", "away 모드 켬" in out and "슬롯 2" in out)
 wa, ida = w.launch()
 wb, idb = w.launch()
 wc, idc = w.launch()
@@ -195,12 +195,12 @@ for _ in range(5):
 check("statusline: fast (<150ms per run)", (time.time() - t0) / 5 < 0.15)
 check("statusline: survives empty input", subprocess.run([sys.executable, "-I", os.path.join(HOME, "statusline", "harness-status.py")], input="", capture_output=True, text=True, env=ENV).returncode == 0)
 
-# ---- /back ----
+# ---- /q:back ----
 out = cli("back", "away")
-check("/back: summary with spend, queued, over-budget", "away 모드 끔" in out and "$120.00" in out and "줄 세운" in out and "예산 초과: 예" in out)
-check("/back: away off afterwards", (w.state().get("away") or None) is None)
+check("/q:back: summary with spend, queued, over-budget", "away 모드 끔" in out and "$120.00" in out and "줄 세운" in out and "예산 초과: 예" in out)
+check("/q:back: away off afterwards", (w.state().get("away") or None) is None)
 wz, _ = w.launch()
-check("after /back: attended again (no deny)", not denied(wz))
+check("after /q:back: attended again (no deny)", not denied(wz))
 
 # ---- 에이전트 수 예산 ----
 g = S("agents")
@@ -329,10 +329,10 @@ check("statusline shows limits", "limit 5h 20% wk 50%" in sline("pc", rl(20, 50)
 sline("pc", {})
 check("statusline: no rate_limits keeps the previous file", json.load(open(lim_file("pc")))["seven_day"]["p"] == 50)
 
-# % 계산: /away 시점부터의 증가분, 가장 빡빡한 창이 먼저
+# % 계산: /q:away 시점부터의 증가분, 가장 빡빡한 창이 먼저
 pc = S("pc")
 out = cli("away", "pc", "30%", "2")
-check("/away 30%: pct budget on, both windows tracked", "한도 30%p" in out and "5h/week" in out and pc.state()["away"]["unit"] == "pct")
+check("/q:away 30%: pct budget on, both windows tracked", "한도 30%p" in out and "5h/week" in out and pc.state()["away"]["unit"] == "pct")
 sline("pc", rl(40, 60))  # 5h +20, week +10
 pa, ida = pc.launch()
 pb, idb = pc.launch()
@@ -355,7 +355,7 @@ pf = pc.pre()[1]
 check("stage 2: full instruction again after compact (dedup per epoch)", "wait for the user" in reason(pf) and len(reason(pf)) > 300)
 check("stage 2: denied calls reserve nothing and count as queued", pc.state()["reserved"] == {} and pc.state()["away"]["queued"] >= 4)
 out = cli("back", "pc")
-check("/back: stage 2 reached with time and pct growth", "2단계(새 서브에이전트 중단) 도달: 예" in out and "5h +" in out and "예산 초과: 예" in out)
+check("/q:back: stage 2 reached with time and pct growth", "2단계(새 서브에이전트 중단) 도달: 예" in out and "5h +" in out and "예산 초과: 예" in out)
 
 # 남은 여유가 N 보다 작으면 한도 100% 가 문턱
 cli("away", "room", "30%w")
@@ -422,7 +422,7 @@ check("usd2: denied calls are not counted as spawned", u.state()["spawned"] == n
 check("usd2: stage-2 time recorded and logged", u.state()["away"]["over2_at"] and any(e["k"] == "stage2" for e in u.state()["log"]))
 check("usd2 statusline: HALT $22.00/$10", "AWAY HALT $22.00/$10" in sline("usd2", None, envw))
 out = cli("back", "usd2", env=envw)
-check("/back (usd): stage 2 line", "2단계(새 서브에이전트 중단) 도달: 예" in out)
+check("/q:back (usd): stage 2 line", "2단계(새 서브에이전트 중단) 도달: 예" in out)
 g2 = S("ag2")
 cli("away", "ag2", "1a", "3")
 _, g2a = g2.launch()
@@ -484,7 +484,7 @@ check("main-solo: new compact epoch -> stage 2 again", "halt:" in ctx(post_read(
 m2 = S("m2")
 open(m2.tp, "a").write(usage_line("mx1", "claude-opus-5-5", out=900_000))  # $22.5 before away
 cli("away", "m2", "$10", "2")
-check("main-solo: spend before /away is not counted", post_read(m2) is None)
+check("main-solo: spend before /q:away is not counted", post_read(m2) is None)
 open(m2.tp, "a").write(usage_line("mx2", "claude-opus-5-5", out=1_100_000))  # +$22 after away
 force_eval(m2)
 check("main-solo: stage 2 from the main's own spend", "halt:" in ctx(post_read(m2)))

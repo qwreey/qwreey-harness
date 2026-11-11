@@ -52,4 +52,4 @@ paths:
 
 ## Toolkit details
 - Luau: `luau-style` skill: `references/structure.md` (cases), `references/splitting.md` (split strategy), `scripts/split-plan.py` (split planner).
-- Other toolkits: none yet. Fill in after the toolkit is imported (`harness-doctor` `references/toolkits/`).
+- Other toolkits: none yet. Fill in after the toolkit is imported (`/q:doctor` `references/toolkits/`).

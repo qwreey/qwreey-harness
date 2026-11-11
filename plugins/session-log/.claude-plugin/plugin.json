@@ -1,8 +1,0 @@
-{
-  "name": "session-log",
-  "version": "0.1.0",
-  "description": "세션 기록 자동화: 훅이 트랜스크립트를 분리 프로세스에서 증분 요약(haiku, 도구 없음)하고 숫자·사용자 인용을 원문과 대조해 저장소 밖 외부 저장소에 coderag frontmatter 기록으로 남긴다. 저장소 메인 에이전트가 /session-import 로 받아 간다. PreCompact 상기 주입, SessionStart 인계(≤800자), pending 알림.",
-  "author": { "name": "qwreey", "email": "me@qwreey.moe" },
-  "license": "MIT",
-  "keywords": ["session", "log", "handover", "compact", "transcript", "records"]
-}

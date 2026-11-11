@@ -33,4 +33,4 @@
 ## 3. 참고
 
 - 사용자 레벨 `rules/web-security.md`(정본 `claude-doctor/home/.claude/rules/`)가 `*.ts, *.tsx, **/server/**` 등을 다룰 때 자동 로드된다. 사용자가 `home-sync apply` 하면 적용된다.
-- 확인: `python3 -I ~/.claude/skills/harness-doctor/scripts/scan.py <vitrine> --only 8` 에서 `WEB-PLUGINS` 정보가 사라지면 끝이다.
+- 확인: `python3 -I <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py <vitrine> --only 8` 에서 `WEB-PLUGINS` 정보가 사라지면 끝이다.

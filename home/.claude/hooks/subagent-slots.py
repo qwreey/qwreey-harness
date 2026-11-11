@@ -6,14 +6,14 @@
 
 - attended(기본): 막지 않는다. 큰 팬아웃(동시 N 개 이상, opus 이상 M 개 이상, Workflow)이면 warn 으로
   "사용자에게 규모를 고지하라"를 낸다. 팬아웃 한 묶음(실행 중 0 에서 시작해 다시 0 이 될 때까지)마다·compact 회차마다 한 번.
-- away(사용자가 /away 로 선언): 실행 중 수가 슬롯 이상이면 deny(사유 "queue: …", level=action). 세션은 멈추지 않는다.
+- away(사용자가 /q:away 로 선언): 실행 중 수가 슬롯 이상이면 deny(사유 "queue: …", level=action). 세션은 멈추지 않는다.
   예산을 넘기면(1단계) 슬롯을 HARNESS_AWAY_OVER_SLOTS(기본 1)로 줄여 직렬화하고, 메인에 재고 리마인더를 한 번 준다.
   예산의 2배를 넘으면(2단계) 새 Agent·Workflow 를 모두 deny(`halt: …`, level=action): 진척 파일에 상태를 적고 사용자를 기다리라는 지시.
   메인을 강제로 끊지는 않는다. 메인이 서브에이전트 없이 혼자 일해도 PostToolUse(모든 도구)에서 같은 안내(1단계 warn, 2단계 action)를 한 번 받는다(main_notice).
   평소(away 아님)에는 상태 파일을 열어 away.on 만 보고 즉시 끝난다(원장 모듈을 적재하지 않는다).
   예산 단위는 USD·에이전트 수·한도 %(statusline 이 쓴 <sid>.limits.json 을 읽는다).
 - 세는 법: PreToolUse 에서 예약(+1) → PostToolUse(async_launched)·SubagentStart 에서 실행 중으로 → SubagentStop 에서 −1.
-  어긋남 복구: lib/subagent_ledger.live() (background_tasks, meta.json, 트랜스크립트 mtime, 예약 TTL). 수동: /away reset.
+  어긋남 복구: lib/subagent_ledger.live() (background_tasks, meta.json, 트랜스크립트 mtime, 예약 TTL). 수동: /q:away reset.
 끄기: HARNESS_SUBAGENT_SLOTS=off. 실패해도 아무것도 막지 않는다(예외는 삼킨다).
 """
 import os
@@ -132,7 +132,7 @@ def pre_agent(L, st, data, cfg, now):
             L.log(st, "queued", n=n, limit=limit, fam=fam)
             why = f" The away budget is used up ({over}), so subagents now run {limit} at a time." if over else ""
             return deny(tag("action",
-                            f"queue: wait for a running agent to finish, then spawn the next. Away mode is on (the user declared /away): "
+                            f"queue: wait for a running agent to finish, then spawn the next. Away mode is on (the user declared /q:away): "
                             f"{n} subagents running ({fams_text(L, items)}), slot limit {limit}.{why} This call did not run; the session is not stopped. "
                             f"Do not retry until a completion notification arrives; meanwhile do non-agent work or end the turn. "
                             f"Before respawning, check whether a smaller model (sonnet) or a smaller pass would do."))

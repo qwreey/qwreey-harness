@@ -155,7 +155,7 @@ PLAN §3은 rbvm 감사자에 `memory: project`를 제안했다. 이 설계는 *
 **안 A (추천): 공통 감사자 5개 + 툴킷 감사 지식을 호출 때 주입**
 - 에이전트 이름에서 언어를 뺀다: `type-auditor`, `runtime-auditor`, `quality-auditor`, `perf-auditor`, `docs-auditor`. 본문은 9-1의 왼쪽 열만 남긴다.
 - frontmatter `skills:`는 정적이라 툴킷마다 고를 수 없다. 그래서 프리로드는 `audit-report-format` 하나로 두고, **툴킷 지식은 `/audit` 0단계가 고른다.**
-  1. 0단계에서 툴킷을 감지한다: `python3 -I ~/.claude/skills/harness-doctor/scripts/scan.py <루트> --json --only 8` 의 `toolkits` (harness-doctor와 같은 감지 표식).
+  1. 0단계에서 툴킷을 감지한다: `python3 -I <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py <루트> --json --only 8` 의 `toolkits` (harness-doctor와 같은 감지 표식).
   2. 감사자 프롬프트에 "툴킷: luau. 먼저 Read: `~/.claude/skills/luau-types/SKILL.md`, `luau-verify/SKILL.md`"를 넣는다. 관점 × 툴킷 → 읽을 스킬 표는 각 `<툴킷>-kb`가 `audit-profile.md` 한 장으로 갖는다(luau-kb에 새 파일 — luau-kb 작업에서 만든다).
   3. 툴킷이 둘 켜진 저장소(quad = luau + web 문서 사이트)는 범위의 파일 확장자로 고른다.
 - 좋은 점: 감사자 파일이 툴킷 수와 무관하게 5개. 툴킷을 더해도 감사자는 그대로다. 빈 툴킷(web 골격)도 "툴킷 지식 없음 — 일반 방법만"으로 돈다.

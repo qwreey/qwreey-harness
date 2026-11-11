@@ -1,5 +1,7 @@
 # 21. 서브에이전트 비용: 고지, 슬롯, 가시화
 
+> 이름 변경(2026-11-11): 사용자 호출 명령은 플러그인 `q` 로 모였다(`/away`→`/q:away`, `/back`→`/q:back`). 스킬은 `plugins/q/skills/{away,back}`. 아래 서술의 옛 위치 `home/.claude/skills/*` 는 이력이다.
+
 - 날짜: 2026-11-10
 - 환경: claude 2.1.316, 실측 모델 sonnet 5.5
 - 구현 위치: 정본 `home/.claude/` 에 구현했다. 실제 `~/.claude` 에는 아직 반영하지 않았다(`tools/home-sync.sh diff` → `apply`).
@@ -9,7 +11,7 @@
 
 ### 사용자 결정 (2026-11-10)
 - 막는 비용 가드는 두지 않는다. 비용은 돈을 내는 사용자가 판단한다.
-- 사용자가 `/away` 로 자리를 비운다고 선언했을 때만 다음을 건다.
+- 사용자가 `/q:away` 로 자리를 비운다고 선언했을 때만 다음을 건다.
   - 전체 예산 상한
   - 동시 슬롯: 슬롯이 차면 "하나가 끝나면 다음" 식으로 직렬화한다.
 
@@ -17,11 +19,11 @@
 - **attended(기본)**: 아무것도 막지 않는다.
   - 큰 팬아웃이면 warn 으로 "사용자에게 규모를 고지하라"를 낸다.
   - 큰 팬아웃의 기준: 동시 4개 이상, opus 이상 2개 이상, Workflow.
-- **away**: `/away [예산] [슬롯]` 으로 켠다.
+- **away**: `/q:away [예산] [슬롯]` 으로 켠다.
   - 실행 중인 수가 슬롯 이상이면 그 호출만 deny 한다. 사유는 `queue: wait for a running agent to finish, then spawn the next` 이고 level 은 action 이다. 세션은 계속 돈다.
   - 예산을 넘기면(1단계) 슬롯을 1로 줄여 직렬화한다. 메인에는 재고 리마인더를 한 번 준다.
   - 예산의 2배를 넘으면(2단계) 새 서브에이전트와 Workflow 를 모두 거절하고, 메인에게 진척 파일에 상태를 적고 사용자를 기다리라고 한다(§5).
-  - `/back` 이 비운 동안의 요약을 보여 준다.
+  - `/q:back` 이 비운 동안의 요약을 보여 준다.
 - **statusline**:
   - 컨텍스트 %
   - 세션 비용
@@ -208,13 +210,13 @@
 
 ### 2.1 attended 와 away
 
-| | attended (기본) | away (`/away` 선언) |
+| | attended (기본) | away (`/q:away` 선언) |
 |---|---|---|
 | 서브에이전트 호출 | 막지 않음 | 실행 중 ≥ 슬롯이면 **그 호출만** deny(`queue: …`, action). 세션은 계속 |
 | 예산 | 없음(보기만) | 넘기면 슬롯 → `HARNESS_AWAY_OVER_SLOTS`(기본 1). 재고 리마인더 warn 1회 |
 | 큰 팬아웃 | warn "규모를 사용자에게 고지" (묶음·compact 회차마다 1회) | 슬롯이 대신함(고지 warn 없음) |
 | Workflow | warn 고지 | 기본 `idle`: 실행 중 0일 때만 허용 + warn(내부 동시성은 슬롯 밖). `deny`/`allow` 선택 가능 |
-| 끝 | - | `/back` 이 요약(비운 시간, 쓴 비용, 띄운 수, 줄 세운 수, 예산 초과, 실행 중, 사건)을 보여 주고 끈다 |
+| 끝 | - | `/q:back` 이 요약(비운 시간, 쓴 비용, 띄운 수, 줄 세운 수, 예산 초과, 실행 중, 사건)을 보여 주고 끈다 |
 
 - "팬아웃 묶음"은 실행 중 0개에서 시작해 다시 0개가 될 때까지다.
   - 한 메시지에 6개를 띄워도 warn 은 한 번이다.
@@ -223,11 +225,11 @@
 - attended 에서 warn 은 **호출이 이미 진행된 뒤** 모델에게 보인다(PreToolUse additionalContext). 그래서 "띄우기 전에 고지"는 CLAUDE.md 규칙이 주된 장치이고, 훅은 놓쳤을 때의 보강이다.
   - 띄우기 전에 묻게 하려면 `permissionDecision: ask` 를 써야 한다. 그러면 사용자가 없을 때 멈추므로 쓰지 않았다(사용자 결정).
 
-### 2.2 `/away [예산] [슬롯]`, `/back`
+### 2.2 `/q:away [예산] [슬롯]`, `/q:back`
 
-- `/away 15 2`: $15, 슬롯 2. `/away $15` 도 같다. `/away 8a 3` 은 서브에이전트 8개, 슬롯 3이다.
+- `/q:away 15 2`: $15, 슬롯 2. `/q:away $15` 도 같다. `/q:away 8a 3` 은 서브에이전트 8개, 슬롯 3이다.
 - 인자를 생략하면 `HARNESS_AWAY_BUDGET_USD`(20)와 `HARNESS_AWAY_SLOTS`(2)를 쓴다.
-- `/away status`, `/away off`(= `/back`), `/away reset`(카운터 비우기).
+- `/q:away status`, `/q:away off`(= `/q:back`), `/q:away reset`(카운터 비우기).
 - 둘 다 `disable-model-invocation: true` 다. 사용자만 부른다.
 - 상태는 `!` 주입으로 스크립트가 직접 바꾼다. 모델은 결과만 전한다.
 
@@ -241,9 +243,9 @@
 
 - **추천: USD.**
   - 무인 세션에서 사용자가 걱정하는 것은 "얼마나 빨리 태우는가"다.
-  - 범위는 메인과 서브에이전트를 모두 포함한다. `/away` 이후에 쓴 것만 센다.
+  - 범위는 메인과 서브에이전트를 모두 포함한다. `/q:away` 이후에 쓴 것만 센다.
 - 에이전트 수(`8a`)는 보조로 남겼다.
-- 구독 사용자에게 더 정확한 척도는 `rate_limits` 의 한도 % 다. 이 값은 statusline 에만 오므로 statusline 이 파일에 적고 훅이 읽는다. 사용자 결정으로 `/away 30%`·`30%w`·`30%5h` 를 지원한다(§5-1). 2단계(예산의 2배)에서는 새 서브에이전트·Workflow 를 거절한다(§5-2).
+- 구독 사용자에게 더 정확한 척도는 `rate_limits` 의 한도 % 다. 이 값은 statusline 에만 오므로 statusline 이 파일에 적고 훅이 읽는다. 사용자 결정으로 `/q:away 30%`·`30%w`·`30%5h` 를 지원한다(§5-1). 2단계(예산의 2배)에서는 새 서브에이전트·Workflow 를 거절한다(§5-2).
 
 ### 2.3 슬롯 직렬화와 카운터
 
@@ -275,9 +277,9 @@
 2. **`meta.json` 의 `finished: true`**: 비공식, 로컬 실측이다. 포그라운드에도 통한다.
 3. **트랜스크립트 mtime**: `HARNESS_SLOTS_STALE_MIN`(30분) 동안 움직임이 없으면 죽은 것으로 본다. 비정상 종료, 크래시, 재부팅에 대비한다.
 4. **예약 TTL**: `HARNESS_SLOTS_RESERVE_SEC`(90초) 안에 시작이 오지 않으면 버린다. 다른 훅이 막았거나, 권한이 거절됐거나, 내장 상한에 걸려 실패한 경우다.
-5. **수동**: `/away reset`.
+5. **수동**: `/q:away reset`.
 
-- 복구한 항목은 원장 `log` 에 이유와 함께 남는다(`recovered`, `why`). 그 마지막 8개를 `/back` 이 보여 준다.
+- 복구한 항목은 원장 `log` 에 이유와 함께 남는다(`recovered`, `why`). 그 마지막 8개를 `/q:back` 이 보여 준다.
 
 ### 2.4 한계 (실측 기반)
 
@@ -318,8 +320,8 @@
 | `HARNESS_FANOUT_WARN_CONCURRENT` | 4 | attended: 이 호출로 동시 N개 이상이면 warn |
 | `HARNESS_FANOUT_WARN_BIG` | 2 | attended: opus 이상 동시 N개 이상이면 warn |
 | `HARNESS_FANOUT_WARN_WORKFLOW` | on | attended: Workflow 마다 warn |
-| `HARNESS_AWAY_BUDGET_USD` | 20 | `/away` 예산 기본 |
-| `HARNESS_AWAY_SLOTS` | 2 | `/away` 슬롯 기본 |
+| `HARNESS_AWAY_BUDGET_USD` | 20 | `/q:away` 예산 기본 |
+| `HARNESS_AWAY_SLOTS` | 2 | `/q:away` 슬롯 기본 |
 | `HARNESS_AWAY_OVER_SLOTS` | 1 | 예산 초과 뒤 슬롯 |
 | `HARNESS_AWAY_WORKFLOW` | idle | away 중 Workflow: idle / deny / allow |
 | `HARNESS_SLOTS_STALE_MIN` | 30 | 이만큼 조용하면 죽은 것으로 |
@@ -346,14 +348,14 @@
   - 모델은 작업 크기에 맞춘다(목록가 Opus 5.5 = Sonnet 5.5 의 2배).
   - 작은 패스를 여러 번 도는 것이 기본이다. 근거 둘: 같은 코드를 중복해서 읽는다. 고친 코드도 결국 리뷰를 한 번 더 돈다.
   - 2개 이상을 띄우거나 Workflow 를 쓰기 전에 사용자에게 한 줄로 고지한다(개수, 모델, 이유, 예상 규모).
-  - `/away` 상태에서 `queue:` 거절은 실패가 아니다.
+  - `/q:away` 상태에서 `queue:` 거절은 실패가 아니다.
 - "코드 리뷰" 절의 병렬 수 문장은 위의 "작은 패스" 기본을 가리키게 바꿨다. 중복을 없애려는 것이다.
 
 ## 3. 구현 (정본 `home/.claude/`)
 
 | 파일 | 내용 |
 |---|---|
-| `lib/subagent_ledger.py` | 원장(잠금·상태), 가격표, 트랜스크립트 스캔, 복구 `live()`, `sweep()`, 설정 병합, `/away`·`/back` CLI |
+| `lib/subagent_ledger.py` | 원장(잠금·상태), 가격표, 트랜스크립트 스캔, 복구 `live()`, `sweep()`, 설정 병합, `/q:away`·`/q:back` CLI |
 | `hooks/subagent-slots.py` | PreToolUse(Agent\|Workflow), PostToolUse(Agent), SubagentStart, SubagentStop, Stop 을 한 파일에서 처리. 예외는 삼키고 막지 않음 |
 | `statusline/harness-status.py` | 위 2.6 |
 | `skills/away/SKILL.md`, `skills/back/SKILL.md` | 사용자 호출 전용, `!` 주입 + `allowed-tools` |
@@ -390,7 +392,7 @@
 - 예산 소진
   - USD: 초과하면 슬롯이 1이 된다. 실행 중 0개면 허용하면서 재고 warn 을 한 번만 낸다.
   - 에이전트 수(`2a`)
-- `/back` 의 요약 내용과 꺼짐, 그 뒤 attended 복귀
+- `/q:back` 의 요약 내용과 꺼짐, 그 뒤 attended 복귀
 - statusline 의 문자열, 속도, 빈 입력
 - 카운터 복구
   - `background_tasks` 누락, meta finished, 30분 정지, 예약 TTL, 수동 reset, 로그 사유
@@ -418,14 +420,14 @@
 
 ### 실측 2: away 줄 세우기 (sonnet)
 - 과정:
-  1. `/away 5 2`
+  1. `/q:away 5 2`
   2. "4개를 한 메시지로 띄워라"
-  3. `/back`
+  3. `/q:back`
 - 4개 PreToolUse 중 C 와 D 가 거절됐다(`queued` 2).
 - 모델은 같은 호출을 바로 다시 하지 않았다. 완료 알림 뒤에 C 를, 다음 완료 알림 뒤에 D 를 띄웠다. 추가 거절은 없었다.
 - 4개 모두 보고했고 세션은 끝까지 진행됐다(exit 0).
 - 동시 실행은 계속 2개 이하였다. 예외는 §2.4 의 1초 겹침 한 번이다.
-- `/back`(`!` 주입) 결과: 비운 4분, $0.31 / $5, 4개 띄움, 2회 줄 세움, 예산 초과 아님.
+- `/q:back`(`!` 주입) 결과: 비운 4분, $0.31 / $5, 4개 띄움, 2회 줄 세움, 예산 초과 아님.
 - 원장의 서브 비용 $0.21 은 트랜스크립트 합 $0.23 보다 작았다. SubagentStop 시점 지연 때문이다. `sweep` 을 추가해 고쳤고 단위 테스트로 확인했다.
 - 비용(CLI 누적): $0.40.
 
@@ -439,10 +441,10 @@
 1. **예산 단위는 사용자 요금제에 맞춘다. [결정, 구현됨]**
    - 비개발자는 USD 를 체감하지 못하고 "한도 다 썼다" 로 체감한다. 구독자가 많다.
    - 인자:
-     - `/away $5`: USD(API 목록가 환산)
-     - `/away 30%`: 쓸 수 있는 창 중 가장 빡빡한 쪽 기준으로, 지금부터 30%p 를 더 쓸 때까지
-     - `/away 30%w`, `/away 30%5h`: 창을 명시(주간, 5시간)
-     - `/away 6a`: 에이전트 수
+     - `/q:away $5`: USD(API 목록가 환산)
+     - `/q:away 30%`: 쓸 수 있는 창 중 가장 빡빡한 쪽 기준으로, 지금부터 30%p 를 더 쓸 때까지
+     - `/q:away 30%w`, `/q:away 30%5h`: 창을 명시(주간, 5시간)
+     - `/q:away 6a`: 에이전트 수
      - 인자 없음: statusline 이 한도 값을 보낸 적이 있으면 `HARNESS_AWAY_BUDGET_PCT`(30), 없으면 USD 기본값(20)과 `[plan-unknown]` 표지.
    - 5시간 창이 없는 요금제(예: 울트라)는 `rate_limits` 에 `five_hour` 가 없을 수 있다. 있는 창만 추적한다.
    - **한도 % 출처 [문서: code.claude.com/docs/en/statusline]**
@@ -453,14 +455,14 @@
      - 로컬 2.1.316 `-p` 실측은 하지 않았다(statusline 이 `-p` 에서 돌지 않을 수 있어 문서 우선).
    - **구조**: statusline 스크립트가 `rate_limits` 를 `$TMPDIR/claude-subagent-slots/<sid>.limits.json`(`{five_hour:{p,r}, seven_day:{p,r}, t}`)에 적고, 훅이 그것을 읽는다. 값이 없으면 파일을 덮지 않는다.
    - **계산**:
-     - `/away` 시점에 창마다 기준점(`start`)과 남은 여유(`room = 100 - 시작값`)를 기록한다.
+     - `/q:away` 시점에 창마다 기준점(`start`)과 남은 여유(`room = 100 - 시작값`)를 기록한다.
      - 1단계 문턱 = `min(N, room)`: 남은 여유가 N 보다 작으면 한도 100% 가 문턱이다.
      - 증가분 = `acc + (last - start)`.
      - `resets_at` 이 60초를 넘겨 바뀌면 창이 리셋된 것이다. 그때까지의 증가분을 `acc` 에 쌓고 새 창을 0 에서 센다(문턱은 N 으로 복구). 60초 안의 흔들림은 리셋이 아니다.
      - 창을 지정하지 않으면 어느 창이든 먼저 문턱에 닿으면 도달로 본다(보통 5시간 창).
    - **값이 오래됐을 때**: statusline 이 `HARNESS_AWAY_LIMITS_STALE_MIN`(10)분 넘게 갱신하지 못하면(대화형이 아님, 닫힘 등) 마지막 증가분은 유지하고, 모자란 부분은 USD 가드(`HARNESS_AWAY_BUDGET_USD`, 기본 20)로 메운다. 상태줄에 `(stale)` 이 붙는다.
    - **요금제 감지**: `rate_limits` 가 왔다는 사실이 구독자 신호다. 못 받으면(비구독, `-p`, 첫 응답 전) USD 로 켜고 `[plan-unknown]` 을 출력한다. 스킬이 사용자에게 한 번 묻고, `harness.env` 에 `HARNESS_AWAY_PLAN=pct|usd` 를 적도록 제안한다(대신 쓰지 않는다).
-   - [미확인] 메인이 쉬면서 서브에이전트만 도는 동안 `rate_limits` 가 갱신되는지(서브에이전트 응답이 값을 바꾸는지). 안 바뀌면 그 구간의 % 증가분이 늦게 잡힌다. 실 사용에서 `/back` 요약의 USD 와 %p 를 대조해 본다.
+   - [미확인] 메인이 쉬면서 서브에이전트만 도는 동안 `rate_limits` 가 갱신되는지(서브에이전트 응답이 값을 바꾸는지). 안 바뀌면 그 구간의 % 증가분이 늦게 잡힌다. 실 사용에서 `/q:back` 요약의 USD 와 %p 를 대조해 본다.
 2. **예산 초과는 2단계. [결정, 구현됨]**
    - 1단계(예산 도달): 지금처럼 슬롯을 1로 줄이고 재고 리마인더를 한 번 낸다.
    - 2단계(예산의 `HARNESS_AWAY_STAGE2_MULT`=2 배): 새 Agent 와 Workflow 를 모두 deny 한다(`halt: …`, level=action).
@@ -474,8 +476,8 @@
      - 1단계(over): **같은 경로로 메인 단독에게도 준다**(level=warn, 한 번). 이유: 예산에 도달했다는 사실은 서브에이전트를 부르지 않는 메인에게도 "남은 일이 지출 값어치가 있는가"를 다시 보게 하는 정보이고, 2단계까지 아무 신호가 없다가 갑자기 halt 를 받는 것보다 낫다. 문구는 서브에이전트 직렬화(슬롯 1)와 보고에 언급하라는 것을 같이 담아 Agent 경로의 1단계 리마인더를 대체한다(같은 `over:main` 키라 중복되지 않는다).
      - 메인 소모 파악: 이 경로가 `account_main` 으로 메인 트랜스크립트 증분을 읽는다(15초에 한 번, `MAIN_EVAL_SEC`). 이전에는 Stop·Pre(Agent) 때만 읽어, 한 턴이 길게 이어지면 over2_at 이 늦게 찍혔다.
      - 비용: away 가 아니거나 상태 파일이 없으면 json 도 적재하지 않고 원문에서 session_id 만 뽑아 상태 파일의 `"on": true` 만 확인해 종료한다. 실측(로컬, python 3.14, 호출 40회 평균): 빈 `python3 -I -c pass` 8.2 ms, 이 훅의 not-away 11.4 ms(**순수 추가 약 3 ms**). 최적화 전 단순 구현은 25.5 ms 였다(json·re·importlib·pathlib 적재가 약 14 ms). away 켜진 동안은 원장 적재·잠금·쓰기로 호출당 약 26 ms. 테스트(`test-subagent-slots.py`)가 not-away 추가분 < 10 ms 를 확인한다.
-     - 테스트: `test-subagent-slots.py` 102 → 120(메인 단독 18개: 1·2단계 한 번씩, 회차 재안내, agent_id 제외, /away 이전 지출 제외, Agent 거절 단축형, 끄기 스위치, 지연).
-   - `/back` 요약에 1·2단계 도달 여부와 시각이 들어간다. statusline 은 `AWAY OVER …` / `AWAY HALT …` 로 보인다.
+     - 테스트: `test-subagent-slots.py` 102 → 120(메인 단독 18개: 1·2단계 한 번씩, 회차 재안내, agent_id 제외, /q:away 이전 지출 제외, Agent 거절 단축형, 끄기 스위치, 지연).
+   - `/q:back` 요약에 1·2단계 도달 여부와 시각이 들어간다. statusline 은 `AWAY OVER …` / `AWAY HALT …` 로 보인다.
 3. **고지 문턱의 이중 구조는 의도된 설계다. [결정, 코드 변경 없음]**
    - 메인의 말 고지: CLAUDE.md, 서브에이전트 2개 이상 또는 Workflow 전에 한 줄.
    - 훅 warn: 동시 4개, opus 이상 2개, Workflow. 메인이 고지를 놓쳤을 때의 보강이다.

@@ -1,8 +1,0 @@
-{
-  "name": "harness-onboarding",
-  "version": "0.1.0",
-  "description": "Claude Code 하네스 온보딩 진입점. /harness-start 가 역할·경험을 묻고, 개념(context, compact, memory, session, effort, subagent, auto mode, rules, skills, hooks, plugins, 비용 등)을 아는지 확인해 모르는 것만 쉽게 설명한 뒤, 지금 환경을 읽기만 해서 진단하고, 개선안을 하나씩 제안해 동의받은 것만 적용한다.",
-  "author": { "name": "qwreey", "email": "me@qwreey.moe" },
-  "license": "MIT",
-  "keywords": ["onboarding", "harness", "beginner", "consent", "context", "subagent", "roblox"]
-}

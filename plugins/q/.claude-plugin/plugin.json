@@ -1,0 +1,19 @@
+{
+  "name": "q",
+  "version": "0.2.0",
+  "description": "사람이 직접 치는 하네스 명령 모음. /q:start(온보딩), /q:doctor(하네스 진단), /q:away·/q:back(자리 비움 예산), /q:checkpoint·/q:import(세션 기록). session-log 훅(트랜스크립트를 분리 프로세스에서 증분 요약해 저장소 밖 외부 저장소에 기록, PreCompact 상기, SessionStart 인계, pending 알림)을 포함한다. 이름 q 는 사용자명 qwreey 에서 왔다.",
+  "author": {
+    "name": "qwreey",
+    "email": "me@qwreey.moe"
+  },
+  "license": "MIT",
+  "keywords": [
+    "harness",
+    "onboarding",
+    "doctor",
+    "away",
+    "session",
+    "handover",
+    "compact"
+  ]
+}

@@ -10,7 +10,7 @@ last_verified: 2026-11-10
 
 2026-11-10. 조사와 실측 근거는 `audit/15-session-log.md` 에 있다. 이 폴더의 스크립트는 실측용 프로토타입이고 본 구현이 아니다.
 
-> **구현됨: `plugins/session-log/`** (README 가 현재 동작의 정본). 아래 본문과 달라진 점(사용자 결정 2026-11-10):
+> **구현됨: `plugins/q/` (이름 변경: 옛 plugins/session-log)** (README 가 현재 동작의 정본). 아래 본문과 달라진 점(사용자 결정 2026-11-10):
 > - **저장 위치를 저장소 밖으로 옮겼다.** `${SESSION_LOG_HOME:-${XDG_DATA_HOME:-~/.local/share}/session-log}/<project-key>/records/` 에 둔다. 키는 git common-dir 기준이라 worktree 도 같은 키를 쓴다. §5.1 의 `.claude/session/auto/` 는 쓰지 않는다. 저장소에는 아무것도 쓰지 않는다.
 > - **받아 가기 흐름**: 기록은 `pending` 으로 쌓인다. 저장소 메인 에이전트가 `/session-import`(`session-log pending|show|import|dismiss`)로 저장소 관례에 맞게 합치거나 고르고, 커밋도 그 에이전트가 한다. index 에 `imported`(위치, 커밋)나 `dismissed` 를 남긴다.
 > - **알림**: 요약 완료(다음 PostToolUse·UserPromptSubmit 1회, info), pending(SessionStart·commit 직전 PreToolUse·PreCompact·handover, warn, 5개나 7일을 넘으면 action), PreCompact 상기(warn), 인계(info). 모두 `<harness-hook name="session-log" level=…>` 로 감싼 영어다(`home/.claude/HOOK-MESSAGES.md`).

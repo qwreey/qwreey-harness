@@ -25,7 +25,7 @@ from pathlib import Path
 
 BASE_KEYWORDS = ["bench", "fuzz", "perf(?:orm(?:ance)?)?(?![A-Za-z])", "stress", "soak", "load-?test", "hyperfine"]
 BASE_EXECUTORS = {"bash", "sh", "zsh", "python", "python3", "node", "hyperfine"}
-# 툴킷마다 무거운 실행을 띄우는 실행기. 새 툴킷은 여기에 한 줄 더한다(harness-doctor references/toolkits/README.md).
+# 툴킷마다 무거운 실행을 띄우는 실행기. 새 툴킷은 여기에 한 줄 더한다(q 플러그인 skills/doctor/references/toolkits/README.md).
 TOOLKIT_EXECUTORS = {
     "luau": {"luau", "lune", "lute"},
     "web": {"npm", "npx", "pnpm", "yarn", "bun", "deno", "vitest"},

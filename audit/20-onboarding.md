@@ -1,5 +1,7 @@
 # 20. 회사 배포용 하네스 온보딩 진입점
 
+> 이름 변경(2026-11-11): 플러그인 `harness-onboarding` 은 `q` 로 합쳐졌고 진입점은 `/q:start`(스킬 `plugins/q/skills/start`)다. 아래의 옛 경로·이름은 이력이다.
+
 - 기준일: 2026-11-10. Claude Code v2.1.316(로컬).
 - 결과물: `plugins/harness-onboarding/`(플러그인 프로토타입), `.claude-plugin/marketplace.json` 항목 추가. `claude plugin validate` 통과(플러그인, 마켓 모두).
 - 근거 표기
@@ -31,12 +33,12 @@
 | 웹 개발자 | git, 셸, 설정 파일 | 규칙·훅을 쌓기, 스킬 남설, MCP 남용 | context → memory → subagent → auto mode → rules → skills → hooks → plugins | 동의 원칙, CLAUDE.md 줄이기, Compact instructions, session-log |
 
 - 비프로그래머 쪽은 설명에서 경로·JSON 을 최소로 쓰게 했다. 결과도 눈으로 확인하는 형태(표, 전후 목록)로 보이게 했다.
-- "다 안다" 고 하면 개념 단계를 건너뛰고 진단으로 간다. `/harness-start 진단` 으로 바로 갈 수도 있다.
+- "다 안다" 고 하면 개념 단계를 건너뛰고 진단으로 간다. `/q:start 진단` 으로 바로 갈 수도 있다.
 
 ## 3. 진입 흐름
 
 ```
-/harness-start [개념 | 진단]
+/q:start [개념 | 진단]
  1. 역할·경험·쓰는 곳(OS) 질문 3개 ── 멈춤
     └ 미리 알림: "작업 폴더 밖 파일 읽기 허락 창이 뜰 수 있다, 읽기만 한다"
  2. 개념 체크리스트 15개 + 역할별 추천 순서 ── 멈춤
@@ -45,7 +47,7 @@
     → "더 자세히 / 다음 / 그만" ── 멈춤 (개념 1~2개씩)
  4. 읽기 전용 진단 (references/diagnose.md, 12항목)
     → 신호등 표(좋음/주의/문제/확인 못 함) + 쉬운 말 ── 멈춤
-    └ /context, /usage, /harness-doctor 는 사용자에게 입력을 부탁만 한다
+    └ /context, /usage, /q:doctor 는 사용자에게 입력을 부탁만 한다
  5. 개선안 최대 3개를 하나씩 (references/improvements.md, A~J)
     → 무엇을 / 왜 / 되돌리는 법 / 비용·위험 → "적용할까요? 예/아니오/나중에" ── 멈춤
     → "예" 를 받은 항목만 적용한다(기존 파일은 .bak 백업). 사내 정본 대상이면 요청 문안만 낸다

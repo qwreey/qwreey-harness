@@ -49,11 +49,11 @@ intake/<이름>/            # 소문자-하이픈. 예: blog, vitrine-web
 1. **반입 확인**: 위 2절의 비밀 검사, `INTAKE.md` 작성.
 2. **환경과 툴킷 감지**:
    ```bash
-   python3 -I ~/.claude/skills/harness-doctor/scripts/scan.py --env
-   python3 -I ~/.claude/skills/harness-doctor/scripts/scan.py intake/<이름> --only 1      # 머리의 "툴킷:" 줄 확인
+   python3 -I <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py --env
+   python3 -I <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py intake/<이름> --only 1      # 머리의 "툴킷:" 줄 확인
    ```
    감지가 틀리면 `--toolkits web` 처럼 강제하고, 감지 표식이 빠진 이유(설정 파일을 안 가져옴 등)를 `INTAKE.md` 에 적는다.
-3. **harness-doctor**: `/harness-doctor intake/<이름>`.
+3. **/q:doctor**: `/q:doctor intake/<이름>`.
    - git 이 없는 사본이라 `SET-NOGIT`(정보)이 나오고 7번의 git 검사, 9번 worktree 는 건너뛴다. `STALE-AGENTDOC-OLD` 처럼 커밋 날짜가 필요한 판정도 나오지 않는다.
    - 형제 비교(`TOOL-PIN`, `TOOL-CLAIM`, `DRIFT-SKILLCOPY`)의 기본 형제는 `intake/` 의 다른 사본이다. 이 작업공간과 비교하려면 `--projects <작업공간>`.
    - 고칠 안의 처리 방식은 `반입 원본에 전달` 이다. 사본을 고쳐 봐야 원본에 가지 않는다. 고친 문장·diff 를 보고서에 적어 원본 세션에 넘긴다.

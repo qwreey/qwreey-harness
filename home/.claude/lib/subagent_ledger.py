@@ -1,6 +1,6 @@
 """서브에이전트 슬롯·비용 원장 (session_id 단위). 표준 라이브러리만.
 
-쓰는 곳: hooks/subagent-slots.py(기록), statusline/harness-status.py(읽기), skills/away·back(이 파일의 CLI).
+쓰는 곳: hooks/subagent-slots.py(기록), statusline/harness-status.py(읽기), skills/q:away·back(이 파일의 CLI).
 설계: audit/21-cost-disclosure.md. 훅 메시지는 HOOK-MESSAGES.md 규약을 따른다.
 
 상태 파일: $TMPDIR/claude-subagent-slots/<sid>.json (+ .lock). compact 회차로 나누지 않는다(실행 중 수는 compact 와 무관).
@@ -56,10 +56,10 @@ CFG_DEFAULTS = {
     "HARNESS_FANOUT_WARN_CONCURRENT": "4",  # attended: 이 호출로 동시 실행이 N 개 이상이면 warn
     "HARNESS_FANOUT_WARN_BIG": "2",  # attended: opus 이상이 동시에 N 개 이상이면 warn
     "HARNESS_FANOUT_WARN_WORKFLOW": "on",  # attended: Workflow 호출마다 warn
-    "HARNESS_AWAY_BUDGET_USD": "20",  # /away 에 예산을 안 주면
-    "HARNESS_AWAY_SLOTS": "2",  # /away 에 슬롯을 안 주면
+    "HARNESS_AWAY_BUDGET_USD": "20",  # /q:away 에 예산을 안 주면
+    "HARNESS_AWAY_SLOTS": "2",  # /q:away 에 슬롯을 안 주면
     "HARNESS_AWAY_OVER_SLOTS": "1",  # 예산을 넘긴 뒤 슬롯(직렬화)
-    "HARNESS_AWAY_BUDGET_PCT": "30",  # 구독제: /away 에 예산을 안 주면 그 창의 몇 %p 를 더 쓸 때까지
+    "HARNESS_AWAY_BUDGET_PCT": "30",  # 구독제: /q:away 에 예산을 안 주면 그 창의 몇 %p 를 더 쓸 때까지
     "HARNESS_AWAY_PLAN": "auto",  # auto(statusline 이 한도 값을 보내면 pct, 아니면 usd) | usd | pct
     "HARNESS_AWAY_STAGE2_MULT": "2",  # 2단계 = 예산의 이 배수(새 서브에이전트·Workflow 거절)
     "HARNESS_AWAY_LIMITS_STALE_MIN": "10",  # statusline 이 한도 값을 이만큼 못 갱신하면 오래된 것으로 보고 USD 가드로
@@ -469,7 +469,7 @@ def parse_away_args(args, cfg):
 
 
 def pct_init(r, lim, now):
-    """/away 시점의 기준점. 창마다 시작값·리셋 시각·문턱(남은 여유가 N 보다 작으면 거기까지)을 적는다."""
+    """/q:away 시점의 기준점. 창마다 시작값·리셋 시각·문턱(남은 여유가 N 보다 작으면 거기까지)을 적는다."""
     wins = [r["pct_win"]] if r["pct_win"] else [w for w in WINDOWS.values() if w in lim]
     out = {}
     for w in wins:
@@ -481,7 +481,7 @@ def pct_init(r, lim, now):
 
 def away_eval(st, lim=None, now=None, persist=True, cfg=None):
     """away 예산 판정 → dict(level 0|1|2, why, spent, spawned, pct(창별 증가분 %p), stale).
-    level 1 = 예산 도달, level 2 = 예산 x STAGE2_MULT. 기준은 /away 이후 증가분.
+    level 1 = 예산 도달, level 2 = 예산 x STAGE2_MULT. 기준은 /q:away 이후 증가분.
     persist=True 면 창 상태(리셋 넘김 포함)를 st 에 갱신한다. 훅만 True(잠금 안), statusline 은 False."""
     now = now or time.time()
     cfg = cfg or CFG_DEFAULTS
@@ -562,7 +562,7 @@ def fmt_spend(bucket):
 
 
 def away_check(st, cfg, lim, now=None):
-    """away 중이면 판정하고(창 상태 갱신 포함) 1·2단계 도달 시각을 처음 한 번만 적는다. 훅·/back 이 부른다."""
+    """away 중이면 판정하고(창 상태 갱신 포함) 1·2단계 도달 시각을 처음 한 번만 적는다. 훅·/q:back 이 부른다."""
     a = st.get("away")
     if not (a and a.get("on")):
         return None
@@ -593,7 +593,7 @@ def cmd_away(sid, args):
     try:
         r = parse_away(args, cfg, lim)
     except ValueError as e:
-        print(f"/away: {e}. 형식: /away [예산: $5 | 30% | 30%w | 30%5h | 6a] [슬롯: 2]")
+        print(f"/q:away: {e}. 형식: /q:away [예산: $5 | 30% | 30%w | 30%5h | 6a] [슬롯: 2]")
         return 2
     now = time.time()
     with session(sid) as st:
@@ -615,7 +615,7 @@ def cmd_away(sid, args):
         print("[window-missing] 지정한 창의 값이 없어 있는 창으로 켰다(요금제에 없는 창일 수 있다).")
     elif note == "plan-unknown":
         print("[plan-unknown] 요금제를 알 수 없어 USD 기본값으로 켰다.")
-    print(f"지금 실행 중인 서브에이전트: {n}개. 돌아오면 /back 으로 요약을 본다.")
+    print(f"지금 실행 중인 서브에이전트: {n}개. 돌아오면 /q:back 으로 요약을 본다.")
     return 0
 
 
