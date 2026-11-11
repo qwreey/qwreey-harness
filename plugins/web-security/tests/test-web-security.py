@@ -103,7 +103,7 @@ class Layout(unittest.TestCase):
     def test_manifest_and_marketplace(self):
         with open(os.path.join(ROOT, ".claude-plugin", "plugin.json"), encoding="utf-8") as f:
             pj = json.load(f)
-        self.assertEqual((pj["name"], pj["version"]), ("web-security", "0.1.0"))
+        self.assertEqual(pj["name"], "web-security")  # 버전은 올릴 때마다 바뀌므로 고정하지 않는다
         with open(os.path.join(os.path.dirname(os.path.dirname(ROOT)), ".claude-plugin", "marketplace.json"), encoding="utf-8") as f:
             mk = json.load(f)
         self.assertIn(("web-security", "./plugins/web-security"), [(p["name"], p["source"]) for p in mk["plugins"]])

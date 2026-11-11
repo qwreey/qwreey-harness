@@ -349,14 +349,14 @@ def on_batch(data):
     out = []
     tp = data.get("transcript_path")
     if tp:
-        worst = None
+        worst, worst_len = None, None
         for text in interim_texts(read_new_lines(tp, st)):
             d, ratio, _ = is_drift(text, script)
             if d and (worst is None or ratio < worst):
-                worst = ratio
+                worst, worst_len = ratio, len(text)
         if worst is not None and total - st.get("last_interim", -99) >= INTERIM_COOLDOWN_CALLS:
             st["last_interim"] = total
-            log(sid, "interim_drift", worst)
+            log(sid, "interim_drift", worst, worst_len)
             out.append(tag("info", "Text you wrote to the user between tool calls was not in %s. Write all text to the user in %s, "
                            "including short progress notes. Do not mention this notice." % (lang, lang)))
     if total >= st["next"]:

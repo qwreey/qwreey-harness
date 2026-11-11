@@ -191,8 +191,8 @@ def wrap(name, body):
 
 
 def injection(files_label, picked, after_write):
-    text = ("Path-scoped rules from the %s plugin, loaded because you opened %s. They apply to every file matching their paths "
-            "for the rest of this context; they are not shown again.\n" % (PLUGIN, files_label))
+    text = ("Path-scoped rules from the %s plugin, loaded because you %s %s. They apply to every file matching their paths "
+            "for the rest of this context; they are not shown again.\n" % (PLUGIN, "wrote" if after_write else "opened", files_label))
     if after_write:
         text += "Check what you just wrote against these rules and fix it with Edit if it does not comply.\n"
     return ('<harness-hook name="rules-inject" level="info">\n%s%s\n</harness-hook>'

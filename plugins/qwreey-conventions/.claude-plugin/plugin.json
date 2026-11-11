@@ -1,6 +1,6 @@
 {
   "name": "qwreey-conventions",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "코드 주석과 모델이 읽는 문서(CLAUDE.md, SKILL.md, rules)의 관례. qwreey-conventions:comments 와 qwreey-conventions:agent-docs 스킬이 쓰는 법을 담고, PostToolUse 훅이 방금 추가한 줄이 관례를 벗어난 것 같으면 한 줄로 알린다(막지 않는다). 턴이 끝날 때 편집한 파일에 남은 기존 주석 문제를 사용자에게 한 줄로 보고만 한다. rules/ 의 경로 한정 규칙을 파일을 열 때 훅이 주입하고, 답변이 사용자 언어에서 벗어나면 다시 쓰게 한다.",
   "author": { "name": "qwreey", "email": "me@qwreey.moe" },
   "license": "MIT",
