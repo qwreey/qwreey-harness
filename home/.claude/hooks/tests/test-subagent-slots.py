@@ -543,10 +543,10 @@ def sty(style, extra=None, inp=SAMPLE, color=False):
 
 
 plain = sty("plain").strip()
-check("style plain", plain == "gitproj (feat-x) · Opus high ctx 34% · limit 5h 92% wk 50% reset 2h05m", plain)
+check("style plain", plain == "gitproj:feat-x · Opus high ctx 34% · limit 5h 92% wk 50% reset 2h05m", plain)
 check("style plain: no cost for subscribers", "$" not in plain)
 nerd = sty("nerd").strip()
-check("style nerd: icons + same facts", "\uf07b gitproj" in nerd and "\ue0a0 feat-x" in nerd and "34%" in nerd and "92%" in nerd)
+check("style nerd: icons + same facts", "\uf07b gitproj:feat-x" in nerd and " │ " in nerd and "34%" in nerd and "92%" in nerd)
 check("style minimal", sty("minimal").strip() == "Opus 34% · 5h 92%", sty("minimal"))
 check("style off: empty, limits file still written", sty("off") == "" and json.load(open(lim_file("sty")))["five_hour"]["p"] == 92)
 two = sty("plain", {"HARNESS_STATUSLINE_LINES": "2"}).splitlines()
@@ -557,7 +557,7 @@ check("color: 92% red, 34% green", "\x1b[31mlimit 5h 92%" in col and "\x1b[32mct
 check("NO_COLOR respected", "\x1b[" not in sty("plain"))
 nosub = dict(SAMPLE); nosub.pop("rate_limits"); nosub["cost"] = {"total_cost_usd": 3.5}
 check("non-subscriber shows cost", "$3.50" in sty("plain", inp=nosub))
-check("narrow COLUMNS drops trailing segments", sty("plain", {"COLUMNS": "50"}).strip() == "gitproj (feat-x) · Opus high ctx 34%", sty("plain", {"COLUMNS": "50"}))
+check("narrow COLUMNS drops trailing segments", sty("plain", {"COLUMNS": "50"}).strip() == "gitproj:feat-x · Opus high ctx 34%", sty("plain", {"COLUMNS": "50"}))
 open(os.path.join(PROJ, ".claude", "harness.env"), "w").write("HARNESS_STATUSLINE_STYLE=minimal\n")
 repo_out = subprocess.run([sys.executable, "-I", SL], input=json.dumps(dict(SAMPLE, workspace={"current_dir": PROJ, "project_dir": PROJ})),
                           capture_output=True, text=True, env={k: v for k, v in ENV.items() if k != "HARNESS_STATUSLINE_STYLE"}).stdout.strip()

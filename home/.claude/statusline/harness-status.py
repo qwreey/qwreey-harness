@@ -144,11 +144,11 @@ def build(d, cfg, rl, items, away, paint):
     two = cfg["LINES"].strip() == "2"
     segs = []
 
-    def add(line, parts):
-        """parts: [(색, 글자)]. 글자 길이는 칠하기 전 기준이다."""
+    def add(line, parts, joiner=" "):
+        """parts: [(색, 글자)] 는 한 맥락(묶음)이다. 묶음 사이는 main 의 구분자로 나뉜다. 글자 길이는 칠하기 전 기준."""
         parts = [(c, t) for c, t in parts if t]
         if parts:
-            segs.append((line if two else 1, len(" ".join(t for _, t in parts)), " ".join(paint(c, t) if c else t for c, t in parts)))
+            segs.append((line if two else 1, len(joiner.join(t for _, t in parts)), joiner.join(paint(c, t) if c else t for c, t in parts)))
 
     def pc(p):
         return "green" if p < warn else "yellow" if p < hot else "red"
@@ -167,10 +167,8 @@ def build(d, cfg, rl, items, away, paint):
         wt = d.get("worktree") or {}
         branch = wt.get("branch") or branch
         dirty = "*" if branch and root and git_dirty(root) else ""
-        if nerd:
-            add(1, [("bold", ic("dir") + " " + name)] + ([("magenta", ic("branch") + " " + branch + dirty)] if branch else []))
-        else:
-            add(1, [("bold", name)] + ([("magenta", f"({branch}{dirty})")] if branch else []))
+        # 프로젝트 맥락은 이름과 브랜치를 한 덩어리로 붙인다(name:branch).
+        add(1, [("bold", (ic("dir") + " " if nerd else "") + name)] + ([("magenta", f":{branch}{dirty}")] if branch else []), joiner="")
 
     # 2. 모델·effort·컨텍스트
     model = (d.get("model") or {}).get("display_name") or ""
@@ -180,10 +178,11 @@ def build(d, cfg, rl, items, away, paint):
     if mini:
         add(1, [("cyan", model), (pc(pct), f"{pct:.0f}%") if ctx_ok else (None, "")])
     elif nerd:
-        add(1, [("cyan", ic("model") + " " + model) if model else (None, ""), ("dim", ic("effort") + effort) if effort else (None, ""),
+        # effort 는 모델 바로 옆, 모델과 같은 색(흐리게 하면 잘 안 보인다).
+        add(1, [("cyan", " ".join(x for x in (ic("model"), model, effort) if x)) if model else (None, ""),
                 (pc(pct), ic("ctx") + " " + f"{pct:.0f}%") if ctx_ok else (None, "")])
     else:
-        add(1, [("cyan", model), ("dim", effort), (pc(pct), f"ctx {pct:.0f}%") if ctx_ok else (None, "")])
+        add(1, [("cyan", " ".join(x for x in (model, effort) if x)), (pc(pct), f"ctx {pct:.0f}%") if ctx_ok else (None, "")])
 
     # 3. 한도(구독자) 또는 비용(그 밖)
     lp = []
@@ -204,7 +203,7 @@ def build(d, cfg, rl, items, away, paint):
             else:
                 parts[0] = (parts[0][0], "limit " + parts[0][1])
             if left:
-                parts.append(("dim", (ic("reset") + " " if nerd else "reset ") + fmt_left(min(left))))
+                parts.append((None, (ic("reset") + " " if nerd else "reset ") + fmt_left(min(left))))
             add(2, parts)
     cost = (d.get("cost") or {}).get("total_cost_usd")
     mode = cfg["COST"].strip().lower()
@@ -283,7 +282,7 @@ def main():
         cols = 0
     cols = cols if cols > 20 else 10**6
     segs = build(d, cfg, rl, items, away, paint)
-    sep = " " + paint("dim", "·") + " "
+    sep = " │ " if cfg["STYLE"] == "nerd" else " · "  # 맥락(프로젝트·모델·한도·비용·에이전트·away) 사이 구분
     for line in (1, 2):
         row = fit(segs, line, cols)
         if row:
