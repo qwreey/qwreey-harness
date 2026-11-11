@@ -156,7 +156,7 @@
   - luau-kb 는 툴킷 pack 플러그인으로, Luau 저장소에서만 켠다.
   - 사람이 치는 명령은 짧은 이름공간 `q` 에 모은다(`/q:start`·`doctor`·`away`·`back`·`checkpoint`·`import`).
   - 모델이 부르는 qwreey-advisor 는 별도 플러그인이다.
-  - rules 와 CLAUDE.md 는 플러그인에 담을 수 없으므로 home-sync 로 반영한다. settings 는 마이그레이션으로 반영한다.
+  - rules 와 CLAUDE.md 파일은 플러그인에 담을 수 없으므로 home-sync 로 반영한다(개인 정책·환경 지도). 이식 가능한 상시 규약은 플러그인 SessionStart·SubagentStart 훅의 additionalContext 로 실을 수 있다(audit/32): q 의 훅 메시지·workspace 규약, qwreey-advisor 의 자기 점검 한 줄. 경로 조건부 로드(paths)는 대체재가 없다. settings 는 마이그레이션으로 반영한다.
 - **비용은 막지 않고 알리고 줄 세운다.** 근거(사용자): "강제라면 위임해 두고 갔는데 멈춰 버려 오히려 손해", "전체 예산을 한계치로 두고 하나가 끝나면 다음을 돌리는 게 실제로 좋더라", "작은 패스를 여러 번 하는 게 토큰이 덜 든다".
   - 사용자가 있을 때는 팬아웃 전에 고지한다(말은 2개부터, 훅 warn 은 4개부터).
   - away 상태에서는 예산 상한과 슬롯으로 직렬화한다. 2배를 넘으면 기록하고 기다린다.

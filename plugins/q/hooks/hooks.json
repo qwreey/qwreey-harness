@@ -1,11 +1,16 @@
 {
-  "description": "session-log: 판단만 하는 가벼운 훅. 요약은 setsid 로 분리한 워커가 한다. 출력은 <harness-hook name=\"session-log\" level=…> 로 감싼 영어 한두 줄.",
+  "description": "session-log: 판단만 하는 가벼운 훅. 요약은 setsid 로 분리한 워커가 한다. 상시 규약(context/ambient.md)은 ambient.py 가 SessionStart·SubagentStart 로 싣는다. 출력은 <harness-hook name=\"session-log\" level=…> 로 감싼 영어 한두 줄.",
   "hooks": {
     "SessionStart": [
       { "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" SessionStart", "timeout": 10 } ] },
+      { "matcher": "startup|resume|clear|compact", "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" SessionStart", "timeout": 10 } ] },
       { "matcher": "compact", "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/workspace_gate.py\" SessionStart", "timeout": 10 } ] }
     ],
+    "SubagentStart": [
+      { "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" SubagentStart", "timeout": 10 } ] }
+    ],
     "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" UserPromptSubmit", "timeout": 10 } ] },
       { "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" UserPromptSubmit", "timeout": 10 } ] }
     ],
     "PreToolUse": [

@@ -43,3 +43,20 @@ skills, commands, agents, hooks, monitors, output-styles, themes, workflows, bin
 
 ## 실험 요약 (/tmp/ambient)
 플러그인에 CLAUDE.md, rules/, .claude/rules/, force style, SessionStart 훅, 빈 도구 stdio MCP(instructions) 각각 고유 토큰을 넣음. 결과: STY·MCP·HOK 보임, CMD·RUL 안 보임. 서브에이전트는 셋 다 못 봄. /compact 후 resume 하여 셋 다 유지. 플러그인 없는 대조 실행은 토큰 없음. 비용 약 0.45 USD(대략, 상한 0.3 은 약간 초과). 문서로만 본 것: MCP instructions 상한, 포크의 style 상속, SubagentStart 보충, plugin settings 키 제한, 여러 플러그인 force 순서.
+
+## 실험 2 (2026-11-11, 2.1.316, sonnet, 약 $0.2): SubagentStart 주입과 중복
+/tmp/amb2 플러그인(`--plugin-dir`, SessionStart 가 MAIN 토큰, SubagentStart 가 SUB 토큰 주입, 커스텀 에이전트 `tok-keep`(기본)·`tok-omit`(`omitClaudeMd: true`), 작업 폴더 CLAUDE.md 에 CLAUDEMD 토큰). 메인이 5종을 띄워 각자 보이는 토큰을 답하게 했다.
+
+| 에이전트 | MAIN(SessionStart) | SUB(SubagentStart) | CLAUDEMD |
+|---|---|---|---|
+| general-purpose | 아니오 | 예 | 예 |
+| 커스텀 omitClaudeMd 아님 | 아니오 | 예 | 예 |
+| 커스텀 omitClaudeMd: true | 아니오 | 예 | 아니오 |
+| Explore | 아니오 | 예 | 아니오 |
+| fork(`CLAUDE_CODE_FORK_SUBAGENT=1`) | 예(상속) | 예 | 예 |
+
+- `SubagentStart` additionalContext 는 모든 종류에 실린다. `omitClaudeMd` 인 에이전트와 Explore 는 CLAUDE.md 를 못 받으니 이쪽이 유일한 경로다. 훅 입력의 `agent_type` 은 `general-purpose`, `amb2:tok-keep`(플러그인 에이전트는 `플러그인:이름`), `Explore`, `fork`.
+- 중복: fork 는 부모 문맥을 물려받아 SessionStart 주입을 이미 갖고 있는데 SubagentStart 도 돈다(위 표의 MAIN=예, SUB=예). 같은 내용을 쓰면 fork 에서 두 번 실리므로 `agent_type == "fork"` 는 건너뛴다. 다른 종류는 SessionStart 를 못 받으니 겹치지 않는다.
+- 모델 출력으로 안 본 것: 서브에이전트가 자동 compact 된 뒤의 재주입. 문서(hooks.md SubagentStart)는 "auto-compaction 이 그 사본을 버리면 다음 실행의 맥락을 다시 넣는다. 아니면 넣지 않아 캐시를 지킨다" 고 한다. 문서 근거만.
+- 메인: SessionStart(compact) 재주입은 실험 1 로 확인. 세션 중간에 플러그인을 켜면 SessionStart 가 안 도므로 UserPromptSubmit 보충을 둔다(아래 구현). 중간에 끄면 이미 실린 맥락을 지울 수단이 없다(플러그인 훅이 멈춤).
+- 구현 확인(`-p`, 실제 q 플러그인): 메인은 SessionStart 첨부 1건, general-purpose 서브에이전트는 SubagentStart 첨부 1건이고 UserPromptSubmit 중복은 없었다. 플러그인 없이 시작한 세션을 `--resume --plugin-dir` 로 이으면 SessionStart(resume)로 실린다(-p 에서는 세션 중간 /plugin 활성화를 못 흉내 내므로 UserPromptSubmit 보충은 단위 테스트로만 확인: SessionStart 없이 첫 프롬프트 주입, 둘째 없음, 회차가 오른 뒤 다시 주입, SessionStart(compact)와 회차 증가의 두 순서 모두 중복 없음).
