@@ -99,7 +99,8 @@
   },
   "enableArtifact": false,
   "enabledPlugins": {
-    "cc-plugin-you-should-know@builtin": true
+    "cc-plugin-you-should-know@builtin": true,
+    "second-opinion@claude-doctor-market": true
   },
   "language": "한국어",
   "modelSettings": {
@@ -151,5 +152,13 @@
     "type": "command",
     "command": "python3 $HOME/.claude/statusline/harness-status.py",
     "refreshInterval": 10
+  },
+  "extraKnownMarketplaces": {
+    "claude-doctor-market": {
+      "source": {
+        "source": "directory",
+        "path": "/code/Projects/claude-doctor"
+      }
+    }
   }
 }
