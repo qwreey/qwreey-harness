@@ -39,10 +39,12 @@
 - [ ] 위임 시범의 임시 산출물 `/tmp/dtrial/` 과 `/code/Projects/table-sim-agy/runs/` 정리
 
 ## ~/.claude 반영 (정본 → 실제)
-- [ ] `tools/home-sync.sh diff` 로 검토하고 `apply`
-  - 현재 대기 중: luau-kb 스킬 링크 2개(luau-types, luau-verify), CLAUDE.md 갱신(리뷰 시점, 모델 사용 규칙)
-- [ ] 고아 확인: `tools/home-sync.sh status` 끝의 "이전에 관리했지만 지금 MANIFEST 에 없음" 항목을 제안된 `rm` 으로 직접 지운다
-  - 2026-11-10 실제 `~/.claude` 에 `status` 를 돌렸을 때 고아 없음(스킬 링크가 하나도 설치되지 않아 `skills/roblox-luau` 링크도 없다). 첫 apply 후 다시 확인한다.
+- 2026-11-11 17:58 기준 apply 를 마쳤다. `tools/home-sync.sh status` 가 모든 파일을 "같음", settings 를 "4/4 적용"(0001, 0002, 0004, 0005)으로 보인다. 고아도 없다. 켜 둔 플러그인은 q, qwreey-advisor, qwreey-conventions 이고 모두 설치돼 있다.
+- [ ] apply 가 남긴 백업 `*.bak-<시각>` 정리(확인한 뒤 직접 지운다)
+  - 목록: `ls ~/.claude/*.bak-* ~/.claude/{hooks,lib,rules}/*.bak-*`
+  - 지우기: `rm ~/.claude/*.bak-* ~/.claude/{hooks,lib,rules}/*.bak-*`
+  - 되돌릴 일이 없다고 확인한 뒤에만 지운다. 현재 19개 있다(2026-11-10 16:00 ~ 2026-11-11 17:58).
+- 새 정본 변경(CLAUDE.md, rules, hooks)이 생기면 다시 `tools/home-sync.sh diff` 로 검토하고 `apply` 한다. 이때도 같은 백업이 생긴다.
 
 ## 다른 세션에 넘길 것
 - [ ] stl-luau 세션에 `handoff/stl-luau.md` 전달

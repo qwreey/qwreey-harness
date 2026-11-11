@@ -8,13 +8,13 @@
 
 - 매 세션 수십 KB를 낭비한다. quad는 약 28~31k 토큰, table-sim은 73.6KB를 로드한다.
 - 프로젝트 간 지식 이동이 "저쪽 보고 오기"(복사 후 포크)로만 일어난다.
-- 사용자 레벨(`~/.claude`)이 비어 있다. 사용자 스킬, rules, hooks, CLAUDE.md, agents 모두 0개다 `(검)`.
+- 사용자 레벨(`~/.claude`)이 비어 있었다(2026-11-10 시점: 사용자 스킬, rules, hooks, CLAUDE.md, agents 모두 0개 `(검)`). 지금은 `home/.claude/` 정본을 apply 해 CLAUDE.md·rules·hooks·settings·플러그인(q, qwreey-advisor, qwreey-conventions)이 있다. 현황은 `tools/home-sync.sh status`.
 
 ## 1. 목표 구조 (3층)
 
 ```
 ① 사용자 레벨 ~/.claude/           모든 세션, 항상 또는 조건부
-   CLAUDE.md          ≤40줄: 형제 저장소 지도(무엇이 어디 있나, 읽기 전용 원칙,
+   CLAUDE.md          ≤40줄 목표(실제는 약 50줄, 약 3.4k 토큰. 상시 로드 예산은 audit/29 판결): 형제 저장소 지도(무엇이 어디 있나, 읽기 전용 원칙,
                       -agy/-scratch/-codex 정의), 공통 작업 원칙
    rules/luau-*.md    paths: ["**/*.luau"] → Luau 파일을 다룰 때만 로드 (공통 코드 규약)
    settings.json      공통 deny(git push, Read(.env*)), heavy-proc-guard 훅
@@ -111,9 +111,9 @@
   - 같은 때 deny 규칙(`git push`, `.env` 읽기)도 넣었으나 **철회 대상**이다. 이 환경은 sandbox이고 git 계정이 에이전트 전용이라, 에이전트의 push가 정상 흐름이다.
   - 제거는 auto 모드 분류기가 막아서 사용자가 직접 해야 한다.
   - rbvm과 table-sim의 프로젝트 settings에도 `git push` deny가 있다. 정리할지는 사용자가 판단한다.
-- `~/.claude/CLAUDE.md`: 형제 저장소 지도, 읽기 전용 원칙, mise shim 우회법, choom 규칙을 담았다. 30줄 이내다.
+- `~/.claude/CLAUDE.md`: 형제 저장소 지도, 읽기 전용 원칙, mise shim 우회법, choom 규칙을 담았다. 처음에는 30줄 이내였으나 지금은 약 50줄(약 3.4k 토큰)이다.
 - 남은 일: `~/.claude/rules/luau-core.md`는 합의안이 나온 뒤에 둔다.
-- `~/.claude/hooks/bash-bypass-reminder.py`: PreToolUse(Bash)에 붙는 리마인더 훅. 원본은 `drafts/hooks/`에 있다.
+- `~/.claude/hooks/bash-bypass-reminder.py`: PreToolUse(Bash)에 붙는 리마인더 훅. 정본은 `home/.claude/hooks/` 이다(`drafts/hooks/` 는 옛 초안이라 갱신하지 않는다).
   - 동작: 인터프리터 실행, sed -i, 리다이렉트처럼 파일 도구를 우회하는 명령을 만나면 `additionalContext`로 알린다. 명령에 나온 경로에 해당하는 rules 파일 이름도 함께 짚는다. 같은 알림은 세션당 1회만 낸다. 실행을 막지는 않는다.
   - 실측 (haiku, 규칙을 언급하지 않은 과제)
     - 훅 없음: `--!strict` 준수 0/2

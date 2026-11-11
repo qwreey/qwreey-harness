@@ -1,0 +1,4 @@
+{
+  "exclude": ["drafts/**", "audit/drafts/**"],
+  "load_budget": {"total": 5000, "file": 2500, "rule": 2500, "skill_body": 5000}
+}
