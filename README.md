@@ -3,7 +3,7 @@
 여러 Luau 저장소(quad, stl-luau, rbvm, table-sim, devplorer, tbox 등)에 흩어져 있던 **일반 Luau·Roblox 지식**을 한 곳에 모은 정본 저장소다. 타입 시스템의 한계, 검증 절차, 테스트, 성능 실측, 코드 스타일, Roblox 엔진 동작, 업스트림 변화를 다룬다. 모든 "verified" 주장은 `snippets/` 의 실행 가능한 재현 파일(성능 수치는 `bench/`)과 짝이고, 그 파일은 luau 0.734 와 0.742 에서 하네스로 검사된다. 프로젝트 고유 설계(특정 라이브러리의 타입 이름, API)는 넣지 않는다.
 
 - Claude Code: 플러그인으로 설치해 스킬 `luau-kb:luau-types`, `luau-kb:luau-verify`, `luau-kb:luau-testing`, `luau-kb:luau-perf`, `luau-kb:luau-style`, `luau-kb:luau-runtime`, `luau-kb:luau-roblox`, `luau-kb:roblox-engine`, `luau-kb:roblox-net`, `luau-kb:roblox-world`, `luau-kb:roblox-docs`, `luau-kb:luau-upstream` 으로 쓴다. `.lsp.json` 이 luau-lsp 를 LSP 도구로 붙인다(`.luau` 파일의 진단, hover, 정의 이동). `rules/` 의 경로 조건부 규칙은 사용자 홈 `~/.claude/rules/` 에 symlink 로 건다(`rules/README.md`).
-- Gemini, Codex 등: `AGENTS.md` 가 같은 references 를 평문 경로로 안내한다.
+- codex, agy 등: `AGENTS.md` 가 같은 references 를 평문 경로로 안내한다.
 
 ## 구조
 

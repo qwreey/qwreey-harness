@@ -1,4 +1,4 @@
-# AGENTS.md — luau-kb (Gemini, Codex 등 Claude Code 플러그인을 읽지 않는 에이전트용)
+# AGENTS.md — luau-kb (codex, agy 등 Claude Code 플러그인을 읽지 않는 에이전트용)
 
 이 저장소는 여러 Luau 저장소에 흩어져 있던 일반 Luau·Roblox 지식(타입 시스템의 한계, 검증 절차, 테스트, 성능, 스타일, Roblox 엔진 동작, 업스트림 변화)의 정본이다. 스킬 12개(문서 조회 도구 `tools/roblox_docs.py` 포함)와 경로 조건부 rules 2개로 나뉜다. Claude Code 는 플러그인(`.claude-plugin/`)으로 읽고, 다른 에이전트는 아래 평문 경로를 직접 읽는다. 내용은 같다.
 
