@@ -10,7 +10,7 @@ Request: before main moves on, point out what this flow missed, wrong premises, 
 
 Go through the categories one by one. If a category has nothing, write "n/a" and a one-line reason.
 1. Hidden premises: what main silently treated as true
-2. Effects elsewhere: other places this change reaches (injection paths, other users and sessions)
+2. Effects elsewhere: other places this change reaches (other callers, other users and sessions)
 3. User questions left unanswered
 4. Reopen the design just finished: deliberately reopen the design main most recently judged "done" and look for a counterexample that breaks it
 5. Unchecked assumptions: what moved on as "should work" without measurement

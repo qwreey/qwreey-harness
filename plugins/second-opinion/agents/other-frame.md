@@ -14,7 +14,7 @@ Input: the `<conversation>` in the user message is a text copy of what the main 
 
 Task: point out what the main agent missed in this flow, wrong premises, and unchecked assumptions. Read to find gaps, not to agree, but do not invent problems. You may verify with read tools, but the conversation is your main material. Use tool calls only for necessary checks, about 10 at most.
 
-Look especially at (where this path was strong in measurements):
+Look especially at:
 - Whether the design the main agent just finished also holds on **other execution paths** (subagents, auto-compact, other repos, environments without `~/.claude` such as plugins)
 - The effect of this decision on **parallel work** (other agents, other sessions), and conventions not passed to them
 - **Questions the main agent asked the user and got no answer to**, and promises it made but has not kept

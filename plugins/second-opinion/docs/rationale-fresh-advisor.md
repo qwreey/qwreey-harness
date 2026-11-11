@@ -23,3 +23,11 @@ SKILL.md 에서 옮겨 온 내용이다(지시가 아니라 근거).
 
 ## 비용 수치 (SKILL.md 에서 이동)
 - opus 1회 약 $1, sonnet 약 $0.4, 2~3분. 작업 단위당 `done` 한 번.
+
+## 한계: 여러 세션이 한 작업 트리를 쓸 때
+- 알림 훅(`hooks/second-opinion-nudge.py`)의 diff 계산(`git diff HEAD` 의 줄 수와 해시)은 세션을 가르지 못한다. 다른 세션이 같은 트리에서 고친 줄도 임계와 dedup 해시에 들어간다. 그래서 알림이 내 변경이 아닌 줄 때문에 울리거나, 다른 세션의 변경 때문에 해시가 바뀌어 다시 울릴 수 있다.
+- 리뷰어 쪽 완화: 브리프에 "Files I changed" 를 넣고, 리뷰어는 목록 밖 변경을 발견이 아닌 맥락으로 다룬다(`agents/reviewer.md`).
+- 스크래치(`/tmp/claude-audit/<session_id>/`)도 세션별로 갈라서, 같은 머신의 여러 리뷰어가 서로의 프로브를 덮어쓰지 않게 했다. 가드는 훅 입력의 `session_id` 로 하위 폴더를 정한다.
+
+## 통계 도구 (SKILL.md 에서 이동)
+- `review-ledger.py stats`: 종류·검토자·트리거별 발견, 채택률, "발견 없음" 비율. `advisor-stats.py --all`: advisor 호출과 비용. `user-asks.py`: 사용자 원문 추출.

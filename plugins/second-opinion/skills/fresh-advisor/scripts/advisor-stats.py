@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """advisor-stats — 세션 트랜스크립트(jsonl)에서 advisor 호출을 집계한다. 읽기 전용, 표준 라이브러리만.
 
-무엇을 세나 (Claude Code 2.1.316 트랜스크립트에서 실측한 스키마, audit/18 §1.3):
+무엇을 세나 (Claude Code 트랜스크립트 스키마):
   - attachment.type == "advisor_tool"  → 켜고 끈 이력 {available, model, toolChange: add|remove}
   - assistant content 의 server_tool_use(name="advisor", input={}) → 호출 1건 (id = srvtoolu_…)
   - assistant content 의 advisor_tool_result.content.type
@@ -34,7 +34,7 @@ import statistics
 import sys
 from pathlib import Path
 
-# $/MTok. claude-api 스킬 표(2026-10-06 캐시) 기준. cache write 는 표준 배수(5m 1.25x, 1h 2x) 가정.
+# $/MTok. claude-api 스킬 가격표 기준. cache write 는 표준 배수(5m 1.25x, 1h 2x) 가정.
 # 표에 없는 모델은 None → 비용 칸을 비운다(추측하지 않는다).
 PRICES = {
     "claude-opus-5-5": {"in": 4.0, "out": 20.0, "cr": 0.20},

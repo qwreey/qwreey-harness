@@ -7,7 +7,7 @@
 트랜스크립트 찾기 (순서):
   1. --transcript PATH
   2. --session UUID 또는 환경 변수 CLAUDE_CODE_SESSION_ID
-     실측(2.1.316): 서브에이전트의 Bash 에도 부모 세션의 CLAUDE_CODE_SESSION_ID 가 들어 있다. 문서에는 없는 동작이다(미확인 항목).
+     서브에이전트의 Bash 에도 부모 세션의 CLAUDE_CODE_SESSION_ID 가 들어 있다(문서에 없는 동작이므로 없으면 --transcript 를 쓴다).
      → $CLAUDE_CONFIG_DIR(기본 ~/.claude)/projects/*/<UUID>.jsonl
 
 무엇을 '사용자 발언'으로 치나 (plugins/q/scripts/sllib/extract.py classify 와 같은 기준을 옮김):

@@ -1,6 +1,6 @@
 # second-opinion
 
-정해진 시점에 모델이 스스로 집어 드는 독립 검토. 비용이 큰 변형(other-frame)은 사용자가 고른다. 근거와 실측은 claude-doctor `audit/18-second-opinion.md` §9·§11·§12.
+정해진 시점에 모델이 스스로 집어 드는 독립 검토. 비용이 큰 변형(other-frame)은 사용자가 고른다. 근거와 실측은 claude-doctor `audit/18-second-opinion.md` §9·§11·§12. 스킬별 설계 근거는 `docs/rationale-<스킬>.md`(유지보수자용, 모델이 읽지 않는다).
 
 | 구성 | 이름 | 하는 일 |
 |---|---|---|
@@ -42,6 +42,8 @@ claude plugin install second-opinion@claude-doctor-market
 
 ## 알아 둘 것
 
+- 리뷰어 스크래치는 `/tmp/claude-audit/<session_id>/` 로 세션마다 나뉜다. 읽기 전용 가드가 그 하위만 허용한다.
+- 같은 작업 트리를 여러 세션이 쓰면 알림의 diff 계산은 세션을 가르지 못한다(`docs/rationale-fresh-advisor.md`). 브리프의 "Files I changed" 가 리뷰어의 범위를 정한다.
 - 플러그인 에이전트는 frontmatter 의 `hooks`·`permissionMode`·`mcpServers` 를 무시한다. 그래서 읽기 전용 가드는 에이전트 파일이 아니라 플러그인 `hooks/hooks.json` 의 PreToolUse 에 있고, 입력의 `agent_type` 으로 이 플러그인의 검토자만 고른다.
 - fork 는 메인과 같은 모델로만 돈다. 메인이 방금 응답한 직후(캐시가 따뜻할 때) 부른다. 캐시가 식었으면 맥락 전체를 다시 써서 30만 토큰에서 opus 약 $1.5 가 더 든다.
 - 모델이 스스로 부른 검토는 메인이 발견을 확인해 받아들임/버림을 1~3줄로 알리고, 사용자가 요청한 검토는 보고 전문을 한국어로 보인다.

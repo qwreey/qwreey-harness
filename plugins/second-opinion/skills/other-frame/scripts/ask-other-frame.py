@@ -2,14 +2,14 @@
 """ask-other-frame — second-opinion:other-frame 의 '다른 프레임' 경로.
 
 메인 대화를 render-transcript.py 로 옮겨 플러그인의 other-frame 에이전트 본문(다른 시스템 프롬프트)을 단 `second-opinion-context` 로 `claude -p` 로 묻는다.
-audit/18 §11 의 조건 A 를 그대로 재현한다. Agent 도구로 넘기지 않는 이유: 대화 사본(약 130k 토큰)을 메인이 프롬프트에
+Agent 도구로 넘기지 않는 이유: 대화 사본(약 130k 토큰)을 메인이 프롬프트에
 옮겨 적으면 그만큼이 메인의 출력 토큰이 된다. 파일로 넘기고 별도 프로세스가 읽게 한다.
 
 사용 (메인이 Bash 로, 백그라운드 권장):
   ask-other-frame.py [--model sonnet|opus] [--note "메인 메모(주장)"] [--budget 1.0] [--ttl 5m] [--transcript P]
 결과: stdout 에 조언 본문, 마지막 줄에 'cost=$… turns=… ctx_write=… ctx_read=…'. 임시 파일은 $TMPDIR/so-context-<pid>/ 에 남긴다.
 
-비용 [실측, §11]: 맥락 132k 토큰. 첫 호출이 캐시 쓰기라 opus 1h $1.25, sonnet 5m $0.49. 같은 프롬프트를 1시간 안에 다시
+비용: 맥락 132k 토큰. 첫 호출이 캐시 쓰기라 opus 1h $1.25, sonnet 5m $0.49. 같은 프롬프트를 1시간 안에 다시
 물으면 opus $0.33(캐시 읽기). 그래서 --ttl 기본은 5m(한 번 묻고 끝낼 때 쓰기 단가가 싸다).
 """
 from __future__ import annotations
