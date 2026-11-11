@@ -21,7 +21,7 @@
 
 ## 권한
 - [ ] plugin.json 의 license 필드(session-log 는 MIT 로 적혀 있음)와 luau-kb·coderag LICENSE 를 함께 결정 (auto 모드 분류기가 막거나, 사용자 판단 사항)
-- [ ] rbvm, table-sim 의 프로젝트 settings 에서 `git push` deny 를 뺄지 결정
+- [x] rbvm, table-sim 의 프로젝트 settings 에서 `git push` deny 를 뺄지 결정 — **인계로 넘김**(2026-11-11, 사용자 추천대로): `handoff/rbvm.md`, `handoff/table-sim.md`
   - 위치: `rbvm/.claude/settings.json:25`, `table-sim/.claude/settings.json:4`
   - 사용자 레벨 deny 는 이미 뺐다.
 - [ ] luau-kb 의 LICENSE 결정

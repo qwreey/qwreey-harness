@@ -1,5 +1,7 @@
 # D-05. 툴체인 버전 핀 (luau 0.734 / 0.742, luau-lsp 1.69.0 / 1.70.1)
 
+> **상태: 확정(2026-11-11 사용자: 추천대로).** 4절의 추천안을 채택.
+
 > 작성 2026-11-10. 실험 `/tmp/cd-exp/stl`(stl 현재 사본), `/tmp/cd-exp/stl-old`(`git archive 2bbdc93~1`, 0.742 승격 직전), `/tmp/cd-exp/quad`(quad-base/types/error 사본).
 
 ## 1. 각 프로젝트의 입장
