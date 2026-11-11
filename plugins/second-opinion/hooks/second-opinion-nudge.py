@@ -7,7 +7,7 @@ advisor 는 언제 불릴지 모델이 정해서 예측이 안 됐다(audit/18).
   3. Stop                 (기본 꺼짐, HARNESS_REVIEW_STOP=1) 커밋 안 된 diff 가 임계 이상, 최근 검토 없음 → done 검토 권고
   4. PreToolUse(ExitPlanMode) (기본 꺼짐, HARNESS_REVIEW_PLAN=deny|warn) high 등급에서 계획 검토 요구
   5. SubagentStop(second-opinion:reviewer)  메인이 부른 리뷰어일 때만 검토 완료 시각을 기록 → 2·3 이 다시 울리지 않게
-     (호출자는 track-reviewer.py 가 짝지은 값. 모르면 main 으로 친다)
+     (호출자는 track-reviewer.py 가 prompt 끝에 붙인 run 줄을 리뷰어 transcript 에서 읽는다. 줄이 없으면 main 으로 친다)
 '접근 확정 전'은 잴 수 없어서 메인 판단(CLAUDE.md, 스킬)에 맡긴다. 이 저장소들에서 ExitPlanMode 사용은 0회였다(audit/18 §1.4).
 
 설치: second-opinion 플러그인의 hooks/hooks.json 이 등록한다. 공용 라이브러리(harness_env, compact_epoch)와 harness.env 는
@@ -37,6 +37,7 @@ from pathlib import Path
 
 HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"))  # 하네스 lib·harness.env 위치
 NS = "claude-second-opinion"
+RUN_LINE = re.compile(r"\[second-opinion run: ([0-9a-f-]{36}) caller=(main|subagent) scratch=[^\]\n]*\]")
 REVIEWERS = {"second-opinion:reviewer", "second-opinion-reviewer"}  # 플러그인 이름공간 + 예전 이름
 MODEL = {"high": "opus", "mid": "sonnet", "low": "sonnet"}
 BENIGN = re.compile(r"^\s*(grep|rg|egrep|fgrep|test|\[|diff|cmp|pgrep|pidof|which|command)\b")
@@ -110,13 +111,22 @@ def last_review_path(sid: str) -> str:
     return os.path.join(d, re.sub(r"[^\w-]", "", sid or "nosession") + ".last-review")
 
 
-def caller_of(sid: str, aid: str) -> str:
-    """track-reviewer.py 가 적어 둔 호출자(main|subagent|unknown). 기록이 없으면 unknown."""
-    p = os.path.join(tempfile.gettempdir(), NS, re.sub(r"[^\w-]", "", sid or "nosession") + ".callers.json")
+def caller_of(data: dict) -> str:
+    """리뷰어 transcript 의 첫 user 메시지에서 track-reviewer.py 가 붙인 run 줄을 읽어 호출자(main|subagent)를 얻는다. 줄이 없거나 못 읽으면 main."""
     try:
-        return json.load(open(p)).get("map", {}).get(aid, "unknown")
+        with open(data.get("agent_transcript_path") or "", encoding="utf-8") as f:
+            for line in f:
+                rec = json.loads(line)
+                if rec.get("type") != "user":
+                    continue
+                c = (rec.get("message") or {}).get("content")
+                if isinstance(c, list):
+                    c = "\n".join(x.get("text", "") for x in c if isinstance(x, dict))
+                m = RUN_LINE.findall(c if isinstance(c, str) else "")
+                return m[-1][1] if m else "main"
     except (OSError, ValueError, AttributeError):
-        return "unknown"
+        pass
+    return "main"
 
 
 def read_json(p: str) -> dict:
@@ -163,8 +173,8 @@ def main() -> int:
     ev = data.get("hook_event_name") or ""
     sid = data.get("session_id") or ""
     if ev == "SubagentStop":
-        # 이 훅의 agent_id 는 끝난 리뷰어 자신의 것이다. 메인이 부른 리뷰어만 '최근 검토'로 센다(일꾼이 띄운 것은 메인의 검토가 아니다).
-        if data.get("agent_type") in REVIEWERS and caller_of(sid, data.get("agent_id") or "") != "subagent":
+        # 호출자는 리뷰어 transcript 의 run 줄에서 읽는다. 메인이 부른 리뷰어만 '최근 검토'로 센다(일꾼이 띄운 것은 메인의 검토가 아니다).
+        if data.get("agent_type") in REVIEWERS and caller_of(data) != "subagent":
             open(last_review_path(sid), "w").write(str(time.time()))
         return 0
     if data.get("agent_id"):  # 서브에이전트 안: 아무것도 하지 않는다

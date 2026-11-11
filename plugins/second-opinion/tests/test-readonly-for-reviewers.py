@@ -14,26 +14,17 @@ CASES = [
     (2, "second-opinion-context", "Bash", {"command": "git commit -am x"}),
     (0, "second-opinion:reviewer", "Bash", {"command": "git diff HEAD~1 -- src"}),
     (0, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/S1/probe.luau"}),
-    (2, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/probe.luau"}),  # 세션 폴더 밖
-    (2, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/S2/probe.luau"}),  # 다른 세션의 스크래치
-    (2, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/S1/../S2/p.luau"}),
-    (0, "second-opinion:reviewer", "Bash", {"command": "mkdir -p /tmp/claude-audit/$CLAUDE_CODE_SESSION_ID && echo x > /tmp/claude-audit/S1/a"}),
-    (0, "second-opinion:reviewer", "Bash", {"command": "mkdir -p /tmp/claude-audit/${CLAUDE_CODE_SESSION_ID}"}),
-    (2, "second-opinion:reviewer", "Bash", {"command": "rm -rf /tmp/claude-audit/S2"}),
+    (0, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/0b1f2c3d-aaaa-bbbb-cccc-123456789012/probe.luau"}),  # run 폴더
+    (0, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/S2/probe.luau"}),  # 가드는 run 을 모르므로 다른 run 도 허용
+    (2, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit"}),
+    (2, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/../x.luau"}),
+    (2, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/S1/../../x.luau"}),
+    (2, "second-opinion:reviewer", "Write", {"file_path": "/tmp/other/probe.luau"}),
+    (0, "second-opinion:reviewer", "Bash", {"command": "mkdir -p /tmp/claude-audit/S1 && echo x > /tmp/claude-audit/S1/a"}),
     (2, "second-opinion:reviewer", "Bash", {"command": "rm -rf /tmp/claude-audit"}),
     (0, None, "Bash", {"command": "rm -rf build"}),
     (0, "general-purpose", "Write", {"file_path": "/code/Projects/x/a.md"}),
     (0, "reviewer", "Bash", {"command": "rm -rf build"}),  # 다른 플러그인·사용자의 같은 이름은 건드리지 않는다
-]
-# agent_id 가 있으면 자기 폴더 하위만 허용 (agent_id, 기대, 경로)
-CASES += [
-    (0, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/S1/A1/p.luau"}, "A1"),
-    (2, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/S1/A2/p.luau"}, "A1"),  # 같은 세션 다른 리뷰어
-    (2, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/S1/p.luau"}, "A1"),  # 세션 폴더 직하
-    (2, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/S1/A1/../A2/p"}, "A1"),
-    (0, "second-opinion:reviewer", "Bash", {"command": "mkdir -p /tmp/claude-audit/S1/A1/sub && echo x > /tmp/claude-audit/S1/A1/sub/a"}, "A1"),
-    (2, "second-opinion:reviewer", "Bash", {"command": "rm -rf /tmp/claude-audit/S1/A2"}, "A1"),
-    (2, "second-opinion:reviewer", "Bash", {"command": "rm -rf /tmp/claude-audit/S1"}, "A1"),
 ]
 fail = 0
 for case in CASES:

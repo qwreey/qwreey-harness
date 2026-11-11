@@ -39,7 +39,7 @@ Fill `${CLAUDE_PLUGIN_ROOT}/skills/fresh-advisor/templates/brief.md` in English,
 - Include the part you are least sure about: the reviewer cannot see your doubts otherwise.
 - Parallel work goes in as "places this change may affect", never as "out of scope".
 - If the user asked something you have not answered, add it in one line (`python3 -I "${CLAUDE_PLUGIN_ROOT}/skills/fresh-advisor/scripts/user-asks.py" --claims 3` can extract it).
-- Scratch: the reviewer is given its own scratch directory when it starts; leave it out of the brief.
+- Scratch: a hook appends a run line with the reviewer's scratch directory to the prompt; leave it out of the brief.
 
 ## What comes back
 
