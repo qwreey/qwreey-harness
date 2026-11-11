@@ -112,8 +112,11 @@ find_orphans() {
     [[ -e "$DST/$path" || -L "$DST/$path" ]] && echo "$path"
   done
 }
-rm_hint() { # $1 경로
-  if [[ -L "$DST/$1" || -f "$DST/$1" ]]; then printf '  제안: rm %q\n' "$DST/$1"
+rm_hint() { # $1 경로. settings.json 이 아직 부르는 파일은 지우라고 하지 않는다(지우면 훅마다 오류)
+  local base; base=$(basename "$1")
+  if [[ -f "$DST/settings.json" ]] && grep -qF "$base" "$DST/settings.json"; then
+    printf '  보류: settings.json 이 아직 %s 를 부른다. 그 훅을 빼는 마이그레이션을 apply 한 뒤에 지운다\n' "$base"
+  elif [[ -L "$DST/$1" || -f "$DST/$1" ]]; then printf '  제안: rm %q\n' "$DST/$1"
   else printf '  제안: (디렉터리 — 수동 확인) %q\n' "$DST/$1"; fi
 }
 orphans_report() {
