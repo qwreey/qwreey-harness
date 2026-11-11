@@ -7,7 +7,7 @@ set -u
 PLUG=$(cd "$(dirname "$0")/.." && pwd)
 T=$(mktemp -d /tmp/sl-e2e.XXXX)
 P=$T/proj; mkdir -p "$P"; git init -q "$P"; git -C "$P" config user.email e2e@example.invalid; git -C "$P" config user.name e2e
-export SESSION_LOG_HOME=$T/store SESSION_LOG_FORCE_MIN_CHARS=100 XDG_RUNTIME_DIR=$T  # 슬롯 잠금도 격리(소급과 겹치지 않게)
+export SESSION_LOG_RECORD_NONINTERACTIVE=1 SESSION_LOG_HOME=$T/store SESSION_LOG_FORCE_MIN_CHARS=100 XDG_RUNTIME_DIR=$T  # 슬롯 잠금도 격리(소급과 겹치지 않게)
 CLEAN=(env -u CLAUDECODE -u CLAUDE_PROJECT_DIR -u CLAUDE_CODE_SESSION_ID -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_SSE_PORT)
 CL=("${CLEAN[@]}" claude -p --plugin-dir "$PLUG" --model haiku --output-format json)
 log() { echo "[e2e] $*" >&2; }
@@ -22,7 +22,7 @@ with open(f"{T}/seed-0000-1111.jsonl", "w") as f:
               message={"content": "API 서버 포트는 8443 으로 하고 prod 는 건드리지 마. 다음엔 TLS 설정을 끝내자. " * 3}))
     f.write(L(type="assistant", timestamp="2026-11-09T01:05:00Z", message={"content": [{"type": "text", "text": "알겠다. TLS 는 다음 세션에서 한다."}]}))
 EOF
-SESSION_LOG_CLAUDE=$PLUG/tests/fake_claude.py python3 -I "$PLUG/scripts/cli.py" --project "$P" flush --transcript "$T/seed-0000-1111.jsonl" --trigger seed --force --wait >/dev/null
+SESSION_LOG_CLAUDE=$PLUG/tests/fixtures/fake_claude.py python3 -I "$PLUG/scripts/cli.py" --project "$P" flush --transcript "$T/seed-0000-1111.jsonl" --trigger seed --force --wait >/dev/null
 
 cd "$P"
 # 1. 첫 실행: SessionStart 주입, bin/ PATH 여부, SessionEnd 분리 요약

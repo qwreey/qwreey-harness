@@ -48,6 +48,8 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 | | attended 큰 팬아웃(동시 4+, opus 이상 2+, Workflow) → 사용자에게 규모 고지(팬아웃 묶음·회차마다 한 번) | warn |
 | | away 중 메인 단독 작업: 예산 도달(1단계) → 재고 리마인더(PostToolUse 모든 도구, 회차·away 선언마다 한 번) | warn |
 | | away 중 메인 단독 작업: 예산 2배(2단계) → `halt:` 진척 기록 후 대기(같은 경로, 한 번. 강제 중단 없음) | action |
+| stale-work | (q 플러그인 `scripts/stale_work.py`) 백그라운드 작업(subagent, workflow. monitor 제외)이 진척 없이 15분+·관측 30분+: 멈췄거나 대기 중일 수 있다는 질문형 문구(UserPromptSubmit 으로 전달, (세션, task id, 상태)마다 한 번). 끄기 `HARNESS_Q_STALE=off` | warn |
+| | 같은 작업이 2시간+ 실행 중(진척 신호가 없거나 아직 있음) | info |
 | workspace-gate | (q 플러그인 `scripts/workspace_gate.py`, audit/31) 이 세션의 저장소가 아닌 `HARNESS_WORKSPACE/<X>` 에 쓰기(Edit·Write·MultiEdit·NotebookEdit, 쓰기로 분류된 Bash)를 q:workspace 스킬 로드 전에 시도 → deny(`Load the q:workspace skill (Skill tool), then retry`; 로드 표시는 세션·agent_id·compact 회차 단위). 예외는 통과, `HARNESS_WORKSPACE_GATE=off` 로 끔 | action |
 | | 형제 저장소 읽기(Read·Grep·Glob, 그 밖의 Bash) → compact 회차마다 한 번 규칙과 스킬 포인터 | warn |
 | qwreey-conventions | (플러그인 `qwreey-conventions`. 예전 user-level `comment-hygiene` 훅을 대체한다. 같은 마이그레이션 0005 apply 에서 옛 훅을 빼고 플러그인을 켠다) 추가한 코드 주석 줄에 작업 이력·키보드로 치지 않는 문자·이스케이프·보이지 않는 문자·언어 불일치가 있거나, 모델용 문서 줄에 이력 표지가 있음. 파일·범주별 줄 번호와 글자·대체를 한 줄로(파일마다 범주당 회차당 한 번) | info |
