@@ -1,5 +1,7 @@
 # 22. 사용자 가시성(statusline, 위쪽 배치, 테마, 응답 표시)
 
+> **2026-11-11:** 사용자 가시성(mod·테마·표시) 작업은 별도 저장소 `/code/Projects/quietcode-claude` 로 옮겼다(q-ui 시제품 포함, 이 문서의 사본은 그쪽 `docs/research-user-ergonomics.md`). 이 문서는 이력으로 남긴다. statusline 스크립트는 away 한도 파일 때문에 claude-doctor 에 남는다.
+
 - 날짜: 2026-11-11. 로컬 Claude Code 2.1.316, 문서는 `/tmp/ccdocs/*.md` 사본과 code.claude.com/docs 원문(WebFetch)이다.
 - 표기: **할 수 있음 / 없음 / 미확인**. 출처는 문서 파일명이다. [실측]은 이번에 돌려 본 것이다.
 - 구현: `home/.claude/statusline/harness-status.py`(정본), `home/.claude/harness.env`(주석 한 블록), `hooks/tests/test-subagent-slots.py`(132/132 통과). 실제 `~/.claude` 에는 반영하지 않았다.

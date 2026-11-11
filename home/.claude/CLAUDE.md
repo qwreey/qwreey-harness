@@ -14,6 +14,7 @@
 | coderag | rust | 코드·문서 검색(지식 계층 global / pack / project) |
 | luau-kb | luau 지식 | **Luau/Roblox 공유 지식 정본**(스킬·스니펫·typedefs) |
 | claude-doctor | 하네스 | 하네스 정본·진단(`PLAN.md`, `/q:doctor`), 외부 프로젝트 반입 감사(`intake/`) |
+| quietcode-claude | Claude Code mod | 사용자 쪽 표시(mod·statusline 디자인·테마·응답 형식). 모델 쪽 하네스는 claude-doctor |
 
 ## 다른 저장소를 다룰 때
 - 다른 저장소는 **읽기 전용**으로 본다. 여러 세션이 각자 저장소에서 작업 중일 수 있다. 수정이 필요하면 먼저 묻는다.
