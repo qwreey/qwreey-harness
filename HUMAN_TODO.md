@@ -30,6 +30,7 @@
     4. 위 고아 파일을 지운다
     5. 새 세션을 시작한다
 - [ ] qwreey-conventions 0.4.0 으로 갱신한 뒤 `~/.claude/rules/{comments,agent-docs,code-structure,memory,web-security}.md` 를 지운다(플러그인 `rules_inject` 가 같은 본문을 넣으므로 두 곳에서 로드되는 것을 막는다. 갱신 전에 지우면 그 사이 규칙이 없다). `tools/home-sync.sh status` 에 고아로 보인다
+- [ ] luau-kb 0.4.0 으로 갱신한 뒤 `~/.claude/rules/luau-core.md` symlink 를 지운다(플러그인 `rules_inject` 가 같은 본문을 넣는다. 그때까지 이 규칙은 두 번 로드된다. 갱신 전에 지우면 그 사이 규칙이 없다). `luau-kb@luau-kb-market` 은 아직 설치·활성화돼 있지 않다
 
 ## 권한
 - [ ] plugin.json 의 license 필드(session-log 는 MIT 로 적혀 있음)와 luau-kb·coderag LICENSE 를 함께 결정 (auto 모드 분류기가 막거나, 사용자 판단 사항)
