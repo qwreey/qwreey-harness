@@ -15,5 +15,3 @@ Before saving a memory, decide where it belongs:
 
 If a note mixes both, save the personal part in memory and propose the repo part to the user; do not edit repo files without asking.
 When saving a memory that points at repo knowledge, store the pointer ("see docs/X.md"), not a copy.
-
-Note: `paths` match files under the project, so this rule loads only when a memory file is inside the working tree; for the default memory location the `memory-placement` hook gives the same guidance at write time.
