@@ -131,6 +131,9 @@
 3. **사용자에게 그대로 전달하는 문구와 실험으로 굳힌 프롬프트 원문은 한국어 유지.** 예: `q:away` 의 "쉬운 설명", context 의 후행 프롬프트(출력 "한국어" 지시 포함). 번역하면 실험으로 정한 동작이 바뀔 수 있다. 영어 전환 후에도 같은 효과인지는 별도 실험이 필요하고 이 감사의 범위가 아니다.
 4. 응답 언어는 "사용자에게 보이는 최종 응답은 한국어"라는 한 줄을 스킬이 아니라 CLAUDE.md/rules 에 둔다(스킬마다 반복하지 않는다).
 5. 전환 순서: second-opinion 2개 → q(이미 2개가 영어) → luau-kb. luau-kb 는 description 길이 정리와 같이 한 번에 한다(한 번만 건드린다).
+- **부정 조건보다 언제·어떻게**: "쓰지 말 것" 을 늘어놓지 않고 "언제 부르는가" 와 "어떻게 부르는가" 를 중심으로 쓴다. 상대 스킬은 description 에 짧은 한 구절로만 가리킨다.
+- **스킬 하나 = 한 가지**: 한 스킬이 여러 경로(fork, 다른 프레임)를 품지 않는다. 사용자 명령은 따로 두고 `disable-model-invocation` 을 건다.
+- **수단이 아니라 목적 기준**: 이름과 구분을 "무엇을 확인받으려는가" 로 짓는다(`fresh-advisor`: diff·주장 반박, `inherit-advisor`: 대화 흐름의 빈 곳). 내장 `advisor` 도구와 헷갈리지 않게 본문에 "advisor 도구를 부르지 않는다" 를 한 줄 둔다.
 
 ## 5. 대표 시안: `second-opinion:context`
 
@@ -269,3 +272,13 @@ Same as `second-opinion:audit` section 4. Show the report to the user unsummariz
 - 일부 description 이 길어진 이유: 한국어 한 구절이 영어로 늘었고, 사용자 호출 전용 스킬에는 "User-invoked only" 와 트리거를 붙였다. 모두 500자 이하.
 - 검증: `claude plugin validate` q, second-opinion, 마켓 전체 통과. 훅·가드·doctor·session_log 테스트는 적용 전과 동일 통과(second-opinion 20/20·9/9, home hooks 52/26/18/72/132, doctor 16/16, session_log OK).
 - 발동 점검(sonnet, `-p`, 합계 약 $0.9): 새 description 으로 "이 diff 커밋 전에 검토해 줘"(2종 질문)와 "완료 선언 전 독립 검증" 은 `second-opinion:audit` 을 **부르지 않았다**(0/2, 모델이 직접 git diff 로 검토). 무관 질문(파이썬 리스트)은 호출 없음(음성 통과). 변경 전 description 으로도 같은 질문에서 호출되지 않았다(0/1). 즉 이번 변경이 발동률을 떨어뜨린 근거는 없으나, 원래 `-p` 단발 질문에서는 이 스킬이 잘 안 불린다. 표본이 작아 결론이 아니다. 발동률 개선은 CLAUDE.md 시점 안내와 훅 알림(`<harness-hook name="second-opinion">`)에 기대고 있고, description 만으로는 부족할 수 있다. 별도 발동 실험이 필요하다.
+
+## 8. 2단계 재구성 결과 (2026-11-11)
+
+목적 기준으로 `second-opinion` 을 다시 나눴다: `context`+`audit` -> `inherit-advisor` / `fresh-advisor` / `other-frame`(사용자 명령).
+
+- **fork 후행 프롬프트 훅 펼침(B안) 실측**(sonnet `-p`, 비용 약 $0.1): PreToolUse matcher `Agent`(입력의 `tool_name` 도 `Agent`)가 `subagent_type="fork"` 호출에 걸린다. `permissionDecision: "allow"` 와 `updatedInput`(전체 입력 객체)을 주면 fork 가 바뀐 prompt 를 받았다(마커 응답으로 확인). 메인 트랜스크립트의 tool_use 에는 모델이 쓴 원래 표지가 남고, fork 트랜스크립트에는 바뀐 prompt 가 들어간다. 공식 문서: `permissionDecision` 없이 `updatedInput` 만 주면 auto 모드가 바뀐 호출을 거절할 수 있다. 그래서 B안 채택. `Task` matcher 는 같이 걸어 두었으나(구버전 이름) 단독 실측은 하지 않았다.
+- **구조**: 표지(`[second-opinion:inherit] Review only...` + `next:` + `options: reqs`)를 메인이 보내고 `hooks/expand-inherit-prompt.py` 가 `templates/fork-prompt.md`(원문 그대로) 로 바꾼다. 표지가 아니거나 템플릿이 없으면 통과(표지 자체가 검토 전용 지시).
+- **발동 점검**(sonnet `-p`, 맥락 있는 조건, 약 $0.19): "동료 머신에 설치해도 되는가" 결론 직전에 모델이 `inherit-advisor` 를 스스로 불렀고, 표지 형식의 Agent 호출을 보냈으며, fork 트랜스크립트에서 템플릿 전문(역할 전환 + `next` 채움)을 확인했다(1/1, 표본 1).
+- **전후 크기**(description 자 / SKILL.md 줄): context 475/78 -> inherit-advisor 500 이하/42, audit 482/67 -> fresh-advisor 489/65, other-frame 신설 398/24. inherit-advisor 는 후행 프롬프트 원문과 요구 대조 줄이 `templates/` 로 나가 본문이 줄었다.
+- 동작은 바꾸지 않았다(리뷰어 절차, ledger, 가드, nudge 시점). nudge 훅 메시지의 스킬 이름만 새 이름으로 바꿨고, ledger 는 옛 `--kind context|audit` 를 계속 받는다(`inherit` 추가).

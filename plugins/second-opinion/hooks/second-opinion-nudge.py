@@ -140,7 +140,7 @@ def cooling(st: dict, vals: dict) -> bool:
 
 def done_advice(repo, tier, n, where) -> str:
     return (f"{where}: {n} changed lines in `{repo}` (review tier: {tier}) and no independent review has finished in this session recently.\n"
-            f"Before declaring this done, run the `second-opinion:audit` skill with kind=done "
+            f"Before declaring this done, run the `second-opinion:fresh-advisor` skill with kind=done "
             f"(Agent subagent_type=second-opinion:reviewer, model={MODEL.get(tier, 'sonnet')}), then relay its report verbatim. "
             f"If a review is not worth it here (mechanical change, docs only, user said skip), say so in one line instead.")
 
@@ -188,7 +188,7 @@ def main() -> int:
         if cnt[sig] == 2:
             emit(ev, wrap(
                 f"The same failure happened twice this session: `{sig[:200]}`.\n"
-                f"Before a third attempt, consider the `second-opinion:audit` skill with kind=stuck "
+                f"Before a third attempt, consider the `second-opinion:fresh-advisor` skill with kind=stuck "
                 f"(model={MODEL.get(tier, 'sonnet')}): give it the command, the error, and your current hypothesis. "
                 f"If the next step is already dictated by the error (typo, missing file), fix it and say so in one line."))
         return 0
@@ -225,7 +225,7 @@ def main() -> int:
         plan = str((data.get("tool_input") or {}).get("plan", ""))
         if tier != "high" or mode not in ("deny", "warn") or re.search(r"second-opinion:\s*(reviewed|skip)", plan):
             return 0
-        msg = ("This plan is for a high-tier repo. Get a kind=plan review first (`second-opinion:audit` skill, model=opus), "
+        msg = ("This plan is for a high-tier repo. Get a kind=plan review first (`second-opinion:fresh-advisor` skill, model=opus), "
                "add the line `second-opinion: reviewed` (or `second-opinion: skip` with a reason) to the plan, then exit plan mode again.")
         if mode == "deny":
             print(json.dumps({"hookSpecificOutput": {"hookEventName": ev, "permissionDecision": "deny",

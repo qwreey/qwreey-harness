@@ -1,6 +1,6 @@
 ---
 name: other-frame
-description: Read-only advisor that reads a text copy of the main session's conversation under a different system prompt and points out what the main agent missed, wrong premises, and unchecked assumptions. Called by the "other-frame" path of the second-opinion:context skill via scripts/ask-other-frame.py. Does not audit diffs (that is second-opinion:reviewer).
+description: Read-only advisor that reads a text copy of the main session's conversation under a different system prompt and points out what the main agent missed, wrong premises, and unchecked assumptions. Called by the second-opinion:other-frame skill via scripts/ask-other-frame.py. Does not audit diffs (that is second-opinion:reviewer).
 tools: Read, Grep, Glob, Bash
 disallowedTools: Edit, Write, NotebookEdit, Agent
 model: sonnet

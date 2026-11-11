@@ -60,7 +60,7 @@ commit = lambda d, sid="s1", **kw: run({"hook_event_name": "PreToolUse", "sessio
 out = commit(HI)
 ctx = json.loads(out)["hookSpecificOutput"]["additionalContext"] if out else ""
 check("high: 20줄 커밋 → 알림", ctx.startswith('<harness-hook name="second-opinion" level="warn">') and "model=opus" in ctx)
-check("알림은 플러그인 이름을 쓴다", "second-opinion:audit" in ctx and "subagent_type=second-opinion:reviewer" in ctx)
+check("알림은 플러그인 이름을 쓴다", "second-opinion:fresh-advisor" in ctx and "subagent_type=second-opinion:reviewer" in ctx)
 check("같은 diff 두 번째 → 조용", commit(HI) == "")
 open(os.path.join(HI, "c.txt"), "w").write("z\n" * 30)
 subprocess.run(["git", "-C", HI, "add", "c.txt"], check=True, env=ENV)

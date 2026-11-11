@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ask-other-frame — second-opinion:context 의 '다른 프레임' 경로.
+"""ask-other-frame — second-opinion:other-frame 의 '다른 프레임' 경로.
 
 메인 대화를 render-transcript.py 로 옮겨 플러그인의 other-frame 에이전트 본문(다른 시스템 프롬프트)을 단 `second-opinion-context` 로 `claude -p` 로 묻는다.
 audit/18 §11 의 조건 A 를 그대로 재현한다. Agent 도구로 넘기지 않는 이유: 대화 사본(약 130k 토큰)을 메인이 프롬프트에
@@ -25,7 +25,7 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-PLUGIN = HERE.parent.parent.parent  # 플러그인 루트(skills/context/scripts 의 세 단계 위)
+PLUGIN = HERE.parent.parent.parent  # 플러그인 루트(skills/other-frame/scripts 의 세 단계 위)
 QUESTION = "질문: 다음 단계로 넘어가기 전에 이 흐름에서 놓친 것, 잘못된 전제, 확인 안 한 가정은?"
 
 

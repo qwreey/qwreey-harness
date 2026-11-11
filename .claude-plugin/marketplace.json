@@ -14,7 +14,7 @@
     {
       "name": "second-opinion",
       "source": "./plugins/second-opinion",
-      "description": "정해진 시점의 독립 검토: second-opinion:context(대화를 이어받은 fork 를 독립 검토자로 돌려 세워 놓친 것·방금 끝낸 설계의 반례를 묻는다), second-opinion:audit(새 컨텍스트 리뷰어가 diff·주장을 반증). 반복 실패·큰 커밋 알림 훅 포함. advisor 는 선택, 사용자 요청 시만"
+      "description": "정해진 시점의 독립 검토: second-opinion:inherit-advisor(대화를 이어받은 fork 를 독립 검토자로 돌려 세워 놓친 것·방금 끝낸 설계의 반례를 묻는다), second-opinion:fresh-advisor(새 컨텍스트 리뷰어가 diff·주장을 반증), second-opinion:other-frame(사용자 명령, 다른 시스템 프롬프트로 대화 사본 검토). 반복 실패·큰 커밋 알림 훅 포함. 내장 advisor 도구는 사용자 요청 시만"
     }
   ]
 }
