@@ -1,13 +1,12 @@
 ---
 name: roblox-engine
 description: >-
-  Roblox 엔진 핵심 런타임의 실제 동작(대부분 Studio 실측)이다. RBXScriptSignal(Deferred/Immediate 배달 시점·순서,
-  Disconnect·Destroy 의 대기 배달, Changed 의 같은 값 무발화), Instance 수명(Destroy·Destroying, userdata 신원,
-  Instance 를 weak 키로 쓴 표, 연결이 잡는 참조), 트리 API·Attribute·QueryDescendants, TweenService(Cancel·Completed,
-  파괴 뒤 트윈), task 라이브러리(spawn·defer·cancel, RemoteFunction 동시 요청 같은 협력 스케줄링의 경쟁·TOCTOU, 시한),
-  Actor·병렬 Luau(ConnectParallel, 병렬 단계 제약, 스레드 안전 등급, SharedTable), Roblox 안 require(Studio 문자열
-  require, 캐시), Roblox 안 GC 관찰, 엔진 비용을 다룬다. 이벤트가 안 오거나 늦을 때, Destroy·Tween·누수를 확인할 때,
-  병렬 코드나 task 순서·경쟁을 따질 때 쓴다. 원격·서비스는 roblox-net, GUI·물리는 roblox-world.
+  Actual behavior of the core Roblox engine runtime, mostly Studio-measured: RBXScriptSignal delivery (Deferred vs
+  Immediate, Disconnect and Destroy edge cases), Instance lifetime and Destroy, tree API and attributes, TweenService,
+  the task library and cooperative scheduling races, Actors and parallel Luau, Studio require and caching, GC in Roblox.
+  Use when events do not fire or arrive late, when checking Destroy, Tween or leaks, or when reasoning about task
+  ordering or parallel code. Remotes are roblox-net; GUI and physics are roblox-world. 트리거: 이벤트가 안 와, Destroy 뒤, task
+  순서.
 ---
 # roblox-engine
 

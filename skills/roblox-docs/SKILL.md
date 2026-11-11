@@ -1,10 +1,10 @@
 ---
 name: roblox-docs
 description: >-
-  Roblox 공식 문서를 로컬 캐시(Roblox/creator-docs 원본)에서 조회하는 도구 tools/roblox_docs.py 의 사용법이다.
-  search(절 단위, path:a-b), get(경로#절), api(Class.Member 의 시그니처·보안·스레드 안전성·deprecated)를 낸다.
-  Roblox API 시그니처를 확인할 때, 동작·한도의 문서 근거가 필요할 때, deprecated 나 병렬 안전 여부를 확인할 때,
-  문서 인용을 검증할 때 쓴다.
+  Usage of tools/roblox_docs.py, which queries the official Roblox documentation from a local cache of
+  Roblox/creator-docs: search by section, get a page section, and api for Class.Member signatures, security level,
+  thread safety and deprecation. Use when verifying a Roblox API signature, needing a documentation citation for
+  behavior or limits, or checking deprecated or parallel-safe status. 트리거: 공식 문서 확인, API 시그니처, deprecated 여부.
 ---
 # roblox-docs
 

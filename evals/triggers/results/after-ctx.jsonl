@@ -1,0 +1,14 @@
+{"id": "types-ko1", "kind": "pos", "lang": "ko", "expected": "luau-types", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-types"], "cost": 0.0343645}
+{"id": "verify-ko1", "kind": "pos", "lang": "ko", "expected": "luau-verify", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-verify"], "cost": 0.0348452}
+{"id": "testing-ko1", "kind": "pos", "lang": "ko", "expected": "luau-testing", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-testing"], "cost": 0.0343851}
+{"id": "perf-ko1", "kind": "pos", "lang": "ko", "expected": "luau-perf", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-perf"], "cost": 0.0346247}
+{"id": "style-ko1", "kind": "pos", "lang": "ko", "expected": "luau-style", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-style"], "cost": 0.0340755}
+{"id": "runtime-ko1", "kind": "pos", "lang": "ko", "expected": "luau-runtime", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-runtime"], "cost": 0.034543000000000004}
+{"id": "roblox-ko1", "kind": "pos", "lang": "ko", "expected": "luau-roblox", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-roblox"], "cost": 0.0343448}
+{"id": "upstream-ko1", "kind": "pos", "lang": "ko", "expected": "luau-upstream", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-upstream"], "cost": 0.0343133}
+{"id": "docs-ko1", "kind": "pos", "lang": "ko", "expected": "roblox-docs", "cond": "ctx", "rep": 0, "calls": ["luau-kb:roblox-docs"], "cost": 0.0344331}
+{"id": "engine-ko1", "kind": "pos", "lang": "ko", "expected": "roblox-engine", "cond": "ctx", "rep": 0, "calls": ["luau-kb:roblox-engine"], "cost": 0.0343848}
+{"id": "net-ko1", "kind": "pos", "lang": "ko", "expected": "roblox-net", "cond": "ctx", "rep": 0, "calls": ["luau-kb:roblox-net"], "cost": 0.035494}
+{"id": "world-ko1", "kind": "pos", "lang": "ko", "expected": "roblox-world", "cond": "ctx", "rep": 0, "calls": ["luau-kb:roblox-world"], "cost": 0.0346741}
+{"id": "neg-luau-easy", "kind": "neg", "lang": "ko", "expected": "none", "cond": "ctx", "rep": 0, "calls": [], "cost": 0.0358913}
+{"id": "neg-rbx-idea", "kind": "neg", "lang": "ko", "expected": "none", "cond": "ctx", "rep": 0, "calls": [], "cost": 0.0419522}

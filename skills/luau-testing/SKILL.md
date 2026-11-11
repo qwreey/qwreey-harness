@@ -1,17 +1,11 @@
 ---
 name: luau-testing
 description: >-
-  Luau 코드의 실행 테스트를 짜고 돌리는 방법을 실측 스니펫으로 정리한 지식이다. 순수 luau CLI 를 러너로 쓰는 법
-  (종료 코드, -a 인자, require 하나 반환, --coverage, task·game·io 가 없음), 프레임워크 없는 최소 러너와 엔트리 파일,
-  assert·pcall 단언 패턴, pcall 로 잡은 에러 메시지의 모양, 에러가 사용자 줄을 가리키는지 단언하는 법과 파일 이름만
-  보는 단언의 구멍, eq<T> 단언 헬퍼가 타입 불일치를 못 잡는 이유, 테스트를 -O1 과 -O2 로 두 번 돌려야 하는 이유
-  (인라인으로 error level·debug.info·traceback 이 바뀜, --!optimize·--!native 지시어, getfenv 가 인라이닝을 끔),
-  러너 음성 대조군·등록 누락·돌연변이·차등 시험·퍼즈·시드, 골든 파일과 픽스처, Roblox 의존 코드를 luau 로 시험하는 경계
-  (엔진 무관 코어 분리, mock·fake 와 그 한계, 엔진과 mock 이 갈리는 점, Deferred 시그널 배달 심), GC·weak 표 프로브,
-  가상 시계로 디바운스·타이머 시험, Jest Roblox·jest-lua·TestEZ·lute test 현황과 이 사용자 저장소들의 실제 테스트 방식을 다룬다.
-  테스트나 스펙을 새로 쓰거나 러너·게이트를 짤 때, 테스트가 Studio 나 -O2 에서만 깨질 때, 에러 위치 단언이 흔들릴 때,
-  mock 결과를 믿어도 되는지 판단할 때, 누수나 시간 의존 로직을 시험할 때, 테스트 프레임워크를 고를 때 쓴다.
-  타입 검사 결과 검증(진단 0건, 표식)은 luau-verify, mock 작성·Studio MCP 절차는 luau-roblox, Roblox 엔진 동작은 roblox-engine 이 다룬다.
+  How to write and run execution tests for Luau, backed by measured snippets: the plain luau CLI as a runner (exit
+  codes, assert/pcall patterns, error message shapes), why tests must run under both -O1 and -O2, negative controls,
+  golden files, mocks and where they diverge from the engine, and testing time-dependent logic (debounce, timers,
+  virtual clock) or GC behavior. Use when writing specs or a runner, when a test fails only under -O2 or Studio, or when
+  choosing a test framework. Check-result validation is luau-verify. 트리거: 테스트 러너 짜기, -O2 에서만 깨짐, 디바운스·타이머 시험.
 ---
 # luau-testing
 

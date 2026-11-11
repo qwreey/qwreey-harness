@@ -1,12 +1,11 @@
 ---
 name: luau-runtime
 description: >-
-  Roblox 엔진 없이도 성립하는 Luau 언어·런타임 의미론이다. 약한 테이블과 GC(__mode, ephemeron 없음 — 값이 키를 잡으면
-  영구 잔존, 오타·구멍, GC 는 할당이 있어야 진행, 누수 판정과 프로브 함정, weak 설계), 코루틴(resume·wrap 의 에러 삼킴,
-  yield across C-call boundary, CLI 메인 스레드 yield, thread-local 없음), luau CLI 의 require-by-string(init.luau 안
-  ./ 와 @self, ambiguous 에러, .luaurc alias, symlink, 정적 검사가 잡는 require 오류, 패키지 사본 둘)을 다룬다.
-  weak 테이블 항목이 안 사라지거나 누수가 의심될 때, 코루틴 에러가 사라질 때, luau 에서 require 가 안 풀릴 때 쓴다.
-  Roblox 안 GC 관찰·Instance 경로 require·task 는 roblox-engine.
+  Language and runtime semantics of Luau that hold without the Roblox engine: weak tables and GC (leak judgment, no
+  ephemeron, probe pitfalls), coroutines (swallowed errors, yield across C-call boundary), and require-by-string in the
+  luau CLI (init.luau, @self, aliases, symlinks, ambiguity). Use when weak table entries do not disappear, a leak is
+  suspected, a coroutine error vanishes, or require cannot resolve in the luau CLI. In-engine GC, Instance requires and
+  task are roblox-engine. 트리거: weak table 안 사라짐, 코루틴 에러 삼킴, require 안 풀림.
 ---
 # luau-runtime
 
@@ -36,7 +35,7 @@ description: >-
 | symlink 로 건 패키지가 안 풀린다, `cp -rL` | `references/require-by-string.md` §4 |
 | require 오타인데 진단 0건 | `references/require-by-string.md` §5 → luau-verify `checkers.md` §7 |
 | 같은 패키지 사본 둘, 타입만 쓰려는 require 도 실행된다 | `references/require-by-string.md` §8 |
-| require 경로 표기 정책(D-12, 제안) | `references/require-by-string.md` §9 |
+| require 경로 표기 정책(D-12, 확정) | `references/require-by-string.md` §9 |
 | Roblox 안 GC 관찰, Instance 를 weak 키로 쓴 표 | roblox-engine `gc-in-roblox.md`, `instance-lifecycle.md` §4 |
 | Studio 문자열 require, ModuleScript 캐시, `@game` | roblox-engine `require-in-roblox.md` |
 | `task.spawn`·`defer` 순서, RemoteFunction 경쟁 | roblox-engine `tasks-and-threads.md` |

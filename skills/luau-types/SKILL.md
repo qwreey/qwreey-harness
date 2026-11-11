@@ -1,16 +1,11 @@
 ---
 name: luau-types
 description: >-
-  Luau 타입 시스템의 동작과 알려진 한계를 실측 스니펫으로 정리한 지식이다. 제네릭 추론과 명시 타입 인자
-  f<<T>>, 콜백·람다 주석, 변성(read 필드, 팬텀 표식, 공변/불변), 유니온·교집합·싱글턴·좁히기, 재귀 타입
-  별칭과 선언 순서, "Code is too complex to typecheck"와 한도 플래그, type function(types.*, keyof, index),
-  타입 팩과 가변 인자(...T, T..., select, table.pack/unpack, pcall, defer 패턴, 넘친 인자 무진단, 반환 팩),
-  for-in 과 교집합·유니온 컨테이너, 캐스트의 한계, 맞는 코드를 거부하는 위양성(for i in ipairs 의
-  "Argument count mismatch", pcall 에 넘긴 제네릭, 분기 대입 뒤 유니온 호출), 새 솔버(LuauSolverV2)와 옛 솔버의 차이,
-  luau 0.734와 0.742 사이의 결함 변화를 다룬다.
-  .luau 코드에서 타입 에러가 이해되지 않거나 맞아 보이는 코드에 이상한 TypeError 가 날 때, 에러가 나야 할 곳에서 안 날 때(진단 0건), 결과가 unknown/any로
-  새는 것 같을 때, 새 제네릭 API나 타입 표면을 설계할 때, luau 버전을 올린 뒤 진단이 바뀌었을 때 쓴다.
-  검사 도구 사용법과 검증 절차는 luau-verify, Roblox API·성능 질문은 이 스킬의 범위가 아니다.
+  Explains how the Luau type system behaves and where it breaks, with reproduced snippets: generic inference and f<<T>>,
+  variance, unions and narrowing, recursive aliases, "Code is too complex to typecheck", type functions, type packs and
+  varargs, false-positive errors on correct code, and old vs new solver differences. Use when a .luau type error is
+  confusing, correct-looking code is rejected, an error is expected but diagnostics are empty, or a result leaks to
+  unknown/any. Not for tool usage (luau-verify) or Roblox API typing (luau-roblox). 트리거: 타입 에러 이해 안 됨, 진단 0건, 제네릭 추론.
 ---
 # luau-types
 
@@ -41,7 +36,7 @@ description: >-
 - **설계 중이다**: 입력 자리는 표식, 출력 자리는 전체형 → `variance.md` §8
 - **type function 을 쓸지 정한다** (정책: 사안별, D-04)
   1. type function 없이 표현되는가? 대안부터 잰다 → `type-functions.md` §2(strip-nil, 키별 사상, 덮어쓰는 병합, 리터럴 계산 등)
-  2. 부작용이 큰가(공개 표면, 큰 인자, 제네릭 재조립, 150 키 넘는 맵, luau-lsp 1.69.0 지원)? → `type-functions.md` §1, 행별 근거는 `type-functions-limits.md`
+  2. 부작용이 큰가(공개 표면, 큰 인자, 제네릭 재조립, 150 키 넘는 맵, 지원해야 하는 luau-lsp 버전)? → `type-functions.md` §1, 행별 근거는 `type-functions-limits.md`
   3. 크면 스파이크와 사용자 승인을 받는다. 쓰기로 했으면 §3 체크리스트(위치, 가드, 테스트, 음성 대조군, 버전 열)를 지킨다
 - **luau 를 올렸더니 진단이 바뀌었다** → `solver-limits.md` §3, 그리고 `snippets/` 를 새 버전으로 돌린다
 
@@ -87,6 +82,6 @@ description: >-
 
 ## 답할 때
 - 절의 `status` 를 함께 말한다. `described` 인 주장은 "원천 서술, 미재현"이라고 밝힌다.
-- 버전에 의존하는 주장은 버전을 붙인다(예: "0.742 에서 고쳐짐, luau-lsp 1.70.1 은 아직").
+- 버전에 의존하는 주장은 버전을 붙인다(예: "luau 의 어느 버전에서 고쳐짐, luau-lsp 는 아직"; 현재 확인된 버전은 각 reference 의 `last_confirmed` 와 `solver-limits.md` §1–3).
 - 정책이 갈린 항목은 한쪽을 고르지 말고 양쪽 입장과 `decisions/` 를 안내한다. type function 은 D-04 로 확정됐다(사안별 판단, `type-functions.md` §0).
 - 새 사실을 발견하면 `snippets/` 에 최소 재현과 표식(`-- expect-error`, `-- bug-present`)을 먼저 추가한다.

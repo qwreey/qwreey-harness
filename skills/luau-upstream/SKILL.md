@@ -1,15 +1,11 @@
 ---
 name: luau-upstream
 description: >-
-  빠르게 바뀌는 Luau 생태계(luau 주간 릴리스, luau-lang/rfcs, luau-lsp, StyLua, rojo, Roblox 엔진의 FFlag
-  반영)를 관찰해 다가올 변화에 대비하게 하는 지식과 절차다. luau-kb 에 기록된 타입 한계·결함을 그것을 고칠
-  업스트림 항목(RFC, 이슈, 릴리스 노트)과 연결한 감시 목록, 새 문법(class, if local, while local, const 등)의
-  채택 판정표(CLI·luau-lsp·stylua·Studio/라이브 4조건), 버전 올리기 절차와 bug-scan(고쳐진 결함·새 실패 감지),
-  진행 중인 큰 변화의 요약을 담는다. luau·luau-lsp·stylua 버전을 올릴지 정할 때, 업데이트 뒤 진단이
-  바뀌거나 코드가 깨졌을 때, 새 문법이나 RFC 를 지금 써도 되는지 물을 때, "이 한계는 곧 고쳐지나",
-  "업스트림에서 해결 중인가" 를 물을 때, 타입 한계를 피하는 우회책을 설계하거나 영구 코드로 남길지 정할 때,
-  릴리스 노트·RFC·DevForum 소식을 확인하라는 요청을 받았을 때 쓴다. 한계 자체의 설명은 luau-types, 검사 도구
-  사용법은 luau-verify 스킬에 있다.
+  Tracks the fast-moving Luau ecosystem (luau releases, luau-lang/rfcs, luau-lsp, StyLua, rojo, FFlags): a watchlist
+  linking recorded type limitations to the upstream issues or RFCs that fix them, an adoption table for new syntax, the
+  version-bump procedure with bug-scan, and summaries of ongoing changes. Use when deciding whether to bump a tool
+  version, when diagnostics change after an update, or when asking if a new syntax or RFC is safe to use or a limitation
+  is being fixed. Limitation details are luau-types. 트리거: 버전 올려도 돼?, 업스트림에서 고쳐져?, RFC.
 ---
 # luau-upstream
 
@@ -20,7 +16,7 @@ Luau 는 매주 릴리스되고, 문법(`const`, `class`, `if local`)과 타입 
 2. **근거 등급을 붙인다.** [구현] 릴리스 노트·FFlag > [승인] 병합된 RFC > [제안] 열린 RFC PR > [풍문]. 날짜 없는 "곧 고쳐진다" 는 쓰지 않는다.
 3. **고쳐졌는지는 돌려 보고 말한다.** 새 luau 를 설치했다면 `--bug-scan <ver>` 로 스니펫을 돌린다. 이슈가 닫혔어도 우리 모양은 안 고쳐졌을 수 있다(예: #2733).
 4. **CLI 에 들어온 것 ≠ Roblox 에서 쓸 수 있는 것.** luau CLI 는 `Luau*` 플래그를 스스로 다 켜서 "experimental" 문법도 그냥 돈다. 엔진은 Studio 베타(옵트인) → 라이브 순으로 몇 주~몇 달 늦게 켠다. 버그 수정은 0–1주로 거의 같이 간다.
-5. **설치는 사용자 판단, 핀은 각 저장소의 몫이다.** 전역 mise 설정과 저장소 `mise.toml` 은 고치지 않는다. 바꿀 것은 인계 문서로 남긴다(D-05, 제안 상태).
+5. **설치는 사용자 판단, 핀은 각 저장소의 몫이다.** 전역 mise 설정과 저장소 `mise.toml` 은 고치지 않는다. 바꿀 것은 인계 문서로 남긴다(D-05, 확정).
 
 ## 결정 트리
 - **"이 한계는 곧 고쳐지는가?"**
@@ -59,9 +55,9 @@ Luau 는 매주 릴리스되고, 문법(`const`, `class`, `if local`)과 타입 
 
 ## 도구
 ```bash
-cd /code/Projects/luau-kb
+cd <luau-kb 플러그인 루트>
 python3 -I tools/upstream_check.py --notes              # 저장소 핀 vs 최신, 낡은 핀 이후 릴리스
-python3 -I tools/upstream_check.py --bug-scan 0.746     # 설치된 버전으로 스니펫 재검사, 3분류
+python3 -I tools/upstream_check.py --bug-scan <새버전>     # 설치된 버전으로 스니펫 재검사, 3분류
 ```
 설치돼 있지 않으면 도구가 `mise install luau@<ver>` 명령을 안내하고 멈춘다. 설치할지는 사용자에게 묻는다.
 

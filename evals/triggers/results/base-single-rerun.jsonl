@@ -1,0 +1,3 @@
+{"id": "testing-en", "kind": "pos", "lang": "en", "expected": "luau-testing", "cond": "single", "rep": 0, "calls": ["luau-kb:luau-testing"], "cost": 0.0042284}
+{"id": "testing-en", "kind": "pos", "lang": "en", "expected": "luau-testing", "cond": "single", "rep": 1, "calls": ["luau-kb:luau-testing"], "cost": 0.0042484}
+{"id": "testing-en", "kind": "pos", "lang": "en", "expected": "luau-testing", "cond": "single", "rep": 2, "calls": ["luau-kb:luau-testing"], "cost": 0.0045784}

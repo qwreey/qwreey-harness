@@ -1,28 +1,23 @@
 ---
 name: luau-verify
 description: >-
-  Luau 코드와 타입 주장을 실제로 검증하는 절차와 도구 사용법이다. luau-analyze·luau-lsp analyze 를 버전 경로로
-  직접 부르는 법(mise shim "No version is set" 함정), stderr 진단과 종료 코드, 새·옛 솔버와 luau 0.734/0.742 비교,
-  "진단 0건"을 믿기 위한 음성 대조군과 돌연변이 검사, .luaurc 와 --!strict·숨은 --fflags, 스니펫 하네스 표식
-  (-- expect-error, -- bug-present, --@run, --@run-opt, --@compile, --@codegen, --@lsp-roblox), require 가
-  검사기와 런타임에서 갈리는 자리(symlink, ./ 없는 alias, nonstrict 거짓 클린, 다른 파일로 풀리는 오타), 게이트
-  판정, pesde·Rojo 링크 함정, stylua 가 f<<T>> 를 망가뜨리는 조건, 러너·const(D-01)·버전 핀 정책, luau-lsp 로
-  공개 API 의 hover·자동완성(DX)을 보는 tools/lsp_probe.py 와 .lsp.json 을 다룬다. 타입 검사 결과를 믿어도 되는지
-  확인할 때, 재현 파일·스파이크를 만들 때, 검사 게이트를 짜거나 고칠 때, 공개 API 가 에디터에서 어떻게 보이는지
-  볼 때, 도구 버전을 올릴 때 쓴다. 타입 규칙 자체는 luau-types, require 경로 규칙은 luau-runtime, Roblox 위
-  타입·mock 은 luau-roblox 가 다룬다.
+  Procedure and tool usage for actually verifying Luau code and type claims: calling luau-analyze and luau-lsp analyze
+  directly (including the mise shim "No version is set" failure), reading stderr and exit codes, trusting zero
+  diagnostics only after negative controls, snippet harness markers, checker-vs-runtime require mismatches, gates, and
+  lsp hover/completion probes. Use when you must confirm a check result is trustworthy, build a repro, or write or fix a
+  check gate. Type rules are in luau-types. 트리거: 진단 0건 믿어도 돼?, 검사 게이트, 재현 파일.
 ---
 # luau-verify
 
 이 스킬은 "타입 검사 결과를 어떻게 믿을 수 있게 만드나"를 다룬다. 사실의 근거는 플러그인 루트의 `snippets/` 와 `tools/` 이고, 실행 결과는 `snippets/RESULTS.md` 다.
 
 ## 핵심 절차 (재현·검증 한 번)
-1. **버전을 고정해 직접 부른다.** PATH 의 shim 대신 `/code/.local/share/mise/installs/luau/<ver>/luau-analyze` 를 쓰거나 `mise exec luau@<ver> --` 를 붙인다. → `references/toolchain.md`
+1. **버전을 고정해 직접 부른다.** PATH 의 shim 대신 mise 설치 디렉터리의 `installs/luau/<ver>/luau-analyze` 를 쓰거나 `mise exec luau@<ver> --` 를 붙인다. → `references/toolchain.md`
 2. **파일 첫 줄에 `--!strict`** 를 둔다. `.luaurc` 나 `--mode=strict` 에 기대지 않는다. → `references/tooling.md` §1
 3. **검사한다. 진단은 stderr 다.** `2>&1` 을 붙인다. 진단이 있으면 rc=1, 린트만 있으면 rc=0. → `references/checkers.md` §1
 4. **음성 대조군**(같은 실수의 다른 모양, 반드시 잡혀야 하는 줄)이 기대한 메시지로 잡혔는지 본다. 안 잡혔으면 0건은 아무 의미가 없다. → `references/negative-controls.md` §2
 5. 의심스러우면 `--annotate` 로 추론 타입을 보고, `--solver=old` 와 다른 luau 버전으로 대조한다. → `references/checkers.md` §3–4
-6. 결과를 **도구, 버전, 솔버와 함께** 적는다(예: "luau-analyze 0.742 새 솔버, luau-lsp 1.70.1 은 다름").
+6. 결과를 **도구, 버전, 솔버와 함께** 적는다(예: "luau-analyze <버전> 새 솔버, luau-lsp 는 다름").
 7. 지식으로 남길 사실이면 `snippets/` 에 표식을 단 최소 재현을 넣고 두 버전으로 돌린다. → `references/snippet-markers.md`
 
 ## 어느 도구로 검사하나

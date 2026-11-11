@@ -1,15 +1,11 @@
 ---
 name: luau-perf
 description: >-
-  Luau 코드의 실행 성능을 판단하고 재는 지식이다. 측정부터 시작하는 절차(프로파일, 워밍업·중앙값·GC 통제·음성
-  대조군을 갖춘 벤치 하네스)와, luau 0.742 의 -O1·-O2·--codegen 세 모드로 다시 잰 비율을 근거로 메타테이블 비용(겉표
-  정수 키 칸 세금과 그 범위, rawget·freeze 로 못 피함), 테이블 배열부·해시부 성장 함정(nil 구멍, 앞에서 비우는 큐,
-  생성자 밖 번호 칸 대입, table.create·table.move), 순회 모양(ipairs·일반화 for·next), 호출 모양과 가변 인자·클로저·
-  pcall·코루틴 비용, 문자열 누적과 패턴 역추적, 최적화 수준과 --!optimize·-O2 인라인(error level 위치 변화 포함),
-  --!native·@native 와 타입 주석의 native codegen 효과, 약한 테이블과 GC 압박·메모리, 알고리즘 선택(해시 대 정렬,
-  힙, 결과 표 대 다중 반환)을 다룬다. 코드가 느리다, 최적화해 달라, 벤치마크를 짜거나 결과를 해석한다, 메타테이블
-  비용이나 테이블·배열 성능을 묻는다, native 나 --!optimize 를 쓸지 정한다, 메모리·GC 압박이 의심된다 같은 요청에서
-  쓴다. Roblox 엔진 API 비용은 roblox-engine, weak 표 의미론은 luau-runtime, 타입 문제는 luau-types 가 다룬다.
+  Measured knowledge for judging and measuring Luau runtime performance: benchmark method (warmup, median, GC control,
+  negative controls), metatable cost, table array/hash growth traps, iteration shape, calls and closures, string
+  building, -O1/-O2/native effects, weak tables and GC pressure, algorithm choices. Use when code is slow, an
+  optimization is requested, a benchmark must be written or read, or --!native or --!optimize is being considered.
+  Engine API cost is roblox-engine. 트리거: 코드가 느려, 최적화해 줘, 벤치마크.
 ---
 # luau-perf
 
@@ -53,7 +49,5 @@ description: >-
 - 약한 키 표 `__mode="k"` 는 비워져도 칸 배열이 줄지 않는다(`"ks"` 는 준다). 값이 키를 가리키면 영원히 안 비워진다(ephemeron 아님).
 
 ## 근거와 재현
-- 벤치: `/code/Projects/luau-kb/bench/*.luau`(19 개), 실행 `bench/run.sh`, 표 `bench/summarize.py`, 결과 `bench/RESULTS.md`·`bench/results/2026-11-10.tsv`.
-- 결정적인 주장: `/code/Projects/luau-kb/snippets/perf-*.luau`(7 개, `--@run`), 결과는 `snippets/RESULTS.md` 의 perf 절.
-- 최적화 수준·native 의 CLI 주장: `snippets/opt-*.luau`, `snippets/native-*.luau`(luau-testing·verify 담당), `/code/Projects/claude-doctor/drafts/gaps/tools/run_opt.sh`(58 개 검사).
-- 원천: stl-luau-doctor `.claude/base/perf-measurements.md`(0.734 `-O1` 중심), 후보표 claude-doctor `audit/08`·`audit/09`. 각 절에 후보 ID 를 남겼다.
+- 벤치는 플러그인 루트의 `bench/`(실행 `bench/run.sh`, 표 `bench/summarize.py`, 결과 `bench/RESULTS.md`), 결정적인 주장은 `snippets/perf-*.luau`(`--@run`), 최적화 수준·native 는 `snippets/opt-*.luau`·`snippets/native-*.luau`(luau-testing·verify 담당)에 있다.
+- 측정 날짜, 결과 파일, 원천 문서와 후보표 ID 는 `references/provenance.md` 에 있다.

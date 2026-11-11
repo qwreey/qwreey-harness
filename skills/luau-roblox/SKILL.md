@@ -1,15 +1,15 @@
 ---
 name: luau-roblox
 description: >-
-  Luau 를 Roblox 위에서 쓸 때의 타입과 검증 절차다. luau-lsp --platform=roblox 와 정의 파일·sourcemap,
-  Instance.new·GetService·FindFirstChild·IsA·GetAttribute·Enum 의 타입과 좁히기, 검사기가 못 잡는 엔진 호출,
-  luau CLI+mock 으로 충분한지 Studio 가 필요한지 판정 표, mock 작성과 충실도 검증, Roblox Studio MCP 사용법을 다룬다.
-  Roblox 코드를 luau CLI 로 테스트하거나 game·Instance 를 mock 할 때, Studio MCP 를 부를지 정할 때, Roblox API 타입
-  에러나 정의 파일 설정이 문제일 때 쓴다. 엔진 동작은 roblox-*, 문서 조회는 roblox-docs.
+  Luau typing and verification procedure on Roblox: luau-lsp --platform=roblox with definition files and sourcemap,
+  typing and narrowing for Instance.new, GetService, FindFirstChild, IsA, GetAttribute and Enum, a table for deciding
+  whether the luau CLI plus mocks suffices or Studio is needed, mock writing and fidelity checks, and Roblox Studio MCP
+  usage. Use when testing Roblox code under the luau CLI, mocking game or Instance, deciding on Studio MCP, or fixing
+  Roblox API type errors. Engine behavior is roblox-engine/net/world. 트리거: mock 으로 충분해?, Studio MCP, 정의 파일 설정.
 ---
 # luau-roblox
 
-"Roblox 위의 Luau 코드를 어떻게 타입 검사하고, 어떻게 믿을 만하게 시험하나"를 다룬다. 엔진이 **실제로 어떻게 동작하나**는 roblox-engine·roblox-net·roblox-world 가, 공식 문서 조회는 roblox-docs 가 맡는다. 출발점은 사용자 결정 D-03(2026-11-10)이다.
+"Roblox 위의 Luau 코드를 어떻게 타입 검사하고, 어떻게 믿을 만하게 시험하나"를 다룬다. 엔진이 **실제로 어떻게 동작하나**는 roblox-engine·roblox-net·roblox-world 가, 공식 문서 조회는 roblox-docs 가 맡는다. 출발점은 사용자 결정 D-03 이다(`decisions/`).
 
 - **기본 러너는 `luau` CLI 다.** 엔진 의존 동작은 필요한 부분만 mock 으로 만든다. lune 은 쓰지 않는다.
 - **Studio(MCP)는 두 경우에만 쓴다.** mock 이 엔진과 맞는지 확인할 때, mock 으로 재현할 수 없는 동작을 볼 때.

@@ -1,10 +1,11 @@
 ---
 name: roblox-world
 description: >-
-  Roblox GUI 와 3D 월드의 엔진 규칙이다. GUI 입력 전달(Active 가 못 막는 클릭 관통, gameProcessed, 포커스),
-  AutomaticSize·AbsoluteSize·TextBounds 갱신 시점, ZIndex·클리핑, 톱바 인셋, SurfaceGui, DragDetector, 물리(뚫림·겹침),
-  용접, 캐릭터·Humanoid, 카메라, EditableMesh·에셋 로드를 다룬다. GUI 클릭·레이아웃·텍스트 크기가 이상할 때,
-  입력·포커스, DragDetector·물리·캐릭터·카메라 동작을 다룰 때 쓴다.
+  Engine rules for Roblox GUI and the 3D world: GUI input delivery (click-through, gameProcessed, focus),
+  AutomaticSize/AbsoluteSize/TextBounds update timing, ZIndex and clipping, topbar inset, SurfaceGui, DragDetector,
+  physics (tunneling, overlap), welds, characters and Humanoid, camera, EditableMesh and asset loading. Use when GUI
+  clicks, layout or text size misbehave, or when dealing with input and focus, physics, characters or camera. 트리거: GUI
+  클릭 관통, AutomaticSize, 물리 뚫림.
 ---
 # roblox-world
 

@@ -1,13 +1,11 @@
 ---
 name: luau-style
 description: >-
-  Luau 코드의 네이밍, 문법 관용구, 모듈과 require 경로, 파일 길이와 분리(분리 계획기 split-plan.py, 타입 하나를 여러 파일로 나누는 꼴, 기준 예외 표식)·폴더 묶음·데이터와 코드 나누기, 에러 처리, 주석, 포맷(stylua), 테스트 관용, 검증·보고 방식의
-  근거와 좋은 예/나쁜 예를 저장소별 차이와 결정 상태(확정/제안)와 함께 제공한다. 타입 검사가 못 잡는 언어 함정
-  (table.insert, 순회 중 변경, 가변 인자 nil, 패턴과 UTF-8, NaN 경계 검사, coroutine.resume 의 에러 삼킴)도 다룬다.
-  .luau 파일을 새로 쓰거나 고칠 때, 리뷰·감사에서 스타일이나 관용구를 판정할 때, PascalCase/camelCase, const 대 local,
-  local const, if-then-else 식 대 and/or, f<<T>>, init.luau 와 @self, error level 과 -O2, pcall 함정, stylua 설정,
-  --!strict, TODO 마커, 주석 언어가 질문일 때 쓴다. 타입 시스템 결함은 luau-types, 검사 도구 호출법은 luau-verify,
-  require 경로 해석·코루틴 의미론은 luau-runtime, Roblox 엔진 동작은 roblox-engine, 성능 수치는 luau-perf 가 다룬다.
+  Style and idiom guidance for Luau with rationale and good/bad examples: naming, syntax idioms, module and require
+  paths, file length and splitting, error handling, comments, stylua formatting, and language traps the type checker
+  misses (table.insert, mutation while iterating, varargs with nil, patterns and UTF-8, NaN). Use when writing or
+  editing .luau files, or when a review needs to judge style, const vs local, error levels, or pcall pitfalls.
+  Type-system defects are luau-types; require resolution is luau-runtime. 트리거: 네이밍 기준, 파일 분리, 스타일 리뷰.
 ---
 
 # luau-style
