@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""workspace 게이트. 사용: python3 -I workspace_gate.py <PreToolUse|PostToolUse|UserPromptExpansion|SessionStart>  (stdin: 훅 JSON)
+"""workspace 게이트. 사용: python3 -I workspace_gate.py <PreToolUse|PostToolUse|UserPromptExpansion>  (stdin: 훅 JSON)
 
 규칙(사용자 CLAUDE.md): 이 세션의 저장소가 아닌 `HARNESS_WORKSPACE/<X>` 는 읽기 전용이고 고치기 전에 묻는다.
 - 쓰기(Edit|Write|MultiEdit|NotebookEdit, 쓰기로 분류된 Bash)가 형제 저장소를 건드리고, (세션, agent_id, compact 회차)에
@@ -8,14 +8,12 @@
 - 읽기(Read|Grep|Glob, 그 밖의 Bash)는 compact 회차마다 한 번 warn 만 한다.
 - 로드 표시: PostToolUse(Skill) 의 tool_input.skill 이 `q:workspace`(플러그인 스킬은 `<플러그인>:<스킬>`, audit/31 probes.md §1),
   슬래시로 치면 UserPromptExpansion 의 command_name.
-- compact 회차: 하네스 lib/compact_epoch.py 가 쓰는 $TMPDIR/claude-compact-epoch/<sid> 를 읽기만 한다. 그 파일을 올리는
-  rearm-on-compact 가 없는 기기를 위해 SessionStart(compact) 에서 이 훅의 표시를 지운다.
+- compact 회차: compact_epoch.py(q 자기 것, $TMPDIR/claude-q-epoch/<sid>)를 읽기만 한다. 올리는 쪽은 PreCompact 의 hook.py 다.
 - 예외는 통과(fail-open). deny 는 $TMPDIR/claude-workspace-gate/deny.log 에 남긴다.
 - 끄기: HARNESS_WORKSPACE_GATE=off(환경 변수 또는 harness.env), HARNESS_WORKSPACE 가 비어 있어도 꺼진다.
 """
 from __future__ import annotations
 
-import glob
 import json
 import os
 import re
@@ -24,6 +22,7 @@ import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import compact_epoch  # noqa: E402
 import wslib  # noqa: E402
 
 NS = "claude-workspace-gate"
@@ -49,10 +48,7 @@ def _sid(s) -> str:
 
 
 def _epoch(sid) -> int:
-    try:
-        return int(open(os.path.join(tempfile.gettempdir(), "claude-compact-epoch", _sid(sid))).read().strip())
-    except (OSError, ValueError):
-        return 0
+    return compact_epoch.epoch("q", sid)
 
 
 def state_file(data) -> str:
@@ -160,13 +156,6 @@ def main() -> int:
         elif event == "UserPromptExpansion":
             if SKILL_RX.match(str(data.get("command_name") or "")):
                 mark_loaded(data)
-        elif event == "SessionStart":
-            if data.get("source") == "compact":
-                for f in glob.glob(os.path.join(tempfile.gettempdir(), NS, _sid(data.get("session_id")) + ".*.json")):
-                    try:
-                        os.remove(f)
-                    except OSError:
-                        pass
     except Exception:
         pass
     return 0

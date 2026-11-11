@@ -3,8 +3,7 @@
   "hooks": {
     "SessionStart": [
       { "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" SessionStart", "timeout": 10 } ] },
-      { "matcher": "startup|resume|clear|compact", "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" SessionStart", "timeout": 10 } ] },
-      { "matcher": "compact", "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/workspace_gate.py\" SessionStart", "timeout": 10 } ] }
+      { "matcher": "startup|resume|clear|compact", "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" SessionStart", "timeout": 10 } ] }
     ],
     "SubagentStart": [
       { "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" SubagentStart", "timeout": 10 } ] }

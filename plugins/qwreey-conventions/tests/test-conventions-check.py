@@ -118,12 +118,8 @@ check("first notice", write_new("g/x.luau", "-- H-1111\n", sid="g1") != "")
 check("same file same epoch -> silent", write_new("g/x.luau", "-- H-1112\n", sid="g1") == "")
 check("other file still notified", write_new("g/y.luau", "-- H-1113\n", sid="g1") != "")
 check("subagent (agent_id) has own dedup", write_new("g/x.luau", "-- H-1114\n", sid="g1", agent="ag9") != "")
-sys.path.insert(0, os.path.join(LIBHOME, "lib"))
-os.environ["TMPDIR"] = T
-import tempfile as _tf
-_tf.tempdir = T
-import compact_epoch
-compact_epoch.bump("g1")
+subprocess.run([sys.executable, "-I", os.path.join(os.path.dirname(HOOK), "compact_epoch.py"), "qwreey-conventions"],
+               input='{"session_id": "g1"}', capture_output=True, text=True, env=dict(os.environ, TMPDIR=T))  # PreCompact
 check("compact epoch bump -> notified again", write_new("g/x.luau", "-- H-1115\n", sid="g1") != "")
 
 # ---- 확장자 ----

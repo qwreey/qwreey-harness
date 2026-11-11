@@ -29,11 +29,10 @@
   allow_chars: "emoji" 는 이모지를 끄고, 그 밖의 항목은 허용할 글자들이다. public_ids: 줄에서 먼저 지우고 검사하는 공개 식별자 정규식.
   patterns: 이름별로 덮어쓰기, null 이면 끈다.
 끄기: 환경 변수 CONVENTIONS_CHECK=off
-알림 중복: (session_id, 호출한 쪽, 파일, 범주)마다 한 번(이미 알린 범주는 다시 알리지 않고, 새 범주는 알린다). 하네스의 lib/compact_epoch.py 가 있으면 compact 회차도 구분하고, 없으면 내장 대체를 쓴다.
-상태 파일: $TMPDIR/claude-conventions/<session_id>[.c<회차>][.a<agent_id>].json
+알림 중복: (session_id, 호출한 쪽, 파일, 범주)마다 한 번(이미 알린 범주는 다시 알리지 않고, 새 범주는 알린다). compact 회차도 구분한다(compact_epoch.py, PreCompact 훅이 올린다).
+상태 파일: $TMPDIR/claude-conventions/<session_id>.c<회차>[.a<agent_id>].json
 """
 import fnmatch
-import importlib.util
 import json
 import os
 import re
@@ -41,6 +40,9 @@ import sys
 import unicodedata
 from collections import Counter
 from pathlib import Path
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import compact_epoch  # noqa: E402
 
 NAME = "qwreey-conventions"
 NS = "claude-conventions"  # 상태 경로는 이름 변경 전과 같게 둔다
@@ -631,18 +633,7 @@ def collect(tool, ti, resp, text):
 
 
 def state_file(sid, agent_id):
-    """하네스 lib/compact_epoch.py 가 있으면 compact 회차까지 구분하고, 없으면 세션, 에이전트로만 구분한다."""
-    try:
-        spec = importlib.util.spec_from_file_location("compact_epoch", HOME / "lib" / "compact_epoch.py")
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod.state_path(NS, sid, agent_id)
-    except Exception:
-        import tempfile
-        d = os.path.join(tempfile.gettempdir(), NS)
-        os.makedirs(d, exist_ok=True)
-        who = ".a" + re.sub(r"[^\w-]", "", str(agent_id)) if agent_id else ""
-        return os.path.join(d, re.sub(r"[^\w-]", "", str(sid or "nosession")) + who + ".json")
+    return compact_epoch.state_path("qwreey-conventions", NS, sid, agent_id)
 
 
 def symbol_detail(text, lines, allow):

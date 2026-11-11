@@ -10,7 +10,7 @@ advisor 는 언제 불릴지 모델이 정해서 예측이 안 됐다(audit/18).
      (호출자는 track-reviewer.py 가 prompt 끝에 붙인 run 줄을 리뷰어 transcript 에서 읽는다. 줄이 없으면 main 으로 친다)
 '접근 확정 전'은 잴 수 없어서 메인 판단(CLAUDE.md, 스킬)에 맡긴다. 이 저장소들에서 ExitPlanMode 사용은 0회였다(audit/18 §1.4).
 
-설치: qwreey-advisor 플러그인의 hooks/hooks.json 이 등록한다. 공용 라이브러리(harness_env, compact_epoch)와 harness.env 는
+설치: qwreey-advisor 플러그인의 hooks/hooks.json 이 등록한다. 공용 라이브러리(harness_env)와 harness.env 는
 $CLAUDE_CONFIG_DIR(기본 ~/.claude) 아래 claude-doctor 하네스의 것을 쓰고, 없으면 내장 기본값으로 돈다(등급 mid, 상태는 $TMPDIR).
 
 규칙
@@ -19,7 +19,7 @@ $CLAUDE_CONFIG_DIR(기본 ~/.claude) 아래 claude-doctor 하네스의 것을 �
     off 등급은 아무것도 하지 않는다.
   - 임계: HARNESS_REVIEW_LINES="high=40 mid=200 low=0" (추가+삭제 줄. 0 = 끔)
   - 최근 검토: HARNESS_REVIEW_FRESH_MIN(기본 90분) 안에 리뷰어가 끝났으면 2·3 을 건너뛴다.
-  - 같은 diff(내용 해시)로는 회차당 한 번만, done 알림 뒤 FRESH_MIN 동안은 쉰다(사양해도 커밋마다 조르지 않게). dedup 단위는 session_id + compact 회차(lib/compact_epoch.py).
+  - 같은 diff(내용 해시)로는 회차당 한 번만, done 알림 뒤 FRESH_MIN 동안은 쉰다(사양해도 커밋마다 조르지 않게). dedup 단위는 session_id + compact 회차(compact_epoch.py).
   - 출력 규약: HOOK-MESSAGES.md (<harness-hook name="qwreey-advisor" level="warn">, 영어).
 """
 from __future__ import annotations
@@ -34,6 +34,9 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import compact_epoch  # noqa: E402
 
 HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"))  # 하네스 lib, harness.env 위치
 NS = "claude-second-opinion"
@@ -96,12 +99,7 @@ def diff_stat(cwd: str, *args) -> tuple[int, str]:
 
 
 def state_file(sid: str) -> str:
-    ce = load("compact_epoch")
-    if ce:
-        return ce.state_path(NS, sid)
-    d = os.path.join(tempfile.gettempdir(), NS)
-    os.makedirs(d, exist_ok=True)
-    return os.path.join(d, re.sub(r"[^\w-]", "", sid or "nosession") + ".json")
+    return compact_epoch.state_path("qwreey-advisor", NS, sid)
 
 
 def last_review_path(sid: str) -> str:

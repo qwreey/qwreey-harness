@@ -51,8 +51,8 @@ index.json                         rid → pending | imported(위치, 커밋) | 
 | compact 직전 | PreCompact(manual·auto) stdout | warn | 상기: 사용자 지시 원문, 아직 기록 안 된 최근 사용자 발언, 결정, 미해결, 끝난 일, 기록 경로 |
 
 - dedup 단위는 **(session_id, compact 회차, 트리거)** 다.
-  - 회차는 PreCompact 가 세운 표지를 SessionStart(compact)·PostCompact 중 먼저 온 쪽이 소비하며 올린다. 그래서 한 compact 에 한 번 오른다.
-  - 하네스 `~/.claude/lib/compact_epoch.py` 와 같은 규칙이지만 import 하지 않는다. 하네스가 없어도 돈다.
+  - 회차는 q 자기 것(`scripts/compact_epoch.py`, `$TMPDIR/claude-q-epoch/<sid>`)이고 hook.py 가 PreCompact 에서 올린다. PreCompact 는 SessionStart(compact)·PostCompact 보다 먼저라 읽는 훅(ambient·workspace_gate 포함)이 항상 올라간 값을 본다. 취소된 compact 는 알림을 한 번 더 낼 뿐이다.
+  - 같은 모듈의 사본이 qwreey-advisor·qwreey-conventions 에 있고(정본은 q, 테스트가 바이트 동일성을 검사), 각자 자기 회차를 올린다. 하네스가 없어도 돈다.
 - pending 이 `SESSION_LOG_PENDING_STRONG_COUNT`(5)개 이상이거나 가장 오래된 것이 `…_DAYS`(7)일 이상이면 level=action 과 강한 문구를 쓴다.
 - 주입 안전
   - 인계와 상기에는 구조화된 항목만 넣는다: 개수, 경로, ⚠ 없는 미해결·결정 제목(110자), 대조를 통과한 사용자 인용.

@@ -5,9 +5,9 @@
 어떤 경우에도 exit 0 이고 메인 세션을 막지 않는다.
 
 compact 회차: "세션당 같은 트리거로 1회" 알림의 dedup 키는 (session_id, 회차)다. compact 는 session_id 를 유지하지만
-이전 알림을 맥락에서 지운다. 회차는 PreCompact 가 세운 표지를 SessionStart(compact)·PostCompact 중 먼저 온 쪽이
-소비하며 1 올린다(순서와 무관, 한 compact 에 한 번). 표지가 없으면 최근 120초 안에 올린 적이 없을 때만 올린다.
-규칙은 하네스 `~/.claude/lib/compact_epoch.py` 와 같지만 그 모듈을 import 하지 않는다(하네스 없는 환경에서도 돈다).
+이전 알림을 맥락에서 지운다. 회차는 compact_epoch.py(q 자기 것)가 갖고, 이 파일이 PreCompact 에서 올린다. PreCompact 는
+SessionStart(compact)·PostCompact 보다 먼저라 읽는 쪽이 항상 올라간 값을 본다. 끄기(SESSION_LOG_DISABLE 등)와 무관하게 올린다:
+회차는 ambient.py·workspace_gate.py 도 읽는다.
 """
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+import compact_epoch  # noqa: E402
 from sllib import brief, config, messages  # noqa: E402
 from sllib.paths import project_root, short_home  # noqa: E402
 from sllib.store import Store  # noqa: E402
@@ -48,19 +49,9 @@ def spawn_flush(store: Store, sid: str, transcript: str, trigger: str, force: bo
 
 
 # ---- compact 회차 ----
-def bump_epoch(hs: dict) -> bool:
-    now = time.time()
-    if hs.get("compact_pending") or now - hs.get("bumped_at", 0) > 120:
-        hs["epoch"] = hs.get("epoch", 0) + 1
-        hs["bumped_at"] = now
-        hs["compact_pending"] = False
-        return True
-    return False
-
-
-def once(hs: dict, trigger: str) -> bool:
+def once(hs: dict, sid: str, trigger: str) -> bool:
     """(session, 회차, 트리거) 마다 한 번만 True."""
-    key = f"{trigger}@{hs.get('epoch', 0)}"
+    key = f"{trigger}@{compact_epoch.epoch('q', sid)}"
     done = hs.setdefault("reminded", [])
     if key in done:
         return False
@@ -69,9 +60,9 @@ def once(hs: dict, trigger: str) -> bool:
     return True
 
 
-def pending_once(store: Store, hs: dict, trigger: str) -> tuple[str, str]:
+def pending_once(store: Store, hs: dict, sid: str, trigger: str) -> tuple[str, str]:
     level, line = brief.pending_line(store, trigger)
-    return (level, line) if line and once(hs, "pending:" + trigger) else (level, "")
+    return (level, line) if line and once(hs, sid, "pending:" + trigger) else (level, "")
 
 
 def tick(store: Store, sid: str, transcript: str, hs: dict) -> list[tuple[str, str]]:
@@ -97,14 +88,16 @@ def tick(store: Store, sid: str, transcript: str, hs: dict) -> list[tuple[str, s
 
 def main() -> None:
     event = sys.argv[1] if len(sys.argv) > 1 else ""
-    if os.environ.get("SESSION_LOG_NESTED") or config.disabled():
-        return
     try:
         data = json.load(sys.stdin)
     except ValueError:
         return
     if not isinstance(data, dict) or data.get("agent_id"):
         return  # 서브에이전트 안의 훅은 무시
+    if os.environ.get("SESSION_LOG_NESTED") or config.disabled():
+        if event == "PreCompact":
+            compact_epoch.bump_for_precompact("q", data)
+        return
     sid = data.get("session_id") or os.environ.get("CLAUDE_CODE_SESSION_ID") or ""
     if not sid:
         return
@@ -118,7 +111,6 @@ def main() -> None:
         source = data.get("source", "startup")
         parts = []
         if source == "compact":
-            bump_epoch(hs)
             rids = [r for r, e in store.index().items() if e.get("session_id") == sid] if store.exists() else []
             if rids:
                 parts.append(("info", messages.after_compact(short_home(store.record_path(sorted(rids)[-1])), short_home(store.records))))
@@ -127,7 +119,7 @@ def main() -> None:
             if h:
                 parts.append(("info", h))
         if store.exists():
-            parts.append(pending_once(store, hs, "session_start"))
+            parts.append(pending_once(store, hs, sid, "session_start"))
             errs = store.errors_since(hs.get("errors_checked", time.time() - 86400))
             hs["errors_checked"] = time.time()
             if errs:
@@ -143,7 +135,7 @@ def main() -> None:
     elif event in ("PostToolUse", "UserPromptSubmit"):
         parts = tick(store, sid, transcript, hs)
         if event == "UserPromptSubmit" and HANDOVER_RX.search(str(data.get("prompt", ""))[:400]):
-            parts.append(pending_once(store, hs, "handover"))
+            parts.append(pending_once(store, hs, sid, "handover"))
         emit_context(event, parts)
 
     elif event == "PreToolUse":
@@ -154,15 +146,17 @@ def main() -> None:
         elif tool == "Skill" and re.search(r"handover|checkpoint", str(inp.get("skill", "")), re.I):
             trig = "handover"
         if trig and store.exists():
-            emit_context(event, [pending_once(store, hs, trig)])
+            emit_context(event, [pending_once(store, hs, sid, trig)])
 
     elif event == "PreCompact":
-        hs["compact_pending"] = True
         trig = data.get("trigger") or "auto"
+        first = once(hs, sid, "precompact")  # 올리기 전 회차로 판단한다
+        # 기록이나 요약이 실패해도 회차는 올라가야 하므로(ambient·workspace_gate 가 읽는다) 다른 일보다 먼저 올린다.
+        compact_epoch.bump("q", sid)
         if transcript:
             store.ensure()
             spawn_flush(store, sid, transcript, f"PreCompact({trig})", True)
-        if once(hs, "precompact"):
+        if first:
             text = brief.precompact(store, sid, transcript) if transcript else ""
             plv, p = brief.pending_line(store, "precompact")
             out = messages.wrap_parts([("warn", text), (plv, p)])
@@ -170,11 +164,10 @@ def main() -> None:
                 sys.stdout.write(out + "\n")
 
     elif event == "PostCompact":
-        bump_epoch(hs)
         summ = data.get("compact_summary")
         if summ:
             store.ensure()
-            (store.state / f"{sid}.compact-{hs.get('epoch', 0)}.md").write_text(summ, encoding="utf-8")
+            (store.state / f"{sid}.compact-{compact_epoch.epoch('q', sid)}.md").write_text(summ, encoding="utf-8")
 
     elif event == "SessionEnd":
         if transcript:

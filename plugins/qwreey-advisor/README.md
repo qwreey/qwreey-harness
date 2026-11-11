@@ -35,7 +35,7 @@ claude plugin install qwreey-advisor@claude-doctor-market
 | `HARNESS_REVIEW_STOP` | 빈 값 | `1` 이면 커밋 안 된 큰 diff 로 턴을 끝낼 때도 알린다 |
 | `HARNESS_REVIEW_PLAN` | 빈 값 | `deny`·`warn` 이면 high 등급 ExitPlanMode 에서 계획 검토를 요구한다 |
 
-- 하네스 lib 가 없으면 dedup 상태는 `$TMPDIR/claude-second-opinion/` 에 세션 단위로 둔다(compact 회차 구분 없음).
+- dedup 상태는 `$TMPDIR/claude-second-opinion/` 에 (세션, compact 회차) 단위로 둔다. 회차는 이 플러그인 자기 것(`hooks/compact_epoch.py`, PreCompact 훅이 올림)이라 하네스 lib 없이도 돈다.
 - 원장은 `${XDG_STATE_HOME:-~/.local/state}/claude-second-opinion/ledger.jsonl`.
 - 상태 경로와 훅 파일 이름에 옛 이름 `second-opinion` 이 남은 이유: 플러그인 이름이 `qwreey-advisor` 로 바뀌어도 기존 원장·dedup 기록이 이어지도록 경로는 그대로 둔다. 환경 변수 `HARNESS_REVIEW_*` 도 그대로다.
 

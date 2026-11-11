@@ -41,7 +41,7 @@ claude plugin install qwreey-conventions@claude-doctor-market
 
 저장소 `.claude/conventions.json`(전부 선택, 없으면 예전 이름 `.claude/comments.json` 을 읽는다): `comment_language`, `allow_chars`, `public_ids`, `exclude`, `patterns`, `allow_ref_tail`, `min_reason_words`. 형식은 `qwreey-conventions:comments` 스킬에 있다. 환경 변수 `CONVENTIONS_CHECK=off` 로 끈다.
 
-하네스의 `~/.claude/lib/compact_epoch.py` 가 있으면 compact 회차마다 다시 알리고, 없으면 내장 대체(세션·에이전트·파일·범주마다 한 번)로 돈다.
+compact 회차마다 다시 알린다. 회차는 플러그인 자기 것(`hooks/compact_epoch.py`, `$TMPDIR/claude-qwreey-conventions-epoch/<sid>`)이고 PreCompact 훅이 올린다. 하네스 lib 가 없어도 같다.
 
 ## 테스트
 

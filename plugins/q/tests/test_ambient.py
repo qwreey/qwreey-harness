@@ -34,7 +34,7 @@ class T(unittest.TestCase):
         return json.loads(p.stdout) if p.stdout.strip() else None
 
     def bump(self):
-        d = os.path.join(self.tmp, "claude-compact-epoch")
+        d = os.path.join(self.tmp, "claude-q-epoch")
         os.makedirs(d, exist_ok=True)
         f = os.path.join(d, self.sid)
         n = int(Path(f).read_text()) if os.path.exists(f) else 0
@@ -71,6 +71,7 @@ class T(unittest.TestCase):
         (d / "scripts").mkdir(parents=True)
         shutil.copy(SCRIPT, d / "scripts" / "ambient.py")
         shutil.copy(ROOT / "scripts" / "wslib.py", d / "scripts" / "wslib.py")
+        shutil.copy(ROOT / "scripts" / "compact_epoch.py", d / "scripts" / "compact_epoch.py")
         for ev in ("SessionStart", "SubagentStart", "UserPromptSubmit"):
             self.assertIsNone(self.run_hook(ev, script=d / "scripts" / "ambient.py"))
 
@@ -89,26 +90,15 @@ class T(unittest.TestCase):
         self.assertIsNotNone(self.run_hook("SessionStart", {"source": "startup"}))
         self.assertIsNone(self.run_hook("UserPromptSubmit"))
 
-    def test_compact_then_ups_no_double_either_order(self):
+    def test_compact_then_ups_no_double(self):
         self.run_hook("SessionStart", {"source": "startup"})
-        # 순서 A: 이 훅의 SessionStart(compact) 가 먼저, 회차 증가가 나중
-        self.assertIsNotNone(self.run_hook("SessionStart", {"source": "compact"}))
-        self.bump()
-        self.assertIsNone(self.run_hook("UserPromptSubmit"))
-        # 순서 B: 회차 증가가 먼저
+        # PreCompact 가 회차를 올린 뒤 SessionStart(compact) 가 싣고 표지를 새 회차로 둔다
         self.bump()
         self.assertIsNotNone(self.run_hook("SessionStart", {"source": "compact"}))
         self.assertIsNone(self.run_hook("UserPromptSubmit"))
-        # SessionStart 가 안 돈 이후 compact 는 보충이 다시 싣는다
-        self.bump()
+        # SessionStart 가 안 돈 채 compact 가 지나면 보충이 다시 싣는다
         self.bump()
         self.assertIsNotNone(self.run_hook("UserPromptSubmit"))
-
-    def test_no_epoch_lib_session_only_marker(self):
-        # 회차 파일이 없으면(하네스 lib 없음) 세션 단위 표지뿐이라 꺼진 사이 compact 는 못 알아챈다(알려진 한계)
-        self.run_hook("SessionStart", {"source": "startup"})
-        self.assertIsNone(self.run_hook("UserPromptSubmit"))
-        self.assertIsNotNone(self.run_hook("SessionStart", {"source": "compact"}))
         self.assertIsNone(self.run_hook("UserPromptSubmit"))
 
     def test_ups_skips_subagent(self):

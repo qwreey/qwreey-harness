@@ -40,13 +40,14 @@ class Env(unittest.TestCase):
         self.home = t / "store"
         self.proj = t / "proj"
         self.proj.mkdir()
+        (t / "tmp").mkdir()
         subprocess.run(["git", "init", "-q", str(self.proj)], check=True)
         self.tp = t / "sess-0001.jsonl"
         self.sid = "sess-0001-aaaa"
         self.tp = t / f"{self.sid}.jsonl"
         self.env = {"SESSION_LOG_HOME": str(self.home), "SESSION_LOG_CLAUDE": str(FAKE), "HARNESS_ENV": "/nonexistent",
                     "SESSION_LOG_MIN_CHARS": "10", "SESSION_LOG_FORCE_MIN_CHARS": "10",
-                    "XDG_RUNTIME_DIR": str(t)}  # 기계 전체 슬롯 잠금도 격리
+                    "XDG_RUNTIME_DIR": str(t), "TMPDIR": str(t / "tmp")}  # 기계 전체 슬롯 잠금도 격리
         self.old = {k: os.environ.get(k) for k in list(self.env) + ["FAKE_MODE", "CLAUDE_PROJECT_DIR", "SESSION_LOG_NESTED",
                                                                      "SESSION_LOG_PENDING_STRONG_COUNT", "SESSION_LOG_HANDOVER_MAX_DAYS"]}
         os.environ.update(self.env)
@@ -293,7 +294,7 @@ class TestHooks(Env):
         self.assertIn("Session log for this session", ss)
         self.hook("PostCompact", self.payload(trigger="manual", compact_summary="SUMMARY"))
         hs = st.hstate(self.sid)
-        self.assertEqual(hs["epoch"], 1)                    # 한 compact 에 한 번만 오른다
+        self.assertEqual((Path(os.environ["TMPDIR"]) / "claude-q-epoch" / self.sid).read_text(), "1")  # 한 compact 에 한 번만 오른다
         self.assertTrue((st.state / f"{self.sid}.compact-1.md").exists())
         c2 = self.ctx(self.hook("PreToolUse", self.payload(tool_name="Bash", tool_input={"command": "git commit -m z"})))
         self.assertIn("about to commit", c2)                # 새 회차라 commit 알림도 다시

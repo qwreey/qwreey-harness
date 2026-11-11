@@ -100,6 +100,12 @@ class Env(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         return json.loads(r.stdout) if r.stdout.strip() else None
 
+    def precompact(self):
+        """PreCompact 가 올리는 q 회차(hook.py 가 같은 모듈로 올린다)를 흉내 낸다."""
+        r = subprocess.run([sys.executable, "-I", str(SCRIPTS / "compact_epoch.py"), "q"], input=json.dumps({"session_id": self.sid}),
+                           capture_output=True, text=True, env=self.env(), timeout=30)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
     def pre(self, tool, ti, **kw):
         return self.run_gate("PreToolUse", {"hook_event_name": "PreToolUse", "tool_name": tool, "tool_input": ti}, **kw)
 
@@ -161,25 +167,20 @@ class Gate(Env):
     def test_compact_resets(self):
         self.load_skill()
         self.assertIsNone(self.pre("Write", {"file_path": self.sibling()}))
-        self.run_gate("SessionStart", {"source": "compact"})
+        self.precompact()
         self.assertEqual(self.decision(self.pre("Write", {"file_path": self.sibling()})), "deny")
         # warn 도 회차마다 다시
-        self.run_gate("SessionStart", {"source": "compact"})
+        self.precompact()
         self.assertIn("additionalContext", self.pre("Read", {"file_path": self.sibling()})["hookSpecificOutput"])
-        self.run_gate("SessionStart", {"source": "compact"})
+        self.precompact()
         self.assertIn("additionalContext", self.pre("Read", {"file_path": self.sibling()})["hookSpecificOutput"])
 
     def test_epoch_file_resets(self):
         self.load_skill()
-        d = self.t / "tmp" / "claude-compact-epoch"
+        d = self.t / "tmp" / "claude-q-epoch"
         d.mkdir(parents=True)
         (d / self.sid).write_text("1")
         self.assertEqual(self.decision(self.pre("Write", {"file_path": self.sibling()})), "deny")
-
-    def test_session_start_other_source_keeps(self):
-        self.load_skill()
-        self.run_gate("SessionStart", {"source": "startup"})
-        self.assertIsNone(self.pre("Write", {"file_path": self.sibling()}))
 
     def test_own_repo_ignored(self):
         self.assertIsNone(self.pre("Write", {"file_path": str(self.ws / "mine" / "a.txt")}))

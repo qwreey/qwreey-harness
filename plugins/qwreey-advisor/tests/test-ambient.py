@@ -33,7 +33,7 @@ def check(name, cond):
 
 
 def bump():
-    d = os.path.join(T, "claude-compact-epoch")
+    d = os.path.join(T, "claude-qwreey-advisor-epoch")
     os.makedirs(d, exist_ok=True)
     f = os.path.join(d, "s1")
     n = int(open(f).read()) if os.path.exists(f) else 0
