@@ -5,7 +5,7 @@
 등록: 각 감사 에이전트 frontmatter 의 hooks.PreToolUse (matcher "Bash|Write|Edit|MultiEdit|NotebookEdit|mcp__.*")
 
 첫 번째 줄은 frontmatter 의 disallowedTools(Edit, NotebookEdit)다. 이 훅은 다음을 막는다.
-  - Write: 스크래치(/tmp/claude-audit/<session_id>/) 밖이면 거부. 에이전트가 음성 대조군과 프로브 파일을 쓸 곳은 스크래치 하나다.
+  - Write: 스크래치(/tmp/claude-audit/<session_id>/<agent_id>/) 밖이면 거부. 에이전트가 음성 대조군과 프로브 파일을 쓸 곳은 스크래치 하나다.
   - Edit/MultiEdit/NotebookEdit: 스크래치 밖이면 거부. memory 필드가 이 도구들을 자동으로 켜도 막힌다.
   - Bash:
       - 쓰기 명령(rm, mv, cp, tee, sed -i ...)의 경로 인자가 스크래치 밖이면 거부
@@ -14,8 +14,9 @@
       - 패키지 설치, 네트워크 명령은 거부
   - mcp__roblox-studio__* : 전부 거부(Studio 는 여러 세션이 같이 쓰고, execute_luau 등은 상태를 바꾼다).
 
-스크래치는 세션별이다. 같은 머신의 여러 세션이 서로의 프로브를 덮어쓰거나 지우지 않게, 입력의 session_id 로 하위 폴더를 가른다
-(session_id 가 없거나 이상하면 /tmp/claude-audit/ 전체). 경로의 $CLAUDE_CODE_SESSION_ID 는 입력의 session_id 로 풀어 본다.
+스크래치는 세션별, 서브에이전트별이다. 같은 머신의 여러 세션이, 같은 세션의 여러 리뷰어가 서로의 프로브를 덮어쓰거나 지우지 않게,
+입력의 session_id 와 agent_id 로 하위 폴더를 가른다(/tmp/claude-audit/<session_id>/<agent_id>/.
+agent_id 가 없으면 세션 폴더, session_id 가 없거나 이상하면 /tmp/claude-audit/ 전체). 경로의 $CLAUDE_CODE_SESSION_ID 는 입력의 session_id 로 풀어 본다.
 
 한계(휴리스틱): `bash ./scripts/x.sh`, `python3 -c`, `luau probe.luau` 안에서 일어나는 쓰기는 못 본다.
 그래서 /audit 스킬이 실행 전후의 `git status` 해시를 비교한다(세 번째 줄).
@@ -164,6 +165,9 @@ def main() -> None:
     if isinstance(sid, str) and SAFE_ID.match(sid):
         SESSION_ID = sid
         SCRATCH = os.path.join(SCRATCH_BASE, sid)
+        aid = data.get("agent_id") or ""
+        if isinstance(aid, str) and SAFE_ID.match(aid):  # 서브에이전트 리뷰어는 자기 폴더만(같은 세션의 다른 리뷰어와 안 부딪치게)
+            SCRATCH = os.path.join(SCRATCH, aid)
     tool = data.get("tool_name", "")
     ti = data.get("tool_input", {}) or {}
     cwd = data.get("cwd") or os.getcwd()

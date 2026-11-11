@@ -1,7 +1,6 @@
 Kind: <plan | stuck | done>
 Repo: <absolute path>        Scope: <e.g. git diff HEAD~3..HEAD, a path list, or a plan file path>
 Files I changed: <list. The working tree may hold other sessions' changes; the reviewer treats changes outside this list as context, not findings>
-Scratch: </tmp/claude-audit/<CLAUDE_CODE_SESSION_ID value>/ (the only place the reviewer may write probes)>
 Transcript: <path if known. If not, delete this line (the reviewer finds it via CLAUDE_CODE_SESSION_ID)>
 
 Goal: <one or two lines. The goal of this work unit, not a summary of the user's requirements>

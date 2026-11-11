@@ -8,7 +8,7 @@
 
 사용:
   review-ledger.py add --kind done --reviewer opus-sub --trigger hook:commit --verdict 고친뒤진행 \
-                       --found 4 --adopted 3 --must 1 [--repo DIR] [--note "..."] [--ref srvtoolu_… | agent-…]
+                       --found 4 --adopted 3 --must 1 [--repo DIR] [--note "..."] [--caller main|subagent] [--ref srvtoolu_… | agent-…]
   review-ledger.py stats [--since YYYY-MM-DD] [--repo NAME]
   kind: plan | stuck | done | adhoc | inherit (옛 context|audit 도 받는다)        reviewer: opus-sub | sonnet-sub | fork | ctx-opus | ctx-sonnet | codex | agy | advisor-opus | advisor-fable
   verdict: 진행 | 고친뒤진행 | 다시생각 | 발견없음 | 실패
@@ -26,6 +26,7 @@ from collections import defaultdict
 from pathlib import Path
 
 KINDS = ("plan", "stuck", "done", "adhoc", "inherit", "context", "audit")  # context|audit 는 옛 기록과의 호환(새로 쓰지 않는다)
+CALLERS = ("main", "subagent")
 VERDICTS = ("진행", "고친뒤진행", "다시생각", "발견없음", "실패")
 
 
@@ -46,7 +47,7 @@ def add(a) -> int:
     rec = {
         "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "session": os.environ.get("CLAUDE_CODE_SESSION_ID", ""),
         "repo": repo_name(a.repo), "kind": a.kind, "reviewer": a.reviewer, "trigger": a.trigger,
-        "verdict": a.verdict, "found": a.found, "adopted": a.adopted, "must": a.must, "ref": a.ref, "note": a.note,
+        "verdict": a.verdict, "caller": a.caller, "found": a.found, "adopted": a.adopted, "must": a.must, "ref": a.ref, "note": a.note,
     }
     p = ledger_path()
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -74,7 +75,7 @@ def stats(a) -> int:
         rows.append(r)
     g = defaultdict(lambda: {"n": 0, "found": 0, "adopted": 0, "must": 0, "empty": 0})
     for r in rows:
-        for key in ((r["kind"], r["reviewer"]), ("trigger", r.get("trigger") or "-")):
+        for key in ((r["kind"], r["reviewer"]), ("trigger", r.get("trigger") or "-"), ("caller", r.get("caller") or "-")):
             s = g[key]
             s["n"] += 1; s["found"] += r.get("found", 0); s["adopted"] += r.get("adopted", 0); s["must"] += r.get("must", 0)
             s["empty"] += r.get("verdict") == "발견없음"
@@ -100,6 +101,7 @@ def main() -> int:
     pa.add_argument("--must", type=int, default=0)
     pa.add_argument("--repo", default=".")
     pa.add_argument("--ref", default="")
+    pa.add_argument("--caller", choices=CALLERS, default="")  # 없으면 빈 값(옛 기록과 같다)
     pa.add_argument("--note", default="")
     ps = sub.add_parser("stats")
     ps.add_argument("--since", default="")

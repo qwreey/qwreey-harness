@@ -25,15 +25,28 @@ CASES = [
     (0, "general-purpose", "Write", {"file_path": "/code/Projects/x/a.md"}),
     (0, "reviewer", "Bash", {"command": "rm -rf build"}),  # 다른 플러그인·사용자의 같은 이름은 건드리지 않는다
 ]
+# agent_id 가 있으면 자기 폴더 하위만 허용 (agent_id, 기대, 경로)
+CASES += [
+    (0, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/S1/A1/p.luau"}, "A1"),
+    (2, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/S1/A2/p.luau"}, "A1"),  # 같은 세션 다른 리뷰어
+    (2, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/S1/p.luau"}, "A1"),  # 세션 폴더 직하
+    (2, "second-opinion:reviewer", "Write", {"file_path": "/tmp/claude-audit/S1/A1/../A2/p"}, "A1"),
+    (0, "second-opinion:reviewer", "Bash", {"command": "mkdir -p /tmp/claude-audit/S1/A1/sub && echo x > /tmp/claude-audit/S1/A1/sub/a"}, "A1"),
+    (2, "second-opinion:reviewer", "Bash", {"command": "rm -rf /tmp/claude-audit/S1/A2"}, "A1"),
+    (2, "second-opinion:reviewer", "Bash", {"command": "rm -rf /tmp/claude-audit/S1"}, "A1"),
+]
 fail = 0
-for want, agent, tool, ti in CASES:
+for case in CASES:
+    want, agent, tool, ti = case[:4]
     d = {"tool_name": tool, "tool_input": ti, "cwd": "/code/Projects/x", "session_id": "S1"}
+    if len(case) > 4:
+        d["agent_id"] = case[4]
     if agent:
         d["agent_type"] = agent
     rc = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(d), capture_output=True, text=True).returncode
     if rc != want:
         fail += 1
-        print(f"FAIL: {agent} {tool} {ti} → {rc}, 기대 {want}")
+        print(f"FAIL: {agent} {tool} {ti} {d.get('agent_id')} → {rc}, 기대 {want}")
 rc = subprocess.run([sys.executable, "-I", HOOK], input="not json", capture_output=True, text=True).returncode
 if rc != 0:
     fail += 1

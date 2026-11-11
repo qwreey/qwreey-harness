@@ -34,12 +34,12 @@ Which one (against inherit-advisor): ask what you doubt. If it is whether your r
 ## Write the brief
 
 Fill `${CLAUDE_PLUGIN_ROOT}/skills/fresh-advisor/templates/brief.md` in English, 5-15 lines. The reviewer starts with no context, so the brief carries only what it cannot find itself.
-- Include: the goal of this work unit, constraints, scope (git range, paths, plan file), **the files you changed** (the working tree may also hold other sessions' changes), **claims to verify** (what you are about to tell the user is done / works / safe; for `plan`, state the approach itself and the alternatives you dropped; for `stuck`, your current hypothesis), approaches already rejected, the transcript path if you know it, and the scratch path.
+- Include: the goal of this work unit, constraints, scope (git range, paths, plan file), **the files you changed** (the working tree may also hold other sessions' changes), **claims to verify** (what you are about to tell the user is done / works / safe; for `plan`, state the approach itself and the alternatives you dropped; for `stuck`, your current hypothesis), approaches already rejected, and the transcript path if you know it.
 - Leave out your summary of the user's requirements, the reasoning behind your conclusion (it anchors the reviewer), and pasted file contents. The reviewer reads the user's original messages and the files itself.
 - Include the part you are least sure about: the reviewer cannot see your doubts otherwise.
 - Parallel work goes in as "places this change may affect", never as "out of scope".
 - If the user asked something you have not answered, add it in one line (`python3 -I "${CLAUDE_PLUGIN_ROOT}/skills/fresh-advisor/scripts/user-asks.py" --claims 3` can extract it).
-- Scratch: the reviewer may write probe files only under `/tmp/claude-audit/<session id>/`, where `<session id>` is `$CLAUDE_CODE_SESSION_ID`. Put the resolved path in the brief.
+- Scratch: the reviewer is given its own scratch directory when it starts; leave it out of the brief.
 
 ## What comes back
 
@@ -53,12 +53,13 @@ The reviewer sees without your assumptions, but it does not know how you reached
 
 1. Decide each finding: accepted / rejected / needs check. Give evidence for a rejection (file:line, run output). When the reviewer's evidence and yours conflict, settle it by running something.
 2. You called it yourself (including on a hook notice): act on it and tell the user in 1-3 lines what you accepted and rejected. The full report stays in the transcript.
+   If you are a subagent, put what you accepted and rejected in your report to your caller instead of telling the user.
    The user asked for it: show the report in full, in Korean, then your judgment below it, separately. Quote the user's own words in their original language.
-3. Record it, so the user can see which triggers and reviewers pay off. `--trigger` is `hook:<commit|stop|failure|plan>` for a hook notice, `self` if you decided, `user` if the user asked. `--reviewer` is one of `opus-sub | sonnet-sub | fork | ctx-opus | ctx-sonnet | codex | agy | advisor-opus | advisor-fable`. Verdicts: 진행 | 고친뒤진행 | 다시생각 | 발견없음 | 실패.
+3. Record it, so the user can see which triggers and reviewers pay off. `--trigger` is `hook:<commit|stop|failure|plan>` for a hook notice, `self` if you decided, `user` if the user asked. `--reviewer` is one of `opus-sub | sonnet-sub | fork | ctx-opus | ctx-sonnet | codex | agy | advisor-opus | advisor-fable`. `--caller` is `main` if you are the main agent, `subagent` if you are a subagent. Verdicts: 진행 | 고친뒤진행 | 다시생각 | 발견없음 | 실패.
 
 ```bash
 python3 -I "${CLAUDE_PLUGIN_ROOT}/skills/fresh-advisor/scripts/review-ledger.py" add --kind <plan|stuck|done> --reviewer <opus-sub|sonnet-sub> \
-  --trigger <hook:commit|self|user> --verdict <verdict> --found <N> --adopted <N> --must <N> --note "<one line>"
+  --caller <main|subagent> --trigger <hook:commit|self|user> --verdict <verdict> --found <N> --adopted <N> --must <N> --note "<one line>"
 ```
 
 `review-ledger.py stats`, `advisor-stats.py --all` (advisor usage and cost), and `user-asks.py [--since-compact] [--last N] [--claims K]` (the user's original messages) are in `${CLAUDE_PLUGIN_ROOT}/skills/fresh-advisor/scripts/`.

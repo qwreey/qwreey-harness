@@ -23,6 +23,6 @@ An English report (`agents/other-frame.md`): items with what was missed, evidenc
 
 ## After you get it
 
-The user asked for this command, so show the report in full, in Korean, headed "other-frame 검토". Mark each finding accepted / rejected / needs check with evidence, and record it in the ledger (`--kind inherit --reviewer ctx-opus|ctx-sonnet` of `skills/fresh-advisor/scripts/review-ledger.py`).
+The user asked for this command, so show the report in full, in Korean, headed "other-frame 검토". Mark each finding accepted / rejected / needs check with evidence, and record it in the ledger (`--kind inherit --reviewer ctx-opus|ctx-sonnet --caller main` of `skills/fresh-advisor/scripts/review-ledger.py`).
 
 Cost grows with the size of the conversation copy: about $1.25 on opus or $0.49 on sonnet at 132k tokens, so use opus for high-tier work and sonnet otherwise.

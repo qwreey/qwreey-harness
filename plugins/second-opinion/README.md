@@ -42,7 +42,8 @@ claude plugin install second-opinion@claude-doctor-market
 
 ## 알아 둘 것
 
-- 리뷰어 스크래치는 `/tmp/claude-audit/<session_id>/` 로 세션마다 나뉜다. 읽기 전용 가드가 그 하위만 허용한다.
+- 리뷰어 스크래치는 `/tmp/claude-audit/<session_id>/<agent_id>/` 로 리뷰어마다 나뉜다. SubagentStart 훅(`hooks/track-reviewer.py`)이 폴더를 만들고 경로를 리뷰어에게 알린다. 읽기 전용 가드는 agent_id 가 있으면 그 하위만, 없으면 세션 폴더 하위를 허용한다.
+- '최근 검토'(커밋 알림을 끄는 기록)는 메인이 부른 리뷰어만 센다. 일꾼 서브에이전트가 띄운 리뷰어는 세지 않는다. 호출자 판별은 `docs/rationale-fresh-advisor.md`.
 - 같은 작업 트리를 여러 세션이 쓰면 알림의 diff 계산은 세션을 가르지 못한다(`docs/rationale-fresh-advisor.md`). 브리프의 "Files I changed" 가 리뷰어의 범위를 정한다.
 - 플러그인 에이전트는 frontmatter 의 `hooks`·`permissionMode`·`mcpServers` 를 무시한다. 그래서 읽기 전용 가드는 에이전트 파일이 아니라 플러그인 `hooks/hooks.json` 의 PreToolUse 에 있고, 입력의 `agent_type` 으로 이 플러그인의 검토자만 고른다.
 - fork 는 메인과 같은 모델로만 돈다. 메인이 방금 응답한 직후(캐시가 따뜻할 때) 부른다. 캐시가 식었으면 맥락 전체를 다시 써서 30만 토큰에서 opus 약 $1.5 가 더 든다.
