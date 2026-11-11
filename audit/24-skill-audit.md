@@ -249,3 +249,23 @@ Same as `second-opinion:audit` section 4. Show the report to the user unsummariz
 - 한국어 vs 영어 발동률은 실측이 없다. `/tmp/trig`, `/tmp/kbneg` 에 이전 트리거 실험 흔적이 있으나 읽지 않았다. 언어 정책 적용 전에 확인할 것.
 - 이력 신호는 정규식 근사라 스킬 간 비교용이고 정확한 개수가 아니다.
 - 코드 블록 안 후행 프롬프트와 "요구 대조" 문장은 동작이므로 시안에서 번역·수정하지 않았다.
+
+## 7. 1단계 적용 결과 (2026-11-11)
+
+적용 범위: `second-opinion` 의 context·audit·에이전트 2개, `q` 의 start·doctor·away·back(checkpoint·import 는 description 만 점검, 변경 없음). luau-kb 는 범위 밖.
+
+| 스킬 | description 전→후(자) | SKILL.md 줄 전→후 | rationale 신설 |
+|---|---|---|---|
+| second-opinion:context | 448 → 475 | 92 → 78 | `references/rationale.md` (근거·실험·비용 전부) |
+| second-opinion:audit | 533 → 482 | 81 → 67 | `references/rationale.md` (advisor 비교·비용·측정) |
+| q:start | 137 → 355 | 122 → 120 | `references/rationale.md` (동의 원칙·설계 이유) |
+| q:doctor | 301 → 371 | 92 → 88 | 없음(옮길 근거가 없었음) |
+| q:away | 114 → 275 | 44 → 44 | `references/rationale.md` (audit/21 포인터·언어 이유) |
+| q:back | 80 → 186 | 17 → 18 | 없음 |
+| q:checkpoint, q:import | 300, 304 | 25, 29 | 변경 없음 |
+| agents/reviewer, other-frame | 영어화(본문 66→66, 30→28줄) | - | other-frame "볼 곳"의 근거는 context rationale 에 |
+
+- 한국어로 남긴 것: context 후행 프롬프트 원문과 "요구 대조" 줄(verbatim 지시로 감쌈), 에이전트 보고 틀(사용자에게 그대로 전달), start 의 질문·체크리스트 표·제안 틀·안내문, away 의 "쉬운 설명", doctor 보고 형식의 상태 어휘, 각 description 끝의 한국어 트리거.
+- 일부 description 이 길어진 이유: 한국어 한 구절이 영어로 늘었고, 사용자 호출 전용 스킬에는 "User-invoked only" 와 트리거를 붙였다. 모두 500자 이하.
+- 검증: `claude plugin validate` q, second-opinion, 마켓 전체 통과. 훅·가드·doctor·session_log 테스트는 적용 전과 동일 통과(second-opinion 20/20·9/9, home hooks 52/26/18/72/132, doctor 16/16, session_log OK).
+- 발동 점검(sonnet, `-p`, 합계 약 $0.9): 새 description 으로 "이 diff 커밋 전에 검토해 줘"(2종 질문)와 "완료 선언 전 독립 검증" 은 `second-opinion:audit` 을 **부르지 않았다**(0/2, 모델이 직접 git diff 로 검토). 무관 질문(파이썬 리스트)은 호출 없음(음성 통과). 변경 전 description 으로도 같은 질문에서 호출되지 않았다(0/1). 즉 이번 변경이 발동률을 떨어뜨린 근거는 없으나, 원래 `-p` 단발 질문에서는 이 스킬이 잘 안 불린다. 표본이 작아 결론이 아니다. 발동률 개선은 CLAUDE.md 시점 안내와 훅 알림(`<harness-hook name="second-opinion">`)에 기대고 있고, description 만으로는 부족할 수 있다. 별도 발동 실험이 필요하다.

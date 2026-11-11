@@ -1,44 +1,34 @@
 ---
 name: context
-description: >-
-  맥락 계승형 second opinion. 지금까지의 대화를 그대로 이어받은 fork 를 "독립 검토자"로 돌려 세워, 이 흐름에서 놓친 것,
-  잘못된 전제, 확인 안 한 가정, 방금 끝낸 설계의 반례를 묻는다. 긴 결정 맥락이 쌓인 전환점에 쓴다: 작업 단위 하나를 끝내고
-  다음으로 넘어가기 직전, apply·배포·설치 안내나 결정 확정을 사용자에게 말하기 직전, 방향을 바꾸거나 사용자 결정을 받으려 할
-  때, 병행 중인 서브에이전트 결과를 합치기 직전. 잘 잡는 것: 병행 작업·다른 세션·주입 경로에 미치는 영향, 답을 못 받은
-  질문, 아무도 재지 않은 전제, 방금 끝낸 설계의 반례. 잘 못 잡는 것: 재현이 필요한 구현 버그(그건 second-opinion:audit).
-  비용: fork 는 메인 맥락을 캐시에서 읽어 30만 토큰 맥락 opus 기준 1회 약 $0.5~0.6(도구 몇 번 포함).
-argument-hint: "[fork|other-frame] [한 줄 메모]"
+description: Runs a second opinion that inherits the current conversation: a fork of the session becomes an independent reviewer looking for missed items, wrong premises, unchecked assumptions, and counterexamples to the design just finished. Use at the end of a work unit, right before proposing a decision or direction change to the user, or before apply/deploy/install guidance. Not for implementation bugs that need reproduction (use second-opinion:audit). 한 번 더 봐줘, 다른 눈으로 검토, 맥락 검토.
+argument-hint: "[fork|other-frame] [one-line note]"
 ---
 
-# second-opinion:context — 대화를 이어받은 눈으로, 전환점마다
+# second-opinion:context
 
-근거는 `audit/18` §11·§12 다(advisor 호출 시점 재현, opus). 요지:
-- 대화를 받은 쪽(이 스킬)은 advisor 가 잡은 "흐름에만 있던" 문제를 다시 잡았다. diff 를 받은 쪽(`second-opinion:audit`)은 0건이었다. 대신 diff 쪽은 실측 버그를 잡았다. **둘은 대체재가 아니다.**
-- fork 에 아무 지시 없이 질문만 붙이면 메인처럼 1인칭으로 답하고, 메인이 방금 끝낸 설계를 다시 열지 않았다(§11.4).
-- 후행 프롬프트로 "독립 검토자" 역할과 사각지대 범주를 주면(§12 의 V2) 1인칭이 사라지고(0/6) 방금 끝낸 설계를 반례로 다시 열었다. advisor 4건 완전 회수는 4/8 로, 다른 시스템 프롬프트(3/12)보다 높았다(방향만, 표본 작음). 역할만 주고 범주를 빼면 설계를 다시 열지 않았다. **범주 목록을 빼지 않는다.**
-- advisor 는 평소에 쓰지 않는다. 가격 대비 효용이 diff 기반 리뷰보다 낮다. 선택이며 사용자가 요청할 때만 쓴다(`audit/18` §3.3).
+A fork that has read this conversation reviews it as an independent reviewer. It complements `second-opinion:audit` (which refutes a diff); it does not replace it. Rationale and measurements: `references/rationale.md`.
 
-## 1. 언제
+## When to use
 
-| 시점 | 경로 | 이유 |
-|---|---|---|
-| 작업 단위를 끝내고 다음으로 넘어가기 직전 | fork | 놓친 약속·미결 질문·병행 작업 영향, 방금 끝낸 설계의 반례 |
-| 사용자에게 결정 확정·방향 전환을 제안하기 직전 | fork | 사용자 원문과 지금 제안이 어긋나는지 |
-| apply·배포·설치 안내 직전, 되돌리기 어려운 확정 직전 | fork (+ 필요하면 `audit`) | 같다. 구현 정확성은 audit 몫 |
-| fork 가 "발견 없음"에 가깝게 왔는데 일이 무겁다, 또는 사용자가 다른 눈을 원한다 | other-frame (선택) | 메인과 다른 시스템 프롬프트로 한 번 더 |
-| 긴 세션의 큰 전환점(compact 직후, 결정 대기 목록 정리) | fork + 아래 "요구 대조" 줄 | 잊힌 사용자 요구를 가장 넓게 찾는다(§12 의 V3) |
-| 커밋 전 diff 정확성, 반복 실패, 구현 검증 | 이 스킬 아님 → `second-opinion:audit` | |
+| Moment | Path |
+|---|---|
+| Finished a work unit, about to move on | fork |
+| About to propose a decision or direction change to the user | fork |
+| Before apply/deploy/install guidance or any hard-to-undo step | fork (+ `audit` if implementation correctness matters) |
+| Fork returned almost "no findings" but the work is heavy, or the user wants another view | other-frame (optional) |
+| Big turning point in a long session (right after compact, tidying pending decisions) | fork + the "requirement check" line below |
+| Diff correctness before commit, repeated failures, implementation verification | not this skill - use `second-opinion:audit` |
 
-- 한 전환점에 한 번. 같은 질문을 fork 로 여러 번 돌리지 않는다.
-- 저장소 등급(`HARNESS_REVIEW_TIERS`)이 `off` 면 사용자가 시킬 때만 쓴다.
+- Once per turning point. Do not run the same question through several forks.
+- If the repo tier (`HARNESS_REVIEW_TIERS`) is `off`, use only when the user asks.
 
-## 2. fork 경로 (기본)
+## Fork path (default)
 
 ```
-Agent(subagent_type="fork", description="second opinion: context", prompt=<아래 후행 프롬프트>)
+Agent(subagent_type="fork", description="second opinion: context", prompt=<follow-up prompt below>)
 ```
 
-후행 프롬프트 (그대로 쓰고 `<…>` 만 채운다. §12 의 V2 에 작업 금지 문구와 다음 단계 한 줄을 붙인 꼴):
+Follow-up prompt. Do not paraphrase or translate; send it verbatim and fill only `<...>`. Do not drop the category list or the role-switch block.
 ```
 [second opinion: context] 이 요청에만 답한다. 작업을 이어서 하지 않고, 파일을 고치거나 커밋하지 않고, 다른 에이전트에게 메시지를 보내지 않는다. 읽기 도구는 꼭 필요한 확인에만, 대략 5회 이내로 쓴다.
 메인은 이제 <다음 단계 한 줄> 로 넘어가려 한다.
@@ -62,31 +52,27 @@ Agent(subagent_type="fork", description="second opinion: context", prompt=<아�
 - 확인한 것과 추정을 구분한다.
 - 마지막에 "메인이 다음 단계 전에 할 일" 을 3줄 이내로.
 ```
-- **요구 대조**(선택, 큰 전환점): "요청:" 줄 바로 뒤에 다음 한 줄을 더한다. "먼저 대화의 사용자 메시지만 다시 훑어 요구·질문·제약 목록을 만들고, 각각이 지금 결과에 반영됐는지(반영/부분/미반영/확인 불가) 대조한 뒤 부분·미반영만 짧게 표로 보인다." 넓게 찾는 대신 4번 범주가 얕아질 수 있다(§12.4).
-- 실험(§12)에서는 작업 금지 문구가 앞 턴에 따로 있었고 도구 한도는 10회였다. 한 메시지로 합친 이 꼴과 5회 한도는 그대로 재지 않았다.
-- fork 는 메인과 같은 모델로만 돈다(모델 지정이 무시된다). 메인이 opus 면 opus 다.
-- 범주 2의 "주입 경로, 다른 사용자·세션"은 이름만 둔다. 지금 세션의 구체적인 의심(예: "X 가 Y 에 새는가")을 넣지 않는다. 넣으면 그쪽만 보고 돌아온다(§11.2 의 주장 목록 효과와 같다).
 
-**비용** [실측 §12.5 + 추정]
-- fork 의 첫 호출은 메인이 방금 보낸 요청의 접두를 캐시에서 읽는다. 30만 토큰 맥락에서 실측한 2단 fork 는 1회 $0.44~0.70 이었다(도구 3~7회, 출력 7~11k 토큰). V2 는 $0.51~0.60.
-- 구성은 캐시 읽기 약 절반(호출마다 맥락 전체를 다시 읽는다), 출력 약 1/3 이다. 그래서 도구 호출 수가 비용을 정한다. 도구 없이 한 번에 답하게 하면 약 $0.25 다(추정).
-- 메인이 TTL 넘게 쉬어 캐시가 식었으면 맥락 전체를 다시 쓴다. 30만 토큰이면 opus 약 $1.5(5m)~2.4(1h) 가 더 든다. 메인이 방금 응답한 직후에 부른다.
-- 결과 보고(약 2~3k 토큰)는 메인 맥락에 들어가 이후 매 턴 읽힌다.
+- **Requirement check** (optional, big turning points): insert this line verbatim right after the "요청:" line. "먼저 대화의 사용자 메시지만 다시 훑어 요구·질문·제약 목록을 만들고, 각각이 지금 결과에 반영됐는지(반영/부분/미반영/확인 불가) 대조한 뒤 부분·미반영만 짧게 표로 보인다." It searches wider but may make category 4 shallower.
+- The fork always runs on the main session's model (a model override is ignored).
+- In category 2, keep "주입 경로, 다른 사용자·세션" as a bare name. Do not add a concrete suspicion from the current session (for example "does X leak into Y"); the fork then looks only there.
+- Never drop the category list: without it the fork does not reopen the finished design.
+- Cost (tell the user when non-trivial): about $0.5-0.6 per fork at a 300k-token context on opus; the tool-call count decides cost. Call it right after the main response while the cache is warm; a cold cache adds about $1.5-2.4. The report (2-3k tokens) stays in main context.
 
-## 3. other-frame 경로 (선택)
+## other-frame path (optional)
 
-메인 대화를 텍스트로 옮겨 **다른 시스템 프롬프트**(이 플러그인의 `agents/other-frame.md` 본문) 아래에서 읽게 한다.
+Reads a text copy of the main conversation under a different system prompt (`agents/other-frame.md`).
 ```bash
-python3 -I "${CLAUDE_PLUGIN_ROOT}/skills/context/scripts/ask-other-frame.py" --model <sonnet|opus> --note "<다음 단계 한 줄>"   # 백그라운드 권장
+python3 -I "${CLAUDE_PLUGIN_ROOT}/skills/context/scripts/ask-other-frame.py" --model <sonnet|opus> --note "<one-line next step>"   # run in background
 ```
-- 대화 사본은 `scripts/render-transcript.py` 가 만든다. 마지막 compact 경계부터(메인이 지금 보는 범위), 도구 결과는 앞 300자만. §11 에서 317k → 132k 토큰.
-- Agent 도구로 넘기지 않는다. 사본을 프롬프트에 옮겨 적으면 그만큼 메인의 출력 토큰이 된다.
-- 읽기 전용 가드(`hooks/auditor-readonly-guard.py`)는 스크립트가 `--settings` 로 직접 건다.
-- 비용 [실측 §11.5]: 첫 호출이 캐시 쓰기라 맥락 크기에 비례한다. 132k 토큰에서 opus $1.25(1h 쓰기), sonnet $0.49(5m 쓰기). 같은 사본을 1시간 안에 다시 물으면 opus $0.33.
-- 모델: §11 에서 opus 는 2회 모두 "병행 작업 주입 경로"를 잡았고, sonnet 은 못 잡은 대신 다른 범위 밖 위험을 찾았다. high 등급은 opus.
+- `scripts/render-transcript.py` builds the copy: from the last compact boundary, tool results cut to the first 300 characters.
+- Do not pass the copy through the Agent tool; retyping it costs main output tokens.
+- The script installs the read-only guard (`hooks/auditor-readonly-guard.py`) itself via `--settings`.
+- Cost: first call is a cache write, proportional to context (132k tokens: opus about $1.25, sonnet about $0.49).
+- Model: use opus for high-tier work.
 
-## 4. 결과 다루기
+## Handling the result
 
-`second-opinion:audit` §4 와 같다. 요약하지 않고 그대로 사용자에게 보이고, 받아들임/버림/확인 필요를 근거와 함께 적고, 원장에 남긴다(`--kind context --reviewer fork|ctx-opus|ctx-sonnet`).
-- 보고 머리에 "context 검토(fork)" 라고 붙여, 메인이 쓴 글처럼 보이지 않게 전한다.
-- 지적이 사실과 다르면(이미 한 일을 안 했다고 보거나, 진행 중인 작업을 실패로 보는 등) 확인한 뒤 근거를 대고 버린다.
+Same as `second-opinion:audit` section 4. Show the report to the user unsummarized, mark each finding accepted / rejected / needs check with evidence, and record it in the ledger (`--kind context --reviewer fork|ctx-opus|ctx-sonnet`).
+- Head the report "context 검토(fork)" so it does not read as the main agent's own text.
+- If a finding contradicts the facts (claims something undone that is done, treats running work as failed), verify, then reject it with evidence.
