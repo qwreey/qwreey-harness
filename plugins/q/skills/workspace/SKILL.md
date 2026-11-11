@@ -17,7 +17,7 @@ The repos in the workspace are siblings run by one person; several sessions may 
 ## Map (generated now)
 !`python3 -I "${CLAUDE_SKILL_DIR}/scripts/map.py"`
 
-If the line above is only the command, run it once. If it says `HARNESS_WORKSPACE not configured`, set it in `~/.claude/harness.env`; the map and the gate are off until then.
+If the line above is only the command, run it once. If it says `HARNESS_WORKSPACE not configured`, tell the user to set it in harness.env (from claude-doctor: `home/.claude/harness.env`, then `home-sync.sh apply`; without claude-doctor, just tell the user). Do not edit `~/.claude/harness.env` yourself; the map and the gate are off until then.
 
 ## Live sessions
 Which repos have a session running (do not use `pgrep -f`; it matches shell wrappers):

@@ -12,6 +12,7 @@ from pathlib import Path
 
 DEFAULTS = {
     "SESSION_LOG_DISABLE": "",           # 1 이면 모든 훅이 아무것도 안 한다
+    "SESSION_LOG_RECORD_NONINTERACTIVE": "",  # 1 이면 claude -p·SDK 로 도는 세션도 기록한다(기본은 건너뜀: 프로브 실행이 쓰레기 기록을 만든다)
     "SESSION_LOG_HOME": "",              # 외부 저장소 루트. 비면 ${XDG_DATA_HOME:-~/.local/share}/session-log
     "SESSION_LOG_MODEL": "haiku",        # 요약 모델(claude -p --model 값)
     "SESSION_LOG_CLAUDE": "claude",      # claude 실행 파일
@@ -114,6 +115,14 @@ def num(key: str) -> float:
 
 def disabled() -> bool:
     return get("SESSION_LOG_DISABLE").strip().lower() in ("1", "true", "yes", "on")
+
+
+def skip_noninteractive() -> bool:
+    """claude -p 와 SDK 세션은 CLAUDE_CODE_ENTRYPOINT 가 sdk-cli, sdk-ts, sdk-py 로 시작한다(실측: -p 는 sdk-cli, 대화형은 cli).
+    사람과 대화하지 않는 실행은 기록할 맥락이 아니다. SESSION_LOG_RECORD_NONINTERACTIVE=1 로 되돌린다."""
+    if get("SESSION_LOG_RECORD_NONINTERACTIVE").strip().lower() in ("1", "true", "yes", "on"):
+        return False
+    return os.environ.get("CLAUDE_CODE_ENTRYPOINT", "").startswith("sdk")
 
 
 def home() -> Path:

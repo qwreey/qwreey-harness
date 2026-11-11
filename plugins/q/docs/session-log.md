@@ -78,7 +78,7 @@ session-log flush [--force] [--wait]    # 지금 요약(/q:checkpoint)
 session-log backfill --plan plan.json [--budget 4] [--dry-run]
 ```
 - 보관 위치는 저장소의 `.claude/session-log.json` 이다: `{"records_home": "docs/sessions"}` 또는 `{"archive_only": true}`. 커밋하면 동료가 같은 위치를 쓴다. 외부 저장소 `project.json` 은 기계마다 달라 공유가 안 되고, `.claude/conventions.json` 은 qwreey-conventions 의 스키마라 q 전용 파일로 나눴다.
-- 위치가 없으면 import 는 `.claude/records/` 를 쓰고 알려 준다. `archive_only` 면 `--to` 가 없는 import 를 거절한다.
+- 위치가 없으면 `--to` 가 없는 import 는 거절하고 사용자에게 묻고 `session-log home <경로>` 로 정하라고 한다(원치 않은 폴더에 파일이 남지 않게). `archive_only` 도 `--to` 가 없으면 거절한다.
 - 복사본은 frontmatter 바로 뒤에 두 줄 머리말(세션 id, 덮는 기간, 원본 트랜스크립트, "스냅샷이라 낡았을 수 있으니 현재 파일·git log 로 확인")만 붙고 본문은 그대로다.
 - 가져간 뒤 새 절이 붙으면 다시 pending 이 되고, 다음 import 가 같은 파일을 늘어난 판으로 덮는다.
 - `bin/session-log` 이 PATH 에 없으면 `"${CLAUDE_PLUGIN_ROOT}/bin/session-log"` 로 부른다.
@@ -86,7 +86,7 @@ session-log backfill --plan plan.json [--budget 4] [--dry-run]
 
 ## 설정
 우선순위는 환경 변수 > `harness.env`(`$HARNESS_ENV` → `$CLAUDE_CONFIG_DIR/harness.env` → `~/.claude/harness.env`, `SESSION_LOG_*` 키만) > 기본값이다. 목록과 기본값은 `scripts/sllib/config.py` `DEFAULTS` 에 있다.
-- 주요 키: `SESSION_LOG_HOME`, `SESSION_LOG_MODEL`(haiku), `SESSION_LOG_DISABLE`, `SESSION_LOG_COOLDOWN_MIN`(20), `SESSION_LOG_GROW_KB`(512), `SESSION_LOG_HANDOVER_CHARS`(800), `SESSION_LOG_HANDOVER_LAG_LINES`(400), `SESSION_LOG_HANDOVER_LIVE_MIN`(10), `SESSION_LOG_PRECOMPACT_CHARS`(3000), `SESSION_LOG_PENDING_STRONG_COUNT`(5), `SESSION_LOG_PENDING_STRONG_DAYS`(7), `SESSION_LOG_HOME_NUDGE_COUNT`(3), `SESSION_LOG_HOME_NUDGE_DAYS`(3), `SESSION_LOG_READ_WARN_KB`(16), `SESSION_LOG_MAX_PARALLEL`(2).
+- 주요 키: `SESSION_LOG_HOME`, `SESSION_LOG_MODEL`(haiku), `SESSION_LOG_DISABLE`, `SESSION_LOG_RECORD_NONINTERACTIVE`(기본 꺼짐: `CLAUDE_CODE_ENTRYPOINT` 가 `sdk` 로 시작하는 `claude -p`·SDK 세션은 기록하지 않는다), `SESSION_LOG_COOLDOWN_MIN`(20), `SESSION_LOG_GROW_KB`(512), `SESSION_LOG_HANDOVER_CHARS`(800), `SESSION_LOG_HANDOVER_LAG_LINES`(400), `SESSION_LOG_HANDOVER_LIVE_MIN`(10), `SESSION_LOG_PRECOMPACT_CHARS`(3000), `SESSION_LOG_PENDING_STRONG_COUNT`(5), `SESSION_LOG_PENDING_STRONG_DAYS`(7), `SESSION_LOG_HOME_NUDGE_COUNT`(3), `SESSION_LOG_HOME_NUDGE_DAYS`(3), `SESSION_LOG_READ_WARN_KB`(16), `SESSION_LOG_MAX_PARALLEL`(2).
 - harness.env 제안(하네스 담당이 정본에 넣을 때): `SESSION_LOG_HOME=${XDG_DATA_HOME:-~/.local/share}/session-log` 를 명시하고, 필요하면 `SESSION_LOG_MODEL=haiku` 를 둔다. 다른 sandbox 로 옮길 때는 이 두 키만 본다.
 
 ## coderag 연결 (메모)

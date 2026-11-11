@@ -3,7 +3,7 @@
 
 기록 읽기는 무겁고 느려서 특정한 필요가 있을 때만 해야 하고, 기록은 그 시점의 스냅샷이라 낡았을 수 있다.
 모든 Read 에서 불리므로 경로를 문자열로만 먼저 가린다: 외부 저장소 아래이거나 이 저장소의 보관 폴더 아래가 아니면 바로 끝난다.
-dedup 은 (session_id, agent_id 또는 main, compact 회차) 마다 한 번(스냅샷 경고). 큰 기록을 offset·limit 없이 읽으면
+dedup 은 (session_id, agent_id 또는 main, compact 회차) 마다 한 번(스냅샷 경고). 큰 기록을 offset 과 limit 없이 읽으면
 그때마다 검색 먼저 안내를 한다(그 읽기 자체가 낭비를 반복하는 것이라서). 항상 exit 0.
 """
 from __future__ import annotations

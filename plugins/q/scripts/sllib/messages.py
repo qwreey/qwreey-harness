@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 TAG_NAME = "session-log"
-# 긴급도 배정(HOOK-MESSAGES 규약): 요약 완료 info, pending warn(임계 넘으면 action), PreCompact 상기 warn, 인계 info
+# 긴급도 배정(HOOK-MESSAGES 규약): 요약 완료 info, pending info(commit 직전이나 임계 초과면 warn), home 없음 위치 제안 warn, PreCompact 상기 warn, 인계 info
 
 
 LEVELS = ("info", "warn", "action")
@@ -19,8 +19,8 @@ def wrap(body: str, level: str = "info") -> str:
 
 
 def wrap_parts(parts: list[tuple[str, str]]) -> str:
-    """[(level, text)] → level 마다 태그 하나(처음 나온 순서). 낮은 level 알림이 같은 태그의 높은 level 에 끌려
-    올라가지 않게 한다(예: 인계 info 가 pending action 으로 읽히는 일)."""
+    """[(level, text)] -> level 마다 태그 하나(처음 나온 순서). 낮은 level 알림이 같은 태그의 높은 level 에 끌려
+    올라가지 않게 한다(예: 인계 info 가 pending warn 으로 읽히는 일)."""
     order: list[str] = []
     by: dict[str, list[str]] = {}
     for lv, t in parts:
@@ -33,7 +33,7 @@ def wrap_parts(parts: list[tuple[str, str]]) -> str:
     return "\n".join(wrap("\n".join(by[lv]), lv) for lv in order)
 
 
-# ---- 요약 완료·진행 알림 -------------------------------------------------------------
+# ---- 요약 완료와 진행 알림 -------------------------------------------------------------
 def started(trigger: str, line_from: int, line_to: int | None) -> str:
     rng = f"L{line_from}–" + (f"L{line_to}" if line_to else "end")
     return f"Session log: summarizing this session ({rng}, {trigger}) in the background; you will get a note when it is saved."
@@ -73,11 +73,15 @@ def _rec(count: int) -> str:
 
 
 def pending(count: int, oldest_date: str, oldest_days: int, trigger: str, strong: bool = False, home: str | None = None) -> str:
-    """보관 위치가 정해져 있거나(home) 아직 쌓이지 않았을 때의 알림. import 는 명령 하나다."""
-    where = home or ".claude/records/"
-    head = (f"Session log: {_rec(count)} pending import (oldest since {oldest_date}, {oldest_days} days), "
-            f"not in git yet. `session-log import` copies them verbatim into {where} "
-            "(no curation; each gets a snapshot header); `session-log dismiss <rid…>` drops them.")
+    """보관 위치가 정해져 있거나(home) 아직 쌓이지 않았을 때의 알림. 위치가 있으면 import 는 명령 하나다."""
+    days = f"{oldest_days} day{'s' if oldest_days != 1 else ''}"
+    head = f"Session log: {_rec(count)} pending import (oldest from {oldest_date}, {days}), not in git yet. "
+    if home:
+        head += (f"`session-log import` copies them verbatim into {home} "
+                 "(no curation; each gets a snapshot header); `session-log dismiss <rid>...` drops them.")
+    else:
+        head += ("No records home is set yet, so import will not run until the user picks one; see /q:import. "
+                 "`session-log dismiss <rid>...` drops them.")
     reason = REASONS.get(trigger, "")
     return head + (" " + reason if reason else "") + (" (Not blocking.)" if trigger == "commit" else "")
 
@@ -88,7 +92,7 @@ def pending_propose(count: int, oldest_date: str, oldest_days: int, history: lis
     if history:
         opts.append("the existing history dir " + " or ".join(f"`{h}`" for h in history))
     opts.append("keep them outside the repo as an archive only (`session-log home --archive-only`; turns off these reminders)")
-    return (f"Session log: {_rec(count)} have piled up outside the repo (oldest since {oldest_date}, {oldest_days} days) and this repo has no records home. "
+    return (f"Session log: {_rec(count)} have piled up outside the repo (oldest from {oldest_date}, {oldest_days} day{'s' if oldest_days != 1 else ''}) and this repo has no records home. "
             "Propose a location to the user, one of: " + "; ".join(opts) + ". "
             "Save the choice with `session-log home <path>` (commit `.claude/session-log.json` so coworkers share it), "
             "then run `session-log import`.")
@@ -106,12 +110,11 @@ def handover_behind(sid8: str, when: str, end: int, total: int) -> str:
 
 def records_hint(store_records: str, home: str | None = None) -> str:
     where = f"{store_records}" + (f" or {home}" if home else "")
-    return (f"Session records ({where}) are snapshots and may be stale. To look something up use /q:recall (locate, then summarize, in subagents) "
-            "instead of reading them here; check any decision or number against current files and the git log before relying on it.")
+    return f"Session records: {where}. They are snapshots; look things up with /q:recall instead of reading them here."
 
 
-# ---- 기록을 읽을 때(PostToolUse Read·Grep) ----
-RECORD_READ = ("You read a session record. Records are snapshots of what was discussed then and may be stale: "
+# ---- 기록을 읽을 때(PostToolUse Read, Grep) ----
+RECORD_READ = ("You read or searched session records. Records are snapshots of what was discussed then and may be stale: "
                "verify any decision or fact against current files and the git log before acting on it.")
 RECORD_READ_LARGE = ("This session record is large ({kb} KB) and was read without offset/limit. Records are snapshots and may be stale. "
                      "Use /q:recall (subagents locate and summarize the needed sections), or search first (coderag global docs, or grep) "

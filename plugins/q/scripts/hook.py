@@ -94,7 +94,7 @@ def main() -> None:
         return
     if not isinstance(data, dict) or data.get("agent_id"):
         return  # 서브에이전트 안의 훅은 무시
-    if os.environ.get("SESSION_LOG_NESTED") or config.disabled():
+    if os.environ.get("SESSION_LOG_NESTED") or config.disabled() or config.skip_noninteractive():
         if event == "PreCompact":
             compact_epoch.bump_for_precompact("q", data)
         return

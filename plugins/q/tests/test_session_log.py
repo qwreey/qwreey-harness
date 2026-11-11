@@ -48,7 +48,7 @@ class Env(unittest.TestCase):
         self.tp = t / f"{self.sid}.jsonl"
         self.env = {"SESSION_LOG_HOME": str(self.home), "SESSION_LOG_CLAUDE": str(FAKE), "HARNESS_ENV": "/nonexistent",
                     "SESSION_LOG_MIN_CHARS": "10", "SESSION_LOG_FORCE_MIN_CHARS": "10",
-                    "XDG_RUNTIME_DIR": str(t), "TMPDIR": str(t / "tmp")}  # 기계 전체 슬롯 잠금도 격리
+                    "XDG_RUNTIME_DIR": str(t), "TMPDIR": str(t / "tmp"), "CLAUDE_CODE_ENTRYPOINT": "cli"}  # 기계 전체 슬롯 잠금도 격리
         self.old = {k: os.environ.get(k) for k in list(self.env) + ["FAKE_MODE", "CLAUDE_PROJECT_DIR", "SESSION_LOG_NESTED",
                                                                      "SESSION_LOG_PENDING_STRONG_COUNT", "SESSION_LOG_HANDOVER_MAX_DAYS"]}
         os.environ.update(self.env)
@@ -236,6 +236,17 @@ class TestImport(Env):
         out = subprocess.run(cli + ["pending"], capture_output=True, text=True).stdout
         self.assertIn(rid, out)
         self.assertIn("~", out)
+        refused = subprocess.run(cli + ["import"], capture_output=True, text=True)  # home 이 없으면 묻고 정하게 한다
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn("session-log home <path>", refused.stderr)
+        self.assertIn("Ask the user", refused.stderr)
+        self.assertFalse((self.proj / ".claude/records").exists())
+        self.assertEqual(len(st.pending()), 1)
+        subprocess.run(cli + ["import", "--to", ".claude/records"], check=True, capture_output=True)  # --to 는 home 없이도 된다
+        self.assertTrue((self.proj / ".claude/records" / f"{rid}.md").exists())
+        self.write(human("추가 0000", ts="2026-11-10T02:30:00Z"), mode="a")
+        worker.flush(st, self.sid, str(self.tp), "x", force=True)
+        subprocess.run(cli + ["home", ".claude/records"], check=True, capture_output=True)
         subprocess.run(cli + ["import"], check=True, capture_output=True)  # rid 생략: 대기 전부
         dst = self.proj / ".claude/records" / f"{rid}.md"
         self.assertTrue(dst.exists())
@@ -451,7 +462,7 @@ class TestHooks(Env):
         start = lambda env=None: self.ctx(self.hook("SessionStart", self.payload(source="startup"), env))
         out = start()                                         # 미설정, 1개: 조용한 info
         self.assertIn('level="info"', out)
-        self.assertNotIn("records home", out)
+        self.assertNotIn("piled up", out)  # 위치 제안은 없다
         # 개수 문턱(3) 미만이어도 오래되면 제안
         self.assertIn("no records home", self.ctx(self.hook("SessionStart", dict(self.payload(source="startup"), session_id="s1"), {"SESSION_LOG_HOME_NUDGE_DAYS": "-1"})))
         (self.proj / "handoff").mkdir()
@@ -469,11 +480,21 @@ class TestHooks(Env):
         self.assertNotIn("pending import", s4)
         self.assertNotIn("piled up", s4)
 
+    def test_noninteractive_sessions_are_not_recorded(self):
+        self.seed()
+        for ep in ("sdk-cli", "sdk-py"):
+            self.assertEqual(self.hook("SessionStart", self.payload(source="startup"), {"CLAUDE_CODE_ENTRYPOINT": ep}), "", ep)
+            self.assertEqual(self.hook("PreToolUse", self.payload(tool_name="Bash", tool_input={"command": "git commit -m x"}),
+                                       {"CLAUDE_CODE_ENTRYPOINT": ep}), "", ep)
+        self.assertTrue(self.hook("SessionStart", self.payload(source="startup"), {"CLAUDE_CODE_ENTRYPOINT": "claude-vscode"}))
+        self.assertTrue(self.hook("SessionStart", dict(self.payload(source="startup"), session_id="s9"),
+                                  {"CLAUDE_CODE_ENTRYPOINT": "sdk-cli", "SESSION_LOG_RECORD_NONINTERACTIVE": "1"}))  # 되돌리기
+
     def test_records_hint_mentions_recall(self):
         self.seed()
         out = self.ctx(self.hook("SessionStart", self.payload(source="startup")))
         self.assertIn("/q:recall", out)
-        self.assertIn("may be stale", out)
+        self.assertIn("snapshots", out)
 
 
     def test_hook_speed(self):

@@ -15,7 +15,6 @@ import re
 from pathlib import Path
 
 FILE = ".claude/session-log.json"
-DEFAULT_HOME = ".claude/records"
 # 이미 있으면 기록 보관 위치로 제안할 만한 이력 폴더
 HISTORY_CANDIDATES = ("handover", "handoff", "audit", "history", "docs/history", "docs/handoff")
 

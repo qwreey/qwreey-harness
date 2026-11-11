@@ -94,9 +94,13 @@ def cmd_import(a):
     elif records_home.archive_only(st.root):
         sys.exit("이 저장소는 기록을 저장소 밖에만 둔다(archive_only). 가져가려면 --to DIR 을 주거나 `session-log home <경로>` 로 바꾼다.")
     else:
-        to = records_home.home_rel(st.root) or records_home.DEFAULT_HOME
-        if not records_home.home_rel(st.root):
-            print(f"보관 위치가 정해지지 않아 {to}/ 를 쓴다. 정하려면 `session-log home <경로>`.")
+        # 위치를 모르는 채 기본 폴더에 복사하면 사용자가 원치 않은 파일이 저장소에 남는다. 묻고 정하게 한다
+        to = records_home.home_rel(st.root)
+        if not to:
+            sys.exit("records home is not set, so nothing was copied. Ask the user where records go "
+                     "(`docs/sessions/`, `.claude/records/`, an existing history dir, or `--archive-only` to keep them outside the repo), "
+                     "save the answer with `session-log home <path>`, then run `session-log import` again. "
+                     "To copy once without saving a home, pass `--to DIR`.")
     to_dir = (st.root / to) if not os.path.isabs(to) else Path(to)
     rids = a.rid or [e["rid"] for e in st.pending()]
     if not rids:
@@ -139,7 +143,7 @@ def cmd_home(a):
         print("archive_only: 기록은 저장소 밖에만 둔다(pending 알림 꺼짐)")
     else:
         h = records_home.home_rel(st.root)
-        print(f"records home: {h + '/' if h else '(미설정; import 는 ' + records_home.DEFAULT_HOME + '/ 를 쓴다)'}")
+        print(f"records home: {h + '/' if h else '(미설정; import 는 --to 가 없으면 거절한다)'}")
 
 
 def cmd_dismiss(a):
