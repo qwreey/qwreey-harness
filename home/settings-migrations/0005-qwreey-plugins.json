@@ -1,0 +1,37 @@
+{
+  "id": "0005-qwreey-plugins",
+  "why": "플러그인 이름을 qwreey-advisor(옛 second-opinion)와 qwreey-conventions 로 바꾸고, 주석 위생을 user-level 훅 대신 qwreey-conventions 플러그인이 맡는다. 같은 apply 에서 rules/comments.md·rules/agent-docs.md·HOOK-MESSAGES.md 가 함께 바뀐다(rules 가 새 스킬 이름을 가리킨다). 옛 second-opinion 은 키를 지우지 않고 false 로 둔다(설치본이 남아 있어도 확실히 꺼지게)",
+  "ops": [
+    {
+      "op": "hook-remove",
+      "event": "PostToolUse",
+      "command": "python3 $HOME/.claude/hooks/comment-hygiene.py"
+    },
+    {
+      "op": "set",
+      "path": [
+        "enabledPlugins",
+        "second-opinion@claude-doctor-market"
+      ],
+      "value": false
+    },
+    {
+      "op": "set",
+      "path": [
+        "enabledPlugins",
+        "qwreey-advisor@claude-doctor-market"
+      ],
+      "value": true,
+      "keep_existing": true
+    },
+    {
+      "op": "set",
+      "path": [
+        "enabledPlugins",
+        "qwreey-conventions@claude-doctor-market"
+      ],
+      "value": true,
+      "keep_existing": true
+    }
+  ]
+}

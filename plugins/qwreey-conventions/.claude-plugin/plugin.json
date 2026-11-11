@@ -1,0 +1,8 @@
+{
+  "name": "qwreey-conventions",
+  "version": "0.2.0",
+  "description": "코드 주석과 모델이 읽는 문서(CLAUDE.md, SKILL.md, rules)의 관례. qwreey-conventions:comments 와 qwreey-conventions:agent-docs 스킬이 쓰는 법을 담고, PostToolUse 훅이 방금 추가한 줄이 관례를 벗어난 것 같으면 한 줄로 알린다(막지 않는다).",
+  "author": { "name": "qwreey", "email": "me@qwreey.moe" },
+  "license": "MIT",
+  "keywords": ["qwreey", "conventions", "comments", "code-style", "documentation", "hooks"]
+}

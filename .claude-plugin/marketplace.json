@@ -12,14 +12,14 @@
       "description": "사람이 직접 치는 하네스 명령 모음(/q: 만 치면 전부 나온다): /q:start 온보딩, /q:doctor 하네스 진단, /q:away·/q:back 자리 비움 예산, /q:checkpoint·/q:import 세션 기록. 세션 기록 훅(분리 프로세스 요약, 저장소 밖 보관) 포함"
     },
     {
-      "name": "second-opinion",
-      "source": "./plugins/second-opinion",
-      "description": "정해진 시점의 독립 검토: second-opinion:inherit-advisor(대화를 이어받은 fork 를 독립 검토자로 돌려 세워 놓친 것·방금 끝낸 설계의 반례를 묻는다), second-opinion:fresh-advisor(새 컨텍스트 리뷰어가 diff·주장을 반증). 반복 실패·큰 커밋 알림 훅 포함. 내장 advisor 도구는 사용자 요청 시만"
+      "name": "qwreey-advisor",
+      "source": "./plugins/qwreey-advisor",
+      "description": "정해진 시점의 독립 검토: qwreey-advisor:inherit-advisor(대화를 이어받은 fork 를 독립 검토자로 돌려 세워 놓친 것·방금 끝낸 설계의 반례를 묻는다), qwreey-advisor:fresh-advisor(새 컨텍스트 리뷰어가 diff·주장을 반증). 반복 실패·큰 커밋 알림 훅 포함. 내장 advisor 도구는 사용자 요청 시만"
     },
     {
-      "name": "conventions",
-      "source": "./plugins/conventions",
-      "description": "주석·모델용 문서 관례: conventions:comments(코드 주석: 이유만, 이력은 커밋으로, 키보드로 치는 문자, 파일 언어), conventions:agent-docs(CLAUDE.md·SKILL.md·rules: 지금의 지시만, 이력은 옮긴다). 추가한 줄이 벗어나면 한 줄로 알리는 훅 포함"
+      "name": "qwreey-conventions",
+      "source": "./plugins/qwreey-conventions",
+      "description": "주석·모델용 문서 관례: qwreey-conventions:comments(코드 주석: 이유만, 이력은 커밋으로, 키보드로 치는 문자, 파일 언어), qwreey-conventions:agent-docs(CLAUDE.md·SKILL.md·rules: 지금의 지시만, 이력은 옮긴다). 추가한 줄이 벗어나면 한 줄로 알리는 훅 포함"
     }
   ]
 }

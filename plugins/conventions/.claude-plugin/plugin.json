@@ -1,8 +1,0 @@
-{
-  "name": "conventions",
-  "version": "0.1.0",
-  "description": "코드 주석과 모델이 읽는 문서(CLAUDE.md, SKILL.md, rules)의 관례. conventions:comments 와 conventions:agent-docs 스킬이 쓰는 법을 담고, PostToolUse 훅이 방금 추가한 줄이 관례를 벗어난 것 같으면 한 줄로 알린다(막지 않는다).",
-  "author": { "name": "qwreey", "email": "me@qwreey.moe" },
-  "license": "MIT",
-  "keywords": ["conventions", "comments", "code-style", "documentation", "hooks"]
-}

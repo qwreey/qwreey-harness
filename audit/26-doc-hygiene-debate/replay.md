@@ -31,3 +31,21 @@
 2. 문서의 `/tmp/claude-audit/` 가 `audit/` 경로로 잡힘: 경로 패턴 앞에 `[\w-]` 가 오면 아니다.
 3. 문서의 "if the user asked" 가 결정 문구로 잡힘: 문서용 결정 문구는 "사용자 결정/합의", `per user`, `as decided`, `the user decided` 로 좁혔다.
 4. 한글 주석 파일의 한 단어 라벨(`# ---- index ----`), `` ```lua `` 줄, 단위(`us`)가 언어 불일치로 잡힘: 위 조건으로 해소.
+
+## Rust/TS/Go 저장소 재생과 원장 id 오탐 확인 (r3-verdict 의 "원장 id 정규식 오탐 후보")
+
+방법은 위와 같다(읽기만, 모델 호출 없음). 대상: coderag(Rust, 22커밋뿐), vitrine(TS/Go/sh, 29커밋뿐), VideoSync(TS/JS, 50), 이름 변경 전 훅 소스를 담은 claude-doctor(50). 스크립트는 `/tmp/replay/replay2.py`. 훅은 3라운드 반영본이다(알림 단위는 (파일, 범주)로 바뀌었다).
+
+| 저장소 | 커밋 | 대상 쌍 | 알림 있는 커밋 | 코드 history marker | non-keyboard symbol | escaped character | invisible | language mismatch | 문서 history marker |
+|---|---|---|---|---|---|---|---|---|---|
+| coderag | 22 | 138 | 17 | 25 | 85 | 0 | 1 | 6 | 14 |
+| vitrine | 29 | 90 | 13 | 0 | 47 | 0 | 0 | 0 | 0 |
+| VideoSync | 50 | 69 | 8 | 9 | 0 | 0 | 0 | 0 | 1 |
+| claude-doctor | 50 | 306 | 21 | 14 | 47 | 2 | 2 | 0 | 41 |
+
+- 원장 id 로 잡힌 토큰(코드 주석, 전부 열거): coderag `D13` `D14` `D16` `D17` `D18` `D21` `D-09` `H-321` `B01`..`B12`, VideoSync `N19` `N20`. 실제 설계 결정·실험 번호이고(coderag `D21` 은 설계서 결정 번호, `B01`..`B12` 는 실험 코퍼스 사례 번호), `F64`·`I32`·`X86`·`C99` 같은 오탐은 이 4개 저장소 최근 커밋에서 나오지 않았다.
+- 그래도 정규식 `[A-Z]{1,2}-?\d{2,4}` 는 하이픈이 없으면 정수 폭(`F64`), 아키텍처(`X86`), C 표준(`C99`), 컴파일러 오류 코드(`TS2322`, Rust `E0308`)에 맞는다는 것을 합성 줄로 확인했다. 그래서 기본 `BUILTIN_PUBLIC` 에 `[FIUS](8|16|32|64|128)`, `X86`, `C(89|90|99|11|17|23)`, `TS\d{4}`, `E0\d{3}` 를 더했다(하이픈 있는 `D-09` 류는 그대로 잡힌다). 회귀 테스트가 있다. 하이픈 없는 `D21` 꼴 원장은 여전히 잡힌다(실제 이력이므로 의도).
+- `escaped character` 2건은 claude-doctor 훅 소스·테스트 주석의 `·` 이다(수정 전 커밋을 재생한 것). 새 검사가 3라운드가 지적한 우회를 실제로 잡는다는 확인이다.
+- non-keyboard symbol 은 coderag·vitrine 에서도 가장 많다(vitrine 은 영어 주석의 긴 줄표가 전부). 기호 글자 순위(전 저장소 합): 긴 줄표 136, 화살표 128, 가운뎃점 112, 절 기호 96, 줄임표 15.
+- invisible 1건(coderag)은 `experiments/team-audit/build_corpus.py` 의 bidi 공격 샘플 문자열이 주석 줄에 걸린 것이다(코퍼스 용도라 의도).
+- 설계 메모: coderag 의 `claude-doctor `decisions/D-09.md`` 처럼 경로를 인용한 주석이 `D-09` 로 잡힌다(`.md` 경로 면제는 문서 쪽만 있다). 코드 주석에도 같은 면제를 줄지는 결정이 필요하고, 여기서는 건드리지 않았다.
