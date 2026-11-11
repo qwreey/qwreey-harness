@@ -41,7 +41,17 @@
         ]
       },
       {
-        "matcher": "Agent",
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.claude/hooks/comment-hygiene.py",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",

@@ -40,6 +40,9 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 | | away 예산 도달(1단계) → 직렬화 + 재고 리마인더(compact 회차·away 선언마다 한 번) | warn |
 | | away 예산 2배(2단계) → 새 Agent·Workflow deny(`halt: …`; 전체 지시는 회차·away 선언마다 한 번, 이후 짧게) | action |
 | | attended 큰 팬아웃(동시 4+, opus 이상 2+, Workflow) → 사용자에게 규모 고지(팬아웃 묶음·회차마다 한 번) | warn |
+| | away 중 메인 단독 작업: 예산 도달(1단계) → 재고 리마인더(PostToolUse 모든 도구, 회차·away 선언마다 한 번) | warn |
+| | away 중 메인 단독 작업: 예산 2배(2단계) → `halt:` 진척 기록 후 대기(같은 경로, 한 번. 강제 중단 없음) | action |
+| comment-hygiene | 추가한 주석 줄에 작업 이력(원장 번호·날짜·라운드·`.claude/` 등 경로·결정 문구)이 있음. 파일·줄·이유와 rules/comments.md 경로(파일마다 회차당 한 번) | info |
 |   (이중 구조) | 메인의 말 고지는 CLAUDE.md 가 2개부터, 훅 warn 은 4개부터다. 의도된 설계: 훅은 메인이 고지를 놓쳤을 때의 보강이라 일부러 더 늦게 울린다(둘 다 2면 warn 이 잦아 무뎌진다). `audit/21` §5-3 | - |
 | | away 중 허용된 Workflow(내부 동시성은 슬롯 밖) | warn |
 

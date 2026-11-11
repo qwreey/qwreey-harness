@@ -1,0 +1,131 @@
+{
+  "id": "0001-harness-base",
+  "why": "하네스가 넣는 훅·statusLine·claude-doctor 마켓과 그 플러그인(정본 settings.json 에서 옮김). 사용자 개인 값은 넣지 않는다",
+  "ops": [
+    {
+      "op": "hook-upsert",
+      "event": "PreToolUse",
+      "command": "python3 $HOME/.claude/hooks/heavy-proc-guard.py",
+      "matcher": "Bash"
+    },
+    {
+      "op": "hook-upsert",
+      "event": "PreToolUse",
+      "command": "python3 $HOME/.claude/hooks/bash-bypass-reminder.py",
+      "matcher": "Bash",
+      "fields": {
+        "timeout": 10
+      }
+    },
+    {
+      "op": "hook-upsert",
+      "event": "PreToolUse",
+      "command": "python3 $HOME/.claude/hooks/subagent-slots.py",
+      "matcher": "Agent|Workflow",
+      "fields": {
+        "timeout": 10
+      }
+    },
+    {
+      "op": "hook-upsert",
+      "event": "PostToolUse",
+      "command": "python3 $HOME/.claude/hooks/structure-reminder.py",
+      "matcher": "Write|Edit|Bash",
+      "fields": {
+        "timeout": 10
+      }
+    },
+    {
+      "op": "hook-upsert",
+      "event": "PostToolUse",
+      "command": "python3 $HOME/.claude/hooks/comment-hygiene.py",
+      "matcher": "Write|Edit|MultiEdit",
+      "fields": {
+        "timeout": 10
+      }
+    },
+    {
+      "op": "hook-upsert",
+      "event": "PostToolUse",
+      "command": "python3 $HOME/.claude/hooks/subagent-slots.py",
+      "matcher": "*",
+      "fields": {
+        "timeout": 10
+      }
+    },
+    {
+      "op": "hook-upsert",
+      "event": "SessionStart",
+      "command": "python3 $HOME/.claude/hooks/rearm-on-compact.py",
+      "matcher": "compact",
+      "fields": {
+        "timeout": 5
+      }
+    },
+    {
+      "op": "hook-upsert",
+      "event": "SubagentStart",
+      "command": "python3 $HOME/.claude/hooks/subagent-slots.py",
+      "fields": {
+        "timeout": 10
+      }
+    },
+    {
+      "op": "hook-upsert",
+      "event": "SubagentStop",
+      "command": "python3 $HOME/.claude/hooks/subagent-slots.py",
+      "fields": {
+        "timeout": 10
+      }
+    },
+    {
+      "op": "hook-upsert",
+      "event": "Stop",
+      "command": "python3 $HOME/.claude/hooks/subagent-slots.py",
+      "fields": {
+        "timeout": 10
+      }
+    },
+    {
+      "op": "set",
+      "path": [
+        "statusLine"
+      ],
+      "value": {
+        "type": "command",
+        "command": "python3 $HOME/.claude/statusline/harness-status.py",
+        "refreshInterval": 10
+      }
+    },
+    {
+      "op": "set",
+      "path": [
+        "cleanupPeriodDays"
+      ],
+      "value": 180,
+      "keep_existing": true
+    },
+    {
+      "op": "set",
+      "path": [
+        "extraKnownMarketplaces",
+        "claude-doctor-market"
+      ],
+      "value": {
+        "source": {
+          "source": "directory",
+          "path": "/code/Projects/claude-doctor"
+        }
+      }
+    },
+    {
+      "op": "set",
+      "path": [
+        "enabledPlugins",
+        "second-opinion@claude-doctor-market"
+      ],
+      "value": true,
+      "keep_existing": true
+    }
+  ]
+}

@@ -444,6 +444,75 @@ check("main still gets its own fan-out warn after the subagent consumed one", "L
 _, main_pre2 = nn.pre()
 check("main dedup within the burst is unchanged (silent)", ctx(main_pre2) == "")
 
+# ---- away 중 메인 단독 작업: 모든 도구의 PostToolUse 에서 1·2단계 안내 ----
+def post_read(sx, agent=None, env=None):
+    d = sx.base(hook_event_name="PostToolUse", tool_name="Read", tool_use_id=f"r{time.time()}", tool_input={"file_path": "/x"}, tool_response={})
+    if agent:
+        d["agent_id"] = agent
+    return hook(d, env or sx.env)
+
+
+def force_eval(sx):  # 15초 간격 제한을 건너뛴다
+    sp = os.path.join(T, "claude-subagent-slots", sx.sid + ".json")
+    st_ = json.load(open(sp))
+    st_["main_eval"] = 0
+    json.dump(st_, open(sp, "w"))
+
+
+check("main-solo: fast path file name == ledger state_path", os.path.basename(L.state_path("m1")) == "m1.json" and os.path.basename(os.path.dirname(L.state_path("m1"))) == "claude-subagent-slots")
+m = S("m1")
+check("main-solo: no state file -> silent", post_read(m) is None)
+open(m.tp, "a").write(usage_line("mm1", "claude-opus-5-5", out=300_000))  # $7.5
+check("main-solo: attended (no away) -> silent even with spend", post_read(m) is None)
+cli("away", "m1", "$10", "2")
+check("main-solo: away on, below budget -> silent", post_read(m) is None)
+open(m.tp, "a").write(usage_line("mm2", "claude-opus-5-5", out=600_000))  # +$12 -> over $10
+force_eval(m)
+o1 = post_read(m)
+check("main-solo: stage 1 -> one warn, PostToolUse event", 'level="warn"' in ctx(o1) and o1["hookSpecificOutput"]["hookEventName"] == "PostToolUse" and "Away budget reached" in ctx(o1))
+check("main-solo: stage 1 only once per epoch", post_read(m) is None)
+check("main-solo: stage 1 notice is not a deny", not denied(o1))
+open(m.tp, "a").write(usage_line("mm3", "claude-opus-5-5", out=500_000))  # +$10 -> $22 >= 20
+force_eval(m)
+o2 = post_read(m)
+check("main-solo: stage 2 -> action 'halt:' with progress-file instruction", 'level="action"' in ctx(o2) and "halt:" in ctx(o2) and "progress file" in ctx(o2))
+check("main-solo: stage 2 only once per epoch", post_read(m) is None)
+check("main-solo: nothing is stopped (no decision field)", "permissionDecision" not in json.dumps(o2) and "decision" not in o2)
+check("main-solo: subagent (agent_id) call gets nothing", post_read(m, agent="zz") is None)
+subprocess.run([sys.executable, "-I", os.path.join(H, "rearm-on-compact.py")], input=json.dumps({"session_id": "m1", "source": "compact"}), text=True, env=ENV)
+check("main-solo: new compact epoch -> stage 2 again", "halt:" in ctx(post_read(m)))
+m2 = S("m2")
+open(m2.tp, "a").write(usage_line("mx1", "claude-opus-5-5", out=900_000))  # $22.5 before away
+cli("away", "m2", "$10", "2")
+check("main-solo: spend before /away is not counted", post_read(m2) is None)
+open(m2.tp, "a").write(usage_line("mx2", "claude-opus-5-5", out=1_100_000))  # +$22 after away
+force_eval(m2)
+check("main-solo: stage 2 from the main's own spend", "halt:" in ctx(post_read(m2)))
+_, d2 = m2.pre()
+check("main-solo: later Agent deny is the short form (notice already given)", denied(d2) and "still in effect" in reason(d2))
+a = S("m3")
+_, aid3 = a.launch()
+check("main-solo: Agent PostToolUse still tracks the running agent", aid3 in a.state()["running"])
+check("main-solo: off switch -> silent", post_read(m2, env=dict(ENV, HARNESS_SUBAGENT_SLOTS="off")) is None)
+
+
+def timeit(sx, n=20, **kw):
+    t0 = time.perf_counter()
+    for _ in range(n):
+        post_read(sx, **kw)
+    return (time.perf_counter() - t0) / n * 1000
+
+
+base_ms = timeit(S("lat-none"))
+t0 = time.perf_counter()
+for _ in range(20):
+    subprocess.run([sys.executable, "-I", "-c", "pass"], capture_output=True)
+py_ms = (time.perf_counter() - t0) / 20 * 1000
+cli("away", "lat-away", "$100")
+away_ms = timeit(S("lat-away"))
+print(f"latency per PostToolUse call: not-away {base_ms:.1f} ms, away {away_ms:.1f} ms (bare python -I startup {py_ms:.1f} ms)")
+check("main-solo: not-away path costs < 10 ms over bare python startup", base_ms - py_ms < 10)
+
 # ---- 끄기·잘못된 입력 ----
 check("off switch -> no output", hook({"session_id": "off", "hook_event_name": "PreToolUse", "tool_name": "Agent", "tool_input": {}},
                                       dict(ENV, HARNESS_SUBAGENT_SLOTS="off")) is None)

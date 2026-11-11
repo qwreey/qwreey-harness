@@ -5,6 +5,12 @@
 #   tools/home-sync.sh diff     정본에서 실제로 가는 diff 를 보여준다 (apply 하면 바뀔 내용)
 #   tools/home-sync.sh pull     실제 -> 정본으로 가져온다. /config 등으로 실제 쪽만 바뀐 경우에 쓴다
 #   tools/home-sync.sh apply    정본 -> 실제로 복사한다. 사용자가 diff 를 검토한 뒤 직접 실행한다
+#   tools/home-sync.sh new-migration <slug>   home/settings-migrations/ 에 다음 번호의 빈 마이그레이션을 만든다
+#
+# settings.json 은 복사하지 않는다(MANIFEST 에 없음). 정본은 home/settings-migrations/NNNN-<slug>.json 이고,
+#   apply 가 아직 적용하지 않은 것만 순서대로 한 번씩 적용한다(tools/settings-migrate.py). 적용한 id 는 $DST/.home-sync-migrations.
+#   마이그레이션에 없는 값(사용자 플러그인·권한·/config 값)은 건드리지 않고, 적용 뒤 사용자가 바꾼 값도 되돌리지 않는다.
+#   실패하면 그 마이그레이션만 되돌린다. 연산 종류는 settings-migrate.py 머리 주석.
 #   (status 는 고아도 보고한다: 이전에 관리했지만 MANIFEST 에서 빠진 항목, 관리 디렉터리의 끊어진 링크. 지우지는 않고 제거 명령만 제안한다)
 #   tools/home-sync.sh env      harness.env 를 푼 값(MANIFEST 링크 대상에 쓰이는 변수)을 보여준다
 #
@@ -17,7 +23,13 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 SRC="$ROOT/home/.claude"
 DST="${CLAUDE_HOME:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}}"
-mapfile -t FILES < <(grep -v '^\s*#' "$ROOT/home/MANIFEST" | grep -v '^\s*$' | grep -v '^link ')
+mapfile -t FILES < <(grep -v '^\s*#' "$ROOT/home/MANIFEST" | grep -v '^\s*$' | grep -v '^link ' | grep -vx 'settings.json')
+MIG_DIR="$ROOT/home/settings-migrations"
+MIG_REC="$DST/.home-sync-migrations"
+migrate() { # $1 = run|status, 나머지는 settings-migrate.py 에 전달
+  local c=$1; shift
+  python3 -I "$ROOT/tools/settings-migrate.py" "$c" --settings "$DST/settings.json" --dir "$MIG_DIR" --records "$MIG_REC" "$@"
+}
 # 링크 항목: "link <~/.claude 기준 경로> <대상(변수 가능)>"
 mapfile -t LINKS < <(grep '^link ' "$ROOT/home/MANIFEST" | cut -d' ' -f2-)
 
@@ -84,6 +96,7 @@ links() {
 STATE="$DST/.home-sync-managed"
 declare -A CUR=()
 for f in "${FILES[@]}"; do CUR[$f]=1; done
+CUR[settings.json]=1   # 복사 대상은 아니지만 마이그레이션이 다루므로 고아가 아니다
 for l in "${LINKS[@]}"; do CUR[${l%% *}]=1; done
 ORPHANS=()
 if [[ -f "$STATE" ]]; then ORPHAN_SRC="상태 파일"; else ORPHAN_SRC="git 이력 후보(상태 파일 없음)"; fi
@@ -139,6 +152,7 @@ cmd=${1:-status}
 case "$cmd" in
   status)
     links status
+    [[ -d "$MIG_DIR" ]] && { printf '%-40s ' settings.json; migrate status; }
     for f in "${FILES[@]}"; do
       if [[ ! -e "$SRC/$f" ]]; then printf '%-40s 정본에 없음\n' "$f"
       elif [[ ! -e "$DST/$f" ]]; then printf '%-40s 실제에 없음 (apply 필요)\n' "$f"
@@ -149,10 +163,18 @@ case "$cmd" in
     orphans_report ;;
   diff)
     links diff
+    if [[ -d "$MIG_DIR" ]]; then
+      tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+      [[ -e "$DST/settings.json" ]] && cp "$DST/settings.json" "$tmp/actual.json" || echo '{}' > "$tmp/actual.json"
+      migrate run --dry-run --out "$tmp/result.json" || echo "(마이그레이션 계획 실패)"
+      diff -u --label "~/.claude/settings.json (실제)" --label "settings.json (마이그레이션 적용 후)" \
+        <(jq -S . "$tmp/actual.json") <(jq -S . "$tmp/result.json") || true
+    fi
     for f in "${FILES[@]}"; do
       diff -u --label "~/.claude/$f (실제)" --label "home/.claude/$f (정본)" "$DST/$f" "$SRC/$f" 2>/dev/null || true
     done ;;
   pull)
+    echo "(settings.json 은 pull 대상이 아니다: 실제에서 가져올 값은 home/settings-migrations/ 에 마이그레이션으로 쓴다. new-migration 참고)"
     for f in "${FILES[@]}"; do
       [[ -e "$DST/$f" ]] || continue
       if ! cmp -s "$SRC/$f" "$DST/$f" 2>/dev/null; then
@@ -171,6 +193,7 @@ case "$cmd" in
         exit 2
       fi
     fi
+    if [[ -d "$MIG_DIR" ]]; then migrate run || exit $?; fi
     links apply
     for f in "${FILES[@]}"; do
       [[ -e "$SRC/$f" ]] || continue
@@ -181,8 +204,16 @@ case "$cmd" in
     done
     write_state
     [[ -f "$DST/settings.json" ]] && { jq -e . "$DST/settings.json" >/dev/null && echo "settings.json JSON OK"; } ;;
+  new-migration)
+    slug=${2:?usage: $0 new-migration <slug>}
+    [[ $slug =~ ^[a-z0-9][a-z0-9-]*$ ]] || { echo "slug 는 소문자·숫자·하이픈" >&2; exit 2; }
+    mkdir -p "$MIG_DIR"
+    last=$(ls "$MIG_DIR" 2>/dev/null | sed -n 's/^\([0-9]\{4\}\)-.*/\1/p' | sort | tail -1)
+    id=$(printf '%04d-%s' $((10#${last:-0} + 1)) "$slug")
+    printf '{\n  "id": "%s",\n  "why": "",\n  "ops": []\n}\n' "$id" > "$MIG_DIR/$id.json"
+    echo "created home/settings-migrations/$id.json" ;;
   env)
     echo "# harness.env: $([[ -f "$ENVFILE" ]] && echo "$ENVFILE" || echo "(없음 — 기본값)")"
     for k in $(printf '%s\n' "${!HENV[@]}" | sort); do printf '%s=%s\n' "$k" "${HENV[$k]}"; done ;;
-  *) echo "usage: $0 [status|diff|pull|apply|env]" >&2; exit 2 ;;
+  *) echo "usage: $0 [status|diff|pull|apply|new-migration|env]" >&2; exit 2 ;;
 esac

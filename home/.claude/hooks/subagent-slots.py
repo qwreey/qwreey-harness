@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """서브에이전트 고지·슬롯 훅. 한 파일이 이벤트 이름으로 나눠 처리한다.
 
-등록(settings.json): PreToolUse(Agent|Workflow), PostToolUse(Agent), SubagentStart, SubagentStop, Stop.
+등록(settings.json): PreToolUse(Agent|Workflow), PostToolUse(모든 도구), SubagentStart, SubagentStop, Stop.
 설계: audit/21-cost-disclosure.md. 원장: lib/subagent_ledger.py. 메시지 규약: HOOK-MESSAGES.md.
 
 - attended(기본): 막지 않는다. 큰 팬아웃(동시 N 개 이상, opus 이상 M 개 이상, Workflow)이면 warn 으로
@@ -9,20 +9,33 @@
 - away(사용자가 /away 로 선언): 실행 중 수가 슬롯 이상이면 deny(사유 "queue: …", level=action). 세션은 멈추지 않는다.
   예산을 넘기면(1단계) 슬롯을 HARNESS_AWAY_OVER_SLOTS(기본 1)로 줄여 직렬화하고, 메인에 재고 리마인더를 한 번 준다.
   예산의 2배를 넘으면(2단계) 새 Agent·Workflow 를 모두 deny(`halt: …`, level=action): 진척 파일에 상태를 적고 사용자를 기다리라는 지시.
-  메인을 강제로 끊지는 않는다. 예산 단위는 USD·에이전트 수·한도 %(statusline 이 쓴 <sid>.limits.json 을 읽는다).
+  메인을 강제로 끊지는 않는다. 메인이 서브에이전트 없이 혼자 일해도 PostToolUse(모든 도구)에서 같은 안내(1단계 warn, 2단계 action)를 한 번 받는다(main_notice).
+  평소(away 아님)에는 상태 파일을 열어 away.on 만 보고 즉시 끝난다(원장 모듈을 적재하지 않는다).
+  예산 단위는 USD·에이전트 수·한도 %(statusline 이 쓴 <sid>.limits.json 을 읽는다).
 - 세는 법: PreToolUse 에서 예약(+1) → PostToolUse(async_launched)·SubagentStart 에서 실행 중으로 → SubagentStop 에서 −1.
   어긋남 복구: lib/subagent_ledger.live() (background_tasks, meta.json, 트랜스크립트 mtime, 예약 TTL). 수동: /away reset.
 끄기: HARNESS_SUBAGENT_SLOTS=off. 실패해도 아무것도 막지 않는다(예외는 삼킨다).
 """
-import importlib.util
-import json
 import os
-import re
 import sys
-import time
-from pathlib import Path
 
-HOME = Path(__file__).resolve().parent.parent
+MAIN_EVAL_SEC = 15  # away 중 메인 단독 안내: 트랜스크립트 증분 읽기 간격
+# json·re·importlib·pathlib·time 은 느려서(실측 합 약 15 ms) 모든 도구의 PostToolUse 가 지나가는 길에서는 적재하지 않는다. 필요한 길에서 _late() 가 적재한다.
+json = re = importlib = time = Path = HOME = None
+
+
+def _late():
+    global json, re, importlib, time, Path, HOME
+    import json as _j
+    import re as _r
+    json, re = _j, _r
+    import importlib.util  # noqa: F401  (global importlib 에 묶인다)
+    import time as _t
+    from pathlib import Path as _P
+    time, Path = _t, _P
+    HOME = _P(__file__).resolve().parent.parent
+
+
 BUILTIN = {"general-purpose", "fork", "Explore", "Plan", "claude", "statusline-setup", "claude-code-guide"}
 
 
@@ -188,6 +201,66 @@ def pre_workflow(L, st, data, cfg, now):
     return out
 
 
+def quick_not_away(raw):
+    """모든 도구의 PostToolUse 가 지나가는 길. json 을 적재하기 전에 원문에서 session_id 만 뽑아 상태 파일의 away.on 을 본다.
+    '확실히 away 가 아님'일 때만 True(그대로 종료). 조금이라도 불확실하면 False 라 정상 경로가 판단한다.
+    상태 파일 위치는 lib/subagent_ledger.state_path 와 같은 규칙(테스트가 일치를 확인한다)."""
+    if '"PostToolUse"' not in raw or '"Agent"' in raw or '"Task"' in raw:
+        return False
+    i = raw.find('"session_id"')
+    if i < 0:
+        return False
+    j = raw.find('"', raw.find(":", i) + 1)
+    k = raw.find('"', j + 1)
+    if j < 0 or k < 0:
+        return False
+    sid = "".join(c for c in raw[j + 1:k] if c.isalnum() or c in "_-") or "nosession"
+    tmp = os.environ.get("TMPDIR") or os.environ.get("TEMP") or os.environ.get("TMP") or "/tmp"  # tempfile.gettempdir() 와 같은 순서
+    try:
+        with open(os.path.join(tmp, "claude-subagent-slots", sid + ".json")) as f:
+            return '"on": true' not in f.read()  # 싼 거름: away 가 켜진 상태 파일만 정상 경로로 보낸다
+    except OSError:
+        return True
+
+
+def main_notice(L, st, data, cfg, now):
+    """away 중 메인(agent_id 없음)이 서브에이전트 없이 일할 때 받는 안내. 도구 호출마다 불린다.
+    트랜스크립트 읽기(account_main)는 MAIN_EVAL_SEC 초에 한 번만. 안내는 (호출한 쪽, 회차, away 선언)당 한 번이고
+    pre_agent·stage2_deny 와 같은 notes 키를 써서, 이미 받았으면 거기서는 짧게/조용히 지나간다."""
+    if data.get("agent_id") or not (st.get("away") or {}).get("on"):
+        return None
+    if now - st.get("main_eval", 0) >= MAIN_EVAL_SEC:
+        st["main_eval"] = now
+        L.account_main(st, data.get("transcript_path"))
+    away = st["away"]
+    ev = L.away_check(st, cfg, L.read_limits(data.get("session_id")), now)
+    if not ev or ev["level"] < 1:
+        return None
+    key = f"{L.epoch(data.get('session_id'))}:{away.get('since')}"
+    if ev["level"] >= 2:
+        if st["notes"].get("stage2:main") == key:
+            return None
+        st["notes"]["stage2:main"] = key
+        st["notes"]["over:main"] = key
+        L.log(st, "stage2-main-notice")
+        return post_context(tag("action",
+                                f"halt: the away budget's stage 2 is reached ({ev['why']}). New subagents and workflows are refused until the user returns; "
+                                f"you are working on your own, so nothing else is stopped. Write the current state to the progress file (or the session notes) now: "
+                                f"what is done, what is running, what is next, and what needs the user's decision. Then wait for the user; "
+                                f"finish the small step in hand but start no new large work."))
+    if st["notes"].get("over:main") == key:
+        return None
+    st["notes"]["over:main"] = key
+    L.log(st, "over-main-notice")
+    return post_context(tag("warn",
+                            f"Away budget reached ({ev['why']}). Nothing is stopped. If you spawn subagents they now run {away.get('over_slots', 1)} at a time. "
+                            f"Reconsider whether the remaining work is worth the spend, prefer small steps over large new work, and mention this in your next report to the user."))
+
+
+def post_context(text):
+    return {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": text}}
+
+
 def post_agent(L, st, data, cfg, now):
     tr = data.get("tool_response") if isinstance(data.get("tool_response"), dict) else {}
     r = st["reserved"].pop(data.get("tool_use_id") or "", None) or {}
@@ -202,6 +275,13 @@ def post_agent(L, st, data, cfg, now):
         st["running"].pop(aid, None)
         L.account_agent(st, aid, None)
     return None
+
+
+def post_tool(L, st, data, cfg, now):
+    """PostToolUse(모든 도구): Agent·Task 는 먼저 원장을 갱신하고, 그다음 메인이면 away 안내를 본다."""
+    if data.get("tool_name") in ("Agent", "Task"):
+        post_agent(L, st, data, cfg, now)
+    return main_notice(L, st, data, cfg, now)
 
 
 def subagent_start(L, st, data, cfg, now):
@@ -260,8 +340,7 @@ HANDLERS = {
     ("PreToolUse", "Agent"): pre_agent,
     ("PreToolUse", "Task"): pre_agent,
     ("PreToolUse", "Workflow"): pre_workflow,
-    ("PostToolUse", "Agent"): post_agent,
-    ("PostToolUse", "Task"): post_agent,
+    ("PostToolUse", None): post_tool,
     ("SubagentStart", None): subagent_start,
     ("SubagentStop", None): subagent_stop,
     ("Stop", None): stop,
@@ -269,14 +348,22 @@ HANDLERS = {
 
 
 def main():
+    raw = sys.stdin.read()
+    if quick_not_away(raw) or os.environ.get("HARNESS_SUBAGENT_SLOTS", "").lower() in ("off", "0", "no") and '"PostToolUse"' in raw:
+        return 0
+    _late()
     try:
-        data = json.load(sys.stdin)
+        data = json.loads(raw)
     except Exception:
         return 0
     ev = data.get("hook_event_name")
     fn = HANDLERS.get((ev, data.get("tool_name"))) or HANDLERS.get((ev, None))
     if not fn:
         return 0
+    if ev == "PostToolUse" and data.get("tool_name") not in ("Agent", "Task"):
+        # 서브에이전트 안의 호출은 안내 대상이 아니다(메인만)
+        if data.get("agent_id"):
+            return 0
     try:
         L = load_ledger()
         cfg = L.config(os.environ.get("CLAUDE_PROJECT_DIR") or data.get("cwd"))

@@ -1,12 +1,13 @@
 # claude-doctor 가 정본을 관리하는 ~/.claude 하위 경로 (한 줄에 하나, ~/.claude 기준 상대경로)
 # 여기 없는 것(projects/, sessions/, plugins/, skills/synced/, history.jsonl, .credentials.json 등)은 런타임 상태라 관리하지 않는다.
-settings.json
+# (settings.json 은 복사하지 않는다 — home/settings-migrations/ 의 마이그레이션으로 적용)
 CLAUDE.md
 harness.env
 lib/harness_env.py
 hooks/heavy-proc-guard.py
 hooks/bash-bypass-reminder.py
 hooks/structure-reminder.py
+hooks/comment-hygiene.py
 hooks/rearm-on-compact.py
 lib/compact_epoch.py
 hooks/subagent-slots.py
@@ -23,4 +24,5 @@ link skills/harness-doctor ${HARNESS_DOCTOR_ROOT}/home/.claude/skills/harness-do
 # 툴킷 luau — 공유 지식 luau-kb (플러그인 마켓으로 옮기면 이 줄들은 지운다)
 link rules/luau-core.md ${HARNESS_WORKSPACE}/luau-kb/rules/luau-core.md
 rules/code-structure.md
+rules/comments.md
 rules/web-security.md

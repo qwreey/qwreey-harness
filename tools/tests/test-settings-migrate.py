@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+"""settings-migrate.py 테스트. 실행: python3 tools/tests/test-settings-migrate.py"""
+import importlib.util, json, os, subprocess, sys, tempfile, unittest, unittest.mock
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+MOD = os.path.join(HERE, "..", "settings-migrate.py")
+spec = importlib.util.spec_from_file_location("sm", MOD)
+sm = importlib.util.module_from_spec(spec); spec.loader.exec_module(sm)
+HOOK = "python3 $HOME/.claude/hooks/a.py"
+
+
+class Env:
+    def __init__(self, tc, settings=None, migs=()):
+        self.d = tempfile.mkdtemp(); tc.addCleanup(lambda: __import__("shutil").rmtree(self.d, ignore_errors=True))
+        self.s = os.path.join(self.d, "settings.json"); self.m = os.path.join(self.d, "migs"); self.r = os.path.join(self.d, ".rec")
+        os.makedirs(self.m)
+        if settings is not None:
+            with open(self.s, "w") as f:
+                f.write(settings if isinstance(settings, str) else json.dumps(settings))
+        for i, m in enumerate(migs):
+            self.add(m)
+
+    def add(self, m):
+        with open(os.path.join(self.m, m["id"] + ".json"), "w") as f:
+            json.dump(m, f)
+
+    def run(self, *extra):
+        return sm.main(["run", "--settings", self.s, "--dir", self.m, "--records", self.r, "--quiet", *extra])
+
+    def get(self):
+        return json.load(open(self.s))
+
+    def recs(self):
+        return open(self.r).read().split() if os.path.exists(self.r) else []
+
+
+def mig(id, *ops):
+    return {"id": id, "why": "t", "ops": list(ops)}
+
+
+def enable(p, v=True, **kw):
+    return {"op": "set", "path": ["enabledPlugins", p], "value": v, **kw}
+
+
+class T(unittest.TestCase):
+    def test_user_plugin_preserved_managed_added(self):
+        e = Env(self, {"enabledPlugins": {"mine@x": True}}, [mig("0001-a", enable("m@claude-doctor-market"))])
+        self.assertEqual(e.run(), 0)
+        self.assertEqual(e.get()["enabledPlugins"], {"mine@x": True, "m@claude-doctor-market": True})
+
+    def test_user_disabled_not_reenabled(self):
+        e = Env(self, {}, [mig("0001-a", enable("m@claude-doctor-market"))])
+        e.run()
+        s = e.get(); s["enabledPlugins"]["m@claude-doctor-market"] = False
+        open(e.s, "w").write(json.dumps(s))
+        self.assertEqual(e.run(), 0)  # 이미 적용됨
+        self.assertFalse(e.get()["enabledPlugins"]["m@claude-doctor-market"])
+        # 새 마이그레이션이 다른 항목을 건드려도 꺼둔 값은 그대로
+        e.add(mig("0002-b", enable("n@claude-doctor-market")))
+        e.run()
+        self.assertFalse(e.get()["enabledPlugins"]["m@claude-doctor-market"])
+        self.assertTrue(e.get()["enabledPlugins"]["n@claude-doctor-market"])
+
+    def test_permissions_add_remove(self):
+        e = Env(self, {"permissions": {"allow": ["Bash(ls)", "Old"], "defaultMode": "auto"}},
+                [mig("0001-a", {"op": "add", "path": "permissions.allow", "items": ["New", "Bash(ls)"]},
+                     {"op": "remove", "path": "permissions.allow", "items": ["Old"]},
+                     {"op": "add", "path": "permissions.deny", "items": ["X"]})])
+        e.run()
+        p = e.get()["permissions"]
+        self.assertEqual(p["allow"], ["Bash(ls)", "New"]); self.assertEqual(p["deny"], ["X"]); self.assertEqual(p["defaultMode"], "auto")
+
+    def test_hooks_user_kept_managed_upserted(self):
+        user = {"matcher": "Bash", "hooks": [{"type": "command", "command": "mine.sh"}]}
+        old = {"matcher": "Bash", "hooks": [{"type": "command", "command": "python3 /home/u/.claude/hooks/a.py", "timeout": 1}]}
+        e = Env(self, {"hooks": {"PreToolUse": [user, old]}},
+                [mig("0001-a", {"op": "hook-upsert", "event": "PreToolUse", "matcher": "Bash", "command": HOOK, "fields": {"timeout": 9}},
+                     {"op": "hook-upsert", "event": "Stop", "command": HOOK})])
+        with unittest.mock.patch.dict(os.environ, {"HOME": "/home/u"}):
+            e.run()
+        h = e.get()["hooks"]
+        self.assertEqual(h["PreToolUse"][0], user)
+        self.assertEqual(h["PreToolUse"][1]["hooks"], [{"type": "command", "command": HOOK, "timeout": 9}])  # 같은 command(HOME 풀어 비교) 교체
+        self.assertEqual(h["Stop"], [{"hooks": [{"type": "command", "command": HOOK}]}])
+
+    def test_hook_remove(self):
+        g = {"hooks": [{"type": "command", "command": HOOK}]}
+        e = Env(self, {"hooks": {"Stop": [g]}}, [mig("0001-a", {"op": "hook-remove", "event": "Stop", "command": HOOK})])
+        e.run()
+        self.assertNotIn("hooks", e.get())
+
+    def test_unmanaged_top_keys_kept(self):
+        auto = {"environment": ["x"]}
+        e = Env(self, {"autoMode": auto, "theme": "dark"}, [mig("0001-a", {"op": "set", "path": "cleanupPeriodDays", "value": 5})])
+        e.run()
+        s = e.get(); self.assertEqual(s["autoMode"], auto); self.assertEqual(s["theme"], "dark"); self.assertEqual(s["cleanupPeriodDays"], 5)
+
+    def test_keep_existing_and_delete(self):
+        e = Env(self, {"a": 1, "b": 2}, [mig("0001-a", {"op": "set", "path": "a", "value": 9, "keep_existing": True}, {"op": "delete", "path": "b"})])
+        e.run()
+        self.assertEqual(e.get(), {"a": 1})
+
+    def test_idempotent_and_records(self):
+        ms = [mig("0001-a", enable("m@claude-doctor-market"), {"op": "hook-upsert", "event": "Stop", "command": HOOK})]
+        e = Env(self, {}, ms)
+        e.run(); first = open(e.s).read()
+        self.assertEqual(e.recs(), ["0001-a"])
+        e.run(); self.assertEqual(open(e.s).read(), first); self.assertEqual(e.recs(), ["0001-a"])
+        # 기록을 지워 다시 적용해도 결과 같음(연산 멱등)
+        os.remove(e.r); e.run(); self.assertEqual(open(e.s).read(), first)
+        self.assertEqual([f for f in os.listdir(e.d) if ".bak-" in f].__len__() <= 2, True)
+
+    def test_first_apply_no_records_file_and_no_settings(self):
+        e = Env(self, None, [mig("0001-a", {"op": "set", "path": "x", "value": 1})])
+        self.assertFalse(os.path.exists(e.r))
+        self.assertEqual(e.run(), 0); self.assertEqual(e.get(), {"x": 1})
+
+    def test_failure_rolls_back_that_migration_only(self):
+        e = Env(self, {"a": "str"}, [mig("0001-ok", {"op": "set", "path": "b", "value": 1}),
+                                      mig("0002-bad", {"op": "set", "path": "c", "value": 1}, {"op": "set", "path": "a.deep", "value": 1}),
+                                      mig("0003-later", {"op": "set", "path": "d", "value": 1})])
+        self.assertEqual(e.run(), 1)
+        self.assertEqual(e.get(), {"a": "str", "b": 1})  # 0002 의 앞 연산 c 도 되돌림, 0003 은 시도 안 함
+        self.assertEqual(e.recs(), ["0001-ok"])
+
+    def test_unknown_op_fails(self):
+        e = Env(self, {}, [mig("0001-a", {"op": "bogus"})])
+        self.assertEqual(e.run(), 1); self.assertEqual(e.recs(), [])
+
+    def test_broken_json_aborts(self):
+        e = Env(self, "{not json", [mig("0001-a", {"op": "set", "path": "x", "value": 1})])
+        with self.assertRaises(SystemExit) as c:
+            e.run()
+        self.assertEqual(c.exception.code, 2)
+        self.assertEqual(open(e.s).read(), "{not json")
+
+    def test_dry_run_writes_nothing(self):
+        e = Env(self, {}, [mig("0001-a", {"op": "set", "path": "x", "value": 1})])
+        out = os.path.join(e.d, "out.json")
+        e.run("--dry-run", "--out", out)
+        self.assertEqual(e.get(), {}); self.assertEqual(e.recs(), []); self.assertEqual(json.load(open(out)), {"x": 1})
+
+    def test_backup_made(self):
+        e = Env(self, {"k": 1}, [mig("0001-a", {"op": "set", "path": "x", "value": 1})])
+        e.run()
+        self.assertTrue(any(".bak-" in f for f in os.listdir(e.d)))
+
+
+if __name__ == "__main__":
+    import unittest.mock
+    unittest.main(verbosity=1)
