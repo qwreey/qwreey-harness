@@ -26,8 +26,7 @@ STYLES = ("plain", "nerd", "minimal", "off")
 GIT_TTL = 10.0  # 더러움 표시(git status)만 캐시한다. 브랜치는 .git/HEAD 를 직접 읽어서 싸다.
 
 # Nerd Font 코드포인트(BMP 사설 영역, Font Awesome 계열). 폰트가 없으면 빈 네모로 보이므로 기본은 plain.
-ICON = {"dir": "", "branch": "", "model": "", "ctx": "", "limit": "", "reset": "",
-        "cost": "", "agents": "", "away": "", "effort": ""}
+ICON = {"dir": "", "model": "", "limit": "", "agents": "", "away": ""}  # 묶음(맥락)마다 아이콘 하나
 
 
 def load_mod(name):
@@ -180,7 +179,7 @@ def build(d, cfg, rl, items, away, paint):
     elif nerd:
         # effort 는 모델 바로 옆, 모델과 같은 색(흐리게 하면 잘 안 보인다).
         add(1, [("cyan", " ".join(x for x in (ic("model"), model, effort) if x)) if model else (None, ""),
-                (pc(pct), ic("ctx") + " " + f"{pct:.0f}%") if ctx_ok else (None, "")])
+                (pc(pct), f"{pct:.0f}%") if ctx_ok else (None, "")])  # 묶음당 아이콘 하나: 모델 아이콘만
     else:
         add(1, [("cyan", " ".join(x for x in (model, effort) if x)), (pc(pct), f"ctx {pct:.0f}%") if ctx_ok else (None, "")])
 
@@ -203,12 +202,12 @@ def build(d, cfg, rl, items, away, paint):
             else:
                 parts[0] = (parts[0][0], "limit " + parts[0][1])
             if left:
-                parts.append((None, (ic("reset") + " " if nerd else "reset ") + fmt_left(min(left))))
+                parts.append((None, ("" if nerd else "reset ") + fmt_left(min(left))))  # nerd 는 한도 아이콘 하나로 충분
             add(2, parts)
     cost = (d.get("cost") or {}).get("total_cost_usd")
     mode = cfg["COST"].strip().lower()
     if isinstance(cost, (int, float)) and not mini and (mode == "always" or (mode != "never" and not lp)):
-        add(2, [(None, (ic("cost") + " " if nerd else "") + f"${cost:.2f}")])
+        add(2, [(None, f"${cost:.2f}")])  # $ 자체가 표지라 아이콘을 붙이지 않는다
 
     # 4. 서브에이전트
     if items and not mini:
