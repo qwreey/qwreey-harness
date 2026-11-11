@@ -9,7 +9,7 @@ allowed-tools: Bash(python3 *subagent_ledger.py *)
 
 Below is the result of running `/q:back` (if output is already there, do not run it again; if only a run instruction is there, run that command once).
 
-!`python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/lib/subagent_ledger.py" back ${CLAUDE_SESSION_ID}`
+!`python3 "${CLAUDE_SKILL_DIR}/../../scripts/subagent_ledger.py" back ${CLAUDE_SESSION_ID}`
 
 ## What to do
 1. Show the summary above to the user (numbers unchanged).

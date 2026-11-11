@@ -13,7 +13,7 @@
 | 코드 | 대상 | 정본 |
 |---|---|---|
 | `DRIFT-TYPEDEFS` | (툴킷 luau) `globalTypes*.d.luau` | luau-kb `typedefs/globalTypes.d.luau` — `toolkits/luau.md#typedefs-사본` |
-| `DRIFT-HOOK` | `heavy-proc-guard.py` 사본 | `<doctor>/home/.claude/hooks/heavy-proc-guard.py` |
+| `DRIFT-HOOK` | `heavy-proc-guard.py` 사본 | `<doctor>/plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py` |
 | `DRIFT-HOOKDUP` | 사용자 레벨과 같은 훅을 프로젝트 settings가 또 등록 | 사용자 레벨 `settings.json` |
 | `DRIFT-DELEGATE` | `agy-delegate.sh`, `skills/delegate-agy` 사본 | 통합안 `<doctor>/drafts/delegate/` (P4) |
 | `DRIFT-UID` | 서로 다른 저장소가 같은 위임 uid를 쓴다. 저장소 안의 사본과 `harness.env`의 `HARNESS_DELEGATE_REGISTRY`(uid 표)를 함께 본다 | uid 표 |

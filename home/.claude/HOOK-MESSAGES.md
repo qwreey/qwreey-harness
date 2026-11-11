@@ -22,22 +22,21 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 
 - 한 태그에 알림이 여럿이면 가장 높은 level 을 단다(info < warn < action). 본문이 어느 알림이 어떤 level 인지 드러나게 쓴다.
 - **deny** 는 하네스가 이미 막으므로 `action`(고정)을 단다. 모델이 재시도 방법을 반드시 따라야 하기 때문이다.
-- 모델에게 아무것도 내지 않는 훅(예: `rearm-on-compact`)은 해당 없음.
+- 모델에게 아무것도 내지 않는 훅(예: 플러그인의 PreCompact 회차 증가 `compact_epoch.py`)은 해당 없음.
 - 과잉 반응 금지: `info` 때문에 작업을 멈추지 않는다. level 은 하네스가 정하며 모델이 올리거나 내리지 않는다.
 
 ### 현재 배정
 | 훅 | 알림 | level |
 |---|---|---|
-| heavy-proc-guard | deny(choom 래핑 요구) | action |
-| bash-bypass-reminder | 셸로 파일 변경(sed -i, 리다이렉트 등) | warn |
+| heavy-proc-guard | (플러그인 `qwreey-proc-guard`, Linux 전용) deny(choom 래핑 요구) | action |
+| bash-bypass-reminder | (플러그인 `qwreey-conventions`) 셸로 파일 변경(sed -i, 리다이렉트 등) | warn |
 | | 해당 rules 파일 안내 | warn |
 | | 인터프리터로 읽기·수정 | info |
-| structure-reminder | 강제 한도(1,500) 초과 | action |
-| memory-placement | auto memory 에 저장소 지식으로 보이는 내용을 씀(경로·명령·규약 신호) | warn |
+| structure-reminder | (플러그인 `qwreey-conventions`) 강제 한도(1,500) 초과 | action |
+| memory-placement | (플러그인 `qwreey-conventions`) auto memory 에 저장소 지식으로 보이는 내용을 씀(경로·명령·규약 신호) | warn |
 | | 경고 한도(800) 초과, 세션 성장, 잘못된 예외 사유, 폴더 파일 과다 | warn |
 | | 유효한 예외 사유 안내, 접두 묶음 제안 | info |
-| rearm-on-compact | (출력 없음) | - |
-| subagent-slots | away 중 슬롯이 차서 deny(사유 `queue: wait for a running agent to finish, then spawn the next`) | action |
+| subagent-slots | (q 플러그인 `scripts/subagent-slots.py`) away 중 슬롯이 차서 deny(사유 `queue: wait for a running agent to finish, then spawn the next`) | action |
 | | away 예산 도달(1단계) → 직렬화 + 재고 리마인더(compact 회차·away 선언마다 한 번) | warn |
 | | away 예산 2배(2단계) → 새 Agent·Workflow deny(`halt: …`; 전체 지시는 회차·away 선언마다 한 번, 이후 짧게) | action |
 | | attended 큰 팬아웃(동시 4+, opus 이상 2+, Workflow) → 사용자에게 규모 고지(팬아웃 묶음·회차마다 한 번) | warn |
@@ -54,21 +53,21 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 - pending(요약 안 된 세션) 알림: `warn`
 - pending 개수나 경과 기간이 임계를 넘으면: `action`
 - 요약 완료 알림: `info`
-- 구현은 이 문서의 표를 따른다. 훅 코드 예: `hooks/structure-reminder.py` 의 `Note`·`top_level`.
+- 구현은 이 문서의 표를 따른다. 훅 코드 예: `plugins/qwreey-conventions/hooks/structure-reminder.py` 의 `Note`·`top_level`.
 
 ## dedup 단위 = session_id + 호출한 쪽(agent_id 또는 main) + compact 회차
 "세션당 한 번" 알림은 session_id 만 키로 쓰면 안 된다. `/compact` 는 session_id 를 유지하는데 요약 과정에서 이전 알림이 맥락에서 사라진다(실측).
-- 공용 함수: `~/.claude/lib/compact_epoch.py` (정본 `home/.claude/lib/compact_epoch.py`)
-  - `state_path(namespace, session_id, agent_id=None)` → `$TMPDIR/<namespace>/<sid>.c<회차>[.a<agent_id>].json`. 디렉터리도 만든다.
+- 공용 모듈: `compact_epoch.py`. 플러그인마다 바이트 같은 사본을 두고(정본 `plugins/q/scripts/compact_epoch.py`, `tools/tests/test-vendored-copies.py` 가 비교) 각자 자기 회차를 갖는다: `$TMPDIR/claude-<플러그인>-epoch/<sid>`. 다른 플러그인·사용자 설정의 훅과 회차를 공유하지 않는다.
+  - `state_path(plugin, namespace, session_id, agent_id=None)` → `$TMPDIR/<namespace>/<sid>.c<회차>[.a<agent_id>].json`. 디렉터리도 만든다.
   - 서브에이전트 안의 훅도 부모의 session_id 를 받는다. 입력의 `agent_id` 를 꼭 넘겨야 서브에이전트가 메인의 "한 번" 알림을 쓰지 않는다(`audit/21` §5-6).
-  - `epoch(session_id)`, `bump(session_id)`.
-- 회차는 `hooks/rearm-on-compact.py` 가 SessionStart(matcher `compact`)에서 올린다(settings.json 에 등록됨). 실측: compact 때 PreCompact → SessionStart(source=compact) → PostCompact 가 모두 불리고 session_id 는 같다.
-- 사용(경로로 모듈 적재, harness_env 와 같은 방식):
+  - `epoch(plugin, session_id)`, `bump(plugin, session_id)`.
+- 회차는 PreCompact(manual·auto)에서 올린다. 같은 이벤트의 훅은 병렬이라 순서가 없는데, PreCompact 는 SessionStart(compact)·PostCompact 보다 먼저라 읽는 훅이 항상 올라간 값을 본다. 훅이 따로 없는 플러그인은 `python3 -I compact_epoch.py <플러그인>` 을 PreCompact 에 등록한다. 실측: compact 때 PreCompact → SessionStart(source=compact) → PostCompact 가 모두 불리고 session_id 는 같다.
+- 사용(플러그인 훅 디렉터리의 사본을 import):
   ```python
-  spec = importlib.util.spec_from_file_location("compact_epoch", home / "lib" / "compact_epoch.py")
-  ce = importlib.util.module_from_spec(spec); spec.loader.exec_module(ce)
-  state_file = ce.state_path("claude-my-hook", data["session_id"], data.get("agent_id"))
+  sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
+  import compact_epoch
+  state_file = compact_epoch.state_path("my-plugin", "claude-my-hook", data["session_id"], data.get("agent_id"))
   ```
-  구현 예: `hooks/bash-bypass-reminder.py` 의 `dedup_path`. lib 가 없으면 session_id 키로 되돌아간다.
-- 테스트: `hooks/tests/test-compact-rearm.py`.
+  구현 예: `plugins/qwreey-conventions/hooks/bash-bypass-reminder.py` 의 `dedup_path`.
+- 테스트: `plugins/q/tests/test_compact_epoch.py`.
 - 참고: 회차가 오르면 structure-reminder 의 "이번 세션 성장" 기준점도 새로 잡힌다.

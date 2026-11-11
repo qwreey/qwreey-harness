@@ -19,6 +19,11 @@
 - [ ] `/code/Projects/stl-luau-doctor` worktree
   - stl-luau 세션이 `doctor/diet` 를 반영하고 나면 지운다: `git -C /code/Projects/stl-luau worktree remove ../stl-luau-doctor`
 
+- [ ] 훅을 플러그인으로 옮긴 뒤 `~/.claude` 에 남는 옛 파일(home-sync 는 MANIFEST 에서 빠진 파일을 지우지 않고 status 가 고아로 보고만 한다). apply 와 마이그레이션 0006 뒤에 지운다
+  - `~/.claude/hooks/{heavy-proc-guard,bash-bypass-reminder,structure-reminder,memory-placement,subagent-slots,rearm-on-compact}.py`
+  - `~/.claude/lib/{compact_epoch,memory_signals,subagent_ledger}.py` (`lib/harness_env.py` 는 남긴다)
+  - 옛 훅이 settings 에 남아 있는 채로 파일만 지우면 훅 오류가 나므로 마이그레이션 0006 을 먼저 적용한다
+
 ## 권한
 - [ ] plugin.json 의 license 필드(session-log 는 MIT 로 적혀 있음)와 luau-kb·coderag LICENSE 를 함께 결정 (auto 모드 분류기가 막거나, 사용자 판단 사항)
 - [x] rbvm, table-sim 의 프로젝트 settings 에서 `git push` deny 를 뺄지 결정 — **인계로 넘김**(2026-11-11, 사용자 추천대로): `handoff/rbvm.md`, `handoff/table-sim.md`

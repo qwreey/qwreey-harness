@@ -1,4 +1,4 @@
-"""compact 회차 모듈 테스트와 사본 동일성 검사. 실행: python3 -I tests/test_compact_epoch.py  (모델 호출 없음)"""
+"""compact 회차 모듈 테스트(사본 동일성은 tools/tests/test-vendored-copies.py). 실행: python3 -I tests/test_compact_epoch.py  (모델 호출 없음)"""
 from __future__ import annotations
 
 import json
@@ -11,7 +11,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CANON = ROOT / "scripts" / "compact_epoch.py"
-COPIES = [ROOT.parent / "qwreey-advisor" / "hooks" / "compact_epoch.py", ROOT.parent / "qwreey-conventions" / "hooks" / "compact_epoch.py"]
 
 
 class CompactEpoch(unittest.TestCase):
@@ -27,10 +26,6 @@ class CompactEpoch(unittest.TestCase):
                            capture_output=True, text=True, env=self.env, timeout=30)
         self.assertEqual(p.returncode, 0, p.stderr)
         return p.stdout.strip()
-
-    def test_copies_identical(self):
-        for c in COPIES:
-            self.assertEqual(c.read_bytes(), CANON.read_bytes(), f"{c} 이 정본과 다르다. 정본을 고치고 복사한다")
 
     def test_bump_per_plugin_namespace(self):
         self.assertEqual(self.py("print(ce.epoch('a','s'), ce.bump('a','s'), ce.bump('a','s'), ce.epoch('a','s'), ce.epoch('b','s'))"), "0 1 2 2 0")

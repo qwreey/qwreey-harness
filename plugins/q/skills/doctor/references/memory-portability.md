@@ -1,7 +1,7 @@
 # 10. 메모리 이식성 (MEM-*)
 
 근거와 실측: `<doctor>/audit/23-memory-portability.md`. auto memory 는 이 컴퓨터의 `~/.claude/projects/<키>/memory/` 파일이라 저장소와 함께 다니지 않는다.
-검사 구현은 `scripts/memory_checks.py`(scan.py 항목 10), 판정 규칙은 `~/.claude/lib/memory_signals.py`(정본 `home/.claude/lib/`).
+검사 구현은 `scripts/memory_checks.py`(scan.py 항목 10), 판정 규칙은 `scripts/memory_signals.py`(qwreey-conventions 의 `hooks/memory_signals.py` 사본).
 
 | 코드 | 뜻 | 판정 |
 |---|---|---|

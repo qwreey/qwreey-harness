@@ -12,7 +12,7 @@ from pathlib import Path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS = os.path.join(os.path.dirname(HERE), "scripts")
-LIB = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(HERE))))), "home", ".claude", "lib")
+LIB = SCRIPTS  # memory_signals.py 사본이 scan.py 옆에 있다
 
 
 def load(path, name):

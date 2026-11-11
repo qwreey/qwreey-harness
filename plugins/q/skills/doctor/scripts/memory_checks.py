@@ -1,6 +1,6 @@
 """harness-doctor 항목 10: auto memory 이식성 검사 (MEM-ORPHAN, MEM-REPO, MEM-SIZE). 읽기 전용.
 
-scan.py 가 경로로 적재해 run(...) 만 부른다. 판정 로직(저장소 지식 신호, 키 규칙)은 home/.claude/lib/memory_signals.py 와 공유한다.
+scan.py 가 경로로 적재해 run(...) 만 부른다. 판정 로직(저장소 지식 신호, 키 규칙)은 같은 디렉터리의 memory_signals.py(qwreey-conventions 정본의 사본)와 공유한다.
   - 저장소 모드: 그 저장소의 키(와 worktree 메인 키)의 메모리만 본다. MEM-ORPHAN 은 이 저장소로 짝지어지는 고아 키만 낸다.
   - 사용자 모드(--user): 모든 키를 본다.
 근거: audit/23. 키 규칙과 25KB·200줄 한도는 2.1.316 실측과 공식 문서(memory.md)다.

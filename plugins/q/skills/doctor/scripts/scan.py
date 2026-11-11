@@ -794,13 +794,13 @@ def registry_uids():
 
 def check_drift(repo, files, projects):
     # 언어 고유 사본(예: luau 의 globalTypes.d.luau)은 툴킷이 본다(DRIFT-TYPEDEFS).
-    canon_guard = CANON_HOME / "hooks" / "heavy-proc-guard.py"
+    canon_guard = DOCTOR_ROOT / "plugins" / "qwreey-proc-guard" / "hooks" / "heavy-proc-guard.py" if DOCTOR_ROOT else Path("/nonexistent")
     for f in files:
         name = os.path.basename(f)
         if name == "heavy-proc-guard.py" and canon_guard.is_file():
             same = md5(repo / f) == md5(canon_guard)
             add(6, "정보" if same else "경고", "DRIFT-HOOK", f,
-                "사용자 레벨 정본과 같다." if same else "사용자 레벨 정본(home/.claude/hooks)과 다르다. 사용자 레벨로 일원화 대상.")
+                "qwreey-proc-guard 플러그인의 정본과 같다." if same else "qwreey-proc-guard 플러그인의 정본(plugins/qwreey-proc-guard/hooks)과 다르다. 플러그인으로 일원화 대상.")
         if name == "agy-delegate.sh" or f.endswith("skills/delegate-agy/SKILL.md"):
             add(6, "정보", "DRIFT-DELEGATE", f, "agy 위임 사본. 통합안 claude-doctor/drafts/delegate (P4) 로 대체 예정.",
                 "references/drift-and-settings.md#위임-사본")
@@ -1007,9 +1007,9 @@ def check_memory(repo, user=False):
     spec = importlib.util.spec_from_file_location("memory_checks", HERE.parent / "memory_checks.py")
     mc = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mc)
-    ms = mc.load_signals([USER_HOME / "lib", CANON_HOME / "lib"])
+    ms = mc.load_signals([HERE.parent])
     if ms is None:
-        add(10, "정보", "MEM-SKIP", USER_HOME / "lib", "lib/memory_signals.py 가 없어 메모리 검사를 건너뛴다(정본 적용 전)")
+        add(10, "정보", "MEM-SKIP", HERE.parent, "memory_signals.py 가 없어 메모리 검사를 건너뛴다")
         return
     mc.run(add, ms, USER_HOME, repo=repo, user=user)
 

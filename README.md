@@ -5,11 +5,12 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 
 | 위치 | 무엇 |
 |---|---|
-| `home/.claude/` | `~/.claude` 관리 파일의 정본(CLAUDE.md, settings.json, harness.env, hooks/, lib/, statusline/. 사용자 호출 스킬은 `q` 플러그인으로 옮겼다). 목록 `home/MANIFEST` |
+| `home/.claude/` | `~/.claude` 관리 파일의 정본(CLAUDE.md, settings.json, harness.env, lib/harness_env.py, rules/, statusline/. 훅은 플러그인으로 옮겼다. 사용자 호출 스킬은 `q` 플러그인으로 옮겼다). 목록 `home/MANIFEST` |
 | `tools/home-sync.sh` | 정본 ↔ 실제 `~/.claude` 동기화(status / diff / apply / pull / new-migration / env). settings.json 은 복사가 아니라 `home/settings-migrations/` 마이그레이션(`tools/settings-migrate.py`) |
-| `plugins/q/` | 사람이 치는 명령 플러그인 `q`(`/q:` 만 치면 전부 나온다): `/q:start` 온보딩, `/q:doctor` 진단(코어 검사 + `skills/doctor/scripts/toolkits/<이름>.py`), `/q:away`·`/q:back` 자리 비움, `/q:checkpoint`·`/q:import` 세션 기록. session-log 훅 포함. 이름은 사용자명 qwreey 에서 왔다. 설명 `plugins/q/docs/` 상시 규약(훅 메시지, workspace 불변식)은 q 의 SessionStart·SubagentStart·UserPromptSubmit(보충) 주입(`plugins/q/context/ambient.md`, `<plugin name="q">`)이 싣는다. 사용자 CLAUDE.md 에는 없고 q 를 끄면 같이 빠진다(끄기 `HARNESS_Q_AMBIENT=off`). |
+| `plugins/q/` | 사람이 치는 명령 플러그인 `q`(`/q:` 만 치면 전부 나온다): `/q:start` 온보딩, `/q:doctor` 진단(코어 검사 + `skills/doctor/scripts/toolkits/<이름>.py`), `/q:away`·`/q:back` 자리 비움, `/q:checkpoint`·`/q:import` 세션 기록. session-log 훅과 서브에이전트 고지·슬롯 훅(원장 `scripts/subagent_ledger.py`) 포함. 이름은 사용자명 qwreey 에서 왔다. 설명 `plugins/q/docs/` 상시 규약(훅 메시지, workspace 불변식)은 q 의 SessionStart·SubagentStart·UserPromptSubmit(보충) 주입(`plugins/q/context/ambient.md`, `<plugin name="q">`)이 싣는다. 사용자 CLAUDE.md 에는 없고 q 를 끄면 같이 빠진다(끄기 `HARNESS_Q_AMBIENT=off`). |
 | `plugins/qwreey-advisor/` | 모델이 부르는 독립 검토(별도 플러그인). luau 지식은 `luau-kb` 플러그인 |
-| `plugins/qwreey-conventions/` | 코드 주석·모델용 문서 관례(스킬 `comments`, `agent-docs`)와 추가한 줄을 한 줄로 알리는 훅. 옛 user-level `comment-hygiene` 훅을 대체 |
+| `plugins/qwreey-conventions/` | 코드 주석·모델용 문서 관례(스킬 `comments`, `agent-docs`)와 추가한 줄을 한 줄로 알리는 훅, 구조 한도(`structure-reminder`)·셸 우회 쓰기(`bash-bypass-reminder`)·auto memory 배치(`memory-placement`) 알림 훅. 옛 user-level 훅들을 대체 |
+| `plugins/qwreey-proc-guard/` | Linux 전용: 무거운 실행(벤치·퍼저)이 choom 없이 나가면 거절하는 PreToolUse 훅(`heavy-proc-guard`). Windows·macOS 에서는 끈다 |
 | `decisions/` | 저장소 사이 갈린 규약의 합의안(D-xx)과 사용자 결정 현황 |
 | `drafts/` | 설치 전 초안(감사 에이전트, 위임, 스타일). 끝난 초안은 각 README 첫 줄 `status: landed in ...; not maintained` 로 표시한다 |
 | `intake/` | 외부 프로젝트 반입 자리(사본은 git 에서 제외). 절차 `intake/README.md` |

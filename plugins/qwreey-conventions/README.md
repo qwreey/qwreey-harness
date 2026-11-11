@@ -7,6 +7,9 @@
 | 스킬 | `qwreey-conventions:comments` | 코드 주석: 지금의 이유만 쓰고 이력은 커밋·CHANGELOG·원장으로, `Ref:` 꼬리, 키보드로 치는 문자만, 파일의 주석 언어를 따른다, 문체, 저장소 설정 |
 | 스킬 | `qwreey-conventions:agent-docs` | CLAUDE.md·SKILL.md·references·agents·rules: 판별 문장, 둘 것과 옮길 것, 입구 문서와 references 의 차이, 원장 id, "Move, do not delete" |
 | 훅 | `hooks/conventions-check.py` | PostToolUse(Write, Edit, MultiEdit). 추가된 줄만 본다. (세션, 에이전트, 파일, 범주)마다 한 번, 한 줄 `<harness-hook name="qwreey-conventions" level="info">` |
+| 훅 | `hooks/structure-reminder.py` | PostToolUse(Write, Edit, Bash). 파일 크기 한도(경고 800, 강제 1,500줄), 세션 성장, 폴더 파일 과다를 알린다. 저장소 `.claude/structure.json` 으로 조정 |
+| 훅 | `hooks/bash-bypass-reminder.py` | PreToolUse(Bash). sed -i·리다이렉트·인터프리터로 파일을 바꾸면 Edit·Write 훅과 rules 가 비껴간다고 알린다 |
+| 훅 | `hooks/memory-placement.py` (+`memory_signals.py`) | PostToolUse(Write, Edit, MultiEdit). auto memory 에 저장소 지식으로 보이는 내용을 쓰면 저장소로 옮기라고 알린다. `MEMORY_PLACEMENT=off` 로 끈다 |
 | 훅 | 같은 스크립트, Stop | 편집한 파일에 남은 기존 주석 문제를 사용자에게 한 줄로 보인다(아래 "남은 주석 보고") |
 
 ## 훅이 잡는 것
@@ -44,7 +47,10 @@ claude plugin install qwreey-conventions@claude-doctor-market
 compact 회차마다 다시 알린다. 회차는 플러그인 자기 것(`hooks/compact_epoch.py`, `$TMPDIR/claude-qwreey-conventions-epoch/<sid>`)이고 PreCompact 훅이 올린다. 하네스 lib 가 없어도 같다.
 
 ## 테스트
+(모든 훅의 사용자 설정 위치는 `$CLAUDE_CONFIG_DIR`(기본 `~/.claude`)다. `lib/harness_env.py` 가 없으면 기본값으로 돈다.)
 
 ```bash
 python3 -I plugins/qwreey-conventions/tests/test-conventions-check.py
+python3 -I plugins/qwreey-conventions/tests/test-structure-reminder.py
+python3 -I plugins/qwreey-conventions/tests/test-memory-placement.py
 ```

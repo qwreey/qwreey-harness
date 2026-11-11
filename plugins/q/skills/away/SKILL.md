@@ -10,7 +10,7 @@ allowed-tools: Bash(python3 *subagent_ledger.py *)
 
 Below is the result of running `/q:away` (if output is already there, do not run it again; if only a run instruction is there, run that command once).
 
-!`python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/lib/subagent_ledger.py" away ${CLAUDE_SESSION_ID} $ARGUMENTS`
+!`python3 "${CLAUDE_SKILL_DIR}/../../scripts/subagent_ledger.py" away ${CLAUDE_SESSION_ID} $ARGUMENTS`
 
 ## Plain explanation (when the user asks, give this to them as written, in Korean)
 자리를 비운 동안 "한도를 얼마나 쓰게 둘지" 정해 두는 기능이다.

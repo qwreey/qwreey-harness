@@ -66,7 +66,7 @@ coderag의 지식 계층(global / pack / project, `coderag/tech-design.md` §13)
 4. **코드 이름**: 툴킷 접두(`RUST-`, `WEB-`)를 쓴다. 옛 luau 코드(`TOOL-`, `KB-`)는 호환 때문에 그대로 둔다.
    목표값이 확정되지 않은 핀은 목표와 비교하지 말고 `ctx.pin_mismatch`로 형제 사이 불일치만 낸다(D-05 교훈).
 5. **주변 장치**
-   - 무거운 실행: `home/.claude/hooks/heavy-proc-guard.py`의 `TOOLKIT_EXECUTORS`에 실행기를 더한다(rust: `cargo` — 이미 있음).
+   - 무거운 실행: `plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py`의 `TOOLKIT_EXECUTORS`에 실행기를 더한다(rust: `cargo` — 이미 있음).
    - 공유 지식 저장소(`rust-kb`)가 생기면 `home/MANIFEST`에 `link ... ${HARNESS_WORKSPACE}/rust-kb/...` 줄을 더한다.
    - 감사자: 관점별 공통 감사자에 그 툴킷 지식 스킬을 프리로드하는 방식은 `<doctor>/drafts/agents/README.md` §9 제안.
 6. **확인**: 그 언어 저장소 하나와 무관한 저장소 하나에 `scan.py --json`을 돌려 감지가 맞는지, 다른 저장소의 결과가 바뀌지 않았는지 본다.

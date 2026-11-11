@@ -113,7 +113,7 @@
   - rbvm과 table-sim의 프로젝트 settings에도 `git push` deny가 있다. 정리할지는 사용자가 판단한다.
 - `~/.claude/CLAUDE.md`: 형제 저장소 지도, 읽기 전용 원칙, mise shim 우회법, choom 규칙을 담았다. 처음에는 30줄 이내였으나 지금은 약 50줄(약 3.4k 토큰)이다.
 - 남은 일: `~/.claude/rules/luau-core.md`는 합의안이 나온 뒤에 둔다.
-- `~/.claude/hooks/bash-bypass-reminder.py`: PreToolUse(Bash)에 붙는 리마인더 훅. 정본은 `home/.claude/hooks/` 이다(`drafts/hooks/` 는 옛 초안이라 갱신하지 않는다).
+- `~/.claude/hooks/bash-bypass-reminder.py`: PreToolUse(Bash)에 붙는 리마인더 훅. 정본은 지금 `plugins/qwreey-conventions/hooks/` 이다(user-level 훅은 모두 플러그인으로 옮겼다. `drafts/hooks/` 는 옛 초안이라 갱신하지 않는다).
   - 동작: 인터프리터 실행, sed -i, 리다이렉트처럼 파일 도구를 우회하는 명령을 만나면 `additionalContext`로 알린다. 명령에 나온 경로에 해당하는 rules 파일 이름도 함께 짚는다. 같은 알림은 세션당 1회만 낸다. 실행을 막지는 않는다.
   - 실측 (haiku, 규칙을 언급하지 않은 과제)
     - 훅 없음: `--!strict` 준수 0/2
@@ -161,7 +161,7 @@
   - 사용자가 있을 때는 팬아웃 전에 고지한다(말은 2개부터, 훅 warn 은 4개부터).
   - away 상태에서는 예산 상한과 슬롯으로 직렬화한다. 2배를 넘으면 기록하고 기다린다.
   - 예산 단위는 요금제에 맞춘다(USD 또는 한도 %).
-  - 구현: CLAUDE.md "모델 사용과 서브에이전트 비용", `hooks/subagent-slots.py`, audit/21.
+  - 구현: CLAUDE.md "모델 사용과 서브에이전트 비용", `plugins/q/scripts/subagent-slots.py`, audit/21.
 - **second opinion:** 내장 advisor 도구는 사용자가 요청할 때만 쓴다. 근거(사용자): 가격 대비 효용이 diff 기반 리뷰보다 너무 낮다. 흐름 검토는 `qwreey-advisor:inherit-advisor`(fork + 표지를 훅이 후행 프롬프트로 펼침), diff 검토는 `qwreey-advisor:fresh-advisor` 로 한다. 근거 실험은 audit/18 §9·§11·§12.
 - **사용자 가시성도 개선 대상이다.** statusline, 테마, 응답 형식이 해당한다. 주관적이므로 설치는 묻고, 켜고 끌 수 있게 둔다(audit/22).
 
