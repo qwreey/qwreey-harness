@@ -13,11 +13,15 @@ PLUGINS = ROOT / "plugins"
 CANON = {
     "compact_epoch.py": "plugins/q/scripts/compact_epoch.py",
     "memory_signals.py": "plugins/qwreey-conventions/hooks/memory_signals.py",
+    "rules_inject.py": "plugins/qwreey-conventions/hooks/rules_inject.py",
+    "conv_env.py": "plugins/qwreey-conventions/hooks/conv_env.py",
 }
 # 사본이 있어야 하는 곳(없으면 실패): 지워지거나 옮겨진 사본을 알아채려고 둔다
 EXPECTED = {
-    "compact_epoch.py": ["plugins/qwreey-advisor/hooks", "plugins/qwreey-conventions/hooks"],
+    "compact_epoch.py": ["plugins/qwreey-advisor/hooks", "plugins/qwreey-conventions/hooks", "plugins/web-security/hooks"],
     "memory_signals.py": ["plugins/q/skills/doctor/scripts"],
+    "rules_inject.py": ["plugins/web-security/hooks"],
+    "conv_env.py": ["plugins/web-security/hooks"],
 }
 
 

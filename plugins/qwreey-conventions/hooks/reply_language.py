@@ -4,15 +4,18 @@
 왜: 한글 프롬프트 1,264턴 중 35턴(2.8%)이 영어로 답했고 긴 도구 실행 뒤에 많으며 한번 넘어가면 이어진다(audit/33 A).
   비율이 이봉이라 "목표 문자 비율 < 0.25 이면서 라틴 글자 20자 이상"이 깨끗한 문턱이다.
 이벤트
-  UserPromptSubmit : 언어를 알 수 없으면 (세션당 한 번) 사용자에게 어느 언어로 답할지 물으라는 action 알림.
+  UserPromptSubmit : 언어를 알 수 없으면 (세션당 한 번) info 알림: 요청에 먼저 답하고, 답 끝에서 어느 언어로 답할지 물어 `set` 으로 저장하게 한다.
+                     첫 요청을 질문으로 막지 않으려고 action 이 아니다.
   Stop             : 마지막 답변(last_assistant_message)이 이탈이면 decision=block 으로 다시 쓰게 한다. stop_hook_active 면 통과(루프 방지).
-                     트랜스크립트는 쓰지 않는다: Stop 시점에 마지막 assistant 메시지가 아직 기록되지 않는다(audit/34 L2).
-  PostToolBatch    : (a) 트랜스크립트를 저장된 오프셋부터 읽어 도구 호출 사이의 assistant 텍스트가 이탈이면 warn 알림(쿨다운),
+                     block 직전에만 트랜스크립트 끝에서 마지막 실제 사용자 프롬프트를 읽어, 코드·붙여 넣은 글·URL·경로를 뗀 뒤
+                     목표 문자 체계 글자가 3개 미만이면(사용자가 영어로만 썼다) 이탈이 아니라 사용자 언어를 따른 것이므로 통과한다. 답변은 트랜스크립트에 아직 없다(audit/34 L2).
+                     사용자가 이번 턴에 다른 언어를 명시한 경우는 코드가 못 가리므로 사유 문구가 "그대로 두라"고 한다.
+  PostToolBatch    : (a) 트랜스크립트를 저장된 오프셋부터 읽어 도구 호출 사이의 assistant 텍스트가 이탈이면 info 알림(쿨다운. 사용자에게 언급하지 않는 알림이라 warn 이 아니다),
                      (b) prompt_id 별 도구 호출 수가 10, 이후 15마다 info 한 줄. 기록은 한 걸음 늦으므로 완결된 줄만 소비한다(L2).
 언어 출처(좁은 쪽이 이김): 프로젝트 .claude/settings.local.json > .claude/settings.json > 사용자 <config>/settings.json 의 `language`,
   없으면 ${CLAUDE_PLUGIN_DATA}/language.json. 둘 다 없으면 위 질문 알림이 `set` 으로 저장하게 한다.
   `python3 -I reply_language.py set <language> [--data <dir>]`: 저장소. Bash 에는 CLAUDE_PLUGIN_DATA 가 없어서(L4) 알림이 경로를 적어 준다.
-로그: ${CLAUDE_PLUGIN_DATA}/drift.jsonl 에 감지·조치마다 한 줄(ts, session, kind, ratio, length. 본문 없음).
+로그: ${CLAUDE_PLUGIN_DATA}/drift.jsonl 에 감지와 조치마다 한 줄(ts, session, kind, ratio, length. 본문 없음).
 끄기: HARNESS_REPLY_LANGUAGE=off (환경 변수 또는 harness.env)
 """
 import json
@@ -45,7 +48,7 @@ SCRIPTS = {
     "greek": re.compile(r"[Ͱ-Ͽ]"),
     "devanagari": re.compile(r"[ऀ-ॿ]"),
 }
-LANG_SCRIPT = [  # (이름·코드 조각, 문자 체계). 앞에서부터 처음 맞는 것
+LANG_SCRIPT = [  # (이름이나 코드 조각, 문자 체계). 앞에서부터 처음 맞는 것
     (("korean", "한국어", "한글", "hangul"), "hangul"), (("ko",), "hangul"),
     (("japanese", "日本語", "日本", "にほんご"), "japanese"), (("ja", "jp"), "japanese"),
     (("chinese", "中文", "汉语", "漢語", "mandarin", "cantonese"), "han"), (("zh",), "han"),
@@ -62,6 +65,9 @@ URL = re.compile(r"\b[a-z][a-z0-9+.-]*://\S+|\bwww\.\S+", re.I)
 PATHLIKE = re.compile(r"(?<![\w])(?:[~.]{0,2}/)?[\w@.-]+(?:/[\w@.-]+)+/?|[\w-]+\.(?:[a-z]{1,5})\b", re.I)
 LATIN = re.compile(r"[A-Za-z]")
 NO_RESPONSE = "No response requested."
+PROMPT_TAIL_BYTES = 1_000_000  # 마지막 사용자 프롬프트를 찾으려고 트랜스크립트 끝에서 읽는 상한
+PROMPT_MIN_TARGET = 3
+PASTED = re.compile(r"<(pasted_content|pasted_text|paste)[^>]*>.*?(?:</\1>|\Z)", re.S | re.I)
 
 
 def script_for(language):
@@ -85,7 +91,7 @@ def strip_text(text):
 
 
 def drift_ratio(text, script):
-    """(목표 문자 비율, 라틴 글자 수). 코드·URL·경로를 뗀 뒤 센다."""
+    """(목표 문자 비율, 라틴 글자 수). 코드, URL, 경로를 뗀 뒤 센다."""
     t = strip_text(text or "")
     target = len(SCRIPTS[script].findall(t))
     latin = len(LATIN.findall(t))
@@ -197,6 +203,47 @@ def tag(level, body):
 
 # ---- 이벤트 ----
 
+def last_user_prompt(path):
+    """트랜스크립트 끝에서 가장 최근의 실제 사용자 프롬프트 텍스트. 못 찾으면 None. 도구 결과·메타·서브에이전트 항목은 건너뛴다."""
+    try:
+        size = os.path.getsize(path)
+        with open(path, "rb") as f:
+            start = max(0, size - PROMPT_TAIL_BYTES)
+            f.seek(start)
+            chunk = f.read()
+    except OSError:
+        return None
+    lines = chunk.split(b"\n")
+    if start:
+        lines = lines[1:]  # 잘린 첫 줄
+    for raw in reversed(lines):
+        try:
+            j = json.loads(raw)
+        except ValueError:
+            continue
+        if j.get("type") != "user" or j.get("isSidechain") or j.get("isMeta"):
+            continue
+        c = (j.get("message") or {}).get("content")
+        if isinstance(c, list):
+            if any(isinstance(b, dict) and b.get("type") == "tool_result" for b in c):
+                continue
+            c = " ".join(b.get("text") or "" for b in c if isinstance(b, dict) and b.get("type") == "text")
+        if isinstance(c, str) and c.strip():
+            return c
+    return None
+
+
+def user_wrote_other_script(path, script):
+    """마지막 사용자 프롬프트에 목표 문자 체계 글이 사실상 없는가(사용자가 다른 언어로만 썼다).
+    코드 블록, 붙여 넣은 블록, URL, 경로를 뗀 뒤 목표 글자가 PROMPT_MIN_TARGET 미만이면 참이다. 목표 글자가 조금이라도 있으면
+    사용자가 그 언어를 쓰는 것이다(영어 로그를 붙여 넣고 한국어로 물은 경우). 영어 답을 명시한 경우는 사유 문구가 맡는다."""
+    text = last_user_prompt(path) if path else None
+    if not text:
+        return False
+    text = PASTED.sub(" ", text)
+    return len(SCRIPTS[script].findall(strip_text(text))) < PROMPT_MIN_TARGET
+
+
 def on_prompt(data):
     if resolve_language(data):
         return None
@@ -210,11 +257,11 @@ def on_prompt(data):
     d = data_dir() or ""
     cmd = 'python3 -I "%s" set "<language>"%s' % (os.path.abspath(__file__), (' --data "%s"' % d) if d else "")
     return {"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": tag(
-        "action",
-        "No reply language is configured, so replies cannot be checked for language drift. Before answering, ask the user in one short "
-        "question which language you should reply in, then store the answer with this command: %s\n"
-        "Also tell them they can set Claude Code's official `language` setting with /config instead. "
-        "If the user already stated a language in this conversation, store that without asking." % cmd)}}
+        "info",
+        "No reply language is configured, so replies cannot be checked for language drift. Answer the user's request first, as usual. "
+        "Then, at the end of that reply, ask in one short question which language to reply in, and store the answer with this command: %s\n"
+        "If the user's message already makes the language clear (they write in it or name it), store that instead of asking. "
+        "The `language` key in a Claude Code settings.json sets it too." % cmd)}}
 
 
 def on_stop(data):
@@ -233,11 +280,15 @@ def on_stop(data):
     if data.get("stop_hook_active"):
         log(sid, "stop_still_drifted", ratio, len(msg))
         return None
+    if user_wrote_other_script(data.get("transcript_path"), script):
+        log(sid, "stop_user_other_script", ratio, len(msg))
+        return None
     log(sid, "stop_block", ratio, len(msg))
     return {"decision": "block", "reason": tag(
         "action",
-        "Your last reply to the user is not in %s. Rewrite that reply now in %s with the same content. "
-        "Do not mention this notice and do not apologize; the rewrite is all the user should see." % (lang, lang))}
+        "Your last reply is not in %s. If the user explicitly asked in this turn for that reply in another language, keep the reply "
+        "and add nothing. Otherwise output only the rewritten reply, the same content in %s, with no line about rewriting, the "
+        "earlier version, the language or this notice, and no apology." % (lang, lang))}
 
 
 def read_new_lines(path, st):
@@ -306,7 +357,7 @@ def on_batch(data):
         if worst is not None and total - st.get("last_interim", -99) >= INTERIM_COOLDOWN_CALLS:
             st["last_interim"] = total
             log(sid, "interim_drift", worst)
-            out.append(tag("warn", "Text you wrote to the user between tool calls was not in %s. Write all text to the user in %s, "
+            out.append(tag("info", "Text you wrote to the user between tool calls was not in %s. Write all text to the user in %s, "
                            "including short progress notes. Do not mention this notice." % (lang, lang)))
     if total >= st["next"]:
         while st["next"] <= total:

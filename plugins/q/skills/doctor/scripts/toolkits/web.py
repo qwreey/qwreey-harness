@@ -81,7 +81,7 @@ def check(ctx):
         if name not in on:
             ctx.add(8, "정보", "WEB-PLUGINS", ctx.repo / ".claude" / "settings.json",
                     f"웹 프로젝트에 {name}@claude-plugins-official 이 켜져 있지 않다. {how}.", PLUGINS_REF)
-    # web-security rule 은 qwreey-conventions 플러그인(rules/)이 싣고 훅이 주입한다. 플러그인이 꺼져 있으면 규칙이 안 들어간다
-    if "qwreey-conventions" not in on:
+    # web-security rule 은 web-security 플러그인(rules/)이 싣고 훅이 주입한다. 플러그인이 꺼져 있으면 규칙이 안 들어간다
+    if "web-security" not in on:
         ctx.add(8, "정보", "WEB-RULE", ctx.repo / ".claude" / "settings.json",
-                "qwreey-conventions 플러그인이 켜져 있지 않아 web-security rule 이 주입되지 않는다.", PLUGINS_REF)
+                "web-security 플러그인(web-security@claude-doctor-market)이 켜져 있지 않아 웹 보안 rule 이 주입되지 않는다.", PLUGINS_REF)

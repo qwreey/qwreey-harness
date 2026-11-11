@@ -20,7 +20,7 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 | `warn` | 다음 행동 전에 다룬다. 응답에 한 줄로 언급(따랐는지, 안 따른 이유) | 따르지 않으면 규약을 놓칠 가능성이 있고 되돌릴 수 있는 일. 예: 800줄 초과, 셸 우회 쓰기, 해당 rules 미열람 |
 | `action` | 진행 전에 반드시 처리. 사용자 확인이 필요하면 묻고 기다린다 | 건너뛰면 해를 끼치거나 되돌리기 어려운 일, 사용자 결정이 필요한 일. 예: 1,500줄 초과 파일에 기능 추가 전 분리안 질문 |
 
-- 한 훅이 level 이 다른 알림을 함께 낼 때는 level 마다 태그를 따로 단다. 한 태그로 묶으면 낮은 알림이 높은 level 로 읽힌다(예: 인계 info 가 기록 가져오기 action 에 끌려 올라감). 같은 level 의 알림은 한 태그에 묶는다.
+- 한 훅이 level 이 다른 알림을 함께 낼 때는 level 마다 태그를 따로 단다. 한 태그로 묶으면 낮은 알림이 높은 level 로 읽힌다(예: 인계 info 가 PreCompact warn 에 끌려 올라감). 같은 level 의 알림은 한 태그에 묶는다.
 - **deny** 는 하네스가 이미 막으므로 `action`(고정)을 단다. 모델이 재시도 방법을 반드시 따라야 하기 때문이다.
 - 모델에게 아무것도 내지 않는 훅(예: 플러그인의 PreCompact 회차 증가 `compact_epoch.py`)은 해당 없음.
 - 과잉 반응 금지: `info` 때문에 작업을 멈추지 않는다. level 은 하네스가 정하며 모델이 올리거나 내리지 않는다.
@@ -30,14 +30,14 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 |---|---|---|
 | heavy-proc-guard | (플러그인 `qwreey-proc-guard`, Linux 전용) deny(choom 래핑 요구) | action |
 | bash-bypass-reminder | (플러그인 `qwreey-conventions`) 셸로 파일 변경(sed -i, 리다이렉트 등) | warn |
-| | 해당 rules 파일 안내 | warn |
-| | 인터프리터로 읽기·수정 | info |
+| | 해당 rules 파일 안내(설치된 모든 플러그인의 `rules/` 포함): 쓰기 신호가 있으면 | warn |
+| | 같은 안내와 인터프리터 안내: 읽기만 하는 명령(쓰기 신호 없음) | info |
+| | 인터프리터로 쓰기 신호가 있는 스크립트 | warn |
 | structure-reminder | (플러그인 `qwreey-conventions`) 강제 한도(1,500) 초과 | action |
-| rules-inject | (플러그인 `qwreey-conventions`) 경로가 맞는 rule 본문 주입(`<rule>` 태그 안) | info |
-| rules-inject | (같은 훅) rule 이 안 들어간 키의 Write·Edit·MultiEdit·NotebookEdit 를 한 번 막고 rule 을 사유에 실음. 오류가 아니며 같은 호출을 다시 시도하라는 안내 | action (deny 고정) |
-| reply-language | (플러그인 `qwreey-conventions`) 답변 언어 미설정: 사용자에게 어느 언어로 답할지 묻고 저장 명령 실행 | action |
-| reply-language | (같은 훅) Stop 에서 마지막 답변이 사용자 언어가 아님: 다시 쓰라는 block(알림 언급·사과 금지) | action |
-| reply-language | (같은 훅) 도구 호출 사이 텍스트가 사용자 언어가 아님 | warn |
+| rules-inject | (플러그인 `qwreey-conventions`, `web-security` 도 같은 훅) PostToolUse. Read 뒤 경로가 맞는 rule 본문을 `<rule>` 태그 안에 주입. 이 키로 처음인 Edit·Write 뒤에는 "방금 쓴 것을 대조하고 어긋나면 Edit 로 고쳐라" 한 문장을 더함. deny 는 없음 | info |
+| reply-language | (플러그인 `qwreey-conventions`) 답변 언어 미설정: 요청에 먼저 답하고 답 끝에서 어느 언어로 답할지 물어 저장 명령 실행(첫 요청을 막지 않는다) | info |
+| reply-language | (같은 훅) Stop 에서 마지막 답변이 사용자 언어가 아님: 다시 쓰라는 block(사용자가 이번 턴에 다른 언어를 명시했으면 그대로 두고, 아니면 다시 쓴 답만 내며 언어·알림 언급과 사과 금지). 마지막 사용자 프롬프트 자체가 사용자 언어가 아니면 block 하지 않는다 | action |
+| reply-language | (같은 훅) 도구 호출 사이 텍스트가 사용자 언어가 아님(알림 자체는 사용자에게 언급하지 않는다) | info |
 | reply-language | (같은 훅) 긴 턴(도구 10회, 이후 15회마다) 한 줄 상기 | info |
 | memory-placement | (플러그인 `qwreey-conventions`) auto memory 에 저장소 지식으로 보이는 내용을 씀(경로·명령·규약 신호) | warn |
 | | 경고 한도(800) 초과, 세션 성장, 잘못된 예외 사유, 폴더 파일 과다 | warn |
@@ -54,12 +54,14 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 | qwreey-advisor | (플러그인 `qwreey-advisor`, 옛 이름 second-opinion) 임계 이상 커밋·같은 실패 2회·high 등급 계획 검토 알림. 이름이 바뀌어도 상태 경로(`claude-second-opinion`)는 기존 기록과 이어지게 그대로 둔다 | warn |
 |   (이중 구조) | 메인의 말 고지는 CLAUDE.md 가 2개부터, 훅 warn 은 4개부터다. 의도된 설계: 훅은 메인이 고지를 놓쳤을 때의 보강이라 일부러 더 늦게 울린다(둘 다 2면 warn 이 잦아 무뎌진다). `audit/21` §5-3 | - |
 | | away 중 허용된 Workflow(내부 동시성은 슬롯 밖) | warn |
+| session-log | (q 플러그인 `plugins/q/` 의 session-log 훅, `scripts/sllib/brief.py`) pending: 보관 위치(home) 있음 | info (commit 직전, 또는 `SESSION_LOG_PENDING_STRONG_*` 초과면 warn) |
+| | home 없음 + 쌓임(`SESSION_LOG_HOME_NUDGE_*`): 사용자에게 위치를 제안하라는 알림. action 은 쓰지 않는다(import 는 명령 하나) | warn |
+| | 요약 시작·완료 알림, 인계(SessionStart), SessionStart 기록 안내 | info |
+| | 요약 실패 | warn |
+| | PreCompact 상기 | warn |
+| records-read | (q 플러그인 `scripts/records_read.py`) 세션 기록을 Read·Grep 하면 스냅숏 경고(회차마다 한 번), 큰 기록을 통째로 Read 하면 검색 먼저 안내(매번) | info |
 
-### 권장 배정: 세션 기록 플러그인(`plugins/q/` 의 session-log 훅)과 이후 새 훅
-- pending(요약 안 된 세션) 알림: `warn`
-- pending 개수나 경과 기간이 임계를 넘으면: `action`
-- 요약 완료 알림: `info`
-- 구현은 이 문서의 표를 따른다. 훅 코드 예: `plugins/qwreey-conventions/hooks/structure-reminder.py` 의 `Note`·`top_level`.
+훅 코드 예: `plugins/qwreey-conventions/hooks/structure-reminder.py` 의 `Note`·`top_level`. 새 훅의 level 은 위 표에 행을 더해 정한다.
 
 ## dedup 단위 = session_id + 호출한 쪽(agent_id 또는 main) + compact 회차
 "세션당 한 번" 알림은 session_id 만 키로 쓰면 안 된다. `/compact` 는 session_id 를 유지하는데 요약 과정에서 이전 알림이 맥락에서 사라진다(실측).

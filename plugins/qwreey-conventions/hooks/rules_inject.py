@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """플러그인이 싣는 rules(`rules/*.md`, paths 프론트매터)를 파일 경로가 맞을 때 additionalContext 로 주입한다.
+정본: plugins/qwreey-conventions/hooks/rules_inject.py. conv_env.py, compact_epoch.py 와 함께 다른 플러그인(web-security)의 hooks/ 에 바이트가
+같은 사본으로 둔다(tools/tests/test-vendored-copies.py 가 비교한다). 고칠 때는 정본만 고치고 사본에 복사한다. 플러그인 이름은 이 파일 위치의
+`../.claude-plugin/plugin.json` 에서 읽으므로(없으면 상위 디렉터리 이름) 코드에 이름이 박혀 있지 않다.
 
 왜: 플러그인은 `.claude/rules` 를 실을 수 없다. 공식 rules 는 Read 가 맞는 파일을 열 때 로드되므로, 같은 시점(PostToolUse)에
 같은 본문을 훅이 넣는다. 실측(audit/34 R1-R4): Read 뒤 주입은 다음 Edit 에서 지켜지고 서브에이전트에서도 같다.
 
-이벤트
-  PostToolUse(Read|Edit|Write|MultiEdit|NotebookEdit): 맞는 rule 중 이 키로 아직 안 넣은 것을 넣는다.
-  PreToolUse(Write|Edit|MultiEdit|NotebookEdit): 이 키로 아직 안 넣은 rule 이 맞으면 한 번 deny 하고 사유에 본문을 싣는다. 모델이 같은 호출을 다시 한다(R3).
-    PreToolUse 의 additionalContext 는 도구가 실행된 뒤에야 모델에 닿으므로(audit/31) 그 편집을 막지 못한다. 그래서 allow+주입이 아니라 deny 다.
-    Read 가 먼저 있었으면 PostToolUse 가 이미 마커를 만들어 deny 가 없다. deny 가 나는 경우: 새 파일 Write, 서브에이전트가 부모의 Read 만 믿고 Edit
-    (Read 없이 가능함, 실측), compact 뒤 회차가 올라간 첫 편집.
+이벤트: PostToolUse(Read|Edit|Write|MultiEdit|NotebookEdit)만. 맞는 rule 중 이 키로 아직 안 넣은 것을 넣는다.
+  Read 뒤: 본문만. Edit·Write 뒤(이 키로 처음): 본문과 "방금 쓴 것을 rules 에 대조하고 어긋나면 Edit 로 고쳐라" 한 문장.
+  PreToolUse deny 는 쓰지 않는다: 큰 새 파일 Write 를 통째로 다시 내게 하고 화면에 hook error 로 보이는 값이 더 컸다.
+
+주입하지 않는 경로(비용): node_modules, .git, dist, build, .venv, vendor, __pycache__ 아래, 그리고 프로젝트(CLAUDE_PROJECT_DIR, 없으면 cwd) 밖을
+  Read 하는 경우(형제 저장소는 읽기만 하는 일이라서). 예외는 설정 디렉터리의 `projects/*/memory/`. 프로젝트 밖이라도 편집은 주입한다.
 
 dedup 키: (session, agent_id 또는 main, compact 회차, rule 이름). compact_epoch.state_path 가 앞 세 개를 정하고, rule 마다
   `<state>.<rule>` 마커를 O_CREAT|O_EXCL 로 만든다. 병렬 배치의 두 호출 중 하나만 마커를 얻어 이중 주입이 없다.
@@ -26,9 +29,25 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 RULES_DIR = os.path.join(os.path.dirname(HERE), "rules")
-PLUGIN = "qwreey-conventions"
-NS = "claude-conventions-rules"
 PATH_KEYS = ("file_path", "notebook_path")
+SKIP_DIRS = {"node_modules", ".git", "dist", "build", ".venv", "vendor", "__pycache__"}
+
+
+def plugin_name():
+    """plugin.json 의 name. 설치본은 상위 디렉터리가 버전이라 이름으로 못 쓰므로 먼저 파일을 본다."""
+    root = os.path.dirname(HERE)
+    try:
+        with open(os.path.join(root, ".claude-plugin", "plugin.json"), encoding="utf-8") as f:
+            name = json.load(f).get("name")
+        if isinstance(name, str) and name:
+            return name
+    except (OSError, ValueError):
+        pass
+    return os.path.basename(root)
+
+
+PLUGIN = plugin_name()
+NS = "claude-%s-rules" % PLUGIN
 
 
 def glob_to_regex(glob):
@@ -171,17 +190,40 @@ def wrap(name, body):
     return '<rule plugin="%s" name="%s">\n%s\n</rule>' % (PLUGIN, name, body)
 
 
-def injection(files_label, picked):
-    return ('<harness-hook name="rules-inject" level="info">\n'
-            "Path-scoped rules from the %s plugin apply to %s (same as .claude/rules with paths). Follow them for this file.\n%s\n</harness-hook>"
-            % (PLUGIN, files_label, "\n".join(wrap(n, b) for n, b in picked)))
+def injection(files_label, picked, after_write):
+    text = ("Path-scoped rules from the %s plugin, loaded because you opened %s. They apply to every file matching their paths "
+            "for the rest of this context; they are not shown again.\n" % (PLUGIN, files_label))
+    if after_write:
+        text += "Check what you just wrote against these rules and fix it with Edit if it does not comply.\n"
+    return ('<harness-hook name="rules-inject" level="info">\n%s%s\n</harness-hook>'
+            % (text, "\n".join(wrap(n, b) for n, b in picked)))
 
 
-def deny_reason(tool, files_label, picked):
-    return ('<harness-hook name="rules-inject" level="action">\n'
-            "This is not an error. Path-scoped rules apply to %s and had not been loaded yet, so this %s was held once. "
-            "Retry the same %s call now with the rules applied. Do not mention this notice to the user.\n%s\n</harness-hook>"
-            % (files_label, tool, tool, "\n".join(wrap(n, b) for n, b in picked)))
+def skipped_dir(abs_path, root):
+    """의존성·산출물 폴더 아래인가. 프로젝트 안이면 프로젝트 기준 상대 경로만 보아 상위 폴더 이름(예: /home/build)에 걸리지 않게 한다."""
+    p = os.path.normpath(abs_path)
+    r = root.rstrip("/") + "/"
+    parts = p[len(r):].split("/") if p.startswith(r) else p.split("/")
+    return any(x in SKIP_DIRS for x in parts[:-1])
+
+
+def is_memory_path(abs_path):
+    import conv_env
+    base = os.path.join(os.path.normpath(conv_env.config_dir()), "projects") + "/"
+    p = os.path.normpath(abs_path)
+    if not p.startswith(base):
+        return False
+    parts = p[len(base):].split("/")
+    return len(parts) >= 3 and parts[1] == "memory"
+
+
+def should_skip(tool, abs_path, root):
+    if skipped_dir(abs_path, root):
+        return True
+    if tool == "Read":
+        inside = os.path.normpath(abs_path).startswith(root.rstrip("/") + "/")
+        return not inside and not is_memory_path(abs_path)
+    return False
 
 
 def main():
@@ -199,6 +241,8 @@ def main():
             return 0
         root = project_root(data)
         abs_path = fp if os.path.isabs(fp) else os.path.join(data.get("cwd") or root, fp)
+        if should_skip(data.get("tool_name"), abs_path, root):
+            return 0
         skip = excluded(root)
         hits = [(n, b) for n, rx, b in load_rules() if n not in skip and rule_matches(rx, abs_path, root)]
         if not hits:
@@ -208,15 +252,11 @@ def main():
         picked = [(n, b) for n, b in hits if claim(base, n)]
         if not picked:
             return 0
-        ev = data.get("hook_event_name")
-        label = os.path.basename(abs_path)
-        if ev == "PreToolUse":
-            out = {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
-                                          "permissionDecisionReason": deny_reason(data.get("tool_name") or "tool", label, picked)}}
-        elif ev == "PostToolUse":
-            out = {"hookSpecificOutput": {"hookEventName": ev, "additionalContext": injection(label, picked)}}
-        else:
+        if data.get("hook_event_name") != "PostToolUse":
             return 0
+        label = os.path.basename(abs_path)
+        out = {"hookSpecificOutput": {"hookEventName": "PostToolUse",
+                                      "additionalContext": injection(label, picked, data.get("tool_name") != "Read")}}
         json.dump(out, sys.stdout, ensure_ascii=False)
     except Exception:
         pass

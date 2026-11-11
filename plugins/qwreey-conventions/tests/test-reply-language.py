@@ -146,10 +146,13 @@ class Ask(Base):
         s = fresh()
         out = hook("UserPromptSubmit", s, prompt="hi")
         c = ctx(out)
-        self.assertIn('level="action"', c)
+        self.assertIn('level="info"', c)  # 첫 요청을 막지 않는다
+        self.assertIn("Answer the user's request first", c)
+        self.assertIn("at the end of that reply", c)
+        self.assertNotIn("Before answering", c)
         self.assertIn(HOOK, c)
         self.assertIn(DATA, c)
-        self.assertIn("/config", c)
+        self.assertNotIn("/config", c)  # /config 가 language 를 노출하는지 문서로 확인하지 못했다
         self.assertIsNone(hook("UserPromptSubmit", s, prompt="again"))
         self.assertTrue(hook("UserPromptSubmit", fresh(), prompt="new session"))
 
@@ -168,7 +171,9 @@ class StopBlock(Base):
         out = stop(s, EN)
         self.assertEqual(out["decision"], "block")
         self.assertIn("Korean", out["reason"])
-        self.assertIn("Do not mention this notice", out["reason"])
+        self.assertIn("explicitly asked in this turn", out["reason"])
+        self.assertIn("output only the rewritten reply", out["reason"].replace("Otherwise o", "o"))
+        self.assertNotIn("the rewrite is all the user should see", out["reason"])
         self.assertIsNone(stop(s, EN, active=True))  # 두 번째 Stop 은 통과
         kinds = [r["kind"] for r in log_lines()]
         self.assertEqual(kinds, ["stop_block", "stop_still_drifted"])
@@ -192,6 +197,57 @@ class StopBlock(Base):
         set_language("user", "Korean")
         self.assertIsNone(stop(fresh(), EN, agent="sub1"))
         self.assertIsNone(hook("Stop", fresh(), e=env({"HARNESS_REPLY_LANGUAGE": "off"}), last_assistant_message=EN, stop_hook_active=False))
+
+
+def user_line(text, tool_result=False):
+    content = [{"type": "tool_result", "tool_use_id": "x", "content": text}] if tool_result else text
+    return json.dumps({"type": "user", "message": {"role": "user", "content": content}}, ensure_ascii=False) + "\n"
+
+
+class StopUserLanguage(Base):
+    """사용자가 목표 문자 체계가 아닌 글로 썼으면 영어 답은 이탈이 아니다."""
+
+    def setUp(self):
+        super().setUp()
+        set_language("user", "Korean")
+        self.tp = os.path.join(T, "stop%d.jsonl" % _n[0])
+        _n[0] += 1
+
+    def transcript(self, *lines):
+        with open(self.tp, "w", encoding="utf-8") as f:
+            f.write("".join(lines))
+
+    def test_english_prompt_passes(self):
+        self.transcript(user_line("Please add a retry to the fetch function"), line("working"), user_line("big tool output " * 50, tool_result=True))
+        self.assertIsNone(stop(fresh(), EN, transcript_path=self.tp))
+        self.assertEqual([r["kind"] for r in log_lines()], ["stop_user_other_script"])
+
+    def test_korean_prompt_still_blocks(self):
+        self.transcript(user_line("fetch 함수에 재시도를 추가해 줘"), line("ok"))
+        self.assertEqual(stop(fresh(), EN, transcript_path=self.tp)["decision"], "block")
+
+    def test_latest_prompt_wins(self):
+        self.transcript(user_line("Please add a retry to the fetch function"), line("x"), user_line("이제 테스트도 추가해 줘"))
+        self.assertEqual(stop(fresh(), EN, transcript_path=self.tp)["decision"], "block")
+
+    def test_missing_transcript_or_prompt_falls_back_to_block(self):
+        self.assertEqual(stop(fresh(), EN, transcript_path=os.path.join(T, "nope.jsonl"))["decision"], "block")
+        self.transcript(line("only assistant"))
+        self.assertEqual(stop(fresh(), EN, transcript_path=self.tp)["decision"], "block")
+
+    def test_pasted_english_after_korean_instruction_blocks(self):
+        self.transcript(user_line("이 로그를 보고 원인을 찾아 줘\n" + "ERROR connection refused while reading the socket " * 20))
+        self.assertEqual(stop(fresh(), EN, transcript_path=self.tp)["decision"], "block")
+
+    def test_pasted_english_first_then_korean_question_blocks(self):
+        log = "ERROR connection refused while reading the socket at server.js line 12 in module net\n" * 5
+        for body in ("<pasted_content>\n" + log + "</pasted_content>\n이게 왜 나는 거야?", "```\n" + log + "```\n이게 왜 나는 거야?", log + "\n이게 왜 나는 거야?"):
+            self.transcript(user_line(body))
+            self.assertEqual(stop(fresh(), EN, transcript_path=self.tp)["decision"], "block", body[:20])
+
+    def test_pure_english_prompt_with_paste_skips(self):
+        self.transcript(user_line("Why does this fail?\n```\n로그 한글 포함 라인\n```\n<pasted_content>한글 한글 한글</pasted_content>"))
+        self.assertIsNone(stop(fresh(), EN, transcript_path=self.tp))
 
 
 def line(text, sidechain=False, typ="assistant"):
@@ -223,7 +279,8 @@ class Batch(Base):
         self.assertEqual(ctx(batch(s, self.tp)), "")
         self.append(full[40:])
         c = ctx(batch(s, self.tp))
-        self.assertIn('level="warn"', c)
+        self.assertIn('level="info"', c)
+        self.assertNotIn('level="warn"', c)
         self.assertIn("Korean", c)
         self.append(line(EN))
         self.assertEqual(ctx(batch(s, self.tp)), "")  # 쿨다운

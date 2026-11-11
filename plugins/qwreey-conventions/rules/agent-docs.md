@@ -1,6 +1,6 @@
 ---
 description: Conventions for documents a model reads to act (CLAUDE.md, SKILL.md, agents, rules). Details are in the qwreey-conventions:agent-docs skill
-paths: ["**/CLAUDE.md", "**/SKILL.md", "**/agents/*.md", "**/.claude/rules/*.md", "**/skills/**/*.md"]
+paths: ["**/CLAUDE.md", "**/SKILL.md", "**/agents/*.md", "**/.claude/rules/*.md", "**/skills/**/*.md", "**/plugins/*/rules/*.md"]
 ---
 # Agent docs
 - Test: if deleting a sentence would not change what the model does, it does not belong here.
