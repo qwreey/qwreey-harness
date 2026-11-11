@@ -112,7 +112,7 @@
   - 제거는 auto 모드 분류기가 막아서 사용자가 직접 해야 한다.
   - rbvm과 table-sim의 프로젝트 settings에도 `git push` deny가 있다. 정리할지는 사용자가 판단한다.
 - `~/.claude/CLAUDE.md`: 형제 저장소 지도, 읽기 전용 원칙, mise shim 우회법, choom 규칙을 담았다. 처음에는 30줄 이내였으나 지금은 약 50줄(약 3.4k 토큰)이다.
-- 남은 일: `~/.claude/rules/luau-core.md`는 합의안이 나온 뒤에 둔다.
+- 남은 일: `~/.claude/rules/luau-core.md`는 합의안이 나온 뒤에 둔다. (그 밖의 사용자 레벨 rules 5개 comments·agent-docs·code-structure·memory·web-security 는 `plugins/qwreey-conventions/rules/` 로 옮겨 훅 `rules_inject.py` 가 주입한다.)
 - `~/.claude/hooks/bash-bypass-reminder.py`: PreToolUse(Bash)에 붙는 리마인더 훅. 정본은 지금 `plugins/qwreey-conventions/hooks/` 이다(user-level 훅은 모두 플러그인으로 옮겼다. `drafts/hooks/` 는 옛 초안이라 갱신하지 않는다).
   - 동작: 인터프리터 실행, sed -i, 리다이렉트처럼 파일 도구를 우회하는 명령을 만나면 `additionalContext`로 알린다. 명령에 나온 경로에 해당하는 rules 파일 이름도 함께 짚는다. 같은 알림은 세션당 1회만 낸다. 실행을 막지는 않는다.
   - 실측 (haiku, 규칙을 언급하지 않은 과제)

@@ -1,6 +1,6 @@
 # qwreey-conventions
 
-코드 주석과 모델이 읽는 문서의 관례. 스킬 둘이 "어떻게 쓰나"를 담고, 훅이 방금 추가한 줄이 벗어난 것 같으면 한 줄로 알린다(막지 않는다). 규칙 파일(`rules/comments.md`, `rules/agent-docs.md`)은 매 세션 로드되므로 핵심 몇 줄만 두고 스킬을 가리킨다. 근거는 claude-doctor `audit/26-doc-hygiene-debate/`.
+코드 주석과 모델이 읽는 문서의 관례. 스킬 둘이 "어떻게 쓰나"를 담고, 훅이 방금 추가한 줄이 벗어난 것 같으면 한 줄로 알린다(막지 않는다). 규칙 파일(`rules/*.md`)은 `paths:` 가 맞는 파일을 열 때 훅이 주입하므로(공식 `.claude/rules` 와 같은 효과, 플러그인은 rules 를 실을 수 없어서) 핵심 몇 줄만 두고 스킬을 가리킨다. 근거는 claude-doctor `audit/26-doc-hygiene-debate/`.
 
 | 구성 | 이름 | 하는 일 |
 |---|---|---|
@@ -10,6 +10,8 @@
 | 훅 | `hooks/structure-reminder.py` | PostToolUse(Write, Edit, Bash). 파일 크기 한도(경고 800, 강제 1,500줄), 세션 성장, 폴더 파일 과다를 알린다. 저장소 `.claude/structure.json` 으로 조정 |
 | 훅 | `hooks/bash-bypass-reminder.py` | PreToolUse(Bash). sed -i·리다이렉트·인터프리터로 파일을 바꾸면 Edit·Write 훅과 rules 가 비껴간다고 알린다 |
 | 훅 | `hooks/memory-placement.py` (+`memory_signals.py`) | PostToolUse(Write, Edit, MultiEdit). auto memory 에 저장소 지식으로 보이는 내용을 쓰면 저장소로 옮기라고 알린다. `MEMORY_PLACEMENT=off` 로 끈다 |
+| 훅 | `hooks/rules_inject.py` | PostToolUse(Read, Edit, Write, MultiEdit, NotebookEdit)와 PreToolUse(Write, Edit, MultiEdit, NotebookEdit). `rules/*.md`(comments, agent-docs, code-structure, memory, web-security)를 `paths:` glob 이 맞는 파일을 열 때 `<rule plugin=... name=...>` 로 감싸 주입한다. 키 (세션, 에이전트, compact 회차, rule) 당 한 번, `O_EXCL` 마커라 병렬 배치도 이중 주입이 없다. PreToolUse 에서 이 키로 아직 안 넣은 rule 이 맞으면(새 파일 Write, Read 없이 Edit 하는 서브에이전트, compact 뒤 첫 편집) 한 번 deny 하고 사유에 본문을 싣는다(모델이 같은 호출을 바로 다시 한다). PreToolUse 의 additionalContext 는 도구 실행 뒤에야 닿아 그 편집에 쓸모가 없어서 allow+주입은 쓰지 않는다(audit/31). 대조 실측: Read 뒤 주입이 지켜짐 |
+| 훅 | `hooks/reply_language.py` | 답변 언어 이탈. 언어는 `language` 설정(프로젝트 local > project > 사용자), 없으면 `${CLAUDE_PLUGIN_DATA}/language.json`. 둘 다 없으면 UserPromptSubmit 이 한 번 사용자에게 묻게 하고 `python3 -I reply_language.py set <language>` 로 저장. Stop: 목표 문자 비율 < 0.25 이고 라틴 글자 20자 이상이면 `decision: block` 으로 다시 쓰게 한다(`stop_hook_active` 면 통과). PostToolBatch: 도구 호출 사이 텍스트 이탈(warn, 쿨다운)과 긴 턴 알림(10회, 이후 15회마다 info). 감지·조치는 `${CLAUDE_PLUGIN_DATA}/drift.jsonl`(본문 없음). 메인 대화만. 라틴 문자 언어는 감지하지 않고 기록만 |
 | 훅 | 같은 스크립트, Stop | 편집한 파일에 남은 기존 주석 문제를 사용자에게 한 줄로 보인다(아래 "남은 주석 보고") |
 
 ## 훅이 잡는 것
@@ -42,7 +44,7 @@ claude plugin install qwreey-conventions@claude-doctor-market
 
 ## 설정과 끄기
 
-저장소 `.claude/conventions.json`(전부 선택, 없으면 예전 이름 `.claude/comments.json` 을 읽는다): `comment_language`, `allow_chars`, `public_ids`, `exclude`, `patterns`, `allow_ref_tail`, `min_reason_words`. 형식은 `qwreey-conventions:comments` 스킬에 있다. 환경 변수 `CONVENTIONS_CHECK=off` 로 끈다.
+저장소 `.claude/conventions.json`(전부 선택, 없으면 예전 이름 `.claude/comments.json` 을 읽는다): `comment_language`, `allow_chars`, `public_ids`, `exclude`, `patterns`, `allow_ref_tail`, `min_reason_words`. 형식은 `qwreey-conventions:comments` 스킬에 있다. 환경 변수 `CONVENTIONS_CHECK=off` 로 끈다. rules 주입은 `HARNESS_CONVENTIONS_RULES=off`(환경 변수 또는 harness.env)나 저장소 `.claude/conventions.json` 의 `rules_exclude: ["comments", ...]`(rule 이름 목록)로, 답변 언어 훅은 `HARNESS_REPLY_LANGUAGE=off` 로 끈다.
 
 compact 회차마다 다시 알린다. 회차는 플러그인 자기 것(`hooks/compact_epoch.py`, `$TMPDIR/claude-qwreey-conventions-epoch/<sid>`)이고 PreCompact 훅이 올린다. 하네스 lib 가 없어도 같다.
 
@@ -53,4 +55,6 @@ compact 회차마다 다시 알린다. 회차는 플러그인 자기 것(`hooks/
 python3 -I plugins/qwreey-conventions/tests/test-conventions-check.py
 python3 -I plugins/qwreey-conventions/tests/test-structure-reminder.py
 python3 -I plugins/qwreey-conventions/tests/test-memory-placement.py
+python3 -I plugins/qwreey-conventions/tests/test-rules-inject.py
+python3 -I plugins/qwreey-conventions/tests/test-reply-language.py
 ```

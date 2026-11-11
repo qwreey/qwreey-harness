@@ -81,7 +81,7 @@ def check(ctx):
         if name not in on:
             ctx.add(8, "정보", "WEB-PLUGINS", ctx.repo / ".claude" / "settings.json",
                     f"웹 프로젝트에 {name}@claude-plugins-official 이 켜져 있지 않다. {how}.", PLUGINS_REF)
-    if not (USER_HOME / "rules" / "web-security.md").is_file():
-        hint = "정본에는 있다. home-sync apply 대기." if (CANON_HOME / "rules" / "web-security.md").is_file() else "정본에도 없다."
-        ctx.add(8, "정보", "WEB-RULE", USER_HOME / "rules" / "web-security.md",
-                f"사용자 레벨 rules/web-security.md 가 없다. {hint}", PLUGINS_REF)
+    # web-security rule 은 qwreey-conventions 플러그인(rules/)이 싣고 훅이 주입한다. 플러그인이 꺼져 있으면 규칙이 안 들어간다
+    if "qwreey-conventions" not in on:
+        ctx.add(8, "정보", "WEB-RULE", ctx.repo / ".claude" / "settings.json",
+                "qwreey-conventions 플러그인이 켜져 있지 않아 web-security rule 이 주입되지 않는다.", PLUGINS_REF)

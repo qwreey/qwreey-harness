@@ -33,6 +33,12 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 | | 해당 rules 파일 안내 | warn |
 | | 인터프리터로 읽기·수정 | info |
 | structure-reminder | (플러그인 `qwreey-conventions`) 강제 한도(1,500) 초과 | action |
+| rules-inject | (플러그인 `qwreey-conventions`) 경로가 맞는 rule 본문 주입(`<rule>` 태그 안) | info |
+| rules-inject | (같은 훅) rule 이 안 들어간 키의 Write·Edit·MultiEdit·NotebookEdit 를 한 번 막고 rule 을 사유에 실음. 오류가 아니며 같은 호출을 다시 시도하라는 안내 | action (deny 고정) |
+| reply-language | (플러그인 `qwreey-conventions`) 답변 언어 미설정: 사용자에게 어느 언어로 답할지 묻고 저장 명령 실행 | action |
+| reply-language | (같은 훅) Stop 에서 마지막 답변이 사용자 언어가 아님: 다시 쓰라는 block(알림 언급·사과 금지) | action |
+| reply-language | (같은 훅) 도구 호출 사이 텍스트가 사용자 언어가 아님 | warn |
+| reply-language | (같은 훅) 긴 턴(도구 10회, 이후 15회마다) 한 줄 상기 | info |
 | memory-placement | (플러그인 `qwreey-conventions`) auto memory 에 저장소 지식으로 보이는 내용을 씀(경로·명령·규약 신호) | warn |
 | | 경고 한도(800) 초과, 세션 성장, 잘못된 예외 사유, 폴더 파일 과다 | warn |
 | | 유효한 예외 사유 안내, 접두 묶음 제안 | info |

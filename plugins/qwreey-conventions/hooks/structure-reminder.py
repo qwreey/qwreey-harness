@@ -78,7 +78,7 @@ INPLACE = re.compile(r"\bsed\s+(-\S*\s+)*-i|\bperl\s+(-\S*\s+)*-\S*p\S*i|\bawk\s
 REDIRECT = re.compile(r"(?<![0-9&])>>?\s*['\"]?(" + CODE + r")|\btee\s+(?:-a\s+)?['\"]?(" + CODE + r")")
 BASH_PATH = re.compile(CODE)
 DEFAULTS = {"warn": 800, "hard": 1500, "grow": 300, "flat": 15, "ignore": [], "exempt": [], "toolkits": {}}
-REF = "~/.claude/rules/code-structure.md"
+REF = "the qwreey-conventions rule code-structure (rules/code-structure.md in the plugin; injected when you open a matching file)"
 PLANNER_REL = "skills/luau-style/scripts/split-plan.py"
 # 사유가 아닌 말: 비었거나, 미루기·귀찮음·자리표시
 NOT_A_REASON = re.compile(r"^(?:[-.…~_?!\s]*|todo|tbd|fixme|later|wip|n/?a|none|x+|임시|나중에?|나중에 ?나눔|추후|일단|귀찮.*)$", re.I)

@@ -9,7 +9,7 @@
   - Edit|Write 매처에 걸린 PostToolUse 훅(포맷터, 검사기)이 돌지 않는다.
   - 스킬은 description 이 맞을 때만 로드되므로, 스크립트로 일괄 수정할 때는 규약을 놓치기 쉽다.
 
-종류마다 세션당 한 번만 알린다. rules 파일 안내는 파일마다 세션당 한 번이다.
+종류마다 세션당 한 번만 알린다. rules 파일 안내는 파일마다 세션당 한 번이다(프로젝트·사용자 rules 와 이 플러그인의 rules/).
 상태 파일 위치: $TMPDIR/claude-bypass-reminder/<session_id>.c<compact 회차>[.a<agent_id>].json (compact_epoch.py. compact 뒤 다시 알린다)
 """
 import fnmatch
@@ -24,6 +24,8 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
 
+# 이 플러그인이 싣는 rules: 공식 .claude/rules 가 아니라 rules_inject 훅이 파일을 열 때 주입한다. 셸로 파일을 바꾸면 주입도 비껴가므로 이름을 짚는다
+PLUGIN_RULES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rules")
 INTERP = {"python", "python3", "node", "deno", "bun", "perl", "ruby", "lua", "luau", "lune", "lute"}
 PREFIX = {"(", "{", "time", "nice", "env", "command", "exec", "nohup", "sudo", "choom", "prlimit", "timeout", "--"}
 INPLACE = re.compile(r"\bsed\s+(-\S*\s+)*-i|\bperl\s+(-\S*\s+)*-\S*p\S*i|\bawk\s+-i\s+inplace|\bpatch\b|\bgit\s+apply\b")
@@ -129,13 +131,15 @@ def main():
 
     if writes or interp:
         rules = load_rules([os.path.join(proj, ".claude", "rules"),
-                            os.path.join(os.path.expanduser("~"), ".claude", "rules")])
+                            os.path.join(os.path.expanduser("~"), ".claude", "rules"),
+                            PLUGIN_RULES])
         paths = {m.group(0) for m in PATHLIKE.finditer(cmd)}
         hit = [r for r, globs in rules if r not in seen and any(matches(p, g) for p in paths for g in globs)]
         if hit:
             seen.update(hit)
             levels.append("warn")
-            rel = [os.path.relpath(h, proj) if h.startswith(proj) else h.replace(os.path.expanduser("~"), "~") for h in hit]
+            rel = [(h[len(PLUGIN_RULES) + 1:-3] + " (qwreey-conventions rule: " + h + ")") if h.startswith(PLUGIN_RULES + os.sep)
+                   else os.path.relpath(h, proj) if h.startswith(proj) else h.replace(os.path.expanduser("~"), "~") for h in hit]
             notes.append("Rules that apply to files this command touches: " + ", ".join(rel) + " - Read them first if you have not.")
 
     if not notes:

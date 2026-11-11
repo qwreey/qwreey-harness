@@ -19,7 +19,7 @@
 | 코드 | 등급 | 내용 |
 |---|---|---|
 | `WEB-PLUGINS` | 정보 | security-guidance, frontend-design, context7, claude-security 가 project·local·user `enabledPlugins` 어디에도 없으면 하나씩 추천한다. 설정 안내는 메시지에 있다. 근거: [audit/16 §8](../../../../../../audit/16-marketplace.md) |
-| `WEB-RULE` | 정보 | 사용자 레벨 `~/.claude/rules/web-security.md` 가 없다. 정본(`home/.claude/rules/`)에 있으면 apply 대기라고 알린다 |
+| `WEB-RULE` | 정보 | `qwreey-conventions` 플러그인이 켜져 있지 않다(web-security rule 은 그 플러그인의 `rules/` 에서 훅이 주입한다) |
 
 판정: 추천일 뿐이다. 공유 worktree 저장소는 security-guidance 에 `ENABLE_STOP_REVIEW=0` 을 더한다. 이미 다른 방식(로컬 마켓 등)으로 켜져 있으면 무시한다.
 
