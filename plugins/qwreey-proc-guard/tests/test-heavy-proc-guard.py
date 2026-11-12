@@ -53,5 +53,18 @@ check("heavy word but no executor passes", run("echo bench") is None)
 check("empty wrapper disables the guard", run("bash run-bench.sh", wrap="") is None)
 check("bad stdin is silent", run("", raw="{no") is None)
 check("no harness lib: defaults, no crash", run("ls", wrap=None) is None)
+for c in ["python3 fuzz.py", "./bench.sh", "luau bench/a.luau", "cargo bench", "npm run bench", "hyperfine 'x'",
+          "timeout 60 lune run perf.luau", 'luau "bench/x.luau"', "cd x && FOO=1 nice python3 stress.py", "ls | bash bench.sh", "F=a/fuzz.luau; luau $F -a 1", "A=x/perf; mise exec -- luau ${A}/a.luau",
+          "cd x/round13-tree-fuzz && luau axes.luau 2>&1 | tail -22", "cd bench && ./run.sh", "cd e-fuzz && timeout 100 luau gc.luau"]:
+    check("true positive: " + c, denied(run(c)))
+for c in ["mkdir -p a/audit && cat > a/s.md <<'EOF'\nbench results\npython3 x\nEOF",
+          "python3 -I - <<'EOF'\nprint('Bench/fuzz')\nEOF",
+          "python3 - <<-EOF\n\tfuzz\n\tEOF",
+          'python3 - <<"E" <<X\nbench\nE\nperf\nX',
+          "cd plugins/p; sed -n 28,60p perf.md; python3 a.py",
+          "cd bench && python3 run.py", "cd luau-kb/bench && python3 -I summarize.py results/a", "cd fuzz; sed -n 1p a.md; ls","A=x/fuzz; cat > $A/f.luau <<'EOF'\nx\nEOF\npython3 ok.py",
+          "cat <<EOF > f\nbench\nEOF\npython3 ok.py"]:
+    check("false positive passes: " + c, run(c) is None)
+check("command after heredoc still checked", denied(run("cat <<EOF\nx\nEOF\npython3 fuzz.py")))
 print(f"{ok}/{ok + fail}")
 sys.exit(1 if fail else 0)

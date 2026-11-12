@@ -8,9 +8,12 @@ Claude's score (no CAP_SYS_RESOURCE), but raising a child's score is unprivilege
 inherited across exec, so `choom -n 1000 -- <cmd>` makes the heavy tree the first victim.
 
 Heuristic (cheap on purpose — a false positive only costs a retry with choom):
-  block when the command mentions a heavy keyword AND some segment executes a program
-  (luau / lune / bash / sh / python / node / hyperfine / ./x.sh), unless the command
+  block when ONE segment (split on && || ; | newline) executes a program (luau / lune / bash / sh /
+  python / node / hyperfine / ./x.sh) and that same segment mentions a heavy keyword, unless the command
   already contains the wrapper or is a git/gh command (commit messages mention these words).
+  Heredoc bodies are dropped first: they are data (reports, edit scripts), and their lines would
+  otherwise be mistaken for segment heads.
+  A variable assigned a keyword value (`F=a/fuzz.luau; luau $F`) carries the keyword to the segments that expand it. Keywords in other segments do not count, except a `cd` into a keyword directory, which carries over to later toolkit runners and scripts (`cd fuzz && luau a.luau`, `cd bench && ./run.sh`) but not to interpreters (`cd bench && python3 summarize.py`).
 
 Portable: the wrapper comes from ~/.claude/harness.env (HARNESS_HEAVY_WRAP). Empty, or its program not
 installed (no choom in this sandbox) -> the guard allows everything. Executors are a base set plus a
@@ -36,8 +39,29 @@ PREFIX_WORDS = {"(", "{", "time", "nice", "env", "command", "exec", "nohup"}
 EXEMPT_HEADS = {"git", "gh"}
 
 
-def segment_heads(cmd):
-    for seg in re.split(r"&&|\|\||[;|\n]", cmd):
+HEREDOC = re.compile(r"<<(?!<)-?\s*(?:'([A-Za-z_]\w*)'|\"([A-Za-z_]\w*)\"|\\?([A-Za-z_]\w*))")
+
+
+ASSIGN = re.compile(r"(?:^|[;&|\s(])([A-Za-z_][A-Za-z0-9_]*)=(\S*)")
+
+
+def strip_heredocs(cmd):
+    out, pending = [], []  # pending: (terminator, tab-stripped) for heredocs opened on earlier lines
+    for line in cmd.split("\n"):
+        if pending:
+            term, dash = pending[0]
+            if (line.lstrip("\t") if dash else line) == term:
+                pending.pop(0)
+            continue
+        out.append(line)
+        for m in HEREDOC.finditer(line):
+            pending.append((m.group(1) or m.group(2) or m.group(3), m.group(0).startswith("<<-")))
+    return "\n".join(out)
+
+
+def segments(cmd):
+    """(head, segment text) per segment; head is the program after env/time/timeout/... prefixes."""
+    for seg in re.split(r"&&|\|\||[;|\n]", strip_heredocs(cmd)):
         words = seg.replace("(", " ( ").split()
         i = 0
         while i < len(words):
@@ -55,7 +79,7 @@ def segment_heads(cmd):
             else:
                 break
         if i < len(words):
-            yield words[i]
+            yield words[i], seg
 
 
 def is_executor(head, executors):
@@ -91,6 +115,27 @@ def rules(env):
     return executors, re.compile(r"(?<![A-Za-z])(" + "|".join(kws) + ")", re.I)
 
 
+def runs_heavy(segs, executors, heavy, uses):
+    """True when an executor segment names a heavy keyword (directly or via a keyword variable).
+
+    `cd <fuzz-dir> && luau axes.luau` keeps the keyword in the cd segment; the directory carries over to
+    later segments, but only for toolkit runners and scripts (`./x`, `*.sh`). Interpreters (python3, bash -c)
+    run inside such directories mostly to aggregate or edit results, so they do not inherit it.
+    """
+    in_heavy_dir = False
+    for h, seg in segs:
+        if h in ("cd", "pushd"):
+            in_heavy_dir = in_heavy_dir or bool(heavy.search(seg))
+            continue
+        if not is_executor(h, executors):
+            continue
+        if heavy.search(seg) or (uses and uses.search(seg)):
+            return True
+        if in_heavy_dir and (h not in BASE_EXECUTORS or h.startswith("./") or h.endswith(".sh")):
+            return True
+    return False
+
+
 def main():
     try:
         data = json.load(sys.stdin)
@@ -106,10 +151,14 @@ def main():
     # is already the preferred victim; its prompt text may mention bench/perf freely.
     if wrap[0] in cmd or "delegate.sh" in cmd or not heavy.search(cmd):
         return 0
-    heads = list(segment_heads(cmd))
-    if heads and heads[0] in EXEMPT_HEADS:
+    segs = list(segments(cmd))
+    if segs and segs[0][0] in EXEMPT_HEADS:
         return 0
-    if not any(is_executor(h, executors) for h in heads):
+    # `F=x/fuzz.luau; luau $F` keeps the keyword in the assignment segment: a variable whose value
+    # carries a keyword counts as a keyword wherever it is expanded.
+    names = [m.group(1) for m in ASSIGN.finditer(strip_heredocs(cmd)) if heavy.search(m.group(2))]
+    uses = re.compile(r"\$\{?(?:" + "|".join(names) + r")(?![A-Za-z0-9_])") if names else None
+    if not runs_heavy(segs, executors, heavy, uses):
         return 0
     if wrap[0] == "choom":
         how = ("Re-run with `choom -n 1000 -p $$;` prepended (this shell and its children become the first OOM victims), "
