@@ -1,6 +1,6 @@
 # 48. code-reuse 문구 토론 1회차, 입장 Q: 툴킷마다 실제로 먹히는가
 
-> Snapshot 2026-11-12. 초안 `research/drafts/code-quality-conventions/`(rule·스킬·hook-design·fp-strategy)를 table-sim d39499c, devplorer a0b9da9, quad 0c2eef35, coderag 0df9bc7, claude-doctor c89cddc, nekolog ba2e05c, stl-luau e77fc03 의 실제 코드에 대 보았다. 읽기 전용, 줄 번호는 이 커밋 기준. 이미 정한 결정(이름, 사본 줄 이동, N2 문구, 어긋날 때만, 80% 관문, `@copy-of: <path>[#NAME]` 하나로 통합)은 다시 열지 않는다.
+> Snapshot 2026-11-12. 초안 `archive/research/drafts/code-quality-conventions/`(rule·스킬·hook-design·fp-strategy)를 table-sim d39499c, devplorer a0b9da9, quad 0c2eef35, coderag 0df9bc7, claude-doctor c89cddc, nekolog ba2e05c, stl-luau e77fc03 의 실제 코드에 대 보았다. 읽기 전용, 줄 번호는 이 커밋 기준. 이미 정한 결정(이름, 사본 줄 이동, N2 문구, 어긋날 때만, 80% 관문, `@copy-of: <path>[#NAME]` 하나로 통합)은 다시 열지 않는다.
 
 ## 결론
 - 초안은 coderag(Rust)와 claude-doctor(Python)에서 뽑은 문장이라 거기서는 맞는 조언을 한다. **Luau 게임 저장소에서 가장 흔한 중복은 규칙에 없다**: 클라이언트와 서버가 같은 값을 따로 적고 주석에 "서버의 X 와 같게" 라고 쓴 것(아래 1·2·3). 문자열 묶음이 아니라 H1 도 못 본다. 규칙 한 줄이 필요하다.
