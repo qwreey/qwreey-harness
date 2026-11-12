@@ -2,7 +2,7 @@
 format: 1
 title: reuse-check 훅 설계(초안)
 description: qwreey-conventions 의 새 PostToolUse 훅 reuse-check. 추가한 줄의 문자열 묶음이 저장소의 기존 정의와 겹치면 info 한 줄, @copy-of 사본 대조, 그림자 기록과 80% 관문, 언어별 추출, 편집당 비용 예산
-status: active; draft, not installed
+status: landed in plugins/qwreey-conventions/rules/code-reuse.md
 ---
 # reuse-check 훅 설계
 

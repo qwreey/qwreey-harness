@@ -2,11 +2,11 @@
 format: 1
 title: 코드 품질 규약 초안(하드코딩, 중복, 바퀴의 재발명, 단순화)
 description: qwreey-conventions 에 넣을 새 rule code-reuse(정책 값 판별, 구현 하나, @copy-of 사본, 라이브러리 이유 줄)와 스킬, 문자열 묶음 중복 훅 reuse-check 설계(그림자 먼저, 80% 관문). 첫 표지 30개 정밀도 약 77%
-status: active; draft, not installed
+status: landed in plugins/qwreey-conventions/rules/code-reuse.md
 ---
 # 코드 품질 규약 초안
 
-설치하지 않은 초안이다. 전역 규약 문구는 토론으로 확정하므로 이 초안이 그 출발점이다. 근거는 `.claude/audit/47-coderag-code-quality/README.md`(coderag 의 하드코딩·중복·재발명·단순화, 기계 검사 7종의 정밀도)와 이 폴더의 `probe/`(5개 저장소에서 다시 잰 H1).
+`plugins/qwreey-conventions` 에 설치했다(rule `code-reuse`, 스킬 `code-reuse`, 훅 `reuse-check`, 문구 토론은 `.claude/audit/48-code-reuse-debate/`). 설치된 모양과 다른 부분(rule 본문, 알림 문구, H2·H6 제외, 훅 파일 배치)은 설치본이 맞고, 이 폴더는 근거와 이력이다. 고치지 않는다. 근거는 `.claude/audit/47-coderag-code-quality/README.md`(coderag 의 하드코딩·중복·재발명·단순화, 기계 검사 7종의 정밀도)와 이 폴더의 `probe/`(5개 저장소에서 다시 잰 H1).
 
 사용자: "const ... 로써 하드코딩을 하는 부분이 꽤나 있는데 … 이런 하드코딩도 사실 좋은건 아니라서, 컨벤션 상 훅이나 룰로 무언가 도움이 되는게 생겨야하나 싶은 부분", "바퀴의 재발명, 단순화 실패, 중복성, 하드코딩 이런것에 대한 컨벤션도 생각해볼 부분인것 같아. 이런걸 잡는다 하면 거짓 긍정 같은 상황도 어떻게 줄일 수 있냐 전략이 필요하기도 하고", "규약에 대한 초안을 짜둬도 좋고".
 

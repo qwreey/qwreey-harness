@@ -2,7 +2,7 @@
 format: 1
 title: 코드 품질 검사의 거짓 긍정 전략(초안)
 description: H1 문자열 묶음 중복 등 검사 7종의 신호·기준·알려진 거짓 긍정 부류와 줄이는 법. 5개 저장소 묶음 31개 첫 표지(정밀도 약 77%, 바깥 API 어휘가 오탐의 주류)
-status: active; draft, not installed
+status: landed in plugins/qwreey-conventions/rules/code-reuse.md
 ---
 # 거짓 긍정 전략
 
