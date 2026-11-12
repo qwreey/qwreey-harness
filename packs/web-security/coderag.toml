@@ -1,0 +1,17 @@
+# coderag pack 매니페스트 (coderag tech-design §13.3). 팩은 데이터만 싣는다: skills, rules/*.md, 이 파일.
+#   등록 예(~/.coderag/coderag.toml):
+#     [[packs]]
+#     name = "web-security"
+#     path = "/code/Projects/claude-doctor/packs/web-security"
+#   쓰는 저장소는 자기 coderag.toml 에 `[[packs]] name = "web-security"` 만 적는다(이 팩의 단 하나의 스위치).
+
+[pack]
+name = "web-security"
+description = "웹·서버·인프라 보안 하드닝 체크리스트 (hardening 스킬의 references 13개)"
+claude_plugin = "web-security@claude-doctor-market"
+
+[[contexts.knowledge]]
+provider = ["markdown-frontmatter"]
+  [[contexts.knowledge.targets]]
+  module = "hardening"
+  source = "skills/hardening"

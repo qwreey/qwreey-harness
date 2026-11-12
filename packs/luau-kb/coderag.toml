@@ -10,6 +10,7 @@
 name = "luau-kb"
 description = "Luau 타입 한계·검증·테스트·성능·스타일·런타임·Roblox 엔진·업스트림 지식 (스킬 12개의 references)"
 taxonomy = "taxonomy.toml"
+claude_plugin = "luau-kb@claude-doctor-market"
 
 [[contexts.knowledge]]
 provider = ["markdown-frontmatter"]
