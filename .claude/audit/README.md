@@ -47,4 +47,11 @@ Multi-file audits:
 - [37-coderag-records/](37-coderag-records/) - can coderag back the records system
 - [38-records-convention/](38-records-convention/) - records convention debate and synthesis
 - [39-records-experiment/](39-records-experiment/) - this restructure: questions, measure script, move map, results
+- [40-pack-scope-probes/](40-pack-scope-probes/) - pack scope probes
+- [41-knowledge-packs-debate/](41-knowledge-packs-debate/) - knowledge pack container and coderag process model debate
+- [42-memory-systems-survey/](42-memory-systems-survey/) - static survey of 8 agent memory systems
+- [43-levels-measure/](43-levels-measure/) - coderag L0/L1/L2 levels measurement
+- [44-search-output-tokens/](44-search-output-tokens/) - search output token cut (legend paths, tags, handles)
+- [45-search-descriptions/](45-search-descriptions/) - search summary line length and language vs picking accuracy
+- [46-coderag-agent-surface/](46-coderag-agent-surface/) - review of every coderag string a model sees (skill/MCP view)
 - [drafts/](drafts/) - drafts written during audits
