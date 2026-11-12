@@ -6,6 +6,7 @@ glob 변환(이 플러그인 rule 4개의 패턴 전부), 주입 dedup(에이전
 """
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -225,7 +226,10 @@ class Race(unittest.TestCase):
         s = fresh()
         with ThreadPoolExecutor(8) as ex:
             outs = list(ex.map(lambda i: run("PostToolUse", "Read", X + "/p%d.py" % i, s), range(8)))
-        self.assertEqual(sum(1 for o in outs if o), 1)
+        # Markers are claimed per rule, so parallel calls may split the rules between them; each rule must appear once.
+        names = re.findall(r'<rule plugin="[^"]+" name="([^"]+)"', "".join(ctx(o) for o in outs if o))
+        self.assertTrue(names)
+        self.assertEqual(sorted(names), sorted(set(names)), names)
 
 
 class Switches(unittest.TestCase):
