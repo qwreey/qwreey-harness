@@ -5,7 +5,7 @@
 
 남은 기존 주석 보고: 같은 PostToolUse 에서 이번에 추가하지 않은 줄의 문제를 범주별(이력, 기호, 이스케이프, 보이지 않는 문자) 줄 수로 세어
   $TMPDIR/claude-conventions/<session_id>.left.<main|agent_id>.json 에 조용히 쌓는다(파일마다 마지막 편집 기준). Stop 에서 모든 호출한 쪽 기록을 합쳐
-  사용자에게 한 줄을 systemMessage 로 보인다(내용이 바뀐 때만). 고치지 않는다. 모델 턴을 늘리지 않으려고 Stop 의 additionalContext 나 decision 은 쓰지 않는다.
+  사용자에게 한 줄을 systemMessage 로 보인다(내용이 바뀐 때만). reuse-check 가 따로 쓰는 <session_id>.reuse.<main|agent_id>.json(전부터 있던 같은 목록 수, 원본과 다른 사본 수)도 합쳐 보인다. 고치지 않는다. 모델 턴을 늘리지 않으려고 Stop 의 additionalContext 나 decision 은 쓰지 않는다.
 
 보는 것: 이번에 추가된 줄만. Edit/MultiEdit 는 new_string 에서 old_string 에 없던 줄, Write 는 새 파일이면 전체, 덮어쓰기면
   tool_response.originalFile 과의 차이(없으면 structuredPatch 의 + 줄, 둘 다 없으면 보지 않는다. 옛 줄을 새로 오인하지 않으려고).
@@ -519,25 +519,48 @@ def record_leftovers(data, path, rel, kind, text, added, rows, cfg, pats, pub):
         pass
 
 
-def leftover_message(sid, d=None):
-    """세션의 모든 호출한 쪽 기록을 합쳐 사용자용 한 줄. 같은 파일은 가장 최근 기록을 쓴다. 없으면 None."""
+def _latest(pattern):
+    """같은 파일의 여러 호출한 쪽 기록 중 가장 최근 것. {절대 경로: 기록}."""
     import glob
-    prefix = re.sub(r"[^\w-]", "", str(sid or "nosession")) + ".left."
     best = {}
-    for fp in glob.glob(os.path.join(d or left_dir(), prefix + "*.json")):
+    for fp in glob.glob(pattern):
         try:
             for k, v in json.load(open(fp)).items():
                 if k not in best or v["t"] > best[k]["t"]:
                     best[k] = v
         except Exception:
             continue
-    items = [(v["rel"], v["n"]) for k, v in sorted(best.items(), key=lambda kv: kv[1]["rel"]) if v["n"] and os.path.exists(k)]
-    if not items:
-        return None
-    order = ["이력", "기호", "이스케이프", "보이지 않는 문자"]
-    shown = ", ".join(f"{rel}(" + ", ".join(f"{c} {n[c]}" for c in order if c in n) + ")" for rel, n in items[:LEFT_MAX_FILES])
-    more = f" 외 {len(items) - LEFT_MAX_FILES}개" if len(items) > LEFT_MAX_FILES else ""
-    return f"손댄 파일에 기존 주석 문제가 남아 있음: {shown}{more}. 정리는 요청하실 때만."
+    return best
+
+
+def leftover_message(sid, d=None):
+    """세션의 모든 호출한 쪽 기록을 합쳐 사용자용 글. 첫 줄은 전부터 있던 문제(주석, 같은 목록), 둘째 줄은 원본과 달라진 사본. 없으면 None.
+    같은 목록과 사본 기록은 reuse-check 가 따로 쓴다(두 훅이 한 파일을 동시에 고쳐 쓰지 않게)."""
+    base = os.path.join(d or left_dir(), re.sub(r"[^\w-]", "", str(sid or "nosession")))
+    left, reuse = _latest(base + ".left.*.json"), _latest(base + ".reuse.*.json")
+    rows, diff = {}, []
+    for k, v in left.items():
+        if v["n"] and os.path.exists(k):
+            rows[k] = (v["rel"], dict(v["n"]))
+    for k, v in reuse.items():
+        if not os.path.exists(k):
+            continue
+        if v.get("dup"):
+            rows.setdefault(k, (v["rel"], {}))[1]["같은 목록이 두 곳"] = v["dup"]
+        if v.get("differ"):
+            diff.append((v["rel"], v["differ"]))
+    order = ["이력", "기호", "이스케이프", "보이지 않는 문자", "같은 목록이 두 곳"]
+    items = sorted(rows.values())
+    lines = []
+    if items:
+        shown = ", ".join(f"{rel}(" + ", ".join(f"{c} {n[c]}" for c in order if c in n) + ")" for rel, n in items[:LEFT_MAX_FILES])
+        more = f" 외 {len(items) - LEFT_MAX_FILES}개" if len(items) > LEFT_MAX_FILES else ""
+        lines.append(f'손댄 파일에 전부터 있던 문제: {shown}{more}. 고치려면 "기존 문제도 정리해줘" 라고 하시면 됩니다.')
+    if diff:
+        shown = ", ".join(f"{rel} {n}" for rel, n in sorted(diff)[:LEFT_MAX_FILES])
+        more = f" 외 {len(diff) - LEFT_MAX_FILES}개" if len(diff) > LEFT_MAX_FILES else ""
+        lines.append(f"사본이 원본과 다름: {shown}{more}. 동작이 달라질 수 있습니다.")
+    return "\n".join(lines) or None
 
 
 def report_leftovers(data):

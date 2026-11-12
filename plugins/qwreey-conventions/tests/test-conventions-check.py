@@ -294,7 +294,7 @@ edit("l/old.luau", "local a = 1\n", edit_new, old_file.replace("local a = 1", "l
 r = stop("L1")
 msg = (r or {}).get("systemMessage", "")
 check("Stop reports leftover counts to the user (systemMessage only)", r is not None and set(r) == {"systemMessage"}
-      and "l/old.luau(이력 1, 기호 2)" in msg and "요청하실 때만" in msg)
+      and "l/old.luau(이력 1, 기호 2)" in msg and msg.startswith("손댄 파일에 전부터 있던 문제") and "정리해줘" in msg)
 check("Stop does not repeat an unchanged report", stop("L1") is None)
 # 추가한 줄의 문제는 알림 쪽이 맡고 남은 기존 주석 집계에는 넣지 않는다
 n = edit("l/new.luau", "local a = 1\n", "local a = 1 -- x \u2014 y\n", "local a = 1 -- x \u2014 y\n", sid="L2")
