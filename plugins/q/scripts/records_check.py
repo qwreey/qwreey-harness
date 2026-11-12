@@ -3,9 +3,10 @@
 Usage: python3 -I records_check.py [--root <repo>] [--json] [--strict]
 Exit 0 always, except 2 with --strict when there are findings above info level.
 
-Living folders (plan, base, research, also under packs/<pack>/) are checked; snapshot folders (audit, handoff,
-sessions, session) are only measured for size, because snapshots are never edited and their links are frozen.
-Same grammar is implemented once here; coderag tests reuse tests/records-fixtures.
+Living folders (plan, base, research, and folders the repo's coderag.toml declares living under [records.folders];
+also under packs/<pack>/) are checked; snapshot folders (audit, handoff, sessions, session, declared snapshot) are only
+measured for size, because snapshots are never edited and their links are frozen. The non-record dirs below are skipped,
+as coderag's records::classify does. Same grammar is implemented once here; coderag tests reuse tests/records-fixtures.
 """
 import argparse
 import json
@@ -13,7 +14,15 @@ import os
 import re
 import sys
 
+try:
+    import tomllib
+except ImportError:  # Python < 3.11: no declarations, built-in folders only
+    tomllib = None
+
 LIVING = ("plan", "base", "research")
+# Mirrors coderag-core records::NON_RECORD_DIRS (raw is handled separately everywhere).
+NON_RECORD_DIRS = {"rules", "skills", "agents", "commands", "output-styles", "hooks", "agent-memory", "worktrees",
+                   "plugins", "projects", "memory", "plans", "todos"}
 STATES = ("active", "landed", "superseded", "rejected", "archived")
 FILE_LIMIT = 200 * 1024
 DIR_LIMIT = 5 * 1024 * 1024
@@ -83,15 +92,31 @@ def strip_code(text):
     return re.sub(r"`[^`\n]*`", "", text)
 
 
-def living_docs(claude):
+def declared_folders(root):
+    """{folder: "living"|"snapshot"} from <root>/coderag.toml [records.folders]. Unreadable or invalid entries are ignored."""
+    try:
+        with open(os.path.join(root, "coderag.toml"), "rb") as f:
+            cfg = tomllib.load(f)
+        folders = cfg.get("records", {}).get("folders", {})
+    except (OSError, ValueError, AttributeError, TypeError):
+        return {}
+    if not isinstance(folders, dict):
+        return {}
+    return {str(k).strip("/"): v for k, v in folders.items() if v in ("living", "snapshot")}
+
+
+def living_docs(claude, declared=None):
     """[(abs path, in_archive)] of *.md under living folders and packs, README excluded, raw/ skipped."""
+    declared = declared or {}
+    living = [x for x in LIVING if declared.get(x) != "snapshot"]
+    living += sorted(k for k, v in declared.items() if v == "living" and k not in living and k not in NON_RECORD_DIRS)
     bases = [claude]
     packs = os.path.join(claude, "packs")
     if os.path.isdir(packs):
         bases += [os.path.join(packs, p) for p in sorted(os.listdir(packs))]
     out = []
     for base in bases:
-        top = list(LIVING) + ["archive"]
+        top = living + ["archive"]
         for name in top:
             d = os.path.join(base, name)
             for dp, dns, fns in os.walk(d):
@@ -134,7 +159,7 @@ def check(root):
 
     if not os.path.isdir(claude):
         return F
-    for path, in_archive in living_docs(claude):
+    for path, in_archive in living_docs(claude, declared_folders(root)):
         text = read(path)
         if text is None:
             continue
@@ -178,7 +203,7 @@ def check(root):
     # sizes
     raw_dirs = []
     for dp, dns, fns in os.walk(claude):
-        dns[:] = [d for d in dns if d not in SIZE_SKIP]
+        dns[:] = [d for d in dns if d not in SIZE_SKIP and not (dp == claude and d in NON_RECORD_DIRS)]
         if os.path.basename(dp) == "raw":
             raw_dirs.append(dp)
             dns[:] = []
@@ -192,7 +217,7 @@ def check(root):
                 pass
     for name in sorted(os.listdir(claude)):
         d = os.path.join(claude, name)
-        if not os.path.isdir(d) or name in SIZE_SKIP:
+        if not os.path.isdir(d) or name in SIZE_SKIP or name in NON_RECORD_DIRS:
             continue
         total = 0
         for dp, dns, fns in os.walk(d):

@@ -88,6 +88,41 @@ class Fixture(unittest.TestCase):
         Path(self.root, ".claude", "base", "big2.bin").write_bytes(b"x" * (rc.DIR_LIMIT + 1))
         self.assertIn("REC-SIZE-DIR", {f["code"] for f in rc.check(self.root)})
 
+    def _bad(self, folder):
+        d = Path(self.root, ".claude", folder)
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "x.md").write_text("status: paused\n# x\n")
+        return "%s/x.md" % folder
+
+    def test_declared_folders(self):
+        living, snap, memory = self._bad("backlog"), self._bad("feedback"), self._bad("agent-memory")
+        got = codes(rc.check(self.root))
+        self.assertFalse({q for c, q in got} & {living, snap, memory}, "undeclared folders are not checked")
+        toml = '[records.folders]\nbacklog = "living"\nfeedback = "snapshot"\nagent-memory = "living"\nbogus = "weird"\n'
+        Path(self.root, "coderag.toml").write_text(toml)
+        got = codes(rc.check(self.root))
+        self.assertIn(("REC-STATUS-BAD", living), got)
+        self.assertNotIn(("REC-STATUS-BAD", snap), got)
+        self.assertNotIn(("REC-STATUS-BAD", memory), got, "non-record dirs cannot be declared living")
+        # a built-in living folder declared snapshot is no longer checked
+        Path(self.root, "coderag.toml").write_text('[records.folders]\nplan = "snapshot"\n')
+        self.assertNotIn(("REC-STATUS-BAD", "plan/bad.md"), codes(rc.check(self.root)))
+
+    def test_bad_toml_is_ignored(self):
+        Path(self.root, "coderag.toml").write_text("[records.folders\nbacklog = ")
+        self.assertIn(("REC-STATUS-BAD", "plan/bad.md"), codes(rc.check(self.root)))
+        Path(self.root, "coderag.toml").write_text('records = "x"\n')
+        self.assertIn(("REC-STATUS-BAD", "plan/bad.md"), codes(rc.check(self.root)))
+
+    def test_non_record_dirs_not_sized(self):
+        Path(self.root, ".claude", "agent-memory").mkdir()
+        Path(self.root, ".claude", "agent-memory", "big.md").write_text("x" * (rc.FILE_LIMIT + 1))
+        Path(self.root, ".claude", "skills").mkdir()
+        Path(self.root, ".claude", "skills", "huge.bin").write_bytes(b"x" * (rc.DIR_LIMIT + 1))
+        got = {f["code"] for f in rc.check(self.root)}
+        self.assertNotIn("REC-SIZE-FILE", got)
+        self.assertNotIn("REC-SIZE-DIR", got)
+
     def test_cli(self):
         script = HERE.parent / "scripts" / "records_check.py"
         p = subprocess.run([sys.executable, "-I", str(script), "--root", self.root, "--json"], capture_output=True, text=True, timeout=30)
