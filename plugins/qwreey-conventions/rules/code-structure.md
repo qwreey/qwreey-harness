@@ -45,7 +45,6 @@ paths:
 - Per-item data with a uniform shape (request name, args, cost, permission, batch, ...) goes in one table; code reads the table.
 - If one variable is branched on by string in more than 8 ways, consider replacing the branches with a table.
 - Tool-generated data goes in its own file, with the generator path and "do not edit by hand" in the header.
-- A copied file records its source path, and a check verifies it still matches the source.
 
 ## Naming
 - If a user-chosen name or structure conflicts with these rules, do not rename right away. Propose the change with reasons; do bulk edits only after approval.
