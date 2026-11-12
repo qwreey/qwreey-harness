@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""coderag 의 rule 주입 훅이 팩에 실린 파이썬 사본(rules_inject.py)과 같은 출력을 내는지 대조한다.
+"""coderag 의 rule 주입 훅이 파이썬 참조 구현(qwreey-conventions 의 rules_inject.py)과 같은 출력을 내는지 대조한다.
 실행: python3 -I tools/tests/test-coderag-rules-parity.py   (종료 0 = 통과)
 
-대조 대상: packs/<팩>/hooks/rules_inject.py (+ PreCompact 의 compact_epoch.py) 대 `coderag hook post-tool --pack <팩>` (+ `hook pre-compact`).
+대조 대상: 참조 구현 대 `coderag hook post-tool --pack <팩>` (+ `hook pre-compact`). 팩에는 훅이 없으므로 팩마다 임시 플러그인 폴더
+<tmp>/<팩>/plugin/{.claude-plugin/plugin.json(name = 팩), hooks/(정본 세 파일 사본), rules -> 팩의 rules} 를 만들어 거기서 파이썬을 돌린다.
 coderag 바이너리는 $CODERAG_BIN, 없으면 ../coderag/target/{debug,release}/coderag. 없으면 사유를 출력하고 0 으로 끝낸다.
 
 격리: 두 쪽 모두 임시 폴더만 쓴다. 파이썬은 TMPDIR(회차·마커 상태), 코어는 CODERAG_HOME·CODERAG_CACHE(상태 `$CODERAG_HOME/state`).
@@ -24,6 +25,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PACKS = ["web-security", "luau-kb"]
+CANON_HOOKS = ROOT / "plugins" / "qwreey-conventions" / "hooks"
 
 
 def find_bin():
@@ -42,7 +44,7 @@ def base_env(tmp, extra):
 class Runner:
     def __init__(self, tmp, binary, pack, proj):
         self.tmp, self.bin, self.pack, self.proj = tmp, binary, pack, proj
-        self.hooks = ROOT / "packs" / pack / "hooks"
+        self.hooks = self.make_plugin(tmp / "plugin", pack)
         self.py_tmp = tmp / "py-tmp"
         self.cg_home = tmp / "cg-home"
         self.cg_cache = tmp / "cg-cache"
@@ -51,6 +53,18 @@ class Runner:
             d.mkdir(parents=True, exist_ok=True)
         (self.cg_home / "coderag.toml").write_text(
             "".join('[[packs]]\nname = "%s"\npath = "%s"\n' % (p, ROOT / "packs" / p) for p in PACKS))
+
+    @staticmethod
+    def make_plugin(plug, pack):
+        """참조 구현이 플러그인 폴더 배치(hooks/, rules/, .claude-plugin/plugin.json)를 기대하므로 팩 하나분을 임시로 짠다."""
+        (plug / ".claude-plugin").mkdir(parents=True)
+        (plug / ".claude-plugin" / "plugin.json").write_text(json.dumps({"name": pack}))
+        hooks = plug / "hooks"
+        hooks.mkdir()
+        for f in ("rules_inject.py", "conv_env.py", "compact_epoch.py"):
+            shutil.copy2(CANON_HOOKS / f, hooks / f)
+        (plug / "rules").symlink_to(ROOT / "packs" / pack / "rules")
+        return hooks
 
     def common(self, proj):
         return {"CLAUDE_PROJECT_DIR": str(proj), "CLAUDE_CONFIG_DIR": str(self.cfg)}

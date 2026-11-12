@@ -1,32 +1,33 @@
 #!/usr/bin/env python3
-"""luau-kb 의 rules 주입 훅 회귀. 실행: timeout 120 python3 -I tools/tests/test-rules-inject.py </dev/null  (exit 0 = 통과)
+"""luau-kb 의 rule 주입 회귀. 실행: timeout 120 python3 -I tools/tests/test-rules-inject.py </dev/null  (exit 0 = 통과)
 
-hooks/ 의 rules_inject.py·conv_env.py·compact_epoch.py 는 claude-doctor 정본의 바이트 같은 사본이다. 여기서는 .luau Read 가 luau-core 를 한 번 넣는지,
-다른 경로는 안 넣는지, 사본이 정본과 같은지(claude-doctor 가 있을 때만)를 본다. 상태는 TMPDIR 로 격리한다.
+팩은 훅을 싣지 않는다. rule 주입은 coderag 바이너리(`coderag hook post-tool --pack luau-kb`)로 시험한다: .luau Read 가 luau-core 를 한 번 넣는지,
+다른 경로는 안 넣는지, 팩에 hooks/hooks.json 이 없는지 본다. 바이너리가 없으면 그 시험은 건너뛴다. 상태는 임시 CODERAG_HOME·CODERAG_CACHE 로 격리한다.
 """
 import json
 import os
 import subprocess
-import sys
 import tempfile
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DOCTOR = os.environ.get("CLAUDE_DOCTOR_ROOT", "/code/Projects/claude-doctor")
+CODERAG = os.environ.get("CODERAG_BIN") or "/code/Projects/coderag/bin/coderag"
+HAVE_BIN = os.access(CODERAG, os.X_OK)
 T = tempfile.mkdtemp(prefix="luau-kb-")
-CFG = os.path.join(T, "cfg")
+HOME = os.path.join(T, "home")
+CACHE = os.path.join(T, "cache")
 PROJ = os.path.join(T, "proj")
-os.makedirs(CFG)
-os.makedirs(PROJ)
+for d in (HOME, CACHE, PROJ):
+    os.makedirs(d)
+with open(os.path.join(HOME, "coderag.toml"), "w", encoding="utf-8") as f:
+    f.write('[[packs]]\nname = "luau-kb"\npath = "%s"\n' % ROOT)
 _n = [0]
 
 
 def run(tool, path, session):
     payload = {"hook_event_name": "PostToolUse", "tool_name": tool, "tool_input": {"file_path": path}, "session_id": session, "cwd": PROJ}
-    e = dict(os.environ, TMPDIR=T, CLAUDE_CONFIG_DIR=CFG, CLAUDE_PROJECT_DIR=PROJ)
-    e.pop("HARNESS_CONVENTIONS_RULES", None)
-    r = subprocess.run([sys.executable, "-I", os.path.join(ROOT, "hooks", "rules_inject.py")], input=json.dumps(payload),
-                       capture_output=True, text=True, env=e)
+    e = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": T, "CODERAG_HOME": HOME, "CODERAG_CACHE": CACHE, "CLAUDE_PROJECT_DIR": PROJ}
+    r = subprocess.run([CODERAG, "hook", "post-tool", "--pack", "luau-kb"], input=json.dumps(payload), capture_output=True, text=True, env=e, timeout=30)
     return json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"] if r.stdout.strip() else None
 
 
@@ -35,6 +36,7 @@ def fresh():
     return "lk%d" % _n[0]
 
 
+@unittest.skipUnless(HAVE_BIN, "coderag 바이너리가 없다($CODERAG_BIN 또는 /code/Projects/coderag/bin/coderag)")
 class Inject(unittest.TestCase):
     def test_luau_read_injects_core_once(self):
         s = fresh()
@@ -53,29 +55,14 @@ class Inject(unittest.TestCase):
 
 
 class Layout(unittest.TestCase):
-    def test_hooks_json(self):
-        with open(os.path.join(ROOT, "hooks", "hooks.json"), encoding="utf-8") as f:
-            hooks = json.load(f)["hooks"]
-        self.assertEqual(sorted(hooks), ["PostToolUse", "PreCompact"])
-        self.assertEqual(hooks["PreCompact"][0]["matcher"], "manual|auto")
-        self.assertTrue(hooks["PreCompact"][0]["hooks"][0]["command"].rstrip().endswith('compact_epoch.py" luau-kb'))
+    def test_pack_has_no_hooks_json(self):
+        # rule 은 coderag 플러그인이 넣는다. 팩이 훅을 싣으면 같은 rule 이 두 번 실린다.
+        self.assertFalse(os.path.exists(os.path.join(ROOT, "hooks", "hooks.json")))
+        self.assertFalse(os.path.exists(os.path.join(ROOT, "hooks", "rules_inject.py")))
 
     def test_plugin_name(self):
         with open(os.path.join(ROOT, ".claude-plugin", "plugin.json"), encoding="utf-8") as f:
             self.assertEqual(json.load(f)["name"], "luau-kb")
-
-
-@unittest.skipUnless(os.path.isdir(DOCTOR), "claude-doctor 가 없다")
-class Copies(unittest.TestCase):
-    def test_byte_identical_to_canon(self):
-        canon = {
-            "rules_inject.py": "plugins/qwreey-conventions/hooks/rules_inject.py",
-            "conv_env.py": "plugins/qwreey-conventions/hooks/conv_env.py",
-            "compact_epoch.py": "plugins/q/scripts/compact_epoch.py",
-        }
-        for name, rel in canon.items():
-            with open(os.path.join(ROOT, "hooks", name), "rb") as a, open(os.path.join(DOCTOR, rel), "rb") as b:
-                self.assertEqual(a.read(), b.read(), "%s 이 정본 %s 과 다르다. 정본을 고치고 복사한다" % (name, rel))
 
 
 if __name__ == "__main__":

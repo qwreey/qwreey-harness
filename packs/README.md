@@ -4,11 +4,14 @@ A pack is a domain-knowledge plugin in the `claude-doctor-market` marketplace wi
 so it stays off everywhere until a repo turns it on. Skill `paths` do not hide a skill's description, so
 scoping by project settings is what keeps a pack out of unrelated repos.
 
-A repo enables a pack in `.claude/settings.json`: `"enabledPlugins": {"<pack>@claude-doctor-market": true}`.
-`q:doctor` recommends packs from toolkit markers (`PACK-MISSING`, `PACK-UNUSED`, `PACK-USER-LEVEL`).
+A repo turns a pack on in its `coderag.toml`: `[[packs]]` with `name = "<pack>"`. Then `coderag adapt --harness claude` adds
+`"<pack>@claude-doctor-market": true` to `enabledPlugins` in `.claude/settings.json` (skills load) and never overrides an explicit `false`.
+The pack's path-scoped `rules/*.md` are injected by the coderag plugin (`coderag@coderag-market`, PostToolUse `hook post-tool`) only for packs the
+project lists; a pack ships no hooks of its own, so enabling the plugin alone injects nothing.
+`q:doctor` compares the two switches and recommends packs from toolkit markers (`PACK-MISSING`, `PACK-DRIFT`, `PACK-UNUSED`, `PACK-USER-LEVEL`, `PACK-NO-CODERAG`).
 
 Current packs: `web-security`, `luau-kb`.
 
-A pack folder holds only what runs (skills, rules, hooks, tools, snippets, typedefs, `.lsp.json`, and `coderag.toml`/`taxonomy.toml`,
+A pack folder holds only what runs (skills, rules, tools, snippets, typedefs, `.lsp.json`, and `coderag.toml`/`taxonomy.toml`,
 which coderag reads from the pack root), because the plugin cache copies the whole folder per version. Development material that
 nothing in the payload cites lives in `.claude/packs/<pack>/` (for luau-kb: `evals/`).

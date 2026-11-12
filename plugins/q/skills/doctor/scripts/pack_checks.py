@@ -1,10 +1,14 @@
-"""harness-doctor 항목 7(설정) 의 도메인 팩 검사: PACK-MISSING, PACK-UNUSED, PACK-USER-LEVEL. 읽기 전용.
+"""harness-doctor 항목 7(설정) 의 도메인 팩 검사: PACK-MISSING, PACK-DRIFT, PACK-UNUSED, PACK-USER-LEVEL, PACK-NO-CODERAG. 읽기 전용.
 
-팩은 기본 꺼짐(defaultEnabled false) 플러그인이라 저장소가 자기 .claude/settings.json 의 enabledPlugins 로 켠다.
-툴킷 표식(scan.py detect_toolkits 결과)이 있는 저장소에만 켜지게 하려는 것이다. scan.py 가 경로로 적재해 run(...) 만 부른다.
-user_home 은 주입한다(테스트는 실제 ~/.claude 를 읽지 않는다).
+팩은 기본 꺼짐(defaultEnabled false) 플러그인이다. 스위치는 프로젝트 coderag.toml 의 [[packs]] 목록 하나이고(rule 주입은 coderag 플러그인이
+이 목록을 따른다), `coderag adapt --harness claude` 가 이 목록에서 .claude/settings.json 의 enabledPlugins(스킬 적재)를 만든다.
+그래서 이 검사는 목록과 enabledPlugins 가 어긋났는지, 툴킷 표식이 있는데 목록에 없는지를 본다.
+scan.py 가 경로로 적재해 run(...) 만 부른다. user_home 과 coderag_bin 은 주입한다(테스트는 실제 ~/.claude 와 PATH 를 읽지 않는다).
 """
 import json
+import os
+import shutil
+import tomllib
 from pathlib import Path
 
 # 팩 이름 -> (툴킷, 마켓). 팩 이름은 마켓과 무관하게 맞춘다(마켓이 옮겨져도 켜진 것으로 본다). 마켓은 안내 줄에만 쓴다.
@@ -24,6 +28,15 @@ def _enabled_map(path):
     return {k.split("@")[0]: bool(v) for k, v in ep.items() if isinstance(k, str)}
 
 
+def _listed_packs(repo):
+    """프로젝트 coderag.toml 의 [[packs]] 이름 집합. 파일이 없거나 깨졌으면 빈 집합."""
+    try:
+        packs = tomllib.loads((Path(repo) / "coderag.toml").read_text(encoding="utf-8")).get("packs") or []
+    except (OSError, ValueError, AttributeError):
+        return set()
+    return {p["name"] for p in packs if isinstance(p, dict) and isinstance(p.get("name"), str)}
+
+
 def _known_markets(user_home):
     """Marketplace names this machine has added; None when the file is unreadable (then nothing is skipped)."""
     try:
@@ -32,28 +45,55 @@ def _known_markets(user_home):
         return None
 
 
-def run(add, repo, active, user_home):
-    """active 는 {툴킷 이름: 표식}. add 는 scan.add 와 같은 시그니처."""
+def _coderag_ok(coderag_bin):
+    """harness.env 의 HARNESS_CODERAG, 없으면 PATH 의 coderag 가 실행 가능한가."""
+    cand = coderag_bin or shutil.which("coderag")
+    return bool(cand) and os.access(cand, os.X_OK)
+
+
+def run(add, repo, active, user_home, coderag_bin=None):
+    """active 는 {툴킷 이름: 표식}. add 는 scan.add 와 같은 시그니처. coderag_bin 은 harness.env HARNESS_CODERAG 값."""
     repo, user_home = Path(repo), Path(user_home)
     proj_file = repo / ".claude" / "settings.json"
     proj = _enabled_map(proj_file)
     proj.update(_enabled_map(repo / ".claude" / "settings.local.json"))  # local 이 project 를 덮는다
     user = _enabled_map(user_home / "settings.json")
+    listed_all = _listed_packs(repo)
     known = _known_markets(user_home)
+    in_use = False
     for pack, (toolkit, market) in PACKS.items():
         eff = proj[pack] if pack in proj else user.get(pack, False)
+        listed = pack in listed_all
+        in_use = in_use or listed or eff
         # 아직 추가되지 않은 마켓의 팩은 켤 수 없으니 MISSING 을 내지 않는다(모든 luau 저장소에 소음이 된다).
         installable = known is None or market in known
-        if toolkit in active and not eff and proj.get(pack) is not False and installable:
+        if toolkit in active and not listed and pack not in proj and installable:
             marks = "; ".join(active[toolkit][:2])
-            add(7, "경고", "PACK-MISSING", proj_file,
-                f"{toolkit} 툴킷 표식({marks})이 있는데 도메인 팩 {pack} 이 이 프로젝트에 켜져 있지 않다. "
-                f'.claude/settings.json 의 "enabledPlugins" 에 `"{pack}@{market}": true` 를 더한다(사용자 승인 뒤).', REF)
-        elif toolkit not in active and eff:
-            where = "프로젝트" if proj.get(pack) else "사용자 레벨"
-            add(7, "정보", "PACK-UNUSED", proj_file if proj.get(pack) else user_home / "settings.json",
+            add(7, "경고", "PACK-MISSING", repo / "coderag.toml",
+                f"{toolkit} 툴킷 표식({marks})이 있는데 도메인 팩 {pack} 이 이 프로젝트의 coderag.toml 에 없다. "
+                f'coderag.toml 에 `[[packs]]` 와 `name = "{pack}"` 두 줄을 더하고 `coderag adapt --harness claude` 를 실행한다'
+                f"(enabledPlugins 에 {pack}@{market} 가 생긴다. 사용자 승인 뒤).", REF)
+        elif toolkit not in active and (listed or eff):
+            where = "coderag.toml 목록" if listed else ("프로젝트 enabledPlugins" if proj.get(pack) else "사용자 레벨 enabledPlugins")
+            add(7, "정보", "PACK-UNUSED", repo / "coderag.toml" if listed else (proj_file if proj.get(pack) else user_home / "settings.json"),
                 f"도메인 팩 {pack} 이 {where}에서 켜져 있는데 {toolkit} 툴킷 표식이 없다. 이 저장소에는 필요 없을 수 있다.", REF)
+        if listed and proj.get(pack) is False:
+            add(7, "경고", "PACK-DRIFT", proj_file,
+                f"도메인 팩 {pack} 이 coderag.toml 에는 있는데 enabledPlugins 에서 false 다. 스킬이 적재되지 않는다. "
+                f"coderag adapt 는 명시한 false 를 덮어쓰지 않으니 목록과 settings 중 어느 쪽이 맞는지 사람이 정한다.", REF)
+        elif listed and not eff:
+            add(7, "경고", "PACK-DRIFT", proj_file,
+                f"도메인 팩 {pack} 이 coderag.toml 에는 있는데 enabledPlugins 에 없다. 스킬이 적재되지 않는다. "
+                f"`coderag adapt --harness claude` 로 {pack}@{market} 를 더한다.", REF)
+        elif not listed and proj.get(pack):
+            add(7, "경고", "PACK-DRIFT", proj_file,
+                f"도메인 팩 {pack} 이 enabledPlugins 에서 켜져 있는데 coderag.toml 에 없다. rule 이 주입되지 않는다. "
+                f'coderag.toml 에 `[[packs]]` 와 `name = "{pack}"` 를 더한다.', REF)
         if user.get(pack):
             add(7, "정보", "PACK-USER-LEVEL", user_home / "settings.json",
                 f"도메인 팩 {pack} 이 사용자 레벨 enabledPlugins 에서 켜져 있다. 팩은 프로젝트별로 켠다"
-                f"(정본 home/settings-migrations 로 걷어 내고 {toolkit} 저장소의 .claude/settings.json 에서 켠다).", REF)
+                f"(정본 home/settings-migrations 로 걷어 내고 {toolkit} 저장소의 coderag.toml 목록과 adapt 로 켠다).", REF)
+    if in_use and not _coderag_ok(coderag_bin):
+        add(7, "경고", "PACK-NO-CODERAG", repo / "coderag.toml",
+            "도메인 팩이 켜져 있는데 coderag 바이너리가 없거나 실행할 수 없다(harness.env 의 HARNESS_CODERAG, 없으면 PATH). "
+            "팩 rule 이 주입되지 않는다. coderag 를 빌드하고 coderag 플러그인을 설치한다.", REF)

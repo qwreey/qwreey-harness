@@ -1,5 +1,5 @@
 """compact 회차: 플러그인마다 자기 회차를 갖는다. 표준 라이브러리만 쓴다.
-정본: plugins/q/scripts/compact_epoch.py. qwreey-advisor/hooks, qwreey-conventions/hooks, web-security/hooks 의 사본은 이 파일과 바이트가 같아야 한다
+정본: plugins/q/scripts/compact_epoch.py. qwreey-advisor/hooks, qwreey-conventions/hooks 의 사본은 이 파일과 바이트가 같아야 한다
 (tools/tests/test-vendored-copies.py 가 비교한다). 고칠 때는 정본만 고치고 사본에 복사한다.
 
 왜: "세션당 한 번 알린다" 류 훅은 session_id 로 dedup 하는데, compact 는 session_id 를 유지하면서 요약으로 이전 알림을 맥락에서

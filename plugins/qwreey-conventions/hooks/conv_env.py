@@ -1,5 +1,4 @@
-"""정본: plugins/qwreey-conventions/hooks/conv_env.py. web-security/hooks 의 사본은 이 파일과 바이트가 같아야 한다(tools/tests/test-vendored-copies.py).
-고칠 때는 정본만 고치고 사본에 복사한다.
+"""qwreey-conventions 훅의 환경 읽기. tools/tests/test-coderag-rules-parity.py 가 rules_inject.py 와 함께 임시 팩 디렉터리에 복사해 쓴다.
 
 이 플러그인 훅의 공용 작은 도구: 끄기 스위치(환경 변수 또는 harness.env)와 설정 위치. 표준 라이브러리만 쓴다.
 

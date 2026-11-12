@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """플러그인이 싣는 rules(`rules/*.md`, paths 프론트매터)를 파일 경로가 맞을 때 additionalContext 로 주입한다.
-정본: plugins/qwreey-conventions/hooks/rules_inject.py. conv_env.py, compact_epoch.py 와 함께 다른 플러그인(web-security)의 hooks/ 에 바이트가
-같은 사본으로 둔다(tools/tests/test-vendored-copies.py 가 비교한다). 고칠 때는 정본만 고치고 사본에 복사한다. 플러그인 이름은 이 파일 위치의
+이 플러그인 자신의 rules 만 넣는다. 도메인 팩(packs/*)의 rules 는 coderag 플러그인의 `coderag hook post-tool` 이 넣고, 이 파일은 그
+대조 기준이다(tools/tests/test-coderag-rules-parity.py 가 임시 팩 디렉터리에 복사해 같은 입력으로 비교한다). 플러그인 이름은 이 파일 위치의
 `../.claude-plugin/plugin.json` 에서 읽으므로(없으면 상위 디렉터리 이름) 코드에 이름이 박혀 있지 않다.
 
 왜: 플러그인은 `.claude/rules` 를 실을 수 없다. 공식 rules 는 Read 가 맞는 파일을 열 때 로드되므로, 같은 시점(PostToolUse)에

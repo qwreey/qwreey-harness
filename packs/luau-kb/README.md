@@ -2,7 +2,7 @@
 
 여러 Luau 저장소(quad, stl-luau, rbvm, table-sim, devplorer, tbox 등)에 흩어져 있던 **일반 Luau·Roblox 지식**을 한 곳에 모은 정본 저장소다. 타입 시스템의 한계, 검증 절차, 테스트, 성능 실측, 코드 스타일, Roblox 엔진 동작, 업스트림 변화를 다룬다. 모든 "verified" 주장은 `snippets/` 의 실행 가능한 재현 파일(성능 수치는 `bench/`)과 짝이고, 그 파일은 luau 0.734 와 0.742 에서 하네스로 검사된다. 프로젝트 고유 설계(특정 라이브러리의 타입 이름, API)는 넣지 않는다.
 
-- Claude Code: 플러그인으로 설치해 스킬 `luau-kb:luau-types`, `luau-kb:luau-verify`, `luau-kb:luau-testing`, `luau-kb:luau-perf`, `luau-kb:luau-style`, `luau-kb:luau-runtime`, `luau-kb:luau-roblox`, `luau-kb:roblox-engine`, `luau-kb:roblox-net`, `luau-kb:roblox-world`, `luau-kb:roblox-docs`, `luau-kb:luau-upstream` 으로 쓴다. `.lsp.json` 이 luau-lsp 를 LSP 도구로 붙인다(`.luau` 파일의 진단, hover, 정의 이동). `rules/` 의 경로 조건부 규칙은 플러그인의 PostToolUse 훅(`hooks/rules_inject.py`)이 `.luau` 를 Read·Edit·Write 할 때 주입한다(`rules/README.md`). 훅 세 파일은 claude-doctor 정본의 바이트 같은 사본이고, `tools/tests/test-rules-inject.py` 가 검사한다.
+- Claude Code: 플러그인으로 설치해 스킬 `luau-kb:luau-types`, `luau-kb:luau-verify`, `luau-kb:luau-testing`, `luau-kb:luau-perf`, `luau-kb:luau-style`, `luau-kb:luau-runtime`, `luau-kb:luau-roblox`, `luau-kb:roblox-engine`, `luau-kb:roblox-net`, `luau-kb:roblox-world`, `luau-kb:roblox-docs`, `luau-kb:luau-upstream` 으로 쓴다. `.lsp.json` 이 luau-lsp 를 LSP 도구로 붙인다(`.luau` 파일의 진단, hover, 정의 이동). `rules/` 의 경로 조건부 규칙은 coderag 플러그인이 `.luau` 를 Read·Edit·Write 할 때 주입한다(Luau 저장소 `coderag.toml` 에 `[[packs]] name = "luau-kb"`, 그다음 `coderag adapt --harness claude`; `rules/README.md`). 팩에는 훅이 없고 `tools/tests/test-rules-inject.py` 가 coderag 바이너리로 주입을 검사한다.
 - codex, agy 등: `AGENTS.md` 가 같은 references 를 평문 경로로 안내한다.
 
 ## 구조
@@ -39,7 +39,6 @@ skills/
     references/          sources
   luau-upstream/         SKILL.md + references/ 5개
     references/          sources, watchlist, syntax-adoption, version-bump, roadmap-notes
-hooks/                   hooks.json + rules_inject.py·conv_env.py·compact_epoch.py (claude-doctor 정본의 사본, rules 주입)
 rules/                   luau-core.md(**/*.luau), code-structure.md(안내만: 정본은 ~/.claude/rules/code-structure.md), README.md(배포 방식과 로드 실측)
 snippets/                *.luau 152개(주장 하나에 파일 하나, 접두가 담당: perf- rbx- style- test- opt- native- pack- tf- …)
                          + *.sh 셸 하네스(require·stylua·cross-module) + RESULTS.md (버전 행렬 결과, 강등 목록)
@@ -71,7 +70,7 @@ claude plugin marketplace add /code/Projects/claude-doctor   # claude-doctor-mar
 claude plugin install luau-kb@claude-doctor-market
 ```
 
-기본 꺼짐 팩이라 Luau 저장소가 자기 `.claude/settings.json` 의 `"enabledPlugins": {"luau-kb@claude-doctor-market": true}` 로 켠다. 개발 자료(스킬 발동 평가 `evals/`)는 claude-doctor `.claude/packs/luau-kb/` 에 있다.
+기본 꺼짐 팩이라 Luau 저장소가 자기 `coderag.toml` 에 `[[packs]]` + `name = "luau-kb"` 를 적고 `coderag adapt --harness claude` 로 켠다(`.claude/settings.json` 의 `enabledPlugins` 에 `"luau-kb@claude-doctor-market": true` 가 생긴다. rule 은 coderag 플러그인이 넣는다). 개발 자료(스킬 발동 평가 `evals/`)는 claude-doctor `.claude/packs/luau-kb/` 에 있다.
 
 로컬 경로 마켓플레이스는 파일을 직접 읽으므로, 수정한 뒤 `/reload-plugins` 하면 반영된다. 호스팅 설치본을 쓸 때는 `plugin.json` 의 `version` 을 올려야 갱신된다.
 

@@ -14,15 +14,11 @@ PACKS = ROOT / "packs"
 CANON = {
     "compact_epoch.py": "plugins/q/scripts/compact_epoch.py",
     "memory_signals.py": "plugins/qwreey-conventions/hooks/memory_signals.py",
-    "rules_inject.py": "plugins/qwreey-conventions/hooks/rules_inject.py",
-    "conv_env.py": "plugins/qwreey-conventions/hooks/conv_env.py",
 }
 # 사본이 있어야 하는 곳(없으면 실패): 지워지거나 옮겨진 사본을 알아채려고 둔다
 EXPECTED = {
-    "compact_epoch.py": ["plugins/qwreey-advisor/hooks", "plugins/qwreey-conventions/hooks", "packs/web-security/hooks", "packs/luau-kb/hooks"],
+    "compact_epoch.py": ["plugins/qwreey-advisor/hooks", "plugins/qwreey-conventions/hooks"],
     "memory_signals.py": ["plugins/q/skills/doctor/scripts"],
-    "rules_inject.py": ["packs/web-security/hooks", "packs/luau-kb/hooks"],
-    "conv_env.py": ["packs/web-security/hooks", "packs/luau-kb/hooks"],
 }
 
 
@@ -37,6 +33,11 @@ class VendoredCopies(unittest.TestCase):
                 self.assertIn(ROOT / rel / name, copies, f"{rel}/{name} 사본이 없다")
             for c in copies:
                 self.assertEqual(c.read_bytes(), want, f"{c.relative_to(ROOT)} 이 정본 {canon} 과 다르다. 정본을 고치고 복사한다")
+
+    def test_packs_carry_no_rule_injector(self):
+        # 팩 rule 은 coderag 플러그인이 넣는다. 팩이 자기 훅을 또 싣으면 같은 rule 이 두 번 실린다.
+        for hooks in PACKS.glob("*/hooks"):
+            self.assertFalse((hooks / "rules_inject.py").exists(), f"{hooks.relative_to(ROOT)}/rules_inject.py: 이중 주입이 된다")
 
 
 if __name__ == "__main__":

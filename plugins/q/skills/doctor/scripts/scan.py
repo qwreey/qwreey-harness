@@ -424,7 +424,7 @@ def check_packs(repo, active):
     spec = importlib.util.spec_from_file_location("pack_checks", HERE.parent / "pack_checks.py")
     pc = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(pc)
-    pc.run(add, repo, active, USER_HOME)
+    pc.run(add, repo, active, USER_HOME, ENV.get("HARNESS_CODERAG"))
 
 
 # ----------------------------------------------------- 9 worktree

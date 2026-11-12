@@ -30,7 +30,13 @@
     4. 위 고아 파일을 지운다
     5. 새 세션을 시작한다
 - [ ] qwreey-conventions 0.4.0 으로 갱신한 뒤 `~/.claude/rules/{comments,agent-docs,code-structure,memory,web-security}.md` 를 지운다(플러그인 `rules_inject` 가 같은 본문을 넣으므로 두 곳에서 로드되는 것을 막는다. 갱신 전에 지우면 그 사이 규칙이 없다). `tools/home-sync.sh status` 에 고아로 보인다
-- [ ] luau-kb 는 claude-doctor 의 도메인 팩(`packs/luau-kb` 0.5.0, 기본 꺼짐)이 됐다. 순서: (1) `claude plugin marketplace update claude-doctor-market` (2) 각 Luau 저장소의 `.claude/settings.json` 에 `"enabledPlugins": {"luau-kb@claude-doctor-market": true}` 를 더한다(저장소별 승인) (3) 켠 뒤 `~/.claude/rules/luau-core.md` symlink 와 `~/.claude/skills/luau-*` 링크를 지운다(옛 luau-kb 저장소를 가리키며 그 저장소는 없어질 예정이다. 켜기 전에 지우면 그 사이 규칙이 없고, 둘 다 있으면 규칙이 두 번 로드된다) (4) 옛 `luau-kb@luau-kb-market` 이 설치돼 있으면 `claude plugin uninstall` 로 지우고 `claude plugin marketplace remove luau-kb-market`. 이 sandbox 에서는 아직 설치·활성화돼 있지 않다
+- [ ] luau-kb 는 claude-doctor 의 도메인 팩(`packs/luau-kb`, 기본 꺼짐)이 됐다. 순서: (1) `claude plugin marketplace update claude-doctor-market` (2) 각 Luau 저장소의 `coderag.toml` 에 `[[packs]]` `name = "luau-kb"` 를 적고 `coderag adapt --harness claude` 를 실행한다(저장소별 승인) (3) 켠 뒤 `~/.claude/rules/luau-core.md` symlink 와 `~/.claude/skills/luau-*` 링크를 지운다(옛 luau-kb 저장소를 가리키며 그 저장소는 없어질 예정이다. 켜기 전에 지우면 그 사이 규칙이 없고, 둘 다 있으면 규칙이 두 번 로드된다) (4) 옛 `luau-kb@luau-kb-market` 이 설치돼 있으면 `claude plugin uninstall` 로 지우고 `claude plugin marketplace remove luau-kb-market`. 이 sandbox 에서는 아직 설치·활성화돼 있지 않다
+
+## 팩 rule 주입을 coderag 로 옮긴 컷오버 (이 기기)
+이 기기의 플러그인(coderag, q, qwreey-*, web-security, luau-kb)은 캐시 복사가 아니라 저장소에서 바로 읽으므로 마켓 갱신·플러그인 update 는 필요 없다(coderag 마켓 추가와 `coderag@coderag-market` 설치도 끝났다). 수정은 다음 세션 시작이나 `/reload-plugins` 에 반영된다.
+- [ ] 팩을 쓰는 각 저장소(Luau: quad 등, web: vitrine 등)의 `coderag.toml` 에 `[[packs]]` + `name = "luau-kb"`(또는 `web-security`)를 적고 `coderag adapt --harness claude --dry-run`, 이상 없으면 `coderag adapt --harness claude`, `coderag gen`. 이 목록을 적기 전까지 새 세션에는 팩 rule 이 주입되지 않는다(팩 훅을 뺐고 coderag 는 목록에 있는 팩만 넣는다)
+- [ ] 그 저장소에서 새 세션을 열어 `.luau`(또는 `.ts`) 파일을 Read 해 rule 이 한 번만 붙는지 본다. `/q:doctor` 항목 7 에 `PACK-DRIFT`·`PACK-MISSING`·`PACK-NO-CODERAG` 가 없어야 한다
+- [ ] 다른 기기에 배포할 때: coderag 마켓 추가와 `coderag@coderag-market` 설치, `claude plugin marketplace update claude-doctor-market`, web-security 0.4.0·luau-kb 0.6.0·q 0.8.7 갱신, 새 세션
 
 ## 권한
 - [ ] plugin.json 의 license 필드(session-log 는 MIT 로 적혀 있음)와 luau-kb·coderag LICENSE 를 함께 결정 (auto 모드 분류기가 막거나, 사용자 판단 사항)

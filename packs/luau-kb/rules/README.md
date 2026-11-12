@@ -1,6 +1,6 @@
 # rules - path-scoped shared rules
 
-This directory holds the `paths:`-scoped rule files shared by several Luau repos. This directory is canonical. The plugin injects these files from a PostToolUse hook (`hooks/rules_inject.py`, a byte-identical copy of claude-doctor's canonical file) when a matching file is read or written; plugins cannot ship `.claude/rules`. Do not also symlink them into `~/.claude/rules/`, or the rule loads twice.
+This directory holds the `paths:`-scoped rule files shared by several Luau repos. This directory is canonical. The coderag plugin injects these files (`coderag hook post-tool`, for projects that list `luau-kb` under `[[packs]]` in `coderag.toml`) when a matching file is read or written; the pack ships no hooks; plugins cannot ship `.claude/rules`. Do not also symlink them into `~/.claude/rules/`, or the rule loads twice.
 
 | File | paths | Lines | Rationale and examples |
 |---|---|---|---|
@@ -48,7 +48,7 @@ This matches the official docs (code.claude.com/docs/en/memory, checked 2026-11-
   - Per the docs, **even after approval, external symlinked rules that have `paths` do not load.** So linking `luau-core.md` into a project's `.claude/rules/` as an external symlink cannot work.
 - User level is different: "To load shared rules without that approval, keep them in `~/.claude/rules/`". Files in `~/.claude/rules/` are treated as user-authored and trusted without a dialog.
   - The exception is desktop Cowork sessions, which skip symlinked rule files and directories that point outside the working directory.
-- Conclusion at the time: a user-level symlink. Superseded: the plugin hook injects the rule now, so no symlink is needed.
+- Conclusion at the time: a user-level symlink. Superseded: the coderag plugin injects the rule now, so no symlink is needed.
   - Loading through a user-level symlink is backed by the docs only and was not measured, to avoid changing the real home setup.
   - After home-sync creates the link, confirm with one `claude -p` that Reads a `.luau` file.
   - To apply the rules to one repo only, use a copy or a file inside that project instead of a link.
