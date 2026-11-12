@@ -3,7 +3,7 @@
 ## 읽을 것
 - 1패스 결과(측정과 목록): `/code/Projects/claude-doctor/audit/28-repo-audit-pass1.md`. 판단의 근거는 이 문서의 숫자다.
 - 저장소: `/code/Projects/claude-doctor`. README.md, PLAN.md, HUMAN_TODO.md, `home/`(사용자 레벨 정본), `plugins/`(q, qwreey-advisor, qwreey-conventions), `audit/`, `handoff/`, `decisions/`, `drafts/`, `intake/`, `tools/`
-- 컨벤션 스킬과 훅: `plugins/qwreey-conventions/skills/agent-docs/SKILL.md`, `hooks/conventions-check.py`. 앞선 토론과 판결은 `audit/26-doc-hygiene-debate/verdict.md`, `r3-verdict.md`.
+- 컨벤션 스킬과 훅: `plugins/qwreey-conventions/skills/agent-docs/SKILL.md`, `hooks/conventions-check.py`. 앞선 토론과 판결은 `.claude/audit/26-doc-hygiene-debate/verdict.md`, `r3-verdict.md`.
 - 공식: code.claude.com/docs 의 memory(CLAUDE.md 권장, @import, rules), skills, costs(로컬 사본 `/tmp/ccdocs/*.md`).
 
 ## 사용자 의도 (원문 취지)

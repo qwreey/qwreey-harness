@@ -13,16 +13,16 @@
   - 각 저장소 `.claude/` 의 review·audit·todos·conventions 를 봤다.
   - 10개 저장소의 커밋 메시지에서 분리·이동·구조·폴더·정리를 찾았다.
 - **실측**
-  - 새로 만든 `drafts/style/skills/luau-style/scripts/structure-scan.py` 로 쟀다(§2).
+  - 새로 만든 `.claude/research/drafts/style/skills/luau-style/scripts/structure-scan.py` 로 쟀다(§2).
   - 무거운 실행은 `choom -n 1000` 으로 감쌌다.
   - 제외한 것: `node_modules`, `vendor`, `*_packages`, `build`, `dist`, `refs`, `*-ignoreme`, `.claude/worktrees`, 생성물 머리 표시가 있는 파일.
 - **이 문서가 쓴 것**
-  - 훅 `drafts/hooks/structure-reminder.py` 와 회귀 표 `test-structure-reminder.py`(32/32 통과)
-  - 측정기 `drafts/style/skills/luau-style/scripts/structure-scan.py`
-  - 참고 문서 `drafts/style/skills/luau-style/references/structure.md`
-  - 사용자 rules 후보 `drafts/style/rules/code-structure.md`
-  - 결정 `decisions/D-13-file-structure.md`
-  - 고친 것: `luau-style/SKILL.md` 표 세 줄과 description, `references/modules.md` §4 한 줄, `drafts/agents/luau-quality-auditor.md` 먼저 할 일 4번과 "구조 측정" 항목
+  - 훅 `.claude/archive/research/drafts/hooks/structure-reminder.py` 와 회귀 표 `test-structure-reminder.py`(32/32 통과)
+  - 측정기 `.claude/research/drafts/style/skills/luau-style/scripts/structure-scan.py`
+  - 참고 문서 `.claude/research/drafts/style/skills/luau-style/references/structure.md`
+  - 사용자 rules 후보 `.claude/research/drafts/style/rules/code-structure.md`
+  - 결정 `.claude/base/decisions/D-13-file-structure.md`
+  - 고친 것: `luau-style/SKILL.md` 표 세 줄과 description, `references/modules.md` §4 한 줄, `.claude/research/drafts/agents/luau-quality-auditor.md` 먼저 할 일 4번과 "구조 측정" 항목
 
 ## 0. 요약
 
@@ -47,7 +47,7 @@
 | C3 | stl-luau · 10-13 (hL1540) | 노드 도구가 한 파일 | "Node 는 한 파일에 있는게 좀 그렇네 … Trees 처럼, Node 폴더" | 같은 날 `beab32b` `src/Node/` 4개 파일 | 같은 이유. 단방향·양방향·이진 노드를 한 모듈로 시작했다 |
 | [비공개 프로젝트 세부 생략]
 | C5 | quad · 10-16 (hL1798) | quad 전체, table-sim 의 quad 사용 | "코드리뷰의 각도가 코드 퀄리티였던적은 잘 없음. 코드 분리나 등등" | `qa-request/code-quality-review-round15.md`(875줄, sonnet·Gemini 토론에 opus 판정). `68cd74e5` material `ListReorder/` 폴더화, `KeyedSlot` 복사 제거, `fitScale` 공유. **다음 날부터 devui `Manager.luau` 가 273 → 3,352줄로 자랐다** | 리뷰가 정확성·공개 표면만 봤다. 한 번 하는 품질 리뷰는 그 뒤의 성장을 막지 못했다 |
-| C6 | devplorer · 11-04 (hL2160, hL2161) | `Server/init.luau` 4,199줄, `Client/App/` 평평한 항목 60개 | "server init 파일이 4000줄이나 된다는건 좀 다시 생각해볼 필요가", "폴더로 잘 묶을건 묶어주는것도 중요해. quad가 한 곳에 전체로 있다가 사람이 보기 많이 어려워져서" | 같은 날 `cfeedd1` 4,199 → 242줄(`Core/ Policy/ Handlers/ Window/`), `8951fc1` App 60 → 16, `c332af6` Explorer 긴 함수 분리, `7280dee` Common 분리. `conventions.md` "코드 배치" 규칙과 대조표 `audit/2026-11-04-code-layout.md`. 11-08 사용자 질문으로 옮긴 뒤 감사를 돌렸다(memory `feedback-audit-after-move`) | 처리기를 더할 때마다 `init.luau` 의 처리기 표 옆에 붙였다. 692 → 4,101줄까지 커밋 55개였다. 클라이언트는 `ExplorerActions`·`BookmarkMenu` 처럼 폴더 대신 접두로 묶었다 |
+| C6 | devplorer · 11-04 (hL2160, hL2161) | `Server/init.luau` 4,199줄, `Client/App/` 평평한 항목 60개 | "server init 파일이 4000줄이나 된다는건 좀 다시 생각해볼 필요가", "폴더로 잘 묶을건 묶어주는것도 중요해. quad가 한 곳에 전체로 있다가 사람이 보기 많이 어려워져서" | 같은 날 `cfeedd1` 4,199 → 242줄(`Core/ Policy/ Handlers/ Window/`), `8951fc1` App 60 → 16, `c332af6` Explorer 긴 함수 분리, `7280dee` Common 분리. `conventions.md` "코드 배치" 규칙과 대조표 `.claude/audit/2026-11-04-code-layout.md`. 11-08 사용자 질문으로 옮긴 뒤 감사를 돌렸다(memory `feedback-audit-after-move`) | 처리기를 더할 때마다 `init.luau` 의 처리기 표 옆에 붙였다. 692 → 4,101줄까지 커밋 55개였다. 클라이언트는 `ExplorerActions`·`BookmarkMenu` 처럼 폴더 대신 접두로 묶었다 |
 | C7 | quad · 11-10 (hL2270) | `quad-types/src/init.luau` 970줄 | "접힘이 하나도 없다는점 … `--#region` … 식으로 정리가 되어야할듯"(`note-ignoreme.txt`) | 같은 날 `0c2eef35` region 접기·주석 정리 | 타입 모음이라 한 파일이어야 했다. 그런데 묶음 표시 없이 덧붙였다 |
 | [비공개 프로젝트 세부 생략]
 | 부수 | quad · 09-08 (hL497) | `.claude/README.md` 151줄/163KB | "README.md 를 분리해 각 폴더 내에 두어" | `eb51010f` 폴더별 README | 문서에도 같은 덧붙이기 경향이 있다 |
@@ -169,12 +169,12 @@
 
 | 장치 | 위치(초안) | 무엇을 하나 | 왜 효과가 있나 |
 |---|---|---|---|
-| **PostToolUse 리마인더 훅** | `drafts/hooks/structure-reminder.py` (+ `test-structure-reminder.py` 32/32) | Write·Edit·MultiEdit·**Bash 쓰기** 직후 파일 줄 수를 세어 알린다. 경고 800, 강제 1,500, 세션 성장 +300(파일마다 세션당 한 번). 새 파일이면 평평한 폴더(15개 이상, 하위 폴더 2 이하)와 접두 가족(셋 이상)도 알린다. 막지 않는다 | 원인 1·2를 바로 친다. 길이를 "편집한 그 순간"에 보여 준다. 28ms. 성장 기록(§2.4)에 대어 보면 모든 사례에서 첫날 걸린다. Bash 를 같이 보는 이유는 감사 10 에서 수정의 대부분이 `sed -i`·python 이었기 때문이다 |
-| **paths 조건부 rules** | `drafts/style/rules/code-structure.md` (`**/*.{luau,lua,ts,tsx,go}`) | 다섯 줄. 길이 기준, 옮기기만 먼저, 접두 가족 → 폴더, 표로 둘 것, 생성물·복사 표시 | 원인 3. 숫자가 처음으로 생긴다. luau-core 와 겹치지 않게 언어 무관 파일로 따로 둔다 |
+| **PostToolUse 리마인더 훅** | `.claude/archive/research/drafts/hooks/structure-reminder.py` (+ `test-structure-reminder.py` 32/32) | Write·Edit·MultiEdit·**Bash 쓰기** 직후 파일 줄 수를 세어 알린다. 경고 800, 강제 1,500, 세션 성장 +300(파일마다 세션당 한 번). 새 파일이면 평평한 폴더(15개 이상, 하위 폴더 2 이하)와 접두 가족(셋 이상)도 알린다. 막지 않는다 | 원인 1·2를 바로 친다. 길이를 "편집한 그 순간"에 보여 준다. 28ms. 성장 기록(§2.4)에 대어 보면 모든 사례에서 첫날 걸린다. Bash 를 같이 보는 이유는 감사 10 에서 수정의 대부분이 `sed -i`·python 이었기 때문이다 |
+| **paths 조건부 rules** | `.claude/research/drafts/style/rules/code-structure.md` (`**/*.{luau,lua,ts,tsx,go}`) | 다섯 줄. 길이 기준, 옮기기만 먼저, 접두 가족 → 폴더, 표로 둘 것, 생성물·복사 표시 | 원인 3. 숫자가 처음으로 생긴다. luau-core 와 겹치지 않게 언어 무관 파일로 따로 둔다 |
 | **참고 문서** | `luau-style/references/structure.md` | 기준과 예외, 신호 일곱, 나누는 절차 여덟, 폴더 구성, 데이터와 코드의 결정 트리, 실제 저장소의 좋은 예·나쁜 예 | 원인 5·6·7. "어떻게"를 실제 커밋으로 보여 준다(quad `4ddb9c5a`, devplorer `cfeedd1`, table-sim meshes) |
 | **측정기** | `luau-style/scripts/structure-scan.py` | 긴 파일, 평평한 폴더, 접두 가족, 리터럴 위주, 긴 문자열 분기, 반복 머리, 파일 사이 복사, 성장·분리 이력. 읽기 전용 | 원인 4·8. 사람과 감사자가 같은 숫자를 본다. 저장소 `.claude/structure.json` 을 읽는다 |
-| **품질 감사자 구조 측정** | `drafts/agents/luau-quality-auditor.md` 먼저 할 일 4번 + "구조 측정" | 측정기를 돌리고, 강제 기준 초과(중간), 재성장(높음), 평평·가족, 분기·머리, 검사 없는 복사를 문항으로 올린다 | 원인 4. 리뷰 각도에 구조를 넣는다. 기존 readonly 가드 아래에서 돈다(확인함) |
-| **D-13** | `decisions/D-13-file-structure.md` | 기준 값, 알림 대 차단, 폴더 대분류는 저장소 몫, stl `Arr` 예외 | 폴더 방식이 세 저장소에서 갈렸다(가족 접기 / 층 / 종류). 공통으로 강제하지 않는다 |
+| **품질 감사자 구조 측정** | `.claude/research/drafts/agents/luau-quality-auditor.md` 먼저 할 일 4번 + "구조 측정" | 측정기를 돌리고, 강제 기준 초과(중간), 재성장(높음), 평평·가족, 분기·머리, 검사 없는 복사를 문항으로 올린다 | 원인 4. 리뷰 각도에 구조를 넣는다. 기존 readonly 가드 아래에서 돈다(확인함) |
+| **D-13** | `.claude/base/decisions/D-13-file-structure.md` | 기준 값, 알림 대 차단, 폴더 대분류는 저장소 몫, stl `Arr` 예외 | 폴더 방식이 세 저장소에서 갈렸다(가족 접기 / 층 / 종류). 공통으로 강제하지 않는다 |
 
 ### 5.2 고르지 않은 것
 
@@ -203,13 +203,13 @@
 
 ### 5.4 반영 절차 (사용자 승인 뒤)
 
-1. `drafts/hooks/structure-reminder.py` → 정본 `home/.claude/hooks/`, `home/.claude/settings.json` 에 다음을 더한다.
+1. `.claude/archive/research/drafts/hooks/structure-reminder.py` → 정본 `home/.claude/hooks/`, `home/.claude/settings.json` 에 다음을 더한다.
    ```json
    "PostToolUse": [{ "matcher": "Write|Edit|MultiEdit|Bash",
      "hooks": [{ "type": "command", "command": "python3 -I /code/.claude/hooks/structure-reminder.py", "timeout": 10 }] }]
    ```
    `tools/home-sync.sh diff` 로 검토한 뒤 `apply` 한다.
-2. `drafts/style/rules/code-structure.md` → 사용자 rules. `luau-style` 의 `structure.md`·`scripts/` 는 스킬과 같이 옮긴다(PLAN §4-1 의 위치 결정을 따른다).
+2. `.claude/research/drafts/style/rules/code-structure.md` → 사용자 rules. `luau-style` 의 `structure.md`·`scripts/` 는 스킬과 같이 옮긴다(PLAN §4-1 의 위치 결정을 따른다).
 3. 저장소별 `.claude/structure.json` 과 table-sim 분리 순서는 각 저장소 세션에 인계한다. 다른 세션이 쉬고 있을 수 있으므로 여기서는 만들지 않았다.
 
 ### 5.5 검증한 것과 한계

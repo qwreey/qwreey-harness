@@ -6,7 +6,7 @@
 - 결과물: `plugins/harness-onboarding/`(플러그인 프로토타입), `.claude-plugin/marketplace.json` 항목 추가. `claude plugin validate` 통과(플러그인, 마켓 모두).
 - 근거 표기
   - **[공식]**: 이번에 code.claude.com/docs 원문(`.md`)을 직접 받아 확인했다.
-  - **[이전 감사]**: audit/01, 17, 19-external 에서 가져왔다.
+  - **[이전 감사]**: .claude/audit/01, 17, 19-external 에서 가져왔다.
   - **[실측]**: 이번에 직접 돌려서 봤다.
   - **[미확인]**: 확인하지 못했다.
 
@@ -77,7 +77,7 @@
 - 템플릿 파일 이름을 `CLAUDE.md` 로 하지 않은 이유가 있다. claude-doctor 를 작업 폴더로 열면 하위 폴더 CLAUDE.md 로 자동 로드되기 때문이다. 그래서 `CLAUDE.fragment.md` 로 했다. [공식 memory: 하위 폴더 CLAUDE.md 는 그 안의 파일을 다룰 때 로드]
 - **2겹은 권고다.** 공식 문서는 "Settings rules are enforced by the client regardless of what Claude decides to do. CLAUDE.md instructions shape Claude's behavior but are not a hard enforcement layer." 라고 쓴다. 회사 정책이 "거부" 수준이면 3겹이 필요하다. [공식 memory]
 - auto mode 에서 **작업 폴더 안 읽기·파일 수정은 분류기를 거치지 않고 자동 승인**된다. 그래서 "원한 수정인지" 는 auto mode 가 지켜 주지 않는다. [공식 permission-modes 결정 순서 2단계]
-- **플러그인은 CLAUDE.md 나 권한 규칙을 배포할 수 없다.** 2겹과 3겹은 플러그인 밖에서 배포해야 한다. [공식 plugins/components, audit/01]
+- **플러그인은 CLAUDE.md 나 권한 규칙을 배포할 수 없다.** 2겹과 3겹은 플러그인 밖에서 배포해야 한다. [공식 plugins/components, .claude/audit/01]
   - 회사 전체에 적용하려면 관리 CLAUDE.md(`/etc/claude-code/CLAUDE.md`, `/Library/Application Support/ClaudeCode/CLAUDE.md`, `C:\Program Files\ClaudeCode\CLAUDE.md`)를 쓴다.
   - 또는 관리 설정의 `claudeMd` 키를 쓴다. 이것은 사용자가 `claudeMdExcludes` 로 끌 수 없다. [공식 memory]
 
@@ -101,8 +101,8 @@
    - `--plugin-dir` 를 막으려면 `disableSideloadFlags` 를 쓴다.
 3. **Luau 개발자에게는 luau-kb 를 프로젝트 범위로** 권한다.
    - `claude plugin install luau-kb@luau-kb-market --scope project` 를 쓴다. 기본 범위는 user 다.
-   - 그러면 웹 저장소에서는 스킬 설명이 상시 비용으로 실리지 않는다. [실측: `--scope` 옵션, audit/19 §1-1]
-4. 마켓을 GitHub 등 원격에 두면 복사본이 설치된다. 그래서 **고칠 때마다 `plugin.json` 의 version 을 올려야** 갱신된다. 로컬 경로 마켓은 제자리에서 로드된다. [공식 plugins/loading, audit/19-05 #5]
+   - 그러면 웹 저장소에서는 스킬 설명이 상시 비용으로 실리지 않는다. [실측: `--scope` 옵션, .claude/audit/19 §1-1]
+4. 마켓을 GitHub 등 원격에 두면 복사본이 설치된다. 그래서 **고칠 때마다 `plugin.json` 의 version 을 올려야** 갱신된다. 로컬 경로 마켓은 제자리에서 로드된다. [공식 plugins/loading, .claude/audit/19-05 #5]
 
 ## 6. 개념 설명 (`references/concepts/`, 15편, 각 44~56줄)
 
@@ -118,7 +118,7 @@
 | harness-map.md | 권고·강제·분리 3분류, 범위 표, "쌓지 말자" [공식 best-practices, 이전 감사 19] |
 | rules.md | paths 유무에 따른 로드 시점, compact 뒤 재로드, 강조 쌓기 금지 [공식 memory, best-practices] |
 | skills.md | frontmatter, 1,536자, 자동 발동 비보장(Vercel 수치는 조건 한정) [공식 skills, 이전 감사 19-05 #2] |
-| hooks-and-reminders.md | 이벤트, 막기·알리기, 사실형 문구, `<harness-hook>` level [공식 hooks, HOOK-MESSAGES.md, audit/17] |
+| hooks-and-reminders.md | 이벤트, 막기·알리기, 사실형 문구, `<harness-hook>` level [공식 hooks, HOOK-MESSAGES.md, .claude/audit/17] |
 | plugins.md | 구성 요소, CLAUDE.md 미로드, 훅은 사용자 권한으로 실행, 관리 설정 배포 [공식 plugins/*] |
 | cost.md | 긴 세션·subagent·캐시 미스·compact·모델·effort·상시 로드, 에이전트 팀은 plan mode 에서 약 7배 [공식 costs] |
 | common-mistakes.md | 14가지 실수와 대처, 좋은 요청 틀, `Esc` [공식 best-practices, interactive-mode, 이전 감사 10·19] |
@@ -128,10 +128,10 @@
 - 목표 분량은 "60줄 안팎" 이었다. 설명이 쉬운 말 위주라 44~56줄에서 멈췄다. 늘리기보다 짧게 두는 쪽을 택했다.
 
 ### 이번 확인에서 나온 기존 감사와의 차이
-- audit/01 §핵심 4 의 "파일별 글자수 상한(200K 창 40,000자, 1M 창 150,000자)" 은 현행 문서와 다르다.
+- .claude/audit/01 §핵심 4 의 "파일별 글자수 상한(200K 창 40,000자, 1M 창 150,000자)" 은 현행 문서와 다르다.
   - 현행 memory 문서: "Claude gets the whole of each CLAUDE.md file that loads at launch, as long as the file is 4 MiB or smaller."
   - 작은 파일별 한도는 하위 폴더 CLAUDE.md 와 path-scoped rule 에만 있다.
-  - audit/01 을 정정할 후보다(이번 범위 밖이라 고치지 않았다).
+  - .claude/audit/01 을 정정할 후보다(이번 범위 밖이라 고치지 않았다).
 - `/agents` 는 현행(v2.1.198 이후)에 subagent 관리 화면이 아니라 안내 문구만 출력한다. 개념 파일에는 반영했다. [공식 commands]
 
 ## 7. 실측 (sonnet, `claude -p` + `--resume` 로 여러 턴)
@@ -206,7 +206,7 @@
 ## 9. `home/` 등 이번 범위 밖에 필요한 변경 (보고만)
 1. `README.md` "다른 sandbox 에 설치하기" 에 `harness-onboarding` 설치 한 줄을 더한다. 회사 배포 절(관리 설정 예 §5)도 더한다.
 2. harness-doctor 에 "동의 원칙 rule/조각 유무" 검사를 더하는 안이 있다. 온보딩 진단 11번과 같은 기준이다.
-3. audit/01 §핵심 4 의 글자수 상한 서술을 정정한다(§6 참고).
+3. .claude/audit/01 §핵심 4 의 글자수 상한 서술을 정정한다(§6 참고).
 4. `plugins/session-log/README.md` 에 마켓 설치 줄이 없다는 validate 조언이 나왔다.
 5. 이 사용자 본인의 `home/.claude/CLAUDE.md` 에는 동의 원칙을 넣지 않았다. 회사용과 개인용은 따로 둔다는 요구에 따랐다.
 

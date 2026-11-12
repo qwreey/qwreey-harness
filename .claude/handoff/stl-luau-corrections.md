@@ -8,7 +8,7 @@ luau-kb 가 stl-luau 의 서술을 재현하거나 다시 재 보니 틀렸거�
 - 심각도
   - **행동**: 그대로 따르면 코드·설계·도구 판단이 틀어진다.
   - **표현**: 결론이나 처방은 맞고 범위·원인·수치·버전 조건만 부정확하다.
-- `decisions/README.md` "이번에 발견한 낡은 서술"의 stl-luau 항목 셋(1·2·7번째 줄)을 S21·S24·S27·S28 로 합쳤다.
+- `.claude/base/decisions/README.md` "이번에 발견한 낡은 서술"의 stl-luau 항목 셋(1·2·7번째 줄)을 S21·S24·S27·S28 로 합쳤다.
 
 ## 성능 (`.claude/base/perf-measurements.md`)
 | # | 원천 경로:줄 | 원래 서술 | 실측 결론 | 근거 | 심각도 |
@@ -40,7 +40,7 @@ luau-kb 가 stl-luau 의 서술을 재현하거나 다시 재 보니 틀렸거�
 | S21 | `.claude/papers/03-tuple.md:23`; `.claude/research/type-function-experiment/README.md:26` | type function 에서는 `error()` 대신 `print()` + `types.never` 를 써야 진단이 보인다 | luau 0.734·0.742, luau-lsp 1.69.0·1.70.1 모두 `error()` 메시지가 보인다(`conventions.md:84` ③ 이 맞다). `print` + `never` 가 더 깔끔하다는 점은 유효하다 | `skills/luau-types/references/type-functions.md` §5, `tf-diag-error-vs-print` | 표현 (낡은 서술 6번째 줄) |
 | S22 | `.claude/conventions.md:84` ③ | 옛 버전에서는 `print()` + `types.never` 가 필요하다 | luau 0.734 와 luau-lsp 1.69.0(내장 판)도 `error()` 를 보인다. 안 보이던 판은 그 이전이다(추정: lsp 내장 0.729 무렵) | `type-functions.md` §5, `tf-diag-error-vs-print` | 표현 |
 | S23 | `.claude/conventions.md:84` ②; `.claude/research/type-function-experiment/README.md:27-28` | 어떤 타입이 type function 을 한 번 통과하면 이후 제네릭 self 체이닝이 조용히 깨진다 | 다섯 꼴 × 네 판에서 재현되지 않았다. quad 실물 사례는 인자 직렬화 실패로 보인다(추정). 재현 파일이 있으면 알려 달라 | `type-functions.md` §5, `tf-passthrough-chaining`, `tf-serialize-unsupported-arg` | 표현 (주의 근거) |
-| S24 | `.claude/papers/03-tuple.md:15` | 확정 — type function 을 쓰지 않는다 | `conventions.md:84` "금지 규약이 아니다"와 어긋난다. D-04 확정은 "사안별 판단"이다 | claude-doctor `decisions/D-04-type-functions.md` | 표현 (낡은 서술 7번째 줄) |
+| S24 | `.claude/papers/03-tuple.md:15` | 확정 — type function 을 쓰지 않는다 | `conventions.md:84` "금지 규약이 아니다"와 어긋난다. D-04 확정은 "사안별 판단"이다 | claude-doctor `.claude/base/decisions/D-04-type-functions.md` | 표현 (낡은 서술 7번째 줄) |
 
 ## require
 | # | 원천 경로:줄 | 원래 서술 | 실측 결론 | 근거 | 심각도 |
@@ -51,11 +51,11 @@ luau-kb 가 stl-luau 의 서술을 재현하거나 다시 재 보니 틀렸거�
 ## 설정 파일 주석
 | # | 원천 경로:줄 | 원래 서술 | 실측 결론 | 근거 | 심각도 |
 |---|---|---|---|---|---|
-| S27 | `stylua.toml:1` | tbox/quad 와 같은 설정이다 | tbox 는 Spaces + Input 이고 quad 는 설정 파일이 없다 | claude-doctor `decisions/D-02-stylua.md` | 표현 (낡은 서술 1번째 줄) |
-| S28 | `mise.toml:18-19` | quad 는 luau 를 고정하지 않는다 | quad 는 0.734 를 핀했다 | claude-doctor `decisions/D-05-toolchain-pins.md` | 표현 (낡은 서술 2번째 줄) |
+| S27 | `stylua.toml:1` | tbox/quad 와 같은 설정이다 | tbox 는 Spaces + Input 이고 quad 는 설정 파일이 없다 | claude-doctor `.claude/base/decisions/D-02-stylua.md` | 표현 (낡은 서술 1번째 줄) |
+| S28 | `mise.toml:18-19` | quad 는 luau 를 고정하지 않는다 | quad 는 0.734 를 핀했다 | claude-doctor `.claude/base/decisions/D-05-toolchain-pins.md` | 표현 (낡은 서술 2번째 줄) |
 
 ## 분리 계획: `src/Collections/Arr.luau` (2026-11-10)
-전체 근거와 계획기 원문: claude-doctor `drafts/split-plans/stl-luau-Arr.md`. 읽기 전용 시험이며 stl-luau 에는 쓰지 않았다.
+전체 근거와 계획기 원문: claude-doctor `.claude/research/drafts/split-plans/stl-luau-Arr.md`. 읽기 전용 시험이며 stl-luau 에는 쓰지 않았다.
 - 3,030줄이 **6군집**(Insert 196, Ctor 310, Query 469, Sort 404, Shuffle 319→`Range`/`Reorder` 로 이름 변경 권장, Stream 683) + `Core` 37줄 + `init` 약 150줄로 갈린다. 군집 사이 간선 7개가 모두 `Core` 로 가고 **순환 0**, 모듈 상태 0 이라 **옮기기만 하는 커밋**으로 나눌 수 있다.
 - 타입이 하나(`Arr<T>`)여도 나눌 수 있다. `snippets/style-split-types.sh`(luau-kb) S1 이 0.734·0.742·0.746 에서 제네릭·콜백 검사·`Arr.Sized<<number?>>` 명시 인자가 그대로임을 실측했다. 묶음이 `init` 을 require 하면 순환이므로(S3) 생성자는 `Ctor` 로 뺀다.
 - **측정 필요**: `Core` 의 `toIndex`·`resolveRange`·`wrap`·`newEmpty` 는 뜨거운 루프 앞의 작은 헬퍼라, 다른 파일로 옮기면 `-O2` 인라인이 사라질 수 있다(luau-perf `calls-and-closures.md` §1). 옮긴 뒤 `bench/` 로 재거나 묶음마다 사본을 둔다.

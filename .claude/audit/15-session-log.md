@@ -2,10 +2,10 @@
 
 > 이름 변경(2026-11-11): 플러그인 `session-log` 는 `q` 로 합쳐졌다(`plugins/q/`). 명령은 `/q:checkpoint`, `/q:import`. 저장 위치와 기록 형식은 그대로다. 아래의 옛 이름은 이력이다.
 
-> 작성 2026-11-10. 설계는 `drafts/session-log/DESIGN.md`, 프로토타입 스크립트는 `drafts/session-log/`.
+> 작성 2026-11-10. 설계는 `.claude/archive/research/drafts/session-log/DESIGN.md`, 프로토타입 스크립트는 `drafts/session-log/`.
 > 배경(사용자 발언 2026-11-10): 에이전트가 세션 로그를 자주 빠뜨린다. 메인 세션이 직접 남기면 컨텍스트가 썩고, 느리고, 일부를 빠뜨리거나 아예 안 한다. 그래서 `~/.claude` 에서 찾아오는 일도 있다.
 > 실제 사례: tbox 세션 5b53c2ca 첫 발언 "우리가 뭘 하고 있었는지 알겠어? 세션 트렌스크립트가 없어서"(L4).
-> 관련 패턴: `audit/10` §2.1. compact 준비를 손으로 한 횟수가 64/9/4, `/compact` 58회다.
+> 관련 패턴: `.claude/audit/10` §2.1. compact 준비를 손으로 한 횟수가 64/9/4, `/compact` 58회다.
 > 실측 환경: Claude Code 2.1.316. 요약 모델은 claude-sonnet-5-5 와 claude-haiku-5-5(CLI 별칭 `sonnet`, `haiku`).
 
 ## 1. remember 플러그인 (Digital-Process-Tools/claude-remember)
@@ -39,7 +39,7 @@ v0.45.1, 커밋 2fd0547(2026-11-07). `/tmp/remember-src.*/repo` 에 클론해 �
   - 한 문장 요약과 약어 압축: 결정·숫자·사용자 원문이 사라진다. 우리 목표는 시간순 기록과 검증이다.
   - now/today/recent/archive 를 덮어써 가는 연쇄 재압축: 압축한 것을 다시 압축하면 오류가 쌓이고, 원본 대조가 끊긴다.
   - SessionStart 에 기억 전체 주입: 우리는 인계 몇 줄과 coderag 안내만 넣는다.
-  - UserPromptSubmit 시각·% 주입: `audit/10` H1 훅의 몫이다.
+  - UserPromptSubmit 시각·% 주입: `.claude/audit/10` H1 훅의 몫이다.
   - git 백업, 프로모, identity, Codex/Gemini/Antigravity 호환 층.
   - mkdir 잠금 구현: 파이썬 `fcntl.flock` 이면 프로세스가 죽을 때 자동으로 풀린다.
   - 줄 번호 위치 대신 **바이트 오프셋**을 쓴다(큰 파일에서 다시 셀 필요가 없다).
@@ -67,7 +67,7 @@ v0.45.1, 커밋 2fd0547(2026-11-07). `/tmp/remember-src.*/repo` 에 클론해 �
 - **보존 기간**: `cleanupPeriodDays` 기본 30일. 그보다 오래된 트랜스크립트는 세션 시작 때 **알림 없이 지워진다**. 우리 `settings.json` 에는 이 키가 없다(기본값). 원문 대조와 사후 복구가 가능한 기간이 30일뿐이다.
 
 ### 2.2 훅 입력 (문서 + 실측)
-실측: 임시 프로젝트 `/tmp/sl-hookproj.omyV` 의 `.claude/settings.json` 에 8개 이벤트를 걸고 stdin 과 환경을 덤프했다(`drafts/session-log/probe/hook-dump.sh`). `claude -p --model sonnet` 실행 2회.
+실측: 임시 프로젝트 `/tmp/sl-hookproj.omyV` 의 `.claude/settings.json` 에 8개 이벤트를 걸고 stdin 과 환경을 덤프했다(`.claude/archive/research/drafts/session-log/probe/hook-dump.sh`). `claude -p --model sonnet` 실행 2회.
 
 | 이벤트 | transcript_path | 그 밖의 필드(실측) |
 |---|---|---|

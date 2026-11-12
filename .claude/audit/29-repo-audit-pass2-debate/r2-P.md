@@ -28,7 +28,7 @@
   - `if` 핸들러만으로는 스크립트, home-sync, 브랜치 전환으로 생긴 이동을 놓친다.
   - Stop 에서 색인된 경로를 다시 stat 한다. 비용은 1ms 대로 추정하며, 측정이 필요하다.
 - **audit 색인은 기본으로 둔다.**
-  - 에이전트 프롬프트가 "먼저 읽으라" 고 준 횟수: audit/06 4회, 01 4회, 05 3회(1.8~1.95만 토큰).
+  - 에이전트 프롬프트가 "먼저 읽으라" 고 준 횟수: .claude/audit/06 4회, 01 4회, 05 3회(1.8~1.95만 토큰).
 
 ## 3. 최종 입장
 ### (a) 예산
@@ -43,9 +43,9 @@
 - Q 의 주장은 반만 맞다.
   - 기본 Read 는 25k 에서 `PARTIAL view` 로 끊는다.
   - 그러나 v2.1.296 부터 `allow_large: true` 면 전체를 읽는다. 이 환경의 Read 에도 있다.
-  - audit/18 은 88,884B 로 256KB 보다 작아서, 4.4만 토큰을 한 번에 읽을 수 있다.
+  - .claude/audit/18 은 88,884B 로 256KB 보다 작아서, 4.4만 토큰을 한 번에 읽을 수 있다.
 - 사용자 줄은 버리고, 모델 줄만 둔다.
-  - 조건: `audit/**.md` 를 allow_large 로 읽거나, 누적 20k 를 넘을 때. 색인이 있을 때만 낸다.
+  - 조건: `.claude/audit/**.md` 를 allow_large 로 읽거나, 누적 20k 를 넘을 때. 색인이 있을 때만 낸다.
   - 문구: `audit/README.md has a one-line summary per audit; read the section you need.`
 - 확인 방법: 세션 jsonl 7개에서 audit Read 를 센다($0).
 

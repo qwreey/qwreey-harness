@@ -1,6 +1,6 @@
 # 18. 검토(second opinion) 운용 제안: advisor 대신 예측 가능한 독립 검토
 
-날짜 2026-11-10, claude 2.1.316, 메인 opus 5.5. 이번에는 **제안만** 한다. 설정·CLAUDE.md·훅은 고치지 않았고 플러그인도 설치하지 않았다. 초안은 `drafts/second-opinion/`에만 있다(§12 뒤 플러그인 `plugins/second-opinion/` 으로 옮겼다. 사용자 레벨 조각만 `drafts/second-opinion/home/` 에 남았다).
+날짜 2026-11-10, claude 2.1.316, 메인 opus 5.5. 이번에는 **제안만** 한다. 설정·CLAUDE.md·훅은 고치지 않았고 플러그인도 설치하지 않았다. 초안은 `drafts/second-opinion/`에만 있다(§12 뒤 플러그인 `plugins/second-opinion/` 으로 옮겼다. 사용자 레벨 조각만 `.claude/archive/research/drafts/second-opinion/home/` 에 남았다).
 
 표기
 - [문서]: 공식 문서 원문으로 확인(code.claude.com advisor·hooks·sub-agents, platform.claude.com advisor-tool)
@@ -95,7 +95,7 @@
 
 메인 세션 맥락은 assistant 메시지마다 `iterations[0]` 의 input + cache_read + cache_creation 을 합한 값이다. 30일 커밋은 2026-10-11 이후, 머지를 뺀 수다.
 
-| 저장소 | 성격(지도·audit/03·04) | 30일 커밋 | 메인 맥락 중앙 / p90 / 최대 (k) | 기존 검토 장치 |
+| 저장소 | 성격(지도·.claude/audit/03·04) | 30일 커밋 | 메인 맥락 중앙 / p90 / 최대 (k) | 기존 검토 장치 |
 |---|---|---|---|---|
 | quad | 게시된 UI 렌더러(4.x), 타입 한계 연구 | 274 | 307~412 / 448~734 / 964 | quad-doc-auditor 등 에이전트 2, review-round, codex/agy 위임 |
 | stl-luau | 표준 라이브러리, 성능 실측 | 271 | 424 / 812 / 970 | agy 위임, trait-debate |
@@ -105,7 +105,7 @@
 | vitrine | web, 암호·인증 | 0 (8월) | 398 / 585 / 618 | - |
 | rbvm | 엔진 VM | 0 | 362 / 453 / 475 | 감사 에이전트 2 |
 | mrow, moonwave-luau | 소규모 | 0 | 419 / 632 / 681 (mrow) | - |
-| claude-doctor | 하네스 정본. `~/.claude` 를 통해 모든 세션에 퍼짐 | 25 | 263 / 410 / 465 | drafts/agents, delegate, debate |
+| claude-doctor | 하네스 정본. `~/.claude` 를 통해 모든 세션에 퍼짐 | 25 | 263 / 410 / 465 | .claude/research/drafts/agents, delegate, debate |
 | coderag, luau-kb | rust 도구 / 지식 정본 | 14 / 20 | - | - |
 
 - 세션이 매우 길다. 재개를 포함하면 수백 시간이고, compact 가 7~24번 일어났다. 이제 opus 5.5 의 `autoCompactWindow` 를 500,000 으로 두었으므로, 새 세션의 맥락은 약 50만에서 멈춘다.
@@ -119,8 +119,8 @@
   - `model: opus`, effort `high`, `defaultMode: auto`
   - 훅은 PreToolUse(Bash) 2개다. 정본 `home/.claude/settings.json` 에는 PostToolUse·SessionStart 훅이 더 있고, 아직 apply 하지 않았다.
 - 프로젝트 settings 에는 advisor 가 없다(quad `quad-doc-auditor.md` 본문에 단어만 나온다).
-- 사용자 레벨 agents 는 없다. 감사자 5개는 `drafts/agents` 에 있다(sonnet 기본, 읽기 전용 3중 장치).
-- 정본 CLAUDE.md 의 "코드 리뷰 — 먼저 한다" 절은 프로젝트 memory 의 예산 규칙과 부딪힌다고 이미 지적됐다(audit/10 §2.2).
+- 사용자 레벨 agents 는 없다. 감사자 5개는 `.claude/research/drafts/agents` 에 있다(sonnet 기본, 읽기 전용 3중 장치).
+- 정본 CLAUDE.md 의 "코드 리뷰 — 먼저 한다" 절은 프로젝트 memory 의 예산 규칙과 부딪힌다고 이미 지적됐다(.claude/audit/10 §2.2).
   - quad: "작은 diff 엔 안 돌림"
   - devplorer: "리뷰는 sonnet"
   - $589 fable 팬아웃 사고가 있었다.
@@ -222,9 +222,9 @@ agent 훅을 쓰지 않는 이유
 | pandysp/second-opinion (`pandysp/claude-plugins` 마켓) | 채널 우선순위: 대화 전체를 읽는 advisor > 새 맥락 동급 서브에이전트(여럿) > "자기비판"이라고 밝힌 대체. 결과는 **흡수해서 자기 말로** 제시. "Hold the Line" 점검(원래 입장을 다시 말해 보고 반박인지 재정의인지 확인) | 채널 순서 대신 비용과 가시성 때문에 서브에이전트를 기본으로 했다. 결과는 사용자 요구대로 **그대로 전달**한다. "가장 자신 없는 부분을 빼지 말라"는 브리프 원칙은 가져왔다. (`pandysp/second-opinion` 직접 경로는 404, 마켓 저장소의 SKILL.md 로 확인) |
 | pghqdev/second-opinion | `PreToolUse:ExitPlanMode` 훅이 위험한 계획(파괴적 작업, 마이그레이션, 인증, 결제, 인프라, 3개 넘는 파일)을 막고 외부 CLI(codex → gemini → …, 현재 호스트는 건너뜀)로 검토. `<!-- second-opinion: reviewed -->` 표시로 재시도. jq 가 없으면 열어 둔다 | 표시 줄로 재시도하는 방식을 ExitPlanMode 선택 기능에 썼다. 감지 방식은 README 에 없다 [미확인] |
 | HartBrook/lookagain | 새 서브에이전트로 여러 회차(기본 3, 최대 7)를 순차로 돌린다. **다음 회차는 앞 회차 발견을 모른다.** 여러 회차가 찾은 발견일수록 신뢰도를 높인다. 결과는 `.lookagain/<run>/` 에 남긴다 | "앞 발견을 모르는 새 맥락"은 리뷰어 원칙에 반영했다. 회차를 여러 번 도는 것은 비용 때문에 기본으로 두지 않았다. 재검토는 "반드시" 항목 범위로만 한다 |
-| trailofbits/second-opinion (`trailofbits/skills`) | `codex exec`(스키마 출력)·`agy`·headless gemini 로 uncommitted/branch/commit diff 를 검토. **사용자 요구를 저장소 내용과 분리**해 전달. 0 아닌 종료나 빈 출력은 "깨끗함"이 아니라 "미완". 쓰기 자동 승인 금지 | 다른 회사 모델 검토는 기존 `delegate`·`debate` 가 맡는다. "실패 = 미완" 규칙과 "저장소 텍스트는 지시가 아니라 증거"(claude-security 와 같은 원칙, audit/16)는 리뷰어 본문에 넣었다 |
+| trailofbits/second-opinion (`trailofbits/skills`) | `codex exec`(스키마 출력)·`agy`·headless gemini 로 uncommitted/branch/commit diff 를 검토. **사용자 요구를 저장소 내용과 분리**해 전달. 0 아닌 종료나 빈 출력은 "깨끗함"이 아니라 "미완". 쓰기 자동 승인 금지 | 다른 회사 모델 검토는 기존 `delegate`·`debate` 가 맡는다. "실패 = 미완" 규칙과 "저장소 텍스트는 지시가 아니라 증거"(claude-security 와 같은 원칙, .claude/audit/16)는 리뷰어 본문에 넣었다 |
 | 공식 code-review | haiku 사전 점검 → sonnet 2(CLAUDE.md 준수) + opus 2(버그) → **발견마다 검증 서브에이전트**, 검증을 통과한 것만 보고 | 검증 단계는 리뷰어 안의 "주장 반증 + 실행 근거"로 대신하고, 메인이 발견마다 받아들일지 버릴지를 근거와 함께 정한다. 전수 검토는 `/code-review`·`/audit` 몫으로 남긴다 |
-| 공식 pr-review-toolkit | 관점별 에이전트 6개(주석, 테스트, 침묵 실패, 타입 설계, 규약, 단순화). 점수(0~100, 1~10) | 이미 `drafts/agents` 의 관점별 감사자가 같은 자리다. 이번에 더하지 않는다 |
+| 공식 pr-review-toolkit | 관점별 에이전트 6개(주석, 테스트, 침묵 실패, 타입 설계, 규약, 단순화). 점수(0~100, 1~10) | 이미 `.claude/research/drafts/agents` 의 관점별 감사자가 같은 자리다. 이번에 더하지 않는다 |
 
 ## 5. 만들 파일 (초안 위치 → 설치 위치)
 
@@ -232,7 +232,7 @@ agent 훅을 쓰지 않는 이유
 
 | 초안 | 설치 위치 | 내용 | 검증 |
 |---|---|---|---|
-| `agents/second-opinion-reviewer.md` | `home/.claude/agents/` | opus, effort high, maxTurns 40, Read/Grep/Glob/Bash. Edit·Write·NotebookEdit·Agent 금지. 읽기 전용 가드는 `drafts/agents/hooks/auditor-readonly-guard.py` 를 재사용(먼저 설치돼 있어야 함). 절차: 사용자 원문 → 범위 직접 확인 → 주장 반증 → 요구 대조. 보고 틀 고정(판정, 발견, 요구 대조, 주장 검증, 보지 못한 것) | 실호출 안 함(§8-1) |
+| `agents/second-opinion-reviewer.md` | `home/.claude/agents/` | opus, effort high, maxTurns 40, Read/Grep/Glob/Bash. Edit·Write·NotebookEdit·Agent 금지. 읽기 전용 가드는 `.claude/research/drafts/agents/hooks/auditor-readonly-guard.py` 를 재사용(먼저 설치돼 있어야 함). 절차: 사용자 원문 → 범위 직접 확인 → 주장 반증 → 요구 대조. 보고 틀 고정(판정, 발견, 요구 대조, 주장 검증, 보지 못한 것) | 실호출 안 함(§8-1) |
 | `skills/audit/SKILL.md` | `home/.claude/skills/second-opinion/` | 시점·강도 표, 브리프 작성 규칙, 호출, 결과 처리(그대로 전달 + 받아들임/버림 + 원장), 측정 | - |
 | `skills/audit/templates/brief.md` | 같은 곳 | 5~15줄 브리프 틀(종류, 범위, 목표, 제약, 기각된 갈래, 검증할 주장, 가장 자신 없는 곳) | - |
 | `skills/audit/scripts/user-asks.py` | 같은 곳 | 트랜스크립트에서 사용자 원문만 추출. 일반 발언, 작업 중 추가 지시, 질문에 대한 답, 슬래시 명령을 뽑고 서브에이전트 보고·리마인더·compact 요약은 뺀다. 기준은 `plugins/session-log` 의 `classify` 를 옮긴 것이다. `--since-compact`, `--last`, `--claims` | 이 세션에서 실행: 36개 추출, compact 뒤 15개 |
@@ -297,11 +297,11 @@ agent 훅을 쓰지 않는 이유
 4. **임계**: high 40줄, mid 200줄, 쿨다운 90분. 그리고 Stop 알림(기본 끔)을 2주 원장을 본 뒤 켤지.
 5. **CLAUDE.md**
    - 새 "검토" 절(5줄)을 기존 "코드 리뷰 — 먼저 한다" 절과 **합칠지**, 따로 둘지.
-   - 합치면 audit/10 §2.2 의 예산 충돌(규모 기준, sonnet 기본)도 같이 정리된다.
+   - 합치면 .claude/audit/10 §2.2 의 예산 충돌(규모 기준, sonnet 기본)도 같이 정리된다.
 6. **리뷰어 기본 모델**: frontmatter 기본을 opus 로 둘지, sonnet 으로 두고 high 일 때만 호출 인자로 opus 를 줄지.
-   - 감사자 설계(`drafts/agents` §5)는 "inherit 금지, 기본 sonnet, 깊을 때만 opus" 였다.
+   - 감사자 설계(`.claude/research/drafts/agents` §5)는 "inherit 금지, 기본 sonnet, 깊을 때만 opus" 였다.
    - 일관성을 원하면 sonnet 기본이 맞다.
-7. **설치 순서 의존**: 리뷰어의 읽기 전용 가드는 `drafts/agents/hooks/auditor-readonly-guard.py` 다. 감사 에이전트 묶음(`drafts/agents`, PLAN 의 감사 에이전트 항목)과 함께 들일지, 가드만 먼저 들여 리뷰어를 앞세울지.
+7. **설치 순서 의존**: 리뷰어의 읽기 전용 가드는 `.claude/research/drafts/agents/hooks/auditor-readonly-guard.py` 다. 감사 에이전트 묶음(`.claude/research/drafts/agents`, PLAN 의 감사 에이전트 항목)과 함께 들일지, 가드만 먼저 들여 리뷰어를 앞세울지.
 
 ## 9. 재현 실험 결과 (§8-1)
 
@@ -316,7 +316,7 @@ agent 훅을 쓰지 않는 이유
   - 실제 설치본 `~/.claude` 는 현재 상태를 그대로 썼다. hooks·CLAUDE.md 는 15:5x 이후 바뀌지 않아 그 시점과 같다. **예외는 settings.json 이다**(20:51 수정, `autoMode` 블록 추가). 이 차이는 §9.3 에 적었다.
 - **누출 차단**: `--settings` 에 PreToolUse 가드를 걸었다.
   - 막은 것: 원본 저장소 3개, `~/.claude/projects`·`plugins` 등 런타임 상태, 넓은 경로를 재귀로 훑는 검색, 실제 홈으로의 `home-sync apply`
-  - 나머지 읽기 전용 강제는 `drafts/agents/hooks/auditor-readonly-guard.py` 에 넘겼다.
+  - 나머지 읽기 전용 강제는 `.claude/research/drafts/agents/hooks/auditor-readonly-guard.py` 에 넘겼다.
   - 리뷰어가 막힌 경로에 접근하려 한 시도: sonnet 1회(`~/.claude/projects`), opus2 1회(재귀 검색)
 - **실행**: `claude -p --agents <초안 JSON> --agent second-opinion-reviewer --model <opus|sonnet> --effort high --allowedTools Read Grep Glob Bash --no-session-persistence`
   - 초안 본문은 그대로 썼다. 바꾼 것은 추출 헬퍼 경로 하나뿐이다.
@@ -353,10 +353,10 @@ agent 훅을 쓰지 않는 이유
 | 발견 | 누가 | 확인 |
 |---|---|---|
 | **apply 하면 설치본 settings.json 의 `autoMode.environment`(25항목)가 사라진다.** `apply` 는 파일을 통째로 `cp` 한다(`.bak` 은 남는다) | 셋 다. opus 둘은 "반드시", sonnet 은 "권장" | **재현 시점의 발견으로는 무효다.** 설치본은 20:51 에 수정됐고, 호출 시점(18:16) 이전 트랜스크립트에는 설정 키로서의 `autoMode` 가 없다. 대신 **지금은 맞다.** 정본 HEAD 에 `autoMode` 0건, 설치본 1건, `tools/home-sync.sh:168` 은 `cp -p`. 다음 apply 전에 사용자가 정해야 한다 |
-| compact 회차가 오르면 structure-reminder 의 "성장" 기준점이 새로 잡혀, 조금씩 늘어나는 파일의 성장 알림이 사라진다. 알림 문구의 "this session"도 실제와 다르다 | opus #1(프로브로 재현, 권장), sonnet(참고) | 재현했다. 999→1199줄에서 rearm 이 없으면 `grew 799 -> 1199 (+400) this session`, rearm 이 있으면 warn 만 나온다. audit/17 §5 와 HOOK-MESSAGES.md 에 "참고"로 적힌 절충이다. 다만 이 훅이 생긴 이유(692→4,101줄)와 부딪힌다는 점은 처음 지적됐다. 지금 HEAD 의 `structure-reminder.py:245-251` 도 같은 코드다 |
+| compact 회차가 오르면 structure-reminder 의 "성장" 기준점이 새로 잡혀, 조금씩 늘어나는 파일의 성장 알림이 사라진다. 알림 문구의 "this session"도 실제와 다르다 | opus #1(프로브로 재현, 권장), sonnet(참고) | 재현했다. 999→1199줄에서 rearm 이 없으면 `grew 799 -> 1199 (+400) this session`, rearm 이 있으면 warn 만 나온다. .claude/audit/17 §5 와 HOOK-MESSAGES.md 에 "참고"로 적힌 절충이다. 다만 이 훅이 생긴 이유(692→4,101줄)와 부딪힌다는 점은 처음 지적됐다. 지금 HEAD 의 `structure-reminder.py:245-251` 도 같은 코드다 |
 | apply 범위가 이번 커밋보다 크다. structure-reminder 가 처음 켜지고, rules 2개·harness.env·lib·CLAUDE.md 전면 교체가 함께 들어간다 | opus #2, sonnet | 맞다. 설치본 hooks 에는 2개만 있고 `lib/`·`rules/` 는 없다 |
-| HOOK-MESSAGES.md 와 audit/17 은 배경을 "2줄"이라고 적었는데, CLAUDE.md 에 들어간 것은 1줄이다(효과 실측은 2줄로 함) | opus 둘 | 맞다(`audit/17:36,51`, `HOOK-MESSAGES.md:9`) |
-| SessionStart 출력 위치를 audit/17 표와 HOOK-MESSAGES.md 가 다르게 적었다 | 셋 다 | 문서 표현만 어긋남. 결론(래퍼 필요)은 같다 |
+| HOOK-MESSAGES.md 와 .claude/audit/17 은 배경을 "2줄"이라고 적었는데, CLAUDE.md 에 들어간 것은 1줄이다(효과 실측은 2줄로 함) | opus 둘 | 맞다(`.claude/audit/17:36,51`, `HOOK-MESSAGES.md:9`) |
+| SessionStart 출력 위치를 .claude/audit/17 표와 HOOK-MESSAGES.md 가 다르게 적었다 | 셋 다 | 문서 표현만 어긋남. 결론(래퍼 필요)은 같다 |
 | 서브에이전트에서 compact 하면 SessionStart 가 불리지 않아 회차가 오르지 않는다 | opus #1 | 바이너리를 정적으로 읽은 결과다. 미실측 |
 | HOOK-MESSAGES.md 는 MANIFEST 밖이라(의도) 다른 저장소 세션이 규약을 찾을 길이 없다 | opus #2 | 맞다. 영향 판단은 사용자 몫 |
 | 그 밖에: 안 쓰는 `sid` 변수, heavy-proc-guard·bypass 자동 테스트 없음, 회차 상태 파일 정리 없음 | opus #2, sonnet | 참고 수준 |
@@ -456,7 +456,7 @@ auto-compact 는 B 의 브리프와 A·A' 의 대화에 이미 적혀 있었다.
 | **dedup 키 `(session_id, compact 회차)` 에 서브에이전트 구분이 없다.** 메인과 서브에이전트가 "세션당 1회" 알림 상태를 공유한다 | **A 3/3**(o1·o2 반드시/권장, s1 권장), B 0/3, A' 0/1 | 구현. 흐름에서 끌어냈다: "쓰기는 대부분 서브에이전트가 하는데 실측은 `-p` 단일 세션에서만 했다" | **실측으로 맞다.** haiku 프로브에서 서브에이전트 PreToolUse 입력의 `session_id` 는 부모와 같았고 `agent_id` 만 달랐다. `transcript_path` 도 부모 것이었다. 지금 정본 `home/.claude/lib/compact_epoch.py` 도 `session_id` 만 쓴다. **지금도 유효하다.** `home/` 은 다른 에이전트가 작업 중이라 고치지 않았다 |
 | 소급 요약 에이전트가 다른 저장소에 파일을 썼을 수 있다. 첫 지시 뒤에 "외부로" 정정했지만 메시지 전달에 시차가 있다 | A o2, A' | 범위 밖 영향 | 미확인. 그 시점의 `plugins/` 를 복원하지 못했다 |
 | 소급 대상 수가 맞지 않는다(27 대 141). 실험 잔재(`-tmp-*`)와 서브에이전트를 뺄 기준이 없다 | A o2, A s1 | 전제 | 미확인 |
-| PreCompact stdout 은 작업 모델이 아니라 요약기로 간다. 그래서 "compact 직전 상기" 약속이 모델에 닿는지 모른다 | A o2 | 전제·흐름 | `audit/17:16` 의 "미확인" 표기와 맞다 |
+| PreCompact stdout 은 작업 모델이 아니라 요약기로 간다. 그래서 "compact 직전 상기" 약속이 모델에 닿는지 모른다 | A o2 | 전제·흐름 | `.claude/audit/17:16` 의 "미확인" 표기와 맞다 |
 | description 상한이 1024자와 1,536자 두 개다 | A o1 | 전제 | 둘 다 맞을 수 있다(명세 상한과 목록에서 잘리는 길이) |
 | `git add home` 습관. 병행 작업 커밋이 섞인 전례가 있다 | A o1 | 흐름 | 8039225 에는 섞이지 않았다 |
 | `cleanupPeriodDays` 는 apply 전에는 효력이 없다. 12-03 전에 apply 해야 한다 | A o1, A' | 범위 밖 영향 | 추정 |
@@ -704,7 +704,7 @@ auto-compact 는 B 의 브리프와 A·A' 의 대화에 이미 적혀 있었다.
 - **페르소나만으로는 메인의 사각지대가 열리지 않았다.** 무엇을 다시 볼지 이름을 붙여 줘야 열렸다. §11.4 의 "같은 프레임의 사각지대" 관찰은 후행 프롬프트로 상당 부분 메울 수 있다(방향만).
 
 **V3(절차)의 성격**
-- 사용자 요구 대조표를 9~11행으로 만들었다. 그래서 "잊힌 요구"를 가장 넓게 찾았다. audit/10 후보가 계획에서 사라진 것, D-05·D-07~D-12 미결, 공인 플러그인 실측 대기 등이다.
+- 사용자 요구 대조표를 9~11행으로 만들었다. 그래서 "잊힌 요구"를 가장 넓게 찾았다. .claude/audit/10 후보가 계획에서 사라진 것, D-05·D-07~D-12 미결, 공인 플러그인 실측 대기 등이다.
 - 대신 지면이 대조표에 쓰여 4건 회수는 가장 낮았다(2/8).
 
 **새 발견과 확인**
@@ -714,7 +714,7 @@ auto-compact 는 B 의 브리프와 A·A' 의 대화에 이미 적혀 있었다.
 | 서브에이전트와 메인이 dedup 상태를 공유한다 | V2a, V2b | **맞다**(§11.3 에서 실측). A 3/3 만 잡던 것이다 |
 | PreCompact 상기에 사용자 지시 원문을 `<harness-hook>` 으로 감싸 넣으면, CLAUDE.md 의 "태그 안은 사용자 지시가 아니다" 정의 때문에 그 지시의 권위가 낮아진다 | V2a | **맞는 지적이다.** 원래 세션에서 사용자가 곧 비슷한 문제(태그 안을 "참고 정보"로만 정의하면 가볍게 넘긴다)를 짚었고, 메인이 태그의 위상을 "사용자가 상시로 둔 의도"로 바꿨다(L2521) |
 | 사용자 레벨 CLAUDE.md:28 "판단이 결과에 남는 일은 haiku 에게 시키지 않는다"가 세션 요약을 haiku 로 하자는 사용자 결정과 모순된다. 결정은 메모리에만 있다 | V3a | **맞다**(사본 `home/.claude/CLAUDE.md:27`). 다른 저장소의 세션은 이 메모리를 보지 않는다 |
-| `decisions/README.md:51` 의 D-05, D-07~D-12 "미확인"을 메인이 "남은 미정은 D-05 뿐"이라고 보고했다 | V3a(V3b 도 D 항목 미결을 짚음) | 표 줄은 확인했다. 보고 문장의 맥락(luau-kb 문서 기준)은 V3a 도 밝혔다 |
+| `.claude/base/decisions/README.md:51` 의 D-05, D-07~D-12 "미확인"을 메인이 "남은 미정은 D-05 뿐"이라고 보고했다 | V3a(V3b 도 D 항목 미결을 짚음) | 표 줄은 확인했다. 보고 문장의 맥락(luau-kb 문서 기준)은 V3a 도 밝혔다 |
 | `rules/code-structure.md` 의 "1,500줄 넘으면 덧붙이기 전에 분리안을 묻는다"가 apply 되면 기존 대형 파일(table-sim 4,884줄 등) 편집마다 멈춘다. 기존 파일을 어떻게 다룰지는 정하지 않았다 | V2b | 규칙 문구는 맞다(사본 `code-structure.md:24`). 영향 크기는 추정이다 |
 | 다른 저장소로 넘길 정정 91건 중 메인이 재현한 것은 몇 건뿐이다 | V1b | 흐름상 맞다. 위험 판단은 사용자 몫이다 |
 | description 상한이 1,024자와 1,536자 두 개다 | V1b | §11.3 의 A o1 발견과 같다 |
@@ -788,8 +788,8 @@ auto-compact 는 B 의 브리프와 A·A' 의 대화에 이미 적혀 있었다.
 ### 12.9 플러그인 포장 (`plugins/second-opinion/`, claude-doctor-market)
 
 - 이름은 사용자 결정대로 `second-opinion:context`, `second-opinion:audit` 이다. 에이전트는 `second-opinion:reviewer`(이전 `second-opinion-reviewer`), `second-opinion:other-frame`(이전 `second-opinion-context`)으로 바꿨다. 플러그인 안에서는 이름공간이 붙어서, 예전 이름을 그대로 두면 `second-opinion:second-opinion-reviewer` 가 된다.
-- **플러그인 에이전트는 frontmatter 의 `hooks` 를 무시한다**[문서: plugins/components "Ignored fields"]. 그래서 에이전트 파일에 있던 읽기 전용 가드를 플러그인 `hooks/hooks.json` 의 PreToolUse 로 옮겼다. `readonly-for-reviewers.py` 가 입력의 `agent_type` 이 이 플러그인의 검토자일 때만 `auditor-readonly-guard.py`(drafts/agents 에서 복사)에 넘긴다.
+- **플러그인 에이전트는 frontmatter 의 `hooks` 를 무시한다**[문서: plugins/components "Ignored fields"]. 그래서 에이전트 파일에 있던 읽기 전용 가드를 플러그인 `hooks/hooks.json` 의 PreToolUse 로 옮겼다. `readonly-for-reviewers.py` 가 입력의 `agent_type` 이 이 플러그인의 검토자일 때만 `auditor-readonly-guard.py`(.claude/research/drafts/agents 에서 복사)에 넘긴다.
 - 알림 훅(`second-opinion-nudge.py`)도 플러그인 hooks.json 으로 옮겼다. 하네스 lib·harness.env 는 `$CLAUDE_CONFIG_DIR`(기본 `~/.claude`)에서 찾고, 없으면 기본값(mid)으로 돈다. 메시지는 새 이름을 쓴다. 테스트 20/20, 가드 선택 테스트 9/9.
 - advisor 를 기본 경로로 안내하던 문구는 "선택, 사용자 요청 시"로 낮췄다(두 스킬, 플러그인 설명, §0, §3.3 제목).
 - `claude plugin validate plugins/second-opinion` 과 `claude plugin validate .`(마켓) 모두 통과했다. 플러그인 쪽에 디렉터리 등재용 경고(아이콘 없음) 하나가 있다. haiku 로 `--plugin-dir` 를 걸어 띄우면 init 에 스킬 2개와 에이전트 2개가 위 이름으로 잡힌다.
-- 사용자 레벨 조각(`drafts/second-opinion/home/CLAUDE.md.fragment.md`, `harness.env.fragment`)은 정본 `home/` 에 넣지 않고 drafts 에 제안으로 남겼다. 훅을 settings 에 합치던 `settings.hooks.json` 조각은 플러그인 hooks.json 이 대신하므로 지웠다.
+- 사용자 레벨 조각(`.claude/archive/research/drafts/second-opinion/home/CLAUDE.md.fragment.md`, `harness.env.fragment`)은 정본 `home/` 에 넣지 않고 drafts 에 제안으로 남겼다. 훅을 settings 에 합치던 `settings.hooks.json` 조각은 플러그인 hooks.json 이 대신하므로 지웠다.

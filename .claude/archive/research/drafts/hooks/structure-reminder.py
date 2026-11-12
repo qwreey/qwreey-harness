@@ -4,7 +4,7 @@
 
 막지 않는다(decision 없음). additionalContext 만 주입한다.
 
-왜: 사용자가 직접 지적한 구조 문제(audit/12-code-structure.md)는 모두 "한 파일에 계속 덧붙이기"와
+왜: 사용자가 직접 지적한 구조 문제(.claude/audit/12-code-structure.md)는 모두 "한 파일에 계속 덧붙이기"와
 "새 파일을 부르는 쪽 옆에 계속 두기"에서 나왔다. devplorer 서버 init.luau 는 사흘 동안 692 → 4,101줄,
 한 게임 저장소의 서버 모듈은 아흐레 동안 646 → 3,501줄, devui Window/Manager.luau 는 이틀 동안 273 → 3,352줄이 됐다.
 Edit 도구는 조각만 보여 주므로 모델은 파일 전체 길이를 잘 보지 못한다. 그래서 길이를 바로 알려 준다.

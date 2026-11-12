@@ -14,7 +14,7 @@
    - 도구 핀이 갈렸다: **stl 은 luau 0.742**(0.734 의 `luau-analyze` 가 병렬 검사에서 힙 손상 — 상류 #3020), **quad·table-sim·moonwave·tbox 는 0.734**, luau-lsp 는 1.69.0/1.70.1 혼재(`stl/mise.toml` 머리 주석, `quad/mise.toml:12,15`, `table-sim/mise.toml:15-16`). 문서 속 "실측 수치"는 어느 버전 것인지 문장마다 다르다.
 3. **모순/갈등 3건**(아래 §3): (a) 타입 함수 쓸까 말까, (b) 타입 검사기가 luau-analyze 냐 luau-lsp 냐, (c) lune 사용 여부(stl 은 금지, qcc README 는 "luau 또는 lune", tbox 는 lute).
 4. **지식이 사실상 없는 영역**(스킬로 만들려면 신규 조사 필요): 타입팩/가변 인자 정리본, Roblox Instance/Enum/서비스 타입(실 API 타입 정의 지식), Actor/Parallel Luau, `@native`/`--!native` 사용 가이드, TestEZ/jest-lua, GC 튜닝 일반론. (§2 의 "공백" 표시)
-5. 로컬 도구는 **모두 설치돼 있으나 `mise` shim 이 이 디렉터리에서는 버전 미지정으로 실패**한다. 설치 경로 직접 호출은 전부 동작(§1). 스니펫 하나를 실제로 돌려 "에러 기대 포함 CI" 프로토타입이 성립함을 확인했다(`audit/drafts/snippet-harness/`).
+5. 로컬 도구는 **모두 설치돼 있으나 `mise` shim 이 이 디렉터리에서는 버전 미지정으로 실패**한다. 설치 경로 직접 호출은 전부 동작(§1). 스니펫 하나를 실제로 돌려 "에러 기대 포함 CI" 프로토타입이 성립함을 확인했다(`.claude/audit/drafts/snippet-harness/`).
 
 ---
 
@@ -57,7 +57,7 @@
 | 타입 시스템 기초 | 없음(전부 "한계" 관점) | 공백 | — | — | 입문 서술은 어디에도 없다. 공식 문서 링크 모음으로 채워야 함 |
 | 제네릭: 명시적 타입 인자 `f<<T>>` | stl `base/typing-limits.md:129-253`(3개 조용한 누수 + 해법), `:203`(콜백 주석도 제거) / quad `base/typing-limits.md:1087`(8.16), `:525-578`(§7 성립 확인) | A | **[실측기록]** stl `audit/arr-type-redesign/spikes/52,54`; quad `luau-test/done/*` | 같은 사실이 stl/quad 양쪽, 표현만 다름 | 정본=stl(최신, 0.742) |
 | 제네릭 추론 결함(람다 상한 소실) | stl `typing-limits.md:290`(뿌리), `audit/luau-solver-issues/1-…luau`+`DRAFTS.md:1-40` | A | **[실행]**(§1-1) | stl `spikes/52` 가 감시 | 업스트림 보고는 **안 올림**(사용자 결정) |
-| 제네릭 몸통 검사 안 됨(Subtyping.cpp:830-835) | stl `research/luau-source/README.md:1-30`, `audit/luau-solver-issues/3*.luau` | A(소스 줄까지) | **[실측기록]** Opus 가 소스 직접 빌드·수정판으로 확인 | 상류 #2733(2026-09-19 Closed)와 관계는 `sonnet-web.md:1-12`(요약 모델 경유라 본문 해석은 약함) | 0.742 에서 `3b` 여전히 0건 |
+| 제네릭 몸통 검사 안 됨(Subtyping.cpp:830-835) | stl `research/luau-source/README.md:1-30`, `.claude/audit/luau-solver-issues/3*.luau` | A(소스 줄까지) | **[실측기록]** Opus 가 소스 직접 빌드·수정판으로 확인 | 상류 #2733(2026-09-19 Closed)와 관계는 `sonnet-web.md:1-12`(요약 모델 경유라 본문 해석은 약함) | 0.742 에서 `3b` 여전히 0건 |
 | 타입 함수 `types.*` | quad `typing-limits.md:50-83`(허용범위 규칙), `:461`(§6 체이닝 깨짐), `:1115`(8.18 pcall 불가), `:1154`(8.22 프라이밍), `:1323`(8.39); stl `papers/03-tuple.md:1-25`, `base/trait-system.md:99`; `stl/research/type-function-experiment/` | A~B | quad 는 `luau-test/done/16,12,15` **[실측기록]** | **모순 (a)**: 아래 §3 | 사용자 규칙: "진단 띄우는 데까지만" |
 | 변성/서브타이핑(읽기전용 필드는 공변, 함수 타입 팬텀으로 불변 만들기) | quad `typing-limits.md:954`(8.11), `:1347`(8.42 방향별 마커); stl `typing-limits.md:1-30`(2026-10-12 불변 마커), `:388`(팬텀 모양), `:466`(공변 둘→교집합); qcc `luau-test/done/34,35,32` | A | **[실측기록]** quad `spike 34/35/32`, stl `spikes/61` | quad↔stl 가 같은 결론을 서로 인용 | 스킬 `variance.md` 의 핵심 |
 | 가변 인자·타입팩 | stl `typing-limits.md:48-56`(꼬리 호출 결과 미검사 `spikes/53`); qcc `luau-test/done/15-type-compute-trailing-deps-typepack.luau`; quad `typing-limits.md:525-578`(§7: trailing deps 가 붙으면 dep 파라미터에 주석 필요) | C(단편) | 15 는 H-176 으로 **폐기** | — | 정리본 **공백**. 단편 3개를 합쳐 신규 작성 필요 |
@@ -88,7 +88,7 @@
 | 주제 | 어디에 | 품질 | 검증 | 비고 |
 |---|---|---|---|---|
 | Roblox API 타입(Instance/Enum/서비스) | rbvm `.claude/cache/globalTypes.d.luau`(+`luau-lsp-settings.json`, `sourcemap.json`), `rbvm/design/engine-behavior.md:12-96`(Instance/Signal/Destroy/트리 API 실제 동작 표), `quad/scripts/roblox-defs/globalTypes.d.luau`; luau-lsp 가 못 읽은 globalTypes(2025-11자)는 `rbvm/tools/check.sh:15-19` | B | **[Studio]**(`rbvm engine-behavior.md:12` Studio 0.742, Deferred 모드) | **타입 정의 사용법**(Instance:IsA 좁히기, `Enum` 타입, `GetService` 타입)은 **공백** — 동작 실측만 있음 |
-| Studio 에서 Luau 실행/검증(MCP) | qcc `luau-test/README.md`(실행 환경 세 갈래), quad `audit/spike10-full-run-2026-09-01.md`, `audit/kit-studio-*`, `audit/headless-cli-install-2026-09-21.md`; 로컬에 `mcp__roblox-studio__execute_luau` 도구 존재 | A | [Studio] | 스킬 `roblox-verify` 후보 |
+| Studio 에서 Luau 실행/검증(MCP) | qcc `luau-test/README.md`(실행 환경 세 갈래), quad `audit/spike10-full-run-2026-09-01.md`, `.claude/audit/kit-studio-*`, `audit/headless-cli-install-2026-09-21.md`; 로컬에 `mcp__roblox-studio__execute_luau` 도구 존재 | A | [Studio] | 스킬 `roblox-verify` 후보 |
 | 시그널/Deferred·Destroy·`require` 문자열 규칙(Studio 실제) | rbvm `engine-behavior.md:18`(Signal), `:36`(Destroy), `:68-83`(**`./` `../` `@self` `@game/…` 허용, 접두어 없으면 에러, `@Self` 대소문자 무시, `./X/` 슬래시 허용**) | A | [Studio] | stl `architecture.md:37`,`:307`(luau CLI require 규칙)과 **환경이 다름**(CLI vs Studio) — 둘을 한 표로 비교 필요 |
 | 동시성: task/coroutine | quad(`task.*` 언급 113 파일) 중 정리본은 `quad/docs` 와 `qcc luau-test/done/27`(코루틴 안 에러는 그 코루틴 스택만 본다); stl `papers/01-fut.md`(`Fut` = 코루틴 래퍼, 구현+spikes/48) | B(단편) | 27 [실행 가능] | task 스케줄러 순서 일반 정리 **공백** |
 | Actor / Parallel Luau / SharedTable | quad 62 파일에 단어만(`docs`/설계) | 공백(정리본 없음) | — | 신규 조사 필요 |
@@ -231,7 +231,7 @@ disable-model-invocation: true
 ```
 `luau-recheck`: `description: 새 luau 릴리스에서 snippets/ 전체와 solver-bugs.tsv 를 재검증하고 바뀐 항목 보고서를 만든다.` + `disable-model-invocation: true`.
 
-한계: description 의 한/영 혼용 키워드는 발동률 향상용이나 **실제 발동 테스트(질문 20개 × 기대 스킬)를 `skill-creator` 의 eval 로 돌려 보정**할 것(미실시). 초안 파일: `audit/drafts/skills/`.
+한계: description 의 한/영 혼용 키워드는 발동률 향상용이나 **실제 발동 테스트(질문 20개 × 기대 스킬)를 `skill-creator` 의 eval 로 돌려 보정**할 것(미실시). 초안 파일: `.claude/audit/drafts/skills/`.
 
 ### 4-4. "grep 없이 읽기" 3요건 설계
 

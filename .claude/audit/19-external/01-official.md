@@ -6,7 +6,7 @@
   - Anthropic 글: claude.com 블로그 2편(2026), anthropic.com engineering 3편(2025)
   - 사양: platform.claude.com 스킬 작성 best practices, agentskills.io 사양
   - 우리 쪽 대상: `home/.claude/`(CLAUDE.md, rules 2, 훅 4, harness.env, harness-doctor), luau-kb(스킬 12, rules, .lsp.json), session-log 플러그인, PLAN·audit 10/16/17/18
-- `audit/01`에서 이미 정리한 사실은 반복하지 않는다. 그 뒤에 나왔거나 거기서 빠진 것, 그리고 대조 판정을 다룬다.
+- `.claude/audit/01`에서 이미 정리한 사실은 반복하지 않는다. 그 뒤에 나왔거나 거기서 빠진 것, 그리고 대조 판정을 다룬다.
 - 분류
   - **(a)** 공식 권고를 잘 따름
   - **(b)** 공식 권고와 어긋나거나 과함(과잉 설계, 컨텍스트 비용, 유지보수 부담)
@@ -26,7 +26,7 @@
    - luau-lsp 코드 인텔리전스(`.lsp.json`)는 플러그인으로 로드될 때만 켜진다. 링크 방식에서는 꺼진 채다 [로컬].
    - 스킬 12개의 설명(약 6,900자)은 웹·go·rust 저장소를 포함한 모든 세션에 상시 실린다 [로컬][추정].
    - 공식 문서상 **로컬 경로 마켓의 상대경로 플러그인은 제자리(in-place)에서 로드되고 버전을 올릴 필요가 없다** [원문 plugins/loading].
-   - 따라서 audit/01·PLAN 이 링크를 고른 근거("캐시 사본이라 버전 bump 필요")는 이 경우에 성립하지 않는다.
+   - 따라서 .claude/audit/01·PLAN 이 링크를 고른 근거("캐시 사본이라 버전 bump 필요")는 이 경우에 성립하지 않는다.
    - 권고: luau-kb 를 플러그인으로 설치하고, Luau 저장소에서만 켠다.
 2. **(b) 공식 방향은 "규칙을 줄이고 판단에 맡긴다"인데, 우리는 규칙·훅·프로토콜을 쌓는 쪽이다**
    - 2026-07 Claude 5 글은 "Give Claude rules → Let Claude use judgement"라고 쓰고, 시스템 프롬프트를 80% 넘게 지웠다고 밝혔다 [요약확인].
@@ -43,7 +43,7 @@
    - PLAN 의 검증 루프에는 적혀 있다. 그러나 실행한 흔적은 로컬 문서에서 찾지 못했다 [로컬 grep].
    - harness-doctor scan 의 LOAD/RULE/SKILL/STALE 검사는 이 공식 도구들과 상당 부분 겹친다.
 4. **(c) 사용자의 가장 큰 반복 고충에 공식 해법이 있다**
-   - audit/10 패턴 A: compact 의식 64회, 컨텍스트 % 보고 27회.
+   - .claude/audit/10 패턴 A: compact 의식 64회, 컨텍스트 % 보고 27회.
    - 공식 해법 [원문]: CLAUDE.md `# Compact instructions` 절, `/compact <focus>`, `/rewind` 의 부분 요약, `/autocompact`, `idleCompaction`.
    - 또 공식이 첫째로 꼽는 "Give Claude a check to run"(Stop 훅·`/goal`)을 Luau 저장소 검증에 아직 쓰지 않는다.
 5. **(a) 골격은 공식과 잘 맞는다**
@@ -52,7 +52,7 @@
    - 환경 보호용 PreToolUse deny(heavy-proc-guard)
    - `language` 설정
    - auto 모드
-   - 새 컨텍스트 리뷰어 방향(audit/18)
+   - 새 컨텍스트 리뷰어 방향(.claude/audit/18)
    - "Claude 가 모르는 것만" 담은 luau-core rules
 6. **(d) 독자 영역은 대체로 정당하다. 단 유지 비용을 재 봐야 한다**
    - 대상: 다저장소 지도·세션 확인, home-sync/MANIFEST, harness.env, session-log, decisions D-xx, bash-bypass-reminder
@@ -60,32 +60,32 @@
 
 ---
 
-## 1. audit/01 이후 새로 확인한 공식 사실 (델타)
+## 1. .claude/audit/01 이후 새로 확인한 공식 사실 (델타)
 
-| # | 사실 | 출처 | 표기 | audit/01 과의 관계 |
+| # | 사실 | 출처 | 표기 | .claude/audit/01 과의 관계 |
 |---|---|---|---|---|
-| 1 | 로컬 경로(`file`/`directory`)로 추가한 마켓의 상대경로 플러그인은 **제자리 로드**된다. 편집은 다음 세션 시작이나 `/reload-plugins` 때 반영되고 **version 을 올릴 필요가 없다**. `~/.claude/skills/` 아래 `.claude-plugin/plugin.json` 이 있는 디렉터리도 `<name>@skills-dir` 플러그인으로 제자리 로드된다 | plugins/loading "In-place and copied plugins", "Find where a plugin came from" | [원문] | audit/01 §5 "캐시 사본이라 버전 올림 필요"를 **로컬 마켓에 한해 정정** |
+| 1 | 로컬 경로(`file`/`directory`)로 추가한 마켓의 상대경로 플러그인은 **제자리 로드**된다. 편집은 다음 세션 시작이나 `/reload-plugins` 때 반영되고 **version 을 올릴 필요가 없다**. `~/.claude/skills/` 아래 `.claude-plugin/plugin.json` 이 있는 디렉터리도 `<name>@skills-dir` 플러그인으로 제자리 로드된다 | plugins/loading "In-place and copied plugins", "Find where a plugin came from" | [원문] | .claude/audit/01 §5 "캐시 사본이라 버전 올림 필요"를 **로컬 마켓에 한해 정정** |
 | 2 | `enabledPlugins` 는 user/project/local/flag/managed 를 키별로 병합한다. 저장소별로 켜고 끌 수 있다(`.claude/settings.local.json` 이 project 보다 우선) | plugins/loading "Find where a plugin is enabled" | [원문] | 신규 |
 | 3 | 플러그인 상시 비용은 `claude plugin details <name>` 로 잰다. 공식 마켓은 상시 2,000토큰 이상이면 "Every turn" 줄을 강조 표시한다 | plugins/measure | [원문] | 신규 |
-| 4 | 스킬 목록 예산은 컨텍스트 창의 1%다. 넘치면 **가장 적게 호출된 스킬부터 설명이 빠진다**. 조정은 `skillListingBudgetFraction`, `SLASH_COMMAND_TOOL_CHAR_BUDGET`, `skillListingMaxDescChars`, `skillOverrides: name-only` 로 한다 | skills "Skill descriptions are cut short" | [원문] | audit/01 은 1%만 기록. 탈락 순서와 설정 키는 신규 |
-| 5 | 스킬 트리거율은 `claude plugin eval` 의 `tool_used: Skill` grader 로 잰다. `claude plugin validate ~/.claude/skills` 는 2.1.233 이상에서 쓸 수 있다. skill-creator 플러그인도 with/without 벤치·설명 튜닝을 한다 | skills "Skill not triggering", plugin-evals | [원문](skills) [요약확인](plugin-evals 머리말) | audit/06 이 "미검증"으로 남긴 것 |
+| 4 | 스킬 목록 예산은 컨텍스트 창의 1%다. 넘치면 **가장 적게 호출된 스킬부터 설명이 빠진다**. 조정은 `skillListingBudgetFraction`, `SLASH_COMMAND_TOOL_CHAR_BUDGET`, `skillListingMaxDescChars`, `skillOverrides: name-only` 로 한다 | skills "Skill descriptions are cut short" | [원문] | .claude/audit/01 은 1%만 기록. 탈락 순서와 설정 키는 신규 |
+| 5 | 스킬 트리거율은 `claude plugin eval` 의 `tool_used: Skill` grader 로 잰다. `claude plugin validate ~/.claude/skills` 는 2.1.233 이상에서 쓸 수 있다. skill-creator 플러그인도 with/without 벤치·설명 튜닝을 한다 | skills "Skill not triggering", plugin-evals | [원문](skills) [요약확인](plugin-evals 머리말) | .claude/audit/06 이 "미검증"으로 남긴 것 |
 | 6 | 설명이 모호하거나 **서로 겹치면** Claude 가 엉뚱한 스킬을 고르거나 놓친다 | features-overview "How Claude chooses skills" | [원문] | 신규 |
 | 7 | rule frontmatter 에서 Claude Code 가 읽는 필드는 **`paths` 뿐**이고 나머지는 조용히 무시된다. YAML 이 깨지면 paths 없는 rule 로 로드된다(=상시) | memory "Rule frontmatter reference" | [원문] | 신규 |
 | 8 | 사용자 rule 과 프로젝트 rule 은 서로 덮지 않는다. 충돌하면 "Claude may follow either one" | memory "User-level rules" | [원문] | 신규 |
-| 9 | path rule 과 하위 CLAUDE.md 는 대화 이력에 들어가므로 compact 때 요약되어 사라지고, 다음 매칭 때 다시 로드된다. 루트 CLAUDE.md·paths 없는 rule·auto memory 는 디스크에서 다시 주입된다. 호출된 스킬 본문은 스킬당 5,000, 합계 25,000토큰까지 재부착된다 | context-window "What survives compaction" | [원문] | audit/01 미기재 |
-| 10 | on-demand 파일(path rule, 하위 CLAUDE.md) 글자 한도는 v2.1.309 부터 적용된다. 1M 창 신규 모델 기준 150,000자 | memory "Claude ignores the end…" | [원문] | audit/01 #4 보강(적용 시점) |
-| 11 | `/doctor` 는 "CLAUDE.md 에서 코드로 알 수 있는 내용", 쓰지 않는 확장, 스킬 목록 비용을 지적하고 고칠 안을 낸다. `/doctor prompt-audit` 은 사용자·프로젝트의 rules/skills/agents/output styles 까지 "옛 모델용 지시, 없는 파일 참조, 상충"을 본다(2.1.283 이상) | memory, debug-your-config | [원문] | audit/01 은 명령 이름만 기록 |
+| 9 | path rule 과 하위 CLAUDE.md 는 대화 이력에 들어가므로 compact 때 요약되어 사라지고, 다음 매칭 때 다시 로드된다. 루트 CLAUDE.md·paths 없는 rule·auto memory 는 디스크에서 다시 주입된다. 호출된 스킬 본문은 스킬당 5,000, 합계 25,000토큰까지 재부착된다 | context-window "What survives compaction" | [원문] | .claude/audit/01 미기재 |
+| 10 | on-demand 파일(path rule, 하위 CLAUDE.md) 글자 한도는 v2.1.309 부터 적용된다. 1M 창 신규 모델 기준 150,000자 | memory "Claude ignores the end…" | [원문] | .claude/audit/01 #4 보강(적용 시점) |
+| 11 | `/doctor` 는 "CLAUDE.md 에서 코드로 알 수 있는 내용", 쓰지 않는 확장, 스킬 목록 비용을 지적하고 고칠 안을 낸다. `/doctor prompt-audit` 은 사용자·프로젝트의 rules/skills/agents/output styles 까지 "옛 모델용 지시, 없는 파일 참조, 상충"을 본다(2.1.283 이상) | memory, debug-your-config | [원문] | .claude/audit/01 은 명령 이름만 기록 |
 | 12 | CLAUDE.md 에 `# Compact instructions` 절을 두면 compact 요약에 무엇을 남길지 정할 수 있다 | costs "Manage context proactively" | [원문] | 신규 |
-| 13 | idle compaction: 1시간 캐시에서 200K 를 넘은 세션을 놀려 두면 캐시 만료 직전에 요약된다. `idleCompaction: false` 로 끈다(2.1.290 이상). 2.1.314 에서 적용 대상이 넓어졌다 | best-practices note, prompt-caching, changelog 2.1.314 | [원문][요약확인] | 신규. 이 사용자 세션은 중앙값 26만~42만 토큰(audit/18) |
+| 13 | idle compaction: 1시간 캐시에서 200K 를 넘은 세션을 놀려 두면 캐시 만료 직전에 요약된다. `idleCompaction: false` 로 끈다(2.1.290 이상). 2.1.314 에서 적용 대상이 넓어졌다 | best-practices note, prompt-caching, changelog 2.1.314 | [원문][요약확인] | 신규. 이 사용자 세션은 중앙값 26만~42만 토큰(.claude/audit/18) |
 | 14 | 캐시 TTL: 구독은 메인 1시간, 서브에이전트·포크·compact 는 5분. `promptCacheTtl`, `subagentPromptCacheTtl` 로 바꾼다. CLAUDE.md 를 세션 중에 고치면 캐시는 유지되지만 `/clear`·`/compact`·재시작 전까지 반영되지 않는다 | prompt-caching | [원문] | 신규 |
-| 15 | 훅 additionalContext·plain stdout 상한은 10,000자다. 넘치면 파일로 저장하고 앞 2,000자 미리보기만 넘긴다. **additionalContext 는 "factual statements rather than imperative system instructions"로 쓰라.** 명령형은 "can trigger Claude's prompt-injection defenses" | hooks | [요약확인] | audit/17 실측(태그 없는 평문 접두)과 맞물림 |
+| 15 | 훅 additionalContext·plain stdout 상한은 10,000자다. 넘치면 파일로 저장하고 앞 2,000자 미리보기만 넘긴다. **additionalContext 는 "factual statements rather than imperative system instructions"로 쓰라.** 명령형은 "can trigger Claude's prompt-injection defenses" | hooks | [요약확인] | .claude/audit/17 실측(태그 없는 평문 접두)과 맞물림 |
 | 16 | `onFailure: "block"`(command/http 훅, 2.1.295 이상): 훅이 죽으면 동작을 막는다. 훅 종류는 command, http, mcp_tool, prompt, agent 다. prompt/agent 는 비결정적이다 | hooks, best-practices | [요약확인][원문] | 신규 |
 | 17 | best-practices: "keep the enforced set small … If you ever find yourself at forty of them, most are probably preferences". "a hook is for a rule with zero exceptions, and `Prefer named exports` … stays in CLAUDE.md" | best-practices "Choose who a rule applies to", "Enforce steps with hooks" | [원문] | 신규 |
 | 18 | best-practices "What you can stop doing": 컨텍스트를 공격적으로 관리하기, IMPORTANT·대문자 강조, "더 나은 답을 위해 서브에이전트에 위임", `think hard`, "keep going/don't be lazy", CLAUDE.md 에 구조 설명 쓰기 | best-practices | [원문] | 신규 |
 | 19 | Opus 5.5 등 5.5 계열의 기본 effort 는 `medium` 이다. `max` 는 일상 작업에서 과하게 생각한다. 서브에이전트는 `CLAUDE_CODE_SUBAGENT_EFFORT` 로 따로 정한다(2.1.316) | best-practices, changelog 2.1.316 | [원문][요약확인] | 신규 |
-| 20 | 서브에이전트: 기본 3단까지 중첩된다(`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`). `omitClaudeMd`, `memory`, `skills` 프리로드, `tools` 제한은 하네스가 강제한다. 리뷰어 예시는 `tools: Read, Grep, Glob` 와 "Skip style" | sub-agents, best-practices | [요약확인][원문] | audit/01 §3 보강 |
+| 20 | 서브에이전트: 기본 3단까지 중첩된다(`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`). `omitClaudeMd`, `memory`, `skills` 프리로드, `tools` 제한은 하네스가 강제한다. 리뷰어 예시는 `tools: Read, Grep, Glob` 와 "Skip style" | sub-agents, best-practices | [요약확인][원문] | .claude/audit/01 §3 보강 |
 | 21 | AGENTS.md 는 2.1.277 부터 기본으로 읽는다. 단 CLAUDE.md 가 있으면 AGENTS.md 는 안 읽는다(`claude-md-and-agents-md` 로 둘 다). 한 파일 공유는 CLAUDE.md 에서 `@AGENTS.md` import | memory "AGENTS.md" | [원문] | 신규 |
-| 22 | `/insights`: 최근 세션(최대 200개)을 분석해 마찰 지점과 개선 제안을 담은 HTML 보고서를 만든다 | costs "Analyze your usage patterns" | [원문] | 신규. audit/10 수작업 채굴의 공식 대응물 |
+| 22 | `/insights`: 최근 세션(최대 200개)을 분석해 마찰 지점과 개선 제안을 담은 HTML 보고서를 만든다 | costs "Analyze your usage patterns" | [원문] | 신규. .claude/audit/10 수작업 채굴의 공식 대응물 |
 | 23 | 공식 블로그(2026-07-24, Thariq Shihipar): Claude 5 세대에서 시스템 프롬프트를 80% 넘게 지웠는데 코딩 평가 손실이 없었다. 6개 전환은 다음과 같다. 규칙→판단, 예시→인터페이스 설계, 전부 앞에→점진 공개, 반복→단순 도구 설명, CLAUDE.md 메모리→auto memory, 단순 명세→풍부한 참조(루브릭·검증 에이전트). "clashing messages … DO NOT add comments" 같은 상충은 지우라고 한다. `/doctor` 로 "rightsize your skills, and CLAUDE.md files" | claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models (claude.dev 로 308) | [요약확인] | 신규. 전체 방향의 기준점 |
 | 24 | 공식 블로그(2026-06-18) "Steering Claude Code": paths 없는 rule 은 CLAUDE.md 와 같은 비용이다. 공유 CLAUDE.md 는 아무도 지우지 않아 자란다 | claude.com/blog/steering-claude-code-skills-hooks-rules-subagents-and-more | [요약확인] | 신규 |
 
@@ -100,14 +100,14 @@
 | 사용자 CLAUDE.md 크기 | (a) | 200줄 미만. Claude 가 볼 수 없는 것만 담는다(best-practices "Keep CLAUDE.md short") | 정본 4.2KB, 약 45줄 | 충분히 작다 |
 | 형제 저장소 지도·읽기 전용 원칙·세션 확인 명령 | (a)/(d) | "Describe your architecture … in CLAUDE.md"는 그만둘 일(Claude 가 저장소를 읽으므로). 다른 저장소는 현재 저장소에서 안 보인다 | 표 1개, 명령 1줄 | 저장소 안에서는 알 수 없는 정보라 정당하다(d). 저장소 내부 구조 설명은 넣지 않았다(a) |
 | "훅 메시지" 절(level·반드시) | (b) | 강조와 명령형은 과잉 적용을 부른다(best-practices). additionalContext 는 사실 서술로 쓴다(hooks [요약확인]) | `info/warn/action` 의미를 3줄로 규정. "반드시 읽고 … 그냥 넘기지 않는다", "action … 반드시 처리" | HOOK-MESSAGES.md 규칙 4("지시가 아니라 관찰+권고")는 공식과 맞다(a). 그러나 CLAUDE.md 가 그 텍스트에 사용자 지시에 준하는 권위를 부여하는 것은 공식이 경계하는 방향이다. 권고: level 은 남기되 CLAUDE.md 문구는 "사실 알림이니 판단에 반영"으로 낮춘다. 실제로 꼭 지켜야 하는 것(1,500줄 초과 시 질문)은 PreToolUse `ask` 결정으로 옮겨 하네스가 묻게 한다 |
-| "코드 리뷰를 먼저 한다" 절 | (b) 위험 | 새 컨텍스트 리뷰어는 권장(/code-review). 동시에 "A reviewer that's asked to find problems will always find something … extra abstraction layers"(best-practices). "keep going" 류 문장은 과로를 부른다 | 시점 4개를 정하고, 예산 규칙 우선이라는 단서를 단다 | 방향은 맞다. 다만 사용자의 비용 사고 이력($589, audit/10 B)에 비춰 "먼저 한다"는 과로 신호다. 시점을 훅이 알리는 audit/18 방식과 중복이므로 CLAUDE.md 쪽은 한 줄로 줄인다 |
+| "코드 리뷰를 먼저 한다" 절 | (b) 위험 | 새 컨텍스트 리뷰어는 권장(/code-review). 동시에 "A reviewer that's asked to find problems will always find something … extra abstraction layers"(best-practices). "keep going" 류 문장은 과로를 부른다 | 시점 4개를 정하고, 예산 규칙 우선이라는 단서를 단다 | 방향은 맞다. 다만 사용자의 비용 사고 이력($589, .claude/audit/10 B)에 비춰 "먼저 한다"는 과로 신호다. 시점을 훅이 알리는 .claude/audit/18 방식과 중복이므로 CLAUDE.md 쪽은 한 줄로 줄인다 |
 | 모델 사용 규칙(haiku 는 읽기 전용) | (a)/(d) | "Haiku is a good fit for subagents doing simple jobs"(best-practices, costs) | haiku 를 위치 조사로만 제한 | 공식 권고의 부분집합이다. 실측(규칙 위반) 근거가 있다 |
 | 툴체인·choom 안내 | (a) | Claude 가 모르는 환경 사실 | 3줄 | 적절하다 |
 | rules 의 paths 범위 | (a) | 부분에만 해당하는 규칙은 paths rule 로(best-practices "Scope rules") | 3개 모두 paths 있음 | 공식대로다 |
 | rules 의 `description:` frontmatter | (d) | Claude Code 는 `paths` 외 필드를 무시한다 | luau-kb rules/README 가 description 을 "필수"로 둠 | 사람용 메타로는 무해하다. 모델이 본다고 오해하지 않게 README 에 "Claude Code 는 무시"라고 적는다 |
 | luau-core.md 내용 | (a) | "only write down what Claude can't find on its own" | `local const x` 전역화, `f<<T>>`, 문장 첫 `(` 같은 비자명한 함정 40줄 | 공식이 말하는 "gotchas" 그 자체다 |
 | code-structure.md (800/1,500줄, 같은 접두 3개면 폴더, 문자열 분기 8개면 표 등) | (b) | Claude 5 글 "rules → judgement". best-practices "Most of the time, you want Claude to decide … Claude is usually better placed to make that call than a rule you wrote in advance" | 확장자 12종(거의 모든 코드 세션)에 로드된다. structure-reminder 훅과 짝이다 | 사용자 결정(D-13)이므로 **제안만** 한다. 수치 기준 대부분은 모델이 이미 아는 일반 원칙이다. 이 저장소들 고유의 것(예외 표식, move-only 커밋)만 남기고 나머지는 훅의 사실 알림(줄 수)에 맡기는 축소안을 A/B 로 재 보자 |
-| web-security.md | (a)/(b) 경계 | Claude 가 이미 아는 일반 보안 상식은 비용이다. 단 "must hold every time"이면 훅·deny | 17줄. JS/TS 파일에서만 로드 | audit/16 의 공백 보완이라 근거는 있다. 다만 일반 OWASP 지식이 대부분이다. 저장소 고유 위험(vitrine 의 nonce 재사용·CSRF 실사례)만 남기고 나머지는 `/security-review` 에 맡기는 쪽이 공식 방향에 가깝다 |
+| web-security.md | (a)/(b) 경계 | Claude 가 이미 아는 일반 보안 상식은 비용이다. 단 "must hold every time"이면 훅·deny | 17줄. JS/TS 파일에서만 로드 | .claude/audit/16 의 공백 보완이라 근거는 있다. 다만 일반 OWASP 지식이 대부분이다. 저장소 고유 위험(vitrine 의 nonce 재사용·CSRF 실사례)만 남기고 나머지는 `/security-review` 에 맡기는 쪽이 공식 방향에 가깝다 |
 | user rule ↔ repo rule 충돌 | (a) | 둘 다 로드되고 어느 쪽을 따를지 불확실하다 | 각 rule 머리에 "repo 가 다르면 repo 를 따른다" | 공식이 지적한 불확실성을 명시 규칙으로 메웠다 |
 | 실제 ~/.claude 반영 상태 | (관찰) | - | `~/.claude/rules/` 없음, `~/.claude/skills/` 에는 `synced` 만 있다. 배포된 CLAUDE.md 는 옛판(`pgrep -f`) | 정본이 아직 apply 되지 않았다. **반영 전에 `/context all` 기준선을 재 두면** 전후 비교를 공식 도구로 할 수 있다 |
 
@@ -130,8 +130,8 @@
 
 | 항목 | 분류 | 공식 근거 | 우리 상태 | 판단·권고 |
 |---|---|---|---|---|
-| luau-kb 소비를 `~/.claude/skills/<각 스킬>` 13개 링크로 | (b)+(c) | "A second repository needs the same setup → Package it as a plugin"(features-overview). 로컬 마켓 상대경로 플러그인은 제자리 로드, 버전 bump 불필요(plugins/loading [원문]). `enabledPlugins` 를 저장소별로 켜고 끈다 | MANIFEST 에 링크 13줄. `luau-kb-market` 은 별도로 있음(마켓 설명문). 설치 기록 없음(`installed_plugins.json` 빔) | **플러그인 설치로 바꾸는 것을 권한다.** 얻는 것: ① `.lsp.json` 의 luau-lsp(공식 "code intelligence plugin" 권고, 파일 읽기 감소)가 켜진다. ② Luau 저장소에서만 켜서 웹 저장소 상시 비용 0. ③ `plugin details`·`/skill-doctor`·"Not used recently"로 측정. 잃는 것: 스킬 이름이 `luau-kb:luau-types` 로 네임스페이스된다. rules 는 플러그인으로 못 보낸다(audit/01 #9) → `luau-core.md` 링크 1줄만 MANIFEST 에 남는다 |
-| 플러그인의 rules 미지원 | (d) | 플러그인 구성 요소에 rules 가 없다(plugins/components, audit/01) | `rules/luau-core.md` 만 링크 | 합리적이다 |
+| luau-kb 소비를 `~/.claude/skills/<각 스킬>` 13개 링크로 | (b)+(c) | "A second repository needs the same setup → Package it as a plugin"(features-overview). 로컬 마켓 상대경로 플러그인은 제자리 로드, 버전 bump 불필요(plugins/loading [원문]). `enabledPlugins` 를 저장소별로 켜고 끈다 | MANIFEST 에 링크 13줄. `luau-kb-market` 은 별도로 있음(마켓 설명문). 설치 기록 없음(`installed_plugins.json` 빔) | **플러그인 설치로 바꾸는 것을 권한다.** 얻는 것: ① `.lsp.json` 의 luau-lsp(공식 "code intelligence plugin" 권고, 파일 읽기 감소)가 켜진다. ② Luau 저장소에서만 켜서 웹 저장소 상시 비용 0. ③ `plugin details`·`/skill-doctor`·"Not used recently"로 측정. 잃는 것: 스킬 이름이 `luau-kb:luau-types` 로 네임스페이스된다. rules 는 플러그인으로 못 보낸다(.claude/audit/01 #9) → `luau-core.md` 링크 1줄만 MANIFEST 에 남는다 |
+| 플러그인의 rules 미지원 | (d) | 플러그인 구성 요소에 rules 가 없다(plugins/components, .claude/audit/01) | `rules/luau-core.md` 만 링크 | 합리적이다 |
 | session-log 를 플러그인으로 | (a) | 여러 저장소 공용 훅은 플러그인으로(features-overview) | claude-doctor-market 에 등록 | 공식 패키징대로다 |
 | home-sync + MANIFEST + harness.env | (d) | 공식은 1인 다기기 dotfiles 동기화를 다루지 않는다. 플러그인은 CLAUDE.md 를 로드하지 않는다 | 정본·diff·apply·백업 | CLAUDE.md·settings 는 플러그인으로 못 옮기니 필요하다. 다만 **훅 4개와 lib/ 는 "harness-core" 플러그인으로 묶을 수 있다**(플러그인 훅은 사용자 훅과 병합되고 서브에이전트에서도 돈다). 그러면 MANIFEST 관리 대상이 CLAUDE.md·settings·harness.env 정도로 준다. 유지 부담과 이식성을 따져 결정한다 |
 
@@ -143,19 +143,19 @@
 | bash-bypass-reminder | (d) | path rule 은 Read/Write/Edit 때만 붙는다(memory). Bash 쓰기는 다루지 않는다 | Bash 로 파일을 바꾸면 해당 rule 을 알린다. haiku 2/2 vs 0/2 실측 | 공식 동작의 틈을 메우는 독자 판단이라 정당하다. 표본이 n=2 라 sonnet·opus 로 더 재 볼 가치가 있다 |
 | structure-reminder | (b) 일부 | PostToolUse 출력은 "linter 결과를 돌려주는" 정석 용도다(features-overview). 반면 선호 규칙을 훅으로 강제하지 말라(best-practices) | 줄 수 사실 알림(info/warn)과 1,500줄 action(사용자에게 질문 요구) | 줄 수·예외 사유 같은 **사실 알림은 (a)** 다. "질문하라"는 action 은 결정적 강제가 아니면서 강제처럼 쓰여 있어 어중간하다. 꼭 묻게 하려면 PreToolUse `permissionDecision: "ask"` 로 하네스가 묻게 하고, 아니면 info 로 낮춘다 |
 | rearm-on-compact (SessionStart compact) | (a) | compact 매처의 SessionStart 훅 출력은 압축된 컨텍스트에 더해진다(context-window) | dedup 회차 재무장 | 공식 메커니즘을 정확히 썼다 |
-| `<harness-hook>` 태그 + level | (d)/(b) | 공식은 태그 규약을 정하지 않는다. 사실 서술을 권한다 | audit/17 실측 근거로 태그를 도입 | 출처 구분용 태그 자체는 합리적이다(d). 위 2.1 의 권위 문구만 조정한다 |
-| 훅 수와 비용 | (b) 주의 | "keep the enforced set small". SessionStart 는 매번 돌므로 빠르게 | 사용자 훅 4개 + session-log 7개 이벤트(PostToolUse 는 **모든 도구** 호출마다 python 기동) + audit/18 제안 4개(PreToolUse Bash\|ExitPlanMode, PostToolUseFailure, SubagentStop, Stop) | 도구 호출 한 번에 python 프로세스가 2~4개 뜬다. 지연은 아직 재지 않았다 [미확인]. 새 훅을 들이기 전에 `claude --debug` 로 훅별 시간을 재고, session-log 의 PostToolUse 를 matcher 로 좁힐 수 있는지 본다 |
+| `<harness-hook>` 태그 + level | (d)/(b) | 공식은 태그 규약을 정하지 않는다. 사실 서술을 권한다 | .claude/audit/17 실측 근거로 태그를 도입 | 출처 구분용 태그 자체는 합리적이다(d). 위 2.1 의 권위 문구만 조정한다 |
+| 훅 수와 비용 | (b) 주의 | "keep the enforced set small". SessionStart 는 매번 돌므로 빠르게 | 사용자 훅 4개 + session-log 7개 이벤트(PostToolUse 는 **모든 도구** 호출마다 python 기동) + .claude/audit/18 제안 4개(PreToolUse Bash\|ExitPlanMode, PostToolUseFailure, SubagentStop, Stop) | 도구 호출 한 번에 python 프로세스가 2~4개 뜬다. 지연은 아직 재지 않았다 [미확인]. 새 훅을 들이기 전에 `claude --debug` 로 훅별 시간을 재고, session-log 의 PostToolUse 를 matcher 로 좁힐 수 있는지 본다 |
 | Stop 훅·`/goal` 로 완료 조건 강제 | (c) | "Give Claude a check to run". Stop 훅 `exit 2` 로 typecheck 통과 전 종료 막기. 8회 상한(best-practices) | 검증 절차는 luau-verify 스킬과 rules 의 "gate exit code" 줄에만 있음 | Luau 저장소별 `.claude/settings.json` 에 `luau-analyze`(+stylua --check) Stop 훅을 두는 것이 공식이 가장 먼저 권하는 투자다. 사용자 레벨이 아니라 저장소 레벨이다(명령이 저장소마다 다름) |
 | `onFailure: "block"` | (c) 검토 | 훅이 죽어도 막아야 하는 가드에 쓴다 | heavy-proc-guard 가 죽으면 통과(기본 continue) | 이 가드가 OOM 방지용이라면 `onFailure: "block"` 이 맞다. 다만 오탐 때 막히는 비용과 함께 판단한다 |
-| 리뷰어 읽기 전용을 훅으로 강제(audit/18 초안) | (b) | `tools:` 제한은 "enforced by Claude Code rather than requested in a prompt". 공식 리뷰어 예시는 `tools: Read, Grep, Glob` | Bash 를 허용하고 `auditor-readonly-guard.py` 훅으로 막음 | Bash 가 꼭 필요하면 훅이 맞다. git diff 정도라면 메인이 diff 를 넘기고 `tools: Read, Grep, Glob` 로 두는 쪽이 단순하다 |
+| 리뷰어 읽기 전용을 훅으로 강제(.claude/audit/18 초안) | (b) | `tools:` 제한은 "enforced by Claude Code rather than requested in a prompt". 공식 리뷰어 예시는 `tools: Read, Grep, Glob` | Bash 를 허용하고 `auditor-readonly-guard.py` 훅으로 막음 | Bash 가 꼭 필요하면 훅이 맞다. git diff 정도라면 메인이 diff 를 넘기고 `tools: Read, Grep, Glob` 로 두는 쪽이 단순하다 |
 
 ### 2.5 서브에이전트·리뷰·비용
 
 | 항목 | 분류 | 공식 근거 | 우리 상태 | 판단·권고 |
 |---|---|---|---|---|
-| 새 컨텍스트 리뷰어(audit/18) | (a) | "Getting a reviewer that hasn't seen how the code was written". "Delegate for a better answer"는 그만둘 일이고, fresh reviewer 는 다른 일이다 | 시점 3개, 원문 직접 추출, 원장 | 공식 논리와 같다. "skip style" 같은 범위 제한 문구를 리뷰어 프롬프트에 넣는다 |
-| advisor 끄기 | (d) | advisor 문서는 고위험 독립 검증 용도라고 한다(audit/18 인용) | 암호화 결과, 캐시 없음, 비용 실측으로 끔 | 이 환경에서 잰 값에 근거한 독자 판단이라 타당하다 |
-| 관점별 감사 에이전트(drafts/agents) | (a)/(c) | "Define a custom subagent when you keep spawning the same kind of worker". `/audit` 이 security·performance·style 서브에이전트를 띄우는 예가 features-overview 에 그대로 있다 | 초안만 있고 설치되지 않음 | 방향은 공식 예시와 같다. 설치 전 `skills:` 프리로드 크기(전체 본문 주입)를 재 둔다 |
+| 새 컨텍스트 리뷰어(.claude/audit/18) | (a) | "Getting a reviewer that hasn't seen how the code was written". "Delegate for a better answer"는 그만둘 일이고, fresh reviewer 는 다른 일이다 | 시점 3개, 원문 직접 추출, 원장 | 공식 논리와 같다. "skip style" 같은 범위 제한 문구를 리뷰어 프롬프트에 넣는다 |
+| advisor 끄기 | (d) | advisor 문서는 고위험 독립 검증 용도라고 한다(.claude/audit/18 인용) | 암호화 결과, 캐시 없음, 비용 실측으로 끔 | 이 환경에서 잰 값에 근거한 독자 판단이라 타당하다 |
+| 관점별 감사 에이전트(.claude/research/drafts/agents) | (a)/(c) | "Define a custom subagent when you keep spawning the same kind of worker". `/audit` 이 security·performance·style 서브에이전트를 띄우는 예가 features-overview 에 그대로 있다 | 초안만 있고 설치되지 않음 | 방향은 공식 예시와 같다. 설치 전 `skills:` 프리로드 크기(전체 본문 주입)를 재 둔다 |
 | 다중 에이전트 비용 | (b) 주의 | 다중 에이전트는 채팅의 약 15배 토큰. 코딩처럼 맥락을 공유하는 일에는 잘 안 맞는다(engineering 2025-06-13). 에이전트 팀은 약 7배(costs) | 이번 세션도 외부 조사 4갈래를 병렬로 돌림. 감사 5관점 분할 계획 | 병렬은 "독립적인 일"일 때만 이득이다. 관점별 감사는 같은 diff 를 다섯 번 읽으므로 diff 크기 임계 아래에서는 단일 리뷰어 하나로 시작한다 |
 | effort | (b) 검토 | 기본은 medium, 놓치기 쉬운 경우에만 high/xhigh(best-practices). `CLAUDE_CODE_SUBAGENT_EFFORT`(2.1.316) | `modelSettings.claude-opus-5-5.effortLevel: high` 상시 | 사용자 선택이므로 제안만 한다. `/usage` 권고 행(effort 관련 `f` 수정)이 뜨는지 먼저 본다. 서브에이전트 effort 를 따로 낮추는 안을 검토한다 |
 | 서브에이전트 TTL 5분 | (c) 검토 | `subagentPromptCacheTtl: 1h` 로 바꿀 수 있다(prompt-caching) | 기본 | 오래 도는 백그라운드 감사가 많다면 효과가 있을 수 있다 [추정]. `/usage` 의 cache miss 권고를 보고 정한다 |
@@ -164,11 +164,11 @@
 
 | 항목 | 분류 | 공식 근거 | 우리 상태 | 판단·권고 |
 |---|---|---|---|---|
-| compact 인자를 매번 손으로 (audit/10 A) | (c) | 저장소 루트 CLAUDE.md 의 `# Compact instructions` 절, `/compact <focus>`, `/rewind` → "Summarize from here", `/autocompact`(context-window, costs) | `/checkpoint` 스킬과 % 주입 훅을 계획 중 | **새 스킬을 만들기 전에** 저장소별 CLAUDE.md 에 Compact instructions 3~5줄("잊지 말 것: 결정, 실측 수치, 열린 todo, 사용자 정정")을 넣는 것이 공식 해법이고 비용이 0 이다. % 확인은 statusline 의 context 필드로 상시 보인다(costs "configure your status line") |
-| idle compaction | (c) 점검 | 1시간 캐시에서 200K 넘은 세션은 놀려 두면 자동 요약(2.1.314 확대). `idleCompaction` | 이 사용자 세션은 대부분 200K 초과(audit/18) | 점심 뒤에 "요약본에서 이어가는" 일이 사용자 모르게 일어난다. 사용자가 compact 시점을 직접 다루고 싶어 하므로 `idleCompaction` 을 켤지 끌지 명시적으로 정하게 한다 |
+| compact 인자를 매번 손으로 (.claude/audit/10 A) | (c) | 저장소 루트 CLAUDE.md 의 `# Compact instructions` 절, `/compact <focus>`, `/rewind` → "Summarize from here", `/autocompact`(context-window, costs) | `/checkpoint` 스킬과 % 주입 훅을 계획 중 | **새 스킬을 만들기 전에** 저장소별 CLAUDE.md 에 Compact instructions 3~5줄("잊지 말 것: 결정, 실측 수치, 열린 todo, 사용자 정정")을 넣는 것이 공식 해법이고 비용이 0 이다. % 확인은 statusline 의 context 필드로 상시 보인다(costs "configure your status line") |
+| idle compaction | (c) 점검 | 1시간 캐시에서 200K 넘은 세션은 놀려 두면 자동 요약(2.1.314 확대). `idleCompaction` | 이 사용자 세션은 대부분 200K 초과(.claude/audit/18) | 점심 뒤에 "요약본에서 이어가는" 일이 사용자 모르게 일어난다. 사용자가 compact 시점을 직접 다루고 싶어 하므로 `idleCompaction` 을 켤지 끌지 명시적으로 정하게 한다 |
 | session-log 플러그인 | (d) | 공식에는 auto memory, `/recap`, PostCompact 요약, `/rename`+`--resume`, `/insights` 가 있다. "structured note-taking"은 공식 기법이다(engineering 2025-09-29) | haiku 요약 + 원문 기계 대조, 외부 저장, `/session-import` | 저장소 밖에 검증된 기록을 남기는 것은 공식에 없는 기능이라 독자 판단으로 정당하다. 단 겹치는 공식 기능과 역할을 문서로 나눈다(auto memory=교정·선호, session-log=작업 이력). 백그라운드 요약 비용은 `/usage` 귀속에 잡히지 않을 가능성이 높다 [추정: `/usage` 는 로컬 세션 기록으로 계산하고 워커는 `--no-session-persistence` 로 돈다] → 자체 cost_usd 집계를 유지한다 |
 | auto memory | (a) | Claude 5 글: "Memory in CLAUDE.md → auto memory". MEMORY.md 200줄/25KB | 사용자 memory 를 색인 1줄씩 운용(MEMORY.md) | 공식 권장 형태(색인+토픽 파일)와 같다 |
-| 저장소 사이 소통: handoff/·HUMAN_TODO | (c) 검토 | cross-session messaging: 실행 중인 다른 세션에 메시지 전달. 대기 중 수신은 `crossSessionInbound: hold`(features-overview, costs) | 살아 있는 세션이 있으면 `handoff/<repo>.md` 문서로 인계 | 영속 기록으로서 handoff 문서는 계속 필요하다. "지금 돌고 있는 quad 세션에 알리기"는 공식 메시징으로 대체할 수 있다. 세부 동작은 읽지 않았다 [미확인] |
+| 저장소 사이 소통: handoff/·HUMAN_TODO | (c) 검토 | cross-session messaging: 실행 중인 다른 세션에 메시지 전달. 대기 중 수신은 `crossSessionInbound: hold`(features-overview, costs) | 살아 있는 세션이 있으면 `.claude/handoff/<repo>.md` 문서로 인계 | 영속 기록으로서 handoff 문서는 계속 필요하다. "지금 돌고 있는 quad 세션에 알리기"는 공식 메시징으로 대체할 수 있다. 세부 동작은 읽지 않았다 [미확인] |
 
 ### 2.7 진단·측정
 
@@ -181,8 +181,8 @@
 | `claude plugin details` | 플러그인 상시·호출 시 토큰 | 없음 | (c) | luau-kb, session-log 에 돌린다 |
 | `claude plugin eval` / skill-creator | 트리거율, with/without 비교, 블라인드 A/B | 없음(스니펫은 지식 검증) | (c) | 겹치는 스킬 쌍부터 |
 | `claude plugin validate` | frontmatter 와 플러그인 스키마 | scan SKILL- 일부 | (b) 일부 중복 | validate 를 scan 에서 불러 쓰거나 대체한다 |
-| `/insights` | 세션 마찰 분석 보고서 | audit/10 수작업 채굴 | (c) | 다음 채굴은 `/insights` 를 먼저 돌리고 빠진 것만 수작업으로 |
-| `/usage` 귀속·권고 | 스킬·서브에이전트·플러그인·MCP 별 사용 비율, 10% 넘는 패턴 권고, `f` 로 적용 | 사용자가 `/usage` 를 142회 열었음(audit/10) | (c) 부분 | 권고 행을 하네스 결정의 근거로 기록한다 |
+| `/insights` | 세션 마찰 분석 보고서 | .claude/audit/10 수작업 채굴 | (c) | 다음 채굴은 `/insights` 를 먼저 돌리고 빠진 것만 수작업으로 |
+| `/usage` 귀속·권고 | 스킬·서브에이전트·플러그인·MCP 별 사용 비율, 10% 넘는 패턴 권고, `f` 로 적용 | 사용자가 `/usage` 를 142회 열었음(.claude/audit/10) | (c) 부분 | 권고 행을 하네스 결정의 근거로 기록한다 |
 | InstructionsLoaded 훅 | rule·CLAUDE.md 로드 사유(`path_glob_match`, `compact` 등) 기록 | rule 로드를 손으로 실측(PLAN 3.5) | (c) | 로그 전용 훅으로 두면 "rule 이 실제로 언제 붙나"를 상시 관찰할 수 있다 |
 
 ### 2.8 공식이 다루지 않는 영역(독자 판단 목록)
@@ -216,13 +216,13 @@
    - 꼭 묻게 할 것은 PreToolUse `ask` 로 하네스가 묻게 한다.
    - code-structure 수치 규칙은 축소안을 A/B 로 잰다(D-13 사용자 결정이므로 제안만).
 7. **harness-doctor 범위 재조정.** 공식 `/doctor`·`prompt-audit`·`plugin validate` 와 겹치는 검사는 위임하고, 다저장소·세션·worktree·표류·결정 대조에 집중한다.
-8. **훅 추가 전 지연 측정.** session-log PostToolUse(모든 도구)와 audit/18 제안 훅 4개를 들이기 전에 `--debug` 로 훅별 시간을 잰다.
+8. **훅 추가 전 지연 측정.** session-log PostToolUse(모든 도구)와 .claude/audit/18 제안 훅 4개를 들이기 전에 `--debug` 로 훅별 시간을 잰다.
 
 ---
 
 ## 4. 미확인
 
-- 스킬 frontmatter `paths` 가 **목록 노출**(설명 상시 비용)까지 줄이는지. skills 문서는 "자동 로드 범위"만 말한다(audit/01 미확인 그대로).
+- 스킬 frontmatter `paths` 가 **목록 노출**(설명 상시 비용)까지 줄이는지. skills 문서는 "자동 로드 범위"만 말한다(.claude/audit/01 미확인 그대로).
 - `skillOverrides` 를 프로젝트 settings 에 두면 사용자 레벨 링크 스킬에 적용되는지. 문서는 "플러그인 스킬에는 적용되지 않는다"만 말한다.
 - `~/.claude/skills/luau-kb` 처럼 **심볼릭 링크로 둔 skills-dir 플러그인**이 `@skills-dir` 로 인식되는지. 문서는 "saved a plugin directory"라고만 쓴다.
 - hooks 문서의 "factual statements rather than imperative" 문단 원문. WebFetch 요약으로만 확인했고, 두 번째 구간에서 다시 찾지 못했다.

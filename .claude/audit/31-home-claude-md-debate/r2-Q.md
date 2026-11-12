@@ -15,7 +15,7 @@ PreToolUse 의 additionalContext 는 도구가 실행된 뒤에 결과와 함께
 - 빈 HARNESS_WORKSPACE 일 때 꺼진다는 조건은 거의 발동하지 않는다. harness.env 가 동료 기기에도 복사되기 때문이다(추론).
 
 **(2) 메모리 줄은 상시에 둔다.**
-- audit/23 실측 F: "밖: 규칙 로드 안 됨".
+- .claude/audit/23 실측 F: "밖: 규칙 로드 안 됨".
 - 결론 3: "메모리 경로는 프로젝트 밖이라 rules 의 paths 로는 걸리지 않는다".
 
 **(5) mise 는 조건문 한 줄로 상시에 둔다.**

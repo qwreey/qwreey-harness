@@ -1,6 +1,6 @@
 # Q 1라운드: 최소 변경, 작업 흐름 보존 (opus, 2026-11-11)
 
-메인이 받은 보고를 옮긴 것이다(줄바꿈만 정리). 숫자는 audit/28 에서 왔다. [추론] 은 추론이라는 표시다.
+메인이 받은 보고를 옮긴 것이다(줄바꿈만 정리). 숫자는 .claude/audit/28 에서 왔다. [추론] 은 추론이라는 표시다.
 
 ## 1. 11개 질문
 1. **고정 비용.**
@@ -13,7 +13,7 @@
    - `/q:doctor` 의 `check_load` 표에는 토큰 열만 더한다.
    - statusline 과 커밋 점검에는 넣지 않는다.
    - 계산은 추정식으로 한다. API 키가 없고, 예산 판단에는 ±8% 로 충분하다.
-3. **audit/.**
+3. **.claude/audit/.**
    - 자동으로 실리지 않으므로 세션 비용은 0 이다.
    - 공식 Read 는 한 번에 최대 25k 토큰을 돌려준다(tools-reference "Large files"). 그래서 "7만 토큰을 통째로" 읽는 일은 Read 한 번으로는 일어나지 않는다.
    - 옮기지도 보관하지도 않는다. 색인 `audit/README.md` 는 선택안으로 두고 사용자가 정한다.
@@ -38,7 +38,7 @@
 10. **자기 위반.**
     - 라이브 오탐 2건은 패턴을 바꾸지 않고 의도된 예외로 둔다.
     - references 17건은 손댈 때 Stop 줄이 알린다.
-    - 초안 41건은 `.claude/conventions.json` 의 `exclude: ["drafts/**","audit/drafts/**"]` 로 끈다.
+    - 초안 41건은 `.claude/conventions.json` 의 `exclude: [".claude/research/drafts/**",".claude/audit/drafts/**"]` 로 끈다.
     - 코드 주석 범주는 재생으로 측정한다.
     - 큰 파일은 지금 나누지 않는다. 새 기능은 별도 모듈로 둔다.
 11. **coderag.**

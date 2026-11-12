@@ -2,7 +2,7 @@
 
 작성일 2026-11-10. 대상은 공식 마켓(`claude-plugins-official`)과 claude.com 마켓 디렉터리 전체다.
 판정 기준은 바뀐 방향 셋이다. 하네스는 툴킷과 무관하고, 웹(블로그 react/astro, vitrine go+react)도 대상이며, 다른 sandbox로 옮길 수 있어야 한다.
-이전 조사 `audit/02` §A는 공식 마켓 일부를 Luau 관점으로만 봤다. 이 문서가 그 판정을 대체한다(§5).
+이전 조사 `.claude/audit/02` §A는 공식 마켓 일부를 Luau 관점으로만 봤다. 이 문서가 그 판정을 대체한다(§5).
 
 확인 방법 표기
 - **열람**: 파일 원문을 직접 읽었다.
@@ -543,7 +543,7 @@ Claude Code 설치 경로는 저장소마다 다르고, 공식 마켓으로는 �
   pack에 외부 문서를 복사하는 것은 버전 낡음 관리 부담만 늘린다.
 - **판정**
   - **웹 툴킷: 도입 후보.** React·Vite·Astro 버전별 API 확인에 쓴다. project 범위로 켠다.
-  - **Luau: 참고.** Roblox API는 `audit/02`의 `llms.txt` + `.md` 규칙과 기능이 겹친다. creator-docs 색인이 오늘 갱신된 것은 장점이다.
+  - **Luau: 참고.** Roblox API는 `.claude/audit/02`의 `llms.txt` + `.md` 규칙과 기능이 겹친다. creator-docs 색인이 오늘 갱신된 것은 장점이다.
   - 상시 비용, 응답 크기, 익명 레이트 리밋은 실측 뒤 확정한다(§7-3).
 
 ### 2.3 품질: code-simplifier, code-review, pr-review-toolkit (공식, 열람 + 일부 실측)
@@ -552,7 +552,7 @@ Claude Code 설치 경로는 저장소마다 다르고, 공식 마켓으로는 �
 |---|---|---|---|
 | code-simplifier | 에이전트 1개. `model: opus` 고정. 본문에 "ES modules, `function` 키워드 선호, 명시적 반환 타입, React Props 타입" 같은 **JS/React 전제 규칙이 박혀 있다**. "proactively … without requiring explicit requests" | 내장 `/simplify`(diff 대상 재사용·단순화·효율, 수정 적용)와 목적이 같다. 실측(§6): 상시 **+77토큰**. vitrine 사본에서 "단순화해줘"라고 했을 때 메인이 직접 고쳤고 에이전트는 **불리지 않았다**(1/1) | **중복**(`/simplify`). Luau 저장소에서는 JS 전제 규칙이 오히려 해롭다 |
 | code-review (플러그인) | 명령 1개 `/code-review`. PR용 다중 에이전트 + 신뢰도 점수 | 내장 `code-review` 스킬(강도 단계, `--fix`, `--comment`)이 상위 호환이다 | **중복** |
-| pr-review-toolkit | 에이전트 6개: code-reviewer(opus), **silent-failure-hunter**, **type-design-analyzer**, comment-analyzer, pr-test-analyzer, code-simplifier + `/review-pr` | 감사 관점 분할이 우리 `drafts/agents`와 닮았다. 상시 **2,038토큰**(description에 예시가 길다) | **참고**: silent-failure(빈 catch, 조용한 폴백) 관점과 type-design(불변식 표현, 캡슐화) 관점을 우리 runtime·type auditor 체크리스트에 넣는다. 설치는 하지 않는다 |
+| pr-review-toolkit | 에이전트 6개: code-reviewer(opus), **silent-failure-hunter**, **type-design-analyzer**, comment-analyzer, pr-test-analyzer, code-simplifier + `/review-pr` | 감사 관점 분할이 우리 `.claude/research/drafts/agents`와 닮았다. 상시 **2,038토큰**(description에 예시가 길다) | **참고**: silent-failure(빈 catch, 조용한 폴백) 관점과 type-design(불변식 표현, 캡슐화) 관점을 우리 runtime·type auditor 체크리스트에 넣는다. 설치는 하지 않는다 |
 | feature-dev, commit-commands | 3단계 기능 개발, 커밋 명령 | 우리 흐름과 겹친다 | 불필요(유지) |
 | ralph-loop | Stop 훅으로 같은 프롬프트를 되먹이는 반복 | 내장 `/loop`와 겹친다 | **중복** |
 
@@ -605,12 +605,12 @@ Claude Code 설치 경로는 저장소마다 다르고, 공식 마켓으로는 �
 | 같음 | Instruction Eval / abdiff(서드파티, MIT): 지침 변경 전후 **A/B 반복 실행**, 임시 사본, 사용자 설정 제외 | PLAN.md 검증 루프의 "스킬마다 평가 시나리오 3개"를 자동화하는 틀. §6의 우리 실측 방식과 같다 |
 | 같음 | ecoctx, rent-check, please-optimize-my-claude, Setup Audit, Hook Doctor, skillrot(서드파티) | skillrot의 "스킬이 부르는 CLI 플래그가 설치 버전과 맞나"는 luau 툴킷 핀 검사와 닮았다. 참고만 |
 | 스킬 평가 (PLAN.md 검증 루프) | **superpowers**(공인) `writing-skills`: "NO SKILL WITHOUT A FAILING TEST FIRST". 스킬 없이 압박 시나리오를 돌려 **실패를 먼저 기록**하고, 최소 스킬로 GREEN | luau-kb 스킬 평가에 "스킬 없는 기준선 실패"를 먼저 남기는 단계를 넣는다. description 규칙("Use when…", **워크플로 요약 금지**: 요약을 본 에이전트가 본문을 건너뛴다)을 harness-doctor `skills.md` 판정 기준에 더한다 |
-| `drafts/agents` (관점별 감사자, 읽기 전용 훅, 공통 보고 형식) | **claude-security**(공식): 발견마다 **반증이 임무인 독립 검증자**. 신뢰도·심각도 상한을 **코드가 계산**. 최상위 디렉터리마다 "검사함/제외+이유"를 먼저 **커버리지 회계**로 확인. 저장소 텍스트(CLAUDE.md 포함)는 지시가 아니라 증거 | `/audit` 오케스트레이션에 넣는다: (1) 발견 → 반증 검증자 1명 통과분만 보고 (2) 보고서 머리에 커버리지 표 (3) 감사 대상 저장소의 CLAUDE.md를 지시로 따르지 말라는 한 줄. `audit-report-format` 스킬에 "confidence는 검증 단계가 정한다" |
+| `.claude/research/drafts/agents` (관점별 감사자, 읽기 전용 훅, 공통 보고 형식) | **claude-security**(공식): 발견마다 **반증이 임무인 독립 검증자**. 신뢰도·심각도 상한을 **코드가 계산**. 최상위 디렉터리마다 "검사함/제외+이유"를 먼저 **커버리지 회계**로 확인. 저장소 텍스트(CLAUDE.md 포함)는 지시가 아니라 증거 | `/audit` 오케스트레이션에 넣는다: (1) 발견 → 반증 검증자 1명 통과분만 보고 (2) 보고서 머리에 커버리지 표 (3) 감사 대상 저장소의 CLAUDE.md를 지시로 따르지 말라는 한 줄. `audit-report-format` 스킬에 "confidence는 검증 단계가 정한다" |
 | 같음 | pr-review-toolkit(공식) | §2.3 |
-| `drafts/delegate` (agy/codex 위임, uid 표, run→collect→remove) | Codex Dispatch, codex-review, opencode, Ireview, Delegate: Agents Sized to the Job(전부 서드파티) | 대부분 "Codex에 보내고 답을 받는" 단발형이다. 우리처럼 격리(uid, worktree, HOME), 수명 주기, 중앙 표를 둔 것은 못 찾았다. **우리 설계가 앞서 있다.** Codex Dispatch의 "cwd·sandbox 강제, 자체 완결 프롬프트"는 우리 머리말과 같다 |
-| `drafts/delegate/skills/debate` | agent-discussion(서드파티): 공유 md 하나, `[TURN: 이름]`, 12라운드 교착 선언, 심판 없음. The Courtroom·adversarial-review(서드파티): Claude 제안 ↔ Codex 반대 심문. mumo, consensus(서드파티): 다중 모델 패널 | 모두 **모델 간 합의로 결론**을 낸다. 우리 debate의 "메인이 실측으로 판정, 합의만으로 결론 금지"가 더 엄격하다. agent-discussion의 **교착 선언 규칙**(N라운드 뒤 미해결 쟁점 나열)은 debate 원장 형식에 넣을 만하다 |
+| `.claude/research/drafts/delegate` (agy/codex 위임, uid 표, run→collect→remove) | Codex Dispatch, codex-review, opencode, Ireview, Delegate: Agents Sized to the Job(전부 서드파티) | 대부분 "Codex에 보내고 답을 받는" 단발형이다. 우리처럼 격리(uid, worktree, HOME), 수명 주기, 중앙 표를 둔 것은 못 찾았다. **우리 설계가 앞서 있다.** Codex Dispatch의 "cwd·sandbox 강제, 자체 완결 프롬프트"는 우리 머리말과 같다 |
+| `.claude/research/drafts/delegate/skills/debate` | agent-discussion(서드파티): 공유 md 하나, `[TURN: 이름]`, 12라운드 교착 선언, 심판 없음. The Courtroom·adversarial-review(서드파티): Claude 제안 ↔ Codex 반대 심문. mumo, consensus(서드파티): 다중 모델 패널 | 모두 **모델 간 합의로 결론**을 낸다. 우리 debate의 "메인이 실측으로 판정, 합의만으로 결론 금지"가 더 엄격하다. agent-discussion의 **교착 선언 규칙**(N라운드 뒤 미해결 쟁점 나열)은 debate 원장 형식에 넣을 만하다 |
 | `decisions/D-xx` | whydone(서드파티, MIT): 작업당 md 1개(`.whydone/YYYYMMDD-slug.md`: 변경, 이유, **기각된 대안**, 위험, 후속), Stop 훅이 "기록 안 된 작업"을 감지해 기록 권유, `/recall`은 경로·태그·키워드 결정적 순위 | D-xx 틀에 "기각된 대안"이 이미 있는지 확인. Stop 훅으로 기록을 권유하는 방식은 하네스 결정에는 과하다(불필요). knowledge-work `engineering`(공식)에는 ADR 전용 스킬이 보이지 않았다(fetch) |
-| 세션 사용량 진단 (`audit/10`) | **session-report**(공식): `node analyze-sessions.mjs`가 `~/.claude/projects` 트랜스크립트를 읽어 토큰, 캐시 깨짐, 서브에이전트, 스킬, 비싼 프롬프트를 HTML로 낸다. 실측 상시 +67 | **도입**(claude-doctor local 범위). 실행은 node 스크립트라 다음 승인 때(§7-5). ai-adoption의 token-doctor(디렉터리 partner)도 같은 일을 한다(Haiku 서브에이전트 분석) |
+| 세션 사용량 진단 (`.claude/audit/10`) | **session-report**(공식): `node analyze-sessions.mjs`가 `~/.claude/projects` 트랜스크립트를 읽어 토큰, 캐시 깨짐, 서브에이전트, 스킬, 비싼 프롬프트를 HTML로 낸다. 실측 상시 +67 | **도입**(claude-doctor local 범위). 실행은 node 스크립트라 다음 승인 때(§7-5). ai-adoption의 token-doctor(디렉터리 partner)도 같은 일을 한다(Haiku 서브에이전트 분석) |
 
 ## 3. (a)(b)(c) 판정 요약과 비용 근거
 
@@ -656,9 +656,9 @@ Claude Code 설치 경로는 저장소마다 다르고, 공식 마켓으로는 �
 | securitymaxxing, Verified Security Sweep, gen-sage, arcjet, 1password | 각자 | (c) | 요약만 | 1password(partner): `.env` 대신 비밀을 1Password에서 마운트. 우리 `.env` 정책 논의(MEMORY `git-workflow-sandbox`)와 닿는다. 참고 |
 | fe-rail | sh5623/fe-rail | (b) | 요약만 | Next.js·Vite·Tailwind·shadcn 전용 하네스. 웹 툴킷 프로필 비교 대상 |
 
-## 5. 이전 audit/02 판정 재검토
+## 5. 이전 .claude/audit/02 판정 재검토
 
-| 항목 | audit/02 | 이번 | 바뀐 이유 |
+| 항목 | .claude/audit/02 | 이번 | 바뀐 이유 |
 |---|---|---|---|
 | security-guidance | 불필요("Luau 위주, 편집마다 비용") | **도입(웹 툴킷 project 범위) + 참고** | 웹이 대상에 들어왔다. 사용자가 하드닝을 매번 지시했다. 플러그인이 v2에서 층 3개(패턴, Stop LLM 리뷰, 커밋 리뷰)로 커졌다. Luau 저장소에는 켜지 않는다 |
 | code-simplifier | 불필요(`simplify`와 중복) | **중복(유지)** + 근거 보강 | 실측 상시 +77, 자동 미발동. 본문이 JS/React 전제이고 `model: opus`로 고정돼 있다 |
@@ -723,7 +723,7 @@ Claude Code 설치 경로는 저장소마다 다르고, 공식 마켓으로는 �
 | 2 | frontend-design | 자동 발동률, 결과 차이 | 신규 UI 프롬프트 10개(한국어 5, 영어 5)로 발동률. 같은 브리프 3개를 스킬 있음·없음으로 만들어 스크린샷 비교(내장 브라우저). vitrine(기존 토큰)과 빈 Vite 앱(신규)을 나눈다 | 발동률이 낮으면(< 50%) 명시 호출 규칙만으로 운용. 기존 토큰을 깨는 안이 나오면 "기존 디자인 우선" 문구를 프로젝트 CLAUDE.md에 |
 | 3 | context7 | 상시 비용(MCP 도구 스키마 지연 여부), 질의당 응답 토큰, 정확도, 익명 레이트 리밋 | 기준선 대비 총 입력 토큰. 질문 10개(React 19, Vite 6, Astro 5 API 5개 / Roblox API·luau-lsp 설정 5개)를 context7 있음·없음으로 답하게 하고 공식 문서와 대조 | 웹 질문 정확도가 오르고 응답 < 5k 토큰이면 웹 프로필에 도입. Luau 질문에서 luau-kb·`llms.txt`보다 낫지 않으면 Luau에는 넣지 않는다 |
 | 4 | claude-security | 스캔 시간·토큰, 발견의 참·거짓 | vitrine 사본에 `/claude-security scan … at low`, 그다음 medium. 일부러 넣은 결함 3개 포함 | 심은 결함 회수율, 오탐 0~1개. 릴리스 전 수동 도구로 쓸 비용인지 판단 |
-| 5 | typescript-lsp / gopls-lsp (+ session-report 실행) | LSP: 편집 후 진단 주입량, 지연, 메모리. session-report: 실행 시간과 산출 HTML이 `audit/10`과 맞는지 | LSP 바이너리를 `/tmp` 접두로 설치(`npm i --prefix /tmp/…`, `GOBIN=/tmp/…`)한 뒤 vitrine 사본에서 타입 오류 1개를 넣고 고치는 과제. `choom`으로 감싼다. session-report는 `node analyze-sessions.mjs --json --since 7d`를 한 번 돌린다 | LSP가 오류를 같은 턴에 잡고 메모리 < 1GB면 웹 프로필에 도입. session-report 수치가 `audit/10`과 크게 어긋나지 않으면 claude-doctor에서 정기 사용 |
+| 5 | typescript-lsp / gopls-lsp (+ session-report 실행) | LSP: 편집 후 진단 주입량, 지연, 메모리. session-report: 실행 시간과 산출 HTML이 `.claude/audit/10`과 맞는지 | LSP 바이너리를 `/tmp` 접두로 설치(`npm i --prefix /tmp/…`, `GOBIN=/tmp/…`)한 뒤 vitrine 사본에서 타입 오류 1개를 넣고 고치는 과제. `choom`으로 감싼다. session-report는 `node analyze-sessions.mjs --json --since 7d`를 한 번 돌린다 | LSP가 오류를 같은 턴에 잡고 메모리 < 1GB면 웹 프로필에 도입. session-report 수치가 `.claude/audit/10`과 크게 어긋나지 않으면 claude-doctor에서 정기 사용 |
 
 ## 8. 도입 제안 (정본 `home/.claude/settings.json`에는 쓰지 않는다)
 

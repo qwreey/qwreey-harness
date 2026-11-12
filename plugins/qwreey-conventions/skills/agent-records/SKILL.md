@@ -11,7 +11,7 @@ Records hold raw context for agents: decisions, why, evidence, user quotes. Huma
 ## Two classes
 
 - Living (`plan/`, `base/`, `research/`): edited as things change; carries a status; moves to `archive/` when finished.
-- Snapshot (`audit/`, `handoff/`, `sessions/`): true at its date. Never edit, never move (other snapshots link to its path). No status. One header line after any frontmatter: `> Snapshot <YYYY-MM-DD>. May differ from now; check current files and git log before relying on it.`
+- Snapshot (`audit/`, `handoff/`, `sessions/`): true at its date. Never edit its content and never archive it. The one exception: when files move, rewrite old paths to the new ones by script from the move map (path text only, nothing else). No status. One header line after any frontmatter: `> Snapshot <YYYY-MM-DD>. May differ from now; check current files and git log before relying on it.`
 
 ## Folders
 
@@ -42,7 +42,7 @@ A new living doc needs frontmatter with `title`, `description`, `status`: the de
 
 ## When a status leaves active
 
-In the same commit, by the agent that changed it: `git mv` the file to `archive/<origin folder>/<same subpath>`, fix links to it in living docs and the README. Do not edit snapshots. Never delete a record; deleting is the user's call.
+In the same commit, by the agent that changed it: `git mv` the file to `archive/<origin folder>/<same subpath>`, fix links to it in living docs and the README, and rewrite its old path in snapshots (path text only). Never delete a record; deleting is the user's call.
 
 ## README index
 

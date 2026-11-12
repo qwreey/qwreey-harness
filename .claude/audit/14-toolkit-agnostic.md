@@ -35,7 +35,7 @@
 | 14 | `harness-doctor/SKILL.md` description | "/code/Projects 저장소 … Luau 규약·툴체인을 진단", "luau-kb 후보", "툴체인 핀" | 코어 | ✔ 작업공간·intake, 코어 검사 + 감지된 툴킷 |
 | 15 | SKILL.md 원칙 2·3 | `/code/Projects/claude-doctor/handoff`, `HUMAN_TODO.md` | 환경 | ✔ `<doctor>`(= `scan.py --env` 의 `DOCTOR_ROOT`) |
 | 16 | SKILL.md 절차 1 | `table-sim → /code/Projects/table-sim` | 환경 | ✔ `<작업공간>/table-sim`, `intake/<이름>` 대상 추가 |
-| 17 | SKILL.md 원칙 4 | "D-01~D-12는 아직 사용자 확인 전" (실제는 D-01·02·03·06·13 확정, D-04 수정) | 코어(낡음) | ✔ "`decisions/README.md` 현황표가 정본" |
+| 17 | SKILL.md 원칙 4 | "D-01~D-12는 아직 사용자 확인 전" (실제는 D-01·02·03·06·13 확정, D-04 수정) | 코어(낡음) | ✔ "`.claude/base/decisions/README.md` 현황표가 정본" |
 | 18 | SKILL.md 항목 5·8 | "공유 지식 쏠림(luau-kb)", "툴체인" 이 코어 항목처럼 | 툴킷 | ✔ 항목 표에 층(코어/툴킷) 열, 툴킷 문서 행 |
 | 19 | `scan.py` `DOCTOR_ROOT` | 대체값 `/code/Projects/claude-doctor` | 환경 | ✔ 환경 변수 > 파일 위치 > harness.env, 없으면 정본 검사 건너뜀 |
 | 20 | `scan.py` `D05_TARGET` | 미확정 D-05 를 목표값(0.742/1.70.1/2.5.2)으로 비교 | 툴킷 + 버그 | ✔ luau 툴킷으로, **형제 저장소 핀 사이 불일치만** |
@@ -66,20 +66,20 @@
 
 | # | 위치 | 하드코딩 | 분류 | 처리 |
 |---|---|---|---|---|
-| 43 | `drafts/agents/luau-{type,runtime,perf,quality}-auditor.md` | 이름·본문의 Luau 도구·사례 | 툴킷 | ▷ `drafts/agents/README.md` §9 |
+| 43 | `drafts/agents/luau-{type,runtime,perf,quality}-auditor.md` | 이름·본문의 Luau 도구·사례 | 툴킷 | ▷ `.claude/research/drafts/agents/README.md` §9 |
 | 44 | `luau-perf-auditor.md`, `luau-runtime-auditor.md` | `/sys/fs/cgroup/memory.max`, `choom -n 1000 -- prlimit` | 환경 | ▷ §9-3 |
-| 45 | `drafts/agents/hooks/auditor-readonly-guard.py` | 설치 명령(pesde·wally·rokit·aftman / npm·pnpm / cargo), `mcp__roblox-studio__*` | 툴킷 | ▷ 툴킷 표로(§9-3) |
-| 46 | `drafts/agents/hooks/test-guard.py` | `/code/Projects/example` 픽스처 | 환경 | – 문자열 픽스처라 무해 |
-| 47 | `drafts/agents/skills/audit/SKILL.md` | 관점 선택 `*.luau`, `subagent_type=<luau-…>` | 툴킷 | ▷ §9-3 |
-| 48 | `drafts/agents/skills/audit-report-format/SKILL.md` | 도구 버전 예 `luau-analyze 0.734`, luau-verify | 툴킷 | ▷ §9-3 |
-| 49 | `drafts/delegate/skills/delegate/scripts/delegate.sh` | `AGY_BIN`·`CODEX_BIN` 기본 `/code/.local/share/mise/installs/…` | 환경 | ▷ 기본값을 `HARNESS_TOOL_INSTALLS` 에서 |
+| 45 | `.claude/research/drafts/agents/hooks/auditor-readonly-guard.py` | 설치 명령(pesde·wally·rokit·aftman / npm·pnpm / cargo), `mcp__roblox-studio__*` | 툴킷 | ▷ 툴킷 표로(§9-3) |
+| 46 | `.claude/research/drafts/agents/hooks/test-guard.py` | `/code/Projects/example` 픽스처 | 환경 | – 문자열 픽스처라 무해 |
+| 47 | `.claude/research/drafts/agents/skills/audit/SKILL.md` | 관점 선택 `*.luau`, `subagent_type=<luau-…>` | 툴킷 | ▷ §9-3 |
+| 48 | `.claude/research/drafts/agents/skills/audit-report-format/SKILL.md` | 도구 버전 예 `luau-analyze 0.734`, luau-verify | 툴킷 | ▷ §9-3 |
+| 49 | `.claude/research/drafts/delegate/skills/delegate/scripts/delegate.sh` | `AGY_BIN`·`CODEX_BIN` 기본 `/code/.local/share/mise/installs/…` | 환경 | ▷ 기본값을 `HARNESS_TOOL_INSTALLS` 에서 |
 | 50 | 같은 파일 | `/code/.claude/.credentials.json` | 환경 | ▷ `${CLAUDE_CONFIG_DIR:-$HOME/.claude}` |
 | 51 | 같은 파일 | `choom -n 1000 -- setpriv` | 환경 | ▷ `HARNESS_HEAVY_WRAP`. setpriv(root 필요)는 위임의 환경 전제로 README 에 |
-| 52 | `drafts/delegate/skills/delegate/registry.tsv` | 루트 `/code/Projects/<repo>`, uid 61000~61003 | 환경 | ▷ 파일 자체가 환경 값. 위치는 `HARNESS_DELEGATE_REGISTRY` 로(✔ scan 이 읽음) |
+| 52 | `.claude/research/drafts/delegate/skills/delegate/registry.tsv` | 루트 `/code/Projects/<repo>`, uid 61000~61003 | 환경 | ▷ 파일 자체가 환경 값. 위치는 `HARNESS_DELEGATE_REGISTRY` 로(✔ scan 이 읽음) |
 | 53 | 같은 파일 setup 열 | `mise exec -- pesde install`(quad) | 툴킷 | – 저장소별 값이라 맞는 자리 |
-| 54 | `drafts/delegate/skills/delegate/templates/AGENTS.md.template` | `/code/Projects/luau-kb/AGENTS.md`, `/code/Projects/<repo>/vendor/` | 환경 + 툴킷 | ▷ `{{WORKSPACE}}`·툴킷 KB 자리표시 |
-| 55 | `drafts/delegate/{conventions,migration,model-traits,trial-…}.md` | `/code/Projects`, uid, `/code/.claude/projects/…` | 환경 | – 경위·실험 기록이라 그대로 |
-| 56 | `drafts/style/skills/luau-style/` 전체 | Luau 스타일 | 툴킷 | – luau-kb 로 갈 툴킷 지식(맞는 자리) |
+| 54 | `.claude/research/drafts/delegate/skills/delegate/templates/AGENTS.md.template` | `/code/Projects/luau-kb/AGENTS.md`, `/code/Projects/<repo>/vendor/` | 환경 + 툴킷 | ▷ `{{WORKSPACE}}`·툴킷 KB 자리표시 |
+| 55 | `.claude/research/drafts/delegate/{conventions,migration,model-traits,trial-…}.md` | `/code/Projects`, uid, `/code/.claude/projects/…` | 환경 | – 경위·실험 기록이라 그대로 |
+| 56 | `.claude/research/drafts/style/skills/luau-style/` 전체 | Luau 스타일 | 툴킷 | – luau-kb 로 갈 툴킷 지식(맞는 자리) |
 | 57 | `luau-style/scripts/structure-scan.py` | 길이 기준 800·1,500(D-13, 언어 무관) 이 Luau 스킬 안 | 코어 | ▷ 하네스 공용 위치로(§9-3) |
 | 58 | `luau-style/scripts/structure-scan.py` docstring | `/code/Projects/table-sim` 예 | 환경 | – 예시 |
 
@@ -137,7 +137,7 @@ scan.py v1 의 코드 55종(`grep -oE '"[A-Z]+-[A-Z0-9]+"' scan.py | sort -u`). 
 | 그 밖의 references 5개 | 고침 | 경로 `<doctor>`·`<작업공간>`, Luau 값은 툴킷 문서로 |
 | `README.md` | 새로 | 저장소 지도, 다른 sandbox 설치 순서(클론 → harness.env → home-sync env/status → diff/apply → 플러그인 마켓 → 진단) |
 | `intake/README.md`, `.gitignore` | 새로·고침 | 반입 절차, `intake/*/` 제외·`!intake/README.md` |
-| `drafts/agents/README.md` | §9 추가 | 감사자 일반화 제안(파일은 안 바꿈) |
+| `.claude/research/drafts/agents/README.md` | §9 추가 | 감사자 일반화 제안(파일은 안 바꿈) |
 
 ### 3-2. 툴킷 감지 (실측, 읽기 전용)
 
@@ -145,7 +145,7 @@ scan.py v1 의 코드 55종(`grep -oE '"[A-Z]+-[A-Z0-9]+"' scan.py | sort -u`). 
 |---|---|---|
 | quad | luau + web | `*.luau` 3007, mise luau·luau-lsp·pesde·rojo, `default.project.json`, `.luaurc`, `pesde.toml` / `docs/site/package.json: astro` |
 | devplorer | luau + web | … / `docs/package.json: astro` |
-| stl-luau(-doctor), table-sim, tbox, moonwave-luau, rbvm, luau-kb, claude-doctor | luau | `*.luau`(claude-doctor 는 `drafts/gaps/snippets`) 등 |
+| stl-luau(-doctor), table-sim, tbox, moonwave-luau, rbvm, luau-kb, claude-doctor | luau | `*.luau`(claude-doctor 는 `.claude/research/drafts/gaps/snippets`) 등 |
 | vitrine | web | `web/package.json: react, vite`, tsx 7 |
 | VideoSync, coderag | 없음 | go·node 플러그인, rust — 툴킷 미정(코어만) |
 
@@ -185,7 +185,7 @@ rbvm 사본에서는 git 무시 캐시 `.claude/cache/globalTypes.d.luau` 가 �
 
 1. **반영(사용자)**: `tools/home-sync.sh diff` 검토 → `apply`. 지금 status: 링크 9개 "링크 필요", settings·CLAUDE.md·훅 2개 "다름", harness.env·lib "실제에 없음".
    apply 전에는 실제 `~/.claude/hooks/heavy-proc-guard.py` 가 옛판(choom 고정)이다. harness-doctor 링크도 아직 없다.
-2. **drafts 감사자 일반화**: `drafts/agents/README.md` §9 의 안 A — `luau-quality-auditor.md` 작업이 끝난 뒤, 사용자 승인 후. G2 시나리오로 "Read 주입"을 sonnet 으로 잰다.
+2. **drafts 감사자 일반화**: `.claude/research/drafts/agents/README.md` §9 의 안 A — `luau-quality-auditor.md` 작업이 끝난 뒤, 사용자 승인 후. G2 시나리오로 "Read 주입"을 sonnet 으로 잰다.
 3. **structure-reminder(다른 에이전트 작업 중, 건드리지 않음)**: 툴킷 무관하게 쓰려면 확장자별 기준 표가 필요하다 — 소스 확장자(luau `.luau`, web `.ts/.tsx/.astro/.vue/.svelte`, rust `.rs`)와 테스트 판정(`*.spec.luau` / `*.test.ts`, `__tests__/`, `tests/*.rs`), 생성물 제외(`dist/`, `.astro/`, `target/`, `schema.d.ts`). 800·1,500 기준(D-13)은 그대로. `HARNESS_TOOLKITS` 로 거르는 방식은 heavy-proc-guard 와 같게.
 4. **delegate 초안**(#49~52, #54): `AGY_BIN`·`CODEX_BIN` 기본값을 `HARNESS_TOOL_INSTALLS` 에서, credentials 경로를 `CLAUDE_CONFIG_DIR` 에서, 래퍼를 `HARNESS_HEAVY_WRAP` 에서 읽게. P4 설치 때 `HARNESS_DELEGATE_REGISTRY` 를 설치 위치로 바꾼다.
 5. **web 툴킷 채우기**: 블로그·vitrine 을 `intake/` 로 반입해 `references/toolkits/web.md` "채우는 순서"대로. `WEB-NODEPIN` 은 `pin_mismatch` 를 재사용한다.

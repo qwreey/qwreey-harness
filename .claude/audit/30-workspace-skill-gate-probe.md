@@ -1,4 +1,4 @@
-# audit/30 - workspace 스킬 게이트 실험 (paths, 차단 후 로드 게이트, compact)
+# .claude/audit/30 - workspace 스킬 게이트 실험 (paths, 차단 후 로드 게이트, compact)
 
 2026-11-11, Claude Code 2.1.316, sonnet. 실험 파일은 /tmp/probe30 (프로젝트 /tmp/probe30/proj, 훅 /tmp/probe30/hooks/gate.py,
 설정 /tmp/probe30/settings.json 을 `--settings` 로만 붙임). 비용은 약 $0.83 으로 예산 $0.5 를 넘겼다(마지막 두 실험이 --resume 이라 캐시 쓰기 비용이 컸다).

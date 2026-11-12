@@ -22,7 +22,7 @@
   - 검토 기능은 모델이 스스로 부르는 도구로 둔다.
 
 ## 확인된 사실
-### audit/30 실험
+### .claude/audit/30 실험
 - 스킬 `paths`
   - description 만 거른다. 본문은 주입하지 않는다.
   - cwd 상대 glob 만 맞는다. 그래서 형제 저장소에는 쓸 수 없다.
@@ -36,13 +36,13 @@
   - 호출된 스킬 본문은 스킬마다 5k, 합계 25k 까지 재주입되고 오래된 것부터 빠진다. 실험에서는 `/` 로 호출한 본문이 재주입되지 않았다.
 - 메인 세션에서 스킬 본문을 늘 싣는 기능은 없다. 방법은 SessionStart additionalContext 뿐이고, 비용은 CLAUDE.md 와 같다.
 
-### audit/29 측정 (measure.md)
+### .claude/audit/29 측정 (measure.md)
 - 영어판 2,394 토큰, 한글판 3,389 토큰(-29%).
 - 서브에이전트를 쓴 세션은 평균 39.7개, 중앙값 2개다. 그래서 CLAUDE.md 1k 를 줄이면 그런 세션에서는 수만 토큰이 준다(추론).
 - 판결 예산: 파일 2.5k, 상시 합계 5k.
 - load 재생에서 claude-doctor 의 모델 알림 57건 대부분이 home CLAUDE.md 에서 나왔다.
 
-### audit/29 판결의 제안 목록
+### .claude/audit/29 판결의 제안 목록
 - 두 절을 옮긴다: "코드 리뷰와 second opinion" ~0.9k, "모델 사용과 서브에이전트 비용" ~0.7k.
 - 영어판으로 바꾼다.
 - reviewer 에 `omitClaudeMd` 를 단다.

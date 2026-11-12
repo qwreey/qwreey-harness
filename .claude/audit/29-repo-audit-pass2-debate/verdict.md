@@ -1,6 +1,6 @@
 # 판결: claude-doctor 2패스 (중재자: 메인, 2026-11-11)
 
-토론 기록은 r1-P, r1-Q, r2-P, r2-Q 에 있다. 1패스 측정은 audit/28 에 있다. 이 판결은 사용자가 확정하기 전까지 안이다.
+토론 기록은 r1-P, r1-Q, r2-P, r2-Q 에 있다. 1패스 측정은 .claude/audit/28 에 있다. 이 판결은 사용자가 확정하기 전까지 안이다.
 
 ## 합의된 것 (그대로 채택)
 - **베이스라인 훅.**
@@ -14,7 +14,7 @@
   - 모델 알림: `if` 핸들러 `Bash(mv|git mv|rm|git rm *)` 에서 낸다.
   - 놓친 이동(스크립트, home-sync, 브랜치 전환): Stop 에서 다시 stat 해서 사용자 줄 범주로 보인다.
   - 알리지 않는 것: 처음부터 없던 경로, glob, `<...>`, URL, audit·drafts·handoff 쪽 참조.
-- **audit/.**
+- **.claude/audit/.**
   - 옮기지 않는다.
   - `audit/INDEX.md` 를 생성한다. 한 줄에 번호, 상태(live, superseded by N, history), 결론이 지금 있는 곳을 적는다.
   - frontmatter 는 미룬다. coderag project 계층에 audit 를 그대로 색인해 과거 질문 3개로 시험한 뒤 정한다.

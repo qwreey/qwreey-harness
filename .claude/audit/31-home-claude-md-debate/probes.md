@@ -1,4 +1,4 @@
-# audit/31 프로브와 구현 결과 (2026-11-11, Claude Code 2.1.316, sonnet)
+# .claude/audit/31 프로브와 구현 결과 (2026-11-11, Claude Code 2.1.316, sonnet)
 
 파일은 /tmp/probe31, /tmp/e2e (저장소 밖). 비용: 프로브 약 $0.71 (예산 $0.5 초과: 3번 n=5 가 $0.375), 구현 e2e 약 $0.25. `--dangerously-skip-permissions` 는 쓰지 않았다.
 
@@ -40,7 +40,7 @@
 `--permission-mode auto`, cwd /tmp/probe31/proj, 대상 /tmp/probe31/other/f.txt. 두 번 시험: `--allowedTools Read Edit` 와 `--allowedTools Read`(Edit 허용 없음). 둘 다 확인 요청 없이 Edit 성공, `permission_denials: []`. (훅 입력의 `permission_mode` 도 "auto" 였다.) 따라서 권한 시스템은 형제 저장소 쓰기를 막지 않고 게이트 훅이 유일한 방어선이다.
 
 ## 5. 최종 본문 토큰 실측
-`claude -p ok --model sonnet --system-prompt <본문> --tools "" --setting-sources ""`: 기준선(빈 system prompt) input 512, 본문 input 2 + cache_creation 1,513 = 1,515. 차이 **약 1,003 토큰**(2,840 B). 추정 1.0k 와 일치. 이전 설치본(약 2.8k 토큰대, audit/28)보다 약 1.8k 적다.
+`claude -p ok --model sonnet --system-prompt <본문> --tools "" --setting-sources ""`: 기준선(빈 system prompt) input 512, 본문 input 2 + cache_creation 1,513 = 1,515. 차이 **약 1,003 토큰**(2,840 B). 추정 1.0k 와 일치. 이전 설치본(약 2.8k 토큰대, .claude/audit/28)보다 약 1.8k 적다.
 
 ## 구현 결과
 - 게이트: `plugins/q/scripts/workspace_gate.py` + `wslib.py`, `hooks/hooks.json` 에 PreToolUse(Edit|Write|MultiEdit|NotebookEdit|Read|Grep|Glob|Bash), PostToolUse(Skill), UserPromptExpansion, SessionStart(compact) 추가.

@@ -3,7 +3,7 @@
 스크립트와 덤프는 저장소 밖 `/tmp/m29/` 에 있다. 표시는 **실측** 또는 **추정**이다. 모델 호출 비용은 합계 약 $0.25로, 예산($0.05)을 넘었다. 원인: 항목 3·8 의 `claude -p` 가 사용자 CLAUDE.md 와 도구 정의를 모두 실어 한 번에 $0.06~0.13 이 들었다. 항목 7 은 `--system-prompt --tools ""` 라 호출당 약 $0.002~0.01.
 
 ## 1. load 범주 규칙을 최근 50커밋에 재생 (실측 + 규칙은 흉내)
-- 규칙: 상시 파일 = 루트 CLAUDE.md/AGENTS.md, 경로 조건 없는 rules. 조건부 rule = paths 있는 rules. 스킬 본문 = SKILL.md. drafts 와 docs 는 제외. 단위는 (커밋, 파일). 한 커밋을 한 세션으로 본다. 토큰은 추정식. 홈 CLAUDE.md 3,389 를 합계에 더했다(audit/28 실측값).
+- 규칙: 상시 파일 = 루트 CLAUDE.md/AGENTS.md, 경로 조건 없는 rules. 조건부 rule = paths 있는 rules. 스킬 본문 = SKILL.md. drafts 와 docs 는 제외. 단위는 (커밋, 파일). 한 커밋을 한 세션으로 본다. 토큰은 추정식. 홈 CLAUDE.md 3,389 를 합계에 더했다(.claude/audit/28 실측값).
 - 모델 알림(파일의 세션 첫 편집마다 한 번): claude-doctor 50커밋 중 20커밋에서 57건(rules·SKILL, 넘음 0건). quad 0건(50커밋 안에 CLAUDE.md 를 고친 커밋이 없다). luau-kb 28커밋 중 22커밋에서 66건(상시 AGENTS.md 6.9k 와 rules/README 2.4k 가 있어 파일 예산 초과가 10건).
 - `home/.claude/CLAUDE.md`(claude-doctor 에서 13커밋이 고침, 크기 1.7k->3.6k): 파일 예산 2.5k 를 넘은 상태로 고친 것이 8건. 이 파일이 모델 알림의 주 소음원이 된다(의도된 압력).
 - 사용자 줄: 합계(5k)를 이번 편집이 넘는 edge 는 세 저장소 모두 0건. 파일 예산을 새로 넘은 edge 는 luau-kb 3건(rules/luau-core.md 1.4k->2.5k 포함). 현재 합계는 quad 5.6k(CLAUDE.md 2.2k + 홈), luau-kb 12.7k(AGENTS.md 6.9k + rules/README 2.4k + 홈)로 이미 넘었으므로 edge 는 거의 뜨지 않는다. claude-doctor 는 홈 3.4k + 새 CLAUDE.md 0.4k = 3.8k.
@@ -34,8 +34,8 @@
 - 3회 0.769, 0.766, 0.772초(`timeout 60`, `</dev/null`, rc 0). SessionStart 에서 불러도 부담이 없다. 출력은 22줄: 모든 항목 "같음", settings "4/4 적용", "고아 없음", 켠 플러그인 모두 설치됨(해시를 만들 수 있는 안정적 출력).
 
 ## 7. 영어판 크기 (실측)
-- 방법: audit/28 과 같다(`claude -p ok --model sonnet --system-prompt <내용> --tools "" --setting-sources ""`, 기준선 509 를 뺌). 번역은 직접 했다(구조·표·"Compact instructions" 포함, 값은 보존).
-- 한글판(home/.claude/CLAUDE.md, 7,106B) **3,389 토큰**(audit/28 값과 일치). 영어판(6,832B) **2,394 토큰**. 차이 -995 토큰, 한글판의 -29%.
+- 방법: .claude/audit/28 과 같다(`claude -p ok --model sonnet --system-prompt <내용> --tools "" --setting-sources ""`, 기준선 509 를 뺌). 번역은 직접 했다(구조·표·"Compact instructions" 포함, 값은 보존).
+- 한글판(home/.claude/CLAUDE.md, 7,106B) **3,389 토큰**(.claude/audit/28 값과 일치). 영어판(6,832B) **2,394 토큰**. 차이 -995 토큰, 한글판의 -29%.
 - 상시 합계에서 호출당 약 1k 토큰, 서브에이전트 배수까지 곱하면 더 줄어든다. 번역본은 저장하지 않았다(`/tmp/m29/home-en.md`, 저장소 밖).
 
 ## 8. systemMessage 표시 (부분 확인)

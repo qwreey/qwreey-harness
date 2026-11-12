@@ -1,7 +1,7 @@
 # 19-04. Luau/Roblox 생태계의 AI 에이전트 활용과 평가 방법론 (외부 조사 4/4)
 
 > 작성 2026-11-10. 조사는 WebSearch·WebFetch·`curl`(문서 `.md`·GitHub API 읽기)로 했고, 로컬은 읽기만 했다. 외부 코드는 실행하지 않았다. 로컬에서 실행한 것은 `claude plugin eval --help`·`claude plugin eval init --help`(Claude Code 2.1.316)와 Wilson 구간 계산뿐이다.
-> 우리 쪽 출발점: `luau-kb/README.md`·`AGENTS.md`·스킬 12개 SKILL.md, `luau-kb/snippets/RESULTS.md` "rules·skill 효과 측정", 트리거 실측 도구 `/tmp/trig-tools/{run.py,questions.json}`, `audit/11`·`audit/13`, 그리고 겹치는 앞선 조사 `audit/02-ecosystem.md`(Script Sync, roblox-brain 은 거기서 이미 다뤘다).
+> 우리 쪽 출발점: `luau-kb/README.md`·`AGENTS.md`·스킬 12개 SKILL.md, `luau-kb/snippets/RESULTS.md` "rules·skill 효과 측정", 트리거 실측 도구 `/tmp/trig-tools/{run.py,questions.json}`, `.claude/audit/11`·`.claude/audit/13`, 그리고 겹치는 앞선 조사 `.claude/audit/02-ecosystem.md`(Script Sync, roblox-brain 은 거기서 이미 다뤘다).
 > 날짜 표기: 원문의 게시일이나 `last_updated` 를 적고, 원문에 날짜가 없으면 "날짜 미표기"로 적는다. 조회일은 모두 2026-11-10 이다.
 
 ## 0. 요약

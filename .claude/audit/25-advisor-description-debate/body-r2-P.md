@@ -9,7 +9,7 @@
   - (c) 이유가 붙어야 description 의 "does not need to ask" 와 충돌하지 않는다.
   - 문구: "If this repo's tier is `off` (`HARNESS_REVIEW_TIERS` in `~/.claude/harness.env`), the user has turned reviews off here; call it only when they ask."
 - 고유 항목은 모두 받는다. 덧붙일 것은 둘이다.
-  - relaunch 금지의 이유: 리뷰어가 연쇄로 다시 뜨면 비용이 폭주한다(audit/10 §2.2). 반쪽 결과는 "review incomplete: <what was not seen>" 으로 알리고, 읽은 범위의 발견만 처리한다.
+  - relaunch 금지의 이유: 리뷰어가 연쇄로 다시 뜨면 비용이 폭주한다(.claude/audit/10 §2.2). 반쪽 결과는 "review incomplete: <what was not seen>" 으로 알리고, 읽은 범위의 발견만 처리한다.
   - ledger 의 이유: 발동률과 채택률을 조정하는 근거가 된다. 다만 doctor 가 실제로 읽는지는 확인하지 않았다(추론).
 
 **반박**

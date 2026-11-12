@@ -42,10 +42,10 @@
 **2.9 raw 덤프.** 합의했다. 동료에게 근거 원본이 안 간다는 비용은 남는다. 기본값은 gitignore 로 두고 질문에서는 뺐다(3절 끝).
 
 **2.10 실험 설계. Q 안을 기본으로 하고 보강한다.**
-- 시점: **이 토론(audit/38)이 끝나고 커밋된 뒤**에 한다. 시작 전에 claude-doctor 의 살아 있는 세션과 worktree lock 을 확인한다(q:workspace). 지금도 다른 세션이 audit/ 에 쓰고 있다.
+- 시점: **이 토론(.claude/audit/38)이 끝나고 커밋된 뒤**에 한다. 시작 전에 claude-doctor 의 살아 있는 세션과 worktree lock 을 확인한다(q:workspace). 지금도 다른 세션이 audit/ 에 쓰고 있다.
 - 질문 세트: 10개는 hit@5 차이를 가리기에 적다. **20개**로 하고, 절반은 transcript 의 실제 recall·"전에 뭐라고 정했지" 질문에서 뽑는다. 정답 위치는 **옮기기 전에** 정하고 커밋한다. 이동 뒤에는 대응표로 바꾼다.
 - 4개 조건을 잰다. grep(이동 전), grep(이동 후), coderag(이동 전, /tmp coderag.toml), coderag(이동 후). Q 의 "이동 효과와 색인 효과 분리"를 2×2 로 완성하는 것이다. 마지막 측정은 Q 안대로 PATH 에서 coderag 를 뺀 grep 이다.
-- 커밋 A·B·C·D 순서와 drafts 절 메타 주의는 Q 안 그대로다. B 뒤에 q 테스트와 `e2e.sh`, `home-sync.sh status` 를 돌린다(audit/36 §3 의 깨지는 곳).
+- 커밋 A·B·C·D 순서와 drafts 절 메타 주의는 Q 안 그대로다. B 뒤에 q 테스트와 `e2e.sh`, `home-sync.sh status` 를 돌린다(.claude/audit/36 §3 의 깨지는 곳).
 - **롤백 기준**:
   - A·B(이동) 되돌림: grep(이동 후) hit@5 가 grep(이동 전)보다 2문항 넘게 낮거나, B 뒤에도 살아 있는 문서의 깨진 링크나 테스트 실패가 남아 한 커밋으로 못 고칠 때.
   - C·D(결합) 되돌림: coderag(이동 후)의 hit@5 가 grep(이동 후)보다 낮거나, 같은 hit 에서 읽은 토큰이 더 많을 때. stale 오탐이 30%를 넘을 때. 일부러 낡게 만든 README 를 `--check` 가 하나라도 놓칠 때.
@@ -60,7 +60,7 @@
 4. 스냅샷(audit, handoff, sessions)에는 status 와 `last_verified` 가 없다. `date:` 하나와 머리말 경고 줄을 둔다. 고치지 않는다. q `store.py` 를 그렇게 바꾼다.
 5. 폴더는 plan, base, research, audit/NN-slug, handoff, sessions, archive/<origin>, packs/<pack> 이고 처음 쓸 때 만든다. `.claude/README.md` 는 필수다.
 6. 살아 있는 문서의 status 를 active 에서 바꾸는 에이전트는 같은 커밋에서 `git mv` 로 archive 로 옮기고 살아 있는 문서의 링크를 고친다. 삭제는 하지 않는다.
-7. 원시 덤프는 `audit/<n>/raw/` 에 두고 gitignore 한다. 요약 md 에는 수치와 재생성 명령을 둔다.
+7. 원시 덤프는 `.claude/audit/<n>/raw/` 에 두고 gitignore 한다. 요약 md 에는 수치와 재생성 명령을 둔다.
 8. 색인은 coderag 가 있으면 static-gen 블록을 커밋하고, 없으면 손 목록을 쓴다. 어느 쪽이든 손 줄에는 상태·날짜·배너를 쓰지 않는다. sessions/ 에는 README 를 두지 않는다.
 9. coderag 선행 변경은 C1·C2·C3·C6 이다. C7·C8·C4 는 그 뒤에 한다.
 10. recall 은 doc-locator 에 기대지 않는다. 래퍼 경로로 `gen` 뒤 `search --abs --layer project` 를 쓰고, 세션 본문은 grep 을 함께 쓴다. 캐시는 저장소 밖에 둔다.

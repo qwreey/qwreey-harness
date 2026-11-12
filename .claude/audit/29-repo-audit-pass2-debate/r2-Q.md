@@ -8,7 +8,7 @@
 - 상위 항목:
   - quad typing-limits: 약 7.7만 토큰, 6번에 나눠 읽었다.
   - coderag tech-design
-  - audit/08
+  - .claude/audit/08
 - 대부분 지식 채굴처럼 읽으라고 시킨 읽기다.
 - 토큰은 추정식으로 셌다. 결과에 붙는 줄번호 앞머리도 포함됐다.
 

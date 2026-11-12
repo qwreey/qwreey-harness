@@ -71,7 +71,7 @@
 2. 기준선 측정(변경 전): 문서 수·크기, 항상 로드 합계, `coderag gen` 시간, 대표 질문 10개(예 "D-04 가 뭐였지", "왜 luau-core 를 옮겼나")로 현재 방식(grep/recall)의 정답 위치 적중률·토큰.
 3. `coderag.toml` 작성(claude-doctor 는 기록이 `.claude/` 밖이라 target 을 `audit`, `decisions`, `handoff`, `drafts`, 새 `.claude/*` 로 나눠 선언하거나 `source="."` + exclude).
 4. 기존 문서 frontmatter 백필은 하지 않는다(문서 수가 많고 audit 은 "고치지 않음" 규칙). 새/이동 문서에만 `status`·`kind`·`description` 을 달고, 옛 문서는 `kind: unknown` 으로 둔 채 제목·첫 문단 색인에 맡긴다. 이것이 coderag 의 "frontmatter 없어도 동작"(tech-design.md:293)의 시험이다.
-5. 폴더 이동(audit·handoff 등)은 사람이 승인하고 `git mv` 로만. 이동 뒤 `coderag stale --refs-all` 로 깨진 링크 목록을 얻어 CLAUDE.md·스크립트의 하드코딩 경로(audit/36 §3)와 대조.
+5. 폴더 이동(audit·handoff 등)은 사람이 승인하고 `git mv` 로만. 이동 뒤 `coderag stale --refs-all` 로 깨진 링크 목록을 얻어 CLAUDE.md·스크립트의 하드코딩 경로(.claude/audit/36 §3)와 대조.
 6. `static-gen --dir <폴더>` 로 폴더 README 색인 생성 → 수기 부분과 마커 블록 분리 확인.
 7. 측정: (a) 같은 10개 질문의 haiku locate 적중률·호출 수·토큰(grep 대비), (b) `stale` 잡음 비율(오탐: 보존 기록의 옛 경로), (c) lint 가 상태 어휘(landed/rejected)에서 막는 건수, (d) 색인 갱신을 잊었을 때의 오답 사례(M9 미구현의 실제 비용), (e) coderag 없이(PATH 에서 제거) 같은 문서를 읽을 수 있는지.
 8. 롤백: 실험이 .claude 안에 만든 것은 git 이 추적하는 md 와 마커 블록뿐이어야 한다. `.coderag/` 는 /tmp 밖에 안 둔다. 실패 시 브랜치 폐기 또는 `git revert`. 마커 블록은 `<!-- coderag:begin/end -->` 사이만이라 `git diff` 로 분리해 볼 수 있다.

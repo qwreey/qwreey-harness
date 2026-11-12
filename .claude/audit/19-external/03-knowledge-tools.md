@@ -9,12 +9,12 @@ last_verified: 2026-11-10
 # 외부 조사 3/4 — 에이전트용 지식 검색·세션 기억 도구의 지형
 
 - 조사일: 2026-11-10. WebSearch/WebFetch 만 썼다. 외부 코드는 받지도 실행하지도 않았다.
-- 로컬은 읽기만 했다. 대상: `coderag`(README, `tech-design.md` §0·§11·§13·§16·§18–§20), `claude-doctor/plugins/session-log/README.md`, `drafts/session-log/DESIGN.md`, `luau-kb`(README, AGENTS.md, `snippet-markers.md`, `roblox-docs/SKILL.md`, SKILL.md frontmatter 12개).
+- 로컬은 읽기만 했다. 대상: `coderag`(README, `tech-design.md` §0·§11·§13·§16·§18–§20), `claude-doctor/plugins/session-log/README.md`, `.claude/archive/research/drafts/session-log/DESIGN.md`, `luau-kb`(README, AGENTS.md, `snippet-markers.md`, `roblox-docs/SKILL.md`, SKILL.md frontmatter 12개).
 - 표기
   - **[1차]**: 공급자 본인의 문서·블로그·저장소를 직접 열어 확인했다.
   - **[2차]**: 검색 요약이나 제3자 글로만 확인했다.
   - **미확인**: 1차 출처를 열지 못했다.
-- 이미 조사한 것은 반복하지 않는다. remember 는 `audit/15` §1, Roblox `llms.txt` 와 Studio MCP 는 `audit/02` 에 있다.
+- 이미 조사한 것은 반복하지 않는다. remember 는 `.claude/audit/15` §1, Roblox `llms.txt` 와 Studio MCP 는 `.claude/audit/02` 에 있다.
 
 ---
 
@@ -109,7 +109,7 @@ last_verified: 2026-11-10
 | taxonomy(통제 어휘, 별칭, 폐기 → 새 경로) | BCD·Backstage 류 카탈로그. 에이전트 지식 도구에는 없다 | **차별(작음)** | 규모가 작을 때는 비용이 이익보다 크기 쉽다. 범주 94개 초안은 lint 부담이 된다. 별칭(검색 동의어)이 실익의 대부분이다 |
 | `applies_to`·`lifecycle`·핀 자동 읽기·강등 | Next.js agents-md(패키지 버전 → 문서 판), Context7(질의 속 버전), docs-mcp-server(판별 색인), BCD(도구별 version_added + flags) | **차별(강함) + 표준(이름)** | **주장 단위**, **여러 도구 AND/OR**, **mise/rokit 핀 자동 읽기**, **숨기지 않고 강등**을 다 갖춘 것은 찾지 못했다. 다만 키 이름은 BCD·Sphinx 어휘(`version_added`/`since`, `version_removed`/`removed`, `flags` ↔ `flagged`, `deprecated`)와 대응표를 README 에 두면 외부 사람이 읽기 쉽다 |
 | `stale`(review_after, 버전 낡음, 없는 경로·절) | Copilot Memory 28일 만료 + 사용 시점 검증. BCD lint | **차별** | 정적 검사로 "확인 버전 < 핀" 을 잡는 것은 우리만의 것이다. Copilot 은 "쓰지 않으면 만료", 우리는 "핀이 앞서면 재확인" 이다 |
-| static-gen → AGENTS.md/GEMINI.md(T1 상시, T2 색인) | **Next.js `agents-md`**(압축 색인 8KB, 버전 맞춤) | **표준(패턴 일치)·약점(전제)** | 같은 설계라 방향은 검증됐다. 고칠 것 둘. ① §19 표의 "agents-md·gemini-md: 스킬을 못 읽는다" 는 **낡았다**. Codex·Gemini CLI 모두 Agent Skills 를 읽는다(§1.5). T2 는 "유일한 지도" 가 아니라 "자동 호출이 안 되는 경우의 보험" 이다. ② D19-3 "claude-md 에는 넣지 않음" 은 Vercel 의 스킬 미호출 56% 와 정면으로 부딪힌다. **우리 저장소에서 스킬 호출률을 재고**(audit/10 트랜스크립트로 셀 수 있다), 낮으면 T2 를 CLAUDE.md 나 path-scoped rule 에 넣는다. Claude Code 는 CLAUDE.md 가 있으면 AGENTS.md 를 읽지 않는다는 점도 §19 에 적을 것 |
+| static-gen → AGENTS.md/GEMINI.md(T1 상시, T2 색인) | **Next.js `agents-md`**(압축 색인 8KB, 버전 맞춤) | **표준(패턴 일치)·약점(전제)** | 같은 설계라 방향은 검증됐다. 고칠 것 둘. ① §19 표의 "agents-md·gemini-md: 스킬을 못 읽는다" 는 **낡았다**. Codex·Gemini CLI 모두 Agent Skills 를 읽는다(§1.5). T2 는 "유일한 지도" 가 아니라 "자동 호출이 안 되는 경우의 보험" 이다. ② D19-3 "claude-md 에는 넣지 않음" 은 Vercel 의 스킬 미호출 56% 와 정면으로 부딪힌다. **우리 저장소에서 스킬 호출률을 재고**(.claude/audit/10 트랜스크립트로 셀 수 있다), 낮으면 T2 를 CLAUDE.md 나 path-scoped rule 에 넣는다. Claude Code 는 CLAUDE.md 가 있으면 AGENTS.md 를 읽지 않는다는 점도 §19 에 적을 것 |
 | doc-locator(haiku 읽기 전용) + pre-bash 훅 허용 목록 | MCP 읽기 전용 도구(Serena, DeepWiki, Sourcegraph) | **약점(작음)** | 훅으로 Bash 를 좁히는 것은 우회 위험이 있고 플랫폼마다 다시 짜야 한다. MCP 도구(`search`·`get`)를 주면 서브에이전트에게 Bash 자체를 주지 않아도 된다(§3) |
 | 프로바이더 `typescript-swc`(.d.ts 표면), 이후 Luau 코드 표면 | **Serena(LSP, Luau 명시)**, aider repo-map, Sourcegraph `go_to_definition`, luau-lsp 자체 | **재발명 위험(높음)** | 문서 축은 차별이고 코드 표면 축은 LSP 생태계가 이미 갖고 있다. Luau 쪽은 luau-kb `.lsp.json`(Claude Code LSP 도구)이 이미 hover·정의 이동을 준다. **Luau 코드 표면 프로바이더는 착수 전에 Serena + luau-lsp 로 충분한지부터 재 볼 것**(Serena 의 Luau 지원 품질은 **미확인**) |
 | 문서 신뢰 경계 | Context7 ContextCrush·CVE-2026-75130 | **약점(잠재)** | §15 git 소스와 git pack 은 남의 문서를 색인한다. §19 T1 은 그 내용을 **상시 컨텍스트**에 넣는다. 이 둘이 만나면 Context7 과 같은 주입 표면이 된다. 권고: T1 은 로컬 path pack·global 만 허용한다. git pack 은 T2(위치만)까지만 쓴다. `get --body` 출력에는 "데이터이지 지시가 아님" 머리 한 줄을 둔다(roblox-docs 규칙과 같게) |
@@ -118,7 +118,7 @@ last_verified: 2026-11-10
 
 | 기능 | 외부 대응 | 판정 | 근거·권고 |
 |---|---|---|---|
-| 훅 → 분리 프로세스 → 저비용 모델 요약 → 로컬 저장 → SessionStart 주입 | **claude-mem**(observer 에이전트, SQLite + Chroma, SessionStart 계층 색인), remember(audit/15) | **재발명(뼈대)** | 뼈대는 두 도구와 같다. claude-mem 은 Apache-2.0 이라 remember 와 달리 코드를 참고해도 된다. 그래도 그대로 쓰기는 어렵다: 원격 측정이 기본으로 켜져 있고, 클라우드 동기화가 있고, Node 워커와 벡터 DB 가 필요하고, 저장소로 받아 가는 흐름이 없다. **빌려 올 것**: `<private>` 제외 태그, SessionStart 주입에 층마다 토큰 비용 표시 |
+| 훅 → 분리 프로세스 → 저비용 모델 요약 → 로컬 저장 → SessionStart 주입 | **claude-mem**(observer 에이전트, SQLite + Chroma, SessionStart 계층 색인), remember(.claude/audit/15) | **재발명(뼈대)** | 뼈대는 두 도구와 같다. claude-mem 은 Apache-2.0 이라 remember 와 달리 코드를 참고해도 된다. 그래도 그대로 쓰기는 어렵다: 원격 측정이 기본으로 켜져 있고, 클라우드 동기화가 있고, Node 워커와 벡터 DB 가 필요하고, 저장소로 받아 가는 흐름이 없다. **빌려 올 것**: `<private>` 제외 태그, SessionStart 주입에 층마다 토큰 비용 표시 |
 | 숫자·해시·사용자 인용을 원문 줄과 **기계 대조**, 실패 표시 | **Copilot Memory**(인용 + 사용 시점 검증, 적대적 기억 자가 치유) | **차별(강함)** | 외부에서 가장 가까운 것이 Copilot 이다. Copilot 은 PR 병합 +7%p 로 효과를 보였으니 방향이 검증됐다. 기계 대조(LLM 호출 없음)로 하는 것은 우리만의 것이다 |
 | 근거 = 트랜스크립트 줄 `(L…)` | Copilot 은 **코드 위치**를 인용 | **약점** | 트랜스크립트는 `cleanupPeriodDays`(기본 30일) 뒤 지워진다(DESIGN §9). 그 뒤에는 `(L…)` 를 다시 확인할 수 없다. 권고: `/session-import` 때 결정·수치 항목에 **커밋 해시나 파일:줄 인용을 덧붙이고**(가져가는 에이전트가 할 수 있다), 가져간 사본에서는 L 인용을 보조로 내린다. 그러면 Copilot 식 "읽을 때 검증" 이 가능해진다 |
 | 저장소 밖 저장 → pending → 저장소 에이전트가 골라 import·커밋 | Cursor(자동 기억 → 2.1 에서 UI 제거, Rules 로 내보내기), Cline Memory Bank(에이전트가 저장소 파일에 직접 씀), auto memory(기기 로컬, 커밋 안 함) | **차별** | "자동 기억은 결국 사람이 고른 규칙으로 돌아간다" 는 Cursor 사례가 pending → import 설계를 뒷받침한다. 자동 기록이 리뷰를 거쳐 **버전 관리되는 문서**가 되는 흐름은 다른 데서 찾지 못했다 |

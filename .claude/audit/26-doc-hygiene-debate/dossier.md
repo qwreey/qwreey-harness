@@ -2,7 +2,7 @@
 
 ## 배경
 - second-opinion 스킬을 정리하는 동안 모델이 읽는 파일에 작업 이력이 계속 섞여 있었다. SKILL.md, references, templates, agents 정의가 그런 파일이다. 섞여 있던 것:
-  - audit 절 번호("audit/18 §11·§12")
+  - audit 절 번호(".claude/audit/18 §11·§12")
   - 실측 표기("fork 비용 [실측 §12.5 + 추정]")
   - 날짜("2026-11-11")
   - "사용자 결정", 라운드 번호
@@ -59,7 +59,7 @@
 | 지금의 사실·지시 | "the fork is cheap only while the cache is warm" | 둔다 |
 | 실행해 확인할 수 있는 근거 | `snippets/x.luau` | 둔다(행동에 쓰임) |
 | 적용 범위 메타데이터 | `last_confirmed: luau 0.742` | frontmatter 에만 |
-| 작업 이력·출처 | "audit/18 §12", "실측 §12.5", "사용자 결정(2026-11-11)", 라운드 | 빼서 audit/decisions/커밋으로 |
+| 작업 이력·출처 | ".claude/audit/18 §12", "실측 §12.5", "사용자 결정(2026-11-11)", 라운드 | 빼서 audit/decisions/커밋으로 |
 | 시한성 서술 | "현재 기준", "지난주 바꿈" | 빼거나 지금 시제의 사실로 |
 - 훅: comment-hygiene 을 넓히거나 짝 훅을 둔다. 같은 경로에서 새로 추가된 줄만 보고, 알리기만 한다. 저장소 예외는 comments.json 방식으로 둔다.
 ### B. 주석 문자 위생 (사용자 추가 요청)

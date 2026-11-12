@@ -1,4 +1,4 @@
-# audit/28 claude-doctor 저장소 감사 1패스: 목록과 측정
+# .claude/audit/28 claude-doctor 저장소 감사 1패스: 목록과 측정
 
 범위: 읽기 전용 측정. 판단과 개선안은 2패스(다른 검토자)가 한다. 기준 시점은 작업 트리 HEAD 6ca93be + 다른 에이전트가 고치는 중인 변경(conventions 플러그인, home/.claude/rules/comments.md, PLAN.md, README.md)이다. 그 파일들의 크기는 측정 시각의 값이라 바뀔 수 있다.
 
@@ -86,19 +86,19 @@
 
 | 문서 | 바이트 | 줄 | 토큰 |
 |---|---|---|---|
-| audit/09-other-knowledge-mine.md | 166,004 | 647 | 76,300 |
-| audit/18-second-opinion.md | 88,884 | 795 | 43,900 |
-| audit/08-quad-knowledge-mine.md | 93,386 | 252 | 43,000 |
-| audit/16-marketplace.md | 93,058 | 770 | 40,400 |
-| audit/04-other-projects.md | 54,226 | 543 | 25,300 |
-| audit/19-external/02-community.md | 44,520 | 399 | 21,500 |
-| audit/24-skill-audit.md | 43,421 | 321 | 21,000 |
-| audit/19-external/03, 01, 05(knowledge-map), 22, 21 | 37~41K 각 | 212~495 | 18,000~19,500 |
+| .claude/audit/09-other-knowledge-mine.md | 166,004 | 647 | 76,300 |
+| .claude/audit/18-second-opinion.md | 88,884 | 795 | 43,900 |
+| .claude/audit/08-quad-knowledge-mine.md | 93,386 | 252 | 43,000 |
+| .claude/audit/16-marketplace.md | 93,058 | 770 | 40,400 |
+| .claude/audit/04-other-projects.md | 54,226 | 543 | 25,300 |
+| .claude/audit/19-external/02-community.md | 44,520 | 399 | 21,500 |
+| .claude/audit/24-skill-audit.md | 43,421 | 321 | 21,000 |
+| .claude/audit/19-external/03, 01, 05(knowledge-map), 22, 21 | 37~41K 각 | 212~495 | 18,000~19,500 |
 | PLAN.md | 15,081 | 178 | 7,173 (실측) |
 | README.md | 6,787 | 54 | 3,398 (실측) |
 | HUMAN_TODO.md | 6,091 | 67 | 3,162 (실측) |
-| drafts/session-log/DESIGN.md | 25,069 | 274 | 12,000 |
-| handoff/quad.md | 18,383 | 98 | 8,700 |
+| .claude/archive/research/drafts/session-log/DESIGN.md | 25,069 | 274 | 12,000 |
+| .claude/handoff/quad.md | 18,383 | 98 | 8,700 |
 
 폴더별 md 합계(추정):
 
@@ -126,13 +126,13 @@
 | CLAUDE.md | 8 | 7 |
 | PLAN.md | 7 | 1 |
 | README.md | 5 | 2 |
-| audit/06-docs-and-canon.md | 4 | 0 |
-| audit/01-official-docs.md | 4 | 0 |
+| .claude/audit/06-docs-and-canon.md | 4 | 0 |
+| .claude/audit/01-official-docs.md | 4 | 0 |
 | TODO.md (없는 파일) | 4 | 1 |
-| audit/05-luau-knowledge-map.md | 3 | 0 |
+| .claude/audit/05-luau-knowledge-map.md | 3 | 0 |
 | HUMAN_TODO.md | 2 | 1 |
-| decisions/README.md | 2 | 1 |
-| audit/04, audit/10, audit/17, drafts/session-log, drafts/coderag | 각 2 | - |
+| .claude/base/decisions/README.md | 2 | 1 |
+| .claude/audit/04, .claude/audit/10, .claude/audit/17, drafts/session-log, .claude/research/drafts/coderag | 각 2 | - |
 
 Read 도구로 실제 연 상위: `tools/home-sync.sh` 4, `harness-status.py` 3, luau-kb README/AGENTS 각 3, `home/.claude/CLAUDE.md` 2, `PLAN.md` 1. (PLAN.md 는 지시는 많이 받지만 이 세션들에서 Read 는 1회. 다른 경로의 Bash cat 은 세지 않았다.)
 
@@ -158,13 +158,13 @@ Read 도구로 실제 연 상위: `tools/home-sync.sh` 4, `harness-status.py` 3,
 
 ### 3-2. 같은 목적이 두 곳에 있는 것
 
-1. `drafts/hooks/structure-reminder.py`(283줄) vs `home/.claude/hooks/structure-reminder.py`(405줄): 라이브 쪽이 확장됨. 둘의 diff 309줄. PLAN §3.5 P1 은 아직 "원본은 `drafts/hooks/`" 라고 적었다.
+1. `.claude/archive/research/drafts/hooks/structure-reminder.py`(283줄) vs `home/.claude/hooks/structure-reminder.py`(405줄): 라이브 쪽이 확장됨. 둘의 diff 309줄. PLAN §3.5 P1 은 아직 "원본은 `drafts/hooks/`" 라고 적었다.
 2. `drafts/session-log/{extract,summarize,verify}.py` vs `plugins/q/scripts/sllib/{extract,summarize,verify}.py`: 설계 초안이 플러그인으로 구현됨. `DESIGN.md` 25KB 는 `plugins/q/docs/session-log.md`(97줄)와 겹침.
-3. `drafts/second-opinion/home/*.fragment*` 2개 vs `plugins/qwreey-advisor`: 플러그인으로 옮겨 끝남.
-4. `drafts/style/`(88KB) vs 형제 저장소 `luau-kb/skills/luau-style` + `luau-kb/rules`: PLAN 3.6 은 "drafts/style 에서 이동" 이라고 적었다. luau-kb 에 스킬이 이미 있다.
+3. `.claude/archive/research/drafts/second-opinion/home/*.fragment*` 2개 vs `plugins/qwreey-advisor`: 플러그인으로 옮겨 끝남.
+4. `.claude/research/drafts/style/`(88KB) vs 형제 저장소 `luau-kb/skills/luau-style` + `luau-kb/rules`: PLAN 3.6 은 ".claude/research/drafts/style 에서 이동" 이라고 적었다. luau-kb 에 스킬이 이미 있다.
 5. `home/.claude/rules/code-structure.md` vs `luau-kb/rules/code-structure.md`(sibling 존재): MANIFEST 는 `luau-core.md` 만 링크하고 code-structure 는 복사한다. 두 정본 후보.
-6. `audit/drafts/skills/luau-*`(3) vs `drafts/gaps`, luau-kb 스킬 `luau-types`, `luau-verify`, 그리고 `audit/drafts/snippet-harness/check_snippets.py` vs luau-kb 의 snippets 하네스.
-7. 설치된 `~/.claude/CLAUDE.md` vs `home/.claude/CLAUDE.md`(1-5 참고)와 `handoff/memory-claude-doctor.md` vs 실제 memory 디렉터리: 같은 내용의 사본.
+6. `.claude/audit/drafts/skills/luau-*`(3) vs `.claude/research/drafts/gaps`, luau-kb 스킬 `luau-types`, `luau-verify`, 그리고 `.claude/audit/drafts/snippet-harness/check_snippets.py` vs luau-kb 의 snippets 하네스.
+7. 설치된 `~/.claude/CLAUDE.md` vs `home/.claude/CLAUDE.md`(1-5 참고)와 `.claude/handoff/memory-claude-doctor.md` vs 실제 memory 디렉터리: 같은 내용의 사본.
 
 ### 3-3. 다 끝났는데 남은 초안 (`drafts/`)
 
@@ -180,7 +180,7 @@ Read 도구로 실제 연 상위: `tools/home-sync.sh` 4, `harness-status.py` 3,
 | `coderag/` | 3 | 42,430 | 11-10 | coderag 설계 입력 |
 | `split-plans/` | 3 | 39,408 | 11-10 | 다른 저장소 분리안, HUMAN_TODO 와 handoff 에 의존 |
 | `distill-brief.md` | 1 | 3,856 | 11-10 | 확인 필요 |
-| `audit/drafts/` | 6 | 8,277 | 11-10 | 확인 필요 |
+| `.claude/audit/drafts/` | 6 | 8,277 | 11-10 | 확인 필요 |
 
 끝났다고 볼 수 있는 후보: second-opinion, hooks, session-log(스크립트). 나머지는 상태 확인 필요(2패스 질문).
 
@@ -194,9 +194,9 @@ Read 도구로 실제 연 상위: `tools/home-sync.sh` 4, `harness-status.py` 3,
 - 정식 마크다운 링크 `](...)`: 4건, 모두 오탐(표 내용, `skills` 앵커 단어, `path`, `…`). 실제 깨진 링크 0.
 - 백틱 경로 참조 중 **현행 문서에서 실재하지 않는 것**: 2건 + 1건.
   - `README.md`, `intake/README.md` -> `audit/intake/` (폴더 아직 없음. 첫 반입 감사 때 생길 곳)
-  - `decisions/D-10-error-handling.md` -> `tools/run_opt.sh` (존재하지 않음)
+  - `.claude/base/decisions/D-10-error-handling.md` -> `tools/run_opt.sh` (존재하지 않음)
   - `plugins/q/skills/doctor/scripts/scan.py` 안의 `TODO.md` 참조(코드 쪽, 1건)
-- 과거 기록(audit/, drafts/, handoff/) 안의 백틱 경로 중 없는 것: 약 67건(audit/18 11, audit/05 10, audit/16 6, audit/20 4 ...). 이동·삭제된 파일(`plugins/second-opinion/`, `home/CLAUDE.md.fragment.md`, `home/harness.env.fragment`, `tools/agy-delegate.sh`, `tools/roblox_docs.py`, `audit/mrow-spike/*` 등)과 날짜 접미 파일명. 이력이라 고치는 대상이 아닐 수 있다.
+- 과거 기록(audit/, drafts/, handoff/) 안의 백틱 경로 중 없는 것: 약 67건(.claude/audit/18 11, .claude/audit/05 10, .claude/audit/16 6, .claude/audit/20 4 ...). 이동·삭제된 파일(`plugins/second-opinion/`, `home/CLAUDE.md.fragment.md`, `home/harness.env.fragment`, `tools/agy-delegate.sh`, `tools/roblox_docs.py`, `.claude/audit/mrow-spike/*` 등)과 날짜 접미 파일명. 이력이라 고치는 대상이 아닐 수 있다.
 - 서브에이전트 프롬프트가 "TODO.md 를 읽으라" 고 한 것 4건(파일 없음).
 
 ### 3-6. 낡은 이름 (과거 기록 밖, audit/ drafts/ handoff/ 제외)
@@ -214,7 +214,7 @@ Read 도구로 실제 연 상위: `tools/home-sync.sh` 4, `harness-status.py` 3,
 
 ### 3-7. 추적되지 않는 큰 파일, q-ui node_modules
 
-- 현재 `git status`: 수정 10개(PLAN, README, rules/comments, qwreey-conventions 6개 등) + 미추적 `audit/27-conventions-skill-audit.md`. 큰 미추적 파일 없음. gitignore 된 것은 `__pycache__` 와 `intake/*/`(현재 사본 없음).
+- 현재 `git status`: 수정 10개(PLAN, README, rules/comments, qwreey-conventions 6개 등) + 미추적 `.claude/audit/27-conventions-skill-audit.md`. 큰 미추적 파일 없음. gitignore 된 것은 `__pycache__` 와 `intake/*/`(현재 사본 없음).
 - **`plugins/q-ui/node_modules` 삭제 표시의 정체**: `node_modules/typescript` 가 커밋 ce6e9d6(q-ui 를 quietcode-claude 로 분리하는 커밋)에서 **처음 추적에 들어갔다**(분리하면서 실수로 남은 것으로 보임). 커밋 6ca93be(이름 변경 커밋)가 `plugins/q-ui/node_modules` 135개 파일(442,356줄 삭제)을 함께 삭제했다. 따라서 지금은 HEAD 에서 이미 정리됐다(그 전 status 에서 D 로 보인 것). 이름 변경 커밋 메시지에는 이 삭제가 언급되지 않았다.
 - 같은 사고 재발 방지: `.gitignore` 에 `node_modules/` 가 **없다**(`__pycache__/`, `*.pyc`, `*.bak-*`, `intake/*/` 만 있음).
 - `.git` 16MB (느슨한 객체 1,528개, 팩 0). 히스토리에는 ce6e9d6 에 node_modules 약 14MB 가 남아 있다.
@@ -224,14 +224,14 @@ Read 도구로 실제 연 상위: `tools/home-sync.sh` 4, `harness-status.py` 3,
 | # | 내용 | 놓인 곳 |
 |---|---|---|
 | 1 | 형제 저장소 지도, 읽기 전용 원칙 | 설치본 `~/.claude/CLAUDE.md`, 정본 `home/.claude/CLAUDE.md`(두 벌이 다름), PLAN §1·P1 서술, README 설치 2단계(지도를 고치라는 지시) |
-| 2 | 서브에이전트 비용 정책("알리고 줄 세운다") | `home/.claude/CLAUDE.md`, PLAN §3.8, 메모리 `model-usage-policy.md`, `plugins/q/skills/away/SKILL.md` + `references/rationale.md`, audit/21(37KB) |
-| 3 | second opinion 운용(내장 advisor 는 사용자가 요청할 때만, fork 검토/리뷰어 검토 구분) | `home/.claude/CLAUDE.md` "코드 리뷰와 second opinion", PLAN §3.8, `plugins/qwreey-advisor/README.md`, 두 SKILL.md 설명, `docs/rationale-*.md`, audit/18(89KB), HOOK-MESSAGES |
+| 2 | 서브에이전트 비용 정책("알리고 줄 세운다") | `home/.claude/CLAUDE.md`, PLAN §3.8, 메모리 `model-usage-policy.md`, `plugins/q/skills/away/SKILL.md` + `references/rationale.md`, .claude/audit/21(37KB) |
+| 3 | second opinion 운용(내장 advisor 는 사용자가 요청할 때만, fork 검토/리뷰어 검토 구분) | `home/.claude/CLAUDE.md` "코드 리뷰와 second opinion", PLAN §3.8, `plugins/qwreey-advisor/README.md`, 두 SKILL.md 설명, `docs/rationale-*.md`, .claude/audit/18(89KB), HOOK-MESSAGES |
 | 4 | 플러그인 구성(q, qwreey-advisor, qwreey-conventions, luau-kb 가 각각 무엇인가) | README 표, PLAN §3.8, 각 `plugin.json` description, 각 플러그인 README, `plugins/q/docs/` |
 | 5 | settings 는 복사가 아니라 마이그레이션으로 적용 | README 설치 4단계(장문), `home/MANIFEST` 머리, PLAN 3.5 ~/.claude 정본 관리, `tools/home-sync.sh` 도움말과 마이그레이션 파일들 |
-| 6 | 메모리에만 있던 원칙을 저장소로 옮김 | PLAN §3.8 전체가 메모리 파일들(`model-usage-policy`, `propose-dont-overwrite...` 등)과 `handoff/memory-claude-doctor.md` 의 사본 (의도적 이동이나 둘 다 남음) |
-| 7 | 다른 세션에 넘길 일 | HUMAN_TODO 의 "다른 세션에 넘길 것" 13항목 vs `handoff/*.md` 19개의 본문(항목 건수와 근거를 양쪽에 적음) |
-| 8 | luau-kb 구조와 증류 계획 | PLAN §1 ②(스킬 목록 12개), §3.6, README 설치 5단계, `drafts/gaps`, `drafts/style`, 형제 저장소 luau-kb 자신의 README |
-| 9 | coderag 지식 계층(global/pack/project) | PLAN §3.7, README 맨 끝 단락, `drafts/coderag/`, 홈 CLAUDE.md 지도 행 |
+| 6 | 메모리에만 있던 원칙을 저장소로 옮김 | PLAN §3.8 전체가 메모리 파일들(`model-usage-policy`, `propose-dont-overwrite...` 등)과 `.claude/handoff/memory-claude-doctor.md` 의 사본 (의도적 이동이나 둘 다 남음) |
+| 7 | 다른 세션에 넘길 일 | HUMAN_TODO 의 "다른 세션에 넘길 것" 13항목 vs `.claude/handoff/*.md` 19개의 본문(항목 건수와 근거를 양쪽에 적음) |
+| 8 | luau-kb 구조와 증류 계획 | PLAN §1 ②(스킬 목록 12개), §3.6, README 설치 5단계, `.claude/research/drafts/gaps`, `.claude/research/drafts/style`, 형제 저장소 luau-kb 자신의 README |
+| 9 | coderag 지식 계층(global/pack/project) | PLAN §3.7, README 맨 끝 단락, `.claude/research/drafts/coderag/`, 홈 CLAUDE.md 지도 행 |
 
 README 서술 오류: 설치 4단계 플러그인 항목에 같은 구절이 겹친다("`status`/`apply` 끝에는 `status`/`apply` 끝에 설치 안 된 것과 ...").
 오래된 진술: PLAN 머리 "사용자 레벨이 비어 있다 `(검)`"(§0), "30줄 이내"(P1), `drafts/hooks` 원본(P1), HUMAN_TODO "현재 대기 중: luau-kb 스킬 링크 2개, CLAUDE.md 갱신(리뷰 시점, 모델 사용 규칙)" 은 0005 와 rules 변경 이후 사실과 다르다(대기 중인 것은 마이그레이션 0005, rules 3종, CLAUDE.md 정본 차이).
@@ -244,13 +244,13 @@ README 서술 오류: 설치 4단계 플러그인 항목에 같은 구절이 겹
 |---|---|---|---|---|
 | 입구 문서, 라이브(home/rules + home/CLAUDE.md + 플러그인 SKILL/agents) | 22 (home 6, plugins 16) | 2 | 0 | 2 |
 | references (플러그인 `skills/**/references`, 이력 허용 범위) | 30 | 17 | 0 | 17 |
-| 초안 쪽(drafts/, audit/drafts/) 입구 | 20 | 41 | 0 | 41 |
+| 초안 쪽(drafts/, .claude/audit/drafts/) 입구 | 20 | 41 | 0 | 41 |
 | 초안 쪽 references | 6 | 1 | 0 | 1 |
 | **전체** | 78 | **61** | **0** | **61** |
 
 - 라이브 입구 2건은 둘 다 오탐 가능성이 높다: `home/.claude/CLAUDE.md` 49행 "사용자 결정과 그 원문 인용을 남긴다"(결정 문구가 지시 내용), `qwreey-advisor/skills/inherit-advisor/templates/fork-prompt.md` 15행 "most recently judged 'done'"(지시 내용).
-- references 17건은 8곳이 한 줄씩 `audit/NN` 근거 인용(예: `start/references/concepts/*.md` 8파일 각 1건, 모두 "~ (claude-doctor audit/19-external/05 #2)" 류 꼬리). 규칙상 references 는 `audit/N 근거` 가 걸리는 범주다. 그리고 `away/rationale.md`, `start/rationale.md` 각 2건, `doctor/references/*` 5건.
-- 초안 쪽 41건은 `drafts/delegate/skills/debate/SKILL.md` 14, `drafts/agents/README.md` 11, `drafts/delegate/skills/delegate/SKILL.md` 7, `debate/templates/ledger.md` 4 등. 설치 전 초안이라 라이브 영향은 없다.
+- references 17건은 8곳이 한 줄씩 `audit/NN` 근거 인용(예: `start/references/concepts/*.md` 8파일 각 1건, 모두 "~ (claude-doctor .claude/audit/19-external/05 #2)" 류 꼬리). 규칙상 references 는 `audit/N 근거` 가 걸리는 범주다. 그리고 `away/rationale.md`, `start/rationale.md` 각 2건, `doctor/references/*` 5건.
+- 초안 쪽 41건은 `.claude/research/drafts/delegate/skills/debate/SKILL.md` 14, `.claude/research/drafts/agents/README.md` 11, `.claude/research/drafts/delegate/skills/delegate/SKILL.md` 7, `debate/templates/ledger.md` 4 등. 설치 전 초안이라 라이브 영향은 없다.
 - 범주별 합: history marker 61, invisible character 0.
 - 코드 파일 주석 범주(non-keyboard symbol, escaped, language, invisible)는 이번 1패스에서 돌리지 않았다(요청 범위가 모델용 문서). 코드 쪽 측정은 2패스 질문으로 넘긴다.
 - 다른 규칙의 자기 위반(보고만): `code-structure` 파일 길이 한도(경고 800줄) 초과 2건: `scan.py` 1,203줄, `conventions-check.py` 883줄(작업 중 structure-reminder 훅이 실제로 경고). `agent-docs` 규칙의 "입구 문서는 짧게" 기준으로는 `q:start`(120줄), `comments` 스킬(120줄)이 길다.

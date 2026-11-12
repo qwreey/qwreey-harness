@@ -93,17 +93,17 @@
 - `--resume` 세션 기록은 메모리와 별개로 키에 묶인다(이 설계 밖).
 
 ## 4. 기존 메모리 감사 (읽기 전용, 원문을 읽고 분류)
-다른 저장소의 메모리 파일은 읽기만 했다. 인계는 `handoff/memory-<repo>.md`.
+다른 저장소의 메모리 파일은 읽기만 했다. 인계는 `.claude/handoff/memory-<repo>.md`.
 
 | 저장소 | 항목 | 유지 | 저장소로 | pack으로 | 낡음 | 인계 |
 |---|---:|---:|---:|---:|---:|---|
-| quad | 21 | 10 | 8 | 2 | 1 | `handoff/memory-quad.md` |
-| stl-luau | 11 | 4 | 6 | 1 | 0 | `handoff/memory-stl-luau.md` |
-| devplorer | 10 | 6 | 2 | 1 | 1 | `handoff/memory-devplorer.md` |
-| tbox | 3 | 1 | 2 | 0 | 0 | `handoff/memory-tbox.md` |
-| table-sim | 3 | 1 | 1 | 0 | 1 | `handoff/memory-table-sim.md` |
-| VideoSync | 1 | 0 | 1 | 0 | 0 | `handoff/memory-VideoSync.md` |
-| claude-doctor(자신) | 12 | 6 | 4 | 0 | 2 | `handoff/memory-claude-doctor.md` |
+| quad | 21 | 10 | 8 | 2 | 1 | `.claude/handoff/memory-quad.md` |
+| stl-luau | 11 | 4 | 6 | 1 | 0 | `.claude/handoff/memory-stl-luau.md` |
+| devplorer | 10 | 6 | 2 | 1 | 1 | `.claude/handoff/memory-devplorer.md` |
+| tbox | 3 | 1 | 2 | 0 | 0 | `.claude/handoff/memory-tbox.md` |
+| table-sim | 3 | 1 | 1 | 0 | 1 | `.claude/handoff/memory-table-sim.md` |
+| VideoSync | 1 | 0 | 1 | 0 | 0 | `.claude/handoff/memory-VideoSync.md` |
+| claude-doctor(자신) | 12 | 6 | 4 | 0 | 2 | `.claude/handoff/memory-claude-doctor.md` |
 | **합계** | **61** | **28** | **24** | **4** | **5** | |
 - `저장소로` 24개 중 상당수는 프로젝트 맥락·설계 결정(stl-luau 의 트레이트 방향 전환, VideoSync 의 아키텍처 결정, quad 의 docs-site 규칙)이다. 이 지식이 메모리에만 있어 다른 clone 에서는 빠지는 상태다.
 - 눈에 띄는 패턴: (1) 저장소 문서에 이미 있는 내용을 메모리가 복제(quad safety, claude-doctor 의 home 정본·second-opinion). (2) 사용자 성향이 저장소마다 중복(quad·devplorer 의 결정 제시 방식, 한국어, 모델 선택). 이것은 **전역 CLAUDE.md 후보**다. (3) quad 의 `feedback-quad-collaboration-style` 는 12.6KB 혼합 파일이라 쪼개기가 필요하다.

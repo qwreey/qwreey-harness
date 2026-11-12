@@ -17,7 +17,7 @@
 - Public ids and standard numbers. A ledger id only on a line that also names the ledger file.
 - Quoted wording only when the wording is the spec (trigger phrases, an exact output string).
 ## Move out (to the commit message, `audit/`, `decisions/`, or one rationale link in `docs/`)
-- Where a rule came from: `audit/18 §12`, `[measured §12.5]`, `D-13`, round or session numbers.
+- Where a rule came from: `.claude/audit/18 §12`, `[measured §12.5]`, `D-13`, round or session numbers.
 - Who decided and when: "the user decided", "per discussion", dates in the body.
 - Change narration: "previously X", "as of", "recently changed", correction banners. Rewrite them as the current fact.
 Test: if deleting the sentence would not change what the model does, it is history.
@@ -52,7 +52,7 @@ B 훅. 렉서가 이미 문자열 리터럴을 걸러 내므로 주석 조각만
 - 통과: Latin-1 글자(이름), 단위·수학 기호 `× ± ° µ`, 백틱 안 식별자.
 
 ## 2. 경계 사례
-- 행동 근거 대 이력: 작업 중에 모델이 열거나 실행할 것(스니펫, 스크립트, 같은 스킬의 §)이면 둔다. 결정 과정의 기록(`audit/18 §12`, 실측 태그)이면 뺀다.
+- 행동 근거 대 이력: 작업 중에 모델이 열거나 실행할 것(스니펫, 스크립트, 같은 스킬의 §)이면 둔다. 결정 과정의 기록(`.claude/audit/18 §12`, 실측 태그)이면 뺀다.
 - `last_confirmed`: frontmatter 에 둔다. luau-kb 의 `status: verified · last-confirmed: luau 0.742 · 근거: snippets/…` 줄은 버전 범위 메타라 통과시키고, 본문의 날짜만 잡는다.
 - quad 연구 원장: A 의 paths 밖이다. 원장은 이력이 가야 할 목적지이고 번호가 곧 구조다. 다만 SKILL.md 에 맨 id 가 있으면 잡는다. 원장 파일명이 같은 줄에 있으면 포인터로 보고 통과시킨다.
 - 공개 id: A 와 B 가 내장 목록과 저장소 public_ids 를 함께 쓴다.

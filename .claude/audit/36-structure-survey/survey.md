@@ -107,12 +107,12 @@
 |---|---|---|
 | plugins 코드 주석(reply_language.py, subagent-slots.py, workspace_gate.py, ambient.py, summarize.py, memory_signals.py, structure-reminder.py 등 약 20곳) | `audit/NN-...` 인용 | 기능 영향 없음, 링크만 끊김 |
 | `conventions-check.py` 64, 90, 91행 정규식 | `\.claude/`, `session/`, `audit/`, `handoff/` 를 "이력 경로"로 감지, `ref_path: audit/\d+` | `.claude/audit/` 는 부분 일치로 계속 잡힘. 새 폴더(plan/, archive/)는 감지 목록 추가 필요 |
-| test-conventions-check.py 67, 97, 212-220행 | 샘플 문자열 `audit/18` 등 | 안 깨짐 |
-| `.claude/conventions.json` | `exclude: ["drafts/**","audit/drafts/**"]`, `load_budget` | drafts 이동 시 갱신 필수 |
-| `plugins/q/skills/doctor/scripts/toolkits/web.py:58` | `PLUGINS_REF = "audit/16-marketplace.md#8-..."` 를 사용자에게 출력 | audit 이동 시 갱신 필수(출력 문자열) |
+| test-conventions-check.py 67, 97, 212-220행 | 샘플 문자열 `.claude/audit/18` 등 | 안 깨짐 |
+| `.claude/conventions.json` | `exclude: [".claude/research/drafts/**",".claude/audit/drafts/**"]`, `load_budget` | drafts 이동 시 갱신 필수 |
+| `plugins/q/skills/doctor/scripts/toolkits/web.py:58` | `PLUGINS_REF = ".claude/audit/16-marketplace.md#8-..."` 를 사용자에게 출력 | audit 이동 시 갱신 필수(출력 문자열) |
 | `scan.py` | intake 중첩 저장소 판정 주석(173, 888행), ROADMAP/HUMAN_TODO 이름 목록(677행), `claude-doctor/drafts/delegate` 문구(805행), HUMAN_TODO 문구(853, 1055행) | 판정은 git 루트 기준이라 로직은 안 깨짐. 문구 갱신 |
 | `plugins/q/scripts/sllib/records_home.py:19` | `HISTORY_CANDIDATES = (handover, handoff, audit, history, docs/...)` | 기록 보관 위치 제안 후보. `.claude/` 하위 후보 추가 필요 |
-| home/settings-migrations 0004, 0006 | "audit/23" 인용 문자열 | 안 깨짐 |
+| home/settings-migrations 0004, 0006 | ".claude/audit/23" 인용 문자열 | 안 깨짐 |
 | `tools/tests/test-vendored-copies.py:12` | `ROOT.parent/"luau-kb"/"hooks"`(없으면 건너뜀) | luau-kb 가 안으로 오면 경로 변경 |
 | `.gitignore` | `intake/*/` | intake 이동 시 갱신 |
 | 설치 환경 | `/code/.claude/settings.json` 의 `extraKnownMarketplaces` 가 `/code/Projects/claude-doctor` 디렉터리를 마켓으로 가리킴, marketplace.json 의 source 는 `./plugins/*` | **plugins/ 와 .claude-plugin/ 은 옮기면 안 됨**. 나머지 이동은 마켓에 무영향 |
@@ -185,11 +185,11 @@
 2. **decisions/ 위치**: 에이전트 기록이지만 D-01..D-13 은 플러그인(qwreey-conventions, luau-kb)이 쓰는 코딩 규약이다. `.claude/base/` 로 갈지, 규범이면 플러그인 rules/references 로 승격할지.
 3. **audit/ 번호 체계**: 번호 접두와 폴더/파일 혼재를 유지할지, `audit/README.md` 색인 + 주제별로 바꿀지.
 4. **정리 자동화**: audit 가 이미 1.6MB. archive 이동의 **자동 규칙**(상태 머리줄 + 날짜 + 마지막 참조)과 실행 주체(`q:doctor` 점검, Stop 훅 알림, 도구)를 정해야 한다. 형제에는 자동 규칙 선례가 없다.
-5. **drafts/**: `status: landed in <path>` 머리줄이 이미 "끝남" 표지다. landed 는 통째 archive, 나머지는 research 로 일괄 이동할지, 규칙으로 자동화할지.
+5. **.claude/research/drafts/**: `status: landed in <path>` 머리줄이 이미 "끝남" 표지다. landed 는 통째 archive, 나머지는 research 로 일괄 이동할지, 규칙으로 자동화할지.
 6. **handoff/, intake/**: handoff 는 HUMAN_TODO 가 13번 참조해 아직 살아 있는가. intake/ 는 절차서 1개뿐이라 q:doctor reference 로 옮기고 폴더를 없앨지.
 7. **luau-kb 통합 형태**: (a) 한 저장소 안(예 `packs/luau/`)에 플러그인으로 두고 마켓 하나에서 여럿 제공, (b) 페이로드(skills, rules, hooks, tools 일부)와 개발물(bench, snippets, typedefs, evals, decisions)을 분리해 캐시 비용을 줄일지. snippets 는 스킬이 경로로 인용(274회)하므로 분리하면 링크 규칙이 필요.
 8. **opt-in 단위**: project/local 스코프 enabledPlugins 로 충분한가, 훅 침묵 스위치(HARNESS_TOOLKITS)도 둘지. 문서가 말하지 않는 `paths` 와 설명 로딩의 관계를 실측해야 한다(막아 준다면 user 스코프 비용이 작아질 수 있다).
-9. **기본값**: universal 플러그인(q, advisor, conventions, proc-guard)은 user 스코프, luau-kb/web-security 는 `defaultEnabled: false` 로 두고 프로젝트가 켜게 할지. `q:start` 가 프로젝트 감지(.luaurc, package.json)로 project `.claude/settings.json` 조각을 제안할지(handoff/vitrine.md 에 web 조각 선례).
+9. **기본값**: universal 플러그인(q, advisor, conventions, proc-guard)은 user 스코프, luau-kb/web-security 는 `defaultEnabled: false` 로 두고 프로젝트가 켜게 할지. `q:start` 가 프로젝트 감지(.luaurc, package.json)로 project `.claude/settings.json` 조각을 제안할지(.claude/handoff/vitrine.md 에 web 조각 선례).
 10. **self-maintaining 단위**: 형제의 doc-check.py 는 프로젝트별 사본(quad -> stl-luau)이다. 재사용하려면 q:doctor 에 일반화된 `.claude/` 구조 점검(색인 누락, 깨진 참조, 항상 로드 예산, archive 후보)을 두고 새 프로젝트가 참조만 하게 할지.
 11. **마켓 경로 고정**: `.claude-plugin/marketplace.json` 과 `plugins/` 는 사용자 settings 의 디렉터리 마켓이 가리켜 이동 불가. plugin 소스 위치를 바꾸면 사용자 쪽 `extraKnownMarketplaces` 갱신이 HUMAN_TODO 가 된다.
 12. 미확인: `~/.coderag` 전역 설정, `~/.claude` 의 luau-kb 마켓 등록, luau-lsp.sh 의 typedefs 사용 여부, 스킬 12개 설명의 실제 토큰 수.

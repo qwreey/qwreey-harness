@@ -1,18 +1,18 @@
 # 38 round1-Q: 기록 규약은 coderag 문서로 정의한다 (coderag 중심안)
 
-입장: `.claude/` 기록은 coderag 문서다. 규약은 coderag 의 어휘(frontmatter 키, kind, status)로 정의하고, 지키는지는 coderag 의 `lint`·`stale`·`static-gen` 이 기계로 검사한다. 사람이 손으로 지키는 규약은 quad 와 stl-luau 에서 이미 실패했다(audit/36 §1.7: 이동이 수동, 배너 누적, 이중 상태). 사용자도 이 결합을 제안했다.
+입장: `.claude/` 기록은 coderag 문서다. 규약은 coderag 의 어휘(frontmatter 키, kind, status)로 정의하고, 지키는지는 coderag 의 `lint`·`stale`·`static-gen` 이 기계로 검사한다. 사람이 손으로 지키는 규약은 quad 와 stl-luau 에서 이미 실패했다(.claude/audit/36 §1.7: 이동이 수동, 배너 누적, 이중 상태). 사용자도 이 결합을 제안했다.
 양보: 기록은 coderag 없이 평문 markdown 으로 읽혀야 한다. coderag 가 없는 기계에서는 검색·검사가 느려질 뿐, 읽기와 쓰기는 막히지 않아야 한다(§3.4).
 
 ## 0. 이번에 새로 잰 것 (/tmp/q38 사본, coderag 0.1.0 debug, CODERAG_CACHE=/tmp)
 - **조용한 오분류**: `status: superseded by plan/a.md` 는 lint 를 통과한다(lint 가 첫 낱말만 본다, lib.rs:931). 그런데 색인에는 `active` 로 들어간다(core docs/mod.rs:164 는 값 전체를 정확히 비교한다). 그래서 기본 검색에 계속 나오고, static-gen 표에는 `base · active` 로 찍힌다. lint 를 통과한 문서가 엉뚱하게 처리되는 셈이다. 사용자가 말한 `superseded by X` 꼴을 지금 쓰면 바로 이렇게 된다.
-- `landed in …`, `rejected by …; note` 는 lint 오류이고 색인에는 `active` 로 들어간다(audit/37 과 같은 결과).
+- `landed in …`, `rejected by …; note` 는 lint 오류이고 색인에는 `active` 로 들어간다(.claude/audit/37 과 같은 결과).
 - `.gitignore` 에 든 `.claude/sessions/` 도 색인된다. frontmatter 가 없는 기록은 `[unknown]` 이 된다(폴더로 kind 를 추론하지 않는다).
 - `static-gen --dir .claude/base` 는 `.claude/.claude/base/README.md` 를 만든다. `--dir` 이 모듈 루트 기준이라서다. `--dry-run` 은 "바뀔 예정"이어도 rc=0 이라 검사기로 쓸 수 없다.
 - claude-doctor 의 기록은 이미 반쯤 coderag 꼴이다. `.claude/sessions/*.md` 는 import 때 `title/description/keywords/kind: session/status: active/last_verified` frontmatter 를 받는다. frontmatter 가 있는 것은 drafts 51개 중 16개, audit 75개 중 4개다. decisions·handoff 에는 없다.
 - coderag 플러그인은 사용자 settings 의 enabledPlugins 에 **없다**. 그래서 doc-locator 와 post-edit lint 훅이 지금은 돌지 않는다. 바이너리만 `target/debug` 에 있다.
 
 ## 1. 상태
-- **위치: frontmatter `status:` 한 곳.** 본문 첫 줄에 같은 정보를 또 쓰지 않는다. 같은 상태를 두 곳에 두면 어긋난다(audit/36 quad "두 곳을 같이 고칠 것"). 평문 문제는 이렇게 푼다: frontmatter 는 파일 맨 위의 평범한 텍스트이고, GitHub 와 에디터에서 그대로 보인다. 그러니 "첫 줄에 보인다"는 요구를 이미 만족한다.
+- **위치: frontmatter `status:` 한 곳.** 본문 첫 줄에 같은 정보를 또 쓰지 않는다. 같은 상태를 두 곳에 두면 어긋난다(.claude/audit/36 quad "두 곳을 같이 고칠 것"). 평문 문제는 이렇게 푼다: frontmatter 는 파일 맨 위의 평범한 텍스트이고, GitHub 와 에디터에서 그대로 보인다. 그러니 "첫 줄에 보인다"는 요구를 이미 만족한다.
 - **문법**: `status: <state> [in|by <target>] [; <note>]`. target 은 경로 또는 doc ID이고, 해석은 지금의 `superseded_by` 해석 순서(문서 폴더 → 루트 → 프로젝트 루트)를 그대로 쓴다. `superseded_by: X` 는 `superseded by X` 와 같다(하위 호환).
 - **어휘 5개**: `active`(기본) · `landed in <결과물>` · `superseded by <대체 문서>` · `rejected [by <근거 문서>]` · `archived`. `active` 를 뺀 넷은 listed=false 이고, `--all` 로만 검색된다.
 - **`paused` 는 두지 않는다.** 상태 축은 "이 기록이 지금도 유효한가"다. 멈춘 계획도 유효하므로 `active; paused until X` 처럼 note 로 쓴다. 어휘가 늘면 lint 와 표가 갈라진다.
@@ -62,7 +62,7 @@ frontmatter 는 평문이고, README 표는 커밋돼 있고, 2줄 경고는 본
 - **커밋할 때(q, info, 차단 없음)**: 커밋이 `.claude/` 를 건드리면 `stale` + `static-gen --check` 를 돌려 세 가지를 한 줄씩 알린다: README 낡음, 끝났는데 archive 밖, 활성 문서의 깨진 참조. 바이너리가 없으면 §3.4 의 최소 검사로 대신한다.
 - **q:doctor**: 위 검사 전부, archive 후보 목록, 크기 예산(항상 로드 합계, audit 항목별 200KB와 폴더 합계).
 - **옮기는 주체**: 백그라운드에서 저절로 옮기지 않는다. 대신 **status 를 바꾸는 커밋이 `git mv` 로 archive 이동까지 같이 하는 것**을 규약으로 한다. 에이전트가 그 자리에서 하고, 커밋 훅이 빠진 것을 알린다. archive 후보(C5)는 목록만 내고, 옮길지는 사용자에게 묻는다. git 이 있어서 되돌리기는 싸지만, 아무도 모르는 이동은 막는다.
-- **audit 덤프 증가**: audit 문서는 결론, 수치, 재현 명령만 담는다. 원시 출력(트랜스크립트 재생, json, 로그)은 `audit/<n>/raw/`(gitignore)나 /tmp 에 둔다. quad 4,934파일·58MB 는 대부분 이런 덤프였다.
+- **audit 덤프 증가**: audit 문서는 결론, 수치, 재현 명령만 담는다. 원시 출력(트랜스크립트 재생, json, 로그)은 `.claude/audit/<n>/raw/`(gitignore)나 /tmp 에 둔다. quad 4,934파일·58MB 는 대부분 이런 덤프였다.
 - **q:start 뼈대**: `.claude/README.md`(폴더 한 줄씩 + 마커), `base/README.md`, `archive/README.md`, `.claude/session-log.json`(`records_home: .claude/sessions`). C8 이 들어가면 `coderag.toml` 은 만들지 않는다. 기록이 `.claude/` 밖에 있을 때만 쓴다.
 
 ## 5. 규약 문구 (qwreey-conventions 스킬 `agent-records` 로 배포, coderag `docs-frontmatter` 는 키 참조만 남기고 이 스킬을 가리킴)
@@ -102,7 +102,7 @@ Sessions and audits are snapshots: no status; readers check them against current
 ## Lifecycle
 - When a record stops being active, change `status:` and `git mv` it under `archive/` in the same commit. Leave a one-line pointer only where an active doc linked it.
 - Never edit an audit or session body after the fact; supersede it with a new record.
-- Raw dumps (logs, json, replays) stay out of git: `audit/<n>/raw/` is ignored.
+- Raw dumps (logs, json, replays) stay out of git: `.claude/audit/<n>/raw/` is ignored.
 - Old records without frontmatter are not backfilled; the folder gives their kind.
 
 ## Indexes and checks
@@ -119,8 +119,8 @@ Search first (`coderag search --abs`, or /q:recall), then read only the returned
 - 0. 브랜치 `exp/records`. 선행 조건은 C1·C2·C6 이고, coderag 저장소에서 사용자 승인을 받은 뒤 진행한다. 승인이 없으면 `/tmp` 사본에서 패치한 바이너리로만 잰다.
 - 1. **기준선(옮기기 전)**: 정답 위치가 정해진 recall 질문 10개(예: "D-04 근거", "luau-core 를 왜 옮겼나")를 고른다. 지금 방식인 grep locate 의 hit@5, 호출 수, 읽은 토큰을 잰다. 같은 질문을 `coderag.toml`(target 을 audit, decisions, drafts, handoff 로 지정하고 /tmp 에 둔다)로도 잰다. 이동 효과와 색인 효과를 따로 재기 위해서다.
 - 2. **커밋 A**: `git mv` 만 한다. audit→`.claude/audit`, decisions→`.claude/base/decisions`, drafts 중 landed→`.claude/archive/drafts`, 나머지 drafts→`.claude/research`, handoff→`.claude/handoff`, PLAN.md→`.claude/plan/`. CLAUDE.md·HUMAN_TODO.md·README.md 는 루트에 남긴다.
-- 3. **커밋 B**: 기계적인 경로 치환(옛→새 대응표 하나). 함께 고칠 곳은 web.py `PLUGINS_REF`, conventions.json exclude, conventions-check 정규식, records_home 후보, `.gitignore` 다(audit/36 §3).
-- 4. **커밋 C**: 끝난 문서에만 frontmatter status 를 단다. 첫 줄 `status: landed in` 이 있는 drafts 는 지금 몇 개뿐이라(예: `drafts/second-opinion/README.md`) 폴더 README 와 머리줄로 하나씩 판정한다. audit 은 백필하지 않고 폴더로 kind 를 얻는다. 주의: drafts 의 절 메타 줄에는 자유문 `status:`(근거 등급, 메모)가 많다. 그래서 C1 문법은 파일 frontmatter 에만 적용하고, 절 메타의 `status:` 는 지금처럼 evidence 나 note 로 읽어야 한다.
+- 3. **커밋 B**: 기계적인 경로 치환(옛→새 대응표 하나). 함께 고칠 곳은 web.py `PLUGINS_REF`, conventions.json exclude, conventions-check 정규식, records_home 후보, `.gitignore` 다(.claude/audit/36 §3).
+- 4. **커밋 C**: 끝난 문서에만 frontmatter status 를 단다. 첫 줄 `status: landed in` 이 있는 drafts 는 지금 몇 개뿐이라(예: `.claude/archive/research/drafts/second-opinion/README.md`) 폴더 README 와 머리줄로 하나씩 판정한다. audit 은 백필하지 않고 폴더로 kind 를 얻는다. 주의: drafts 의 절 메타 줄에는 자유문 `status:`(근거 등급, 메모)가 많다. 그래서 C1 문법은 파일 frontmatter 에만 적용하고, 절 메타의 `status:` 는 지금처럼 evidence 나 note 로 읽어야 한다.
 - 5. **커밋 D**: static-gen 으로 폴더 README 를 만든다.
 - 측정:
   - 같은 10개 질문의 hit@5, 토큰, 호출 수
@@ -133,7 +133,7 @@ Search first (`coderag search --abs`, or /q:recall), then read only the returned
 
 ## 7. P 가 반박할 것으로 보는 점
 1. 개발 중인 도구(설계 §35 가 팀 서버로 움직이는 중)에 모든 저장소의 규약을 묶는 위험. 내 답은 이렇다. 묶는 것은 frontmatter 키 5개와 status 문법뿐이고, 이것은 평문 YAML 이라 coderag 가 사라져도 남는다. 게다가 coderag 는 사용자 자신의 도구라 우리가 어휘를 고정할 수 있다.
-2. status 를 frontmatter 에만 두는 것. P 는 본문 첫 줄의 평문 상태 줄을 원할 것이다. 나는 이중 소스가 더 큰 실패라고 본다(audit/36).
+2. status 를 frontmatter 에만 두는 것. P 는 본문 첫 줄의 평문 상태 줄을 원할 것이다. 나는 이중 소스가 더 큰 실패라고 본다(.claude/audit/36).
 3. coderag 변경 8건이 형제 저장소 작업이라는 점: 승인이 필요하고, 다른 세션과 충돌할 수 있다. 그동안은 lint 오탐이 생긴다.
 4. archive 후보 휴리스틱(나이와 인용 0)의 오탐, 그리고 "status 변경과 이동을 같은 커밋에"가 너무 엄격하다는 점.
 5. 비프로그래머 동료에게 배포할 때 바이너리 빌드가 필요하다는 점. 그래서 §3.4 폴백이 실제로 쓸 만해야 한다.

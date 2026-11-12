@@ -8,7 +8,7 @@ last_verified: 2026-11-10
 ---
 # 세션 기록 자동화 설계 (session-log)
 
-2026-11-10. 조사와 실측 근거는 `audit/15-session-log.md` 에 있다. 이 폴더의 스크립트는 실측용 프로토타입이고 본 구현이 아니다.
+2026-11-10. 조사와 실측 근거는 `.claude/audit/15-session-log.md` 에 있다. 이 폴더의 스크립트는 실측용 프로토타입이고 본 구현이 아니다.
 
 > **구현됨: `plugins/q/` (이름 변경: 옛 plugins/session-log)** (README 가 현재 동작의 정본). 아래 본문과 달라진 점(사용자 결정 2026-11-10):
 > - **저장 위치를 저장소 밖으로 옮겼다.** `${SESSION_LOG_HOME:-${XDG_DATA_HOME:-~/.local/share}/session-log}/<project-key>/records/` 에 둔다. 키는 git common-dir 기준이라 worktree 도 같은 키를 쓴다. §5.1 의 `.claude/session/auto/` 는 쓰지 않는다. 저장소에는 아무것도 쓰지 않는다.
@@ -57,7 +57,7 @@ SessionStart ── 인계 몇 줄 + 안내 한 줄 주입 / 필요하면 일별
 | **PostToolUse** | `async: true`. 지난 실행 뒤 20분 이상 **그리고** 트랜스크립트가 지난 오프셋보다 512KB 이상 자람 | 일반 flush | 몇 시간짜리 자율 작업 중간 기록. stat 두 번이면 판단이 끝난다 |
 | Stop | PostToolUse 와 같은 쿨다운 | 일반 flush | 턴 끝이 구간 경계로 더 깔끔하다. PostToolUse 보다 드물게 불린다 |
 | PostCompact | 항상 | `compact_summary` 를 `.state/<sid>.compact-<n>.md` 로 보관(요약 호출 없음) | 공짜로 받는 메인 모델 요약. 트랜스크립트가 30일 뒤 지워져도 남는다 |
-| 수동 `/checkpoint` | 사용자나 모델 | `session-log flush --wait 120` 후 새 절의 "미해결" 만 보여 준다 | `audit/10` §2.1 |
+| 수동 `/checkpoint` | 사용자나 모델 | `session-log flush --wait 120` 후 새 절의 "미해결" 만 보여 준다 | `.claude/audit/10` §2.1 |
 
 - 일반 flush 는 줄인 텍스트가 3,000자 미만이면 요약하지 않는다. 오프셋도 그대로 둬 다음에 합친다. 강제 flush 는 500자 이상이면 요약한다.
 - 재귀 방지: 훅 첫 줄에서 `SESSION_LOG_NESTED=1` 이면 곧바로 끝낸다. 요약 호출 자체는 `--setting-sources ""` 로 사용자·프로젝트 훅을 싣지 않는다(실측 0회 발화).
@@ -95,7 +95,7 @@ SessionStart ── 인계 몇 줄 + 안내 한 줄 주입 / 필요하면 일별
 
 ### 4.1 모델
 **기본 haiku + 기계 대조**를 권한다. 설정으로 sonnet 으로 바꿀 수 있다.
-- 근거: `audit/15` §3. 표본 10개 누락은 두 모델 모두 0이었다. haiku 는 숫자 123개와 인용 50개가 원문과 모두 일치했다. 의미 오류는 경미한 1건이었다.
+- 근거: `.claude/audit/15` §3. 표본 10개 누락은 두 모델 모두 0이었다. haiku 는 숫자 123개와 인용 50개가 원문과 모두 일치했다. 의미 오류는 경미한 1건이었다.
 - 비용은 sonnet 의 1/13이다. 3세션 합계 $0.057 대 $0.745.
 - haiku 는 도구 없이 텍스트만 만든다. 파일 쓰기와 검증은 스크립트가 한다.
 - 혼합안(haiku 요약 + sonnet 대조)은 비용이 sonnet 의 74%인데 새로 잡은 오류가 없었다. 상시로 쓰지 않는다.
@@ -208,7 +208,7 @@ id: c9a9e895-3 · summary: <이 구간 description> · note: L5–L232
 ### 7.3 PreCompact stdout (선택, 추천)
 - PreCompact 훅의 stdout 은 compact 요약 지시가 된다(≤10,000자, 실측 확인).
 - 훅이 모델 호출 없이 extract 만으로 "지난 compact 이후 사용자 발언 원문 목록"(≤6,000자)을 뽑아 다음 지시를 붙여 낸다: "다음 사용자 발언은 요약에 원문 그대로 보존하라."
-- 이것은 `audit/10` 의 "작업 중 지시가 compact 를 거치며 사라진다" 문제를 직접 겨냥한다. 메인 세션은 이 비용을 compact 요약 안에서만 낸다.
+- 이것은 `.claude/audit/10` 의 "작업 중 지시가 compact 를 거치며 사라진다" 문제를 직접 겨냥한다. 메인 세션은 이 비용을 compact 요약 안에서만 낸다.
 
 ## 8. 검증과 감시
 - 저장 때: `verify.py` 규칙(기계, 무료)을 적용한다.
@@ -229,7 +229,7 @@ id: c9a9e895-3 · summary: <이 구간 description> · note: L5–L232
 - **메모리**(`~/.claude/projects/*/memory`): 메모리는 오래 가는 사실과 선호(작고 항상 로드됨)이고, 세션 기록은 시간순 기록이다.
   - 요약기는 메모리를 쓰지 않는다.
   - `/checkpoint` 가 "사용자 지시와 정정" 가운데 반복되는 것을 메모리 후보로 **제안만** 한다(사람 승인).
-- **`/checkpoint`(audit/10 §2.1)**
+- **`/checkpoint`(.claude/audit/10 §2.1)**
   1. `session-log flush --wait 120`
   2. 새 절의 "미해결과 다음 단계"와 "사용자 지시"만 읽는다(작다).
   3. compact 인자 초안(남길 것 / 잊을 것 / 다음 할 일)을 만든다.
@@ -256,7 +256,7 @@ id: c9a9e895-3 · summary: <이 구간 description> · note: L5–L232
 - 다른 sandbox: 저장소마다 `.claude/session/auto/` 가 생기고, 사용자가 pull 할 때 같이 온다(D2).
 
 ## 11. 결정 필요
-- **D1 요약 모델**: haiku + 기계 대조(추천, `audit/15` §3.4) / sonnet / 혼합안(haiku + sonnet 대조, 비용 74%, 이번 표본에서 이득 없음).
+- **D1 요약 모델**: haiku + 기계 대조(추천, `.claude/audit/15` §3.4) / sonnet / 혼합안(haiku + sonnet 대조, 비용 74%, 이번 표본에서 이득 없음).
 - **D2 자동 기록의 git**: 추적하고, 커밋은 `/handover`·`/checkpoint` 에서 사람이 한다(추천. 워커는 커밋하지 않는다) / `.gitignore`(기록이 sandbox 에만 남는다).
 - **D3 트랜스크립트 보존**: 정본 `home/.claude/settings.json` 에 `cleanupPeriodDays: 180` 을 넣는다(추천. 대조·소급 기간을 늘린다. 디스크는 지금 1.2GB+서브에이전트) / 기본 30일.
 - **D4 PreCompact stdout 으로 사용자 발언 원문 보존 지시**(§7.3): 켬(추천) / 끔.
@@ -268,7 +268,7 @@ id: c9a9e895-3 · summary: <이 구간 description> · note: L5–L232
 
 ## 12. 구현 순서
 1. **M0 워커 CLI**: `session-log flush|status|verify|backfill`. 이 폴더 스크립트를 정리해 state·잠금·원자적 쓰기·실패 처리를 붙인다. `/checkpoint` 스킬과 연결한다.
-2. **M1 훅**: PreCompact, SessionEnd, PostToolUse(async)+Stop 쿨다운, PostCompact 보관. `-p` 로 `/compact` 를 유도해 끝까지 시험한다(`audit/15` §2.2 방법).
+2. **M1 훅**: PreCompact, SessionEnd, PostToolUse(async)+Stop 쿨다운, PostCompact 보관. `-p` 로 `/compact` 를 유도해 끝까지 시험한다(`.claude/audit/15` §2.2 방법).
 3. **M2 SessionStart 주입**과 오류 한 줄.
 4. **M3 통합**: daily, weekly, archived 전환. 동시 세션 잠금 시험(quad 형태: 같은 키에 두 세션).
 5. **M4 소급**: `backfill --since` 로 남은 트랜스크립트를 처리한다(D5). 대조 표본 회귀 시험.

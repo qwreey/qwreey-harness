@@ -1,4 +1,4 @@
-# vitrine 세션에게: 웹 플러그인 도입 (audit/16)
+# vitrine 세션에게: 웹 플러그인 도입 (.claude/audit/16)
 
 근거는 `claude-doctor/audit/16-marketplace.md` §2, §8 이다. 반영은 vitrine 세션이 판단한다. 아래 모두 vitrine project 범위다(사용자 레벨에 두면 Luau 저장소에서도 Stop 리뷰가 돈다).
 
@@ -20,7 +20,7 @@
 
 - 기존 키가 있으면 합친다(`jq -e` 로 검증).
 - 다른 세션과 worktree 를 공유하면 `env` 에 `"ENABLE_STOP_REVIEW": "0"` 도 더한다(security-guidance README 권고).
-- context7 은 audit/16 §7-3 실측 전이라 후보다. 부담되면 뺀다.
+- context7 은 .claude/audit/16 §7-3 실측 전이라 후보다. 부담되면 뺀다.
 - security-guidance 는 첫 세션에 PyPI 에서 venv 를 만든다(네트워크). Stop 리뷰는 턴마다 Opus 를 부른다(약 0.19 USD 상당).
 - typescript-lsp, gopls-lsp 는 바이너리 설치와 실측 뒤에 더한다(지금은 넣지 않는다).
 

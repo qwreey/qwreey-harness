@@ -1,18 +1,18 @@
 # qwreey-conventions 스킬 감사와 남은 주석 보고
 
 범위: `plugins/qwreey-conventions` 의 스킬 둘(`comments`, `agent-docs`), 짝 규칙(`home/.claude/rules/comments.md`, `agent-docs.md`), 훅 알림 문구. 커밋하지 않았다.
-기준: skill-creator SKILL.md(쓰기 지침, description, Explain the why, progressive disclosure), 공식 best-practices, `audit/24-skill-audit.md` §4.
+기준: skill-creator SKILL.md(쓰기 지침, description, Explain the why, progressive disclosure), 공식 best-practices, `.claude/audit/24-skill-audit.md` §4.
 보는 자리: (1) 훅 알림을 받고 스킬을 연 모델, (2) 주석이나 문서를 쓰는 중에 스스로 연 모델.
 
 ## A. 감사
 
-현황: description 은 486자와 504자(목표 300~500 근처, 상한 1,024 안), 본문 118줄과 66줄(500줄 안), references 없음, 영어 본문과 한국어 트리거 구절은 audit/24 §4-12 와 맞는다. 이유 문장(Test 문장, 가운뎃점이 걸리는 이유, Ref 꼬리)은 이미 있다. 아래는 어긋난 것이다.
+현황: description 은 486자와 504자(목표 300~500 근처, 상한 1,024 안), 본문 118줄과 66줄(500줄 안), references 없음, 영어 본문과 한국어 트리거 구절은 .claude/audit/24 §4-12 와 맞는다. 이유 문장(Test 문장, 가운뎃점이 걸리는 이유, Ref 꼬리)은 이미 있다. 아래는 어긋난 것이다.
 
 ### 바로 고친 것 (명백)
 
 | # | 심각도 | 문제 | 고친 내용 |
 |---|---|---|---|
-| 1 | 중 | agent-docs 가 "유지보수 근거는 스킬 밖 docs 폴더"라 하는데 audit/24 §4-2 와 이 하네스의 실제 관행(스킬 안 `references/rationale.md`)과 모순 | 스킬 안 `references/rationale.md`(한 줄 링크)와 스킬 밖 docs 폴더를 둘 다 허용 |
+| 1 | 중 | agent-docs 가 "유지보수 근거는 스킬 밖 docs 폴더"라 하는데 .claude/audit/24 §4-2 와 이 하네스의 실제 관행(스킬 안 `references/rationale.md`)과 모순 | 스킬 안 `references/rationale.md`(한 줄 링크)와 스킬 밖 docs 폴더를 둘 다 허용 |
 | 2 | 중 | agent-docs 표의 "입구 문서: skill 바로 아래 다른 파일"이 훅 동작과 다름(훅은 `references/` 밖의 skills 아래 모든 `.md` 를 입구로 본다) | "`references/` 밖의 skill 아래 다른 파일"로 |
 | 3 | 중 | rules/comments.md 의 `paths` 에 `sh, html, htm` 이 없는데 훅은 검사한다(.sh, .html 주석을 쓸 때 규칙이 안 로드됨) | 글롭에 추가 |
 | 4 | 중 | comments 의 "기존 id 는 지우지 않는다"와 "이력은 커밋 메시지로"가 새로 쓰는 이력과 기존 id 를 구분하지 않아 충돌처럼 읽힘 | 기존 id 는 `Ref:` 꼬리로, 지금 쓰는 이력은 커밋 메시지로 구분해 적음 |
@@ -31,10 +31,10 @@
 | P2 | 중 | 알림이 범주만 말한다. 문서의 `history marker` 한 범주에 날짜, 경로, 결정 문구, 실측 표지, 변경 서술, 원장 id 6가지가 뭉쳐 모델이 어느 토큰이 걸렸는지 짐작해야 함(알림 문구 길이와 맞바꿈) | 알림에 걸린 토큰을 붙인다. 예: `L24 history marker: "H-973"`. 검사 범주와 패턴은 그대로, 알림 상세만 늘어남 |
 | P3 | 낮 | 알림은 "fix the lines you added" 만 말하고 의도적 예외 처리는 스킬에만 있다. 스킬을 안 연 모델은 공개 id 를 억지로 고칠 수 있음 | 알림 끝에 "or leave a deliberate exception and say so" 추가(훅 알림이 길어짐) |
 | P4 | 낮 | 두 스킬의 `argument-hint: "[file or note]"` 를 본문이 쓰지 않음(인자가 오면 무엇을 하는지 없음) | 인자 처리를 한 줄 정하거나 필드를 뺀다 |
-| P5 | 낮 | description 에 열거가 있음(agent-docs: 측정 표지, 정정 배너 등). audit/24 §4-9 는 원리 한 줄을 권함. 길이는 500 안팎이라 급하지 않음 | 열거를 줄여 400자 안쪽으로. 발동률에 영향을 주므로 `/skill-doctor` 나 트리거 질의로 확인 후 |
+| P5 | 낮 | description 에 열거가 있음(agent-docs: 측정 표지, 정정 배너 등). .claude/audit/24 §4-9 는 원리 한 줄을 권함. 길이는 500 안팎이라 급하지 않음 | 열거를 줄여 400자 안쪽으로. 발동률에 영향을 주므로 `/skill-doctor` 나 트리거 질의로 확인 후 |
 | P6 | 낮 | comments 의 "Repo settings"(설정 키 설명)는 알림 처리나 쓰기 중인 모델에겐 거의 불필요 | `references/settings.md` 로 분리(progressive disclosure). 본문 118줄이라 이득이 작다 |
-| P7 | 낮 | agent-docs 의 "모델 사이 텍스트는 영어"에 이유가 없다 | 한 절 이유를 추가(audit/24 §4-12 의 근거를 요약). 근거 문장은 내가 새로 지어내지 않고 사용자와 확인 |
-| P8 | 낮 | 같은 (파일, 범주)는 한 번만 알려서 두 번째 편집의 같은 위반은 알림이 없다(audit/26 설계). 단 B 의 Stop 보고는 다음 편집부터 그 줄을 "남은 것"으로 센다 | 설계 유지. 보고가 안전망 역할을 하므로 별도 조치 불필요 |
+| P7 | 낮 | agent-docs 의 "모델 사이 텍스트는 영어"에 이유가 없다 | 한 절 이유를 추가(.claude/audit/24 §4-12 의 근거를 요약). 근거 문장은 내가 새로 지어내지 않고 사용자와 확인 |
+| P8 | 낮 | 같은 (파일, 범주)는 한 번만 알려서 두 번째 편집의 같은 위반은 알림이 없다(.claude/audit/26 설계). 단 B 의 Stop 보고는 다음 편집부터 그 줄을 "남은 것"으로 센다 | 설계 유지. 보고가 안전망 역할을 하므로 별도 조치 불필요 |
 
 모순 점검 결과: 규칙, 스킬, 훅 사이에서 위 1~4 말고는 찾지 못했다. 범주 이름, 알림 문장 구조, Ref 꼬리 허용, 기호 대체표는 세 곳이 서로 맞는다.
 
