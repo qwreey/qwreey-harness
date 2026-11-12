@@ -1,0 +1,226 @@
+[
+ {
+  "id": "q01",
+  "kind": "user",
+  "question": "메모리에만 적혀 레포에 안 실려서 다른 사람이 열면 누락되는 문제(메모리는 이식되지 않음)를 어떻게 다루기로 했나?",
+  "terms": [
+   "memory",
+   "메모리",
+   "이식",
+   "autoMemoryDirectory",
+   "portable"
+  ],
+  "gold": [
+   {
+    "path": "audit/23-memory-portability.md",
+    "anchor": "### 2-2. `autoMemoryDirectory` 를 저장소 안으로 지정하는 방안"
+   }
+  ]
+ },
+ {
+  "id": "q02",
+  "kind": "user",
+  "question": "coderag 의 global/project 계층은 어떻게 나뉘고, 기록용으로는 무엇을 선언해야 하나?",
+  "terms": [
+   "coderag",
+   "project 계층",
+   "layer",
+   "선언",
+   "global"
+  ],
+  "gold": [
+   {
+    "path": "audit/37-coderag-records/survey.md",
+    "anchor": "## 4. project 계층 (무엇을 선언해야 하나)"
+   }
+  ]
+ },
+ {
+  "id": "q03",
+  "kind": "user",
+  "question": "coderag 검색이 경로:줄범위로 돌려주면 Read offset/limit 자투리가 토큰을 먹지 않나? 출력 형식은 어떻게 되어 있나?",
+  "terms": [
+   "coderag",
+   "--abs",
+   "offset",
+   "limit",
+   "출력"
+  ],
+  "gold": [
+   {
+    "path": "audit/37-coderag-records/survey.md",
+    "anchor": "에이전트가 Read offset/limit 으로 바로 읽음"
+   }
+  ]
+ },
+ {
+  "id": "q04",
+  "kind": "user",
+  "question": "compact 로 길게 이어지는 세션에서, 세션 시작 때 한 번 주입하는 맥락(훅·rules·output style)은 compact 뒤에도 남나?",
+  "terms": [
+   "compact",
+   "SessionStart",
+   "additionalContext",
+   "플러그인",
+   "상시"
+  ],
+  "gold": [
+   {
+    "path": "audit/32-plugin-ambient-context.md",
+    "anchor": "## 서브에이전트와 compact"
+   }
+  ]
+ },
+ {
+  "id": "q05",
+  "kind": "user",
+  "question": "몇 시간째 방치된 shell task 나 멈춘 subagent 를 하네스가 알려주지 않는 문제는 어디에 어떻게 두기로 했나?",
+  "terms": [
+   "방치",
+   "background_tasks",
+   "Stop",
+   "SubagentStop",
+   "진척"
+  ],
+  "gold": [
+   {
+    "path": "audit/29-repo-audit-pass2-debate/verdict.md",
+    "anchor": "**오래 방치된 작업.**"
+   }
+  ]
+ },
+ {
+  "id": "q06",
+  "kind": "user+landed",
+  "question": "예전 second-opinion 플러그인(audit/context)은 무엇으로 대체됐고 왜 바꿨나?",
+  "terms": [
+   "second-opinion",
+   "advisor",
+   "fresh-advisor",
+   "대체",
+   "독립 검토"
+  ],
+  "gold": [
+   {
+    "path": "drafts/second-opinion/README.md",
+    "anchor": "status: landed in plugins/qwreey-advisor/"
+   },
+   {
+    "path": "audit/18-second-opinion.md",
+    "anchor": "# 18. 검토(second opinion) 운용 제안: advisor 대신 예측 가능한 독립 검토"
+   },
+   {
+    "path": "audit/29-repo-audit-pass2-debate/verdict.md",
+    "anchor": "`second-opinion:audit`"
+   }
+  ]
+ },
+ {
+  "id": "q07",
+  "kind": "decisions",
+  "question": "타입 함수(type function) 정책은 프로젝트별로 어떻게 다르고 무엇으로 정했나?",
+  "terms": [
+   "type function",
+   "타입 함수",
+   "진단 전용",
+   "tbox",
+   "D-04"
+  ],
+  "gold": [
+   {
+    "path": "decisions/D-04-type-functions.md",
+    "anchor": "## 1. 각 프로젝트의 입장 — 셋이 아니라 넷"
+   }
+  ]
+ },
+ {
+  "id": "q08",
+  "kind": "user+sessions",
+  "question": "한글로 물었는데 영어로 답하는 문제는 얼마나 자주 났고 감지 방안은 무엇이 검토됐나?",
+  "terms": [
+   "영어 응답",
+   "감지",
+   "Stop 훅",
+   "MessageDisplay",
+   "1,264턴"
+  ],
+  "gold": [
+   {
+    "path": ".claude/sessions/2026-11-10-c9a9e895-2.md",
+    "anchor": "영어 응답 실측(한글 입력 1,264턴 중 35턴, 2.8%)"
+   }
+  ]
+ },
+ {
+  "id": "q09",
+  "kind": "drafts-landed",
+  "question": "세션 기록 요약을 claude -p 로 돌릴지 API 직접 호출로 할지 어떻게 정했고 왜인가?",
+  "terms": [
+   "session-log",
+   "claude -p",
+   "API",
+   "요약 모델",
+   "비용"
+  ],
+  "gold": [
+   {
+    "path": "drafts/session-log/DESIGN.md",
+    "anchor": "### 4.2 `claude -p` 대 API 직접 호출"
+   }
+  ]
+ },
+ {
+  "id": "q10",
+  "kind": "rejected",
+  "question": "coderag 에 첫 줄 status 파서(C3)를 넣는 안은 왜 안 넣기로 했나?",
+  "terms": [
+   "C3",
+   "첫 줄 status",
+   "파서",
+   "coderag",
+   "archive"
+  ],
+  "gold": [
+   {
+    "path": "audit/38-records-convention/synthesis.md",
+    "anchor": "C3(coderag 첫 줄 status 파서)"
+   }
+  ]
+ },
+ {
+  "id": "q11",
+  "kind": "plan",
+  "question": "도메인 팩을 기본 꺼짐으로 하는 합의와 선행 실측은 무엇인가?",
+  "terms": [
+   "도메인 팩",
+   "defaultEnabled",
+   "enabledPlugins",
+   "기본 꺼짐",
+   "q:start"
+  ],
+  "gold": [
+   {
+    "path": "PLAN.md",
+    "anchor": "도메인 팩은 기본 꺼짐 (동의)"
+   }
+  ]
+ },
+ {
+  "id": "q12",
+  "kind": "handoff",
+  "question": "table-sim 의 mise.toml 핀이 형제 프로젝트와 같다는 서술은 맞나, 정정은 어디에 있나?",
+  "terms": [
+   "table-sim",
+   "mise.toml",
+   "핀",
+   "정정",
+   "luau-lsp"
+  ],
+  "gold": [
+   {
+    "path": "handoff/table-sim-corrections.md",
+    "anchor": "TS01"
+   }
+  ]
+ }
+]

@@ -1,0 +1,232 @@
+# proposed, NOT executed. Columns: old_path<TAB>new_path<TAB>reason. Rows with old==new are kept in place (flagged).
+old_path	new_path	reason
+PLAN.md	PLAN.md	KEEP at root (user decision: referenced often); living doc, stays in both corpora
+audit/01-official-docs.md	.claude/audit/01-official-docs.md	snapshot, whole folder moves together so relative links inside survive
+audit/02-ecosystem.md	.claude/audit/02-ecosystem.md	snapshot, whole folder moves together so relative links inside survive
+audit/03-quad-family.md	.claude/audit/03-quad-family.md	snapshot, whole folder moves together so relative links inside survive
+audit/04-other-projects.md	.claude/audit/04-other-projects.md	snapshot, whole folder moves together so relative links inside survive
+audit/05-luau-knowledge-map.md	.claude/audit/05-luau-knowledge-map.md	snapshot, whole folder moves together so relative links inside survive
+audit/06-docs-and-canon.md	.claude/audit/06-docs-and-canon.md	snapshot, whole folder moves together so relative links inside survive
+audit/07-stl-luau-diet.md	.claude/audit/07-stl-luau-diet.md	snapshot, whole folder moves together so relative links inside survive
+audit/08-quad-knowledge-mine.md	.claude/audit/08-quad-knowledge-mine.md	snapshot, whole folder moves together so relative links inside survive
+audit/09-other-knowledge-mine.md	.claude/audit/09-other-knowledge-mine.md	snapshot, whole folder moves together so relative links inside survive
+audit/10-harness-usage-mine.md	.claude/audit/10-harness-usage-mine.md	snapshot, whole folder moves together so relative links inside survive
+audit/11-knowledge-gaps.md	.claude/audit/11-knowledge-gaps.md	snapshot, whole folder moves together so relative links inside survive
+audit/12-code-structure.md	.claude/audit/12-code-structure.md	snapshot, whole folder moves together so relative links inside survive
+audit/13-luau-upstream.md	.claude/audit/13-luau-upstream.md	snapshot, whole folder moves together so relative links inside survive
+audit/14-toolkit-agnostic.md	.claude/audit/14-toolkit-agnostic.md	snapshot, whole folder moves together so relative links inside survive
+audit/15-session-log.md	.claude/audit/15-session-log.md	snapshot, whole folder moves together so relative links inside survive
+audit/16-marketplace.md	.claude/audit/16-marketplace.md	snapshot, whole folder moves together so relative links inside survive
+audit/17-hook-messages.md	.claude/audit/17-hook-messages.md	snapshot, whole folder moves together so relative links inside survive
+audit/18-second-opinion.md	.claude/audit/18-second-opinion.md	snapshot, whole folder moves together so relative links inside survive
+audit/19-external/00-synthesis.md	.claude/audit/19-external/00-synthesis.md	snapshot, whole folder moves together so relative links inside survive
+audit/19-external/01-official.md	.claude/audit/19-external/01-official.md	snapshot, whole folder moves together so relative links inside survive
+audit/19-external/02-community.md	.claude/audit/19-external/02-community.md	snapshot, whole folder moves together so relative links inside survive
+audit/19-external/03-knowledge-tools.md	.claude/audit/19-external/03-knowledge-tools.md	snapshot, whole folder moves together so relative links inside survive
+audit/19-external/04-luau-ecosystem-and-evals.md	.claude/audit/19-external/04-luau-ecosystem-and-evals.md	snapshot, whole folder moves together so relative links inside survive
+audit/19-external/05-verification.md	.claude/audit/19-external/05-verification.md	snapshot, whole folder moves together so relative links inside survive
+audit/20-onboarding.md	.claude/audit/20-onboarding.md	snapshot, whole folder moves together so relative links inside survive
+audit/21-cost-disclosure.md	.claude/audit/21-cost-disclosure.md	snapshot, whole folder moves together so relative links inside survive
+audit/22-user-ergonomics.md	.claude/audit/22-user-ergonomics.md	snapshot, whole folder moves together so relative links inside survive
+audit/23-memory-portability.md	.claude/audit/23-memory-portability.md	snapshot, whole folder moves together so relative links inside survive
+audit/24-skill-audit.md	.claude/audit/24-skill-audit.md	snapshot, whole folder moves together so relative links inside survive
+audit/25-advisor-description-debate/body-r1-P.md	.claude/audit/25-advisor-description-debate/body-r1-P.md	snapshot, whole folder moves together so relative links inside survive
+audit/25-advisor-description-debate/body-r1-Q.md	.claude/audit/25-advisor-description-debate/body-r1-Q.md	snapshot, whole folder moves together so relative links inside survive
+audit/25-advisor-description-debate/body-r2-P.md	.claude/audit/25-advisor-description-debate/body-r2-P.md	snapshot, whole folder moves together so relative links inside survive
+audit/25-advisor-description-debate/body-r2-Q.md	.claude/audit/25-advisor-description-debate/body-r2-Q.md	snapshot, whole folder moves together so relative links inside survive
+audit/25-advisor-description-debate/body-verdict.md	.claude/audit/25-advisor-description-debate/body-verdict.md	snapshot, whole folder moves together so relative links inside survive
+audit/25-advisor-description-debate/dossier.md	.claude/audit/25-advisor-description-debate/dossier.md	snapshot, whole folder moves together so relative links inside survive
+audit/25-advisor-description-debate/judge-run.md	.claude/audit/25-advisor-description-debate/judge-run.md	snapshot, whole folder moves together so relative links inside survive
+audit/25-advisor-description-debate/r1-P.md	.claude/audit/25-advisor-description-debate/r1-P.md	snapshot, whole folder moves together so relative links inside survive
+audit/25-advisor-description-debate/r1-Q.md	.claude/audit/25-advisor-description-debate/r1-Q.md	snapshot, whole folder moves together so relative links inside survive
+audit/25-advisor-description-debate/r2-P.md	.claude/audit/25-advisor-description-debate/r2-P.md	snapshot, whole folder moves together so relative links inside survive
+audit/25-advisor-description-debate/r2-Q.md	.claude/audit/25-advisor-description-debate/r2-Q.md	snapshot, whole folder moves together so relative links inside survive
+audit/25-advisor-description-debate/verdict.md	.claude/audit/25-advisor-description-debate/verdict.md	snapshot, whole folder moves together so relative links inside survive
+audit/26-doc-hygiene-debate/dossier.md	.claude/audit/26-doc-hygiene-debate/dossier.md	snapshot, whole folder moves together so relative links inside survive
+audit/26-doc-hygiene-debate/r1-P.md	.claude/audit/26-doc-hygiene-debate/r1-P.md	snapshot, whole folder moves together so relative links inside survive
+audit/26-doc-hygiene-debate/r1-Q.md	.claude/audit/26-doc-hygiene-debate/r1-Q.md	snapshot, whole folder moves together so relative links inside survive
+audit/26-doc-hygiene-debate/r2-P.md	.claude/audit/26-doc-hygiene-debate/r2-P.md	snapshot, whole folder moves together so relative links inside survive
+audit/26-doc-hygiene-debate/r2-Q.md	.claude/audit/26-doc-hygiene-debate/r2-Q.md	snapshot, whole folder moves together so relative links inside survive
+audit/26-doc-hygiene-debate/r3-verdict.md	.claude/audit/26-doc-hygiene-debate/r3-verdict.md	snapshot, whole folder moves together so relative links inside survive
+audit/26-doc-hygiene-debate/replay.md	.claude/audit/26-doc-hygiene-debate/replay.md	snapshot, whole folder moves together so relative links inside survive
+audit/26-doc-hygiene-debate/verdict.md	.claude/audit/26-doc-hygiene-debate/verdict.md	snapshot, whole folder moves together so relative links inside survive
+audit/27-conventions-skill-audit.md	.claude/audit/27-conventions-skill-audit.md	snapshot, whole folder moves together so relative links inside survive
+audit/28-repo-audit-pass1.md	.claude/audit/28-repo-audit-pass1.md	snapshot, whole folder moves together so relative links inside survive
+audit/29-repo-audit-pass2-debate/dossier.md	.claude/audit/29-repo-audit-pass2-debate/dossier.md	snapshot, whole folder moves together so relative links inside survive
+audit/29-repo-audit-pass2-debate/measure.md	.claude/audit/29-repo-audit-pass2-debate/measure.md	snapshot, whole folder moves together so relative links inside survive
+audit/29-repo-audit-pass2-debate/r1-P.md	.claude/audit/29-repo-audit-pass2-debate/r1-P.md	snapshot, whole folder moves together so relative links inside survive
+audit/29-repo-audit-pass2-debate/r1-Q.md	.claude/audit/29-repo-audit-pass2-debate/r1-Q.md	snapshot, whole folder moves together so relative links inside survive
+audit/29-repo-audit-pass2-debate/r2-P.md	.claude/audit/29-repo-audit-pass2-debate/r2-P.md	snapshot, whole folder moves together so relative links inside survive
+audit/29-repo-audit-pass2-debate/r2-Q.md	.claude/audit/29-repo-audit-pass2-debate/r2-Q.md	snapshot, whole folder moves together so relative links inside survive
+audit/29-repo-audit-pass2-debate/verdict.md	.claude/audit/29-repo-audit-pass2-debate/verdict.md	snapshot, whole folder moves together so relative links inside survive
+audit/30-workspace-skill-gate-probe.md	.claude/audit/30-workspace-skill-gate-probe.md	snapshot, whole folder moves together so relative links inside survive
+audit/31-home-claude-md-debate/dossier.md	.claude/audit/31-home-claude-md-debate/dossier.md	snapshot, whole folder moves together so relative links inside survive
+audit/31-home-claude-md-debate/probes.md	.claude/audit/31-home-claude-md-debate/probes.md	snapshot, whole folder moves together so relative links inside survive
+audit/31-home-claude-md-debate/r1-P.md	.claude/audit/31-home-claude-md-debate/r1-P.md	snapshot, whole folder moves together so relative links inside survive
+audit/31-home-claude-md-debate/r1-Q.md	.claude/audit/31-home-claude-md-debate/r1-Q.md	snapshot, whole folder moves together so relative links inside survive
+audit/31-home-claude-md-debate/r2-P.md	.claude/audit/31-home-claude-md-debate/r2-P.md	snapshot, whole folder moves together so relative links inside survive
+audit/31-home-claude-md-debate/r2-Q.md	.claude/audit/31-home-claude-md-debate/r2-Q.md	snapshot, whole folder moves together so relative links inside survive
+audit/31-home-claude-md-debate/verdict.md	.claude/audit/31-home-claude-md-debate/verdict.md	snapshot, whole folder moves together so relative links inside survive
+audit/32-plugin-ambient-context.md	.claude/audit/32-plugin-ambient-context.md	snapshot, whole folder moves together so relative links inside survive
+audit/33-language-and-rules/measure.md	.claude/audit/33-language-and-rules/measure.md	snapshot, whole folder moves together so relative links inside survive
+audit/34-conventions-probes/probes.md	.claude/audit/34-conventions-probes/probes.md	snapshot, whole folder moves together so relative links inside survive
+audit/35-global-text-review/review.md	.claude/audit/35-global-text-review/review.md	snapshot, whole folder moves together so relative links inside survive
+audit/36-structure-survey/survey.md	.claude/audit/36-structure-survey/survey.md	snapshot, whole folder moves together so relative links inside survive
+audit/37-coderag-records/survey.md	.claude/audit/37-coderag-records/survey.md	snapshot, whole folder moves together so relative links inside survive
+audit/38-records-convention/round1-P.md	.claude/audit/38-records-convention/round1-P.md	snapshot, whole folder moves together so relative links inside survive
+audit/38-records-convention/round1-Q.md	.claude/audit/38-records-convention/round1-Q.md	snapshot, whole folder moves together so relative links inside survive
+audit/38-records-convention/round2-P.md	.claude/audit/38-records-convention/round2-P.md	snapshot, whole folder moves together so relative links inside survive
+audit/38-records-convention/round2-Q.md	.claude/audit/38-records-convention/round2-Q.md	snapshot, whole folder moves together so relative links inside survive
+audit/38-records-convention/synthesis.md	.claude/audit/38-records-convention/synthesis.md	snapshot, whole folder moves together so relative links inside survive
+audit/drafts/skills/luau-solver-bug-triage/SKILL.md	.claude/audit/drafts/skills/luau-solver-bug-triage/SKILL.md	snapshot, whole folder moves together so relative links inside survive
+audit/drafts/skills/luau-types/SKILL.md	.claude/audit/drafts/skills/luau-types/SKILL.md	snapshot, whole folder moves together so relative links inside survive
+audit/drafts/skills/luau-verify/SKILL.md	.claude/audit/drafts/skills/luau-verify/SKILL.md	snapshot, whole folder moves together so relative links inside survive
+audit/drafts/snippet-harness/check_snippets.py	.claude/audit/drafts/snippet-harness/check_snippets.py	snapshot, whole folder moves together so relative links inside survive
+audit/drafts/snippet-harness/snippets/generics-callback-bound-lost.luau	.claude/audit/drafts/snippet-harness/snippets/generics-callback-bound-lost.luau	snapshot, whole folder moves together so relative links inside survive
+audit/drafts/snippet-harness/snippets/negative-control.luau	.claude/audit/drafts/snippet-harness/snippets/negative-control.luau	snapshot, whole folder moves together so relative links inside survive
+decisions/D-01-const.md	.claude/base/decisions/D-01-const.md	settled decisions -> base/
+decisions/D-02-stylua.md	.claude/base/decisions/D-02-stylua.md	settled decisions -> base/
+decisions/D-03-runner.md	.claude/base/decisions/D-03-runner.md	settled decisions -> base/
+decisions/D-04-type-functions.md	.claude/base/decisions/D-04-type-functions.md	settled decisions -> base/
+decisions/D-05-toolchain-pins.md	.claude/base/decisions/D-05-toolchain-pins.md	settled decisions -> base/
+decisions/D-06-type-checker.md	.claude/base/decisions/D-06-type-checker.md	settled decisions -> base/
+decisions/D-07-finished-todos.md	.claude/base/decisions/D-07-finished-todos.md	settled decisions -> base/
+decisions/D-08-comment-language.md	.claude/base/decisions/D-08-comment-language.md	settled decisions -> base/
+decisions/D-09-naming-casing.md	.claude/base/decisions/D-09-naming-casing.md	settled decisions -> base/
+decisions/D-10-error-handling.md	.claude/base/decisions/D-10-error-handling.md	settled decisions -> base/
+decisions/D-11-object-shape-and-field-access.md	.claude/base/decisions/D-11-object-shape-and-field-access.md	settled decisions -> base/
+decisions/D-12-require-paths.md	.claude/base/decisions/D-12-require-paths.md	settled decisions -> base/
+decisions/D-13-file-structure.md	.claude/base/decisions/D-13-file-structure.md	settled decisions -> base/
+decisions/README.md	.claude/base/decisions/README.md	settled decisions -> base/
+drafts/agents/README.md	.claude/research/drafts/agents/README.md	pre-install draft/research, no landed marker
+drafts/agents/docs-auditor.md	.claude/research/drafts/agents/docs-auditor.md	pre-install draft/research, no landed marker
+drafts/agents/examples/rbvm-audit-focus-runtime.md	.claude/research/drafts/agents/examples/rbvm-audit-focus-runtime.md	pre-install draft/research, no landed marker
+drafts/agents/hooks/auditor-readonly-guard.py	.claude/research/drafts/agents/hooks/auditor-readonly-guard.py	pre-install draft/research, no landed marker
+drafts/agents/hooks/test-guard.py	.claude/research/drafts/agents/hooks/test-guard.py	pre-install draft/research, no landed marker
+drafts/agents/luau-perf-auditor.md	.claude/research/drafts/agents/luau-perf-auditor.md	pre-install draft/research, no landed marker
+drafts/agents/luau-quality-auditor.md	.claude/research/drafts/agents/luau-quality-auditor.md	pre-install draft/research, no landed marker
+drafts/agents/luau-runtime-auditor.md	.claude/research/drafts/agents/luau-runtime-auditor.md	pre-install draft/research, no landed marker
+drafts/agents/luau-type-auditor.md	.claude/research/drafts/agents/luau-type-auditor.md	pre-install draft/research, no landed marker
+drafts/agents/skills/audit-report-format/SKILL.md	.claude/research/drafts/agents/skills/audit-report-format/SKILL.md	pre-install draft/research, no landed marker
+drafts/agents/skills/audit/SKILL.md	.claude/research/drafts/agents/skills/audit/SKILL.md	pre-install draft/research, no landed marker
+drafts/coderag/examples/luau-kb-recursion-and-limits.md	.claude/research/drafts/coderag/examples/luau-kb-recursion-and-limits.md	pre-install draft/research, no landed marker
+drafts/coderag/examples/stl-luau-typing-limits.md	.claude/research/drafts/coderag/examples/stl-luau-typing-limits.md	pre-install draft/research, no landed marker
+drafts/coderag/taxonomy.toml	.claude/research/drafts/coderag/taxonomy.toml	pre-install draft/research, no landed marker
+drafts/delegate/README.md	.claude/research/drafts/delegate/README.md	pre-install draft/research, no landed marker
+drafts/delegate/conventions.md	.claude/research/drafts/delegate/conventions.md	pre-install draft/research, no landed marker
+drafts/delegate/migration.md	.claude/research/drafts/delegate/migration.md	pre-install draft/research, no landed marker
+drafts/delegate/model-traits.md	.claude/research/drafts/delegate/model-traits.md	pre-install draft/research, no landed marker
+drafts/delegate/skills/debate/SKILL.md	.claude/research/drafts/delegate/skills/debate/SKILL.md	pre-install draft/research, no landed marker
+drafts/delegate/skills/debate/templates/brief.md	.claude/research/drafts/delegate/skills/debate/templates/brief.md	pre-install draft/research, no landed marker
+drafts/delegate/skills/debate/templates/ledger.md	.claude/research/drafts/delegate/skills/debate/templates/ledger.md	pre-install draft/research, no landed marker
+drafts/delegate/skills/debate/templates/rebuttal.md	.claude/research/drafts/delegate/skills/debate/templates/rebuttal.md	pre-install draft/research, no landed marker
+drafts/delegate/skills/delegate/SKILL.md	.claude/research/drafts/delegate/skills/delegate/SKILL.md	pre-install draft/research, no landed marker
+drafts/delegate/skills/delegate/registry.tsv	.claude/research/drafts/delegate/skills/delegate/registry.tsv	pre-install draft/research, no landed marker
+drafts/delegate/skills/delegate/scripts/delegate.sh	.claude/research/drafts/delegate/skills/delegate/scripts/delegate.sh	pre-install draft/research, no landed marker
+drafts/delegate/skills/delegate/templates/AGENTS.md.template	.claude/research/drafts/delegate/skills/delegate/templates/AGENTS.md.template	pre-install draft/research, no landed marker
+drafts/delegate/skills/delegate/templates/preamble-empty.md	.claude/research/drafts/delegate/skills/delegate/templates/preamble-empty.md	pre-install draft/research, no landed marker
+drafts/delegate/skills/delegate/templates/preamble-worktree.md	.claude/research/drafts/delegate/skills/delegate/templates/preamble-worktree.md	pre-install draft/research, no landed marker
+drafts/delegate/skills/delegate/templates/tasks.md	.claude/research/drafts/delegate/skills/delegate/templates/tasks.md	pre-install draft/research, no landed marker
+drafts/delegate/trial-2026-11-10.md	.claude/research/drafts/delegate/trial-2026-11-10.md	pre-install draft/research, no landed marker
+drafts/distill-brief.md	.claude/research/drafts/distill-brief.md	pre-install draft/research, no landed marker
+drafts/gaps/native-codegen.md	.claude/research/drafts/gaps/native-codegen.md	pre-install draft/research, no landed marker
+drafts/gaps/optimize-levels.md	.claude/research/drafts/gaps/optimize-levels.md	pre-install draft/research, no landed marker
+drafts/gaps/parallel-luau.md	.claude/research/drafts/gaps/parallel-luau.md	pre-install draft/research, no landed marker
+drafts/gaps/roblox-api-types.md	.claude/research/drafts/gaps/roblox-api-types.md	pre-install draft/research, no landed marker
+drafts/gaps/snippets/native-annotation-codegen.luau	.claude/research/drafts/gaps/snippets/native-annotation-codegen.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/native-attribute-forces-o2.luau	.claude/research/drafts/gaps/snippets/native-attribute-forces-o2.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/native-attribute-nested.luau	.claude/research/drafts/gaps/snippets/native-attribute-nested.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/native-attribute-syntax.luau	.claude/research/drafts/gaps/snippets/native-attribute-syntax.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/native-directive-forces-o2.luau	.claude/research/drafts/gaps/snippets/native-directive-forces-o2.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/native-directive-order.luau	.claude/research/drafts/gaps/snippets/native-directive-order.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/optimize-fold-unroll.luau	.claude/research/drafts/gaps/snippets/optimize-fold-unroll.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/optimize-inline-rules.luau	.claude/research/drafts/gaps/snippets/optimize-inline-rules.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/optimize-o1-error-level.luau	.claude/research/drafts/gaps/snippets/optimize-o1-error-level.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/optimize-o2-error-level.luau	.claude/research/drafts/gaps/snippets/optimize-o2-error-level.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/optimize-o2-traceback.luau	.claude/research/drafts/gaps/snippets/optimize-o2-traceback.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/packs-alias-cannot-yield-pack.luau	.claude/research/drafts/gaps/snippets/packs-alias-cannot-yield-pack.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/packs-extra-args-old.luau	.claude/research/drafts/gaps/snippets/packs-extra-args-old.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/packs-extra-args.luau	.claude/research/drafts/gaps/snippets/packs-extra-args.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/packs-function-type-variadic-syntax.luau	.claude/research/drafts/gaps/snippets/packs-function-type-variadic-syntax.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/packs-generic-forwarding.luau	.claude/research/drafts/gaps/snippets/packs-generic-forwarding.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/packs-pcall-failure-value.luau	.claude/research/drafts/gaps/snippets/packs-pcall-failure-value.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/packs-store-generic-pack.luau	.claude/research/drafts/gaps/snippets/packs-store-generic-pack.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/packs-syntax-no-tuple-alias.luau	.claude/research/drafts/gaps/snippets/packs-syntax-no-tuple-alias.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/packs-truncation.luau	.claude/research/drafts/gaps/snippets/packs-truncation.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/packs-unsound-positions.luau	.claude/research/drafts/gaps/snippets/packs-unsound-positions.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/packs-variadic-select.luau	.claude/research/drafts/gaps/snippets/packs-variadic-select.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/parallel-actor-messaging-types.luau	.claude/research/drafts/gaps/snippets/parallel-actor-messaging-types.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/parallel-sharedtable-iter-old-solver.luau	.claude/research/drafts/gaps/snippets/parallel-sharedtable-iter-old-solver.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/parallel-sharedtable-types.luau	.claude/research/drafts/gaps/snippets/parallel-sharedtable-types.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/parallel-task-phase-signatures.luau	.claude/research/drafts/gaps/snippets/parallel-task-phase-signatures.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/roblox-attributes-typeof.luau	.claude/research/drafts/gaps/snippets/roblox-attributes-typeof.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/roblox-constructors-services.luau	.claude/research/drafts/gaps/snippets/roblox-constructors-services.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/roblox-constructors-standard.luau	.claude/research/drafts/gaps/snippets/roblox-constructors-standard.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/roblox-docs-isa-sample.luau	.claude/research/drafts/gaps/snippets/roblox-docs-isa-sample.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/roblox-enums.luau	.claude/research/drafts/gaps/snippets/roblox-enums.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/roblox-find-wait-nil.luau	.claude/research/drafts/gaps/snippets/roblox-find-wait-nil.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/roblox-isa-refinement.luau	.claude/research/drafts/gaps/snippets/roblox-isa-refinement.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/roblox-signals-datatypes.luau	.claude/research/drafts/gaps/snippets/roblox-signals-datatypes.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/roblox-sourcemap-children.luau	.claude/research/drafts/gaps/snippets/roblox-sourcemap-children.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/testing-error-shapes.luau	.claude/research/drafts/gaps/snippets/testing-error-shapes.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/testing-generic-eq-helper.luau	.claude/research/drafts/gaps/snippets/testing-generic-eq-helper.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/testing-getfenv-probe.luau	.claude/research/drafts/gaps/snippets/testing-getfenv-probe.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/testing-mini-runner.luau	.claude/research/drafts/gaps/snippets/testing-mini-runner.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/testing-o2-line-probe.luau	.claude/research/drafts/gaps/snippets/testing-o2-line-probe.luau	pre-install draft/research, no landed marker
+drafts/gaps/snippets/testing-user-line-assert.luau	.claude/research/drafts/gaps/snippets/testing-user-line-assert.luau	pre-install draft/research, no landed marker
+drafts/gaps/testing.md	.claude/research/drafts/gaps/testing.md	pre-install draft/research, no landed marker
+drafts/gaps/tools/bench_native.luau	.claude/research/drafts/gaps/tools/bench_native.luau	pre-install draft/research, no landed marker
+drafts/gaps/tools/bench_native.sh	.claude/research/drafts/gaps/tools/bench_native.sh	pre-install draft/research, no landed marker
+drafts/gaps/tools/check_roblox.py	.claude/research/drafts/gaps/tools/check_roblox.py	pre-install draft/research, no landed marker
+drafts/gaps/tools/run_opt.sh	.claude/research/drafts/gaps/tools/run_opt.sh	pre-install draft/research, no landed marker
+drafts/gaps/typepacks-varargs.md	.claude/research/drafts/gaps/typepacks-varargs.md	pre-install draft/research, no landed marker
+drafts/hooks/README.md	.claude/archive/research/drafts/hooks/README.md	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/hooks/structure-reminder.py	.claude/archive/research/drafts/hooks/structure-reminder.py	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/hooks/test-structure-reminder.py	.claude/archive/research/drafts/hooks/test-structure-reminder.py	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/second-opinion/README.md	.claude/archive/research/drafts/second-opinion/README.md	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/second-opinion/home/CLAUDE.md.fragment.md	.claude/archive/research/drafts/second-opinion/home/CLAUDE.md.fragment.md	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/second-opinion/home/harness.env.fragment	.claude/archive/research/drafts/second-opinion/home/harness.env.fragment	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/session-log/DESIGN.md	.claude/archive/research/drafts/session-log/DESIGN.md	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/session-log/README.md	.claude/archive/research/drafts/session-log/README.md	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/session-log/backfill-2026-11-10.md	.claude/archive/research/drafts/session-log/backfill-2026-11-10.md	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/session-log/extract.py	.claude/archive/research/drafts/session-log/extract.py	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/session-log/probe/hook-dump.sh	.claude/archive/research/drafts/session-log/probe/hook-dump.sh	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/session-log/probe/transcript-shape.py	.claude/archive/research/drafts/session-log/probe/transcript-shape.py	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/session-log/prompt.md	.claude/archive/research/drafts/session-log/prompt.md	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/session-log/summarize.py	.claude/archive/research/drafts/session-log/summarize.py	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/session-log/verify.py	.claude/archive/research/drafts/session-log/verify.py	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/session-log/verify_llm.py	.claude/archive/research/drafts/session-log/verify_llm.py	draft whose README first line is "status: landed in ..."; finished -> archive/<origin>
+drafts/split-plans/quad-Manager.md	.claude/research/drafts/split-plans/quad-Manager.md	pre-install draft/research, no landed marker
+drafts/split-plans/stl-luau-Arr.md	.claude/research/drafts/split-plans/stl-luau-Arr.md	pre-install draft/research, no landed marker
+drafts/split-plans/table-sim-Objects.md	.claude/research/drafts/split-plans/table-sim-Objects.md	pre-install draft/research, no landed marker
+drafts/style/inventory.md	.claude/research/drafts/style/inventory.md	pre-install draft/research, no landed marker
+drafts/style/rules/code-structure.md	.claude/research/drafts/style/rules/code-structure.md	pre-install draft/research, no landed marker
+drafts/style/rules/luau-core.md	.claude/research/drafts/style/rules/luau-core.md	pre-install draft/research, no landed marker
+drafts/style/skills/luau-style/SKILL.md	.claude/research/drafts/style/skills/luau-style/SKILL.md	pre-install draft/research, no landed marker
+drafts/style/skills/luau-style/references/idioms.md	.claude/research/drafts/style/skills/luau-style/references/idioms.md	pre-install draft/research, no landed marker
+drafts/style/skills/luau-style/references/modules.md	.claude/research/drafts/style/skills/luau-style/references/modules.md	pre-install draft/research, no landed marker
+drafts/style/skills/luau-style/references/naming.md	.claude/research/drafts/style/skills/luau-style/references/naming.md	pre-install draft/research, no landed marker
+drafts/style/skills/luau-style/references/project-overrides.md	.claude/research/drafts/style/skills/luau-style/references/project-overrides.md	pre-install draft/research, no landed marker
+drafts/style/skills/luau-style/references/quality.md	.claude/research/drafts/style/skills/luau-style/references/quality.md	pre-install draft/research, no landed marker
+drafts/style/skills/luau-style/references/structure.md	.claude/research/drafts/style/skills/luau-style/references/structure.md	pre-install draft/research, no landed marker
+drafts/style/skills/luau-style/scripts/structure-scan.py	.claude/research/drafts/style/skills/luau-style/scripts/structure-scan.py	pre-install draft/research, no landed marker
+handoff/claude-doctor-corrections.md	.claude/handoff/claude-doctor-corrections.md	snapshot; never archived
+handoff/devplorer-corrections.md	.claude/handoff/devplorer-corrections.md	snapshot; never archived
+handoff/memory-VideoSync.md	.claude/handoff/memory-VideoSync.md	snapshot; never archived
+handoff/memory-claude-doctor.md	.claude/handoff/memory-claude-doctor.md	snapshot; never archived
+handoff/memory-devplorer.md	.claude/handoff/memory-devplorer.md	snapshot; never archived
+handoff/memory-quad.md	.claude/handoff/memory-quad.md	snapshot; never archived
+handoff/memory-stl-luau.md	.claude/handoff/memory-stl-luau.md	snapshot; never archived
+handoff/memory-table-sim.md	.claude/handoff/memory-table-sim.md	snapshot; never archived
+handoff/memory-tbox.md	.claude/handoff/memory-tbox.md	snapshot; never archived
+handoff/moonwave-luau-corrections.md	.claude/handoff/moonwave-luau-corrections.md	snapshot; never archived
+handoff/quad.md	.claude/handoff/quad.md	snapshot; never archived
+handoff/rbvm-corrections.md	.claude/handoff/rbvm-corrections.md	snapshot; never archived
+handoff/rbvm.md	.claude/handoff/rbvm.md	snapshot; never archived
+handoff/stl-luau-corrections.md	.claude/handoff/stl-luau-corrections.md	snapshot; never archived
+handoff/stl-luau.md	.claude/handoff/stl-luau.md	snapshot; never archived
+handoff/table-sim-corrections.md	.claude/handoff/table-sim-corrections.md	snapshot; never archived
+handoff/table-sim.md	.claude/handoff/table-sim.md	snapshot; never archived
+handoff/tbox-corrections.md	.claude/handoff/tbox-corrections.md	snapshot; never archived
+handoff/vitrine.md	.claude/handoff/vitrine.md	snapshot; never archived
+intake/README.md	intake/README.md	UNDECIDED, no move proposed: procedure doc read by q:doctor (scan.py); survey 2 suggests q:doctor reference + gitignored work folder
