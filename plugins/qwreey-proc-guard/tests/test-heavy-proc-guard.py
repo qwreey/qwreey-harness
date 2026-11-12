@@ -65,6 +65,8 @@ for c in ["mkdir -p a/audit && cat > a/s.md <<'EOF'\nbench results\npython3 x\nE
           "cd bench && python3 run.py", "cd luau-kb/bench && python3 -I summarize.py results/a", "cd fuzz; sed -n 1p a.md; ls","A=x/fuzz; cat > $A/f.luau <<'EOF'\nx\nEOF\npython3 ok.py",
           "cat <<EOF > f\nbench\nEOF\npython3 ok.py"]:
     check("false positive passes: " + c, run(c) is None)
-check("command after heredoc still checked", denied(run("cat <<EOF\nx\nEOF\npython3 fuzz.py")))
+check("timed heredoc then toolkit run denied", denied(run("cat > k.luau <<'EOF'\nlocal t = os.clock()\nEOF\nluau k.luau")))
+check("timed heredoc in an edit script passes", run("python3 - <<'EOF'\ns = s.replace('os.clock()', 'x')\nEOF") is None)
+check("command after heredoc still checked",denied(run("cat <<EOF\nx\nEOF\npython3 fuzz.py")))
 print(f"{ok}/{ok + fail}")
 sys.exit(1 if fail else 0)

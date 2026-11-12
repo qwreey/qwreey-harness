@@ -45,13 +45,20 @@ HEREDOC = re.compile(r"<<(?!<)-?\s*(?:'([A-Za-z_]\w*)'|\"([A-Za-z_]\w*)\"|\\?([A
 ASSIGN = re.compile(r"(?:^|[;&|\s(])([A-Za-z_][A-Za-z0-9_]*)=(\S*)")
 
 
-def strip_heredocs(cmd):
+# Timing calls mark a benchmark far more precisely than the keywords; used only on heredoc bodies.
+TIMING = re.compile(r"os\.clock\(|perf_counter|timeit|performance\.now\(|hrtime|Instant::now")
+
+
+def strip_heredocs(cmd, dropped=None):
+    """Command without heredoc bodies; the body lines go to `dropped` when a list is given."""
     out, pending = [], []  # pending: (terminator, tab-stripped) for heredocs opened on earlier lines
     for line in cmd.split("\n"):
         if pending:
             term, dash = pending[0]
             if (line.lstrip("\t") if dash else line) == term:
                 pending.pop(0)
+            elif dropped is not None:
+                dropped.append(line)
             continue
         out.append(line)
         for m in HEREDOC.finditer(line):
@@ -115,23 +122,25 @@ def rules(env):
     return executors, re.compile(r"(?<![A-Za-z])(" + "|".join(kws) + ")", re.I)
 
 
-def runs_heavy(segs, executors, heavy, uses):
+def runs_heavy(segs, executors, heavy, uses, timed=False):
     """True when an executor segment names a heavy keyword (directly or via a keyword variable).
 
     `cd <fuzz-dir> && luau axes.luau` keeps the keyword in the cd segment; the directory carries over to
     later segments, but only for toolkit runners and scripts (`./x`, `*.sh`). Interpreters (python3, bash -c)
     run inside such directories mostly to aggregate or edit results, so they do not inherit it.
+    `timed` (a heredoc body with timing calls: `cat > b.luau <<EOF ... os.clock() ... EOF; luau b.luau`)
+    carries over the same way.
     """
-    in_heavy_dir = False
+    carry = timed
     for h, seg in segs:
         if h in ("cd", "pushd"):
-            in_heavy_dir = in_heavy_dir or bool(heavy.search(seg))
+            carry = carry or bool(heavy.search(seg))
             continue
         if not is_executor(h, executors):
             continue
         if heavy.search(seg) or (uses and uses.search(seg)):
             return True
-        if in_heavy_dir and (h not in BASE_EXECUTORS or h.startswith("./") or h.endswith(".sh")):
+        if carry and (h not in BASE_EXECUTORS or h.startswith("./") or h.endswith(".sh")):
             return True
     return False
 
@@ -149,16 +158,17 @@ def main():
     executors, heavy = rules(env)
     # delegate.sh / agy-delegate.sh puts choom in front of its own setpriv launch, so the whole agy tree
     # is already the preferred victim; its prompt text may mention bench/perf freely.
-    if wrap[0] in cmd or "delegate.sh" in cmd or not heavy.search(cmd):
+    if wrap[0] in cmd or "delegate.sh" in cmd or not (heavy.search(cmd) or TIMING.search(cmd)):
         return 0
     segs = list(segments(cmd))
     if segs and segs[0][0] in EXEMPT_HEADS:
         return 0
     # `F=x/fuzz.luau; luau $F` keeps the keyword in the assignment segment: a variable whose value
     # carries a keyword counts as a keyword wherever it is expanded.
-    names = [m.group(1) for m in ASSIGN.finditer(strip_heredocs(cmd)) if heavy.search(m.group(2))]
+    bodies = []
+    names = [m.group(1) for m in ASSIGN.finditer(strip_heredocs(cmd, bodies)) if heavy.search(m.group(2))]
     uses = re.compile(r"\$\{?(?:" + "|".join(names) + r")(?![A-Za-z0-9_])") if names else None
-    if not runs_heavy(segs, executors, heavy, uses):
+    if not runs_heavy(segs, executors, heavy, uses, bool(TIMING.search("\n".join(bodies)))):
         return 0
     if wrap[0] == "choom":
         how = ("Re-run with `choom -n 1000 -p $$;` prepended (this shell and its children become the first OOM victims), "

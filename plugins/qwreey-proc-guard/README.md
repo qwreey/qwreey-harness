@@ -6,7 +6,7 @@ Linux 전용이라 따로 뒀다. Windows·macOS 에서는 이 플러그인을 �
 
 | 구성 | 이름 | 하는 일 |
 |---|---|---|
-| 훅 | `hooks/heavy-proc-guard.py` | PreToolUse(Bash). 어느 구간(`&&` `||` `;` `|` 줄바꿈으로 나눔)이 실행기(luau, bash, python, node, ./x.sh 등)를 돌리고 그 같은 구간에 무거운 낱말(bench, fuzz, perf, stress 등)이 있으면 deny. heredoc 본문은 먼저 버린다(본문은 데이터이고 줄이 구간 머리로 오인되므로; heredoc 로 인터프리터에 먹인 무거운 스크립트는 못 잡는 것을 받아들임). 낱말이 다른 구간에 있으면 통과. 예외: 낱말이 든 변수를 펼칠 때(`F=x/fuzz.luau; luau $F`), 낱말이 든 디렉터리로 `cd` 한 뒤 툴킷 실행기나 스크립트를 돌릴 때(`cd fuzz && luau a.luau`, `cd bench && ./run.sh`). 그 뒤의 python3·bash 같은 인터프리터는 집계·편집용이 많아 통과(`cd bench && python3 summarize.py`). git·gh 명령과 이미 감싼 명령은 통과 |
+| 훅 | `hooks/heavy-proc-guard.py` | PreToolUse(Bash). 어느 구간(`&&` `||` `;` `|` 줄바꿈으로 나눔)이 실행기(luau, bash, python, node, ./x.sh 등)를 돌리고 그 같은 구간에 무거운 낱말(bench, fuzz, perf, stress 등)이 있으면 deny. heredoc 본문은 먼저 버린다(본문은 데이터이고 줄이 구간 머리로 오인되므로; heredoc 로 인터프리터에 먹인 무거운 스크립트는 못 잡는 것을 받아들임). 낱말이 다른 구간에 있으면 통과. 예외: 낱말이 든 변수를 펼칠 때(`F=x/fuzz.luau; luau $F`), 낱말이 든 디렉터리로 `cd` 한 뒤 툴킷 실행기나 스크립트를 돌릴 때(`cd fuzz && luau a.luau`, `cd bench && ./run.sh`). 그 뒤의 python3·bash 같은 인터프리터는 집계·편집용이 많아 통과(`cd bench && python3 summarize.py`). heredoc 본문에 시간 재기 호출(`os.clock(`, `perf_counter`, `timeit`, `performance.now(`, `hrtime`, `Instant::now`)이 있으면 같은 방식으로 뒤의 툴킷 실행기·스크립트를 잡음(`cat > b.luau <<EOF … EOF; luau b.luau`). 인터프리터에 heredoc 으로 먹인 무거운 스크립트는 여전히 못 잡음. git·gh 명령과 이미 감싼 명령은 통과 |
 
 설정(`~/.claude/harness.env`, 선택. `lib/harness_env.py` 가 없으면 기본값): `HARNESS_HEAVY_WRAP`(기본 auto: choom 이 있으면 `choom -n 1000 --`, 없으면 끔; 빈 값이면 끔), `HARNESS_HEAVY_EXECUTORS`, `HARNESS_HEAVY_KEYWORDS`, `HARNESS_TOOLKITS`.
 
