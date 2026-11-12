@@ -1,0 +1,16 @@
+{"id": "types-ko1", "kind": "pos", "lang": "ko", "expected": "luau-types", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-types"], "cost": 0.0682275}
+{"id": "verify-ko1", "kind": "pos", "lang": "ko", "expected": "luau-verify", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-verify"], "cost": 0.0673855}
+{"id": "testing-ko1", "kind": "pos", "lang": "ko", "expected": "luau-testing", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-testing"], "cost": 0.0675915}
+{"id": "perf-ko1", "kind": "pos", "lang": "ko", "expected": "luau-perf", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-perf"], "cost": 0.0672155}
+{"id": "style-ko1", "kind": "pos", "lang": "ko", "expected": "luau-style", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-style"], "cost": 0.0601471}
+{"id": "runtime-ko1", "kind": "pos", "lang": "ko", "expected": "luau-runtime", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-runtime"], "cost": 0.060377099999999996}
+{"id": "roblox-ko1", "kind": "pos", "lang": "ko", "expected": "luau-roblox", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-roblox"], "cost": 0.060489100000000004}
+{"id": "upstream-ko1", "kind": "pos", "lang": "ko", "expected": "luau-upstream", "cond": "ctx", "rep": 0, "calls": ["luau-kb:luau-upstream"], "cost": 0.0604891}
+{"id": "docs-ko1", "kind": "pos", "lang": "ko", "expected": "roblox-docs", "cond": "ctx", "rep": 0, "calls": ["luau-kb:roblox-docs"], "cost": 0.0600211}
+{"id": "engine-ko1", "kind": "pos", "lang": "ko", "expected": "roblox-engine", "cond": "ctx", "rep": 0, "calls": ["luau-kb:roblox-engine"], "cost": 0.0606391}
+{"id": "net-ko1", "kind": "pos", "lang": "ko", "expected": "roblox-net", "cond": "ctx", "rep": 0, "calls": ["luau-kb:roblox-net"], "cost": 0.061077099999999995}
+{"id": "world-ko1", "kind": "pos", "lang": "ko", "expected": "roblox-world", "cond": "ctx", "rep": 0, "calls": ["luau-kb:roblox-world"], "cost": 0.0601711}
+{"id": "neg-luau-easy", "kind": "neg", "lang": "ko", "expected": "none", "cond": "ctx", "rep": 0, "calls": [], "cost": 0.0612191}
+{"id": "neg-rbx-idea", "kind": "neg", "lang": "ko", "expected": "none", "cond": "ctx", "rep": 0, "calls": [], "cost": 0.0669651}
+{"id": "neg-lua", "kind": "neg", "lang": "ko", "expected": "none", "cond": "ctx", "rep": 0, "calls": [], "cost": 0.07524310000000001}
+{"id": "neg-ts1", "kind": "neg", "lang": "en", "expected": "none", "cond": "ctx", "rep": 0, "calls": [], "cost": 0.0658911}

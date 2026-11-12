@@ -1,0 +1,51 @@
+# id	kind	lang	expected	question
+types-ko1	pos	ko	luau-types	제네릭 함수에 인자 없이 f<<number>>() 로 불렀는데 결과 타입이 unknown 으로 나와. 왜 이러는 거야?
+types-ko2	pos	ko	luau-types	분명히 맞는 코드인데 for i in ipairs(t) 에서 Argument count mismatch 타입 에러가 떠. 이거 내 실수 맞아?
+types-en	pos	en	luau-types	Luau gives me "Code is too complex to typecheck" on a recursive type alias. How do I get around it?
+verify-ko1	pos	ko	luau-verify	luau-analyze 돌렸더니 진단이 0건인데 이걸 그대로 믿어도 돼? 검사가 진짜 통과한 건지 확인하는 방법 알려줘
+verify-ko2	pos	ko	luau-verify	luau-lsp analyze 를 CI 게이트로 붙이려는데 mise shim 이 No version is set 으로 죽어. 어떻게 호출해야 해?
+verify-en	pos	en	luau-verify	I want to build a minimal repro file for a typechecker bug and prove the analyzer really flags it. What's the procedure?
+testing-ko1	pos	ko	luau-testing	프레임워크 없이 luau CLI 만으로 테스트 러너를 짜고 싶어. 종료 코드랑 assert 는 어떻게 구성하는 게 좋아?
+testing-ko2	pos	ko	luau-testing	테스트가 -O1 에서는 통과하는데 -O2 로 돌리면 error 메시지 줄 번호 단언이 깨져. 왜 그래?
+testing-en	pos	en	luau-testing	How should I test a module that depends on a debounce timer in Luau without waiting real time?
+perf-ko1	pos	ko	luau-perf	Luau 에서 메타테이블 __index 를 쓰면 얼마나 느려져? 벤치마크로 확인하고 싶은데 어떻게 재야 정확해?
+perf-ko2	pos	ko	luau-perf	큐를 table.remove(t, 1) 로 앞에서 비우고 있는데 데이터가 많아지면 너무 느려. 최적화해 줘
+perf-en	pos	en	luau-perf	Should I use --!native or --!optimize 2 for a hot loop in Luau? Does it actually help?
+style-ko1	pos	ko	luau-style	.luau 파일 새로 쓰는데 모듈 이름은 PascalCase 로 할지 camelCase 로 할지, const 랑 local 중 뭘 쓸지 기준 알려줘
+style-ko2	pos	ko	luau-style	이 Luau 모듈 파일이 800줄이 넘었는데 어떻게 쪼개는 게 좋을까? 폴더 구조랑 init.luau 규칙도 궁금해
+style-en	pos	en	luau-style	What are the idiomatic Luau conventions for error handling and comments? I'm reviewing a PR for style.
+runtime-ko1	pos	ko	luau-runtime	weak table 에 넣은 항목이 GC 를 돌려도 안 사라져. 누수인지 어떻게 판정해?
+runtime-ko2	pos	ko	luau-runtime	luau CLI 에서 init.luau 안에서 require("./x") 를 했더니 못 찾아. @self 는 또 뭐야?
+runtime-en	pos	en	luau-runtime	My coroutine.wrap function errors seem to disappear silently in plain Luau. Why?
+roblox-ko1	pos	ko	luau-roblox	Roblox 코드를 luau CLI 에서 mock 으로 테스트해도 되는지, 아니면 Studio 로 돌려야 하는지 어떻게 판단해?
+roblox-ko2	pos	ko	luau-roblox	luau-lsp 에서 game:GetService 랑 Instance.new 타입이 안 잡혀. globalTypes 정의 파일이랑 sourcemap 설정 어떻게 해?
+roblox-en	pos	en	luau-roblox	When should I call the Roblox Studio MCP instead of relying on a mocked game in the luau CLI?
+upstream-ko1	pos	ko	luau-upstream	luau 새 버전 나왔는데 올려도 될까? 올리는 절차랑 뭘 확인해야 하는지 알려줘
+upstream-ko2	pos	ko	luau-upstream	Luau 의 class 문법 RFC 는 지금 프로덕션 코드에 써도 돼? 아직 안정 아니지?
+upstream-en	pos	en	luau-upstream	Is the generic type inference limitation I'm hitting being fixed upstream in a Luau RFC or release?
+docs-ko1	pos	ko	roblox-docs	Roblox 공식 문서에서 Humanoid:MoveTo 시그니처랑 deprecated 여부 확인해 줘
+docs-ko2	pos	ko	roblox-docs	이 API 가 병렬 Luau 에서 안전한지 문서 근거를 찾아서 인용해 줘
+docs-en	pos	en	roblox-docs	Look up the official Roblox docs for Instance:GetAttribute and tell me its security level and thread safety.
+engine-ko1	pos	ko	roblox-engine	Roblox 에서 Destroy 한 뒤에도 Changed 이벤트가 한 번 더 와. Deferred 시그널 배달 순서가 어떻게 돼?
+engine-ko2	pos	ko	roblox-engine	task.spawn 이랑 task.defer 순서 때문에 경쟁이 생기는 것 같은데, RemoteFunction 동시 요청에서 TOCTOU 를 어떻게 막아?
+engine-en	pos	en	roblox-engine	Why do my Tween Completed events never fire after the instance is destroyed in Roblox?
+net-ko1	pos	ko	roblox-net	RemoteEvent 로 클라이언트가 보낸 값을 서버에서 어떻게 검증해야 해? 신뢰 경계가 궁금해
+net-ko2	pos	ko	roblox-net	DataStore 저장이 가끔 실패하고 상품 영수증 처리가 두 번 들어와. 어떻게 안전하게 짜?
+net-en	pos	en	roblox-net	What are the limits and argument-copy rules for RemoteFunction and BindableEvent in Roblox?
+world-ko1	pos	ko	roblox-world	TextLabel AutomaticSize 로 크기를 잡는데 AbsoluteSize 가 바로 안 갱신돼. 언제 갱신돼?
+world-ko2	pos	ko	roblox-world	GUI 버튼 뒤에 있는 월드 오브젝트도 클릭돼 버려. Active 로도 안 막혀. gameProcessed 는 어떻게 써?
+world-en	pos	en	roblox-world	My fast-moving part tunnels through thin walls in Roblox physics. How do I stop it?
+neg-ts1	neg	en	none	In TypeScript my generic function infers unknown when called without arguments. How do I fix the inference?
+neg-py1	neg	en	none	In Python asyncio.gather swallows exceptions from my tasks. How do I surface them?
+neg-ko-ts	neg	ko	none	타입스크립트에서 CI 에 tsc 게이트를 붙이려는데 종료 코드를 어떻게 처리해야 해?
+neg-rust	neg	ko	none	러스트 criterion 으로 벤치마크 짜는데 워밍업이랑 중앙값 설정은 어떻게 해?
+neg-jest	neg	en	none	How do I mock a timer with Jest fake timers for a debounced React hook?
+neg-luau-easy	neg	ko	none	Luau 로 1부터 100까지 더하는 함수 하나 짜줘
+neg-luau-hello	neg	en	none	Write a Luau function that reverses a string.
+neg-rbx-idea	neg	ko	none	Roblox 로 만들 만한 오비 게임 아이디어 다섯 개만 추천해 줘
+neg-rbx-monet	neg	ko	none	Roblox 게임에서 Robux 수익을 늘리려면 어떤 가격 전략이 좋을까?
+neg-node	neg	en	none	Node ESM require is not defined error — how do I fix it with import?
+neg-lua	neg	ko	none	Lua 5.4 에서 정수 나눗셈 연산자랑 비트 연산자 쓰는 법 알려줘
+neg-blender	neg	ko	none	블렌더에서 만든 모델을 Roblox 에 올리려면 어떤 형식으로 내보내야 해?
+neg-go	neg	en	none	In Go, how do I name a package and split a 900-line file into smaller files?
+neg-git	neg	ko	none	git rebase 하다가 충돌났는데 어떻게 되돌려?

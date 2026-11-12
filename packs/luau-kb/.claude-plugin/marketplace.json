@@ -1,0 +1,15 @@
+{
+  "name": "luau-kb-market",
+  "owner": {
+    "name": "qwreey",
+    "email": "me@qwreey.moe"
+  },
+  "description": "luau-kb 로컬 마켓플레이스. 저장소 루트가 곧 플러그인이다.",
+  "plugins": [
+    {
+      "name": "luau-kb",
+      "source": "./",
+      "description": "Luau·Roblox 일반 지식의 정본: 타입 한계, 검증, 테스트, 성능, 스타일, 런타임 의미론, Roblox 타입·검증, Roblox 엔진·네트워크·월드 동작, Roblox 문서 조회, 업스트림 변화(스킬 12개)"
+    }
+  ]
+}
