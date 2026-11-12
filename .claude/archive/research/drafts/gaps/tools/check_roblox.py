@@ -16,11 +16,11 @@ import subprocess
 import sys
 import tempfile
 
-KB = "/code/Projects/luau-kb/tools/check_snippets.py"
+KB = "/code/Projects/claude-doctor/packs/luau-kb/tools/check_snippets.py"
 spec = importlib.util.spec_from_file_location("cs", KB)
 cs = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cs)
-DEFS = "/code/Projects/luau-kb/typedefs/globalTypes.d.luau"
+DEFS = "/code/Projects/claude-doctor/packs/luau-kb/typedefs/globalTypes.d.luau"
 
 
 def run(path, lv, defs):

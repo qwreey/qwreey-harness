@@ -126,12 +126,12 @@ status: described · 근거: quad `scripts/relink.sh:97-103`, `.claude/base/modu
 - **같은 패키지 사본이 둘이면 모듈 수준 상태가 둘로 갈린다**(캐시, 함수 신원 가드, weak-key 레지스트리). luau-lsp 도 두 사본을 다른 모듈로 봐 같은 이름의 타입이 서로 맞지 않는다. 라이브러리는 코어를 직접 require 하지 말고 게임이 넘긴 인스턴스를 팩토리 인자로 받는다.
 - **require 는 모듈 코드를 실행한다.** 타입만 쓰려는 require 도 실행된다. 게시 패키지의 dev-dependency 는 소비자에게 전파되지 않으므로, 타입 전용 require 가 소비자 환경에서 크래시한다. 가벼운 types 패키지를 일반 의존성으로 둔다. 도구가 임의 모듈을 require 하는 것은 사실상 코드 실행이다.
 - Roblox 고유 함정(패키지 폴더 이름, require 때 만든 Instance)은 roblox-engine `require-in-roblox.md` §3.
-- 순환 require 가 "미완성 exports 를 돌려준다"는 quad 서술은 근거가 의심스러워 옮기지 않았다(audit/08 보류).
+- 순환 require 가 "미완성 exports 를 돌려준다"는 quad 서술은 근거가 의심스러워 옮기지 않았다(claude-doctor .claude/audit/08 보류).
 
 mock 흉내: 해당 없음(설계 지침).
 
 ## §9 D-12 (require 경로 표기) 상태
-status: described · 근거: claude-doctor `decisions/D-12-require-paths.md`, `decisions/README.md` "사용자 결정 현황"(2026-11-10)
+status: described · 근거: claude-doctor `.claude/base/decisions/D-12-require-paths.md`, `decisions/README.md` "사용자 결정 현황"(2026-11-10)
 
 > 정책: 미정. D-12 는 **제안** 상태다(사용자 미확인). 한쪽을 강제하지 말고 양쪽을 전한다.
 
@@ -145,9 +145,9 @@ status: described · 근거: claude-doctor `decisions/D-12-require-paths.md`, `d
 
 | # | 내용 | 판정 |
 |---|---|---|
-| audit/09 §6 #6 | 테스트 엔트리 `init.luau` 의 "ambiguous" 원인: tbox "src/init.luau 와 이름 겹침" 대 mrow "`X.luau`·`X/` 형제일 때만, 진짜 함정은 `./` 가 루트" | **판정(재현)**: mrow 가 맞다. 둘만 있으면 모호하지 않다. 모호성은 대상의 `X.luau`+`X/`, 또는 요구하는 폴더 옆 같은 이름 파일일 때 난다(§2) |
-| audit/09 §6 #15 / audit/08 M-09 | `.luaurc` alias: stl·quad "CLI 런타임에서 실패" 대 Studio "알려진 alias 는 동작" | **판정(재현)**: CLI 대 Studio 의 차이가 아니라 **alias 값의 모양** 차이다. 값이 `./lib` 면 CLI 런타임도 동작하고, `lib`·`quad-base/src` 처럼 `./` 가 없으면 CLI 런타임·analyze 는 실패하고 luau-lsp 만 푼다(quad `.luaurc` 가 이 꼴). §3 |
-| audit/08 Q-102 / audit/09 S-124 | "잘못된 require 를 luau-analyze 가 진단 0건으로 통과" | **판정(재현, 조건부)**: strict 에서는 `Unknown require` 로 잡힌다. 0건은 nonstrict 와 "다른 모듈로 풀리는 오타"일 때만이다(§5). 원천 당시의 정확한 조건(버전·설정)은 기록이 없다 |
+| claude-doctor .claude/audit/09 §6 #6 | 테스트 엔트리 `init.luau` 의 "ambiguous" 원인: tbox "src/init.luau 와 이름 겹침" 대 mrow "`X.luau`·`X/` 형제일 때만, 진짜 함정은 `./` 가 루트" | **판정(재현)**: mrow 가 맞다. 둘만 있으면 모호하지 않다. 모호성은 대상의 `X.luau`+`X/`, 또는 요구하는 폴더 옆 같은 이름 파일일 때 난다(§2) |
+| claude-doctor .claude/audit/09 §6 #15 / claude-doctor .claude/audit/08 M-09 | `.luaurc` alias: stl·quad "CLI 런타임에서 실패" 대 Studio "알려진 alias 는 동작" | **판정(재현)**: CLI 대 Studio 의 차이가 아니라 **alias 값의 모양** 차이다. 값이 `./lib` 면 CLI 런타임도 동작하고, `lib`·`quad-base/src` 처럼 `./` 가 없으면 CLI 런타임·analyze 는 실패하고 luau-lsp 만 푼다(quad `.luaurc` 가 이 꼴). §3 |
+| claude-doctor .claude/audit/08 Q-102 / claude-doctor .claude/audit/09 S-124 | "잘못된 require 를 luau-analyze 가 진단 0건으로 통과" | **판정(재현, 조건부)**: strict 에서는 `Unknown require` 로 잡힌다. 0건은 nonstrict 와 "다른 모듈로 풀리는 오타"일 때만이다(§5). 원천 당시의 정확한 조건(버전·설정)은 기록이 없다 |
 
 ## 정정
 
@@ -159,4 +159,4 @@ status: described · 근거: claude-doctor `decisions/D-12-require-paths.md`, `d
 | quad `.claude/base/project-setup-plan.md:171-176`, `scripts/relink.sh:4-6` | 잘못된 경로·symlink 를 analyze 가 any 로 떨궈 0 진단 | strict 면 `Unknown require`. 0 진단은 nonstrict 또는 luau-lsp(symlink 를 따라감) | `rbx-require-cli.sh` Q8·Q11 |
 | moonwave-luau `.claude/conventions.md:73-74` | 정적 검사는 require 경로 오류를 런타임만큼 못 잡는다 | strict 면 풀리지 않는 경로는 잡는다. 다른 모듈로 풀리는 오타는 못 잡는다(처방은 같음) | 같음 |
 | tbox `CLAUDE.md:141-145` | 엔트리 `init.luau` 가 `src/init.luau` 와 이름이 겹쳐 ambiguous | 그 조합만으로는 모호하지 않다. 같은 이름 파일·폴더 형제일 때 난다 | `rbx-require-cli.sh` Q4 |
-| claude-doctor `decisions/D-12-require-paths.md` §2 둘째 줄 | 정적 검사가 require 경로 오류를 잡지 못한다 | strict 조건을 붙인다(§9) | 같음 |
+| claude-doctor `.claude/base/decisions/D-12-require-paths.md` §2 둘째 줄 | 정적 검사가 require 경로 오류를 잡지 못한다 | strict 조건을 붙인다(§9) | 같음 |

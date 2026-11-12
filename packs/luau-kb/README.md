@@ -10,7 +10,7 @@
 ```
 .claude-plugin/
   plugin.json            name: luau-kb
-  marketplace.json       로컬 마켓플레이스 luau-kb-market (source "./")
+  plugin.json 의 defaultEnabled false: 도메인 팩(claude-doctor 마켓의 항목, packs/README.md)
 skills/
   luau-types/            SKILL.md (결정 트리 + 증상→파일 표) + references/ 8개
     references/          generics, packs-and-varargs, variance, unions-singletons, recursion-and-limits,
@@ -67,17 +67,19 @@ references 의 절마다 `status: verified | described`, `last-confirmed: luau <
 ## 설치 (Claude Code)
 
 ```bash
-claude plugin marketplace add /code/Projects/luau-kb
-claude plugin install luau-kb@luau-kb-market
+claude plugin marketplace add /code/Projects/claude-doctor   # claude-doctor-market, 이미 있으면 생략
+claude plugin install luau-kb@claude-doctor-market
 ```
+
+기본 꺼짐 팩이라 Luau 저장소가 자기 `.claude/settings.json` 의 `"enabledPlugins": {"luau-kb@claude-doctor-market": true}` 로 켠다. 개발 자료(스킬 발동 평가 `evals/`)는 claude-doctor `.claude/packs/luau-kb/` 에 있다.
 
 로컬 경로 마켓플레이스는 파일을 직접 읽으므로, 수정한 뒤 `/reload-plugins` 하면 반영된다. 호스팅 설치본을 쓸 때는 `plugin.json` 의 `version` 을 올려야 갱신된다.
 
 ## 검증
 
 ```bash
-cd /code/Projects/luau-kb
-claude plugin validate /code/Projects/luau-kb
+cd /code/Projects/claude-doctor/packs/luau-kb
+claude plugin validate /code/Projects/claude-doctor/packs/luau-kb
 python3 -I tools/check_snippets.py --luau 0.734,0.742,0.746 snippets/*.luau
 tools/repro-stylua-typeargs.sh
 python3 -I tools/lsp_probe.py tools/dx-sample/consumer.luau --hover 'new' --complete 'local n = s.' --expect-nonempty
@@ -89,7 +91,7 @@ python3 -I tools/lsp_probe.py tools/dx-sample/consumer.luau --hover 'new' --comp
 
 | 검사 | 결과 |
 |---|---|
-| `claude plugin validate /code/Projects/luau-kb` (Claude Code 2.1.316) | **✔ Validation passed, rc=0**. 디렉터리 제출용 부가 검사는 LICENSE 없음과 아이콘 없음을 알렸다. 이 둘은 통과 여부에 영향이 없고, 라이선스 선택은 사용자 몫이라 비워 두었다 |
+| `claude plugin validate /code/Projects/claude-doctor/packs/luau-kb` (Claude Code 2.1.316) | **✔ Validation passed, rc=0**. 디렉터리 제출용 부가 검사는 LICENSE 없음과 아이콘 없음을 알렸다. 이 둘은 통과 여부에 영향이 없고, 라이선스 선택은 사용자 몫이라 비워 두었다 |
 | `python3 -I tools/check_snippets.py --luau 0.734,0.742,0.746 snippets/*.luau` | **세 버전 각 137 ok(총 ok 441줄), rc=0** (표: `snippets/RESULTS.md`) |
 | `snippets/rbx-require-cli.sh`, `verify-require.sh`, `style-require-paths.sh` | 전부 ok, rc=0 |
 | 하네스 돌연변이 검사 4종 | 전부 FAIL 로 잡힘 (`snippets/RESULTS.md`) |
@@ -100,8 +102,8 @@ python3 -I tools/lsp_probe.py tools/dx-sample/consumer.luau --hover 'new' --comp
 ## 원천과 범위
 
 - 원천(읽기 전용): `/code/Projects/quad/.claude/base/typing-limits.md`, `/code/Projects/stl-luau/.claude/base/typing-limits.md`, `stl-luau/.claude/audit/luau-solver-issues/`, `stl-luau/.claude/tools/{spike-diff.py,mutate.sh}`, `quad/scripts/doc-snippets.py`, 각 저장소의 `mise.toml`, `conventions.md`. `quad-changelog-check` 는 낡은 사본이라 근거로 쓰지 않았다.
-- 2차 증류(testing, perf, style, roblox-luau 보강 — 2026-11-10 에 luau-runtime·luau-roblox·roblox-engine·roblox-net·roblox-world·roblox-docs 로 나눔, upstream)의 원천은 claude-doctor 후보표 `audit/08-quad-knowledge-mine.md`(ID `Q-`), `audit/09-other-knowledge-mine.md`(ID `S- R- T- D- X- M- O-`), `audit/11-knowledge-gaps.md` 와 `drafts/gaps/`, `drafts/style/` 이다. references 의 근거 칸에 후보 ID 가 남아 있다.
-- 재현해 보니 원천 서술이 틀린 것은 각 references 의 '정정' 절에 모았다. 저장소별 전달본은 claude-doctor `handoff/<repo>-corrections.md`(quad 는 `handoff/quad.md`)다.
+- 2차 증류(testing, perf, style, roblox-luau 보강 — 2026-11-10 에 luau-runtime·luau-roblox·roblox-engine·roblox-net·roblox-world·roblox-docs 로 나눔, upstream)의 원천은 claude-doctor 후보표 `audit/08-quad-knowledge-mine.md`(ID `Q-`), `audit/09-other-knowledge-mine.md`(ID `S- R- T- D- X- M- O-`), `audit/11-knowledge-gaps.md` 와 `claude-doctor .claude/archive/research/drafts/gaps/`, `claude-doctor .claude/archive/research/drafts/style/` 이다. references 의 근거 칸에 후보 ID 가 남아 있다.
+- 재현해 보니 원천 서술이 틀린 것은 각 references 의 '정정' 절에 모았다. 저장소별 전달본은 claude-doctor `.claude/handoff/<repo>-corrections.md`(quad 는 `handoff/quad.md`)다.
 - 원문을 옮기지 않고 다시 썼다. 원천에서 다시 재 보니 뒤집힌 주장(싱글턴 보존, type function 안 `pcall`/`error()`, stylua 오염 조건)은 정정했다. 재현하지 못한 주장은 `described` 로 남겼다. 목록은 `snippets/RESULTS.md` 끝에 있다.
 - 아직 없는 것(설계안 claude-doctor audit 05 §4 기준): 업스트림 보고용 `luau-solver-bug-triage`, `luau-recheck`.
 

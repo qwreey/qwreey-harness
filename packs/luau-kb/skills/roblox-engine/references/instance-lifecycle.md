@@ -146,10 +146,10 @@ mock 흉내: 해당 없음(설계 지침).
 
 | # | 내용 | 판정 |
 |---|---|---|
-| audit/09 §6 #10 | Destroying 시점의 계층: quad-mock "동기 발화, 계층 온전" 대 rbvm 실측 "핸들러 안 Parent 는 nil" | **판정**: 조건 차이(mock 대 엔진, 그리고 Immediate 문서 대 Deferred 실측). Deferred 엔진은 rbvm 쪽이고 문서 예제도 같다. quad-mock 은 Immediate 문서 동작에 가깝다. quad 도 자기 mock 충실도 감사에서 "상이"로 표시했다 |
-| audit/09 §6 #13 | devplorer "weak 표의 Instance 수거는 실측 필요" 대 quad·rbvm 실측 | **판정**: devplorer 서술이 낡았다. Destroy 된 Instance 는 수거된다(§4) |
-| audit/09 §6 #12 | rbvm 내부: 시그널을 쥐면 같은 userdata 대 rawequal false | **판정**: 같은 저장소의 실측(engine-behavior)이 이긴다(`signals-and-events.md` §6) |
-| audit/08 M-11 | quad lifecycle-pattern "userdata 신원은 미실측" 대 spike10 실증 | **판정**: 실측이 있다. Q-012 를 실측으로 옮긴다 |
+| claude-doctor .claude/audit/09 §6 #10 | Destroying 시점의 계층: quad-mock "동기 발화, 계층 온전" 대 rbvm 실측 "핸들러 안 Parent 는 nil" | **판정**: 조건 차이(mock 대 엔진, 그리고 Immediate 문서 대 Deferred 실측). Deferred 엔진은 rbvm 쪽이고 문서 예제도 같다. quad-mock 은 Immediate 문서 동작에 가깝다. quad 도 자기 mock 충실도 감사에서 "상이"로 표시했다 |
+| claude-doctor .claude/audit/09 §6 #13 | devplorer "weak 표의 Instance 수거는 실측 필요" 대 quad·rbvm 실측 | **판정**: devplorer 서술이 낡았다. Destroy 된 Instance 는 수거된다(§4) |
+| claude-doctor .claude/audit/09 §6 #12 | rbvm 내부: 시그널을 쥐면 같은 userdata 대 rawequal false | **판정**: 같은 저장소의 실측(engine-behavior)이 이긴다(`signals-and-events.md` §6) |
+| claude-doctor .claude/audit/08 M-11 | quad lifecycle-pattern "userdata 신원은 미실측" 대 spike10 실증 | **판정**: 실측이 있다. Q-012 를 실측으로 옮긴다 |
 
 ## 정정
 

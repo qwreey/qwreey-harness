@@ -1,4 +1,4 @@
-status: active; taxonomy.toml landed in luau-kb, harness/* vocabulary candidates and examples remain
+status: active; taxonomy.toml landed in packs/luau-kb, harness/* vocabulary candidates and examples remain
 
 # coderag drafts
 

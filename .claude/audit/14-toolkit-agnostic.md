@@ -77,7 +77,7 @@
 | 51 | 같은 파일 | `choom -n 1000 -- setpriv` | 환경 | ▷ `HARNESS_HEAVY_WRAP`. setpriv(root 필요)는 위임의 환경 전제로 README 에 |
 | 52 | `.claude/research/drafts/delegate/skills/delegate/registry.tsv` | 루트 `/code/Projects/<repo>`, uid 61000~61003 | 환경 | ▷ 파일 자체가 환경 값. 위치는 `HARNESS_DELEGATE_REGISTRY` 로(✔ scan 이 읽음) |
 | 53 | 같은 파일 setup 열 | `mise exec -- pesde install`(quad) | 툴킷 | – 저장소별 값이라 맞는 자리 |
-| 54 | `.claude/research/drafts/delegate/skills/delegate/templates/AGENTS.md.template` | `/code/Projects/luau-kb/AGENTS.md`, `/code/Projects/<repo>/vendor/` | 환경 + 툴킷 | ▷ `{{WORKSPACE}}`·툴킷 KB 자리표시 |
+| 54 | `.claude/research/drafts/delegate/skills/delegate/templates/AGENTS.md.template` | `/code/Projects/claude-doctor/packs/luau-kb/AGENTS.md`, `/code/Projects/<repo>/vendor/` | 환경 + 툴킷 | ▷ `{{WORKSPACE}}`·툴킷 KB 자리표시 |
 | 55 | `.claude/research/drafts/delegate/{conventions,migration,model-traits,trial-…}.md` | `/code/Projects`, uid, `/code/.claude/projects/…` | 환경 | – 경위·실험 기록이라 그대로 |
 | 56 | `.claude/archive/research/drafts/style/skills/luau-style/` 전체 | Luau 스타일 | 툴킷 | – luau-kb 로 갈 툴킷 지식(맞는 자리) |
 | 57 | `luau-style/scripts/structure-scan.py` | 길이 기준 800·1,500(D-13, 언어 무관) 이 Luau 스킬 안 | 코어 | ▷ 하네스 공용 위치로(§9-3) |

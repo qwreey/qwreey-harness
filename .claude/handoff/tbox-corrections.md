@@ -2,7 +2,7 @@
 
 luau-kb 가 tbox 의 서술을 재현해 보니 틀렸거나 낡은 것들이다. 반영 여부는 tbox 세션이 판단한다.
 - 줄 번호는 2026-11-10 에 `/code/Projects/tbox` 를 읽기 전용으로 열어 확인했다.
-- 근거 경로는 `/code/Projects/luau-kb/` 기준이다. 스니펫은 `snippets/<ID>`, 도구는 `tools/` 에 있다.
+- 근거 경로는 `/code/Projects/claude-doctor/packs/luau-kb/` 기준이다. 스니펫은 `snippets/<ID>`, 도구는 `tools/` 에 있다.
 - 심각도
   - **행동**: 그대로 따르면 도구 사용·검증·코드 판단이 틀어진다.
   - **표현**: 처방은 맞고 원인·조건 설명만 부정확하다.

@@ -55,4 +55,4 @@ require 규칙 다섯(`init.luau` 의 `@self`, 리터럴 경로, 엔트리를 `i
 - "정적 검사가 require 경로 오류를 못 잡는다"에는 strict 조건이 붙는다. `--!strict` 면 없는 경로는 `Unknown require` 로 잡힌다. 못 잡는 것은 nonstrict 이거나, 오타가 다른 실제 파일로 풀리는 경우다.
 - 규칙 4(실제 require 테스트)는 그대로 필요하다.
 - 동적 require 경로: luau 0.734·0.742 런타임은 실행하고, strict 의 luau-analyze 만 `unsupported path` 로 거부한다(Studio 는 미측정). `ambiguous` 에러 서술은 낡았다.
-- 근거: `/code/Projects/luau-kb/skills/roblox-luau/references/require-and-modules.md` §5·§9, `/code/Projects/luau-kb/skills/luau-verify/references/checkers.md` §7, `/code/Projects/luau-kb/snippets/style-require-paths.sh`
+- 근거: `/code/Projects/claude-doctor/packs/luau-kb/skills/roblox-luau/references/require-and-modules.md` §5·§9, `/code/Projects/claude-doctor/packs/luau-kb/skills/luau-verify/references/checkers.md` §7, `/code/Projects/claude-doctor/packs/luau-kb/snippets/style-require-paths.sh`

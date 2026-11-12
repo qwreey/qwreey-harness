@@ -4,7 +4,7 @@
 -- 주장: -O2(라이브 Roblox 기본으로 알려짐, --!native 도 강제)에서는 로컬 헬퍼가 인라인되어 손으로 센 error(msg, n) 이 사용자 줄을 잃는다.
 --       ① error(msg, 1) 은 인라인돼도 throw 한 줄을 가리킨다(내부 불변식에는 안전하다).
 --       ② "라이브러리 소스가 아닌 첫 프레임" 을 debug.info 로 찾아 던지는 raise 헬퍼는 사용자 줄을 정확히 가리킨다.
---       사용자 코드는 다른 소스 이름(loadstring 의 "=user")으로 흉내 낸다. -O1 대조와 인라인 규칙은 opt-* 스니펫 담당(drafts/gaps run_opt.sh B1–B4).
+--       사용자 코드는 다른 소스 이름(loadstring 의 "=user")으로 흉내 낸다. -O1 대조와 인라인 규칙은 opt-* 스니펫 담당(claude-doctor .claude/archive/research/drafts/gaps run_opt.sh B1–B4).
 -- 근거: decisions D-10 §2·정정, stl-luau/.claude/conventions.md:134-138, quad/.claude/base/architecture.md:520-529(스파이크 27). 후보 S-116, Q-097
 local LIB_SOURCE = debug.info(1, "s")
 local function raise(msg: string): never

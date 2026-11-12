@@ -146,7 +146,7 @@ last_verified: 2026-11-10
 2. **같은 지식을 CLI·스킬과 MCP 로 이중 노출한 선례가 있다.** Context7 이 "CLI + Skills" 모드와 MCP 모드를 함께 낸다. Serena·DeepWiki·Sourcegraph·Mintlify·docs-mcp-server 같은 문서·코드 검색 도구의 배포 경로는 사실상 MCP 다.
 3. **읽기 전용 표면이 타입으로 고정된다.** 지금 doc-locator 는 Bash 를 받고, 그 Bash 를 PreToolUse 훅이 `coderag search|get|list|stale` 로 좁힌다(§11.8). MCP 도구를 주면 서브에이전트에게 Bash 를 아예 주지 않아도 된다. 다른 에이전트에서는 이 훅을 다시 짤 수 없으니 이 차이가 더 크다.
 4. **Claude Code 쪽 비용은 상쇄된다.** tool search 가 기본으로 켜져 있어 도구 정의를 미리 다 싣지 않는다. 출력은 25k 토큰에서 자른다(우리 출력은 이미 짧다). [1차] https://code.claude.com/docs/en/mcp.
-5. Codex 기본 샌드박스에서 작업 디렉터리 밖(pack 경로 `/code/Projects/luau-kb`)을 셸로 읽을 수 있는지가 문제가 될 수 있다. MCP 서버는 별도 프로세스라 그 제약을 받지 않을 **가능성**이 있다(**미확인** — Codex 샌드박스와 MCP 프로세스의 관계는 열어 보지 않았다).
+5. Codex 기본 샌드박스에서 작업 디렉터리 밖(pack 경로 `/code/Projects/claude-doctor/packs/luau-kb`)을 셸로 읽을 수 있는지가 문제가 될 수 있다. MCP 서버는 별도 프로세스라 그 제약을 받지 않을 **가능성**이 있다(**미확인** — Codex 샌드박스와 MCP 프로세스의 관계는 열어 보지 않았다).
 
 ### 3.2 신중하자는 근거
 1. **1인 개발자 환경에서는 CLI 가 더 싸고 안정적이다.** Scalekit(2026-03-11, Claude Sonnet 4, 75회, GitHub 읽기 작업 5종): MCP 가 CLI 보다 토큰을 4–32배 더 썼고(가장 단순한 작업 1,365 대 44,026), 성공률은 MCP 72% 대 CLI 100% 였다(실패는 전부 연결 시간 초과). 다만 비교 대상은 도구 43개짜리 서버다. 저자는 MCP 업체이고, 다중 사용자·인증 상황에서는 MCP 가 맞다고 결론 내린다. [1차] https://scalekit.com/blog/mcp-vs-cli-use

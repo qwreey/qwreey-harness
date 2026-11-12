@@ -13,7 +13,7 @@
 - `CLAUDE.md`, 그리고 그것이 `@`로 가져오는 파일들: <`.claude/conventions.md`, …>
 - `.claude/rules/*.md`: 머리의 `paths:`에 맞는 파일을 다룰 때 그 규칙을 따른다.
 - 설계 정본: <`.claude/base/` 등. 정본 우선순위 한 줄>
-- 공용 Luau 지식(읽기 전용): `/code/Projects/luau-kb/AGENTS.md`
+- 공용 Luau 지식(읽기 전용): `/code/Projects/claude-doctor/packs/luau-kb/AGENTS.md`
 
 ## 이미 알려진 것 — 다시 올리지 말 것
 

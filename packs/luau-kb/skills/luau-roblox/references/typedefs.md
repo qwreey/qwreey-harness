@@ -64,7 +64,7 @@ status: verified · last-confirmed: luau-lsp 1.70.1
 ```bash
 LSP=/code/.local/share/mise/installs/github-johnny-morganz-luau-lsp/1.70.1/luau-lsp
 "$LSP" analyze --platform=roblox --flag:LuauSolverV2=true \
-  --definitions=/code/Projects/luau-kb/typedefs/globalTypes.d.luau \
+  --definitions=/code/Projects/claude-doctor/packs/luau-kb/typedefs/globalTypes.d.luau \
   --sourcemap=sourcemap.json src/
 ```
 

@@ -2,7 +2,7 @@
 
 luau-kb 가 rbvm 의 서술을 엔진 실측(대부분 rbvm 자신의 `.claude/design/engine-behavior.md`)과 대조해 보니 어긋나는 것들이다. 반영 여부는 rbvm 세션이 판단한다.
 - 줄 번호는 2026-11-10 에 `/code/Projects/rbvm` 을 읽기 전용으로 열어 확인했다.
-- 근거 경로는 `/code/Projects/luau-kb/` 기준이다.
+- 근거 경로는 `/code/Projects/claude-doctor/packs/luau-kb/` 기준이다.
 - 심각도
   - **행동**: rbvm 이 엔진과 다르게 동작하거나, 그 서술을 근거로 한 설계가 틀어진다.
   - **표현**: 이미 고쳐졌거나 근거만 낡았다.

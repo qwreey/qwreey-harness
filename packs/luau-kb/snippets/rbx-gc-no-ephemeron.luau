@@ -4,7 +4,7 @@
 --       그 항목은 키에 대한 다른 참조가 다 사라져도 수거되지 않는다. 두 weak-key 표의 값이 서로의 키를 잡는 순환도 영구 누수다.
 --       대조군(값이 키를 잡지 않음)은 수거된다. 값이 키를 잡지 않게 하려면 사설 데이터를 키 객체 자신에 둔다.
 -- 근거: luau.org/compatibility "Ephemeron tables" 미지원; quad .claude/audit/tween-completed-2026-09-21/REPORT.md:25-28,
---       rbvm .claude/review/2026-10-05-repro/L7_no_ephemeron_signal_leak.luau:1-3,14-17 (audit/08 Q-001, audit/09 R-22)
+--       rbvm .claude/review/2026-10-05-repro/L7_no_ephemeron_signal_leak.luau:1-3,14-17 (claude-doctor .claude/audit/08 Q-001, claude-doctor .claude/audit/09 R-22)
 -- luau-analyze 의 내장 정의에는 collectgarbage 가 없다. 런타임 전역에서 꺼낸다.
 local collectgarbage: (string) -> any = (_G :: any).collectgarbage
 local function fullgc()

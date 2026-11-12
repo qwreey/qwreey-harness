@@ -1,4 +1,4 @@
-status: archived; 2차 증류 끝남(결과는 ../luau-kb/README.md "원천과 범위")
+status: archived; 2차 증류 끝남(결과는 packs/luau-kb/README.md "원천과 범위")
 
 # 증류 공통 지침 (luau-kb 로 지식 옮기기)
 
@@ -54,6 +54,6 @@ status: archived; 2차 증류 끝남(결과는 ../luau-kb/README.md "원천과 �
 - `index.lock` 이 있으면 잠시 기다렸다가 재시도한다.
 - 메시지 끝에 `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` 를 붙인다. push 는 하지 않는다.
 - 새 스킬을 만들면 `claude-doctor/home/MANIFEST` 에 다음 형식으로 링크 한 줄을 추가한다.
-  `link skills/<name> /code/Projects/luau-kb/skills/<name>`
+  `link skills/<name> /code/Projects/claude-doctor/packs/luau-kb/skills/<name>`
 - 스킬의 실효성은 **sonnet** 으로 확인한다. haiku 는 쓰지 않는다.
   - 방법: `claude -p --model sonnet` 로 질문 2~3개를 던져 Skill 이 호출되는지 본다(stream-json).

@@ -2,7 +2,7 @@
 
 luau-kb 가 devplorer 의 서술을 더 새 실측·문서와 대조해 보니 틀렸거나 낡은 것들이다. 반영 여부는 devplorer 세션이 판단한다.
 - 줄 번호는 2026-11-10 에 `/code/Projects/devplorer` 를 읽기 전용으로 열어 확인했다.
-- 근거 경로는 `/code/Projects/luau-kb/` 기준이다.
+- 근거 경로는 `/code/Projects/claude-doctor/packs/luau-kb/` 기준이다.
 - 심각도
   - **행동**: 그대로 따르면 설계·예산 판단이 틀어진다.
   - **표현**: 결론은 맞거나 이미 같은 저장소 안에서 고쳐졌고, 문구만 낡았다.

@@ -79,4 +79,4 @@ rbvm 의 "`const` 금지"는 pesde 0.7.3 의 타입 익스포트 문제 때문�
 ## 정정 (2026-11-10, luau-kb 증류)
 - "린트 경고만 난다"는 **nonstrict 에서만** 맞다. `--!strict` 에서는 luau-analyze 0.734·0.742 가 `TypeError: Unknown global 'x'` 를 낸다. 실행은 두 모드 모두 된다.
 - 따라서 `const` 를 쓰지 않는 파일에서 실수로 `local const x = 1` 이 생기면 strict 검사가 잡아 준다. nonstrict 파일은 린트에만 기대야 한다.
-- 근거: `/code/Projects/luau-kb/skills/luau-style/references/idioms.md` 정정, `/code/Projects/luau-kb/snippets/style-const-local-const-global.luau`
+- 근거: `/code/Projects/claude-doctor/packs/luau-kb/skills/luau-style/references/idioms.md` 정정, `/code/Projects/claude-doctor/packs/luau-kb/snippets/style-const-local-const-global.luau`

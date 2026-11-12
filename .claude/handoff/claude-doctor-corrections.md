@@ -1,7 +1,7 @@
 # claude-doctor 자신에 대한 정정 (2026-11-10)
 
 luau-kb 증류에서 재현해 보니 claude-doctor 의 결정 문서·후보표·초안 서술이 틀렸거나 낡은 것들이다. 메인 세션이 반영한다.
-- 근거 경로는 `/code/Projects/luau-kb/` 기준이다.
+- 근거 경로는 `/code/Projects/claude-doctor/packs/luau-kb/` 기준이다.
 - 심각도
   - **행동**: rules·결정·후보표를 그대로 따르면 판단이 틀어진다.
   - **표현**: 범위나 상태 표시만 낡았다.

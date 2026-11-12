@@ -1,6 +1,6 @@
 # D-06 기준 검사기 — 결정 (2026-11-10)
 
-원문: `/code/Projects/claude-doctor/decisions/D-06-type-checker.md` 끝의 "사용자 결정" 절. 이 파일은 요약이다.
+원문: `claude-doctor .claude/base/decisions/D-06-type-checker.md` 끝의 "사용자 결정" 절. 이 파일은 요약이다.
 
 ## 맥락
 stl-luau·moonwave-luau 는 `luau-analyze`, quad 는 둘 다, rbvm·table-sim·devplorer·tbox 는 `luau-lsp` 를 게이트로 쓴다. `luau-analyze` 는 정의 파일을 읽지 못해 Roblox 전역을 쓰는 코드는 luau-lsp 로만 검사할 수 있다. 두 도구는 다른 Luau 빌드라 판정이 갈릴 수 있다.

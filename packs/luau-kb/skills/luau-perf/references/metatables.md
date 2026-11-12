@@ -53,7 +53,7 @@ last_confirmed:
 메타테이블이 붙은 테이블 **자신의 정수 키 칸**(`t[i]` 읽기·쓰기)만 느려진다. 이 세금은 `-O1` 1.6 배에서 native 로 가면 **읽기 2.1 배, 쓰기 4.4 배**로 커진다. 상수 문자열 필드(`o.n`)와 메타테이블 없는 안쪽 표(`o.data[i]`)는 영향이 없다. 그러니 원소는 메타테이블 없는 표에 둔다.
 
 ## §2 정수 키 칸 세금 (모드별 재측정)
-status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/mt-index.luau`(read, write 그룹), 소스 Luau 0.742 `VM/src/lvmexecute.cpp:779,809,836,864`(audit/09 ★1), 후보 S-P01
+status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/mt-index.luau`(read, write 그룹), 소스 Luau 0.742 `VM/src/lvmexecute.cpp:779,809,836,864`(claude-doctor .claude/audit/09 ★1), 후보 S-P01
 
 원인(소스): `GETTABLE`/`SETTABLE`/`GETTABLEN`/`SETTABLEN` 의 배열부 빠른 경로는 `!h->metatable` 일 때만 탄다. 메타테이블이 있으면 `__index` 가 없어도 느린 경로(`luaV_gettable`)로 빠진다. 그래서 **메타테이블의 존재 자체**가 원인이다.
 
@@ -79,7 +79,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/
 읽는 법: 메타테이블 없는 쪽만 빨라지기 때문에(`-O1` 4.5 ms → native 2.8 ms, 쓰기는 7.0 → 2.7 ms) 배수가 커진다. 메타테이블 쪽 절대 시간은 모드 사이에 거의 그대로다. 배포 조건(Roblox 라이브 `-O2`, 서버 native)일수록 이 세금이 결정적이다.
 
 ## §3 세금이 없는 접근
-status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/mt-index.luau`(field, inner 그룹), 후보 S-P02, audit/09 §6 모순 3(범위 차이로 판정)
+status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/mt-index.luau`(field, inner 그룹), 후보 S-P02, claude-doctor .claude/audit/09 §6 모순 3(범위 차이로 판정)
 
 | 접근 | 0.734 `-O1` | 0.742 `-O1` | 0.742 `-O2` | 0.742 `-O2 --codegen` |
 |---|---|---|---|---|
@@ -143,4 +143,4 @@ status: described(아래 표시한 것 외) · 원천: stl-luau-doctor/.claude/b
 |---|---|---|---|
 | stl perf 1-부절 (`stl-luau-doctor/.claude/base/perf-measurements.md:30-36`) | 메타테이블 부착 인스턴스 96 B | 0.734·0.742 모두 80 B(MT 유무 같음) | 수치 정정. 결론(메타테이블 방식이 메모리 22 배 작다)은 유지(26.6 배) |
 | stl perf 18절 (`:492-502`) | native 세금 1.96~2.00x | 읽기 2.09x, **쓰기 4.39x** | 범위 확장(쓰기는 원천에 없음) |
-| audit/09 S-P01 | "`rawget` 모두 같다(1.59x)" | `rawget` 은 1.40~1.66x 로 MT 읽기와 비슷하다(native 에서는 조금 싸다) | 유지: "못 피한다" |
+| claude-doctor .claude/audit/09 S-P01 | "`rawget` 모두 같다(1.59x)" | `rawget` 은 1.40~1.66x 로 MT 읽기와 비슷하다(native 에서는 조금 싸다) | 유지: "못 피한다" |

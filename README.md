@@ -25,7 +25,6 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
    ```bash
    cd <작업공간>            # 예: ~/Projects
    git clone <claude-doctor 저장소 URL> claude-doctor
-   git clone <luau-kb 저장소 URL> luau-kb   # luau 툴킷을 쓸 때만
    ```
 2. **환경 설정**: `home/.claude/harness.env` 를 이 sandbox 값으로 고친다. 키 설명과 기본값은 `home/.claude/lib/harness_env.py` 의 `DEFAULTS`.
    - `HARNESS_WORKSPACE`: 형제 저장소 루트(지우면 claude-doctor 의 부모)
@@ -34,7 +33,7 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
    - `HARNESS_DELEGATE_REGISTRY`: 위임 uid 표(위임을 안 쓰면 비움). `HARNESS_AGENT_PUSH`: 에이전트 push 정책(normal / deny)
    - 파일을 커밋하고 싶지 않으면 다른 곳에 두고 `HARNESS_ENV=<경로>` 를 셸 환경에 둔다. 같은 이름의 환경 변수는 파일보다 우선한다.
    - `home/.claude/CLAUDE.md` 의 "이 환경" 절과 형제 저장소 지도도 그 sandbox 에 맞게 고친다(상시 로드 문서라 harness.env 를 읽지 못한다).
-3. **확인**: `tools/home-sync.sh env` 로 푼 값을, `tools/home-sync.sh status` 로 링크 대상(`${HARNESS_WORKSPACE}/luau-kb/...`)이 있는지 본다.
+3. **확인**: `tools/home-sync.sh env` 로 푼 값을, `tools/home-sync.sh status` 로 링크 대상(MANIFEST 의 `link` 줄)이 있는지 본다.
    `~/.claude` 대신 다른 곳에 먼저 시험하려면 `CLAUDE_HOME=/tmp/test-home tools/home-sync.sh apply`.
 4. **반영**: `tools/home-sync.sh diff` 로 검토한 뒤 `tools/home-sync.sh apply`. 기존 파일은 `*.bak-<시각>` 으로 남는다.
    - **settings.json 은 덮어쓰지 않는다.** 정본은 `home/settings-migrations/NNNN-<slug>.json`(연산: set/add/remove/delete/hook-upsert/hook-remove, 모두 멱등)이고,
@@ -43,8 +42,7 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
      **적용된 마이그레이션은 고치지 않는다.** 한 번이라도 apply 한 id 는 다시 돌지 않으므로, 바꿀 것은 새 번호(0002, 0003 …)로 추가한다. 0001 은 첫 apply 전까지만 고칠 수 있다.
    - **플러그인:** 마이그레이션은 `extraKnownMarketplaces`·`enabledPlugins` 로 "무엇을 켤지" 만 선언한다(공식 배포 방식과 같음). 실제 설치는 Claude Code 가 세션을 시작할 때 한다(사용자 레벨 settings 에서도 확인, 2026-11-11: apply 뒤 새 세션에서 q·qwreey-advisor 이 손으로 설치하지 않았는데 설치되고 쓰였다). `status`/`apply` 끝에 설치 안 된 것과 설치 명령을 보여 준다. 바로 설치하려면 `HOME_SYNC_INSTALL_PLUGINS=1 tools/home-sync.sh apply`.
    - 훅은 플러그인(`q`, `qwreey-advisor`, `qwreey-conventions`, `qwreey-proc-guard`)이 등록하므로 settings.json 에 훅 명령이 없다(옛 user-level 훅 등록은 마이그레이션 0006 이 걷는다). 남는 것은 statusLine 의 `$HOME/.claude/statusline/harness-status.py` 뿐이라 `CLAUDE_CONFIG_DIR` 로 설정 디렉터리를 옮겼다면 그 경로만 고친다. 훅은 사용자 설정을 `$CLAUDE_CONFIG_DIR`(기본 `~/.claude`)에서 읽는다.
-5. **플러그인 마켓**(luau 툴킷): `claude plugin marketplace add <작업공간>/luau-kb` 후 `claude plugin install luau-kb@luau-kb-market`.
-   - 지금 이 sandbox 는 MANIFEST 의 `link skills/luau-*` 심볼릭 링크로 소비한다. 플러그인으로 옮기면 그 링크 줄을 지운다(둘 다 두면 스킬이 겹친다).
+5. **luau 팩**(luau 툴킷): luau-kb 는 이 저장소의 도메인 팩(`packs/luau-kb`, 기본 꺼짐)이다. Luau 저장소의 `.claude/settings.json` 에 `"enabledPlugins": {"luau-kb@claude-doctor-market": true}` 를 더한다(6번의 마켓 등록이 먼저). 예전 `~/.claude/skills/luau-*`·`~/.claude/rules/luau-core.md` 심볼릭 링크는 지운다(둘 다 두면 겹친다).
 6. **q 플러그인**: `claude plugin marketplace add <claude-doctor 폴더>` 후 `claude plugin install q@claude-doctor-market`(마이그레이션 0002 가 켠다). 옛 `~/.claude/skills/{away,back,harness-doctor}` 는 apply 가 지우지 않는다: `tools/home-sync.sh status` 의 고아 보고를 보고 직접 정리한다.
 7. **진단**: Claude Code 에서 `/q:doctor --user`, 그다음 `/q:doctor <저장소>`.
    스크립트만 돌리려면 `python3 -I <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py --env` 와 `... scan.py <저장소>`. 플러그인 캐시에서 돌 때는 `HARNESS_DOCTOR_ROOT`(harness.env)로 이 폴더를 알려야 정본 검사가 켜진다.

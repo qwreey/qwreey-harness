@@ -5,7 +5,7 @@
 --   - 그래서 엔진 전역을 모듈 **최상위**(로드 시점)에서 건드리는 모듈은 CLI 에서 require 하는 순간 죽는다.
 --     공용 모듈은 로드 시점에 엔진 값을 참조하지 않고 호출 시점으로 미룬다.
 --   - assert(cond, 테이블) 은 테이블을 던지지 않는다. error(테이블) 은 그 테이블을 그대로 던진다.
--- 근거: luau 0.734·0.742 실행, 원천 claude-doctor drafts/gaps/testing.md §4, devplorer/.claude/conventions.md:53,67, tbox/CLAUDE.md:149-154,
+-- 근거: luau 0.734·0.742 실행, 원천 claude-doctor .claude/archive/research/drafts/gaps/testing.md §4, devplorer/.claude/conventions.md:53,67, tbox/CLAUDE.md:149-154,
 --   stl-luau/.claude/base/architecture.md:9-13, 후보 D-C03·S-127·Q-070·Q-118
 local G = _G :: any
 for _, name in { "task", "game", "Instance", "Vector3", "Enum", "io", "fs", "warn" } do

@@ -10,3 +10,6 @@ node_modules/
 # 큰 측정 출력. 요약 .md 에 수치와 다시 만드는 명령을 남긴다(agent-records 규약)
 .claude/audit/*/raw/
 .claude/**/raw/
+
+# 사용자가 붙여넣기엔 큰 텍스트를 여기에 넣음. 일시적으로 사용되고 사용자가 필요 없는 파일은 정리하며, 커밋 될 필요는 없음.
+usernotes/

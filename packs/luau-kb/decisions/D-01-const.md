@@ -1,6 +1,6 @@
 # D-01 `const` — 결정 (2026-11-10)
 
-원문: `/code/Projects/claude-doctor/decisions/D-01-const.md` 끝의 "사용자 결정" 절. 이 파일은 요약이다.
+원문: `claude-doctor .claude/base/decisions/D-01-const.md` 끝의 "사용자 결정" 절. 이 파일은 요약이다.
 
 ## 맥락
 rbvm 은 `const` 를 금지했다(2026-08-24, 당시 pesde 0.7.3 이 `const` 선언에서 자동 타입 익스포트를 못 함). stl-luau·quad·tbox·moonwave-luau 는 재대입 없는 바인딩에 `const` 를 쓴다(quad 는 문서상 채택, 게시 소스 0줄). pesde 0.7.4 는 `const` 를 받는다.

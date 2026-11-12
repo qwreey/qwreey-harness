@@ -4,7 +4,7 @@
     "name": "qwreey",
     "email": "me@qwreey.moe"
   },
-  "description": "툴킷 무관 하네스 플러그인 마켓 (claude-doctor). Luau 지식은 luau-kb-market 에 따로 있다.",
+  "description": "툴킷 무관 하네스 플러그인 마켓 (claude-doctor). 도메인 팩(web-security, luau-kb)은 기본 꺼짐이라 저장소가 켠다.",
   "plugins": [
     {
       "name": "q",
@@ -25,6 +25,11 @@
       "name": "web-security",
       "source": "./packs/web-security",
       "description": "웹·서버 코드(ts, tsx, js, jsx, mjs, cjs, astro)를 열거나 편집할 때 보안 규칙(입력 검증, 비밀, 인증·인가, 헤더, 의존성)을 훅이 주입한다. 기본 꺼짐 도메인 팩: 웹 저장소가 .claude/settings.json enabledPlugins 로 켠다. 툴킷 지식(웹·서버 코드용)이라 나중에 web-kb 로 옮겨질 수 있다"
+    },
+    {
+      "name": "luau-kb",
+      "source": "./packs/luau-kb",
+      "description": "Luau·Roblox 일반 지식의 정본: 타입 한계, 검증, 테스트, 성능, 스타일, 런타임 의미론, Roblox 타입·검증, 엔진·네트워크·월드 동작, Roblox 문서 조회, 업스트림 변화(스킬 12개, luau-lsp LSP, .luau 경로 rules 주입 훅). 기본 꺼짐 도메인 팩: Luau 저장소가 .claude/settings.json enabledPlugins 로 켠다"
     },
     {
       "name": "qwreey-proc-guard",

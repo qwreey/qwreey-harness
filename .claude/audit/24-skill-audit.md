@@ -85,7 +85,7 @@
 | `luau-testing` | **892** (한글 386) | 57 | 5 | 1,024 상한에 가장 가까움(API 업로드 시 위험). 마지막에 "**이 사용자 저장소들의 실제 테스트 방식**" 같은 환경 종속·시점 종속 서술("현황"). description 이 주제 12개 나열 | 높음 | 300~500자로. 주제 나열은 SKILL.md 라우팅 표에 이미 있음 |
 | `luau-verify` | 771 | 56 | 6 | 도구 버전("0.734/0.742"), 정책 ID("D-01"), 스니펫 표식 8개를 description 에 나열. 시간에 민감한 정보(B "Avoid time-sensitive") | 높음 | 버전·D-NN·표식 목록은 본문/references 로. description 은 "검증 절차와 도구 호출법 + 언제" |
 | `luau-types` | 729 | 78 | 6 | description 에 버전("0.734 와 0.742 사이"), 용어 20여 개 나열. 본문에 `D-04` 정책 ID, `luau-lsp 1.69.0` 같은 버전 특정 서술. 본문은 결정 트리+라우팅 표라서 구조는 공식의 "Pattern 2" 에 가깝고 좋음 | 높음(desc) / 중간(본문) | description 축소, 버전·D-NN 은 references 로 |
-| `luau-perf` | 703 | 46 | 3 | description 에 "luau 0.742 의 -O1·-O2·--codegen 세 모드로 다시 잰 비율" 같은 측정 방법·버전 서술. 본문 말미에 **절대 경로** `/code/Projects/luau-kb/bench/*.luau`, 결과 파일명 `results/2026-11-10.tsv`(날짜), 원천 `.claude/audit/08`·`09` 인용(줄 56·59) | 중간~높음 | 경로·날짜·원천은 references 의 출처 절로. 플러그인 설치 시 절대 경로는 깨짐 |
+| `luau-perf` | 703 | 46 | 3 | description 에 "luau 0.742 의 -O1·-O2·--codegen 세 모드로 다시 잰 비율" 같은 측정 방법·버전 서술. 본문 말미에 **절대 경로** `/code/Projects/claude-doctor/packs/luau-kb/bench/*.luau`, 결과 파일명 `results/2026-11-10.tsv`(날짜), 원천 `.claude/audit/08`·`09` 인용(줄 56·59) | 중간~높음 | 경로·날짜·원천은 references 의 출처 절로. 플러그인 설치 시 절대 경로는 깨짐 |
 | `luau-style` | 679 | 83 | 4 | description 마지막에 이웃 스킬 5개를 가리키는 "다른 스킬이 다룬다" 문장 길이 약 200자. 본문 83줄 중 앞부분은 판단 트리(좋음). "결정 상태(확정/제안)" 같은 저장소 정책 상태를 스킬이 들고 있음 | 중간 | 이웃 스킬 안내는 짧게(1줄). 결정 상태는 `references/project-overrides.md`(이미 있음)에만 |
 | `luau-upstream` | 603 | 58 | 3 | 주제 자체가 "빠르게 바뀌는 생태계"라 시간 민감 내용이 본질이다. description 이 "luau 주간 릴리스, rfcs, luau-lsp, StyLua, rojo, FFlag…" 로 길다 | 중간 | 시간 민감 부분(현재 진행 중인 변화 요약)을 references 로 분리해 본문은 절차(감시·bug-scan)만 |
 | `roblox-engine` | 620 | 43 | 2 | description 에 API 이름 나열 18개 이상. 본문은 라우팅 표 위주로 양호 | 중간 | 주제 5~6개로 축약 |
@@ -316,6 +316,6 @@ Same as `second-opinion:audit` section 4. Show the report to the user unsummariz
 **동작 변경 없음**: 가드, nudge 시점, ledger, 스크립트 옵션. 예외 하나: nudge 훅 메시지의 "relay its report verbatim" 을 "handle its findings as the skill says" 로 바꿨다(결과 처리 규칙과 충돌해서).
 
 **luau-kb(고치지 않음), 이 원칙으로 다시 볼 곳**
-- 12개 스킬 전부(`/code/Projects/luau-kb/skills/*/SKILL.md`)의 description: 나열형 상황·키워드가 많은지(원칙 9), pushy 한지(10), 에이전트의 필요 기준인지(11).
+- 12개 스킬 전부(`/code/Projects/claude-doctor/packs/luau-kb/skills/*/SKILL.md`)의 description: 나열형 상황·키워드가 많은지(원칙 9), pushy 한지(10), 에이전트의 필요 기준인지(11).
 - 본문 머리의 "When to use" 류 절과 description 되풀이(원칙 10).
 - 언어 정책(원칙 12): 스킬 전환 순서의 마지막 단계에서 영어/한국어 혼합 정리.

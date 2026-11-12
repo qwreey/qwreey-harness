@@ -45,7 +45,7 @@ last_verified: 2026-11-10
 ---
 
 ## §1 언제 부르나
-status: described · 원천: 사용자 결정 claude-doctor `decisions/D-03-runner.md`
+status: described · 원천: 사용자 결정 claude-doctor `.claude/base/decisions/D-03-runner.md`
 
 - **mock 이 실제와 맞는지 확인할 때**(`mocks.md` §6), **mock 으로 재현할 수 없는 동작을 볼 때**(`env-dependence.md` §2 의 "Studio 가 필요한 경우" 열). 이 둘뿐이다.
 - 반복 실행하는 테스트 게이트를 Studio 에 기대지 않는다. Studio 는 사람이 띄워 둔 창이고 다른 세션과 공유되므로 기계적으로 돌릴 수 없다.

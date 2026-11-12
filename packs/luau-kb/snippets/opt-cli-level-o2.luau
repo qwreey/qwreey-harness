@@ -3,7 +3,7 @@
 --@run-with -O1 => fail; out~check: expected number
 -- 주장: 지시어가 없으면 CLI 수준을 따른다. opt-o2-error-level 의 단언을 지시어 없이 둔 사본이다.
 --   luau -O2 에서는 단언이 통과하고(위치 소실), 기본 -O1 에서는 위치가 남아 첫 단언이 실패한다(음성 대조군).
--- 근거: luau CLI 기본 -O1(luau --help). 원천: claude-doctor drafts/gaps/tools/run_opt.sh B1·B2
+-- 근거: luau CLI 기본 -O1(luau --help). 원천: claude-doctor .claude/archive/research/drafts/gaps/tools/run_opt.sh B1·B2
 local function check(x: any): any
 	if type(x) ~= "number" then error("check: expected number", 2) end
 	return x

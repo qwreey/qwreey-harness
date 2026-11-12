@@ -103,7 +103,7 @@ status: described · 원천: quad typing-limits §1 "정확한 경계" 각주, �
 ## §5 "Code is too complex" 와 한도 플래그
 status: described · 원천: quad typing-limits 8.5, 8.7 4번, 8.9, 8.12, 8.28, 8.40, 8.41; quad/scripts/doc-snippets.py FLAGS
 
-- **플래그를 바꾸는 길** (정정 2026-11-10, verified · 근거: `snippets/verify-fflags-force-strict.luau`, 0.742 소스 `CLI/src/Flags.cpp`, `CLI/src/Analyze.cpp:434` · 후보 S-129, claude-doctor audit/09 §6 모순 1):
+- **플래그를 바꾸는 길** (정정 2026-11-10, verified · 근거: `snippets/verify-fflags-force-strict.luau`, 0.742 소스 `CLI/src/Flags.cpp`, `CLI/src/Analyze.cpp:434` · 후보 S-129, claude-doctor .claude/audit/09 §6 모순 1):
   - `luau-analyze --fflags=Name=true|false[,Name2=…]` 로 **불리언** 플래그를 바꿀 수 있다. `--help` 에는 나오지 않는다(이 파일의 옛 서술 "플래그 옵션이 없다"는 `--help` 만 보고 쓴 것이라 틀렸다).
   - 모르는 이름은 stderr 에 `Warning: unrecognized flag 'X'.` 를 내고 무시된다. **정수 한도**(`LuauTypeInferIterationLimit=1000000` 등)는 `Warning: unrecognized value '…' for flag …` 로 무시된다. 소스가 불리언 플래그 목록만 돈다. 경고는 종료 코드를 바꾸지 않으니 stderr 를 본다.
   - 예: `--fflags=DebugLuauForceStrictMode=true` 는 `.luaurc` 의 nonstrict 를 덮고 strict 로 검사한다.

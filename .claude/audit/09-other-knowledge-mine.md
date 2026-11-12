@@ -32,7 +32,7 @@
 | `mw:` | `/code/Projects/moonwave-luau/.claude/` |
 | `vs:` | `/code/Projects/VideoSync/` |
 | `quad:` | `/code/Projects/quad/.claude/` |
-| `kb:` | `/code/Projects/luau-kb/skills/` |
+| `kb:` | `/code/Projects/claude-doctor/packs/luau-kb/skills/` |
 
 ---
 

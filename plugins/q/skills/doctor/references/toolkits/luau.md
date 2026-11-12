@@ -41,7 +41,7 @@
   - luau-lsp 핀은 Roblox `globalTypes.d.luau` 판과 짝이다(table-sim, devplorer, tbox). lsp만 따로 올리면 안 된다.
 - **D-02 (stylua, 확정)**: 사고를 내는 것은 설정 값이 아니라 설정이 적용되지 않은 실행이다.
   - `syntax = "Luau"`가 없거나 하위 폴더에서 실행하면 `f<<T>>`가 exit 0인 채로 시프트 연산이 된다(재현됨).
-  - 재현 스크립트: `<작업공간>/luau-kb/tools/repro-stylua-typeargs.sh`
+  - 재현 스크립트: `<doctor>/packs/luau-kb/tools/repro-stylua-typeargs.sh`
   - `syntax = "Luau"` 한 줄은 승인을 받으면 고칠 수 있다. `indent_type`·`call_parentheses` 값은 저장소 소유라 건드리지 않는다.
 - **D-03 (러너, 확정)**: lune은 `const`를 파싱하지 못한다. `.vscode`의 `@lune/` 별칭처럼 lune 흔적과 "lune 안 씀" 서술이 섞여 있으면 모순으로 보고한다(moonwave 사례).
 
@@ -73,15 +73,15 @@
 - **후보**: 라이브러리 없이 재현되거나 Luau 버전에만 의존하는 사실. 솔버 동작, 표준 라이브러리 성능, stylua·luau-analyze의 함정, `-O2` 인라인 문제.
 - **후보 아님**: 프로젝트 API, 설계 결정, 그 저장소의 수치 계약에 묶인 것.
 - 둘이 섞였으면 "혼합"으로 적는다. 분류 예시는 `<doctor>/audit/07-stl-luau-diet.md` §5의 23개 표다.
-- 이미 luau-kb에 있는지 확인한다: `grep -rn <핵심어> <작업공간>/luau-kb/skills`. 있으면 프로젝트 문서의 서술을 포인터로 바꾸는 안을 낸다.
+- 이미 luau-kb에 있는지 확인한다: `grep -rn <핵심어> <doctor>/packs/luau-kb/skills`. 있으면 프로젝트 문서의 서술을 포인터로 바꾸는 안을 낸다.
 
-**옮기는 순서**(luau-kb 작업에서 한다): snippet으로 재현(`luau-kb/tools/check_snippets.py`) → 스킬 reference에 적기 → 프로젝트 문서에는 포인터만.
+**옮기는 순서**(luau-kb 작업에서 한다): snippet으로 재현(`packs/luau-kb/tools/check_snippets.py`) → 스킬 reference에 적기 → 프로젝트 문서에는 포인터만.
 
 ## typedefs 사본
 
 항목 6. `DRIFT-TYPEDEFS`: 저장소 안의 `globalTypes*.d.luau`를 luau-kb 정본 `typedefs/globalTypes.d.luau`와 md5로 비교한다.
 - md5가 다르다고 곧 표류는 아니다. 그 저장소의 luau-lsp 핀과 짝인 판일 수 있다(rbvm의 캐시 판, tbox의 `globalTypes.None.d.luau`).
-  그 저장소 `mise.toml` 주석과 `luau-kb/typedefs/README.md`의 비교표를 확인한다.
+  그 저장소 `mise.toml` 주석과 `packs/luau-kb/typedefs/README.md`의 비교표를 확인한다.
 - 정본과 같은 사본은 지금 고칠 것이 없다. 참조로 바꾸는 일은 P5 범위다.
 - 반입 사본(`intake/`)은 git 무시 파일까지 걷는다. `.claude/cache/` 같은 캐시가 같이 왔으면 이 경고는 거른다.
 

@@ -27,7 +27,7 @@ claude-doctor 에서 quad 를 읽기 전용으로 조사하다 찾은 것들이�
 
 luau-kb 가 quad 서술을 재현하거나 더 새 실측·문서와 대조해 보니 틀렸거나 낡은 것들이다.
 - 줄 번호는 2026-11-10 에 quad 를 읽기 전용으로 열어 확인했다.
-- 근거 경로는 `/code/Projects/luau-kb/` 기준이다. 스니펫은 `snippets/<ID>`, 벤치는 `bench/` 에 있다.
+- 근거 경로는 `/code/Projects/claude-doctor/packs/luau-kb/` 기준이다. 스니펫은 `snippets/<ID>`, 벤치는 `bench/` 에 있다.
 - 심각도
   - **행동**: 그대로 따르면 코드·테스트·게이트·설계 판단이 틀어진다.
   - **표현**: 결론이나 처방은 맞고 범위·원인·수치·시점만 부정확하다. "이미 정정"은 같은 저장소 안에 고친 기록이 있어 확인만 하면 되는 것이다.
@@ -95,4 +95,4 @@ luau-kb 가 quad 서술을 재현하거나 더 새 실측·문서와 대조해 �
 - **옮기기만으로는 안 된다.** 상태가 인스턴스마다라 모듈 수준 `State.luau` 로 못 옮긴다. 먼저 상태 표(`ctx`)로 꺼내 함수에 넘기는 단계가 필요하다(군집 사이 공유 상태 13개, 순환 1묶음, 끊을 간선 4개·15호출쌍). 한 게임 저장소의 화면 모듈이 이 단계를 건너뛰어 다시 자랐다.
 - `Register`(500줄, 안쪽 함수 11)는 파일을 나눈 뒤에도 단계별 함수로 따로 쪼개야 한다(`--scope Register`).
 - 결과 폴더 예: `Window/Manager/{init, Arrange, Drop, Persist, Tabs, Focus, Core}` (quad 의 "가족 접기" 관례).
-- D-13 확정(2026-11-10): 파일 길이 800줄 경고·1,500줄 강제(테스트는 두 배)이나 **알림만 하고 막지 않는다**. 확실한 사유를 기록하면 기준을 넘는 예외도 가능하다. 계획기는 `python3 -I /code/Projects/luau-kb/skills/luau-style/scripts/split-plan.py <파일.luau> [--target 400] [--max 800] [--scope 함수이름] [--json]` (읽기 전용, 표준 라이브러리만).
+- D-13 확정(2026-11-10): 파일 길이 800줄 경고·1,500줄 강제(테스트는 두 배)이나 **알림만 하고 막지 않는다**. 확실한 사유를 기록하면 기준을 넘는 예외도 가능하다. 계획기는 `python3 -I /code/Projects/claude-doctor/packs/luau-kb/skills/luau-style/scripts/split-plan.py <파일.luau> [--target 400] [--max 800] [--scope 함수이름] [--json]` (읽기 전용, 표준 라이브러리만).

@@ -22,7 +22,7 @@
 #      luau-lsp 만 푼다. Q6 과 합치면 "alias 는 편집기 전용" 이라는 관측의 조건이 이것이다. luau-lsp 는 symlink 도 따라가 푼다(런타임은 실패).
 #  같은 주제를 luau-verify 쪽 snippets/verify-require.sh 도 잰다(R3·R4).
 # 근거: stl-luau-doctor/.claude/base/architecture.md:37-57,305-330; quad/.claude/base/project-setup-plan.md:112-176;
-#       quad/scripts/relink.sh:4-6; mrow/review/REVIEW.md:1159-1187; tbox/CLAUDE.md:141-145; audit/08 Q-101~Q-104, audit/09 S-123~S-125, X-02, X-04
+#       quad/scripts/relink.sh:4-6; mrow/review/REVIEW.md:1159-1187; tbox/CLAUDE.md:141-145; claude-doctor .claude/audit/08 Q-101~Q-104, claude-doctor .claude/audit/09 S-123~S-125, X-02, X-04
 set -u
 MISE=${MISE_DATA_DIR:-/code/.local/share/mise}
 LSP=$MISE/installs/github-johnny-morganz-luau-lsp/1.70.1/luau-lsp

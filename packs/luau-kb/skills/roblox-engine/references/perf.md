@@ -108,7 +108,7 @@ status: described · last-confirmed: table-sim 2026-10(Studio 0.742 Play) · 근
 mock 흉내: 해당 없음. 스텁은 즉시 돌려주므로 대기 시간을 재현하지 않는다.
 
 ## §6 최적화 수준(-O)과 native
-status: described (문서 판정, 엔진 안 실측 없음) · last-confirmed: Roblox 문서 `luau/comments.md` "Comment directives" 절(56–78행, creator-docs ccc2b01d9bf8, `roblox_docs.py get luau/comments.md#comment-directives` 로 2026-11-10 재확인. 이전 표기 "Script directives" 는 절 이름이 틀렸다) · 근거: 그 문서; stl-luau-doctor `.claude/papers/05-quad-survey.md:110`, `.claude/conventions.md:136`; quad `.claude/archive/post-implementation-review/round14-reflection-plan.md:25`, `docs/quadnomicon/11-static-grepability-and-error-architecture.md:126-129`; Roblox 문서 `luau/native-code-gen.md`(2026-11-10) · 후보: S-116, Q-088, audit/09 §6 #2
+status: described (문서 판정, 엔진 안 실측 없음) · last-confirmed: Roblox 문서 `luau/comments.md` "Comment directives" 절(56–78행, creator-docs ccc2b01d9bf8, `roblox_docs.py get luau/comments.md#comment-directives` 로 2026-11-10 재확인. 이전 표기 "Script directives" 는 절 이름이 틀렸다) · 근거: 그 문서; stl-luau-doctor `.claude/papers/05-quad-survey.md:110`, `.claude/conventions.md:136`; quad `.claude/archive/post-implementation-review/round14-reflection-plan.md:25`, `docs/quadnomicon/11-static-grepability-and-error-architecture.md:126-129`; Roblox 문서 `luau/native-code-gen.md`(2026-11-10) · 후보: S-116, Q-088, claude-doctor .claude/audit/09 §6 #2
 
 - **Roblox 문서가 기본값을 적어 둔다**: `--!optimize` 지시어 설명에 "1 enables basic optimizations (default in Studio testing)", "2 enables further optimizations (default in live games)"(`/docs/en-us/luau/comments.md`, 2026-11-10). stl 의 "라이브 `-O2`, Studio `-O1`" 은 이 문서와 맞고, quad 의 "실측 필요"는 문서로 닫힌다. 엔진 안에서 직접 잰 기록은 아직 없다(아래 절차).
 - 문서는 "Exact optimizations aren't published and are subject to change" 라고 덧붙인다. CLI `-O2` 의 인라인 규칙이 엔진과 같다는 것은 가정이다.
@@ -128,7 +128,7 @@ status: described · 근거: quad `.claude/audit/perf-cli-2026-09-26/REPORT.md:3
 
 | # | 내용 | 판정 |
 |---|---|---|
-| audit/09 §6 #2 | 라이브 Roblox 최적화 수준: stl "라이브 -O2, Studio -O1" 대 quad "미실측" | **판정(문서)**: stl 이 맞다. `luau/comments.md` 가 Studio 테스트 1, 라이브 2 를 기본값으로 적는다. 엔진 안 인라인 동작의 실측 확인은 아래 절차로 남긴다 |
+| claude-doctor .claude/audit/09 §6 #2 | 라이브 Roblox 최적화 수준: stl "라이브 -O2, Studio -O1" 대 quad "미실측" | **판정(문서)**: stl 이 맞다. `luau/comments.md` 가 Studio 테스트 1, 라이브 2 를 기본값으로 적는다. 엔진 안 인라인 동작의 실측 확인은 아래 절차로 남긴다 |
 
 ## 미판정
 - **라이브·Studio 의 최적화 수준(엔진 안 실측 확인).** 문서 기본값(Studio 1, 라이브 2)이 인라인 동작으로도 보이는지 확인하는 절차:

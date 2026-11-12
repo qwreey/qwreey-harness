@@ -65,7 +65,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippe
 - 새 솔버의 nonstrict 는 거의 아무것도 보고하지 않는다(quad doc-snippets.py 머리 설명, 위 스니펫과 일치).
 
 ## §2 러너 (결정: D-03)
-status: described (정책) / verified (lune 의 const 파싱 실패) · 원천: 사용자 결정 claude-doctor `decisions/D-03-runner.md` (2026-11-10), 이 저장소 `decisions/D-03-runner.md`; 결정 전 입장: stl-luau/.claude/base/architecture.md "런타임: 순수 luau", stl/moonwave-luau/table-sim/devplorer mise.toml 머리 주석, tbox/mise.toml `[tasks.test]`
+status: described (정책) / verified (lune 의 const 파싱 실패) · 원천: 사용자 결정 claude-doctor `.claude/base/decisions/D-03-runner.md` (2026-11-10), 이 저장소 `decisions/D-03-runner.md`; 결정 전 입장: stl-luau/.claude/base/architecture.md "런타임: 순수 luau", stl/moonwave-luau/table-sim/devplorer mise.toml 머리 주석, tbox/mise.toml `[tasks.test]`
 
 **결정**: 기본 러너는 `luau` CLI 다. lune 은 쓰지 않는다.
 - Roblox 서비스·환경에 기대는 동작(`task`, 이벤트 등)은 **필요한 부분만 mock 을 만들어** `luau` 로 돌리는 것이 기본이다. 항상 Studio 를 부르면 기계적으로 테스트할 수 없기 때문이다.
@@ -88,7 +88,7 @@ status: described (정책) / verified (lune 의 const 파싱 실패) · 원천: 
 - `pesde run` 은 스크립트를 lune 으로 돌리고 엔진을 `~/.pesde/bin` 에서 찾는다. 그 경로가 PATH 에 없으면 `failed to replace process` 로 패닉한다(described, 후보 X-09, `tbox/CLAUDE.md:134-137`). 스크립트는 mise task 로 luau·lute 를 직접 부른다.
 
 ## §3 `const` (결정: D-01)
-status: described (정책) / verified (언어·도구 동작) · 원천: 사용자 결정 claude-doctor `decisions/D-01-const.md` (2026-11-10), 이 저장소 `decisions/D-01-const.md`; 결정 전 입장: rbvm/.claude/conventions.md "const 를 쓰지 말 것", stl-luau/.claude/conventions.md "const 바인딩", tbox/quad mise.toml 의 pesde 핀 주석
+status: described (정책) / verified (언어·도구 동작) · 원천: 사용자 결정 claude-doctor `.claude/base/decisions/D-01-const.md` (2026-11-10), 이 저장소 `decisions/D-01-const.md`; 결정 전 입장: rbvm/.claude/conventions.md "const 를 쓰지 말 것", stl-luau/.claude/conventions.md "const 바인딩", tbox/quad mise.toml 의 pesde 핀 주석
 
 **결정**: `const` 를 써도 된다. Roblox 라이브(게시) 코드까지 포함한다. rbvm 의 금지 근거(pesde 0.7.3)는 0.7.4 에서 사라졌다. 새 파일은 `const`, 기존 파일은 그 파일 관행을 따르고, 한 파일 안에서 `const` 와 재대입 없는 `local` 을 섞지 않는다. 결정 전 "정책 미정" 표시는 2026-11-10 에 걷었다.
 

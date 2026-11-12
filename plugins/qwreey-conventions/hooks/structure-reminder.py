@@ -28,7 +28,7 @@ audit 10 기준 이 세션들의 파일 수정은 Bash(sed -i·python) 쪽이 Ed
   사유가 비었거나 사유가 아닌 말("나중에", "귀찮", "TODO", "-")이면 무효다 — 평소처럼 알리고 무효라고 덧붙인다.
   유효한 예외 파일은 경고·강제·성장 알림 대신 "Reason: …" 한 줄(알림 문구는 영어, .claude/audit/17)을 세션당 한 번만 낸다(경고 기준 이상일 때).
 강제 기준을 넘은 .luau/.lua 파일에는 분리 계획기(split-plan.py) 명령을 한 줄 붙인다. 계획기는 ~/.claude/skills/luau-style 에서 찾고,
-  없으면 harness.env 의 HARNESS_LUAU_KB 또는 ${HARNESS_WORKSPACE}/luau-kb 에서 찾는다. 못 찾으면 안내를 생략한다.
+  없으면 harness.env 의 HARNESS_LUAU_KB 또는 ${HARNESS_DOCTOR_ROOT}/packs/luau-kb(없으면 ${HARNESS_WORKSPACE}/claude-doctor/packs/luau-kb)에서 찾는다. 못 찾으면 안내를 생략한다.
 
 저장소 설정: <프로젝트>/.claude/structure.json —
   {"warn": 800, "hard": 1500, "grow": 300, "flat": 15, "ignore": ["glob", …], "exempt": [{"path": "glob", "reason": "…"}],
@@ -117,7 +117,10 @@ def find_planner():
     """split-plan.py 경로. 못 찾으면 None(안내 생략)."""
     env = harness_env()
     cands = [Path.home() / ".claude" / PLANNER_REL]
-    kb = env.get("HARNESS_LUAU_KB") or (os.path.join(env["HARNESS_WORKSPACE"], "luau-kb") if env.get("HARNESS_WORKSPACE") else "")
+    kb = env.get("HARNESS_LUAU_KB")
+    if not kb:
+        root = env.get("HARNESS_DOCTOR_ROOT") or (os.path.join(env["HARNESS_WORKSPACE"], "claude-doctor") if env.get("HARNESS_WORKSPACE") else "")
+        kb = os.path.join(root, "packs", "luau-kb") if root else ""
     if kb:
         cands.append(Path(kb) / PLANNER_REL)
     return next((str(c) for c in cands if c.is_file()), None)

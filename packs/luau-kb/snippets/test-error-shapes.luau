@@ -8,7 +8,7 @@
 --   error(msg, 2) 를 pcall 이 직접 부른 함수에서 -> 위치 없음(level 2 가 C 함수 pcall)
 --   error(tbl)           -> 그 테이블 그대로(동일성 유지)
 --   assert(cond, tbl)    -> 테이블을 던지지 않고 "invalid argument #2 to 'assert'" 로 바뀐다
--- 근거: 이 파일 실행(luau 0.734, 0.742, -O0/-O1/-O2 모두 같은 값). -O2 에서 달라지는 모양은 test-o2-line-probe.luau. 원천: claude-doctor drafts/gaps/testing.md §5
+-- 근거: 이 파일 실행(luau 0.734, 0.742, -O0/-O1/-O2 모두 같은 값). -O2 에서 달라지는 모양은 test-o2-line-probe.luau. 원천: claude-doctor .claude/archive/research/drafts/gaps/testing.md §5
 
 local function catch(fn: () -> ()): any
 	local ok, err = pcall(fn)

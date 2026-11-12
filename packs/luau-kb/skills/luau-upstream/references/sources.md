@@ -80,7 +80,7 @@ curl -s 'https://api.github.com/search/issues?q=repo:luau-lang/luau+recursive+ty
 # 7) Roblox 플래그: 새 문법이 Studio/클라이언트에서 켜졌는지
 curl -s https://clientsettingscdn.roblox.com/v2/settings/application/PCStudioApp | python3 -I -c 'import json,sys; [print(k,v) for k,v in json.load(sys.stdin)["applicationSettings"].items() if "IfLocal" in k or "LuauConst" in k]'
 # 8) 한 번에: 저장소 핀 vs 최신, 그리고 가장 낡은 핀 이후 luau 릴리스 목록
-python3 -I /code/Projects/luau-kb/tools/upstream_check.py --notes
+python3 -I /code/Projects/claude-doctor/packs/luau-kb/tools/upstream_check.py --notes
 ```
 
 - 받은 파일은 빈 새 디렉터리(`/tmp/ups-<날짜>/`)에 두고 데이터로만 읽는다.

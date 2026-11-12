@@ -42,7 +42,7 @@ last_verified: 2026-11-10
 ---
 
 ## §1 원칙
-status: described · 근거: luau-verify `toolchain.md` §3–4, claude-doctor `decisions/D-05-toolchain-pins.md`
+status: described · 근거: luau-verify `toolchain.md` §3–4, claude-doctor `.claude/base/decisions/D-05-toolchain-pins.md`
 
 - 버전은 반드시 고정한다. 검사기(`luau-analyze`)와 실행기(`luau`)가 같은 배포판이라, 올리면 진단 기준선과 음성 대조군 건수가 바뀐다.
 - **설치와 핀 변경은 다른 일이다.** `mise install luau@<ver>` 는 `installs/` 에 내려받기만 한다. 전역 설정과 저장소 `mise.toml` 은 바뀌지 않는다. 다만 mise 의 `installs/luau/latest` 와 `0` 심볼릭 링크는 새 버전으로 옮겨진다. 이 링크를 직접 부르는 스크립트가 있으면 그 스크립트의 동작이 바뀐다.
@@ -58,7 +58,7 @@ status: verified (1–3단계, 2026-11-10 에 0.742 → 0.746 으로 실행) / d
    ```
 2. **스니펫 전체를 새 버전 열로 돌린다.** 기준 버전과 나란히 돌려야 차이만 보인다.
    ```bash
-   cd /code/Projects/luau-kb
+   cd /code/Projects/claude-doctor/packs/luau-kb
    python3 -I tools/upstream_check.py --bug-scan 0.746            # 기준: 설치된 것 중 바로 아래
    python3 -I tools/upstream_check.py --bug-scan 0.746 --base 0.734
    # 원 출력이 필요하면

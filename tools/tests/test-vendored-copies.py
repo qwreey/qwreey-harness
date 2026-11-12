@@ -10,7 +10,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PLUGINS = ROOT / "plugins"
 PACKS = ROOT / "packs"
-LUAU_KB = ROOT.parent / "luau-kb" / "hooks"  # 형제 저장소의 사본. 저장소가 없으면 건너뛴다
 # 파일 이름 -> 정본 경로(저장소 루트 기준)
 CANON = {
     "compact_epoch.py": "plugins/q/scripts/compact_epoch.py",
@@ -20,10 +19,10 @@ CANON = {
 }
 # 사본이 있어야 하는 곳(없으면 실패): 지워지거나 옮겨진 사본을 알아채려고 둔다
 EXPECTED = {
-    "compact_epoch.py": ["plugins/qwreey-advisor/hooks", "plugins/qwreey-conventions/hooks", "packs/web-security/hooks"],
+    "compact_epoch.py": ["plugins/qwreey-advisor/hooks", "plugins/qwreey-conventions/hooks", "packs/web-security/hooks", "packs/luau-kb/hooks"],
     "memory_signals.py": ["plugins/q/skills/doctor/scripts"],
-    "rules_inject.py": ["packs/web-security/hooks"],
-    "conv_env.py": ["packs/web-security/hooks"],
+    "rules_inject.py": ["packs/web-security/hooks", "packs/luau-kb/hooks"],
+    "conv_env.py": ["packs/web-security/hooks", "packs/luau-kb/hooks"],
 }
 
 
@@ -38,13 +37,6 @@ class VendoredCopies(unittest.TestCase):
                 self.assertIn(ROOT / rel / name, copies, f"{rel}/{name} 사본이 없다")
             for c in copies:
                 self.assertEqual(c.read_bytes(), want, f"{c.relative_to(ROOT)} 이 정본 {canon} 과 다르다. 정본을 고치고 복사한다")
-
-    def test_luau_kb_copies_match_canon(self):
-        if not LUAU_KB.is_dir():
-            self.skipTest("luau-kb 가 없다")
-        for name in ("rules_inject.py", "conv_env.py", "compact_epoch.py"):
-            want = (ROOT / CANON[name]).read_bytes()
-            self.assertEqual((LUAU_KB / name).read_bytes(), want, f"luau-kb/hooks/{name} 이 정본 {CANON[name]} 과 다르다")
 
 
 if __name__ == "__main__":

@@ -986,8 +986,11 @@ def toolkit_ctx(repo, files, projects, only, kb):
     def kb_path(name):
         if kb:
             return kb
-        cand = projects / f"{name}-kb"
-        return cand if cand.is_dir() else WORKSPACE / f"{name}-kb"
+        pack = (DOCTOR_ROOT or WORKSPACE / "claude-doctor") / "packs" / f"{name}-kb"
+        for cand in (projects / f"{name}-kb", pack):
+            if cand.is_dir():
+                return cand
+        return WORKSPACE / f"{name}-kb"
     return SimpleNamespace(
         repo=repo, files=files, projects=projects, env=ENV, want=lambda n: n in only, add=add, kb=kb_path,
         read=read, md5=md5, run=run, rel=rel, inside=inside, strip_code=strip_code, rule_files=rule_files,
@@ -1110,7 +1113,7 @@ def main():
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--today", help="YYYY-MM-DD (기본: 오늘)")
     ap.add_argument("--projects", help="형제 저장소 루트 (기본: 저장소의 부모)")
-    ap.add_argument("--kb", help="툴킷 공유 지식 저장소 경로 (기본: <projects>/<툴킷>-kb, 없으면 <작업공간>/<툴킷>-kb)")
+    ap.add_argument("--kb", help="툴킷 공유 지식 저장소 경로 (기본: <projects>/<툴킷>-kb, 없으면 <doctor>/packs/<툴킷>-kb, 그것도 없으면 <작업공간>/<툴킷>-kb)")
     ap.add_argument("--toolkits", help="켤 툴킷을 감지와 무관하게 지정 (예: luau,web / none)")
     ap.add_argument("--env", action="store_true", help="harness.env 값과 툴킷 목록만 보인다")
     a = ap.parse_args()

@@ -76,4 +76,4 @@
 - `/code/Projects/claude-doctor/home/.claude/rules/comments.md`, `home/.claude/hooks/comment-hygiene.py`(패턴, comments.json 처리)
 - `/code/Projects/claude-doctor/audit/24-skill-audit.md` §4(모델용 텍스트 원칙)
 - 공식: platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices ("Avoid time-sensitive information" 절 등)
-- 예시 표본(읽기만): `/code/Projects/quad/.claude/` 일부, `/code/Projects/luau-kb/skills/luau-style/references/modules.md`, `/code/Projects/stl-luau` 의 주석 표본
+- 예시 표본(읽기만): `/code/Projects/quad/.claude/` 일부, `/code/Projects/claude-doctor/packs/luau-kb/skills/luau-style/references/modules.md`, `/code/Projects/stl-luau` 의 주석 표본

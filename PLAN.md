@@ -20,7 +20,7 @@
    settings.json      공통 deny(git push, Read(.env*)), heavy-proc-guard 훅
    skills/  ──symlink──▶ ② (또는 플러그인 설치)
 
-② 정본 저장소  /code/Projects/luau-kb   ('claude' 접두는 예약어라 불가)
+② 정본 저장소  packs/luau-kb (claude-doctor 안의 도메인 팩; 이전에는 별도 저장소 /code/Projects/luau-kb)
    .claude-plugin/{plugin.json, marketplace.json}
    skills/
      luau-types/       SKILL.md(≤100줄: 결정 트리 + 증상→파일 라우팅)
@@ -188,14 +188,14 @@
   2. 실측: 스킬 `paths`, `defaultEnabled`.
   3. 기록 규약 토론(opus 2개, 2라운드). 문구와 자동화 수준, coderag 결합 방식을 정한다.
   4. 재편 실험: 끝남, main 에 합침(사용자: "합치자"). 기록은 `.claude/` 아래(`.claude/README.md`), PLAN.md 는 사용자 결정으로 루트("나도 많이 참조하는 파일"). 시점 기록 안의 옛 경로도 스크립트로 바꿨다(사용자: "작은 모델로 기계적으로 링크를 고치는게 나을지도"). 결과는 `.claude/audit/39-records-experiment/after-D.md`(coderag 10/12, grep 7/12). 남은 것: coderag static-gen 이 하위 폴더로 내려가지 않음, luau-kb 의 옛 경로 12개 파일(가져올 때 고침), 커밋 때 records_check 알림.
-  5. `packs/`: web-security 는 옮김(기본 꺼짐, 마이그레이션 0008, q:doctor PACK- 검사; 사용자: "가로 하는게 맞는것 같음…doctor 가 점검하는 부분에 같이 있으면 편하겠다"). 웹 저장소별 켜기와 luau-kb 가져오기가 남았다.
+  5. `packs/`: web-security 는 옮김(기본 꺼짐, 마이그레이션 0008, q:doctor PACK- 검사; 사용자: "가로 하는게 맞는것 같음…doctor 가 점검하는 부분에 같이 있으면 편하겠다"). luau-kb 는 이력째 가져옴(git subtree, packs/luau-kb 0.5.0, 기본 꺼짐; 개발 자료 evals 는 `.claude/packs/luau-kb/`). 웹·Luau 저장소별 켜기가 남았다.
   6. 자동화: 규약 스킬, doctor 검사, 커밋할 때 info 알림, `q:start` 의 `.claude/` 뼈대 템플릿.
 - **기록 규약 토론 결과(.claude/audit/38 synthesis)에 대한 사용자 답.** "추천대로 할게", "저장소 변경은 승인".
   - coderag 저장소 변경을 승인했다. coderag 에는 따로 세션이 없으므로 이 세션이 서브에이전트로 맡는다. 1단계는 C1, C2, C6 이다.
   - coderag 를 쓰는 형태: 먼저 바이너리 경로(harness.env `HARNESS_CODERAG`)로 시작하고, 실험을 본 뒤 사용자 설치에서 플러그인을 켠다. 최종적으로는 빌드된 바이너리를 배포한다. 사용자: "github release 로 실어서 넣고, 내가 gpg 사이닝을 더할게.(sandbox 바깥에서)". claude-doctor 에는 받기·서명 확인·없으면 소스 빌드를 하는 스크립트를 둔다.
   - 소급: 새 저장소와 claude-doctor 에만 적용한다. 형제 저장소의 옛 형태는 검사기가 인정만 한다.
   - raw 측정 출력은 gitignore 한다. 요약에 수치와 재생성 명령을 남긴다.
-- **아직 사용자에게 물을 것.** luau-kb 설치 범위(팩 구조로 정리되면 함께), 형제 저장소 지도의 포인터 방식, luau-kb 저장소의 미커밋 변경과 `rules/code-structure.md` 9행(가져온 뒤 이 저장소 안에서 고친다).
+- **아직 사용자에게 물을 것.** luau-kb 설치 범위(저장소별 켜기), 형제 저장소 지도의 포인터 방식. (`rules/code-structure.md` 9행은 가져온 뒤 고쳤다.)
 
 ## 4. 사용자가 결정할 것
 

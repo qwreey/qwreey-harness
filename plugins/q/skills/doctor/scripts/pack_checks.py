@@ -8,10 +8,9 @@ import json
 from pathlib import Path
 
 # 팩 이름 -> (툴킷, 마켓). 팩 이름은 마켓과 무관하게 맞춘다(마켓이 옮겨져도 켜진 것으로 본다). 마켓은 안내 줄에만 쓴다.
-# luau-kb-market 은 luau-kb 저장소의 마켓 이름이다. luau-kb 를 packs/ 로 옮기면 claude-doctor-market 으로 바꾼다.
 PACKS = {
     "web-security": ("web", "claude-doctor-market"),
-    "luau-kb": ("luau", "luau-kb-market"),
+    "luau-kb": ("luau", "claude-doctor-market"),
 }
 REF = "plugins/q/skills/doctor/SKILL.md (항목 7, PACK-)"
 

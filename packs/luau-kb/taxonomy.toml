@@ -1,6 +1,6 @@
 # taxonomy.toml — luau-kb 분류 어휘 (coderag pack 어휘, 형식은 coderag tech-design §16)
 #
-# 정본: 이 파일. 초안은 claude-doctor drafts/coderag/taxonomy.toml(2026-11-10)이었고, M6 에서 실제 references 에 맞춰 다듬었다.
+# 정본: 이 파일. 초안은 claude-doctor .claude/research/drafts/coderag/taxonomy.toml(2026-11-10)이었고, M6 에서 실제 references 에 맞춰 다듬었다.
 #   - 범주는 파일 하나에 하나(D16-2). references 의 frontmatter `category:` 가 여기 경로를 쓴다.
 #   - 초안의 절 단위 범주(예: too complex 한도, DX, 보안, 원격·복제 세분)는 그 절을 담은 파일의 범주로 합치고 별칭을 옮겼다.
 #   - `harness/*` 는 luau-kb 의 지식이 아니라 빼고, claude-doctor(global 계층) 어휘 후보로 초안에 남겼다(D13-6).

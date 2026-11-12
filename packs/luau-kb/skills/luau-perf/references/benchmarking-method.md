@@ -78,7 +78,7 @@ status: verified · last-confirmed: luau 0.734·0.742 · 근거: `bench/lib/benc
 - 테스트 데이터는 결정적 난수(`Bench.rng`)로 만든다.
 
 ## §3 모드와 실제 조건
-status: verified(CLI) / described(Roblox) · last-confirmed: luau 0.742 · 근거: `optimizer-and-native.md` §1·§2, create.roblox.com luau/comments.md(2026-11-10판), 후보 S-P45, 모순표 audit/09 §6-2
+status: verified(CLI) / described(Roblox) · last-confirmed: luau 0.742 · 근거: `optimizer-and-native.md` §1·§2, create.roblox.com luau/comments.md(2026-11-10판), 후보 S-P45, 모순표 claude-doctor .claude/audit/09 §6-2
 
 | 조건 | 무엇이 다른가 |
 |---|---|
@@ -90,7 +90,7 @@ status: verified(CLI) / described(Roblox) · last-confirmed: luau 0.742 · 근�
 
 - 셋 다 잰다. 이 스킬의 재측정은 모드 넷(0.734 `-O1`, 0.742 `-O1`/`-O2`/`-O2 --codegen`)이다. 0.734 `-O1` 은 원천 수치와 조건을 맞춘 대조 열이다.
 - **같은 파일에 흉내 낸 함수는 `-O2` 에서 인라인되어 공짜가 된다.** 실제 라이브러리는 다른 모듈이라 인라인되지 않는다. 그래서 `bench/lib/arr.luau`·`bench/lib/vfuncs.luau` 처럼 측정 대상을 다른 모듈에 두고, 필드 대입으로 만든다(`optimizer-and-native.md` §3).
-- "Roblox 라이브는 `-O2`" 는 공식 문서의 서술이다. 엔진 안에서 직접 재지는 않았다(audit/09 모순 2).
+- "Roblox 라이브는 `-O2`" 는 공식 문서의 서술이다. 엔진 안에서 직접 재지는 않았다(claude-doctor .claude/audit/09 모순 2).
 
 ## §4 결과 읽기와 잡음 바닥
 status: verified · last-confirmed: luau 0.742 · 근거: `bench/results/2026-11-10.tsv`, `bench/RESULTS.md`
@@ -124,7 +124,7 @@ status: verified(표시한 행) / described · 근거: 표의 후보 ID
 status: verified · last-confirmed: luau 0.734·0.742
 
 ```bash
-cd /code/Projects/luau-kb
+cd /code/Projects/claude-doctor/packs/luau-kb
 # 전부(프로세스 3 × 모드 4). 결과 TSV 를 덧붙인다
 choom -n 1000 -- prlimit --data=3221225472 -- bash bench/run.sh -p 3 -o bench/results/$(date +%F).tsv
 # 하나만, 모드를 골라서
@@ -137,7 +137,7 @@ python3 -I bench/summarize.py bench/results/2026-11-10.tsv --stat min > /tmp/m.m
 - 새 벤치: 파일 머리에 `주장(후보 ID)`, `원 수치(원천 경로와 조건)` 를 적고, 같은 일을 하는 케이스를 한 그룹에 넣는다. 첫 케이스가 기준이다. 결정적인 주장(메모리 배치, 의미)은 `snippets/perf-*.luau` 로 따로 둔다.
 
 ## §7 Roblox 안에서 재기
-status: described · 원천: drafts/gaps/native-codegen.md §8, roblox-engine 스킬
+status: described · 원천: claude-doctor .claude/archive/research/drafts/gaps/native-codegen.md §8, roblox-engine 스킬
 
 - 엔진 API 비용(Instance 생성, 속성 대입, 바인더블 복사, 트윈)은 CLI 로 잴 수 없다. roblox-engine 스킬의 `../../roblox-engine/references/perf.md`(Studio 기준치)와 luau-roblox 스킬의 `../../luau-roblox/references/studio-mcp.md` §6(내장 `rbx-perf-profiling`)을 본다.
 - Studio 실행 컨텍스트에 따라 `collectgarbage("collect")` 가 막혀 있다. 할당 부하와 `task.wait` 로 GC 를 진행시키고 약한 표 canary 로 판정한다(`gc-and-memory.md` §5).

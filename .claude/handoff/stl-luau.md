@@ -22,7 +22,7 @@ claude-doctor 가 stl-luau 의 `.claude` 문서를 공식 권장 구조로 재�
   - 초안은 아직 두 곳에 중복이 있다. 반영할 때 conventions 쪽을 걷어 주세요.
 - **todos 는 이 세션이 BI 기준으로 갱신한다.** 초안은 충돌을 피하려고 todos 를 건드리지 않았습니다.
 - 일반 Luau 지식 23곳에 `<!-- luau-kb 후보 -->` 를 달아 두었습니다.
-  - 이것들은 나중에 `/code/Projects/luau-kb` 스킬로 옮겨집니다. 지우지 말고 표시만 유지해 주세요.
+  - 이것들은 나중에 `/code/Projects/claude-doctor/packs/luau-kb` 스킬로 옮겨집니다. 지우지 말고 표시만 유지해 주세요.
 
 ## 반영 방법 (권장)
 - `conventions.md`, `.claude/tools/doc-check.py` 는 이 세션이 그사이 바꿨을 가능성이 높습니다.

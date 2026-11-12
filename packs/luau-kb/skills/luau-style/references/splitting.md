@@ -55,7 +55,7 @@ last_confirmed:
 ---
 
 ## §0 분리 계획기
-status: described · last-confirmed: 2026-11-10, 실제 파일 3개 시험(claude-doctor `drafts/split-plans/`) · 근거: `scripts/split-plan.py`
+status: described · last-confirmed: 2026-11-10, 실제 파일 3개 시험(claude-doctor `.claude/research/drafts/split-plans/`) · 근거: `scripts/split-plan.py`
 summary: split-plan.py 가 호출 그래프·공유 상태·구획으로 함수 군집을 묶어 후보 파일·순환·옮기기 순서를 낸다. 결과는 판단 재료
 
 ```bash
@@ -85,7 +85,7 @@ python3 -I <luau-style 스킬>/scripts/split-plan.py <파일.luau> [--json] [--s
 - 사람 분석과의 비교(한 게임 저장소의 큰 서버 모듈)에서 9묶음 중 7묶음이 대응했다. 사람은 저장·불러오기(Persist)를 따로 묶었는데 계획기는 `load` 를 init 에, `snapshot` 을 표시 쪽에 두었다(서로 부르지 않고 이름 낱말도 달라서).
 
 ## §1 동작 단위 분화
-status: described · 근거: stl-luau `4e07d1a`(트레이트마다 파일 하나), `beab32b`(노드 종류마다), `Arr.luau` 계획(claude-doctor `drafts/split-plans/stl-luau-Arr.md`)
+status: described · 근거: stl-luau `4e07d1a`(트레이트마다 파일 하나), `beab32b`(노드 종류마다), `Arr.luau` 계획(claude-doctor `.claude/research/drafts/split-plans/stl-luau-Arr.md`)
 
 한 요소(타입·모듈)가 너무 커졌을 때 "무엇을 하나"로 자른다. 조회 / 넣기·빼기 / 순서 바꾸기 / 정렬 / 스트림 / 생성처럼 사용자가 함수를 찾는 길과 같은 단위다.
 
@@ -165,7 +165,7 @@ end
 - 이 설치자 꼴은 **내부 표**에만 쓴다. 공개 모듈 표에 설치하면 §2 S2a 처럼 타입에서 사라진다.
 - 파일 머리에서 `S.x` 를 읽지 않는다. 등록 순서상 아직 없을 수 있다. quad 는 init 이 설치 뒤에 싣는 두 이름(`S.assertLive`, `S.Slot`)을 "함수 본문 안에서만 읽는다"고 머리에 적었다.
 - **성능**: 표 필드 읽기 한 번이다. 다만 다른 파일의 함수라 `-O2` 인라인은 없다(§1).
-- **사례**: quad `Slot.luau` 1,194줄 → `Slot/` 여섯 파일(4ddb9c5a, "함수 목록 동일·동작 diff 0"). 계획기는 한 게임 저장소의 큰 서버 모듈에서 파일 경계를 넘는 전방 선언 셋을 모두 "경계를 넘음"으로 짚었다 — audit/12 §4.3 의 사람 분석과 같다.
+- **사례**: quad `Slot.luau` 1,194줄 → `Slot/` 여섯 파일(4ddb9c5a, "함수 목록 동일·동작 diff 0"). 계획기는 한 게임 저장소의 큰 서버 모듈에서 파일 경계를 넘는 전방 선언 셋을 모두 "경계를 넘음"으로 짚었다 — claude-doctor .claude/audit/12 §4.3 의 사람 분석과 같다.
 
 ## §4 처리기 표와 `init` 이 모으는 꼴
 status: described · 근거: devplorer `cfeedd1`, `src/Server/Handlers/init.luau`(지금 32줄)
@@ -188,12 +188,12 @@ return handlers
 - **사례**: devplorer `Server/init.luau` 4,199 → 507줄(`cfeedd1`) → 같은 날 이어진 정리로 지금 241줄. 처리기 덧붙이기가 그 파일을 사흘에 692 → 4,101줄로 키웠는데, 이제 새 처리기는 묶음 파일로 간다.
 
 ## §5 데이터를 표로 빼기
-status: described · 근거: `structure.md` §6, claude-doctor `audit/12-code-structure.md` §4
+status: described · 근거: `structure.md` §6, claude-doctor `.claude/audit/12-code-structure.md` §4
 
 같은 모양이 코드에 펼쳐져 있으면(요청 계약, 세트 배치 16갈래, 색·쿨다운) 표 + 일반 처리기로 바꾼다. 파일 길이가 줄어드는 가장 큰 수단이지만 **옮기기만이 아니라 고치기**다. 그래서 계획기 순서에서는 옮긴 뒤 "반복 블록" 항목으로 다룬다. 결정 트리는 `structure.md` §6.
 
 ## §6 상태 모듈 `State.luau`
-status: described · 근거: devplorer `conventions.md` 코드 배치(상태는 `State.이름`), audit/12 §4.3
+status: described · 근거: devplorer `conventions.md` 코드 배치(상태는 `State.이름`), claude-doctor .claude/audit/12 §4.3
 
 모듈 수준 상태(`budgets`, `knocks`, `last*` 표, 깃발)를 여러 조각이 쓰면 `X/State.luau` 한 곳에 두고 `State.이름` 으로 읽고 쓴다.
 - **숫자·불리언은 표의 필드로 옮긴다.** `local isOpen = false` 를 다른 모듈이 `require` 해서 받으면 값이 복사된다. 한쪽이 다시 대입해도 다른 쪽은 모른다. `State.isOpen = true` 처럼 필드로 써야 한다.

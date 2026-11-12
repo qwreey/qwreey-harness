@@ -50,7 +50,7 @@ last_confirmed:
 ---
 
 ## §0 정책 (D-04 확정)
-status: described · 원천: `claude-doctor/decisions/D-04-type-functions.md` "사용자 결정 (2026-11-10)"
+status: described · 원천: `claude-doctor .claude/base/decisions/D-04-type-functions.md` "사용자 결정 (2026-11-10)"
 
 > 정책: 사안별 판단. 기본 금지도 아니고 '진단 전용' 구분도 쓰지 않는다. "부작용이 이득보다 큰가" 대 "이것 없이는 표현할 수 없는가"로 정한다. 부작용이 크면 스파이크로 재고 사용자 승인을 받는다(D-04).
 

@@ -26,7 +26,7 @@
 | 마켓 | 플러그인 | 누구에게 |
 |---|---|---|
 | claude-doctor-market | `q` (사람이 치는 명령 모음: `/q:start` 온보딩, `/q:doctor` 진단, `/q:away`·`/q:back` 자리 비움, `/q:checkpoint`·`/q:import` 세션 기록. 세션 기록 훅 포함) | 모두(기록 명령은 긴 작업을 하는 개발자) |
-| luau-kb-market | `luau-kb` (Luau·Roblox 지식 스킬 12개) | Luau 개발자. Luau 저장소에서만 켜기 권장 |
+| claude-doctor-market (팩) | `luau-kb` (Luau·Roblox 지식 스킬 12개) | Luau 개발자. 기본 꺼짐 팩이라 Luau 저장소에서만 켠다 |
 
 ## 주의
 - 플러그인의 훅·스크립트는 **내 권한으로 실행**된다. 회사 마켓이 아닌 곳의 플러그인은 담당자에게 먼저 묻는다.

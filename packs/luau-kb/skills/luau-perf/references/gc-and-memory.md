@@ -55,7 +55,7 @@ last_confirmed:
 - 같은 3칸 레코드라도 전부 번호 칸 96 B, 번호+이름 112 B, 전부 이름 176 B 다. 이름 필드가 하나라도 있으면 해시부가 따로 할당된다.
 
 ## §2 약한 키 레지스트리의 비용
-status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/gc-weak.luau`, 후보 S-P36(S-110 병합), Q-089, audit/09 §6 모순 4
+status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/gc-weak.luau`, 후보 S-P36(S-110 병합), Q-089, claude-doctor .claude/audit/09 §6 모순 4
 
 | 비교 (기준) | 0.734 `-O1` | 0.742 `-O1` | 0.742 `-O2` | 0.742 native | 원천 |
 |---|---|---|---|---|---|

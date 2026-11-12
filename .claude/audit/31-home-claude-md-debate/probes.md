@@ -22,7 +22,7 @@
 | 쓰기 | `cd /code/Projects/mrow && git commit -am wip` | **미탐** | write |
 | 쓰기 | `git -C /code/Projects/quad checkout -b x` | **미탐** | write |
 | 쓰기 | `python3 -c "open('/code/Projects/coderag/a.py','w')..."` | **미탐** | write |
-| 쓰기 | `cp ./notes.md /code/Projects/luau-kb/notes.md` | **미탐** | write |
+| 쓰기 | `cp ./notes.md /code/Projects/claude-doctor/packs/luau-kb/notes.md` | **미탐** | write |
 | 쓰기 | `cd /code/Projects/vitrine && touch foo.go` | **미탐** | write |
 | 읽기 | 위 9개 읽기 명령(cat, ls, git log, grep, sed -n, cd+cat, cp 소스만, python 스크립트 실행) | 오탐 0 | read 9/9, 오탐(쓰기로 오인) 0 |
 | 읽기 | `cat README.md \| head` | 0 | None(형제 아님) |

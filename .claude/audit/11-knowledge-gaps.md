@@ -17,7 +17,7 @@
 
 ### 검증 방법과 마지막 실행 (2026-11-10)
 - 순수 Luau 스니펫 28개(`packs`, `testing`, `native`, `optimize`):
-  - 명령: `python3 -I /code/Projects/luau-kb/tools/check_snippets.py --luau 0.734,0.742`
+  - 명령: `python3 -I /code/Projects/claude-doctor/packs/luau-kb/tools/check_snippets.py --luau 0.734,0.742`
   - 결과: 56/56 ok. `packs-*` 는 luau-lsp 1.70.1 참고 열에서도 "같음".
 - Roblox 스니펫 13개(`roblox`, `parallel`):
   - 명령: `.claude/archive/research/drafts/gaps/tools/check_roblox.py --lsp 1.70.1,1.69.0`

@@ -34,7 +34,7 @@ class Packs(unittest.TestCase):
         self.repo.mkdir()
         self.home.mkdir()
         (self.home / "plugins").mkdir()
-        (self.home / "plugins" / "known_marketplaces.json").write_text(json.dumps({"claude-doctor-market": {}, "luau-kb-market": {}}))
+        (self.home / "plugins" / "known_marketplaces.json").write_text(json.dumps({"claude-doctor-market": {}}))
         self.got = []
         self.addCleanup(self.tmp.cleanup)
 
@@ -48,7 +48,7 @@ class Packs(unittest.TestCase):
         self.assertEqual(self.got[0][0], "경고")
 
     def test_pack_from_unknown_market_is_not_missing(self):
-        (self.home / "plugins" / "known_marketplaces.json").write_text(json.dumps({"claude-doctor-market": {}}))
+        (self.home / "plugins" / "known_marketplaces.json").write_text(json.dumps({"other-market": {}}))
         self.assertNotIn("PACK-MISSING", self.run_check({"luau": ["x/.luaurc"]}))
 
     def test_enabled_in_project_is_clean(self):
@@ -78,12 +78,12 @@ class Packs(unittest.TestCase):
         settings(self.repo / ".claude" / "settings.json", {KEY: False})
         self.assertEqual(self.run_check({}), ["PACK-USER-LEVEL"])
 
-    def test_luau_pack_and_other_market_name(self):
+    def test_luau_pack_market(self):
         self.assertEqual(self.run_check(LUAU), ["PACK-MISSING"])
-        self.assertIn("luau-kb@luau-kb-market", self.got[0][2])
+        self.assertIn("luau-kb@claude-doctor-market", self.got[0][2])
         self.got.clear()
         settings(self.repo / ".claude" / "settings.json", {"luau-kb@claude-doctor-market": True})
-        self.assertEqual(self.run_check(LUAU), [])  # 마켓이 옮겨져도 켜진 것으로 본다
+        self.assertEqual(self.run_check(LUAU), [])
 
     def test_broken_json_is_ignored(self):
         p = self.repo / ".claude" / "settings.json"

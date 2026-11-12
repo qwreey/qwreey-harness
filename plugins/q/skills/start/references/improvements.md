@@ -48,7 +48,7 @@
 
 ## F. luau-kb 플러그인
 - 명령(동의 후):
-  `claude plugin marketplace add <luau-kb 저장소 주소>` → `claude plugin install luau-kb@luau-kb-market --scope project`
+  `claude plugin marketplace add <claude-doctor 폴더>`(이미 있으면 생략) → `claude plugin install luau-kb@claude-doctor-market --scope project`
 - `--scope project` 는 이 프로젝트 설정(`.claude/settings.json`)에 기록되어 팀원에게도 권장된다. 나만 쓰려면 `--scope local`. 어느 쪽인지 묻는다.
 - 저장소 주소를 모르면 담당자에게 물으라고 한다(추측하지 않는다).
 

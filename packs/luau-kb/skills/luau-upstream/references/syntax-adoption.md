@@ -51,7 +51,7 @@ last_confirmed:
 ---
 
 ## §0 정책 (사용자 확인 전)
-status: described · 연결: claude-doctor `decisions/D-05-toolchain-pins.md` (제안 상태), D-01(`const`, 확정)
+status: described · 연결: claude-doctor `.claude/base/decisions/D-05-toolchain-pins.md` (제안 상태), D-01(`const`, 확정)
 
 > 정책: 미정 — 아래는 제안이다. 사용자 확인 전에는 판정표를 보여 주고 결정을 묻는다.
 

@@ -2,7 +2,7 @@
 #   등록 예(소비자 쪽 coderag.toml 또는 ~/.coderag/coderag.toml):
 #     [[packs]]
 #     name = "luau-kb"
-#     path = "/code/Projects/luau-kb"
+#     path = "/code/Projects/claude-doctor/packs/luau-kb"
 # 모듈 = 스킬 디렉터리 하나(SKILL.md + references/). 문서 ID 는 `pack:luau-kb/<스킬>` 이름공간을 쓴다(§14).
 # 캐시는 pack 안에 쓰지 않는다(소비자의 $CODERAG_HOME/cache/packs/). 분류 어휘는 taxonomy.toml(§16).
 

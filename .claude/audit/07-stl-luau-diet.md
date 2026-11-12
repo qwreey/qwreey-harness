@@ -114,7 +114,7 @@ conventions.md(34.5 KB)는 지우지 않았다. rules의 각 줄이 가리키는
 | 22 | `table.move`/`table.create` 벌크 처리, `table.pack` 대신 `select` 루프(1.6~2.3배) | 성능 |
 | 23 | 뜨거운 루프에서는 모듈 함수를 지역에 받아 부른다 | 성능 |
 
-`rules/docs.md`에는 "일반 Luau 지식은 후보 표시를 달고 길게 새로 쓰지 않는다. 정본은 `/code/Projects/luau-kb`(준비 중)" 한 줄을 넣었다.
+`rules/docs.md`에는 "일반 Luau 지식은 후보 표시를 달고 길게 새로 쓰지 않는다. 정본은 `/code/Projects/claude-doctor/packs/luau-kb`(준비 중)" 한 줄을 넣었다.
 
 ## 6. 그 밖에 바꾼 것
 

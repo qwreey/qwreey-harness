@@ -8,7 +8,7 @@
 --   - 소스 지시어 --!optimize 1 은 CLI -O2 를 이긴다(run-with -O2 도 통과).
 --   - --codegen(네이티브 실행)은 위치를 바꾸지 않는다. 바뀌는 것은 최적화 수준 때문이다.
 --   - -g0 은 줄 정보를 모두 지워 위치 단언이 실패한다(메시지에 줄 번호가 없다).
--- 근거: Compiler/src/Compiler.cpp compileExprCall("optimizationLevel >= 2" 일 때만 인라인), luau 8387cfb. 원천: claude-doctor drafts/gaps/optimize-levels.md
+-- 근거: Compiler/src/Compiler.cpp compileExprCall("optimizationLevel >= 2" 일 때만 인라인), luau 8387cfb. 원천: claude-doctor .claude/archive/research/drafts/gaps/optimize-levels.md
 local function check(x: any): any
 	if type(x) ~= "number" then error("check: expected number", 2) end
 	return x
