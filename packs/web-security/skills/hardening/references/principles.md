@@ -1,3 +1,30 @@
+---
+title: "Core principles and why"
+description: "What the ten core security principles are and the reasoning and real cases behind each, for when a checklist item's rationale is unclear."
+keywords:
+  - "security principles"
+  - "보안 원칙"
+  - "fail closed"
+  - "실패 시 닫기"
+  - "allowlist vs denylist"
+  - "허용 목록"
+  - "denylist"
+  - "network location is not authentication"
+  - "네트워크 위치는 인증이 아님"
+  - "injection points"
+  - "single validator"
+  - "symlink resolution"
+  - "edge enforcement"
+  - "resource caps"
+  - "fix verification"
+  - "hardening"
+  - "하드닝"
+  - "security review"
+  - "보안 리뷰"
+  - "loopback bind"
+  - "empty allowlist"
+kind: reference
+---
 # Core principles and why
 
 1. Fail closed. Missing config, parse failure, empty value or unseen input is rejected. An empty allowlist means nothing is allowed. (An empty allowed-hosts setting let every Host through; a Docker authorization proxy allowed unknown endpoints by default, so swarm and plugin routes reached host root; a gate stayed open when no password was set.)

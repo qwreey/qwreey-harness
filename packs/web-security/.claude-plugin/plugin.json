@@ -1,6 +1,6 @@
 {
   "name": "web-security",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "defaultEnabled": false,
   "description": "웹·서버·인프라 파일(ts, js, go, Caddyfile, nginx, Dockerfile, compose, sh 등)을 열거나 편집할 때 보안 규칙을 훅이 주입하고, 엔드포인트·인증·프록시·exec·경로·외부 연결 작업용 hardening 스킬(상황별 체크리스트)을 둔다. 툴킷 지식(웹·서버 코드용)이라 나중에 web-kb 로 옮겨질 수 있다. 기본 꺼짐 팩이라 웹 저장소의 .claude/settings.json enabledPlugins 로 켠다.",
   "author": { "name": "qwreey", "email": "me@qwreey.moe" },
