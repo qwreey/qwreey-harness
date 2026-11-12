@@ -196,6 +196,8 @@
      - 끝: M1 rule 주입(coderag 1f234be), M5 본문 검색(329044c), M2 준비(98163e8, 2d40d39; 계획 .claude/audit/41-knowledge-packs-debate/m2-cutover-plan.md). 켜진 것 없음.
      - 배포: 사용자: "바이너리 배포 같은 경우는 어느정도 개발이 완료 되면 올릴려고. 서명은 내가 로컬에서 빌드를 하고 올리는 방식". M2 전환을 release 전에 이 기계의 로컬 빌드로 할지는 사용자에게 물었다.
      - VideoSync 의 web-security 는 사용자가 직접 켠다(그 저장소 사본이 최신이 아닐 수 있음).
+     - 기록 규약 정본을 coderag 로(사용자: "coderag 를 정본으로 두는게 맞는것 같기도 하고", (a) 승인): 합친 규약 초안 .claude/research/drafts/records-in-coderag/. "끝남"은 일을 마쳤다가 아니라 현재의 원천으로 필요 없어짐이 기준(사용자: "quad를 보면 slot 을 전부 구현 완료 했지만 그래도 base에 가지고 있음…'끝났다' 라는건 문서가 필요하지 않다가 기준일텐데").
+     - 나중: coderag 스킬 감사(사용자: "coderag skill 들도 사실 한국어일 필요는 없지 않나 싶으면서도 skill 생성 skill과 같이 감사해보는것도 좋겠다…천천히 해볼 일"). 합친 규약 스킬은 지금 영어로 쓴다.
   6. 자동화: 규약 스킬, doctor 검사, 커밋할 때 info 알림, `q:start` 의 `.claude/` 뼈대 템플릿.
 - **기록 규약 토론 결과(.claude/audit/38 synthesis)에 대한 사용자 답.** "추천대로 할게", "저장소 변경은 승인".
   - coderag 저장소 변경을 승인했다. coderag 에는 따로 세션이 없으므로 이 세션이 서브에이전트로 맡는다. 1단계는 C1, C2, C6 이다.
