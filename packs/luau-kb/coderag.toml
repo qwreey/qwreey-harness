@@ -13,6 +13,15 @@ description = "Luau 타입 한계·검증·테스트·성능·스타일·런타�
 taxonomy = "taxonomy.toml"
 claude_plugin = "luau-kb@claude-doctor-market"
 
+# 정책 값(coderag 코어에는 생태계 이름이 없다). 이 pack 을 등록한 프로젝트만 받는다.
+# [versions] known: mise.toml·rokit.toml 등의 핀에서 저장소 이름이 이 목록에 있으면 그 이름을 도구로 읽는다.
+[versions]
+known = ["luau", "luau-lsp", "stylua", "lute", "pesde", "selene", "darklua", "rojo", "lune", "wally"]
+
+# [code] exclude: stale 의 코드 주석 참조 검사가 건너뛸 폴더(pesde: <target>_packages/·.pesde/, wally: Packages/).
+[code]
+exclude = ["Packages", "*_packages", ".pesde"]
+
 [[contexts.knowledge]]
 provider = ["markdown-frontmatter"]
   [[contexts.knowledge.targets]]

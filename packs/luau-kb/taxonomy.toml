@@ -19,6 +19,17 @@ roots = ["luau", "roblox"]
 [defaults]
 review_days = 90
 
+# lifecycle 의 env 라벨과 옛 이름 별칭(coderag 18.3). 사다리(proposed, accepted, experimental, available, deprecated, removed)는 코어에 있다.
+[lifecycle]
+envs = ["luau-cli", "roblox-studio"]
+
+[lifecycle.aliases]
+rfc = "accepted"
+flagged = "experimental(luau-cli)"
+implemented-cli = "available(luau-cli)"
+beta-roblox = "experimental(roblox-studio)"
+released-roblox = "available(roblox-studio)"
+
 # ─────────────────────────────────────────────────────────────── luau (언어·도구, 엔진 무관)
 
 [category."luau"]
