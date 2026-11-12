@@ -1,3 +1,4 @@
+status: active; not installed
 # (A) 감사 서브에이전트 분할 설계
 
 2026-11-10 초안. 근거는 `.claude/audit/01` §3, `.claude/audit/03` §2·§5, `.claude/audit/04` §4, `quad/.claude/conventions.md:268-338·389-485`, `quad/.claude/agents/quad-doc-auditor.md`, `rbvm/.claude/agents/*.md`, `quad/.claude/qa-request/post-implementation-review-round16.md`이다. 공식 frontmatter 동작은 code.claude.com/docs/en/sub-agents.md에서 다시 확인했다(2026-11-10).

@@ -111,6 +111,19 @@ def gitignored_raw(root):
     return any(re.search(r"(^|/)raw/?$", l.strip()) for l in lines if l.strip() and not l.startswith("#"))
 
 
+def folder_status(path, claude):
+    """True when a README.md in the doc's folder or an ancestor below .claude/<top>/ carries a status line."""
+    d = os.path.dirname(path)
+    while os.path.dirname(d) != claude and d.startswith(claude + os.sep):
+        readme = os.path.join(d, "README.md")
+        if readme != path and os.path.isfile(readme):
+            text = read(readme)
+            if text is not None and read_status(text)[0] is not None:
+                return True
+        d = os.path.dirname(d)
+    return False
+
+
 def check(root):
     root = os.path.abspath(root)
     claude = os.path.join(root, ".claude")
@@ -127,7 +140,10 @@ def check(root):
             continue
         value, sup_by = read_status(text)
         if value is None:
-            add("REC-STATUS-MISSING", "info", path, "living doc has no status line (frontmatter or first line)")
+            # A folder's README status covers the files in that folder, and a file under archive/ is finished by
+            # where it is; flagging those would bury the docs that really lack a status.
+            if not in_archive and not folder_status(path, claude):
+                add("REC-STATUS-MISSING", "info", path, "living doc has no status line (frontmatter or first line)")
             state = None
         else:
             state, kind, target, _note = parse_status(value, sup_by)

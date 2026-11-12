@@ -1,3 +1,4 @@
+status: active; registry in use (HARNESS_DELEGATE_REGISTRY), not installed as a plugin
 # (B) agy/Codex 위임 통합 설계
 
 2026-11-10 초안. 근거:
