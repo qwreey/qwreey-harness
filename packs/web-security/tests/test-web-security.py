@@ -11,7 +11,7 @@ import tempfile
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CODERAG = os.environ.get("CODERAG_BIN") or "/code/Projects/coderag/bin/coderag"
+CODERAG = os.environ.get("CODERAG_BIN") or "/code/Projects/coderag/harness/claude/bin/coderag"
 HAVE_BIN = os.access(CODERAG, os.X_OK)
 T = tempfile.mkdtemp(prefix="web-security-")
 HOME = os.path.join(T, "home")
@@ -37,7 +37,7 @@ def fresh():
     return "ws%d" % _n[0]
 
 
-@unittest.skipUnless(HAVE_BIN, "coderag 바이너리가 없다($CODERAG_BIN 또는 /code/Projects/coderag/bin/coderag)")
+@unittest.skipUnless(HAVE_BIN, "coderag 바이너리가 없다($CODERAG_BIN 또는 /code/Projects/coderag/harness/claude/bin/coderag)")
 class Inject(unittest.TestCase):
     def test_ts_gets_only_web_security(self):
         c = run("Read", PROJ + "/a.ts", fresh())
