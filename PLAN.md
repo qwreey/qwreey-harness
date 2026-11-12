@@ -192,8 +192,10 @@
   5a. 지식 팩의 그릇 재검토(사용자: "luau-kb 는 stale 해질 수도 있고, 필요에 따라 검색해야할 수도 있고…web security 도 그런데, 시행착오로 새로운게 나올 수도 있고, 그래서 싱크 되거나 해야할 수도"). PLAN 3.7 의 "원천 하나, 접근 둘" 중 coderag 접근이 빠져 있었다.
      - 1단계 끝: `~/.coderag/coderag.toml` 에 `[[packs]] luau-kb` 를 저장소 사본 경로(`packs/luau-kb`)로 등록. pack 계층 검색과 stale 이 동작한다. 이 설정의 정본을 home/ 에 둘지는 home-sync 가 `~/.claude` 밖을 다루지 않아 2단계 결정 뒤에 정한다.
      - 2단계 토론 끝(.claude/audit/41/synthesis.md): 팩은 데이터만, rule 주입·중복 제거·compact 회차는 coderag 코어 하나, 프로세스는 세션별 stdio 래퍼 + uid 별 데몬(유휴 60초), 팩 스위치는 프로젝트 `coderag.toml` 하나(`coderag adapt` 가 하네스 설정 생성), 교훈은 그 저장소 기록의 `promote:<pack>` 꼬리표, 시맨틱 검색은 본문 색인 실측 뒤. 결정 원문은 synthesis 에.
-     - 열린 문제: compact 뒤 복원. 스킬 본문은 앞 5,000토큰씩 합계 25,000토큰까지 되살아나 팩이 동작 스킬을 밀어내고, coderag 로 옮긴 지식은 되살아나지 않아 잊힌다. 제안은 본문 대신 "앞에서 쓴 지식" 가리킴을 복원(synthesis 끝).
-     - 다음: M1 coderag 코어에 rule 맞추기(Python 과 대조 테스트), 팩 hooks.json 전환은 그 뒤 사용자 적용과 함께.
+     - compact 뒤 복원(결정): 본문 대신 앞에서 쓴 지식을 가리킨다. 사용자: "앞에서 쓴 지식들을 언급해주는거 나쁘지 않을것 같음. 한번 로드 된것이 항상 끝까지 필요한건 아닐 수 있고. 그래서 그것이 필요할지 판단은 메인 에이전트가 해야할 것 같기도 함." → M6: coderag 훅이 쓴 팩 문서를 원장에 적고, compact 뒤 SessionStart 에서 목록과 "필요할 때만 다시 읽어라"를 넣는다.
+     - 끝: M1 rule 주입(coderag 1f234be), M5 본문 검색(329044c), M2 준비(98163e8, 2d40d39; 계획 .claude/audit/41-knowledge-packs-debate/m2-cutover-plan.md). 켜진 것 없음.
+     - 배포: 사용자: "바이너리 배포 같은 경우는 어느정도 개발이 완료 되면 올릴려고. 서명은 내가 로컬에서 빌드를 하고 올리는 방식". M2 전환을 release 전에 이 기계의 로컬 빌드로 할지는 사용자에게 물었다.
+     - VideoSync 의 web-security 는 사용자가 직접 켠다(그 저장소 사본이 최신이 아닐 수 있음).
   6. 자동화: 규약 스킬, doctor 검사, 커밋할 때 info 알림, `q:start` 의 `.claude/` 뼈대 템플릿.
 - **기록 규약 토론 결과(.claude/audit/38 synthesis)에 대한 사용자 답.** "추천대로 할게", "저장소 변경은 승인".
   - coderag 저장소 변경을 승인했다. coderag 에는 따로 세션이 없으므로 이 세션이 서브에이전트로 맡는다. 1단계는 C1, C2, C6 이다.
