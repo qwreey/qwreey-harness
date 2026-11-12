@@ -165,6 +165,33 @@
 - **second opinion:** 내장 advisor 도구는 사용자가 요청할 때만 쓴다. 근거(사용자): 가격 대비 효용이 diff 기반 리뷰보다 너무 낮다. 흐름 검토는 `qwreey-advisor:inherit-advisor`(fork + 표지를 훅이 후행 프롬프트로 펼침), diff 검토는 `qwreey-advisor:fresh-advisor` 로 한다. 근거 실험은 audit/18 §9·§11·§12.
 - **사용자 가시성도 개선 대상이다.** statusline, 테마, 응답 형식이 해당한다. 주관적이므로 설치는 묻고, 켜고 끌 수 있게 둔다(audit/22).
 
+## 3.9 저장소 구조와 에이전트 기록 체계 (큰 틀 합의 2026-11-12, 세부는 토론 뒤 확정)
+
+근거 조사: audit/36(형제 저장소 `.claude/` 공통 패턴, 옮길 때 깨지는 곳). 사용자: "큰 틀 동의하고 토론 해보는것도 동의".
+
+- **이 저장소의 성격.** 사용자의 Claude 관련 지식과 플러그인을 모으는 저장소다("claude conf 같은 느낌…결국 내 오피니언임"). 나중에 공개할 수 있다.
+- **층을 나눈다.**
+  - 실제 소스: `home/`, `plugins/`, `tools/`, `.claude-plugin/`. `plugins/` 와 `.claude-plugin/` 은 settings 의 마켓 경로가 가리키므로 옮기지 않는다.
+  - 도메인 팩: `packs/<이름>/` (luau-kb, web-security). 관용 규약(qwreey-conventions)과 분리한다. 사용자: "luau-kb 는 관용 표현이 아님".
+  - 에이전트 기록: `.claude/` 아래 `plan/`, `base/`, `audit/`, `research/`, `archive/`, `handoff/`, `sessions/`, `packs/<팩>/`(팩의 개발 자료: bench, evals, decisions). 이유와 근거를 날것으로, 필요한 만큼 담는다. 소스와 관련은 있지만 소스가 아니다.
+  - 사람 문서: 공개할 때 `docs/` 를 따로 쓴다.
+- **도메인 팩은 기본 꺼짐 (동의).** `defaultEnabled: false` 로 두고, 쓰는 프로젝트가 `.claude/settings.json` 의 `enabledPlugins` 로 켠다. `q:start` 가 감지 표식(`.luaurc`, `package.json` …)으로 켤 팩을 제안한다. `HARNESS_TOOLKITS` 는 기계 단위로 훅을 끄는 스위치로만 남는다(스킬 설명 비용은 못 줄인다). 선행 실측: 스킬 `paths` 가 설명 목록에서도 빠지게 하는지, `defaultEnabled` 동작.
+- **기록 체계는 coderag 와 결합한다 (사용자 제안, 조사 중).** 사용자: "claude 기록의 경우는 coderag 와 같이 결합되는게 맞지 않을까…markdown 관련도 넣고 있으니까. 특히 검색 관련해서나 stale 관련해서나 이미 만들어진 틀이 있으니까. 또 하이쿠 모델을 통해서 찾도록 하는것도 coderag 와 연계 가능". 다루는 것:
+  - 문서마다 status 한 줄(active / landed in X / superseded by Y / rejected)과 폴더별 README 색인.
+  - 검사: 깨진 링크, 색인 누락, 끝난 문서가 archive 밖에 있는 경우, 상시 로드 크기.
+  - 오래된 기록을 읽을 때 stale 경고(지금은 `records_read.py`).
+  - `q:recall` 의 haiku 위치 찾기를 coderag 검색으로 바꾸기.
+  - coderag 가 없을 때도 기록은 평범한 markdown 으로 읽혀야 한다.
+- **claude-doctor `.claude/` 재편은 coderag 로 구조화하는 실험으로 한다.** 사용자: "git이 있어서 실패하더라도 잃는건 없을거니까".
+- **순서.**
+  1. coderag 적합성 조사(audit/37)와 heavy-proc-guard 오탐 수정.
+  2. 실측: 스킬 `paths`, `defaultEnabled`.
+  3. 기록 규약 토론(opus 2개, 2라운드). 문구와 자동화 수준, coderag 결합 방식을 정한다.
+  4. 재편 실험: 파일만 옮기는 커밋, 그다음 링크를 기계적으로 바꾸는 커밋.
+  5. `packs/` 로 web-security 를 옮기고 luau-kb 를 이력째 가져온다(마이그레이션과 프로젝트별 켜기 안내 포함).
+  6. 자동화: 규약 스킬, doctor 검사, 커밋할 때 info 알림, `q:start` 의 `.claude/` 뼈대 템플릿.
+- **아직 사용자에게 물을 것.** luau-kb 설치 범위(팩 구조로 정리되면 함께), 형제 저장소 지도의 포인터 방식, luau-kb 저장소의 미커밋 변경과 `rules/code-structure.md` 9행(가져온 뒤 이 저장소 안에서 고친다).
+
 ## 4. 사용자가 결정할 것
 
 1. 공유 방식: `~/.claude/skills` 심볼릭 링크 vs 플러그인 설치 (버전 bump 필요)
