@@ -188,7 +188,7 @@
   2. 실측: 스킬 `paths`, `defaultEnabled`.
   3. 기록 규약 토론(opus 2개, 2라운드). 문구와 자동화 수준, coderag 결합 방식을 정한다.
   4. 재편 실험: 끝남, main 에 합침(사용자: "합치자"). 기록은 `.claude/` 아래(`.claude/README.md`), PLAN.md 는 사용자 결정으로 루트("나도 많이 참조하는 파일"). 시점 기록 안의 옛 경로도 스크립트로 바꿨다(사용자: "작은 모델로 기계적으로 링크를 고치는게 나을지도"). 결과는 `.claude/audit/39-records-experiment/after-D.md`(coderag 10/12, grep 7/12). 남은 것: coderag static-gen 이 하위 폴더로 내려가지 않음, luau-kb 의 옛 경로 12개 파일(가져올 때 고침), 커밋 때 records_check 알림.
-  5. `packs/` 로 web-security 를 옮기고 luau-kb 를 이력째 가져온다(마이그레이션과 프로젝트별 켜기 안내 포함).
+  5. `packs/`: web-security 는 옮김(기본 꺼짐, 마이그레이션 0008, q:doctor PACK- 검사; 사용자: "가로 하는게 맞는것 같음…doctor 가 점검하는 부분에 같이 있으면 편하겠다"). 웹 저장소별 켜기와 luau-kb 가져오기가 남았다.
   6. 자동화: 규약 스킬, doctor 검사, 커밋할 때 info 알림, `q:start` 의 `.claude/` 뼈대 템플릿.
 - **기록 규약 토론 결과(.claude/audit/38 synthesis)에 대한 사용자 답.** "추천대로 할게", "저장소 변경은 승인".
   - coderag 저장소 변경을 승인했다. coderag 에는 따로 세션이 없으므로 이 세션이 서브에이전트로 맡는다. 1단계는 C1, C2, C6 이다.

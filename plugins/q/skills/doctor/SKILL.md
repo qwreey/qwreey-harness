@@ -37,6 +37,7 @@ Reply and write new documents in Korean.
    - `SESSION-SIBLING` means a session is in another worktree of the same repo. Do not touch that worktree or shared state (branches, `.git`, todos).
 3. **Run the checks**: `python3 -I ${CLAUDE_SKILL_DIR}/scripts/scan.py <path>`
    - The `툴킷:` line in the report header shows the toolkits enabled for this repo and their markers. If wrong, rerun with `--toolkits luau,web` (or `none`).
+   - Packs: for each toolkit marker, check the repo's `.claude/settings.json`/`settings.local.json` and the user settings for the matching pack in `enabledPlugins`. List `PACK-MISSING` as a fix item (handling `인계` or user-approved edit of that repo's `.claude/settings.json`); never enable a pack at user level.
    - `--only 1,2,3` picks items. Add `--json` for machine-readable output.
    - Exit code: 0 (nothing), 1 (warnings/info), 2 (errors).
    - Records: `python3 -I ${CLAUDE_SKILL_DIR}/../../scripts/records_check.py --root <path> [--json]` (read-only, skip for intake). `REC-` codes follow the `qwreey-conventions:agent-records` skill. Report counts per code in item 11; list `REC-FINISHED-OUTSIDE-ARCHIVE` files as one "move to archive" fix item (one commit, only after approval, `git mv` plus link and README fixes, never delete). `REC-STATUS-MISSING` on old docs is info: do not propose a backfill. If the repo has coderag, also run `coderag static-gen --check` and `coderag stale` and report their lines in the same item.
@@ -59,11 +60,12 @@ Reply and write new documents in Korean.
 | 4 | Staleness and contradiction | core | `STALE-` | `references/staleness-and-kb.md` |
 | 5 | Shared-knowledge skew | toolkit | `KB-` | `references/staleness-and-kb.md`, toolkit doc |
 | 6 | Replica drift | core (+toolkit) | `DRIFT-` | `references/drift-and-settings.md` |
-| 7 | Settings | core | `SET-` | `references/drift-and-settings.md` |
+| 7 | Settings, domain packs | core | `SET-`, `PACK-` | `references/drift-and-settings.md` |
 | 8 | Toolchain | toolkit | `TOOL-`, `<toolkit>-` | toolkit doc |
 | 9 | worktree hygiene | core | `WT-` | `references/worktrees.md` |
 | 10 | Memory portability (orphan keys, repo knowledge, MEMORY.md size) | core | `MEM-` | `references/memory-portability.md` |
 | 11 | Agent records (status, archive, index, links, size, raw) | core | `REC-` | `qwreey-conventions:agent-records` skill |
+| - | Domain packs (`packs/`, default off): `PACK-MISSING` (toolkit marker, pack not enabled for the project; warning with the exact `enabledPlugins` line), `PACK-UNUSED`, `PACK-USER-LEVEL` | core | `PACK-` | `scripts/pack_checks.py` (pack table: pack -> toolkit) |
 | - | Toolkit structure, adding a toolkit | | | `references/toolkits/README.md` |
 | - | Toolkit luau (Luau/Roblox) | toolkit | `TOOL-`, `KB-`, `DRIFT-TYPEDEFS` | `references/toolkits/luau.md` |
 | - | Toolkit web (skeleton, detection only) | toolkit | (reserved `WEB-`) | `references/toolkits/web.md` |

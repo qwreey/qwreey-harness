@@ -116,6 +116,17 @@ class T(unittest.TestCase):
         e.run()
         self.assertEqual(e.get(), {"a": 1})
 
+    def test_delete_if_value_only_when_equal(self):
+        op = {"op": "delete", "path": ["enabledPlugins", "p@m"], "if_value": True}
+        e = Env(self, {"enabledPlugins": {"p@m": True, "q@m": True}}, [mig("0001-a", op)])
+        e.run()
+        self.assertEqual(e.get(), {"enabledPlugins": {"q@m": True}})
+        e = Env(self, {"enabledPlugins": {"p@m": False}}, [mig("0001-a", op)])
+        e.run()
+        self.assertEqual(e.get(), {"enabledPlugins": {"p@m": False}})  # 사용자가 끈 값은 둔다
+        e = Env(self, {}, [mig("0001-a", op)])
+        self.assertEqual(e.run(), 0)
+
     def test_idempotent_and_records(self):
         ms = [mig("0001-a", enable("m@claude-doctor-market"), {"op": "hook-upsert", "event": "Stop", "command": HOOK})]
         e = Env(self, {}, ms)

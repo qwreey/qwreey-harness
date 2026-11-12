@@ -9,7 +9,7 @@
   python3 -I scan.py --env              읽은 harness.env 값과 쓸 수 있는 툴킷을 보인다
 
 항목 번호: 0 세션, 1 상시 로드, 2 rules, 3 스킬, 4 낡음·모순, 5 공유 지식 후보(툴킷),
-          6 복제본 표류, 7 설정, 8 툴체인(툴킷), 9 worktree, 10 메모리 이식성(memory_checks.py).
+          6 복제본 표류, 7 설정(+도메인 팩 pack_checks.py), 8 툴체인(툴킷), 9 worktree, 10 메모리 이식성(memory_checks.py).
 코어(이 파일)는 언어와 무관한 검사만 한다. 언어·툴체인 검사는 toolkits/<이름>.py 가 맡고,
 저장소마다 감지 표식이 있을 때만 켠다(--toolkits 로 강제). 환경 고유값은 ~/.claude/harness.env 에서 읽는다.
 판단이 필요한 것은 '경고'나 '정보'로만 낸다. 고칠지는 모델과 사용자가 정한다.
@@ -1014,6 +1014,14 @@ def check_memory(repo, user=False):
     mc.run(add, ms, USER_HOME, repo=repo, user=user)
 
 
+# ----------------------------------------------------- 7 도메인 팩 (구현은 pack_checks.py)
+def check_packs(repo, active):
+    spec = importlib.util.spec_from_file_location("pack_checks", HERE.parent / "pack_checks.py")
+    pc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pc)
+    pc.run(add, repo, active, USER_HOME)
+
+
 # ----------------------------------------------------- 9 worktree
 def check_worktrees(repo, now):
     wts = worktrees(repo) if git_root(repo) else []
@@ -1183,6 +1191,7 @@ def main():
             (4, lambda: check_stale(target, today)),
             (6, lambda: check_drift(target, files, projects)),
             (7, lambda: check_settings(target, files)),
+            (7, lambda: check_packs(target, active)),
             (10, lambda: check_memory(target)),
             (9, lambda: extra.__setitem__("worktrees", check_worktrees(target, dt.datetime.now().timestamp()))),
         ]

@@ -1,0 +1,14 @@
+{
+  "id": "0008-web-security-pack",
+  "why": "web-security 를 기본 꺼짐 도메인 팩(packs/web-security, defaultEnabled false)으로 바꿨다. 0007 이 사용자 레벨에 켜 둔 enabledPlugins 값(true)은 모든 저장소에 웹 보안 rule 을 싣게 하므로 걷어 낸다. 웹 저장소는 자기 .claude/settings.json 에서 켠다(q:doctor PACK-MISSING 이 안내). 값이 true 가 아니면(사용자가 직접 끔 등) 건드리지 않는다",
+  "ops": [
+    {
+      "op": "delete",
+      "path": [
+        "enabledPlugins",
+        "web-security@claude-doctor-market"
+      ],
+      "if_value": true
+    }
+  ]
+}

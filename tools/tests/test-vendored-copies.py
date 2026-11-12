@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PLUGINS = ROOT / "plugins"
+PACKS = ROOT / "packs"
 LUAU_KB = ROOT.parent / "luau-kb" / "hooks"  # 형제 저장소의 사본. 저장소가 없으면 건너뛴다
 # 파일 이름 -> 정본 경로(저장소 루트 기준)
 CANON = {
@@ -19,10 +20,10 @@ CANON = {
 }
 # 사본이 있어야 하는 곳(없으면 실패): 지워지거나 옮겨진 사본을 알아채려고 둔다
 EXPECTED = {
-    "compact_epoch.py": ["plugins/qwreey-advisor/hooks", "plugins/qwreey-conventions/hooks", "plugins/web-security/hooks"],
+    "compact_epoch.py": ["plugins/qwreey-advisor/hooks", "plugins/qwreey-conventions/hooks", "packs/web-security/hooks"],
     "memory_signals.py": ["plugins/q/skills/doctor/scripts"],
-    "rules_inject.py": ["plugins/web-security/hooks"],
-    "conv_env.py": ["plugins/web-security/hooks"],
+    "rules_inject.py": ["packs/web-security/hooks"],
+    "conv_env.py": ["packs/web-security/hooks"],
 }
 
 
@@ -32,7 +33,7 @@ class VendoredCopies(unittest.TestCase):
             want = (ROOT / canon).read_bytes()
             head = want[:700].decode("utf-8", "replace")
             self.assertTrue("정본" in head or "Canonical" in head, f"{canon}: 머리 주석에 정본 표시가 없다")
-            copies = [p for p in PLUGINS.rglob(name) if p != ROOT / canon and "__pycache__" not in p.parts]
+            copies = [p for p in [*PLUGINS.rglob(name), *PACKS.rglob(name)] if p != ROOT / canon and "__pycache__" not in p.parts]
             for rel in EXPECTED[name]:
                 self.assertIn(ROOT / rel / name, copies, f"{rel}/{name} 사본이 없다")
             for c in copies:

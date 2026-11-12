@@ -10,7 +10,7 @@
   set          path, value [, keep_existing:true]  값 설정(keep_existing 이면 이미 있을 때 둔다)
   add          path, items   문자열 배열에 없는 항목만 추가(배열이 없으면 만든다)
   remove       path, items   배열에서 뺀다
-  delete       path          키 삭제
+  delete       path [, if_value]  키 삭제(if_value 가 있으면 현재 값이 같을 때만. 사용자가 바꾼 값은 둔다)
   hook-upsert  event, command [, matcher, fields]  같은 command 의 훅이 있으면 교체, 없으면 추가
                훅 = {"type":"command","command":command, **fields}. command 의 $HOME 은 풀어 같은지 본다
   hook-remove  event, command   그 command 의 훅 제거(빈 그룹·이벤트도 정리)
@@ -104,8 +104,11 @@ def op_remove(d, o, ctx):
 def op_delete(d, o, ctx):
     parts = split_path(o["path"])
     par = parent(d, parts, False)
-    if par is not None:
-        par.pop(parts[-1], None)
+    if par is None or parts[-1] not in par:
+        return
+    if "if_value" in o and par[parts[-1]] != o["if_value"]:
+        return
+    del par[parts[-1]]
 
 
 def event_list(d, ev, create):
