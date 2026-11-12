@@ -30,21 +30,71 @@ import rules_inject  # noqa: E402
 PLUGIN_RULES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rules")
 
 
-def plugin_rule_dirs():
-    """{rules 디렉터리: 플러그인 이름}. 이 플러그인 것과 installed_plugins.json 이 가리키는 설치 경로의 `rules/`."""
+def _read_json(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def _read_toml(path):
+    try:
+        import tomllib
+        with open(path, "rb") as f:
+            return tomllib.load(f)
+    except Exception:  # 없거나 깨진 설정은 없는 것으로 본다(fail-open)
+        return {}
+
+
+def _market_dir(markets, market, name):
+    """마켓 정의가 가리키는 플러그인 폴더. installed_plugins.json 의 installPath 는 폴더 마켓에서도 옛 캐시를 가리킬 수 있어 먼저 본다."""
+    loc = (markets.get(market) or {}).get("installLocation") if isinstance(markets.get(market), dict) else None
+    if not isinstance(loc, str):
+        return None
+    for e in _read_json(os.path.join(loc, ".claude-plugin", "marketplace.json")).get("plugins") or []:
+        if isinstance(e, dict) and e.get("name") == name and isinstance(e.get("source"), str):
+            d = os.path.normpath(os.path.join(loc, e["source"]))
+            return d if os.path.isdir(d) else None
+    return None
+
+
+def _listed_pack_dirs(proj):
+    """{팩 rules 디렉터리: 팩 이름}. 팩 rule 은 프로젝트 coderag.toml 의 [[packs]] 에 있을 때만 coderag 가 넣으므로 그것만 알린다."""
+    listed = [p for p in _read_toml(os.path.join(proj, "coderag.toml")).get("packs") or [] if isinstance(p, dict)]
+    if not listed:
+        return {}
+    home = os.environ.get("CODERAG_HOME") or os.path.join(os.path.expanduser("~"), ".coderag")
+    reg = {p.get("name"): p.get("path") for p in _read_toml(os.path.join(home, "coderag.toml")).get("packs") or [] if isinstance(p, dict)}
+    out = {}
+    for p in listed:
+        path = p.get("path") or reg.get(p.get("name"))
+        if isinstance(path, str) and isinstance(p.get("name"), str):
+            out[os.path.join(path, "rules")] = p["name"]
+    return out
+
+
+def plugin_rule_dirs(proj=None):
+    """{rules 디렉터리: 플러그인 이름}. 이 플러그인 것, 설치된 플러그인의 `rules/`(도메인 팩 제외), 이 프로젝트가 목록에 적은 팩의 `rules/`."""
     out = {PLUGIN_RULES: "qwreey-conventions"}
     cfg = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
-    try:
-        with open(os.path.join(cfg, "plugins", "installed_plugins.json"), encoding="utf-8") as f:
-            for key, entries in (json.load(f).get("plugins") or {}).items():
-                for e in entries if isinstance(entries, list) else []:
-                    if isinstance(e, dict) and isinstance(e.get("installPath"), str):
-                        name = key.split("@")[0]
-                        if name not in out.values():  # 이 플러그인은 지금 도는 사본이 이긴다(설치된 옛 버전과 이중으로 나오지 않게)
-                            out[os.path.join(e["installPath"], "rules")] = name
-    except (OSError, ValueError, AttributeError):
-        pass
+    markets = _read_json(os.path.join(cfg, "plugins", "known_marketplaces.json"))
+    for key, entries in (_read_json(os.path.join(cfg, "plugins", "installed_plugins.json")).get("plugins") or {}).items():
+        name, _, market = key.partition("@")
+        if name in out.values():  # 이 플러그인은 지금 도는 사본이 이긴다(설치된 옛 버전과 이중으로 나오지 않게)
+            continue
+        root = _market_dir(markets, market, name)
+        if root is None:
+            paths = [e.get("installPath") for e in entries if isinstance(e, dict)] if isinstance(entries, list) else []
+            root = next((x for x in paths if isinstance(x, str)), None)
+        if root is None or os.path.isfile(os.path.join(root, "coderag.toml")):
+            continue  # 도메인 팩: 아래에서 프로젝트 목록으로만 더한다
+        out[os.path.join(root, "rules")] = name
+    if proj:
+        out.update(_listed_pack_dirs(proj))
     return out
+
+
 INTERP = {"python", "python3", "node", "deno", "bun", "perl", "ruby", "lua", "luau", "lune", "lute"}
 PREFIX = {"(", "{", "time", "nice", "env", "command", "exec", "nohup", "sudo", "choom", "prlimit", "timeout", "--"}
 INPLACE = re.compile(r"\bsed\s+(-\S*\s+)*-i|\bperl\s+(-\S*\s+)*-\S*p\S*i|\bawk\s+-i\s+inplace|\bpatch\b|\bgit\s+apply\b")
@@ -141,7 +191,7 @@ def main():
                      "(naming, idioms).")
 
     if writes or interp:
-        plugin_dirs = plugin_rule_dirs()
+        plugin_dirs = plugin_rule_dirs(proj)
         rules = load_rules([os.path.join(proj, ".claude", "rules"),
                             os.path.join(os.path.expanduser("~"), ".claude", "rules"),
                             *plugin_dirs])

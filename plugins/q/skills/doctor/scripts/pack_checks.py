@@ -1,9 +1,11 @@
-"""harness-doctor 항목 7(설정) 의 도메인 팩 검사: PACK-MISSING, PACK-DRIFT, PACK-UNUSED, PACK-USER-LEVEL, PACK-NO-CODERAG. 읽기 전용.
+"""harness-doctor 항목 7(설정) 의 도메인 팩 검사: PACK-MISSING, PACK-DRIFT, PACK-UNUSED, PACK-USER-LEVEL, PACK-NO-CODERAG, PACK-UNREGISTERED. 읽기 전용.
 
 팩은 기본 꺼짐(defaultEnabled false) 플러그인이다. 스위치는 프로젝트 coderag.toml 의 [[packs]] 목록 하나이고(rule 주입은 coderag 플러그인이
 이 목록을 따른다), `coderag adapt --harness claude` 가 이 목록에서 .claude/settings.json 의 enabledPlugins(스킬 적재)를 만든다.
 그래서 이 검사는 목록과 enabledPlugins 가 어긋났는지, 툴킷 표식이 있는데 목록에 없는지를 본다.
-scan.py 가 경로로 적재해 run(...) 만 부른다. user_home 과 coderag_bin 은 주입한다(테스트는 실제 ~/.claude 와 PATH 를 읽지 않는다).
+목록의 이름은 프로젝트 항목의 path 나 사용자 coderag 설정(`$CODERAG_HOME/coderag.toml`, 기본 ~/.coderag)의 등록으로 경로가 정해진다.
+등록이 없으면 coderag 는 그 팩을 조용히 건너뛰므로 PACK-UNREGISTERED 로 알린다.
+scan.py 가 경로로 적재해 run(...) 만 부른다. user_home, coderag_bin, coderag_home 은 주입한다(테스트는 실제 ~/.claude 와 PATH 를 읽지 않는다).
 """
 import json
 import os
@@ -28,13 +30,18 @@ def _enabled_map(path):
     return {k.split("@")[0]: bool(v) for k, v in ep.items() if isinstance(k, str)}
 
 
-def _listed_packs(repo):
-    """프로젝트 coderag.toml 의 [[packs]] 이름 집합. 파일이 없거나 깨졌으면 빈 집합."""
+def _pack_entries(cfg):
+    """coderag 설정 파일의 [[packs]] -> {이름: path 또는 None}. 파일이 없거나 깨졌으면 빈 dict."""
     try:
-        packs = tomllib.loads((Path(repo) / "coderag.toml").read_text(encoding="utf-8")).get("packs") or []
+        packs = tomllib.loads(Path(cfg).read_text(encoding="utf-8")).get("packs") or []
     except (OSError, ValueError, AttributeError):
-        return set()
-    return {p["name"] for p in packs if isinstance(p, dict) and isinstance(p.get("name"), str)}
+        return {}
+    return {p["name"]: p.get("path") for p in packs if isinstance(p, dict) and isinstance(p.get("name"), str)}
+
+
+def _listed_packs(repo):
+    """프로젝트 coderag.toml 의 [[packs]] 이름 집합."""
+    return set(_pack_entries(Path(repo) / "coderag.toml"))
 
 
 def _known_markets(user_home):
@@ -51,9 +58,19 @@ def _coderag_ok(coderag_bin):
     return bool(cand) and os.access(cand, os.X_OK)
 
 
-def run(add, repo, active, user_home, coderag_bin=None):
-    """active 는 {툴킷 이름: 표식}. add 는 scan.add 와 같은 시그니처. coderag_bin 은 harness.env HARNESS_CODERAG 값."""
+def run(add, repo, active, user_home, coderag_bin=None, coderag_home=None):
+    """active 는 {툴킷 이름: 표식}. add 는 scan.add 와 같은 시그니처. coderag_bin 은 harness.env HARNESS_CODERAG 값.
+    coderag_home 이 없으면 $CODERAG_HOME, 그것도 없으면 ~/.coderag."""
     repo, user_home = Path(repo), Path(user_home)
+    coderag_home = Path(coderag_home or os.environ.get("CODERAG_HOME") or Path.home() / ".coderag")
+    project_entries = _pack_entries(repo / "coderag.toml")
+    registered = _pack_entries(coderag_home / "coderag.toml")
+    for name, path in project_entries.items():
+        if not (path or registered.get(name)):
+            add(7, "경고", "PACK-UNREGISTERED", repo / "coderag.toml",
+                f"coderag.toml 의 팩 {name} 이 어디에도 경로가 없다(이 항목에 path 도, {coderag_home / 'coderag.toml'} 등록도 없음). "
+                f"coderag 는 이 팩을 조용히 건너뛰어 rule 이 주입되지 않는다. 사용자 coderag 설정에 "
+                f'`[[packs]]` `name = "{name}"` `path = "<팩 폴더>"` 를 더한다.', REF)
     proj_file = repo / ".claude" / "settings.json"
     proj = _enabled_map(proj_file)
     proj.update(_enabled_map(repo / ".claude" / "settings.local.json"))  # local 이 project 를 덮는다

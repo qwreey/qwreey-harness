@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """bash-bypass-reminder 회귀. 실행: timeout 120 python3 -I test-bash-bypass-reminder.py  (exit 0 = 통과)
 
-level(쓰기 신호가 있으면 warn, 읽기만 하는 인터프리터 명령은 info)과, 규칙 안내가 설치된 모든 플러그인의 rules/ 를 보는지 본다.
+level(쓰기 신호가 있으면 warn, 읽기만 하는 인터프리터 명령은 info)과, 규칙 안내가 설치된 플러그인의 rules/(폴더 마켓은 마켓 정의의 폴더)와 프로젝트가 목록에 적은 팩의 rules/ 를 보는지 본다.
 상태는 TMPDIR 로 격리한다.
 """
 import json
@@ -75,6 +75,42 @@ class PluginRules(unittest.TestCase):
         finally:
             os.remove(os.path.join(CFG, "plugins", "installed_plugins.json"))
         self.assertNotIn("web-security (web-security rule:", run("cat src/a.ts | python3 -c 'import sys'"))
+
+    def test_directory_market_beats_stale_install_path_and_packs_need_listing(self):
+        """폴더 마켓은 installPath 가 옛 캐시여도 마켓 정의의 폴더를 본다. coderag.toml 을 실은 팩은 프로젝트 목록에 있을 때만 나온다."""
+        mkt = os.path.join(T, "mkt")
+        for rel, body in (("plugins/tool/rules/tool.md", '---\npaths: ["**/*.ts"]\n---\n# t\n'),
+                          ("packs/sec/rules/sec.md", '---\npaths: ["**/*.ts"]\n---\n# s\n'), ("packs/sec/coderag.toml", "[pack]\nname = \"sec\"\n")):
+            os.makedirs(os.path.dirname(os.path.join(mkt, rel)), exist_ok=True)
+            with open(os.path.join(mkt, rel), "w", encoding="utf-8") as f:
+                f.write(body)
+        os.makedirs(os.path.join(mkt, ".claude-plugin"), exist_ok=True)
+        with open(os.path.join(mkt, ".claude-plugin", "marketplace.json"), "w", encoding="utf-8") as f:
+            json.dump({"name": "m", "plugins": [{"name": "tool", "source": "./plugins/tool"}, {"name": "sec", "source": "./packs/sec"}]}, f)
+        os.makedirs(os.path.join(CFG, "plugins"), exist_ok=True)
+        stale = os.path.join(T, "cache", "stale")
+        with open(os.path.join(CFG, "plugins", "installed_plugins.json"), "w", encoding="utf-8") as f:
+            json.dump({"plugins": {"tool@m": [{"installPath": stale}], "sec@m": [{"installPath": stale}]}}, f)
+        with open(os.path.join(CFG, "plugins", "known_marketplaces.json"), "w", encoding="utf-8") as f:
+            json.dump({"m": {"source": {"source": "directory", "path": mkt}, "installLocation": mkt}}, f)
+        home = os.path.join(T, "crhome")
+        os.makedirs(home, exist_ok=True)
+        with open(os.path.join(home, "coderag.toml"), "w", encoding="utf-8") as f:
+            f.write('[[packs]]\nname = "sec"\npath = "%s"\n' % os.path.join(mkt, "packs", "sec"))
+        env = {"CODERAG_HOME": home}
+        try:
+            c = run("cat src/a.ts | python3 -c 'import sys'", env)
+            self.assertIn(os.path.join(mkt, "plugins", "tool", "rules", "tool.md"), c)
+            self.assertNotIn(stale, c)
+            self.assertNotIn("sec (sec rule:", c, "목록에 없는 팩은 알리지 않는다")
+            with open(os.path.join(PROJ, "coderag.toml"), "w", encoding="utf-8") as f:
+                f.write('[[packs]]\nname = "sec"\n')
+            self.assertIn(os.path.join(mkt, "packs", "sec", "rules", "sec.md"), run("cat src/b.ts | python3 -c 'import sys'", env))
+        finally:
+            for f in (os.path.join(CFG, "plugins", "installed_plugins.json"), os.path.join(CFG, "plugins", "known_marketplaces.json"),
+                      os.path.join(PROJ, "coderag.toml")):
+                if os.path.exists(f):
+                    os.remove(f)
 
     def test_own_rules_still_listed(self):
         self.assertIn("code-structure (qwreey-conventions rule:", run("python3 -c \"print(open('src/a.py').read())\""))

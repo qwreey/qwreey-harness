@@ -42,13 +42,27 @@ class Packs(unittest.TestCase):
         self.bin = Path(self.tmp.name) / "coderag"
         self.bin.write_text("#!/bin/sh\n")
         self.bin.chmod(0o755)
+        self.crhome = Path(self.tmp.name) / "crhome"
+        self.crhome.mkdir()
+        (self.crhome / "coderag.toml").write_text(
+            "".join(f'[[packs]]\nname = "{n}"\npath = "/packs/{n}"\n' for n in ("web-security", "luau-kb")), encoding="utf-8")
         self.got = []
         self.addCleanup(self.tmp.cleanup)
 
     def run_check(self, active, coderag_bin=True):
         pc.run(lambda item, sev, code, where, msg, ref=None: self.got.append((sev, code, msg)), self.repo, active, self.home,
-               str(self.bin) if coderag_bin else str(self.bin) + ".none")
+               str(self.bin) if coderag_bin else str(self.bin) + ".none", self.crhome)
         return [c for _, c, _ in self.got]
+
+    def test_listed_pack_without_registration(self):
+        (self.crhome / "coderag.toml").write_text("", encoding="utf-8")
+        listing(self.repo, "web-security")
+        settings(self.repo / ".claude" / "settings.json", {KEY: True})
+        self.assertEqual(self.run_check(WEB), ["PACK-UNREGISTERED"])
+        self.assertIn('name = "web-security"', self.got[0][2])
+        self.got.clear()
+        (self.repo / "coderag.toml").write_text('[[packs]]\nname = "web-security"\npath = "/x"\n', encoding="utf-8")
+        self.assertEqual(self.run_check(WEB), [], "프로젝트 항목의 path 로도 된다")
 
     def test_missing_with_exact_lines(self):
         self.assertEqual(self.run_check(WEB), ["PACK-MISSING"])
