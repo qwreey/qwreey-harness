@@ -22,7 +22,7 @@
 - §10 넘친 인자를 잡지 않는 경우 (새 솔버)
 - §11 자료와 버전
 
-표기: `verified` 는 스니펫이 luau 0.734 와 0.742 의 `luau-analyze`(새 솔버, 기본)에서 그 주장대로 통과했다는 뜻이다. `described` 는 원천의 서술만 있다는 뜻이다. 스니펫은 `.claude/research/drafts/gaps/snippets/` 에 있다. luau-kb 로 옮길 때는 `snippets/` 로 옮긴다. 모든 `packs-*` 스니펫은 `luau-lsp 1.70.1`(새 솔버) 참고 열에서도 결과가 같았다.
+표기: `verified` 는 스니펫이 luau 0.734 와 0.742 의 `luau-analyze`(새 솔버, 기본)에서 그 주장대로 통과했다는 뜻이다. `described` 는 원천의 서술만 있다는 뜻이다. 스니펫은 `.claude/archive/research/drafts/gaps/snippets/` 에 있다. luau-kb 로 옮길 때는 `snippets/` 로 옮긴다. 모든 `packs-*` 스니펫은 `luau-lsp 1.70.1`(새 솔버) 참고 열에서도 결과가 같았다.
 
 ---
 

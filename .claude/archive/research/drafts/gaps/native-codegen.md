@@ -19,7 +19,7 @@
 - §8 측정 방법
 - §9 공식 문서와 실측이 어긋난 곳
 
-표기: `verified` 는 스니펫(`.claude/research/drafts/gaps/snippets/`)이나 `.claude/research/drafts/gaps/tools/run_opt.sh` 가 luau 0.734 와 0.742 에서 통과했다는 뜻이다. `described` 는 원천 서술이나 소스 읽기만 있다는 뜻이다. Roblox 엔진 안의 동작은 Studio 없이 확인할 수 없어 모두 described 다.
+표기: `verified` 는 스니펫(`.claude/archive/research/drafts/gaps/snippets/`)이나 `.claude/archive/research/drafts/gaps/tools/run_opt.sh` 가 luau 0.734 와 0.742 에서 통과했다는 뜻이다. `described` 는 원천 서술이나 소스 읽기만 있다는 뜻이다. Roblox 엔진 안의 동작은 Studio 없이 확인할 수 없어 모두 described 다.
 
 자료와 시점 (모두 2026-11-10 확인):
 - create.roblox.com/docs/en-us/luau/native-code-gen.md (`last_updated: 2026-11-10T00:40:40Z`)
@@ -143,7 +143,7 @@ $L/luau-compile --codegen -O2 --record-stats=function --stats-file=/tmp/st.json 
 $L/luau-compile --codegenir -O2 f.luau
 # 3) 실행 시간: 같은 파일을 네 조합으로, 최소값 N회
 choom -n 1000 -- prlimit --data=3221225472 -- $L/luau -O2 --codegen bench.luau
-#    (.claude/research/drafts/gaps/tools/bench_native.sh 가 -O1/-O2 × codegen 유무를 돈다)
+#    (.claude/archive/research/drafts/gaps/tools/bench_native.sh 가 -O1/-O2 × codegen 유무를 돈다)
 # 4) 기타: --codegen-cold(cold 포함), --counters(네이티브 카운터 → callgrind.out), --codegen-perf(perf 맵)
 ```
 - 측정 규칙: 같은 프로세스 안에서 라운드를 반복하고 최소값을 쓴다. 인라인 효과를 빼고 싶으면 함수를 "필드 대입 테이블" 경유로 부른다(optimize-levels.md §3). 공유 기계라 `choom` 으로 OOM 희생 순위를 올린다.

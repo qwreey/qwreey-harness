@@ -126,12 +126,12 @@
    - `.claude/audit/08` quad 기록
    - `.claude/audit/09` 그 밖의 저장소(stl perf 포함)
    - `.claude/audit/10` 하네스 사용 흔적(history와 auto memory)
-   - `.claude/audit/11` + `.claude/research/drafts/gaps/` 공백 신규 조사
+   - `.claude/audit/11` + `.claude/archive/research/drafts/gaps/` 공백 신규 조사
 2. **선행 작업**(진행 중)
    - type function 집대성: luau-types
    - roblox-luau 스킬과 LSP DX 검사
 3. **증류**: 타입 함수 작업이 끝난 뒤 시작한다. 후보표를 합치고 중복과 모순을 판정한 다음 luau-kb 스킬로 옮긴다.
-   - 옮길 스킬: luau-perf, luau-style(.claude/research/drafts/style에서 이동), luau-testing, roblox-luau 보강
+   - 옮길 스킬: luau-perf, luau-style(.claude/archive/research/drafts/style에서 이동), luau-testing, roblox-luau 보강
    - 모순 항목은 decisions에 올린다.
 
 ## 3.7 coderag 확장 (2026-11-10 승인, 설계 a1b309f 의 결정 49개 추천안 전부 확정, 구현 M1~ 진행)

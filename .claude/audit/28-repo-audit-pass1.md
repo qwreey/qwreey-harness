@@ -161,9 +161,9 @@ Read 도구로 실제 연 상위: `tools/home-sync.sh` 4, `harness-status.py` 3,
 1. `.claude/archive/research/drafts/hooks/structure-reminder.py`(283줄) vs `home/.claude/hooks/structure-reminder.py`(405줄): 라이브 쪽이 확장됨. 둘의 diff 309줄. PLAN §3.5 P1 은 아직 "원본은 `drafts/hooks/`" 라고 적었다.
 2. `drafts/session-log/{extract,summarize,verify}.py` vs `plugins/q/scripts/sllib/{extract,summarize,verify}.py`: 설계 초안이 플러그인으로 구현됨. `DESIGN.md` 25KB 는 `plugins/q/docs/session-log.md`(97줄)와 겹침.
 3. `.claude/archive/research/drafts/second-opinion/home/*.fragment*` 2개 vs `plugins/qwreey-advisor`: 플러그인으로 옮겨 끝남.
-4. `.claude/research/drafts/style/`(88KB) vs 형제 저장소 `luau-kb/skills/luau-style` + `luau-kb/rules`: PLAN 3.6 은 ".claude/research/drafts/style 에서 이동" 이라고 적었다. luau-kb 에 스킬이 이미 있다.
+4. `.claude/archive/research/drafts/style/`(88KB) vs 형제 저장소 `luau-kb/skills/luau-style` + `luau-kb/rules`: PLAN 3.6 은 ".claude/archive/research/drafts/style 에서 이동" 이라고 적었다. luau-kb 에 스킬이 이미 있다.
 5. `home/.claude/rules/code-structure.md` vs `luau-kb/rules/code-structure.md`(sibling 존재): MANIFEST 는 `luau-core.md` 만 링크하고 code-structure 는 복사한다. 두 정본 후보.
-6. `.claude/audit/drafts/skills/luau-*`(3) vs `.claude/research/drafts/gaps`, luau-kb 스킬 `luau-types`, `luau-verify`, 그리고 `.claude/audit/drafts/snippet-harness/check_snippets.py` vs luau-kb 의 snippets 하네스.
+6. `.claude/audit/drafts/skills/luau-*`(3) vs `.claude/archive/research/drafts/gaps`, luau-kb 스킬 `luau-types`, `luau-verify`, 그리고 `.claude/audit/drafts/snippet-harness/check_snippets.py` vs luau-kb 의 snippets 하네스.
 7. 설치된 `~/.claude/CLAUDE.md` vs `home/.claude/CLAUDE.md`(1-5 참고)와 `.claude/handoff/memory-claude-doctor.md` vs 실제 memory 디렉터리: 같은 내용의 사본.
 
 ### 3-3. 다 끝났는데 남은 초안 (`drafts/`)
@@ -230,7 +230,7 @@ Read 도구로 실제 연 상위: `tools/home-sync.sh` 4, `harness-status.py` 3,
 | 5 | settings 는 복사가 아니라 마이그레이션으로 적용 | README 설치 4단계(장문), `home/MANIFEST` 머리, PLAN 3.5 ~/.claude 정본 관리, `tools/home-sync.sh` 도움말과 마이그레이션 파일들 |
 | 6 | 메모리에만 있던 원칙을 저장소로 옮김 | PLAN §3.8 전체가 메모리 파일들(`model-usage-policy`, `propose-dont-overwrite...` 등)과 `.claude/handoff/memory-claude-doctor.md` 의 사본 (의도적 이동이나 둘 다 남음) |
 | 7 | 다른 세션에 넘길 일 | HUMAN_TODO 의 "다른 세션에 넘길 것" 13항목 vs `.claude/handoff/*.md` 19개의 본문(항목 건수와 근거를 양쪽에 적음) |
-| 8 | luau-kb 구조와 증류 계획 | PLAN §1 ②(스킬 목록 12개), §3.6, README 설치 5단계, `.claude/research/drafts/gaps`, `.claude/research/drafts/style`, 형제 저장소 luau-kb 자신의 README |
+| 8 | luau-kb 구조와 증류 계획 | PLAN §1 ②(스킬 목록 12개), §3.6, README 설치 5단계, `.claude/archive/research/drafts/gaps`, `.claude/archive/research/drafts/style`, 형제 저장소 luau-kb 자신의 README |
 | 9 | coderag 지식 계층(global/pack/project) | PLAN §3.7, README 맨 끝 단락, `.claude/research/drafts/coderag/`, 홈 CLAUDE.md 지도 행 |
 
 README 서술 오류: 설치 4단계 플러그인 항목에 같은 구절이 겹친다("`status`/`apply` 끝에는 `status`/`apply` 끝에 설치 안 된 것과 ...").

@@ -1,7 +1,7 @@
 # 11. 지식 공백 메우기 — 결과 요약
 
 > 작성 2026-11-10. 대상은 `05-luau-knowledge-map.md` §0-4 의 "지식이 없는 영역" 6개다(type function 제외).
-> 초안: `.claude/research/drafts/gaps/*.md`. 스니펫: `.claude/research/drafts/gaps/snippets/*.luau` 41개. 도구: `.claude/research/drafts/gaps/tools/`. luau-kb 에는 아무것도 쓰지 않았다.
+> 초안: `.claude/archive/research/drafts/gaps/*.md`. 스니펫: `.claude/archive/research/drafts/gaps/snippets/*.luau` 41개. 도구: `.claude/archive/research/drafts/gaps/tools/`. luau-kb 에는 아무것도 쓰지 않았다.
 > 외부 자료는 모두 2026-11-10 에 받았다. Studio MCP 는 쓰지 않았다.
 
 ## 1. 주제별 결과
@@ -20,11 +20,11 @@
   - 명령: `python3 -I /code/Projects/luau-kb/tools/check_snippets.py --luau 0.734,0.742`
   - 결과: 56/56 ok. `packs-*` 는 luau-lsp 1.70.1 참고 열에서도 "같음".
 - Roblox 스니펫 13개(`roblox`, `parallel`):
-  - 명령: `.claude/research/drafts/gaps/tools/check_roblox.py --lsp 1.70.1,1.69.0`
+  - 명령: `.claude/archive/research/drafts/gaps/tools/check_roblox.py --lsp 1.70.1,1.69.0`
   - 이 도구는 하네스의 표식 문법을 그대로 쓰고, 검사기만 `luau-lsp analyze --platform=roblox --definitions=luau-kb/typedefs/globalTypes.d.luau --flag:LuauSolverV2=true` 로 바꾼다.
   - 결과: 26/26 ok.
 - `-O`/`-g`/`--codegen` 플래그에 걸린 주장:
-  - 하네스의 `--@run` 은 최적화 플래그를 주지 못한다. 그래서 `.claude/research/drafts/gaps/tools/run_opt.sh` 로 따로 검사했다.
+  - 하네스의 `--@run` 은 최적화 플래그를 주지 못한다. 그래서 `.claude/archive/research/drafts/gaps/tools/run_opt.sh` 로 따로 검사했다.
   - 결과: 58/58 ok (29건 × 두 버전).
 - 성능 측정은 `tools/bench_native.sh` 로 했다(`choom -n 1000` + `prlimit`, 200만 회 × 7라운드 최소값).
   - 기계: Ryzen 5 7600 위 4 vCPU 공유 컨테이너, load ≈ 4.

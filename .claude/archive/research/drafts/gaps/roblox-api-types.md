@@ -22,7 +22,7 @@
 - §10 타입이 런타임보다 낙관적인 자리
 - §11 자료와 버전
 
-표기: `verified` 는 스니펫이 `.claude/research/drafts/gaps/tools/check_roblox.py` 로 통과했다는 뜻이다. 이 검사기는 `luau-lsp analyze --platform=roblox --definitions=luau-kb/typedefs/globalTypes.d.luau --flag:LuauSolverV2=true` 를 쓰고, luau-lsp 1.70.1 과 1.69.0 둘 다에서 돌렸다. `described` 는 문서 서술만 있고 런타임(Studio)에서 확인하지 않았다는 뜻이다. 정의 파일은 quad `2ad2c03e`(2026-09-02)판의 복사본이다. 다른 판(rbvm, tbox)에서는 결과가 다를 수 있다(`luau-kb/typedefs/README.md`).
+표기: `verified` 는 스니펫이 `.claude/archive/research/drafts/gaps/tools/check_roblox.py` 로 통과했다는 뜻이다. 이 검사기는 `luau-lsp analyze --platform=roblox --definitions=luau-kb/typedefs/globalTypes.d.luau --flag:LuauSolverV2=true` 를 쓰고, luau-lsp 1.70.1 과 1.69.0 둘 다에서 돌렸다. `described` 는 문서 서술만 있고 런타임(Studio)에서 확인하지 않았다는 뜻이다. 정의 파일은 quad `2ad2c03e`(2026-09-02)판의 복사본이다. 다른 판(rbvm, tbox)에서는 결과가 다를 수 있다(`luau-kb/typedefs/README.md`).
 
 ---
 

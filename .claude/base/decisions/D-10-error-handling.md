@@ -63,4 +63,4 @@
 - `error(msg, 2)` 는 위치를 잃기만 하는 것이 아니다. 호출자가 인라인되지 않은 경우에는 **틀린 줄**(호출자의 호출자)을 가리킨다.
 - `--!native` / `@native` 는 최적화 수준 2 를 강제하므로 같은 문제가 생긴다. CLI 로 실측했고 엔진 안에서는 확인하지 않았다.
 - 실례: quad 를 `-O2` 로 돌리면 테스트 3개가 실패한다. 그중 하나는 `quad-base/src/Relate.luau:28` 의 `error(…, 3)` 때문이다.
-- 근거: `.claude/research/drafts/gaps/optimize-levels.md`, `snippets/optimize-o2-error-level.luau`, `.claude/research/drafts/gaps/tools/run_opt.sh`
+- 근거: `.claude/archive/research/drafts/gaps/optimize-levels.md`, `snippets/optimize-o2-error-level.luau`, `.claude/archive/research/drafts/gaps/tools/run_opt.sh`

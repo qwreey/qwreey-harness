@@ -21,8 +21,8 @@
 
 ## 결정 뒤 옮길 곳
 
-- 공통 필수 한 줄은 `.claude/research/drafts/style/rules/luau-core.md`(사용자 레벨 rules 후보)로 옮긴다.
-- 근거·예시는 `.claude/research/drafts/style/skills/luau-style/references/` 로 옮긴다.
+- 공통 필수 한 줄은 `.claude/archive/research/drafts/style/rules/luau-core.md`(사용자 레벨 rules 후보)로 옮긴다.
+- 근거·예시는 `.claude/archive/research/drafts/style/skills/luau-style/references/` 로 옮긴다.
 - 저장소별 override 는 각 저장소의 `.claude/rules/*.md` 에 둔다. 다른 세션이 작업 중인 저장소라 여기서 만들지 않는다.
 
 ## 이번에 발견한 낡은 서술 (각 저장소 세션에 전달할 것)

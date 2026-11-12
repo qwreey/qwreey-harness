@@ -1,3 +1,5 @@
+status: archived; 2차 증류 끝남(결과는 ../luau-kb/README.md "원천과 범위")
+
 # 증류 공통 지침 (luau-kb 로 지식 옮기기)
 
 모든 증류 에이전트가 따른다. 2026-11-10.
@@ -6,8 +8,8 @@
 - 후보표
   - `.claude/audit/08-quad-knowledge-mine.md` (ID `Q-`)
   - `.claude/audit/09-other-knowledge-mine.md` (ID `S- R- T- D- X- M- O-`, perf 절 분할안 §1, 모순 §6, 낡음 §7)
-  - `.claude/audit/11-knowledge-gaps.md` + `.claude/research/drafts/gaps/*.md` 와 `.claude/research/drafts/gaps/snippets/` (공백 초안 6개, 스니펫 41개)
-  - `.claude/research/drafts/style/` (luau-style 스킬 초안, `rules/luau-core.md`, inventory)
+  - `.claude/audit/11-knowledge-gaps.md` + `.claude/archive/research/drafts/gaps/*.md` 와 `.claude/archive/research/drafts/gaps/snippets/` (공백 초안 6개, 스니펫 41개)
+  - `.claude/archive/research/drafts/style/` (luau-style 스킬 초안, `rules/luau-core.md`, inventory)
   - `.claude/base/decisions/README.md` 와 D-xx. 맨 끝의 "사용자 결정 현황" 표가 권위 있는 상태다.
     - 확정: D-01, D-02, D-03, D-04, D-06
     - D-10 은 정정이 있다
@@ -36,7 +38,7 @@
   | `test-`, `pack-`, `opt-`, `native-` | testing·types·verify |
 
 - 순수 Luau 검사: `python3 -I tools/check_snippets.py --luau 0.734,0.742 snippets/<내 접두>-*.luau` 가 rc=0 이어야 한다.
-- Roblox 타입 스니펫은 `.claude/research/drafts/gaps/tools/check_roblox.py` 방식으로 검사한다. 이 검사기를 `check_snippets.py` 에 통합하는 일은 '검증·타입·테스트' 담당만 한다.
+- Roblox 타입 스니펫은 `.claude/archive/research/drafts/gaps/tools/check_roblox.py` 방식으로 검사한다. 이 검사기를 `check_snippets.py` 에 통합하는 일은 '검증·타입·테스트' 담당만 한다.
 - `snippets/RESULTS.md` 는 공용 파일이다. 자기 접두 절만 추가하고 다른 절은 건드리지 않는다.
 - 무거운 실행(벤치)은 `choom -n 1000 --` 으로 감싼다.
 
