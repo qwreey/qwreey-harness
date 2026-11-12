@@ -240,6 +240,7 @@ class Store:
         v = pm["verify"]
         fm = [
             "---",
+            "format: 1",
             f"title: {yaml_str(f'세션 {sid[:8]} — ' + (pm['descs'][0] if pm['descs'] else ''))}",
             f"description: {yaml_str((pm['descs'][-1] if pm['descs'] else '')[:120])}",
             "keywords: [" + ", ".join(yaml_str(k) for k in pm["kws"]) + "]",

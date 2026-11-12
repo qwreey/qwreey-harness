@@ -65,6 +65,16 @@ class Fixture(unittest.TestCase):
         self.assertFalse(any(q.startswith("audit/") and c != "REC-RAW-NOT-IGNORED" for c, q in got))
         self.assertEqual(sum(1 for f in rc.check(self.root) if f["code"] == "REC-LINK-BROKEN"), 1)
 
+    def test_format_key(self):
+        plan = Path(self.root, ".claude", "plan")
+        for i, (val, bad) in enumerate([("1", False), ("12", False), ("0", True), ("-1", True), ("one", True), ("1.5", True), ("", True)]):
+            (plan / ("fmt%d.md" % i)).write_text("---\nformat: %s\ntitle: t\ndescription: d\nstatus: active\n---\nB\n" % val)
+        got = {q for c, q in codes(rc.check(self.root)) if c == "REC-FORMAT-BAD"}
+        self.assertEqual(got, {"plan/fmt2.md", "plan/fmt3.md", "plan/fmt4.md", "plan/fmt5.md", "plan/fmt6.md"})
+        self.assertFalse(any(f["code"] == "REC-FORMAT-BAD" and f["severity"] != "warn" for f in rc.check(self.root)))
+        # a record without the key (every old record) is not reported
+        self.assertNotIn("plan/active.md", got)
+
     def test_raw_ignored(self):
         Path(self.root, ".gitignore").write_text(".claude/**/raw/\n")
         self.assertNotIn("REC-RAW-NOT-IGNORED", {f["code"] for f in rc.check(self.root)})

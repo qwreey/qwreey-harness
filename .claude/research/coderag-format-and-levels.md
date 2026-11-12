@@ -1,4 +1,5 @@
 ---
+format: 1
 title: coderag 형식 버전과 L0/L1/L2 단계 공개 설계
 description: 기록·팩 문서에 형식 버전(format)을 달아 버전대로 읽고 active 문서만 마이그레이션하는 법, 검색 결과를 L0(제목·설명)·L1(절 목차)·L2(절 본문)로 예산 안에서 펼치는 법, compact 뒤 가리킴 상한. 사용자 결정 반영.
 status: active

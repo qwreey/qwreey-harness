@@ -138,6 +138,10 @@ def check(root):
         text = read(path)
         if text is None:
             continue
+        fm, _ = split_frontmatter(text)
+        # Only the shape is checked here; whether coderag supports the number is coderag's call (coderag lint).
+        if fm is not None and "format" in fm and not re.fullmatch(r"[1-9][0-9]*", fm["format"].strip()):
+            add("REC-FORMAT-BAD", "warn", path, "format %r is not a positive integer" % fm["format"])
         value, sup_by = read_status(text)
         if value is None:
             # A folder's README status covers the files in that folder, and a file under archive/ is closed by

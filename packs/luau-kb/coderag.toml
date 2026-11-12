@@ -7,6 +7,7 @@
 # 캐시는 pack 안에 쓰지 않는다(소비자의 $CODERAG_HOME/cache/packs/). 분류 어휘는 taxonomy.toml(§16).
 
 [pack]
+format = 1
 name = "luau-kb"
 description = "Luau 타입 한계·검증·테스트·성능·스타일·런타임·Roblox 엔진·업스트림 지식 (스킬 12개의 references)"
 taxonomy = "taxonomy.toml"

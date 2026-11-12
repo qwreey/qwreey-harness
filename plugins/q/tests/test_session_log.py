@@ -169,7 +169,7 @@ class TestFlush(Env):
         self.assertEqual(list(p for p in self.proj.rglob("*") if ".git" not in p.parts), [])  # 저장소에는 아무것도 없다
         rid = r["rids"][0]
         text = st.record_path(rid).read_text()
-        self.assertTrue(text.startswith("---\ntitle: "))
+        self.assertTrue(text.startswith("---\nformat: 1\ntitle: "))
         self.assertIn("kind: session", text)
         self.assertIn(f"session_id: {self.sid}", text)
         self.assertIn("id: sess-000-1 · summary: fake summary", text.replace(self.sid[:8], "sess-000"))
@@ -255,7 +255,7 @@ class TestImport(Env):
         self.assertIn("그 시점의 스냅샷", got)
         self.assertIn("기간 2026-11-10", got)
         self.assertIn("원본 트랜스크립트", got)
-        self.assertTrue(got.startswith("---\ntitle: "))               # frontmatter 가 맨 앞
+        self.assertTrue(got.startswith("---\nformat: 1\ntitle: "))               # frontmatter 가 맨 앞
         fm_end = body.index("\n---\n", 4) + 5
         self.assertEqual(got[:fm_end], body[:fm_end])                   # frontmatter 그대로
         self.assertEqual(got[got.index("\n## "):], body[body.index("\n## "):])  # 본문 그대로, 머리말만 추가
