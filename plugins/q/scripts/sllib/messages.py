@@ -88,7 +88,7 @@ def pending(count: int, oldest_date: str, oldest_days: int, trigger: str, strong
 
 def pending_propose(count: int, oldest_date: str, oldest_days: int, history: list[str]) -> str:
     """보관 위치가 없는데 기록이 쌓였을 때: 사용자에게 위치를 제안하라는 warn."""
-    opts = ["`docs/sessions/` (team-visible)", "`.claude/records/` (for agents only)"]
+    opts = ["`docs/sessions/` (team-visible)", "`.claude/sessions/` (for agents only)"]
     if history:
         opts.append("the existing history dir " + " or ".join(f"`{h}`" for h in history))
     opts.append("keep them outside the repo as an archive only (`session-log home --archive-only`; turns off these reminders)")

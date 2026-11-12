@@ -98,7 +98,7 @@ def cmd_import(a):
         to = records_home.home_rel(st.root)
         if not to:
             sys.exit("records home is not set, so nothing was copied. Ask the user where records go "
-                     "(`docs/sessions/`, `.claude/records/`, an existing history dir, or `--archive-only` to keep them outside the repo), "
+                     "(`docs/sessions/`, `.claude/sessions/`, an existing history dir, or `--archive-only` to keep them outside the repo), "
                      "save the answer with `session-log home <path>`, then run `session-log import` again. "
                      "To copy once without saving a home, pass `--to DIR`.")
     to_dir = (st.root / to) if not os.path.isabs(to) else Path(to)

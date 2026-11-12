@@ -36,7 +36,7 @@ index.json                         rid → pending | imported(위치, 커밋) | 
 .state/notices.jsonl, errors.log
 ```
 
-기록 형식(coderag §11·§17·§21): frontmatter `title, description, keywords, kind: session, status, last_verified, session_id, project, project_root, source_transcript, summarizer, verify`.
+기록 형식(coderag §11·§17·§21): frontmatter `title, description, keywords, kind: session, date, session_id, project, project_root, source_transcript, summarizer, verify`.
 절마다 `## <날짜 시각–시각> · <트리거>` 다음 메타 줄 `id: <sid8>-<n> · summary: … · note: L<a>–L<b>` 을 둔다. 그 아래 `### 요약 / 사용자 지시와 정정 / 결정 / 바뀐 파일과 커밋 / 실측 수치 / 실패한 시도 / 미해결과 다음 단계` 가 오고, 항목마다 `(L…)` 근거 줄을 단다.
 
 ## 알림 (모델에게 들어가는 영어, `<harness-hook name="session-log" level=…>`)
@@ -56,7 +56,7 @@ index.json                         rid → pending | imported(위치, 커밋) | 
   - 같은 모듈의 사본이 qwreey-advisor·qwreey-conventions 에 있고(정본은 q, 테스트가 바이트 동일성을 검사), 각자 자기 회차를 올린다. 하네스가 없어도 돈다.
 - pending 알림 level (action 은 쓰지 않는다: import 는 명령 하나라 막고 물을 일이 아니다)
   - 보관 위치 설정됨: 평소 info, commit 직전이거나 `SESSION_LOG_PENDING_STRONG_COUNT`(5)개·`…_DAYS`(7)일 이상이면 warn. 내용은 `session-log import` 한 줄.
-  - 미설정: 평소 info, `SESSION_LOG_HOME_NUDGE_COUNT`(3)개 또는 `SESSION_LOG_HOME_NUDGE_DAYS`(3)일 이상(strong 도 포함)이면 warn 으로 위치를 사용자에게 제안하라고 한다(`docs/sessions/` 팀 공개, `.claude/records/` 에이전트 전용, 있으면 `handover/`·`handoff/`·`audit/` 같은 이력 폴더, 밖에 두기).
+  - 미설정: 평소 info, `SESSION_LOG_HOME_NUDGE_COUNT`(3)개 또는 `SESSION_LOG_HOME_NUDGE_DAYS`(3)일 이상(strong 도 포함)이면 warn 으로 위치를 사용자에게 제안하라고 한다(`docs/sessions/` 팀 공개, `.claude/sessions/` 에이전트 전용, 있으면 `handover/`·`handoff/`·`audit/` 같은 이력 폴더, 밖에 두기).
   - `archive_only`: pending 알림이 없다.
 - 주입 안전
   - 인계와 상기에는 구조화된 항목만 넣는다: 개수, 경로, ⚠ 없는 미해결·결정 제목(110자), 대조를 통과한 사용자 인용.
@@ -94,7 +94,7 @@ session-log backfill --plan plan.json [--budget 4] [--dry-run]
 - 예: global 설정에 `[[contexts.docs.targets]] module = "session-log" source = "~/.local/share/session-log" options = { exclude = [".state"] }`.
   - 저장소별로 나누려면 `source = "…/session-log/<project-key>/records"`.
   - 점 디렉터리는 기본 제외라 `.state/` 는 저절로 빠진다.
-- 가져간 사본은 저장소 보관 폴더에 있어 coderag 의 프로젝트 문서 루트에서 잡힌다(점 디렉터리 `.claude/records/` 는 설정에 따라).
+- 가져간 사본은 저장소 보관 폴더에 있어 coderag 의 프로젝트 문서 루트에서 잡힌다(점 디렉터리 `.claude/sessions/` 는 설정에 따라).
 
 ## 의존성과 이식성
 - `python3`(표준 라이브러리만, `-I` 로 실행), `claude`(PATH), `git`(선택: import 커밋 조회), `setsid`(없으면 `start_new_session`).
