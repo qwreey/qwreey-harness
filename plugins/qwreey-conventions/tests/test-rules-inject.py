@@ -58,7 +58,7 @@ def hit(rule, path, root=PROJ):
 class Globs(unittest.TestCase):
     def test_every_rule_has_globs(self):
         names = {n for n, _, _ in ri.load_rules()}
-        self.assertEqual(names, {"comments", "agent-docs", "code-structure", "memory"})
+        self.assertEqual(names, {"comments", "agent-docs", "agent-records", "code-structure", "memory"})
 
     def test_comments_braces(self):
         for ext in ("luau", "py", "html", "sh", "kt", "tsx"):

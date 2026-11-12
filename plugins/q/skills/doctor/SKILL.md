@@ -39,6 +39,7 @@ Reply and write new documents in Korean.
    - The `툴킷:` line in the report header shows the toolkits enabled for this repo and their markers. If wrong, rerun with `--toolkits luau,web` (or `none`).
    - `--only 1,2,3` picks items. Add `--json` for machine-readable output.
    - Exit code: 0 (nothing), 1 (warnings/info), 2 (errors).
+   - Records: `python3 -I ${CLAUDE_SKILL_DIR}/../../scripts/records_check.py --root <path> [--json]` (read-only, skip for intake). `REC-` codes follow the `qwreey-conventions:agent-records` skill. Report counts per code in item 11; list `REC-FINISHED-OUTSIDE-ARCHIVE` files as one "move to archive" fix item (one commit, only after approval, `git mv` plus link and README fixes, never delete). `REC-STATUS-MISSING` on old docs is info: do not propose a backfill. If the repo has coderag, also run `coderag static-gen --check` and `coderag stale` and report their lines in the same item.
 4. **Judge.** Script output is a candidate. Each code's criteria are in the reference listed in the table below. Open only the files you need.
    - Read the original text of each warning and decide true or false. Example: for `RULE-DUP` read the two lines side by side; for `STALE-DATED` check against git log or code.
    - Also look at what the script cannot see: follow "모델이 볼 것" in each reference, including the references of enabled toolkits.
@@ -62,6 +63,7 @@ Reply and write new documents in Korean.
 | 8 | Toolchain | toolkit | `TOOL-`, `<toolkit>-` | toolkit doc |
 | 9 | worktree hygiene | core | `WT-` | `references/worktrees.md` |
 | 10 | Memory portability (orphan keys, repo knowledge, MEMORY.md size) | core | `MEM-` | `references/memory-portability.md` |
+| 11 | Agent records (status, archive, index, links, size, raw) | core | `REC-` | `qwreey-conventions:agent-records` skill |
 | - | Toolkit structure, adding a toolkit | | | `references/toolkits/README.md` |
 | - | Toolkit luau (Luau/Roblox) | toolkit | `TOOL-`, `KB-`, `DRIFT-TYPEDEFS` | `references/toolkits/luau.md` |
 | - | Toolkit web (skeleton, detection only) | toolkit | (reserved `WEB-`) | `references/toolkits/web.md` |
