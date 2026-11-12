@@ -189,6 +189,9 @@
   3. 기록 규약 토론(opus 2개, 2라운드). 문구와 자동화 수준, coderag 결합 방식을 정한다.
   4. 재편 실험: 끝남, main 에 합침(사용자: "합치자"). 기록은 `.claude/` 아래(`.claude/README.md`), PLAN.md 는 사용자 결정으로 루트("나도 많이 참조하는 파일"). 시점 기록 안의 옛 경로도 스크립트로 바꿨다(사용자: "작은 모델로 기계적으로 링크를 고치는게 나을지도"). 결과는 `.claude/audit/39-records-experiment/after-D.md`(coderag 10/12, grep 7/12). 남은 것: coderag static-gen 이 하위 폴더로 내려가지 않음, luau-kb 의 옛 경로 12개 파일(가져올 때 고침), 커밋 때 records_check 알림.
   5. `packs/`: web-security 는 옮김(기본 꺼짐, 마이그레이션 0008, q:doctor PACK- 검사; 사용자: "가로 하는게 맞는것 같음…doctor 가 점검하는 부분에 같이 있으면 편하겠다"). luau-kb 는 이력째 가져옴(git subtree, packs/luau-kb 0.5.0, 기본 꺼짐; 개발 자료 evals 는 `.claude/packs/luau-kb/`). 웹·Luau 저장소별 켜기가 남았다.
+  5a. 지식 팩의 그릇 재검토(사용자: "luau-kb 는 stale 해질 수도 있고, 필요에 따라 검색해야할 수도 있고…web security 도 그런데, 시행착오로 새로운게 나올 수도 있고, 그래서 싱크 되거나 해야할 수도"). PLAN 3.7 의 "원천 하나, 접근 둘" 중 coderag 접근이 빠져 있었다.
+     - 1단계 끝: `~/.coderag/coderag.toml` 에 `[[packs]] luau-kb` 를 저장소 사본 경로(`packs/luau-kb`)로 등록. pack 계층 검색과 stale 이 동작한다. 이 설정의 정본을 home/ 에 둘지는 home-sync 가 `~/.claude` 밖을 다루지 않아 2단계 결정 뒤에 정한다.
+     - 2단계 토론(.claude/audit/41): 지식 본문은 coderag pack, 플러그인은 입구만. 사용자 추가 쟁점: "cli 를 직접 호출하지 않아도 되는 방향…mcp로써 작용한다던가. 특히 데몬셋이 된다면 fs watch…블룸 필터나 시멘틱 서치", "coderag 자체에 rules 나 추가적 컨텍스트를 통해 유사한 진입점을 제공하는게 나을수도…compact 훅이나 rules inject 구조들이 복제되고…claude 로 제한되는 락인", "얇은 입구는 packs 마다 전부 복제된다는게 조금 걸려".
   6. 자동화: 규약 스킬, doctor 검사, 커밋할 때 info 알림, `q:start` 의 `.claude/` 뼈대 템플릿.
 - **기록 규약 토론 결과(.claude/audit/38 synthesis)에 대한 사용자 답.** "추천대로 할게", "저장소 변경은 승인".
   - coderag 저장소 변경을 승인했다. coderag 에는 따로 세션이 없으므로 이 세션이 서브에이전트로 맡는다. 1단계는 C1, C2, C6 이다.
