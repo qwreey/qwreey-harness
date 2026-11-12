@@ -1,6 +1,6 @@
 # 46. coderag 가 모델에게 보이는 것 전부: 스킬·MCP 도구 관점 검토
 
-> Snapshot 2026-11-12. coderag 234c6c1(플러그인 0.4.2, `target/release`) 읽기 전용 검토. 다른 세션이 고치던 `crates/coderag-core/src/docs/stale.rs`(코드 주석 참조 스캐너)와 tech-design §11.6 은 뺐다. 토큰은 `0.4×ASCII + 1.6×한글 + 1.5×그 밖` 어림. 전체 목록은 `raw/inventory.md`, 초안은 `raw/doc-locator.en.md`·`raw/mcp-tools.md`.
+> Snapshot 2026-11-12. coderag 234c6c1(플러그인 0.4.2, `target/release`) 읽기 전용 검토. 다른 세션이 고치던 `crates/coderag-core/src/docs/stale.rs`(코드 주석 참조 스캐너)와 coderag/.claude/base/docs-search.md §11.6 은 뺐다. 토큰은 `0.4×ASCII + 1.6×한글 + 1.5×그 밖` 어림. 전체 목록은 `raw/inventory.md`, 초안은 `raw/doc-locator.en.md`·`raw/mcp-tools.md`.
 
 ## 결론
 - 사용자 짐작이 맞다. 모델이 읽는 coderag 문구는 영어로 하나로 맞추고, "다음에 무엇을 하라" 는 꼬리 안내는 결과마다 붙이지 말고 스킬·에이전트·(나중의) MCP 도구 설명에 한 번만 적는 편이 낫다. 기록 제목·요약·본문은 사용자 언어 그대로 둔다.
@@ -41,7 +41,7 @@
 - 질의어: 한국어 기록에는 한국어로 질의해야 맞는다. 그래서 설명에는 "query in either language" 한 줄만 둔다.
 
 ## 4. MCP 준비 (초안 raw/mcp-tools.md)
-- 도구: `search`, `get` 둘을 기본으로 둔다(tech-design §31 의 "도구 2–3개" 와 같다). 선택 도구는 둘이다. 기록 관리용 `stale`, 그리고 post-edit 훅이 없는 codex·agy 용 `lint`. `gen`(데몬이 색인을 관리), `static-gen`, `pack`, `taxonomy`, `adapt`, `provider`, `hook`, `rules` 는 CLI 에만 둔다.
+- 도구: `search`, `get` 둘을 기본으로 둔다(coderag/.claude/archive/research/team-sharing-v1.md §31 의 "도구 2–3개" 와 같다). 선택 도구는 둘이다. 기록 관리용 `stale`, 그리고 post-edit 훅이 없는 codex·agy 용 `lint`. `gen`(데몬이 색인을 관리), `static-gen`, `pack`, `taxonomy`, `adapt`, `provider`, `hook`, `rules` 는 CLI 에만 둔다.
 - `search(query, limit=8, kind, layer[], pack[], category[], tag[], evidence[], all, expand=0|1|2|auto, budget)`: 결과 형식, 2-4 낱말 질의, 빗나가면 바꿔 말한 뒤 `all`, 읽을 때는 `get` 이나 Read 로 범위만.
 - `get(target, section, body, with_requires)`: target 은 출력에 찍힌 위치(`@P/a.md`, `#slug`, `:a-b` 꼬리 허용)나 절대 경로나 id. 플래그가 없으면 머리를 주고, 긴 문서면 목차를 준다. `body` 는 원문을 준다(Read 가 없는 하네스에도 쓸 수 있다).
 - 서버 `instructions`(세션당 한 번, 초안 약 410토큰. 내기 전에 줄여야 함): 위치 문법과 `@X =` 범례, 1부터 세는 양끝 포함 줄 범위, `~토큰`, 꼬리표 어휘, 닫힌 기록이 숨는다는 것, `-> overridden here:`, 질의 언어. 결과마다 붙던 안내 7개(2절 첫 항목)와 doc-locator 1단계, agent-records "Finding records" 의 `@P` 설명이 이리로 옮겨 간다.

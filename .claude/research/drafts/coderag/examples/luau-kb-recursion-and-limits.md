@@ -10,7 +10,7 @@ last_confirmed: [luau 0.734, luau 0.742]
 origin: [quad/.claude/base/typing-limits.md, quad/scripts/doc-snippets.py]
 ---
 <!--
-예시 설명 (coderag tech-design §17 — 실제 파일에는 넣지 않는다)
+예시 설명 (coderag/.claude/base/records.md §17 — 실제 파일에는 넣지 않는다)
 - 원본: luau-kb/skills/luau-types/references/recursion-and-limits.md (2026-11-10). 본문은 바꾸지 않았다.
 - 파일 frontmatter 에 새로 쓴 것: category, tags, last_confirmed(도구 버전), origin(원천 기록).
   - evidence 는 쓰지 않았다: 절 메타에서 집계된다(verified 3 + described 4 → partial).

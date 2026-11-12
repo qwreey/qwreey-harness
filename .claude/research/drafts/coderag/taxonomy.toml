@@ -1,7 +1,7 @@
 # 정본 이동 → luau-kb/taxonomy.toml (2026-11-10 M6). 아래는 옮기기 전 초안이고, harness/* 어휘 후보만 여기에 남는다.
 # taxonomy.toml — luau-kb 분류 어휘 (초안, 2026-11-10)
 #
-# 상태: 초안. luau-kb 에는 아직 쓰지 않는다. 형식과 규칙은 coderag tech-design.md §16.
+# 상태: 초안. luau-kb 에는 아직 쓰지 않는다. 형식과 규칙은 coderag/.claude/base/metadata-taxonomy-lifecycle.md §16.
 # 도출 근거: luau-kb 의 스킬·references 구조(2026-11-10 시점)와 snippets/·bench/ 파일 이름.
 #   각 범주 옆 주석 `← …` 은 지금 그 범주에 들어갈 파일·절이다(검토용, 형식의 일부 아님).
 #   luau-perf·luau-style·luau-testing·luau-upstream 은 다른 에이전트가 만드는 중이라 그 시점의 목차로 적었다.

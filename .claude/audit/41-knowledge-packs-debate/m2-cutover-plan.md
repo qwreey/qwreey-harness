@@ -3,7 +3,7 @@
 > Snapshot 2026-11-12. 아무것도 켜지 않은 준비 결과다. coderag 98163e8(미푸시)과 packs/*/coderag.toml 의 claude_plugin 한 줄까지만 끝났고, 아래 단계는 사용자가 순서대로 실행한다.
 
 ## 준비된 것
-- coderag 98163e8: 매니페스트 `claude_plugin`, 프로젝트 팩 목록이 조회 범위를 정함(목록 없으면 등록된 팩 전부, rule 은 목록 없으면 없음, tech-design §13.3), `coderag adapt --harness claude [--dry-run]`, `hook pre-compact` 가 하루 한 번 14일 넘은 state 파일 삭제. cargo test 전부 통과, 대조 테스트 116건 0 실패.
+- coderag 98163e8: 매니페스트 `claude_plugin`, 프로젝트 팩 목록이 조회 범위를 정함(목록 없으면 등록된 팩 전부, rule 은 목록 없으면 없음, coderag/.claude/base/layers-and-packs.md §13.3), `coderag adapt --harness claude [--dry-run]`, `hook pre-compact` 가 하루 한 번 14일 넘은 state 파일 삭제. cargo test 전부 통과, 대조 테스트 116건 0 실패.
 - claude-doctor: `packs/web-security/coderag.toml`(새로), `packs/luau-kb/coderag.toml` 에 `claude_plugin = "luau-kb@claude-doctor-market"` 한 줄. 임시 CODERAG_HOME 에 두 팩을 path 로 등록해 `pack status`, `gen --layer pack`(web-security 16항목, luau-kb 12모듈), 검색 모두 매니페스트 경고 없이 동작.
 - 틈: hardening references 13개에 frontmatter 가 없다(SKILL.md 는 name·description 뿐). 검색은 되지만(제목은 H1, 요약은 첫 줄) `coderag lint` 는 title·description 필수라 알리고, keywords·category 가 없어 어휘 검색이 약하다. 지금은 안 넣었다. 컷오버와 무관하고 별도 작업이다.
 

@@ -2,7 +2,7 @@
 
 harness-doctor는 **코어**(언어와 무관: CLAUDE.md 계층과 크기, rules paths, 스킬 형식, 훅·설정, 낡음과 모순, 사본 표류, worktree·세션, 정본 싱크)와
 **툴킷**(언어·툴체인: 핀, 포매터, 공유 지식 저장소, 언어 고유 사본)으로 나뉜다.
-coderag의 지식 계층(global / pack / project, `coderag/tech-design.md` §13)과 짝을 맞춘다.
+coderag의 지식 계층(global / pack / project, `coderag/.claude/base/layers-and-packs.md` §13)과 짝을 맞춘다.
 
 | harness-doctor | coderag | 예 |
 |---|---|---|

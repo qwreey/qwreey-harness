@@ -59,7 +59,7 @@ coderag.toml             coderag pack 매니페스트 (모듈 = 스킬 디렉터
 taxonomy.toml            coderag 분류 어휘 (범주 경로·별칭·review_days). references 의 category 가 이 경로를 쓴다
 ```
 
-references 파일마다 frontmatter(`title`·`description`·`keywords`·`category`·`tags`·`last_verified`·`last_confirmed`)가 있다. coderag 로 검색할 때 쓰는 메타이고, 형식은 coderag tech-design §17, 범주는 `taxonomy.toml`. 새 reference 를 더하면 frontmatter 를 같이 쓰고 `coderag lint` 로 확인한다. 긴 절(~1.5k 토큰 넘고 표·코드로 시작)은 메타 줄에 `summary:` 한 줄을 둔다.
+references 파일마다 frontmatter(`title`·`description`·`keywords`·`category`·`tags`·`last_verified`·`last_confirmed`)가 있다. coderag 로 검색할 때 쓰는 메타이고, 형식은 coderag/.claude/base/records.md §17, 범주는 `taxonomy.toml`. 새 reference 를 더하면 frontmatter 를 같이 쓰고 `coderag lint` 로 확인한다. 긴 절(~1.5k 토큰 넘고 표·코드로 시작)은 메타 줄에 `summary:` 한 줄을 둔다.
 
 references 의 절마다 `status: verified | described`, `last-confirmed: luau <ver>`, 근거 스니펫이나 원천 경로가 붙어 있다. 정책이 저장소마다 갈린 항목은 한쪽을 고르지 않고 `> 정책: 미정 — decisions/ 참고` 로 표시했다.
 

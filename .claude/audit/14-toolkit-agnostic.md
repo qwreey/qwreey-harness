@@ -1,7 +1,7 @@
 # 14. 하네스를 툴킷·sandbox 에 묶이지 않게 — 하드코딩 조사와 재구성
 
 작성 2026-11-10. 사용자 요구(같은 날): 이 하네스는 Roblox/Luau 전용이 아니다(블로그 react/astro, vitrine 이 웹 툴킷). 다른 sandbox 에서도 쓰고, 외부 프로젝트 일부를 반입해 감사한다.
-개념은 coderag 지식 계층(`coderag/tech-design.md` §13 global / pack / project)과 맞췄다: **코어 = global, 툴킷 + `<툴킷>-kb` = pack, 대상 저장소 = project.**
+개념은 coderag 지식 계층(`coderag/.claude/base/layers-and-packs.md` §13 global / pack / project)과 맞췄다: **코어 = global, 툴킷 + `<툴킷>-kb` = pack, 대상 저장소 = project.**
 
 ## 목차
 - [1. 하드코딩 표](#1-하드코딩-표)

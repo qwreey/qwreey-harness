@@ -3,7 +3,7 @@ T = {
 0: "Possible exception: a personal user-level `~/` path (e.g. cloud-sync folder). Fits moving between one person's machines, not sharing with colleagues.",
 2: "\"gemini cli isn't even installed here. It's all agy.\" (L3079) — correction limiting the target agent to agy. \"Git also keeps a record, good\" (L3079) — git…",
 3: "No declaration needed: if `.claude/` exists at the project root (first ancestor with `.coderag/` or `coderag.toml`, else cwd, project.rs:1-10), an implicit config makes `.cla…",
-4: "Write the design: put these five points in `coderag/tech-design.md` as a draft; user reviews, then confirms. Three knowledge layers: global / pack (luau-kb etc.) / project. Pri…",
+4: "Write the design: put these five points in `coderag/.claude/base/README.md` as a draft; user reviews, then confirms. Three knowledge layers: global / pack (luau-kb etc.) / project. Pri…",
 5: "Found (bug): claude-doctor has no `.coderag/` or `coderag.toml`, so project-root discovery climbs to ancestors, and with `HOME=/code` and 5a step 1 `~/.code…",
 6: "Body/bloom search is done inside the CLI: conceded to Q. It is an index format fixed at gen time, shared by CLI, shim and daemon; no resident process needed. To cut noise, a \"matched-token ratio floor…",
 7: "\"Have you looked at this related angle? If not, how about digging into it?\" (L1281) — order to investigate structural problems (file length, flat folders, hardcoding). Basis for .claude/audit/12 start (L1298).…",

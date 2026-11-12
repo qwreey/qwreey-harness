@@ -1,4 +1,4 @@
-# taxonomy.toml — luau-kb 분류 어휘 (coderag pack 어휘, 형식은 coderag tech-design §16)
+# taxonomy.toml — luau-kb 분류 어휘 (coderag pack 어휘, 형식은 coderag/.claude/base/metadata-taxonomy-lifecycle.md §16)
 #
 # 정본: 이 파일. 초안은 claude-doctor .claude/research/drafts/coderag/taxonomy.toml(2026-11-10)이었고, M6 에서 실제 references 에 맞춰 다듬었다.
 #   - 범주는 파일 하나에 하나(D16-2). references 의 frontmatter `category:` 가 여기 경로를 쓴다.

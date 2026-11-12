@@ -11,7 +11,7 @@ review_after: 2027-01-06
 see: [doc SKILL in "pack:luau-kb/luau-types"]
 ---
 <!--
-예시 설명 (coderag tech-design §17 — 실제 파일에는 넣지 않는다)
+예시 설명 (coderag/.claude/base/records.md §17 — 실제 파일에는 넣지 않는다)
 - 원본: stl-luau/.claude/base/typing-limits.md (481줄, 2026-11-06 커밋 2bc4a09). 이것은 **발췌**다.
   절 다섯 개만 옮겼고 본문은 앞 몇 줄만 남긴 뒤 "(…)" 로 줄였다. 원본은 고치지 않았다.
 - 보여 주려는 것

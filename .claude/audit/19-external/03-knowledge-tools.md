@@ -9,7 +9,7 @@ last_verified: 2026-11-10
 # 외부 조사 3/4 — 에이전트용 지식 검색·세션 기억 도구의 지형
 
 - 조사일: 2026-11-10. WebSearch/WebFetch 만 썼다. 외부 코드는 받지도 실행하지도 않았다.
-- 로컬은 읽기만 했다. 대상: `coderag`(README, `tech-design.md` §0·§11·§13·§16·§18–§20), `claude-doctor/plugins/session-log/README.md`, `.claude/archive/research/drafts/session-log/DESIGN.md`, `luau-kb`(README, AGENTS.md, `snippet-markers.md`, `roblox-docs/SKILL.md`, SKILL.md frontmatter 12개).
+- 로컬은 읽기만 했다. 대상: `coderag`(README, `coderag/.claude/base/` 의 영역별 파일 §0·§11·§13·§16·§18–§20), `claude-doctor/plugins/session-log/README.md`, `.claude/archive/research/drafts/session-log/DESIGN.md`, `luau-kb`(README, AGENTS.md, `snippet-markers.md`, `roblox-docs/SKILL.md`, SKILL.md frontmatter 12개).
 - 표기
   - **[1차]**: 공급자 본인의 문서·블로그·저장소를 직접 열어 확인했다.
   - **[2차]**: 검색 요약이나 제3자 글로만 확인했다.
@@ -154,7 +154,7 @@ last_verified: 2026-11-10
 3. 우리 출력(`경로:a-b ~토큰`, 두 줄 결과)은 이미 CLI 로 짧다. Claude 에게 MCP 로 얻는 이익은 3.1-3 하나뿐이다.
 
 ### 3.3 판단
-- **CLI 를 1차로 유지하고, 이미 계획된 `coderag mcp`(TODO.md, tech-design §9 🔜)를 "얇게" 만든다.**
+- **CLI 를 1차로 유지하고, 이미 계획된 `coderag mcp`(TODO.md, coderag/.claude/base/config-and-cache.md §9 🔜)를 "얇게" 만든다.**
   - 도구는 `search`, `get` 2개(+선택 `stale`). 스키마는 CLI 플래그의 부분집합으로 둔다.
   - 출력 문자열은 CLI 와 바이트 단위로 같게 한다. 그러면 doc-locator 의 응답 형식, 시험, 문서를 함께 쓴다.
   - 쓰기·`gen` 은 넣지 않는다. 색인은 훅이나 사용자가 한다(§22).
@@ -188,7 +188,7 @@ last_verified: 2026-11-10
 
 | # | 무엇 | 어디 | 근거 |
 |---|---|---|---|
-| R1 | §19 표의 "agents-md·gemini-md 는 스킬을 못 읽는다" 를 고친다. Codex·Gemini 에 luau-kb 스킬을 `~/.agents/skills/<name>` symlink 로 노출하는 안을 추가한다(사용자 결정) | coderag tech-design §19, luau-kb README·AGENTS.md | §1.5 Codex·Gemini 스킬 문서 |
+| R1 | §19 표의 "agents-md·gemini-md 는 스킬을 못 읽는다" 를 고친다. Codex·Gemini 에 luau-kb 스킬을 `~/.agents/skills/<name>` symlink 로 노출하는 안을 추가한다(사용자 결정) | coderag/.claude/base/channel-a.md §19, luau-kb README·AGENTS.md | §1.5 Codex·Gemini 스킬 문서 |
 | R2 | 스킬 호출률을 실측하고 D19-3 을 재검토한다. Claude Code 가 CLAUDE.md 가 있으면 AGENTS.md 를 읽지 않는다는 사실도 §19 에 적는다 | claude-doctor audit, coderag §19 | Vercel 2026-01-27, Claude Code memory 문서 |
 | R3 | `coderag mcp` 를 도구 2–3개짜리 얇은 어댑터로 만들고, CLI 와 출력을 같게 한다. doc-locator 는 MCP 도구만 받게 하는 안을 둔다 | coderag | §3 |
 | R4 | T1 상시 주입은 로컬·신뢰 pack 만. git pack 은 위치(T2)까지 | coderag §15·§19 | ContextCrush, CVE-2026-75130 |

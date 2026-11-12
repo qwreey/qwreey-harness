@@ -1,4 +1,4 @@
-# coderag pack 매니페스트 (coderag tech-design §13.3). 팩은 데이터만 싣는다: skills, rules/*.md, 이 파일.
+# coderag pack 매니페스트 (coderag/.claude/base/layers-and-packs.md §13.3). 팩은 데이터만 싣는다: skills, rules/*.md, 이 파일.
 #   등록 예(~/.coderag/coderag.toml):
 #     [[packs]]
 #     name = "web-security"

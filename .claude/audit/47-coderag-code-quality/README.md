@@ -11,7 +11,7 @@
 ## 1. 저장소가 밝힌 제약과 지금도 맞는지
 | 밝힌 것 | 어디 | 지금 |
 |---|---|---|
-| "본체는 Rust 단일 정적 바이너리" | `CLAUDE.md`, `tech-design.md` §0 | 단일은 맞고 정적은 아니다. `target/release/coderag` 은 glibc 동적 링크, strip 안 됨 4.74 MB(strip 하면 3.67 MB). `[profile.release]` 없음. |
+| "본체는 Rust 단일 정적 바이너리" | `CLAUDE.md`, `coderag/.claude/base/architecture.md` §0 | 단일은 맞고 정적은 아니다. `target/release/coderag` 은 glibc 동적 링크, strip 안 됨 4.74 MB(strip 하면 3.67 MB). `[profile.release]` 없음. |
 | `coderag-mdfm` "의존성 없음" | mdfm `Cargo.toml`, §0, §11.4 | 사실이지만 이유가 적혀 있지 않다. mdfm 을 쓰는 쪽(core, 프로바이더)은 이미 serde_json·toml(toml_edit+winnow)·clap 을 싣고 바이너리 의존성 50개다. "의존성 0" 은 바이너리 수준의 제약이 아니다. |
 | glob 을 정규식 크레이트 없이: "훅은 파일을 열 때마다 뜨므로" | `rules/glob.rs` 머리 | 기동 비용 이유는 약하다(크기보다 프로세스 생성이 지배). 진짜 이유는 같은 줄의 "참조 구현(rules_inject.py)과 의미가 같아야" 쪽이고 그것은 유효하다. |
 | 프로바이더 분리(불변식 1) | `CLAUDE.md` | 유효. 무거운 파서(swc, 앞으로 full-moon)를 프로바이더에 두면 core 크기·빌드에 안 닿는다. |

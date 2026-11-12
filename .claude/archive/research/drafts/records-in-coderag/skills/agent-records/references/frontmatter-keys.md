@@ -17,7 +17,7 @@ review_after: 2027-02-01                    # after this day coderag stale repor
 ```
 
 - The older key `superseded_by: <path|id>` reads as `status: superseded by <path|id>`. If both are present the targets must match (lint error otherwise). New records write only the status line.
-- Extension keys (tech-design §17): `category` (one canonical path, e.g. `luau/types/recursion`) · `tags` (free words) ·
+- Extension keys (coderag/.claude/base/records.md §17): `category` (one canonical path, e.g. `luau/types/recursion`) · `tags` (free words) ·
   `evidence` (verified|described|partial; aggregated from sections when omitted) · `lifecycle` (proposed→rfc→flagged→implemented-cli→beta-roblox→released-roblox→deprecated→removed) ·
   `rfc` · `applies_to` (`[luau >=0.739, luau-lsp >=1.70.1]`) · `since` · `last_confirmed` (the **tool version** re-checked, unlike the date in last_verified) ·
   `source` (repro snippet path) · `origin` (source record it was moved from) · `see` · `overrides` · `read` (sections|whole). `-` and `_` in keys are the same.

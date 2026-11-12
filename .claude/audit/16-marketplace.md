@@ -529,7 +529,7 @@ Claude Code 설치 경로는 저장소마다 다르고, 공식 마켓으로는 �
 - **Luau·Roblox 범위** (fetch, `https://context7.com/api/v1/search?query=luau`)
   - 다음이 색인돼 있다: `/luau-lang/luau`, `/luau-lang/site`, `/johnnymorganz/luau-lsp`(2026-10-20), `/roblox/creator-docs`(약 2.0M 토큰, 2026-11-10 갱신), `/luau-lang/lute`, `/lune-org/docs`, `/roblox/react-luau`, `/kampfkarren/kampfkarren-luau-guidelines`
   - 다만 **문서에 없는 최전선 지식**(타입 한계, `const`, 솔버 버그, FFlag 한도)은 없다. 이것은 luau-kb·coderag pack의 몫이다.
-- **coderag 계층(`coderag/tech-design.md` §13)과의 관계**
+- **coderag 계층(`coderag/.claude/base/layers-and-packs.md` §13)과의 관계**
 
   | | coderag project / pack / global | context7 |
   |---|---|---|

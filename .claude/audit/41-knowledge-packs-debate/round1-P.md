@@ -35,7 +35,7 @@ coderag 플러그인 (Claude 쪽 하나): PostToolUse·PreCompact·SessionStart 
 
 - **rules 주입의 주인은 coderag core.** 지금 `rules_inject.py` 의 의미(공식 paths 와 같은 glob, Read 뒤 본문, Edit 뒤 "대조하라" 한 문장, 프로젝트 밖 Read 생략, `(session, agent, 회차, rule)` 마커 O_EXCL)를 Rust 로 한 번 구현한다. 입력은 "이 프로젝트에서 켜진 팩들의 `rules/`". 이미 `coderag hook post-edit`/`pre-bash`(`hook.rs`)가 같은 자리에 있으므로 새 진입점이 아니라 이벤트 하나를 더하는 것이다.
 - **compact 회차도 core.** 팩마다 PreCompact 훅과 `$TMPDIR/claude-<plugin>-epoch` 를 두지 않고, coderag 플러그인의 PreCompact 하나가 `claude-coderag-epoch` 를 올린다. 모든 팩의 rule 마커가 이 회차를 쓴다. 팩끼리 회차를 공유해도 되는 이유: 팩 rules 를 넣는 주체가 하나이기 때문이다(compact_epoch.py 가 플러그인별로 나눈 이유는 서로 다른 훅끼리 얽히지 않게였다).
-- **스킬 description(상시 비용) 대 온디맨드.** 측정상 팩 13개 스킬 description 합 486자로 작다. 상시에 둘 것: description(라우팅), `always.md`(사실 몇 줄, §35.6 형식 제약). 온디맨드: references 본문, 절 단위 `get`. 결정 트리(SKILL.md)는 손으로 고른 추론 경로라 검색으로 대체하지 않는다(tech-design §20 그대로).
+- **스킬 description(상시 비용) 대 온디맨드.** 측정상 팩 13개 스킬 description 합 486자로 작다. 상시에 둘 것: description(라우팅), `always.md`(사실 몇 줄, §35.6 형식 제약). 온디맨드: references 본문, 절 단위 `get`. 결정 트리(SKILL.md)는 손으로 고른 추론 경로라 검색으로 대체하지 않는다(coderag/.claude/base/hooks-and-rules.md §20 그대로).
 - **하네스별**
   | | 스킬 | 경로 조건부 rules | 상시 사실 | 온디맨드 |
   |---|---|---|---|---|

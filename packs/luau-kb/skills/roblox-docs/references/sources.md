@@ -114,7 +114,7 @@ status: verified (도구 동작) · last-confirmed: 2026-11-10 (`_safe_member` �
 - 도구는 `python3 -I` 로 부른다(캐시 디렉터리의 파일이 import 되지 않게). 캐시 안에서 인터프리터나 빌드 도구를 돌리지 않는다.
 
 ## §6 coderag pack 으로 붙이는 방법 (메모)
-status: described (설계 메모, 구현하지 않음) · 근거: coderag `tech-design.md` §11(문서 지원), §13(지식 계층 global·pack·project), §21(절 단위 읽기)
+status: described (설계 메모, 구현하지 않음) · 근거: coderag `coderag/.claude/base/docs-search.md` §11(문서 지원), `coderag/.claude/base/layers-and-packs.md` §13(지식 계층 global·pack·project), `coderag/.claude/base/reading-budget-and-levels.md` §21(절 단위 읽기)
 
 - 이 캐시의 `creator-docs/content/en-us` 를 **문서 루트 하나짜리 pack** 으로 등록하면 coderag `search`·`get --section` 이 같은 일을 한다. 그때 이 도구는 `sync`(받기·커밋 확인·신뢰 경계)만 맡는다.
 - 마크다운은 coderag 의 문서 프로바이더가 그대로 읽는다. 엔진 참조 YAML 은 멤버 단위 절과 `security`·`thread_safety`·deprecated 메타가 필요하므로, 이 도구의 `_yaml_sections` 와 `api` 요약을 프로바이더(JSONL)로 옮기는 편이 낫다.

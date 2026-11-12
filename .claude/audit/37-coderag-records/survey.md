@@ -14,7 +14,7 @@
 - 문서 단위 필드(`ParsedDoc`, lib.rs:330-345): title, description, summary(없으면 첫 문단 160자), keywords, kind, status, superseded_by, last_verified, review_after, line_count, sections, refs, hash(fnv1a, lib.rs:717).
 - kind 알려진 값(lib.rs:14-17): base research session review decision archive plan audit reference index guide todo unknown. **우리 폴더 이름과 거의 일치**(plan, base, audit, research, archive, session 은 `sessions` 가 아니라 `session`). kind 는 폴더에서 추론하지 않고 frontmatter 에만 의존, 없으면 `unknown`(lib.rs:763). 실측: frontmatter 없는 decisions/D-01 은 `[unknown]` 으로 나왔다.
 - status(lib.rs:19): `active|superseded|archived` 만. `superseded`·`archived` 는 검색에서 숨김(`listed()`, lib.rs:351). 실측: `status: landed in base/x.md` 는 lint 오류("active|superseded|archived 중 하나"), 색인에선 status=active 로 떨어지고 원문은 `meta.extra.status` 에 남음. `status: verified|described|partial` 은 근거 등급(evidence)으로 읽힘(lib.rs:21, meta.rs:5).
-- 절 메타 줄(본문의 `키: 값 · 키: 값`)과 확장 키 `KNOWN_META_KEYS`(lib.rs:522-524): id status evidence last_confirmed last_verified review_after category tags lifecycle applies_to since source origin see superseded_by overrides rfc. category·tags·lifecycle(8단계)·applies_to 는 tech-design.md §16-18, 코어 `docs/meta.rs`·`taxonomy.rs`·`version.rs` 가 정규화·상속(절←파일←pack)한다 [구현](CLAUDE.md:41-45).
+- 절 메타 줄(본문의 `키: 값 · 키: 값`)과 확장 키 `KNOWN_META_KEYS`(lib.rs:522-524): id status evidence last_confirmed last_verified review_after category tags lifecycle applies_to since source origin see superseded_by overrides rfc. category·tags·lifecycle(8단계)·applies_to 는 coderag/.claude/base/metadata-taxonomy-lifecycle.md §16-18, 코어 `docs/meta.rs`·`taxonomy.rs`·`version.rs` 가 정규화·상속(절←파일←pack)한다 [구현](CLAUDE.md:41-45).
 - 절: `##`·`###` 제목 하나가 section Info, 펜스 안 제목 무시, 중복 slug 는 `-1`(tech-design.md:256-262). 절마다 줄 범위·토큰 추정(`~1.1k`)(§21).
 - 링크·인용: 마크다운 링크 대상 + 경로처럼 생긴 코드 스팬(`a/b.md:12` 줄 표기는 뗌) 을 `refs` 로 뽑고(lib.rs:272-285), 직전 `§N` 절 참조와 "스킬 이름 + references/…" 도 해석(`refpath.rs`). 사용자 말 인용·날짜 표기는 파싱 안 함.
 - 스키마/검증기: 있다. `coderag lint <파일…>`(lib.rs:905-950): frontmatter 없음, title/description 필수, description 한 줄 200자(스킬은 1024), kind 어휘, status 어휘, superseded 인데 superseded_by 없음, `last_verified`·`review_after` 날짜 형식. 오류·경고가 있으면 종료 코드 1 [구현]. 우리가 원하는 "status 줄 규약"을 검사하려면 status 어휘 확장이 필요(6장).
@@ -25,7 +25,7 @@
 - 랭킹: 결정적, 임베딩 없음. keywords 8 > 포함 6 > title 5 > description 3 > path 2, 절 제목 4·요약 2, archive·숨김 ÷2(tech-design.md:300-304). 본문 낱말은 색인하지 않음(TODO.md "선택: 본문 낱말 저가중치") — **제목·요약·keywords 에 없는 내용은 못 찾는다**.
 - 출력: 한 건 두 줄. `경로:시작-끝 ~토큰  제목 § 절  [kind · …]` + 요약 120자. `--json` 은 id, path, rel, lines, kind, status, listed, review_after, score, sections, tokens_est, layer 등. `--abs` 면 절대경로(에이전트가 Read offset/limit 으로 바로 읽음). 실측 출력 예: `/tmp/cr/proj/.claude/decisions/D-01-const.md:75-78 ~0.1k  D-01. ... § 사용자 결정 (2026-11-10)  [unknown]`.
 - 지연: `gen` 155항목 0.032초, `search` 0.006초(실측). CLAUDE.md 기록은 stl-luau 127문서 0.24초.
-- 색인 필요: 예. `coderag gen` 으로 `.coderag/`(project 루트, `$CODERAG_CACHE` 로 대체 가능)에 JSONL 텍스트 캐시를 만든다. 서버·데몬 없음. 색인이 없으면 "먼저 coderag gen" 오류. **자동 갱신은 미구현**: M9(mtime 검사 B + 훅 A)가 TODO(TODO.md, tech-design.md §22). 지금은 `stale` 이 "색인 이후 바뀜/새 문서"를 알려 주는 정도.
+- 색인 필요: 예. `coderag gen` 으로 `.coderag/`(project 루트, `$CODERAG_CACHE` 로 대체 가능)에 JSONL 텍스트 캐시를 만든다. 서버·데몬 없음. 색인이 없으면 "먼저 coderag gen" 오류. **자동 갱신은 미구현**: M9(mtime 검사 B + 훅 A)가 TODO(TODO.md, coderag/.claude/base/refresh.md §22). 지금은 `stale` 이 "색인 이후 바뀜/새 문서"를 알려 주는 정도.
 - haiku 1-3 Bash 호출로 쓸 수 있나: 예. 플러그인에 `agents/doc-locator.md`(haiku, tools Bash+Read, Edit/Write 금지, maxTurns 12)가 이미 있고, PreToolUse 훅 `coderag hook pre-bash` 가 `coderag search|get|list|stale` 밖의 Bash 를 막는다(hooks/hooks.json, tech-design.md:331). 응답 형식은 `- <절대경로>:L<a>-<b> ~<토큰> — 근거 한 줄` 5개 이하, 옛 기록(archive/superseded)은 "옛 기록" 표시. 즉 우리 recall 의 locate 단계가 이미 설계·구현돼 있다. 단 doc-locator 는 `coderag` 플러그인을 설치해야 존재하고, 색인이 없으면 호출 쪽이 `gen` 을 먼저 돌려야 한다.
 - 이 샌드박스: 바이너리는 있고 실행됨(PATH 밖). Rust 툴체인은 `mise where rust`(CLAUDE.md:58). 읽기 명령은 `.coderag` 를 만들지 않는다(project.rs:50), `gen` 만 쓴다 — 남의 저장소에서는 `CODERAG_CACHE=/tmp/...` 필수. 이 조사에선 /tmp 만 썼다.
 
@@ -48,7 +48,7 @@
 - CLAUDE.md:36-52 와 TODO.md: M0 골격, 문서 검색, M1-M6(계층·메타·taxonomy·pack·버전·luau-kb 채택)까지 완료 [구현]. `cargo test --workspace` 102개, clippy 경고 0 주장(미재실행).
 - 문서 검색 쪽 미완(TODO.md "문서 검색 다음"): 마켓 등록·바이너리 배포 방식 미정, 색인 자동 갱신(M9), 교차 저장소 경로 표기 규약, `list --missing-frontmatter`, 랭킹 골든 테스트, 본문 낱말 색인.
 - 미구현: `mcp`(에러로 끝남), M7 채널 A generator(AGENTS.md 등), M8 git pack, 골든 질의 저장소 내 픽스처. TS 쪽(typescript-swc)은 일부, jsdoc 은 스텁.
-- 진행 상황: 최신 커밋은 tech-design §35(팀 공유 재설계, 서버 S1 잠정 확정·"급하지 않음", tech-design.md:2302-2361). 즉 개발의 무게가 **팀 공유 서버/구독/감사**로 가 있고, 기록 문서 검색 쪽은 안정 단계. 설계서는 2481줄로 커서 같은 저장소 안에서도 변동 폭이 크다.
+- 진행 상황: 최신 커밋은 coderag/.claude/research/team-sharing.md §35(팀 공유 재설계, 서버 S1 잠정 확정·"급하지 않음", tech-design.md:2302-2361). 즉 개발의 무게가 **팀 공유 서버/구독/감사**로 가 있고, 기록 문서 검색 쪽은 안정 단계. 설계서는 2481줄로 커서 같은 저장소 안에서도 변동 폭이 크다.
 - 작업 방식: 사용자가 에이전트 세션에 맡긴 저장소이고 큰 방향 전환은 사용자에게 묻도록 돼 있다(CLAUDE.md:55). 다른 세션이 동시에 작업할 수 있음.
 
 ## 6. 적합도 (원하는 기능별)

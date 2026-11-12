@@ -136,7 +136,7 @@
 
 ## 3.7 coderag 확장 (2026-11-10 승인, 설계 a1b309f 의 결정 49개 추천안 전부 확정, 구현 M1~ 진행)
 
-1. **설계안 작성**: `coderag/tech-design.md` 에 아래 다섯 가지를 설계안으로 쓴다. 사용자가 검토한 뒤 확정한다.
+1. **설계안 작성**: `coderag/.claude/base/`(옛 tech-design.md 를 영역별로 나눈 정본, 번호 지도는 `coderag/.claude/base/README.md`)에 아래 다섯 가지를 설계안으로 쓴다. 사용자가 검토한 뒤 확정한다.
    - **지식 계층 3단**: global / pack(luau-kb 등) / project. 우선순위는 project > pack > global 이고, 결과마다 계층을 표시한다.
    - **소스 선언**: path·glob / git / 패키지(lockfile 로 설치 경로를 해석) / pack. 모듈 해석은 코어가 맡는다.
    - **분류 체계**: 계층형 `category`(통제 어휘 `taxonomy.toml`) + 자유 `tags`, 검색 필터.
@@ -204,7 +204,7 @@
      - coderag 결정(사용자): coderag 가 만드는 문구와 static-gen 표 머리는 영어, 기록 내용은 그대로("언어는 coderag가 만드는건 영어여도 좋고 static-gen이 각 저장소 README에 넣는 표 머리 또한 영어여도 상관 없을것 같음"). lifecycle 은 코어의 범용 사다리 `proposed → accepted → experimental → available → deprecated → removed` 에 환경 꾸밈 `stage(env)` 목록, 꾸밈 어휘는 팩 taxonomy, 어느 환경이 중요한지는 모델 판단("대 분류 아래 active(...) 식이 되거나 후행 꾸밈이 되는게 나아보임. 판단을 모델이 하도록 해야하는 부분이 일부 있겠다", 단계 이름 "그렇게 정할게"). 지금 lifecycle 을 쓰는 문서 0개. 하드코딩·중복·바퀴 재발명·단순화 실패 규약은 audit/47 사례를 본 뒤.
      - coderag 설계 질문 결정(사용자): Q1 "에이전트가 선택 가능하게…순위는 동등해도", Q2 "백틱 식별자를 자동으로 맞추어 보나는 근데 뭔가 애매할수도. 차라리 뭔가 규칙을 두는게 나을지도"(표기 모양 미정), Q3 "mtime 괜찮지 않나 싶음 + size", Q5 "모듈 해석 같은 경우는 언어 프로바이더가 하는게 맞다", Q6 "mcp는 표준화된 경로에 효율적인 경로를 따로 붙여주는 방향도 나쁘지 않겠다". 또 "coderag 쪽도…base 정본이나 archive, research 등으로 좀 문서화 정리가 필요". Q4(바이너리 전달) 남음.
      - 사용자: "심볼 경우는 a 로 가자. 이름은 괜찮은것 같고 아래 정할 것은 적당히 봤는데, 추천대로 가도 될 것 같음." → Q2 표기 `` `경로::심볼` ``. 규약 초안(`.claude/archive/research/drafts/code-quality-conventions/`): 이름 code-reuse·reuse-check·@copy-of·@dup-ok, 복사 파일 항목은 code-structure 에서 옮김, 패키지 경계를 넘는 중복도 "사본 표시+비교 시험" 안내, 타입 유니언과 런타임 목록은 어긋날 때만, 언어 켜기는 모델 검토자 둘 동의 + 정밀도 80%, `Canonical copy:` 머리말과 `@copy-of` 는 `@copy-of: <경로>[#이름]` 하나로. 설치 전 문구 토론 한 판.
-     - TS·MCP 시험 결과의 질문 12개 추천대로(사용자 "추천대로 가자. 그런데 svelte 나 vue 도 자체 ts 가 들어갈 수 있지 않을까 싶긴 하네. mcp 관련해서도 동의해"). 데몬은 미루고 세션 MCP 프로세스 안 캐시(audit/41 의 데몬 결정을 바꿈: 세션 안 캐시가 같은 지연 약 10ms, 데몬은 세션당 18-50MB 공유만 이득이고 cwd·환경·stderr 상태 문제). 컴포넌트 파일(.astro·.svelte·.vue)의 TS 스크립트 블록은 TS 프로바이더 하나로. 내용은 coderag TODO "설계 질문".
+     - TS·MCP 시험 결과의 질문 12개 추천대로(사용자 "추천대로 가자. 그런데 svelte 나 vue 도 자체 ts 가 들어갈 수 있지 않을까 싶긴 하네. mcp 관련해서도 동의해"). 데몬은 미루고 세션 MCP 프로세스 안 캐시(audit/41 의 데몬 결정을 바꿈: 세션 안 캐시가 같은 지연 약 10ms, 데몬은 세션당 18-50MB 공유만 이득이고 cwd·환경·stderr 상태 문제). 컴포넌트 파일(.astro·.svelte·.vue)의 TS 스크립트 블록은 TS 프로바이더 하나로. 내용은 `coderag/.claude/base/decisions/user-decisions-2026-11.md`.
      - 나중: coderag 스킬 감사(사용자: "coderag skill 들도 사실 한국어일 필요는 없지 않나 싶으면서도 skill 생성 skill과 같이 감사해보는것도 좋겠다…천천히 해볼 일"). 합친 규약 스킬은 지금 영어로 쓴다. 대상에 `agents/doc-locator.md` 도(사용자: "하위 에이전트에 주입되는 것이라 영어인 편이 효율적일 수 있는데. 나중에 검토 한번 해볼래?"). 합친 규약 반영 때 qwreey-conventions agent-records 스킬·rule 과 coderag docs-frontmatter 삭제는 사용자 허가("그 부분은 삭제 해도 돼", 삭제함).
   6. 자동화: 규약 스킬, doctor 검사, 커밋할 때 info 알림, `q:start` 의 `.claude/` 뼈대 템플릿.
 - **기록 규약 토론 결과(.claude/audit/38 synthesis)에 대한 사용자 답.** "추천대로 할게", "저장소 변경은 승인".

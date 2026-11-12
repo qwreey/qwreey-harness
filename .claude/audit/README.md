@@ -35,7 +35,7 @@ Point-in-time measurements, reviews and debates (snapshots: never edit content, 
 | [43-levels-measure/ — coderag 단계 공개(L0/L1/L2) 실측](43-levels-measure/README.md) | Snapshot 2026-11-12. coderag 38d7920(플러그인 0.3.3)의 `search --level` 실측. 설계는 `.claude/research/coderag-format-and-levels.md` §4-§5, 사용자 결정은 §6-3("자동 펼침의 경우 실측부터"… | no frontmatter |
 | [44-search-output-tokens/ — coderag search 출력 토큰 절감 실측](44-search-output-tokens/README.md) | Snapshot 2026-11-12. coderag 3fd0944(플러그인 0.4.0)의 `search` 출력 형식 변경 실측. 근거: quad 3질의 23결과에서 절대경로가 글자의 30%(추정 토큰 약 18%), 꼬리표 약 7%. 사용자 결정 "추천대로"(A+C 기본, B 옵션). | no frontmatter |
 | [45-search-descriptions/ — coderag search 결과의 설명 줄: 얼마나 차지하고, 무엇을 줄여도 고르는 데 지장 없나](45-search-descriptions/README.md) | Snapshot 2026-11-12. coderag 3fd0944 위에 `--desc-max` 추가(커밋 0b0c724, 푸시 없음)로 잰 실측. 근거: audit/44 에서 결과 한 줄 설명(한글 약 1.6토큰/자)이 출력의 주비용. 사용자: "설명은 영어여도 될 수도 있겠다는 생각… | no frontmatter |
-| [46-coderag-agent-surface/ — 46. coderag 가 모델에게 보이는 것 전부: 스킬·MCP 도구 관점 검토](46-coderag-agent-surface/README.md) | Snapshot 2026-11-12. coderag 234c6c1(플러그인 0.4.2, `target/release`) 읽기 전용 검토. 다른 세션이 고치던 `crates/coderag-core/src/docs/stale.rs`(코드 주석 참조 스캐너)와 tech-design §11.… | no frontmatter |
+| [46-coderag-agent-surface/ — 46. coderag 가 모델에게 보이는 것 전부: 스킬·MCP 도구 관점 검토](46-coderag-agent-surface/README.md) | Snapshot 2026-11-12. coderag 234c6c1(플러그인 0.4.2, `target/release`) 읽기 전용 검토. 다른 세션이 고치던 `crates/coderag-core/src/docs/stale.rs`(코드 주석 참조 스캐너)와 coderag/.claude/base/docs-search.md §11.… | no frontmatter |
 <!-- coderag:end -->
 
 Multi-file audits:
