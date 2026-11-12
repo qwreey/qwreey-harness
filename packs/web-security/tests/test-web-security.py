@@ -44,7 +44,7 @@ class Inject(unittest.TestCase):
         self.assertIn('<rule plugin="web-security" name="web-security">', c)
         self.assertNotIn('name="comments"', c)
         self.assertNotIn('name="code-structure"', c)
-        self.assertIn("Path-scoped rules from the web-security plugin", c)
+        self.assertIn("Rules for files matching these paths", c)
 
     def test_injected_once_per_session(self):
         s = fresh()
@@ -63,7 +63,7 @@ class Inject(unittest.TestCase):
     def test_edit_adds_check_sentence_once(self):
         s = fresh()
         c = run("Write", PROJ + "/new.ts", s)
-        self.assertIn("Check what you just wrote against these rules", c)
+        self.assertIn("Check what you wrote against them", c)
         self.assertIsNone(run("Edit", PROJ + "/new2.ts", s))
 
     def test_skip_dir_and_outside_read(self):

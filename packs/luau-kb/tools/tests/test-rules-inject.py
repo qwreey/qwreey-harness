@@ -51,7 +51,7 @@ class Inject(unittest.TestCase):
 
     def test_write_adds_check_sentence(self):
         c = run("Write", PROJ + "/new.luau", fresh())
-        self.assertIn("Check what you just wrote against these rules", c)
+        self.assertIn("Check what you wrote against them", c)
 
 
 class Layout(unittest.TestCase):

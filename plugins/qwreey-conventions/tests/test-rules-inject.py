@@ -158,13 +158,13 @@ class AfterWrite(unittest.TestCase):
             s = fresh()
             c = ctx(run("PostToolUse", tool, os.path.join(PROJ, "w.py"), s))
             self.assertIn('name="comments"', c, tool)
-            self.assertIn("Check what you just wrote against these rules and fix it with Edit if it does not comply.", c, tool)
+            self.assertIn("Check what you wrote against them and fix it.", c, tool)
             self.assertIsNone(run("PostToolUse", tool, os.path.join(PROJ, "w2.py"), s), tool)
 
     def test_read_has_no_check_sentence(self):
         c = ctx(run("PostToolUse", "Read", PROJ + "/r.py", fresh()))
         self.assertIn('name="comments"', c)
-        self.assertNotIn("Check what you just wrote", c)
+        self.assertNotIn("Check what you wrote", c)
 
     def test_read_then_write_does_not_repeat(self):
         s = fresh()
@@ -173,21 +173,21 @@ class AfterWrite(unittest.TestCase):
 
     def test_wrapper_text(self):
         c = ctx(run("PostToolUse", "Read", PROJ + "/wt.py", fresh()))
-        self.assertIn("apply to every file matching their paths for the rest of this context", c)
+        self.assertIn("shown once per context", c)
         self.assertNotIn("Follow them for this file", c)
         self.assertNotIn(".claude/rules with paths", c)
 
     def test_subagent_write_injects_again(self):
         s = fresh()
         run("PostToolUse", "Read", PROJ + "/a.py", s)
-        self.assertIn("Check what you just wrote", ctx(run("PostToolUse", "Edit", PROJ + "/a.py", s, agent="sub1")))
+        self.assertIn("Check what you wrote", ctx(run("PostToolUse", "Edit", PROJ + "/a.py", s, agent="sub1")))
 
     def test_compact_then_first_edit_injects(self):
         s = fresh()
         run("PostToolUse", "Read", PROJ + "/cmp.py", s)
         subprocess.run([sys.executable, "-I", os.path.join(HOOKS, "compact_epoch.py"), "qwreey-conventions"],
                        input=json.dumps({"session_id": s}), text=True, env=dict(os.environ, TMPDIR=T))
-        self.assertIn("Check what you just wrote", ctx(run("PostToolUse", "Edit", PROJ + "/cmp.py", s)))
+        self.assertIn("Check what you wrote", ctx(run("PostToolUse", "Edit", PROJ + "/cmp.py", s)))
 
 
 class Cost(unittest.TestCase):
