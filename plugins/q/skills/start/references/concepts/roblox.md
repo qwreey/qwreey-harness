@@ -41,6 +41,6 @@
 
 ## 근거
 - 공식(Roblox): create.roblox.com/docs/studio/mcp (내장 서버, 켜는 법, 도구 표, 경로, studio_id, 2026-11-10 확인)
-- 공식(Roblox): create.roblox.com/docs/reference/engine/deprecated (claude-doctor audit/19-external/05 #7)
+- 공식(Roblox): create.roblox.com/docs/reference/engine/deprecated (claude-doctor .claude/audit/19-external/05 #7)
 - 사내: luau-kb `skills/luau-roblox/references/studio-mcp.md`
 - 미확인: 회사 PC 에서 Studio MCP 사용 허용 여부, Team Create 플레이스에서 바꾸는 도구의 영향, Open Cloud 연동 권한

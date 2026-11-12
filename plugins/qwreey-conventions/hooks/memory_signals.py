@@ -5,9 +5,9 @@ byte-identical (tools/tests/test-vendored-copies.py checks it); edit the canonic
 
 Why: auto memory (~/.claude/projects/<key>/memory/) is machine-local. Knowledge that belongs to a repository
 (paths, build commands, conventions, pitfalls) written there does not travel with the repo, to another clone,
-another machine or a teammate (audit/23). This module decides "does this memory text look like repo knowledge".
+another machine or a teammate (.claude/audit/23). This module decides "does this memory text look like repo knowledge".
 
-Key rule (measured on Claude Code 2.1.316, audit/23 section 1): project key = every character outside [A-Za-z0-9]
+Key rule (measured on Claude Code 2.1.316, .claude/audit/23 section 1): project key = every character outside [A-Za-z0-9]
 in the absolute project path replaced by "-" ("/tmp/a.dot_1" -> "-tmp-a-dot-1"). The mapping is lossy, so a key is
 resolved back to a path by walking the filesystem (resolve_key).
 """

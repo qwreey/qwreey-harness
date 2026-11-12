@@ -1,4 +1,4 @@
-# decisions/ — Luau 프로젝트 사이에서 갈라진 규약의 합의안
+# decisions — Luau 프로젝트 사이에서 갈라진 규약의 합의안
 
 작성 2026-11-10. 한 파일이 충돌 하나를 다룬다. 각 파일에는 입장(경로:줄), 실제 근거(실행·기록·서술 구분), 합의안 1~2개와 변경량, 추천, 사용자 확인 질문 1개가 들어 있다.
 실험 산출물은 `/tmp/cd-exp/`(휘발성)에 있다. 원천 저장소는 읽기만 했다.
@@ -21,13 +21,13 @@
 
 ## 결정 뒤 옮길 곳
 
-- 공통 필수 한 줄은 `drafts/style/rules/luau-core.md`(사용자 레벨 rules 후보)로 옮긴다.
-- 근거·예시는 `drafts/style/skills/luau-style/references/` 로 옮긴다.
+- 공통 필수 한 줄은 `.claude/research/drafts/style/rules/luau-core.md`(사용자 레벨 rules 후보)로 옮긴다.
+- 근거·예시는 `.claude/research/drafts/style/skills/luau-style/references/` 로 옮긴다.
 - 저장소별 override 는 각 저장소의 `.claude/rules/*.md` 에 둔다. 다른 세션이 작업 중인 저장소라 여기서 만들지 않는다.
 
 ## 이번에 발견한 낡은 서술 (각 저장소 세션에 전달할 것)
 
-> 2026-11-10: 아래 8건은 luau-kb 정정과 합쳐 저장소별 `handoff/<repo>-corrections.md`(quad 는 `handoff/quad.md` 의 C12·C36)로 옮겼다. 전달은 그 파일로 한다.
+> 2026-11-10: 아래 8건은 luau-kb 정정과 합쳐 저장소별 `.claude/handoff/<repo>-corrections.md`(quad 는 `.claude/handoff/quad.md` 의 C12·C36)로 옮겼다. 전달은 그 파일로 한다.
 
 
 - `stl-luau/stylua.toml:1` 의 "tbox/quad 와 같은 설정"은 거짓이다. tbox 는 Spaces+Input 이고 quad 는 설정 파일이 없다.

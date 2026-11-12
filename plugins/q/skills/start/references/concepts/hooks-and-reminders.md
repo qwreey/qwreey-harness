@@ -47,4 +47,4 @@
 ## 근거
 - 공식: code.claude.com/docs/en/hooks ("Write the text as factual statements...", 이벤트 목록), hooks-guide, best-practices ("make it a hook... if you have hooks for things that are only preferences, delete them")
 - 공식: plugins/components ("runs with your full user permissions and outside the sandbox")
-- 이 프로젝트: claude-doctor `home/.claude/HOOK-MESSAGES.md`, audit/17-hook-messages.md (태그·level 근거 실측)
+- 이 프로젝트: claude-doctor `home/.claude/HOOK-MESSAGES.md`, .claude/audit/17-hook-messages.md (태그·level 근거 실측)

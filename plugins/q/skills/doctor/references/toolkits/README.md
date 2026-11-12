@@ -6,7 +6,7 @@ coderag의 지식 계층(global / pack / project, `coderag/tech-design.md` §13)
 
 | harness-doctor | coderag | 예 |
 |---|---|---|
-| 코어 + 사용자 레벨(`--user`) | global | 하네스 규약, `decisions/` 중 언어 무관 결정(D-07) |
+| 코어 + 사용자 레벨(`--user`) | global | 하네스 규약, `.claude/base/decisions/` 중 언어 무관 결정(D-07) |
 | 툴킷(`toolkits/<이름>`) + 그 공유 지식 저장소(`<이름>-kb`) | pack | luau + luau-kb |
 | 대상 저장소 | project | quad, vitrine, `intake/<이름>` |
 

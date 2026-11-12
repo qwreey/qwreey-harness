@@ -3,7 +3,7 @@
 - 작업공간 루트: 환경 변수 HARNESS_WORKSPACE, 없으면 harness.env(하네스 lib/harness_env.py 의 읽는 방식). 둘 다 없으면 "".
 - 경로 판정은 normpath 만 한다(realpath 금지: ~/.claude/rules 의 symlink 는 형제 경로가 아니라 이 세션의 규칙 파일이다).
 - Bash 명령 분류: 어떤 형제 저장소를 쓰는가("write"), 읽는가("read"). 하네스의 bash-bypass-reminder 분류기는
-  경로를 보지 않고 코드 확장자 리다이렉트와 sed -i 만 쓰기로 보므로(audit/31 probes.md §2) 경로를 보는 분류기를 따로 둔다.
+  경로를 보지 않고 코드 확장자 리다이렉트와 sed -i 만 쓰기로 보므로(.claude/audit/31 probes.md §2) 경로를 보는 분류기를 따로 둔다.
 """
 from __future__ import annotations
 

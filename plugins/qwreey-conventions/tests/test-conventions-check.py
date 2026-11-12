@@ -218,6 +218,9 @@ check("ledger id without .md on the line -> flagged; with .md -> pass",
       "history marker" in doc("d5/SKILL.md", "# X\nSee D-13 here.\n") and doc("d6/SKILL.md", "# X\nSee D-13 in decisions/log.md here.\n") == "")
 check("code fence, inline code, url, path token pass",
       doc("d7/SKILL.md", "# X\n```\nsince 2026-11-10 audit/18\n```\nRun `date 2026-11-10` or https://x.io/2026-11-10/a or snapshots/2026-11-10/a.json now.\n") == "")
+check("entry doc: .claude/ record folder paths flagged",
+      all("history marker" in doc(f"dp/{i}/SKILL.md", f"# X\nSee {t} for why.\n") for i, t in enumerate(
+          [".claude/base/decisions/D-01.md", ".claude/research/drafts/x.md", ".claude/archive/research/y.md", ".claude/plan/z.md"])))
 check("status line passes", doc("d8/SKILL.md", "# X\nstatus: verified \u00b7 last-confirmed: luau 0.742 2026-11-10\n") == "")
 check("references: date, id, previously pass; decision, round, audit/N, banner flagged",
       doc("d9/skills/s/references/a.md", "# R\nChanged 2026-11-10 (H-973); previously X.\n") == ""

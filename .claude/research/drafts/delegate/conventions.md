@@ -1,6 +1,6 @@
 # 접미 디렉터리 명명 규약과 외부 모델 진입점
 
-2026-11-10 제안. 지금은 어느 문서에도 정의가 없다(`audit/04` §1).
+2026-11-10 제안. 지금은 어느 문서에도 정의가 없다(`.claude/audit/04` §1).
 
 ## 1. `/code/Projects/<repo>-<접미>/` 규약
 
@@ -15,7 +15,7 @@
 | `-codex` | OpenAI codex 위임 작업공간 | 같음 | 같은 꼴. empty 모드면 `<이름>/`이 worktree가 아니라 빈 디렉터리 | 같음 |
 | `-scratch` | 사람과 메인 세션의 일회성 실험(프로브 `.luau`, 측정 로그, 참고 저장소 클론) | 메인 세션 또는 사용자 | `<YYYY-MM-DD>-<slug>/`, 참고 클론은 `refs/<이름>/` | 버려도 되는 것만. 남길 가치가 생기면 저장소 안으로 옮긴다 |
 | `-proto` | 메인 세션이 직접 고치는 **시제품 가지의 worktree** | 메인 세션(`git worktree add ../<repo>-proto/<slug> -b proto/<slug>`) | `<slug>/` ↔ 브랜치 `proto/<slug>` | 가지가 합쳐지거나 버려지면 `git worktree remove` |
-| (저장소 안) `.claude/worktrees/` | Claude Code 하네스(`claude --worktree`, `isolation: worktree`)의 몫 | 하네스 | — | 하네스가 정리. `.gitignore`에 `/.claude/worktrees/` 필수(`audit/04` §5.1) |
+| (저장소 안) `.claude/worktrees/` | Claude Code 하네스(`claude --worktree`, `isolation: worktree`)의 몫 | 하네스 | — | 하네스가 정리. `.gitignore`에 `/.claude/worktrees/` 필수(`.claude/audit/04` §5.1) |
 
 현재 상태와의 차이(옮기는 법은 `migration.md`)
 - `stl-luau-scratch/no-self-return/wt`는 실제 worktree(`proto/no-self-return`)라 규약상 `stl-luau-proto/no-self-return`이 맞다. 빈 `stl-luau-proto/`는 원래 이 용도로 만든 자리로 보인다.
@@ -36,7 +36,7 @@
 
 - agy는 cwd에서 저장소 루트까지 올라가며 **`GEMINI.md`와 `AGENTS.md`를 둘 다** 싣는다. 파일당 24,000바이트 상한이 있고, `@[label](path)` include를 펼친다(`/code/.gemini/antigravity-cli/builtin/skills/agy-customizations/docs/rules.md`).
 - codex는 `AGENTS.md`를 싣는다(codex 표준). 단, `--ignore-user-config`과 빈 디렉터리(empty 모드)에서는 실을 것이 없다.
-- Claude Code는 `CLAUDE.md`를 싣는다. `@AGENTS.md`로 import하면 그 내용이 **항상 로드**되어 비용이 그대로 든다(`audit/01` §1).
+- Claude Code는 `CLAUDE.md`를 싣는다. `@AGENTS.md`로 import하면 그 내용이 **항상 로드**되어 비용이 그대로 든다(`.claude/audit/01` §1).
 - 지금은 stl-luau에만 `GEMINI.md`(8.1KB)가 있고, quad는 `.claude/qa-request/external-review-entry.md`를 사용자가 손으로 붙여 넣는다. stl-luau `GEMINI.md`는 결정(AB, BD)을 다시 적었다가 낡았다.
 
 ### 제안

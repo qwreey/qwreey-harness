@@ -22,7 +22,7 @@
 
 ## §1 왜 이 문서가 있나
 
-status: [기록] claude-doctor `audit/12-code-structure.md` 사례 표. 모두 사용자가 직접 코드를 열어 보고 지적했다. 모델이 먼저 나누자고 한 경우는 table-sim 한 번뿐이다.
+status: [기록] claude-doctor `.claude/audit/12-code-structure.md` 사례 표. 모두 사용자가 직접 코드를 열어 보고 지적했다. 모델이 먼저 나누자고 한 경우는 table-sim 한 번뿐이다.
 
 | 언제 | 저장소 | 지적 (요지) | 그때 크기 |
 |---|---|---|---|
@@ -68,14 +68,14 @@ status: 제안(D-13). 수치는 10개 저장소 실측 분포에서 잡았다. �
 
 ## §4 나누는 절차
 
-status: [기록] quad `archive/surveys/2026-09-07-source-layout-plan.md`, devplorer `audit/2026-11-04-code-layout.md`, table-sim `todos.md:111-121`, devplorer memory `feedback-audit-after-move`.
+status: [기록] quad `archive/surveys/2026-09-07-source-layout-plan.md`, devplorer `.claude/audit/2026-11-04-code-layout.md`, table-sim `todos.md:111-121`, devplorer memory `feedback-audit-after-move`.
 
 1. **묶음 지도를 먼저 만든다.** 함수 목록을 책임별로 나누고, 묶음 사이 호출 방향을 적는다. 강하게 이어진 묶음은 한 파일에 남긴다. quad Slot 분할 계획은 여섯 묶음 가운데 다섯이 서로 재귀하는 것을 먼저 확인했다.
 2. **"옮기기만" 커밋과 "고치기" 커밋을 나눈다.** 옮기기 커밋은 함수 본문을 바꾸지 않는다. 커밋 메시지에 `옮기기만`·`순수 이동`이라고 쓴다(devplorer `cfeedd1`, table-sim `6c55ec2`, stl `221cec9`).
 3. **`X.luau` → `X/init.luau` 접기는 공짜다.** `init.luau` 안에서 `./` 는 부모 폴더, `@self/` 는 자기 폴더라서 바깥 `require("./X")` 가 그대로 유효하다. `X.luau` 와 `X/` 를 동시에 두지 않는다(modules§3).
 4. [비공개 프로젝트 세부 생략]
 5. **클로저에 얽힌 상태는 먼저 상태 객체로 꺼낸다.** 그다음에 옮긴다. 이 단계를 건너뛰면 분리가 멈춘다(table-sim 큰 화면 모듈).
-6. **문서의 옛 경로를 고친다.** `.claude/` 문서가 `파일:줄` 을 인용하므로 옮기면 조용히 낡는다. 옛 경로 → 새 경로 대조표를 남긴다(devplorer `audit/2026-11-04-code-layout.md`). quad 는 `doc-check.py` 가 `.luau` 경로를 검사하게 넓혔다.
+6. **문서의 옛 경로를 고친다.** `.claude/` 문서가 `파일:줄` 을 인용하므로 옮기면 조용히 낡는다. 옛 경로 → 새 경로 대조표를 남긴다(devplorer `.claude/audit/2026-11-04-code-layout.md`). quad 는 `doc-check.py` 가 `.luau` 경로를 검사하게 넓혔다.
 7. **옮긴 뒤 이음매 감사를 따로 돌린다.** 보안 리뷰와 줄 대조만으로 끝내지 않는다. 넘긴 상태가 값으로 묶였는지, 정리가 빠졌는지, 비동기 흐름이 바뀌었는지 본다. devplorer 는 이 감사에서 원래 있던 버그 여럿을 찾았다.
 8. **층 규칙은 `require` 를 grep 해서 확인한 뒤에 적는다.** devplorer 는 처음 적은 층 규칙이 실제 코드와 달라 거짓이었다(modules§4).
 

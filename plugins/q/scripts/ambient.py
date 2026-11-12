@@ -3,7 +3,7 @@
 
 context/ambient.md(영어, 사용자가 확정한 문구 그대로)를 `<plugin name="q">` 로 감싸 additionalContext 로 낸다.
 - SessionStart: 메인 세션에 startup·resume·clear·compact 마다 실린다(hooks.json 의 matcher).
-- SubagentStart: 서브에이전트에 실린다(audit/32 실험 2: general-purpose·커스텀(omitClaudeMd 여부 무관)·Explore 모두 실림).
+- SubagentStart: 서브에이전트에 실린다(.claude/audit/32 실험 2: general-purpose·커스텀(omitClaudeMd 여부 무관)·Explore 모두 실림).
   fork 는 부모 문맥(SessionStart 주입 포함)을 물려받으므로 건너뛴다(중복 방지).
 - UserPromptSubmit: SessionStart 가 안 돈 세션(플러그인을 세션 중간에 켠 경우)의 보충. (세션, compact 회차) 표지가 없으면
   한 번 싣고 표지를 둔다. SessionStart 도 같은 표지를 두므로 겹치지 않는다. 회차는 compact_epoch.py(q 자기 것,

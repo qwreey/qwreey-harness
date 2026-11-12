@@ -1,7 +1,7 @@
 # intake/ — 외부 프로젝트 반입과 감사
 
 다른 sandbox 나 다른 사람의 프로젝트 일부를 가져와 하네스를 감사하는 자리다.
-사본은 git 에 넣지 않는다(`.gitignore` 의 `intake/*/`). 커밋하는 것은 이 문서와 감사 보고서(`audit/intake/`)뿐이다.
+사본은 git 에 넣지 않는다(`.gitignore` 의 `intake/*/`). 커밋하는 것은 이 문서와 감사 보고서(`.claude/audit/intake/`)뿐이다.
 
 ## 1. 어디에 두나
 
@@ -26,7 +26,7 @@ intake/<이름>/            # 소문자-하이픈. 예: blog, vitrine-web
 | 권장 | 감사자에게 볼 코드: 바뀐 파일이나 핵심 모듈 | `/audit` 대상 |
 | 선택 | `git log --stat -20` 출력(`INTAKE.md` 에 붙임) | 낡음 판정에 쓸 날짜. 반입 사본에는 git 이력이 없다 |
 
-- **web 반입 때 확인할 것**: 블로그(react/astro)를 가져오면 `scan.py` 의 `WEB-PLUGINS`·`WEB-RULE` 정보가 나오는지 보고, 프로젝트 `.claude/settings.json` 에 `handoff/vitrine.md` 의 `enabledPlugins` 조각과 frontend-design 명시 호출 줄이 있는지 대조한다.
+- **web 반입 때 확인할 것**: 블로그(react/astro)를 가져오면 `scan.py` 의 `WEB-PLUGINS`·`WEB-RULE` 정보가 나오는지 보고, 프로젝트 `.claude/settings.json` 에 `.claude/handoff/vitrine.md` 의 `enabledPlugins` 조각과 frontend-design 명시 호출 줄이 있는지 대조한다.
 
 가져오지 않는 것
 - **자격 증명과 비밀**: `.env*`, `*.pem`, `*.key`, `id_*`, `.credentials.json`, `.npmrc`·`.pypirc` 의 토큰, `settings.local.json` 안의 키, 클라우드 설정(`.aws/`, `.config/gcloud/`).
@@ -41,7 +41,7 @@ intake/<이름>/            # 소문자-하이픈. 예: blog, vitrine-web
 ## 3. git 에 넣을지
 
 - 기본: **넣지 않는다.** `intake/*/` 는 `.gitignore` 로 제외된다. `git status` 에 나오지 않는 것을 확인한다: `git check-ignore -v intake/<이름>/CLAUDE.md`.
-- 커밋하는 것: 감사 보고서 `audit/intake/<이름>-<YYYY-MM-DD>.md`. 보고서에는 인용한 줄만 넣고 파일 통째 사본은 넣지 않는다.
+- 커밋하는 것: 감사 보고서 `.claude/audit/intake/<이름>-<YYYY-MM-DD>.md`. 보고서에는 인용한 줄만 넣고 파일 통째 사본은 넣지 않는다.
 - 다 쓴 사본은 사용자가 지운다(에이전트는 지우지 않고 `HUMAN_TODO.md` 에 올린다).
 
 ## 4. 감사 순서
@@ -57,8 +57,8 @@ intake/<이름>/            # 소문자-하이픈. 예: blog, vitrine-web
    - git 이 없는 사본이라 `SET-NOGIT`(정보)이 나오고 7번의 git 검사, 9번 worktree 는 건너뛴다. `STALE-AGENTDOC-OLD` 처럼 커밋 날짜가 필요한 판정도 나오지 않는다.
    - 형제 비교(`TOOL-PIN`, `TOOL-CLAIM`, `DRIFT-SKILLCOPY`)의 기본 형제는 `intake/` 의 다른 사본이다. 이 작업공간과 비교하려면 `--projects <작업공간>`.
    - 고칠 안의 처리 방식은 `반입 원본에 전달` 이다. 사본을 고쳐 봐야 원본에 가지 않는다. 고친 문장·diff 를 보고서에 적어 원본 세션에 넘긴다.
-4. **감사 에이전트**(설치 후, `drafts/agents/README.md`): 반입 디렉터리에서 `/audit <관점> intake/<이름>/<경로>`.
+4. **감사 에이전트**(설치 후, `.claude/research/drafts/agents/README.md`): 반입 디렉터리에서 `/audit <관점> intake/<이름>/<경로>`.
    - 사본은 git 이 없다. `/audit` 0단계 가드(HEAD·status 해시)는 `find intake/<이름> -type f -newer intake/<이름>/INTAKE.md` 로 바꿔 본다.
    - 실행이 필요한 관점(types, runtime, perf)은 그 툴킷 툴체인이 이 sandbox 에 있어야 한다. 없으면 `미완`으로 두고 이유를 적는다.
    - 무거운 실행은 이 환경의 래퍼(`HARNESS_HEAVY_WRAP`)로 감싼다.
-5. **보고서**: `audit/intake/<이름>-<YYYY-MM-DD>.md` 에 scan 집계, 판정, 고칠 안, 툴킷 검사 후보(web 골격을 채울 재료 — `references/toolkits/web.md` "채우는 순서")를 적는다.
+5. **보고서**: `.claude/audit/intake/<이름>-<YYYY-MM-DD>.md` 에 scan 집계, 판정, 고칠 안, 툴킷 검사 후보(web 골격을 채울 재료 — `references/toolkits/web.md` "채우는 순서")를 적는다.

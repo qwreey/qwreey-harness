@@ -1,6 +1,6 @@
 # (A) 감사 서브에이전트 분할 설계
 
-2026-11-10 초안. 근거는 `audit/01` §3, `audit/03` §2·§5, `audit/04` §4, `quad/.claude/conventions.md:268-338·389-485`, `quad/.claude/agents/quad-doc-auditor.md`, `rbvm/.claude/agents/*.md`, `quad/.claude/qa-request/post-implementation-review-round16.md`이다. 공식 frontmatter 동작은 code.claude.com/docs/en/sub-agents.md에서 다시 확인했다(2026-11-10).
+2026-11-10 초안. 근거는 `.claude/audit/01` §3, `.claude/audit/03` §2·§5, `.claude/audit/04` §4, `quad/.claude/conventions.md:268-338·389-485`, `quad/.claude/agents/quad-doc-auditor.md`, `rbvm/.claude/agents/*.md`, `quad/.claude/qa-request/post-implementation-review-round16.md`이다. 공식 frontmatter 동작은 code.claude.com/docs/en/sub-agents.md에서 다시 확인했다(2026-11-10).
 
 ## 1. 파일
 
@@ -35,7 +35,7 @@
 
 ## 3. 읽기 전용을 강제하는 방식 (세 줄)
 
-`audit/04` §4.2-1의 약점은 "Bash가 있어서 읽기 전용이 규약으로만 지켜진다"였다. 이를 세 줄로 막는다.
+`.claude/audit/04` §4.2-1의 약점은 "Bash가 있어서 읽기 전용이 규약으로만 지켜진다"였다. 이를 세 줄로 막는다.
 
 1. **도구 목록**: `tools` 허용 목록에 Edit을 넣지 않고, `disallowedTools`에도 Edit, NotebookEdit을 둔다. quality와 docs는 Write도 뺀다.
 2. **PreToolUse 훅** (`auditor-readonly-guard.py`)
@@ -51,7 +51,7 @@
 ### permissionMode를 쓰지 않는 이유
 
 - 공식 문서에 따르면, 메인 대화가 `bypassPermissions`, `acceptEdits`, `auto`이면 서브에이전트의 `permissionMode`는 **무시된다**.
-- 이 사용자의 `~/.claude/settings.json`은 `defaultMode: auto`이다(`audit/04` §7). 그래서 `permissionMode: plan`을 적어도 효과가 없다. 위 세 줄에 기댄다.
+- 이 사용자의 `~/.claude/settings.json`은 `defaultMode: auto`이다(`.claude/audit/04` §7). 그래서 `permissionMode: plan`을 적어도 효과가 없다. 위 세 줄에 기댄다.
 
 ### Bash를 허용하는 위험 (남는 것)
 
@@ -73,7 +73,7 @@
 
 PLAN §3은 rbvm 감사자에 `memory: project`를 제안했다. 이 설계는 **쓰지 않는 쪽**을 기본으로 한다. 이유는 넷이다.
 
-1. **감사자의 가치는 신선한 맥락이다.** quad와 rbvm 모두 "변경한 세션은 자기가 무엇을 안 건드렸는지 모른다"를 감사자의 존재 이유로 적었다. 누적 메모리는 감사자를 다시 "아는 세션"으로 만든다. 실제로 quad-doc-auditor의 메모리에는 "자기참조 개수 금지" 같은 교훈과 낡은 서술이 같이 쌓였다(`audit/03` §3).
+1. **감사자의 가치는 신선한 맥락이다.** quad와 rbvm 모두 "변경한 세션은 자기가 무엇을 안 건드렸는지 모른다"를 감사자의 존재 이유로 적었다. 누적 메모리는 감사자를 다시 "아는 세션"으로 만든다. 실제로 quad-doc-auditor의 메모리에는 "자기참조 개수 금지" 같은 교훈과 낡은 서술이 같이 쌓였다(`.claude/audit/03` §3).
 2. **memory는 Read, Write, Edit을 자동으로 켠다**(공식 문서, quad 2026-08-16 실측과 일치). 읽기 전용 설계와 정면으로 충돌한다. 훅이 막기는 하지만, 막히는 도구를 켜 둘 이유가 없다.
 3. `memory: project`는 `<프로젝트>/.claude/agent-memory/<이름>/`에 쓴다. 다른 세션이 돌고 있는 프로젝트 트리를 감사자가 바꾸게 된다. 그러면 가드 비교도 "CHANGED"가 된다.
 4. 교훈의 갈 곳이 이미 있다.
@@ -113,12 +113,12 @@ PLAN §3은 rbvm 감사자에 `memory: project`를 제안했다. 이 설계는 *
 |---|---|---|---|
 | `rbvm-gc-auditor` | **공용 `luau-runtime-auditor`로 대체** | 점검 항목 다섯(사슬 절단, `__mode`, 정리 경로, 동일성 불변식, Destroy 전파) 중 넷은 runtime의 일반 각도(수명 주기, GC)와 같다. 남는 것은 rbvm 고유 불변식 목록뿐이고, 그것은 이미 `.claude/design/gc-and-lifecycle.md`가 정본이다. 본문에 박힌 코드 세부(`proxy/base.luau`, `Order 14 이상`)가 낡는 문제도 이렇게 풀린다 | `rbvm/.claude/audit-focus/runtime.md`(예시 파일)를 두고, `CLAUDE.md`의 "GC 코드 변경 시 gc-auditor 호출" 한 줄을 "`/audit runtime`"으로 바꾼다 |
 | `rbvm-api-parity` | **프로젝트 에이전트로 남기되 얇게 고침** | 엔진 시맨틱 대조라는 각도는 runtime과 겹친다. 하지만 이 에이전트의 가치는 rbvm 고유 절차에 있다. Roblox `Instance` 클래스 문서의 메서드 전수를 `IndexableMethods`와 대조해 "가상 트리를 무시하고 실 트리로 새는 메서드"를 찾는 절차다. 이 절차를 audit-focus에 넣으면 runtime 감사자가 매번 그 무거운 전수 대조를 하게 된다 | frontmatter를 공용 세트와 맞춘다: `disallowedTools`, 훅, `skills: [audit-report-format, roblox-luau]`. "알려진 의도적 차이" 하드코딩 목록은 `design/architecture.md`로 옮기고 본문은 그 절을 가리키게 한다. 출력 형식 절은 지우고 프리로드로 대신한다 |
-| (참고) `VideoSync/ref-researcher` | 이 세트 밖 | 감사자가 아니라 쓰기가 필요한 연구자다. `audit/04` §9-5대로 BRIEF 경로를 인자화한 별도 사용자 에이전트가 맞다 | — |
+| (참고) `VideoSync/ref-researcher` | 이 세트 밖 | 감사자가 아니라 쓰기가 필요한 연구자다. `.claude/audit/04` §9-5대로 BRIEF 경로를 인자화한 별도 사용자 에이전트가 맞다 | — |
 | (참고) `quad-doc-auditor` | 당분간 유지 | quad 고유 `doc-check.py`와 색인 레이어 규약에 묶여 있다. `docs-auditor`는 quad 밖 저장소용이다. quad의 conventions 다이어트(P3) 때 `docs-auditor` + `quad/.claude/audit-focus/docs.md`로 바꿀 수 있는지 다시 본다 | — |
 
 전환 조건: 기존 에이전트를 지우기 전에 같은 범위로 신·구를 한 번씩 돌린다. 구 에이전트가 잡은 기보고 발견을 신 에이전트도 잡는지 본다(평가 시나리오 R1). rbvm은 다른 세션이 쓰는 저장소가 아니므로 P1 직후 시범으로 적당하다.
 
-## 8. 평가 시나리오 (도입 전, `audit/01` §7)
+## 8. 평가 시나리오 (도입 전, `.claude/audit/01` §7)
 
 | ID | 시나리오 | 기대 |
 |---|---|---|
@@ -133,7 +133,7 @@ PLAN §3은 rbvm 감사자에 `memory: project`를 제안했다. 이 설계는 *
 
 ## 9. 툴킷 일반화 제안 (2026-11-10, 아직 적용하지 않음)
 
-> 하네스를 툴킷(luau, web, rust …) 구조로 바꾸면서 낸 제안이다(`audit/14-toolkit-agnostic.md`). `luau-quality-auditor.md`를 다른 작업이 고치는 중이라 **파일은 바꾸지 않았다.** 그 작업이 끝난 뒤 사용자 승인을 받아 옮긴다.
+> 하네스를 툴킷(luau, web, rust …) 구조로 바꾸면서 낸 제안이다(`.claude/audit/14-toolkit-agnostic.md`). `luau-quality-auditor.md`를 다른 작업이 고치는 중이라 **파일은 바꾸지 않았다.** 그 작업이 끝난 뒤 사용자 승인을 받아 옮긴다.
 
 ### 9-1. 지금 무엇이 Luau 전용인가
 
@@ -173,5 +173,5 @@ PLAN §3은 rbvm 감사자에 `memory: project`를 제안했다. 이 설계는 *
 - perf·runtime 본문의 메모리 예산 줄: `choom -n 1000 -- prlimit --data=<예산>` → "`harness.env`의 무거운 실행 래퍼로 감싸고 `prlimit --data=<예산>`" (래퍼가 없는 환경에서도 `prlimit`는 쓴다).
 - `auditor-readonly-guard.py`: 설치 명령·MCP 차단 목록을 `heavy-proc-guard.py`처럼 툴킷 표(`TOOLKIT_INSTALLERS`)로 나누고 `HARNESS_TOOLKITS`로 거른다. `test-guard.py` 34건이 그대로 통과해야 한다.
 - `audit-report-format`: 도구 버전 예시를 툴킷 중립으로(`<검사기> <버전> <플래그>`), luau 예시는 luau-kb `audit-profile.md`로.
-- quality 감사자의 구조 측정(`structure-scan.py`, 기준 800·1,500줄 — D-13)은 언어 무관 기준이다. 스크립트를 luau-style에서 하네스 공용 위치로 옮기는 안을 함께 본다(`drafts/hooks/structure-reminder.py`의 확장자별 기준과 같은 표를 쓰게).
+- quality 감사자의 구조 측정(`structure-scan.py`, 기준 800·1,500줄 — D-13)은 언어 무관 기준이다. 스크립트를 luau-style에서 하네스 공용 위치로 옮기는 안을 함께 본다(`.claude/archive/research/drafts/hooks/structure-reminder.py`의 확장자별 기준과 같은 표를 쓰게).
 - 이름 바꿈의 영향: 저장소 문서가 부르는 것은 `/audit <관점>`이라 이름 변경 영향은 `/audit` 스킬과 rbvm `rbvm-api-parity` 프론트매터 정도다(§7).

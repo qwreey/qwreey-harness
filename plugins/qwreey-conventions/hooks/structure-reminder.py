@@ -3,7 +3,7 @@
 
 막지 않는다(decision 없음). additionalContext 만 주입한다.
 
-왜: 사용자가 직접 지적한 구조 문제(audit/12-code-structure.md)는 모두 "한 파일에 계속 덧붙이기"와
+왜: 사용자가 직접 지적한 구조 문제(.claude/audit/12-code-structure.md)는 모두 "한 파일에 계속 덧붙이기"와
 "새 파일을 부르는 쪽 옆에 계속 두기"에서 나왔다. devplorer 서버 init.luau 는 사흘 동안 692 → 4,101줄,
 한 게임 저장소의 서버 모듈은 아흐레 동안 646 → 3,501줄, devui Window/Manager.luau 는 이틀 동안 273 → 3,352줄이 됐다.
 Edit 도구는 조각만 보여 주므로 모델은 파일 전체 길이를 잘 보지 못한다. 그래서 길이를 바로 알려 준다.
@@ -18,7 +18,7 @@ Bash 는 파일을 바꿨을 법한 명령(sed -i, 리다이렉트, tee, patch, 
 audit 10 기준 이 세션들의 파일 수정은 Bash(sed -i·python) 쪽이 Edit 보다 열 배 많았다.
 테스트 파일은 줄 기준을 두 배로 본다. 머리 6줄에 생성물 표시가 있으면 보지 않는다.
 
-툴킷 무관(audit/14): 확장자별 기준은 아래 TOOLKITS 표(luau·web·rust·python·go·jvm)다. 표에 없는 확장자는 건드리지 않는다.
+툴킷 무관(.claude/audit/14): 확장자별 기준은 아래 TOOLKITS 표(luau·web·rust·python·go·jvm)다. 표에 없는 확장자는 건드리지 않는다.
   harness.env(lib/harness_env.py)의 HARNESS_TOOLKITS 가 비어 있지 않으면 그 툴킷만 본다.
   저장소가 표를 덮어쓰거나 더할 수 있다(아래 structure.json). 기본 기준은 모든 툴킷이 같다(경고 800, 강제 1500, 테스트 두 배).
 
@@ -26,7 +26,7 @@ audit 10 기준 이 세션들의 파일 수정은 Bash(sed -i·python) 쪽이 Ed
   파일 머리 10줄 안  `--@structure-exempt: <사유>`  (luau. web·rust·go 는 `//@structure-exempt:`, python 은 `#@structure-exempt:`)
   또는 structure.json  "exempt": [{"path": "<글롭>", "reason": "<사유>"}]
   사유가 비었거나 사유가 아닌 말("나중에", "귀찮", "TODO", "-")이면 무효다 — 평소처럼 알리고 무효라고 덧붙인다.
-  유효한 예외 파일은 경고·강제·성장 알림 대신 "Reason: …" 한 줄(알림 문구는 영어, audit/17)을 세션당 한 번만 낸다(경고 기준 이상일 때).
+  유효한 예외 파일은 경고·강제·성장 알림 대신 "Reason: …" 한 줄(알림 문구는 영어, .claude/audit/17)을 세션당 한 번만 낸다(경고 기준 이상일 때).
 강제 기준을 넘은 .luau/.lua 파일에는 분리 계획기(split-plan.py) 명령을 한 줄 붙인다. 계획기는 ~/.claude/skills/luau-style 에서 찾고,
   없으면 harness.env 의 HARNESS_LUAU_KB 또는 ${HARNESS_WORKSPACE}/luau-kb 에서 찾는다. 못 찾으면 안내를 생략한다.
 

@@ -6,8 +6,7 @@ Source of truth for the Claude Code harness. Pointers only; read the target, not
 - `HUMAN_TODO.md`: what only the user does (deletes, permissions, apply). Do not do these.
 - `README.md`: for humans (install, layout).
 - `home/`: source of the user-level `~/.claude` (list in `home/MANIFEST`). Edit here, never `~/.claude`; the user runs `tools/home-sync.sh diff` then `apply`.
-- `plugins/`: `q` (user commands, session-log), `qwreey-advisor`, `qwreey-conventions`.
-- `decisions/`: agreed conventions (D-xx).
-- `audit/` and `handoff/` are history. Never read them whole (some are 40-80k tokens). Open a specific file or section you were pointed to.
-- `drafts/`: pre-install drafts. A first line `status: landed in <path>; not maintained` means the draft is finished; use `<path>`.
+- `plugins/`: `q` (user commands, session-log), `qwreey-advisor`, `qwreey-conventions`, `qwreey-proc-guard`, `web-security`.
+- `.claude/`: records, laid out per `plugins/qwreey-conventions/skills/agent-records/SKILL.md`. Living: `base/decisions/` (agreed conventions, D-xx), `research/drafts/` (pre-install drafts). Snapshots: `audit/`, `handoff/`, `sessions/`; never edit them and never read them whole (some are 40-80k tokens), open only the file or section you were pointed to.
+- `.claude/archive/`: finished records at their original subpath (landed drafts: `archive/research/drafts/`). Not in default search; use `q:recall` or `--all` to find why something changed.
 - There is no `TODO.md`. Do not tell subagents to read it.

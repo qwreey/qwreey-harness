@@ -52,4 +52,4 @@
 
 ## 근거
 - 공식: code.claude.com/docs/en/context-window (시작 시 로드 목록), features-overview, memory (범위 표, 관리 CLAUDE.md), best-practices ("make it a hook, a deny rule, or a managed setting")
-- 이 프로젝트: claude-doctor audit/19-external/00-synthesis §0, §2.1 ("쌓기" 위험, 규칙 없이 재기)
+- 이 프로젝트: claude-doctor .claude/audit/19-external/00-synthesis §0, §2.1 ("쌓기" 위험, 규칙 없이 재기)

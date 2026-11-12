@@ -18,7 +18,7 @@
   - language mismatch: 파일 주석의 90% 이상이 한 문자 체계(기존 10줄 이상)인데 추가된 줄이 다른 체계 단어를 3개 이상 쓴다.
     새 파일은 저장소 comment_language, 없으면 같은 폴더 형제 파일의 다수, 그것도 없으면 검사하지 않는다. 지시자 줄(--!strict, eslint-disable 등)은 뺀다
 모델용 문서(CLAUDE.md, SKILL.md, agents/*.md, .claude/rules/*.md, skills/**/*.md; 추가된 줄만, frontmatter, 코드 펜스, 인라인 코드, URL, 경로 토큰 안은 통과)
-  - 입구 문서: 날짜, audit/session/handoff 경로, 라운드, 결정 문구, 실측 표지, 변경 서술, 같은 줄에 .md 경로가 없는 원장 id
+  - 입구 문서: 날짜, audit/session/handoff 경로와 .claude/ 아래 기록 폴더 경로, 라운드, 결정 문구, 실측 표지, 변경 서술, 같은 줄에 .md 경로가 없는 원장 id
   - skills/**/references/*.md: 결정 문구, 라운드, audit/N 근거, 실측 표지, 정정 배너만(날짜, id, "previously" 는 통과)
   - `status:` 줄은 통과
 제외: 확장자 표 밖, 생성 파일(머리 6줄 표시), 픽스처, testdata, node_modules 등, 설정의 exclude.
@@ -87,7 +87,7 @@ DEFAULTS = {"allow_ref_tail": True, "public_ids": [], "exclude": [], "patterns":
 # 모델용 문서 패턴. 날짜, round, 결정 문구는 위 PATTERNS 와 설정 덮어쓰기를 공유한다.
 DOC_PATTERNS = {
     "decision": r"사용자\s*(?:결정|합의)|\bper (?:the )?user\b|\bas (?:the user )?(?:discussed|decided|agreed)\b|\bthe user decided\b|사용자\s*20\d\d",
-    "path": r"(?<![\w-])(?:audit|session|handoff)/",
+    "path": r"(?<![\w-])(?:audit|session|handoff)/|\.claude/(?:plan|base|research|audit|handoff|archive)/",
     "ref_path": r"(?<![\w-])audit/\d+",
     "tag": r"\[(?:실측|측정|추정|추론|measured|estimated?|inferred)[^\]]*\]",
     "narration": r"\b(?:previously|recently)\b|\bas of\b(?!\s+(?:v?\d|luau|version))|현재 기준|지난\s?(?:주|번)|요즘|사실 정정|\bfact fix\b",

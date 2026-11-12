@@ -11,11 +11,11 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 | `plugins/qwreey-advisor/` | 모델이 부르는 독립 검토(별도 플러그인). luau 지식은 `luau-kb` 플러그인 |
 | `plugins/qwreey-conventions/` | 코드 주석·모델용 문서 관례(스킬 `comments`, `agent-docs`)와 추가한 줄을 한 줄로 알리는 훅, 구조 한도(`structure-reminder`)·셸 우회 쓰기(`bash-bypass-reminder`)·auto memory 배치(`memory-placement`) 알림 훅. 옛 user-level 훅들을 대체 |
 | `plugins/qwreey-proc-guard/` | Linux 전용: 무거운 실행(벤치·퍼저)이 choom 없이 나가면 거절하는 PreToolUse 훅(`heavy-proc-guard`). Windows·macOS 에서는 끈다 |
-| `decisions/` | 저장소 사이 갈린 규약의 합의안(D-xx)과 사용자 결정 현황 |
-| `drafts/` | 설치 전 초안(감사 에이전트, 위임, 스타일). 끝난 초안은 각 README 첫 줄 `status: landed in ...; not maintained` 로 표시한다 |
+| `.claude/base/decisions/` | 저장소 사이 갈린 규약의 합의안(D-xx)과 사용자 결정 현황 |
+| `.claude/research/drafts/` | 설치 전 초안(감사 에이전트, 위임, 스타일). 끝난 초안은 `.claude/archive/research/drafts/` 로 옮긴다 |
 | `intake/` | 외부 프로젝트 반입 자리(사본은 git 에서 제외). 절차 `intake/README.md` |
-| `audit/` | 조사·감사 보고서. 반입 프로젝트 감사는 `audit/intake/` |
-| `PLAN.md`, `HUMAN_TODO.md`, `handoff/` | 작업 계획, 사람이 할 일, 다른 세션 인계 |
+| `.claude/audit/` | 조사·감사 보고서. 반입 프로젝트 감사는 `.claude/audit/intake/` |
+| `PLAN.md`, `HUMAN_TODO.md`, `.claude/handoff/` | 작업 계획, 사람이 할 일, 다른 세션 인계 |
 
 ## 다른 sandbox 에 설치하기
 

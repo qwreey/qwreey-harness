@@ -1,6 +1,6 @@
 # qwreey-advisor
 
-모델이 스스로 집어 드는 독립 검토. 근거와 실측은 claude-doctor `audit/18-second-opinion.md` §9·§11·§12. 스킬별 설계 근거는 `docs/rationale-<스킬>.md`(유지보수자용, 모델이 읽지 않는다).
+모델이 스스로 집어 드는 독립 검토. 근거와 실측은 claude-doctor `.claude/audit/18-second-opinion.md` §9·§11·§12. 스킬별 설계 근거는 `docs/rationale-<스킬>.md`(유지보수자용, 모델이 읽지 않는다).
 
 | 구성 | 이름 | 하는 일 |
 |---|---|---|

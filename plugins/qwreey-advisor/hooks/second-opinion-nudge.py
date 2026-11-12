@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """second-opinion-nudge — 정해진 시점에 '독립 검토를 받을 때'라고 알린다. 막지 않는다(ExitPlanMode 선택 기능 제외).
 
-advisor 는 언제 불릴지 모델이 정해서 예측이 안 됐다(audit/18). 이 훅은 잴 수 있는 시점만 맡는다.
+advisor 는 언제 불릴지 모델이 정해서 예측이 안 됐다(.claude/audit/18). 이 훅은 잴 수 있는 시점만 맡는다.
   1. PostToolUseFailure   같은 실패 서명이 이번 회차에 2번째 → stuck 검토 권고 (서명마다 한 번)
   2. PreToolUse(Bash)     `git commit` 이고 커밋될 diff 가 등급 임계 이상, 최근 검토 없음 → done 검토 권고
   3. Stop                 (기본 꺼짐, HARNESS_REVIEW_STOP=1) 커밋 안 된 diff 가 임계 이상, 최근 검토 없음 → done 검토 권고
   4. PreToolUse(ExitPlanMode) (기본 꺼짐, HARNESS_REVIEW_PLAN=deny|warn) high 등급에서 계획 검토 요구
   5. SubagentStop(qwreey-advisor:reviewer)  메인이 부른 리뷰어일 때만 검토 완료 시각을 기록 → 2·3 이 다시 울리지 않게
      (호출자는 track-reviewer.py 가 prompt 끝에 붙인 run 줄을 리뷰어 transcript 에서 읽는다. 줄이 없으면 main 으로 친다)
-'접근 확정 전'은 잴 수 없어서 메인 판단(CLAUDE.md, 스킬)에 맡긴다. 이 저장소들에서 ExitPlanMode 사용은 0회였다(audit/18 §1.4).
+'접근 확정 전'은 잴 수 없어서 메인 판단(CLAUDE.md, 스킬)에 맡긴다. 이 저장소들에서 ExitPlanMode 사용은 0회였다(.claude/audit/18 §1.4).
 
 설치: qwreey-advisor 플러그인의 hooks/hooks.json 이 등록한다. 공용 라이브러리(harness_env)와 harness.env 는
 $CLAUDE_CONFIG_DIR(기본 ~/.claude) 아래 claude-doctor 하네스의 것을 쓰고, 없으면 내장 기본값으로 돈다(등급 mid, 상태는 $TMPDIR).
 
 규칙
-  - 서브에이전트 안(agent_id 있음)에서는 아무것도 하지 않는다. 일꾼이 리뷰어를 또 띄우는 연쇄를 막는다($589 사고, audit/10 §2.2).
+  - 서브에이전트 안(agent_id 있음)에서는 아무것도 하지 않는다. 일꾼이 리뷰어를 또 띄우는 연쇄를 막는다($589 사고, .claude/audit/10 §2.2).
   - 등급: harness.env HARNESS_REVIEW_TIERS="quad=high stl-luau=high …" (저장소 이름 = git common dir 의 부모 이름). 없으면 HARNESS_REVIEW_DEFAULT(기본 mid).
     off 등급은 아무것도 하지 않는다.
   - 임계: HARNESS_REVIEW_LINES="high=40 mid=200 low=0" (추가+삭제 줄. 0 = 끔)

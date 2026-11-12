@@ -1,6 +1,6 @@
 # /q:start 온보딩 (q 플러그인)
 
-Claude Code 를 처음 쓰거나 잘 모르는 동료를 위한 온보딩 스킬이다(q 플러그인의 일부). 설계와 실측 기록은 `audit/20-onboarding.md`.
+Claude Code 를 처음 쓰거나 잘 모르는 동료를 위한 온보딩 스킬이다(q 플러그인의 일부). 설계와 실측 기록은 `.claude/audit/20-onboarding.md`.
 
 ## 쓰는 법
 Claude Code 에서 `/q:start` 를 입력한다. 다른 형태:

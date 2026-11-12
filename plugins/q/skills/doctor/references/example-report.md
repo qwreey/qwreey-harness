@@ -34,7 +34,7 @@
 
 **해석**
 - 다이어트가 겨냥한 항목(1 상시 로드, 4 낡음)은 정리 전에만 나오고 정리 후에는 사라진다. 검사가 구조 차이를 가려낸다.
-- 정리 후 쪽에서만 나오는 `RULE-DUP`은 다이어트가 남긴 숙제와 맞아떨어진다. `handoff/stl-luau.md`가 "초안은 아직 두 곳에 중복이 있다"고 적은 바로 그것이다.
+- 정리 후 쪽에서만 나오는 `RULE-DUP`은 다이어트가 남긴 숙제와 맞아떨어진다. `.claude/handoff/stl-luau.md`가 "초안은 아직 두 곳에 중복이 있다"고 적은 바로 그것이다.
   rules를 만든 저장소에서만 의미가 생기는 검사라는 점도 드러난다.
 - 6~8번은 다이어트 범위(`.claude` 문서) 밖이다. 그래서 두 저장소 모두 남아 있다. 저장소 고유 문제를 따로 잡는다는 뜻이다.
 
@@ -48,12 +48,12 @@ scan 결과는 후보다. 원문을 읽고 판정한 예를 든다.
 | `RULE-DUP` `docs.md:8 ↔ conventions.md:9` (0.66) | conventions 쪽은 "언어 규칙은 루트 CLAUDE.md '언어'"라는 포인터뿐이다 | **중복 아님** |
 | `RULE-DUP` `src-modules.md:17 ↔ conventions.md:31` (0.62) | conventions 쪽에 `At`·`IndexOf`·`CountBelow` 어휘가 더 있다 | **중복이자 누락**. 빠진 어휘를 rule로 옮기는 안도 낸다 |
 | `SKILL-SIDEFX` delegate-agy (`setpriv`) | 별도 uid로 agy를 띄우고 worktree를 만든다 | **판단이 갈림**. 사용자에게 묻는다(사용자 전용으로 할지) |
-| `TOOL-CLAIM` table-sim `mise.toml:3` | "핀은 형제(quad·tbox·stl-luau)와 같은 값"이라는데 stl은 0.742 / 1.70.1이다 | **참**(`decisions/README.md` 낡은 서술 목록과 같다). 이유 중심으로 다시 쓰는 안을 낸다 |
+| `TOOL-CLAIM` table-sim `mise.toml:3` | "핀은 형제(quad·tbox·stl-luau)와 같은 값"이라는데 stl은 0.742 / 1.70.1이다 | **참**(`.claude/base/decisions/README.md` 낡은 서술 목록과 같다). 이유 중심으로 다시 쓰는 안을 낸다 |
 | `LOAD-TODOS-DONE` table-sim | "된 것" 절 16,962 B | **D-07 질문**. 고치지 않는다 |
 | `DRIFT-HOOKDUP` table-sim | 사용자 레벨 heavy-proc-guard가 실제 `~/.claude`에 이미 등록돼 있다 | **고칠 안**: 프로젝트 settings의 hooks 항목을 걷는다(승인 필요). 훅 파일 삭제는 HUMAN_TODO로 |
 
 이 상태에서 stl-luau 계열은 세션이 있다(`SESSION-SIBLING`, 원본 stl-luau에서 pid 19344).
-그래서 고칠 안은 모두 `인계`로 분류하고 `handoff/stl-luau.md`에 덧붙인다.
+그래서 고칠 안은 모두 `인계`로 분류하고 `.claude/handoff/stl-luau.md`에 덧붙인다.
 
 ## table-sim scan 출력 (발췌)
 

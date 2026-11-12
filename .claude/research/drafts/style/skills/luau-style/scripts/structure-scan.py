@@ -4,7 +4,7 @@
 사용:
   python3 -I structure-scan.py /code/Projects/table-sim [다른 저장소 …] [--warn 800] [--hard 1500] [--flat 15] [--history 5] [--json]
 
-판정 기준과 근거: luau-style references/structure.md, claude-doctor audit/12-code-structure.md.
+판정 기준과 근거: luau-style references/structure.md, claude-doctor .claude/audit/12-code-structure.md.
 저장소 루트에 .claude/structure.json 이 있으면 그 값(warn, hard, flat, ignore 글롭 목록)이 기본값을 덮는다.
 
 쓰기 없음. git 은 log/show 만 쓴다(--history 를 줄 때만).

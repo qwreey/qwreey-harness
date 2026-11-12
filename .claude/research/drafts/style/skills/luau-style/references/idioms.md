@@ -22,7 +22,7 @@
 
 ## §1 `const` 와 `local`
 
-status: 갈린 규약 — `decisions/D-01`. 저장소 값은 `project-overrides.md`.
+status: 갈린 규약 — `.claude/base/decisions/D-01`. 저장소 값은 `project-overrides.md`.
 
 규칙:
 1. 그 파일의 관행을 따르고 한 파일 안에서 섞지 않는다.

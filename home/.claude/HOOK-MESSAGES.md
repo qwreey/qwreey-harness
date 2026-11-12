@@ -1,6 +1,6 @@
 # 훅 메시지 규약 (모델에게 들어가는 텍스트)
 
-MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기록 플러그인 등 새 훅도 이 규약을 따른다.
+MANIFEST 대상 아님. 근거 실측: `.claude/audit/17-hook-messages.md`. 세션 기록 플러그인 등 새 훅도 이 규약을 따른다.
 
 ## 규칙
 1. **영어, 짧게.** 모델이 읽고 행동을 바꾸는 텍스트(additionalContext, deny 사유)는 영어. 문서·주석·사용자 대상 안내는 한국어.
@@ -50,11 +50,11 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 | | away 중 메인 단독 작업: 예산 2배(2단계) → `halt:` 진척 기록 후 대기(같은 경로, 한 번. 강제 중단 없음) | action |
 | stale-work | (q 플러그인 `scripts/stale_work.py`) 백그라운드 작업(subagent, workflow. monitor 제외)이 진척 없이 15분+·관측 30분+: 멈췄거나 대기 중일 수 있다는 질문형 문구(UserPromptSubmit 으로 전달, (세션, task id, 상태)마다 한 번). 끄기 `HARNESS_Q_STALE=off` | warn |
 | | 같은 작업이 2시간+ 실행 중(진척 신호가 없거나 아직 있음) | info |
-| workspace-gate | (q 플러그인 `scripts/workspace_gate.py`, audit/31) 이 세션의 저장소가 아닌 `HARNESS_WORKSPACE/<X>` 에 쓰기(Edit·Write·MultiEdit·NotebookEdit, 쓰기로 분류된 Bash)를 q:workspace 스킬 로드 전에 시도 → deny(`Load the q:workspace skill (Skill tool), then retry`; 로드 표시는 세션·agent_id·compact 회차 단위). 예외는 통과, `HARNESS_WORKSPACE_GATE=off` 로 끔 | action |
+| workspace-gate | (q 플러그인 `scripts/workspace_gate.py`, .claude/audit/31) 이 세션의 저장소가 아닌 `HARNESS_WORKSPACE/<X>` 에 쓰기(Edit·Write·MultiEdit·NotebookEdit, 쓰기로 분류된 Bash)를 q:workspace 스킬 로드 전에 시도 → deny(`Load the q:workspace skill (Skill tool), then retry`; 로드 표시는 세션·agent_id·compact 회차 단위). 예외는 통과, `HARNESS_WORKSPACE_GATE=off` 로 끔 | action |
 | | 형제 저장소 읽기(Read·Grep·Glob, 그 밖의 Bash) → compact 회차마다 한 번 규칙과 스킬 포인터 | warn |
 | qwreey-conventions | (플러그인 `qwreey-conventions`. 예전 user-level `comment-hygiene` 훅을 대체한다. 같은 마이그레이션 0005 apply 에서 옛 훅을 빼고 플러그인을 켠다) 추가한 코드 주석 줄에 작업 이력·키보드로 치지 않는 문자·이스케이프·보이지 않는 문자·언어 불일치가 있거나, 모델용 문서 줄에 이력 표지가 있음. 파일·범주별 줄 번호와 글자·대체를 한 줄로(파일마다 범주당 회차당 한 번) | info |
 | qwreey-advisor | (플러그인 `qwreey-advisor`, 옛 이름 second-opinion) 임계 이상 커밋·같은 실패 2회·high 등급 계획 검토 알림. 이름이 바뀌어도 상태 경로(`claude-second-opinion`)는 기존 기록과 이어지게 그대로 둔다 | warn |
-|   (이중 구조) | 메인의 말 고지는 CLAUDE.md 가 2개부터, 훅 warn 은 4개부터다. 의도된 설계: 훅은 메인이 고지를 놓쳤을 때의 보강이라 일부러 더 늦게 울린다(둘 다 2면 warn 이 잦아 무뎌진다). `audit/21` §5-3 | - |
+|   (이중 구조) | 메인의 말 고지는 CLAUDE.md 가 2개부터, 훅 warn 은 4개부터다. 의도된 설계: 훅은 메인이 고지를 놓쳤을 때의 보강이라 일부러 더 늦게 울린다(둘 다 2면 warn 이 잦아 무뎌진다). `.claude/audit/21` §5-3 | - |
 | | away 중 허용된 Workflow(내부 동시성은 슬롯 밖) | warn |
 | session-log | (q 플러그인 `plugins/q/` 의 session-log 훅, `scripts/sllib/brief.py`) pending: 보관 위치(home) 있음 | info (commit 직전, 또는 `SESSION_LOG_PENDING_STRONG_*` 초과면 warn) |
 | | home 없음 + 쌓임(`SESSION_LOG_HOME_NUDGE_*`): 사용자에게 위치를 제안하라는 알림. action 은 쓰지 않는다(import 는 명령 하나) | warn |
@@ -69,7 +69,7 @@ MANIFEST 대상 아님. 근거 실측: `audit/17-hook-messages.md`. 세션 기�
 "세션당 한 번" 알림은 session_id 만 키로 쓰면 안 된다. `/compact` 는 session_id 를 유지하는데 요약 과정에서 이전 알림이 맥락에서 사라진다(실측).
 - 공용 모듈: `compact_epoch.py`. 플러그인마다 바이트 같은 사본을 두고(정본 `plugins/q/scripts/compact_epoch.py`, `tools/tests/test-vendored-copies.py` 가 비교) 각자 자기 회차를 갖는다: `$TMPDIR/claude-<플러그인>-epoch/<sid>`. 다른 플러그인·사용자 설정의 훅과 회차를 공유하지 않는다.
   - `state_path(plugin, namespace, session_id, agent_id=None)` → `$TMPDIR/<namespace>/<sid>.c<회차>[.a<agent_id>].json`. 디렉터리도 만든다.
-  - 서브에이전트 안의 훅도 부모의 session_id 를 받는다. 입력의 `agent_id` 를 꼭 넘겨야 서브에이전트가 메인의 "한 번" 알림을 쓰지 않는다(`audit/21` §5-6).
+  - 서브에이전트 안의 훅도 부모의 session_id 를 받는다. 입력의 `agent_id` 를 꼭 넘겨야 서브에이전트가 메인의 "한 번" 알림을 쓰지 않는다(`.claude/audit/21` §5-6).
   - `epoch(plugin, session_id)`, `bump(plugin, session_id)`.
 - 회차는 PreCompact(manual·auto)에서 올린다. 같은 이벤트의 훅은 병렬이라 순서가 없는데, PreCompact 는 SessionStart(compact)·PostCompact 보다 먼저라 읽는 훅이 항상 올라간 값을 본다. 훅이 따로 없는 플러그인은 `python3 -I compact_epoch.py <플러그인>` 을 PreCompact 에 등록한다. 실측: compact 때 PreCompact → SessionStart(source=compact) → PostCompact 가 모두 불리고 session_id 는 같다.
 - 사용(플러그인 훅 디렉터리의 사본을 import):

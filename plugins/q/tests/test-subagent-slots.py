@@ -292,7 +292,7 @@ hook(dict(session_id="main", transcript_path=sub_tp, cwd=PROJ, agent_id="z", hoo
           tool_use_id="nested", tool_input={"model": "sonnet"}))
 check("nested spawn inside a subagent does not move the main offset", m.state()["main"]["off"] == os.path.getsize(m.tp))
 
-# ---- 한도 % 예산 + 2단계 (사용자 결정 2026-11-10, audit/21 §5) ----
+# ---- 한도 % 예산 + 2단계 (사용자 결정 2026-11-10, .claude/audit/21 §5) ----
 SL = os.path.join(HOME, "statusline", "harness-status.py")
 
 

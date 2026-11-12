@@ -4,7 +4,7 @@
 막지 않는다(decision 없음). additionalContext(level=warn)만 주입한다.
 
 왜: auto memory(~/.claude/projects/<키>/memory/)는 이 컴퓨터에만 있다. 저장소에 실려야 할 지식(경로, 빌드·테스트 명령, 규약, 함정)이
-  메모리에만 들어가면 다른 clone·다른 기기·동료에게 가지 않고, 폴더를 옮기면 키가 바뀌어 끊긴다(audit/23).
+  메모리에만 들어가면 다른 clone·다른 기기·동료에게 가지 않고, 폴더를 옮기면 키가 바뀌어 끊긴다(.claude/audit/23).
 실측(2.1.316): 메모리 쓰기는 일반 Write 도구라 이 훅이 file_path 를 받는다. MEMORY.md 도 Write 로 쓰인다.
 동작: file_path 가 auto memory 디렉터리 안(기본 <config>/projects/*/memory/ 또는 autoMemoryDirectory)일 때만, MEMORY.md 가 아닌 파일의
   디스크 내용을 memory_signals.py 로 분류한다. type: user 는 항상 조용하다. 환경 표현(sandbox, 이 기기 등)은 점수를 깎는다.

@@ -8,7 +8,7 @@
 #   note  : 사람용 메모
 # 새 저장소는 `delegate.sh register <root>` 로 다음 빈 uid 를 받는다. 손으로 고칠 때는 돌고 있는 위임이 없을 때.
 #
-# [2026-11-10] tbox 를 61000 → 61003 으로 옮겼다(quad 와 충돌하던 것, audit/04 §1). 61000 소유로 남은
+# [2026-11-10] tbox 를 61000 → 61003 으로 옮겼다(quad 와 충돌하던 것, .claude/audit/04 §1). 61000 소유로 남은
 #              옛 tbox-agy/.home 은 migration.md 의 정리 단계에서 지운다.
 quad	/code/Projects/quad	61000	timeout 300 mise exec -- pesde install	quad-codex 의 codex 기록도 61000
 stl-luau	/code/Projects/stl-luau	61001	-

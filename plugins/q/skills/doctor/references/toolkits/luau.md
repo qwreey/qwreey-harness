@@ -1,7 +1,7 @@
 # 툴킷 luau (Luau/Roblox)
 
 검사 모듈: `scripts/toolkits/luau.py`. 공유 지식 저장소: luau-kb(`<작업공간>/luau-kb`, `--kb`로 바꿈).
-갈린 규약의 합의안은 `<doctor>/decisions/D-xx`다(`decisions/README.md` 현황표가 확정 여부의 정본).
+갈린 규약의 합의안은 `<doctor>/decisions/D-xx`다(`.claude/base/decisions/README.md` 현황표가 확정 여부의 정본).
 
 ## 목차
 - [감지 표식](#감지-표식)
@@ -88,7 +88,7 @@
 ## 걸린 결정 (D-xx)
 
 이 툴킷의 scan 코드나 발견이 아래 D-xx에 걸리면 한쪽으로 고치지 않고 묻는다(`fix-protocol.md#규약이-갈리는-항목`).
-상태는 `decisions/README.md` "사용자 결정 현황"을 먼저 본다. 확정된 것은 그 결정대로 고칠 안을 낸다.
+상태는 `.claude/base/decisions/README.md` "사용자 결정 현황"을 먼저 본다. 확정된 것은 그 결정대로 고칠 안을 낸다.
 
 | scan 코드나 발견 | D-xx |
 |---|---|

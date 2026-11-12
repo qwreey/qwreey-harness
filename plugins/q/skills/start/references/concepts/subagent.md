@@ -43,4 +43,4 @@
 ## 근거
 - 공식: code.claude.com/docs/en/sub-agents (자기 컨텍스트, 같은 사용량 한도, 내장 Explore/Plan, 결과가 메인 컨텍스트를 채울 수 있음)
 - 공식: code.claude.com/docs/en/costs ("Delegate verbose operations to subagents", "Subagents and workflows")
-- 사례: claude-doctor audit/19-external/00-synthesis §1-2 (서브에이전트 비용 사고와 대응)
+- 사례: claude-doctor .claude/audit/19-external/00-synthesis §1-2 (서브에이전트 비용 사고와 대응)

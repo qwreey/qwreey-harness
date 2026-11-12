@@ -88,7 +88,7 @@ def parse(out: str) -> tuple[str, list[str], str]:
 
 
 def estimate_cost(chars: int, model: str) -> float:
-    """사전 비용 추정(상한 쪽). audit/15 §3.3: haiku 약 $0.24/1M자 + 호출당 오버헤드. sonnet 은 약 13배."""
+    """사전 비용 추정(상한 쪽). .claude/audit/15 §3.3: haiku 약 $0.24/1M자 + 호출당 오버헤드. sonnet 은 약 13배."""
     per_char = 0.24e-6 if "haiku" in model else 3.1e-6
     overhead = 0.004 if "haiku" in model else 0.02
     return chars * per_char * 1.5 + overhead

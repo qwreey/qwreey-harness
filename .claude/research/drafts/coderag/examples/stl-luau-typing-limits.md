@@ -60,7 +60,7 @@ summary: 유니온 갈래가 인자와 **같은 별칭**이어야 T 가 풀린�
 ## 팬텀·표식의 모양 — quad 의 Ref 마커와 대조 (2026-11-06)
 id: phantom-shape · since: 2026-11-06 · evidence: verified · last-confirmed: luau 0.742 · category: luau/types/variance · see: section references.variance.3-값-팬텀의-nil-구멍 in "pack:luau-kb/luau-types"
 
-근거 `audit/quad-types-2026-11-06/`(quad `typing-limits.md` 8.11·8.36·8.41·8.42 와 대조, luau-analyze 0.742).
+근거 `.claude/audit/quad-types-2026-11-06/`(quad `typing-limits.md` 8.11·8.36·8.41·8.42 와 대조, luau-analyze 0.742).
 (…)
 
 ## ⚠️ 원소가 유니온인 컨테이너 — `self` 를 전체형으로 받으면 무너진다 (2026-09-26)

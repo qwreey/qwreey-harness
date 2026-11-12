@@ -15,7 +15,7 @@
 | 분류 | 기준 | 처리 |
 |---|---|---|
 | 메모리 유지 | 사용자 성향·피드백, 이 기기·sandbox·개발 서버 환경 | 그대로 |
-| 저장소로 | 그 저장소의 규약·결정·함정·빌드 방법·파일 소유 | CLAUDE.md / `.claude/rules` / docs 로 옮기는 안 → 승인 후 그 저장소에서. 상주 세션이 있으면 `handoff/memory-<repo>.md` |
+| 저장소로 | 그 저장소의 규약·결정·함정·빌드 방법·파일 소유 | CLAUDE.md / `.claude/rules` / docs 로 옮기는 안 → 승인 후 그 저장소에서. 상주 세션이 있으면 `.claude/handoff/memory-<repo>.md` |
 | pack 으로 | 툴킷 일반 지식(Luau 함정, Roblox 동작) | luau-kb 같은 pack 에 제안 |
 | 회사 지식 | 팀이 같이 알아야 할 것 | coderag team 계층(설계 중) |
 | 낡음 | 날짜가 지났거나 저장소와 모순 | 지우자고 제안(삭제는 사용자) |

@@ -49,7 +49,7 @@ claude-doctor 의 harness-doctor 가 <날짜>에 이 저장소를 진단했습�
 - `python3 -I <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py <경로> --only <항목>` 에서 해당 코드가 사라지는지
 - 다 끝나면 사용자에게 알려 주세요.
 ```
-인계 문서를 만들었으면 `<doctor>/HUMAN_TODO.md` "다른 세션에 넘길 것" 절에 "<repo> 세션에 `handoff/<repo>.md` 전달" 항목을 더한다.
+인계 문서를 만들었으면 `<doctor>/HUMAN_TODO.md` "다른 세션에 넘길 것" 절에 "<repo> 세션에 `.claude/handoff/<repo>.md` 전달" 항목을 더한다.
 
 ## 삭제가 필요할 때
 
@@ -65,7 +65,7 @@ claude-doctor 의 harness-doctor 가 <날짜>에 이 저장소를 진단했습�
 
 ## 규약이 갈리는 항목
 
-`<doctor>/decisions/D-xx`가 걸린 항목은 한쪽으로 고치지 않는다. 확정 여부는 `decisions/README.md`의 "사용자 결정 현황" 표가 정본이다.
+`<doctor>/decisions/D-xx`가 걸린 항목은 한쪽으로 고치지 않는다. 확정 여부는 `.claude/base/decisions/README.md`의 "사용자 결정 현황" 표가 정본이다.
 확정된 결정은 그 내용대로 고칠 안을 내고, 미확인·수정 중인 결정만 묻는다.
 
 코어(언어 무관) 결정:
@@ -100,7 +100,7 @@ claude-doctor 의 harness-doctor 가 <날짜>에 이 저장소를 진단했습�
 1. scan을 그 항목만 다시 돌린다(`--only N`). 해당 코드가 사라졌는지 확인한다.
 2. 상시 로드량이 바뀌었으면 전후 B/줄을 보고한다.
 3. rules를 바꿨으면 실제로 로드되는지 확인한다.
-   - 방법: `claude -p`로 그 rule의 paths에 맞는 파일을 한 번 Read하게 하고, 컨텍스트에 보이는 rule 파일 이름을 인용하게 한다(`audit/07` §1).
+   - 방법: `claude -p`로 그 rule의 paths에 맞는 파일을 한 번 Read하게 하고, 컨텍스트에 보이는 rule 파일 이름을 인용하게 한다(`.claude/audit/07` §1).
    - 모델은 sonnet 이상을 쓴다. haiku 결과로는 결론 내지 않는다.
 4. 스킬을 바꿨으면 `claude plugin validate <스킬 디렉터리의 상위>`로 형식을 확인한다.
 5. 커밋은 사용자가 요청할 때만 한다. 고친 파일 목록과 diff 요지를 보고한다.

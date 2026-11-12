@@ -75,7 +75,7 @@ aliases = ["solver", "솔버", "new solver", "새 솔버", "LuauSolverV2", "old 
 [category."luau/types/design"]
 label = "타입 표면 설계 원칙"
 aliases = ["API 설계", "타입 설계", "입력 자리", "출력 자리", "over-engineering", "오버엔지니어링"]
-# ← variance.md §8, luau-types SKILL "먼저 지킬 원칙" 3. claude-doctor audit/10 §6.1 의 라이브러리 설계 원칙(luau-design 후보)
+# ← variance.md §8, luau-types SKILL "먼저 지킬 원칙" 3. claude-doctor .claude/audit/10 §6.1 의 라이브러리 설계 원칙(luau-design 후보)
 
 # ── luau/verify ← skills/luau-verify
 [category."luau/verify"]
@@ -132,7 +132,7 @@ aliases = ["stylua", "formatter", "포맷", "D-02"]
 [category."luau/tooling/packages"]
 label = "패키지 관리자(pesde, wally)"
 aliases = ["pesde", "wally", "packages", "패키지"]
-# ← luau-style modules.md §4. 원천: audit/10 §3 "pesde + mise 툴링"
+# ← luau-style modules.md §4. 원천: .claude/audit/10 §3 "pesde + mise 툴링"
 
 # ── luau/style ← skills/luau-style (작성 중)
 [category."luau/style"]
@@ -484,7 +484,7 @@ skill = "roblox-net"
 
 # ─────────────────────────────────────────────────────────────── harness (에이전트 하네스)
 # luau-kb 의 지식이 아니다. claude-doctor(사용자 레벨)의 어휘 후보로 함께 적는다 — D13-6.
-# 근거: claude-doctor audit/10 §0 패턴 A–G, §8.
+# 근거: claude-doctor .claude/audit/10 §0 패턴 A–G, §8.
 
 [category."harness"]
 label = "에이전트 하네스(Claude Code·Gemini·Codex)"

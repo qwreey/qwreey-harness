@@ -1,6 +1,6 @@
 # qwreey-conventions
 
-코드 주석과 모델이 읽는 문서의 관례. 스킬 둘이 "어떻게 쓰나"를 담고, 훅이 방금 추가한 줄이 벗어난 것 같으면 한 줄로 알린다(막지 않는다). 규칙 파일(`rules/*.md`)은 `paths:` 가 맞는 파일을 열 때 훅이 주입하므로(공식 `.claude/rules` 와 같은 효과, 플러그인은 rules 를 실을 수 없어서) 핵심 몇 줄만 두고 스킬을 가리킨다. 근거는 claude-doctor `audit/26-doc-hygiene-debate/`.
+코드 주석과 모델이 읽는 문서의 관례. 스킬 둘이 "어떻게 쓰나"를 담고, 훅이 방금 추가한 줄이 벗어난 것 같으면 한 줄로 알린다(막지 않는다). 규칙 파일(`rules/*.md`)은 `paths:` 가 맞는 파일을 열 때 훅이 주입하므로(공식 `.claude/rules` 와 같은 효과, 플러그인은 rules 를 실을 수 없어서) 핵심 몇 줄만 두고 스킬을 가리킨다. 근거는 claude-doctor `.claude/audit/26-doc-hygiene-debate/`.
 
 | 구성 | 이름 | 하는 일 |
 |---|---|---|

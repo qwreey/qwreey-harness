@@ -1,6 +1,6 @@
 # claude-doctor: /code/Projects 하네스 재구성 계획
 
-2026-11-10 작성. 근거는 `audit/01`~`06`에 있다. 수치는 감사 에이전트 보고에서 가져왔고, 그중 `(검)` 표시는 메인 세션이 직접 재확인한 것이다.
+2026-11-10 작성. 근거는 `.claude/audit/01`~`06`에 있다. 수치는 감사 에이전트 보고에서 가져왔고, 그중 `(검)` 표시는 메인 세션이 직접 재확인한 것이다.
 
 ## 0. 진단 한 줄
 
@@ -14,7 +14,7 @@
 
 ```
 ① 사용자 레벨 ~/.claude/           모든 세션, 항상 또는 조건부
-   CLAUDE.md          ≤40줄 목표(실제는 약 50줄, 약 3.4k 토큰. 상시 로드 예산은 audit/29 판결): 형제 저장소 지도(무엇이 어디 있나, 읽기 전용 원칙,
+   CLAUDE.md          ≤40줄 목표(실제는 약 50줄, 약 3.4k 토큰. 상시 로드 예산은 .claude/audit/29 판결): 형제 저장소 지도(무엇이 어디 있나, 읽기 전용 원칙,
                       -agy/-scratch/-codex 정의), 공통 작업 원칙
    rules/luau-*.md    paths: ["**/*.luau"] → Luau 파일을 다룰 때만 로드 (공통 코드 규약)
    settings.json      공통 deny(git push, Read(.env*)), heavy-proc-guard 훅
@@ -82,7 +82,7 @@
 ## 3.5 2026-11-10 사용자 결정과 실측 사항
 
 - **공유 방식**: luau-kb는 플러그인 구조로 만든다. 소비는 당장 `~/.claude/skills` 심볼릭 링크로 한다.
-- **규약 충돌**: 통일하지 않고 **합의안**을 찾는다. 항목별로 `decisions/D-xx`를 쓰고 사용자 확인을 받는다.
+- **규약 충돌**: 통일하지 않고 **합의안**을 찾는다. 항목별로 `.claude/base/decisions/D-xx`를 쓰고 사용자 확인을 받는다.
 - **규칙의 3단 분담**
   - 네이밍, 품질, 관용 규칙은 스킬로 옮기되, 짧은 필수 규칙은 `rules`에 `paths: ["**/*.luau"]`를 붙여 둔다.
   - rules 자동 로드 실측 결과
@@ -113,7 +113,7 @@
   - rbvm과 table-sim의 프로젝트 settings에도 `git push` deny가 있다. 정리할지는 사용자가 판단한다.
 - `~/.claude/CLAUDE.md`: 형제 저장소 지도, 읽기 전용 원칙, mise shim 우회법, choom 규칙을 담았다. 처음에는 30줄 이내였으나 지금은 약 50줄(약 3.4k 토큰)이다.
 - 남은 일: `~/.claude/rules/luau-core.md`는 합의안이 나온 뒤에 둔다. (그 밖의 사용자 레벨 rules 5개 comments·agent-docs·code-structure·memory·web-security 는 `plugins/qwreey-conventions/rules/` 로 옮겨 훅 `rules_inject.py` 가 주입한다.)
-- `~/.claude/hooks/bash-bypass-reminder.py`: PreToolUse(Bash)에 붙는 리마인더 훅. 정본은 지금 `plugins/qwreey-conventions/hooks/` 이다(user-level 훅은 모두 플러그인으로 옮겼다. `drafts/hooks/` 는 옛 초안이라 갱신하지 않는다).
+- `~/.claude/hooks/bash-bypass-reminder.py`: PreToolUse(Bash)에 붙는 리마인더 훅. 정본은 지금 `plugins/qwreey-conventions/hooks/` 이다(user-level 훅은 모두 플러그인으로 옮겼다. `.claude/research/drafts/hooks/` 는 옛 초안이라 갱신하지 않는다).
   - 동작: 인터프리터 실행, sed -i, 리다이렉트처럼 파일 도구를 우회하는 명령을 만나면 `additionalContext`로 알린다. 명령에 나온 경로에 해당하는 rules 파일 이름도 함께 짚는다. 같은 알림은 세션당 1회만 낸다. 실행을 막지는 않는다.
   - 실측 (haiku, 규칙을 언급하지 않은 과제)
     - 훅 없음: `--!strict` 준수 0/2
@@ -123,15 +123,15 @@
 ## 3.6 지식 채굴 → 증류 (2026-11-10 진행 중)
 
 1. **채굴**: 읽기 전용이고, 결과를 같은 후보표 형식으로 맞춘다.
-   - `audit/08` quad 기록
-   - `audit/09` 그 밖의 저장소(stl perf 포함)
-   - `audit/10` 하네스 사용 흔적(history와 auto memory)
-   - `audit/11` + `drafts/gaps/` 공백 신규 조사
+   - `.claude/audit/08` quad 기록
+   - `.claude/audit/09` 그 밖의 저장소(stl perf 포함)
+   - `.claude/audit/10` 하네스 사용 흔적(history와 auto memory)
+   - `.claude/audit/11` + `.claude/research/drafts/gaps/` 공백 신규 조사
 2. **선행 작업**(진행 중)
    - type function 집대성: luau-types
    - roblox-luau 스킬과 LSP DX 검사
 3. **증류**: 타입 함수 작업이 끝난 뒤 시작한다. 후보표를 합치고 중복과 모순을 판정한 다음 luau-kb 스킬로 옮긴다.
-   - 옮길 스킬: luau-perf, luau-style(drafts/style에서 이동), luau-testing, roblox-luau 보강
+   - 옮길 스킬: luau-perf, luau-style(.claude/research/drafts/style에서 이동), luau-testing, roblox-luau 보강
    - 모순 항목은 decisions에 올린다.
 
 ## 3.7 coderag 확장 (2026-11-10 승인, 설계 a1b309f 의 결정 49개 추천안 전부 확정, 구현 M1~ 진행)
@@ -147,27 +147,27 @@
 
 ## 3.8 설계 원칙 (사용자 결정, 2026-11-10~11)
 
-메모리에만 있던 원칙을 옮긴 것이다(audit/23, 메모리는 저장소와 동료에게 따라가지 않는다). 지금 사실로 고쳐 썼다.
+메모리에만 있던 원칙을 옮긴 것이다(.claude/audit/23, 메모리는 저장소와 동료에게 따라가지 않는다). 지금 사실로 고쳐 썼다.
 
-- **규약 충돌은 한쪽으로 통일하지 않는다.** 대상은 const, stylua, 러너, 타입 함수, luau 버전 등이다. 항목마다 근거를 붙인 합의안을 `decisions/D-xx` 로 만들고 사용자 확인을 받는다. 정책이 갈리면 선택지와 근거를 제시한다.
+- **규약 충돌은 한쪽으로 통일하지 않는다.** 대상은 const, stylua, 러너, 타입 함수, luau 버전 등이다. 항목마다 근거를 붙인 합의안을 `.claude/base/decisions/D-xx` 로 만들고 사용자 확인을 받는다. 정책이 갈리면 선택지와 근거를 제시한다.
 - **짧은 필수 규칙은 rules, 상세는 스킬에 둔다.** rules 는 `paths:` 로 범위를 정한다. 파일을 Read/Write 할 때 로드되고, grep 으로는 로드되지 않는다. 사용자 레벨 rules 로드는 apply 뒤 실측으로 확인했다(2026-11-11). 감사 에이전트는 관점별로 나누고 스킬을 프리로드한다.
 - **툴킷 무관.** 하네스는 Roblox/Luau 전용이 아니다. 공통 코어에 툴킷별 자리(luau, web …)를 두고, 툴킷은 감지 표식(mise.toml, package.json …)으로 고른다. 경로는 harness.env 변수로 빼서 다른 sandbox 로 옮길 수 있게 한다. 근거: `.claude` 를 제어하지 못해 실패한 예전 경험.
 - **공유와 배포는 플러그인으로 한다.**
   - luau-kb 는 툴킷 pack 플러그인으로, Luau 저장소에서만 켠다.
   - 사람이 치는 명령은 짧은 이름공간 `q` 에 모은다(`/q:start`·`doctor`·`away`·`back`·`checkpoint`·`import`).
   - 모델이 부르는 qwreey-advisor 는 별도 플러그인이다.
-  - rules 와 CLAUDE.md 파일은 플러그인에 담을 수 없으므로 home-sync 로 반영한다(개인 정책·환경 지도). 이식 가능한 상시 규약은 플러그인 SessionStart·SubagentStart 훅의 additionalContext 로 실을 수 있다(audit/32): q 의 훅 메시지·workspace 규약, qwreey-advisor 의 자기 점검 한 줄. 경로 조건부 로드(paths)는 대체재가 없다. settings 는 마이그레이션으로 반영한다.
+  - rules 와 CLAUDE.md 파일은 플러그인에 담을 수 없으므로 home-sync 로 반영한다(개인 정책·환경 지도). 이식 가능한 상시 규약은 플러그인 SessionStart·SubagentStart 훅의 additionalContext 로 실을 수 있다(.claude/audit/32): q 의 훅 메시지·workspace 규약, qwreey-advisor 의 자기 점검 한 줄. 경로 조건부 로드(paths)는 대체재가 없다. settings 는 마이그레이션으로 반영한다.
 - **비용은 막지 않고 알리고 줄 세운다.** 근거(사용자): "강제라면 위임해 두고 갔는데 멈춰 버려 오히려 손해", "전체 예산을 한계치로 두고 하나가 끝나면 다음을 돌리는 게 실제로 좋더라", "작은 패스를 여러 번 하는 게 토큰이 덜 든다".
   - 사용자가 있을 때는 팬아웃 전에 고지한다(말은 2개부터, 훅 warn 은 4개부터).
   - away 상태에서는 예산 상한과 슬롯으로 직렬화한다. 2배를 넘으면 기록하고 기다린다.
   - 예산 단위는 요금제에 맞춘다(USD 또는 한도 %).
-  - 구현: CLAUDE.md "모델 사용과 서브에이전트 비용", `plugins/q/scripts/subagent-slots.py`, audit/21.
-- **second opinion:** 내장 advisor 도구는 사용자가 요청할 때만 쓴다. 근거(사용자): 가격 대비 효용이 diff 기반 리뷰보다 너무 낮다. 흐름 검토는 `qwreey-advisor:inherit-advisor`(fork + 표지를 훅이 후행 프롬프트로 펼침), diff 검토는 `qwreey-advisor:fresh-advisor` 로 한다. 근거 실험은 audit/18 §9·§11·§12.
-- **사용자 가시성도 개선 대상이다.** statusline, 테마, 응답 형식이 해당한다. 주관적이므로 설치는 묻고, 켜고 끌 수 있게 둔다(audit/22).
+  - 구현: CLAUDE.md "모델 사용과 서브에이전트 비용", `plugins/q/scripts/subagent-slots.py`, .claude/audit/21.
+- **second opinion:** 내장 advisor 도구는 사용자가 요청할 때만 쓴다. 근거(사용자): 가격 대비 효용이 diff 기반 리뷰보다 너무 낮다. 흐름 검토는 `qwreey-advisor:inherit-advisor`(fork + 표지를 훅이 후행 프롬프트로 펼침), diff 검토는 `qwreey-advisor:fresh-advisor` 로 한다. 근거 실험은 .claude/audit/18 §9·§11·§12.
+- **사용자 가시성도 개선 대상이다.** statusline, 테마, 응답 형식이 해당한다. 주관적이므로 설치는 묻고, 켜고 끌 수 있게 둔다(.claude/audit/22).
 
 ## 3.9 저장소 구조와 에이전트 기록 체계 (큰 틀 합의 2026-11-12, 세부는 토론 뒤 확정)
 
-근거 조사: audit/36(형제 저장소 `.claude/` 공통 패턴, 옮길 때 깨지는 곳). 사용자: "큰 틀 동의하고 토론 해보는것도 동의".
+근거 조사: .claude/audit/36(형제 저장소 `.claude/` 공통 패턴, 옮길 때 깨지는 곳). 사용자: "큰 틀 동의하고 토론 해보는것도 동의".
 
 - **이 저장소의 성격.** 사용자의 Claude 관련 지식과 플러그인을 모으는 저장소다("claude conf 같은 느낌…결국 내 오피니언임"). 나중에 공개할 수 있다.
 - **층을 나눈다.**
@@ -184,13 +184,13 @@
   - coderag 가 없을 때도 기록은 평범한 markdown 으로 읽혀야 한다.
 - **claude-doctor `.claude/` 재편은 coderag 로 구조화하는 실험으로 한다.** 사용자: "git이 있어서 실패하더라도 잃는건 없을거니까".
 - **순서.**
-  1. coderag 적합성 조사(audit/37)와 heavy-proc-guard 오탐 수정.
+  1. coderag 적합성 조사(.claude/audit/37)와 heavy-proc-guard 오탐 수정.
   2. 실측: 스킬 `paths`, `defaultEnabled`.
   3. 기록 규약 토론(opus 2개, 2라운드). 문구와 자동화 수준, coderag 결합 방식을 정한다.
   4. 재편 실험: 파일만 옮기는 커밋, 그다음 링크를 기계적으로 바꾸는 커밋.
   5. `packs/` 로 web-security 를 옮기고 luau-kb 를 이력째 가져온다(마이그레이션과 프로젝트별 켜기 안내 포함).
   6. 자동화: 규약 스킬, doctor 검사, 커밋할 때 info 알림, `q:start` 의 `.claude/` 뼈대 템플릿.
-- **기록 규약 토론 결과(audit/38 synthesis)에 대한 사용자 답.** "추천대로 할게", "저장소 변경은 승인".
+- **기록 규약 토론 결과(.claude/audit/38 synthesis)에 대한 사용자 답.** "추천대로 할게", "저장소 변경은 승인".
   - coderag 저장소 변경을 승인했다. coderag 에는 따로 세션이 없으므로 이 세션이 서브에이전트로 맡는다. 1단계는 C1, C2, C6 이다.
   - coderag 를 쓰는 형태: 먼저 바이너리 경로(harness.env `HARNESS_CODERAG`)로 시작하고, 실험을 본 뒤 사용자 설치에서 플러그인을 켠다. 최종적으로는 빌드된 바이너리를 배포한다. 사용자: "github release 로 실어서 넣고, 내가 gpg 사이닝을 더할게.(sandbox 바깥에서)". claude-doctor 에는 받기·서명 확인·없으면 소스 빌드를 하는 스크립트를 둔다.
   - 소급: 새 저장소와 claude-doctor 에만 적용한다. 형제 저장소의 옛 형태는 검사기가 인정만 한다.
@@ -208,5 +208,5 @@
    - 툴체인 pin: luau 0.734 vs 0.742
 3. 다른 프로젝트 수정 범위 (quad는 다른 세션이 활발히 수정 중)
 4. 미검증 서술의 처리 (예: tbox stylua `f<<T>>` 오염 경고는 재현 실패)
-5. 영어 지시가 늘면 모델이 사용자 언어를 잊고 영어로 답하는 문제(audit/31 남은 과제). 후보: 상시 본문 끝에 사용자 언어를 다시 적기, 응답 언어를 확인하는 훅. 정할 때 실측으로 판단한다.
-6. home-canon-guard 훅(정본 대신 `~/.claude` 를 직접 고치는 것 차단)과 worktree-guard 훅(lock·살아 있는 세션 확인 없는 worktree 삭제 차단). 생기면 사용자 CLAUDE.md 의 해당 상시 줄을 뺀다(audit/31).
+5. 영어 지시가 늘면 모델이 사용자 언어를 잊고 영어로 답하는 문제(.claude/audit/31 남은 과제). 후보: 상시 본문 끝에 사용자 언어를 다시 적기, 응답 언어를 확인하는 훅. 정할 때 실측으로 판단한다.
+6. home-canon-guard 훅(정본 대신 `~/.claude` 를 직접 고치는 것 차단)과 worktree-guard 훅(lock·살아 있는 세션 확인 없는 worktree 삭제 차단). 생기면 사용자 CLAUDE.md 의 해당 상시 줄을 뺀다(.claude/audit/31).

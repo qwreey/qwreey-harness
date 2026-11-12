@@ -13,8 +13,8 @@ disable-model-invocation: true
 
 | 형식 | 사례 | 무엇이 좋았나 / 무엇이 문제였나 |
 |---|---|---|
-| (A) 같은 질문을 따로 묻고 메인이 표로 대조 | quad `audit/naming-*-2026-10-15~11-06` (sonnet·luna·Gemini) | 싸고 빠르다. 갈린 항목은 반박이 없어 갈린 채로 남는다. 두 모델이 `asState`로 수렴했지만 메인이 반증한 일이 있다(`naming-marker-helper-2026-11-06/README.md:12-18`). |
-| (B) 진영을 정한 입장 → 반박 → 판정 | stl-luau `research/trait-debate/` (2026-10-14), quad `audit/naming-table-review-2026-10-16/` | 반박 중에 새 안(D3)이 나왔고, 따로 판정한 두 판정자가 같은 안을 골랐다. 판정자가 직접 프로브를 돌렸다. |
+| (A) 같은 질문을 따로 묻고 메인이 표로 대조 | quad `.claude/audit/naming-*-2026-10-15~11-06` (sonnet·luna·Gemini) | 싸고 빠르다. 갈린 항목은 반박이 없어 갈린 채로 남는다. 두 모델이 `asState`로 수렴했지만 메인이 반증한 일이 있다(`naming-marker-helper-2026-11-06/README.md:12-18`). |
+| (B) 진영을 정한 입장 → 반박 → 판정 | stl-luau `research/trait-debate/` (2026-10-14), quad `.claude/audit/naming-table-review-2026-10-16/` | 반박 중에 새 안(D3)이 나왔고, 따로 판정한 두 판정자가 같은 안을 골랐다. 판정자가 직접 프로브를 돌렸다. |
 | (C) 독립 리뷰 → 진행자가 걸러 후보 목록 → 찬반 라운드 → 판정 | quad `qa-request/code-quality-review-round15.md` | Gemini가 토론 중 자기 신설 제안을 철회했고, 진행자의 줄 번호 오기를 바로잡았다(§1). §6에서는 독립 패스를 원장을 보기 **전에** 돌려 앵커링을 피했다. |
 
 이 스킬은 (A)의 1라운드에 (B)·(C)의 반박 라운드와 실측 판정을 붙인 꼴이다. 모델 간 합의만으로는 결론을 내리지 않는다.

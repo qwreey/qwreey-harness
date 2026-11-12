@@ -7,7 +7,7 @@
 
 파일 3,352줄 가운데 2,800줄이 `build(q)` → `Manager.new()` **한 함수의 본문**이다. 그 안에 지역 함수 83개, 지역 상태 20여 개(`order`·`known`·`live`·`pending`·`units`·`quiet`…), 공개 메서드 표(`ExportLayout`·`ImportLayout`·`Register` 등 6개, 표 생성자 안의 `Name = function`)가 있다. 계획기는 이것을 알아보고 `new` 안으로 내려가 분석했다.
 
-## 사람 분석과의 비교 (audit/12 §2.2: "창 관리, 도킹 배치, 분할, 탭, 저장")
+## 사람 분석과의 비교 (.claude/audit/12 §2.2: "창 관리, 도킹 배치, 분할, 탭, 저장")
 
 | 사람 | 계획기 | 판정 |
 |---|---|---|

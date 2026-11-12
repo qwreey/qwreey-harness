@@ -4,7 +4,7 @@
 - `quad`, `stl-luau`, `tbox`, `table-sim`의 `.claude/tools/agy-delegate.sh`와 `skills/delegate-agy/SKILL.md`(4벌, diff로 대조)
 - `quad-codex/*`와 quad 메모리 `reference-codex-delegation.md`
 - stl-luau 메모리 `agy-budget-generous.md`, `agy-is-second-opinion.md`
-- `audit/03` §3·§5, `audit/04` §1·§3.2·§9
+- `.claude/audit/03` §3·§5, `.claude/audit/04` §1·§3.2·§9
 - agy 내장 문서 `agy-customizations/docs/rules.md`
 
 | 파일 | 내용 |
@@ -31,7 +31,7 @@
    - 지금 쌓인 양(2026-11-10 실측): quad-agy `.home` 117M, stl-luau-agy `.home` 260M, tbox-agy `.home` 228M, quad-codex `.home` 31M, quad-agy 옛 worktree 83M. **대부분이 공유 HOME에 쌓인 agy 대화·brain 기록이다.** 과제마다 HOME을 두고 remove가 지우면 다시 쌓이지 않는다.
 3. **기록은 저장소 밖 `runs/`에, 근거는 저장소 안에.**
    - collect가 `<작업공간>/runs/<날짜>-<이름>/{prompt,report,guard,stdout,meta,diff.patch}`를 남긴다. quad-codex의 prompt/answer/stdout 3종을 일반화한 것이다.
-   - 근거로 인용할 보고서는 메인이 검증 머리를 붙여 프로젝트 `.claude/audit/<backend>/`로 옮긴다. 저장소 밖 경로를 근거로 인용하지 않는다(`audit/04` §1, stl-luau가 `-scratch`를 인용한 문제).
+   - 근거로 인용할 보고서는 메인이 검증 머리를 붙여 프로젝트 `.claude/audit/<backend>/`로 옮긴다. 저장소 밖 경로를 근거로 인용하지 않는다(`.claude/audit/04` §1, stl-luau가 `-scratch`를 인용한 문제).
 4. **프로젝트 고유 내용은 머리말에서 빼서 각 프로젝트 `AGENTS.md`로 보낸다.**
    - 4벌이 갈라진 주된 이유는 머리말 안의 검사 명령, vendor 예외, Studio 금지 같은 프로젝트 사실이었다.
    - 이제 머리말은 공통 규칙만 담고 "검사는 `AGENTS.md`의 '검사' 절"이라고 가리킨다.
@@ -70,7 +70,7 @@
 
 ### 통합판에서 새로 생긴 것 (검증 상태)
 
-- 가짜 agy/codex로 한 자체 시험(2026-11-10, `drafts/delegate/.selftest`, 끝난 뒤 지움)
+- 가짜 agy/codex로 한 자체 시험(2026-11-10, `.claude/research/drafts/delegate/.selftest`, 끝난 뒤 지움)
   - 확인한 것: run → guard(메인 unchanged, worktree 변경 목록) → collect(diff.patch에 새 파일 포함) → remove(collect 전 거부) → gc(미리보기/적용, 옛 브랜치 worktree 보존) → doctor → register, 그리고 동시 실행 거부
   - 실제 agy·codex 호출은 하지 않았다
 - 실제 저장소 넷에 `doctor --all`과 `gc --all`(미리보기)을 읽기 전용으로 돌렸다. uid 넷 모두 메인 트리에 쓰지 못하고 비밀을 읽지 못함, 도구 PATH 산출 정상.

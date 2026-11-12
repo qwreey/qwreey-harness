@@ -78,7 +78,7 @@ sonnet과 opus는 같은 베이스에서 증류된 계열이라 어휘와 선택
    $D collect agy <이름>     # <작업공간>/runs/<날짜>-<이름>/ 에 prompt·report·guard·stdout·meta·diff.patch
    $D remove  agy <이름>     # worktree 와 과제 HOME 삭제. collect 전이면 거부(버리려면 --discard)
    ```
-   - 쓸 만한 보고서는 프로젝트 `.claude/audit/<backend>/<날짜>-<이름>.md`로 옮겨 커밋한다. 이때 머리에 메인 검증 결과를 붙인다(stl-luau `audit/agy/2026-10-02-hunt.md` 꼴). `runs/`는 저장소 밖 보존 기록이라 근거로 인용하지 않는다(→ 명명 규약).
+   - 쓸 만한 보고서는 프로젝트 `.claude/audit/<backend>/<날짜>-<이름>.md`로 옮겨 커밋한다. 이때 머리에 메인 검증 결과를 붙인다(stl-luau `.claude/audit/agy/2026-10-02-hunt.md` 꼴). `runs/`는 저장소 밖 보존 기록이라 근거로 인용하지 않는다(→ 명명 규약).
 6. **남은 것을 본다.** `$D list --all`, `$D gc --all`(미리보기), `$D gc --all --apply`.
    - gc가 지우는 것: collect된 작업공간, 주인 없는 HOME, 옛 공유 `.home`. 그 작업공간 안에서 도는 프로세스가 있으면 건너뛴다.
    - gc가 건드리지 않는 것: 옛 스크립트 작업공간, 옛 codex 기록, collect 안 한 결과. 이것들은 목록만 보인다.

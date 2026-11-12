@@ -8,7 +8,7 @@ last_verified: 2026-11-10
 ---
 # session-log 훅 (q 플러그인)
 
-메인 세션이 아무것도 하지 않아도 세션 기록이 남게 한다. 설계 근거는 `drafts/session-log/DESIGN.md`, 조사·실측은 `audit/15-session-log.md`.
+메인 세션이 아무것도 하지 않아도 세션 기록이 남게 한다. 설계 근거는 `.claude/archive/research/drafts/session-log/DESIGN.md`, 조사·실측은 `.claude/audit/15-session-log.md`.
 
 ## 흐름
 1. 훅이 트리거를 판단한다(PreCompact·SessionEnd 는 강제, PostToolUse·UserPromptSubmit 은 쿨다운 20분 + 512KB 증가).
@@ -56,7 +56,7 @@ index.json                         rid → pending | imported(위치, 커밋) | 
   - 같은 모듈의 사본이 qwreey-advisor·qwreey-conventions 에 있고(정본은 q, 테스트가 바이트 동일성을 검사), 각자 자기 회차를 올린다. 하네스가 없어도 돈다.
 - pending 알림 level (action 은 쓰지 않는다: import 는 명령 하나라 막고 물을 일이 아니다)
   - 보관 위치 설정됨: 평소 info, commit 직전이거나 `SESSION_LOG_PENDING_STRONG_COUNT`(5)개·`…_DAYS`(7)일 이상이면 warn. 내용은 `session-log import` 한 줄.
-  - 미설정: 평소 info, `SESSION_LOG_HOME_NUDGE_COUNT`(3)개 또는 `SESSION_LOG_HOME_NUDGE_DAYS`(3)일 이상(strong 도 포함)이면 warn 으로 위치를 사용자에게 제안하라고 한다(`docs/sessions/` 팀 공개, `.claude/sessions/` 에이전트 전용, 있으면 `handover/`·`handoff/`·`audit/` 같은 이력 폴더, 밖에 두기).
+  - 미설정: 평소 info, `SESSION_LOG_HOME_NUDGE_COUNT`(3)개 또는 `SESSION_LOG_HOME_NUDGE_DAYS`(3)일 이상(strong 도 포함)이면 warn 으로 위치를 사용자에게 제안하라고 한다(`docs/sessions/` 팀 공개, `.claude/sessions/` 에이전트 전용, 있으면 `handover/`·`handoff/`·`audit/`·`.claude/audit/`·`.claude/handoff/` 같은 이력 폴더, 밖에 두기).
   - `archive_only`: pending 알림이 없다.
 - 주입 안전
   - 인계와 상기에는 구조화된 항목만 넣는다: 개수, 경로, ⚠ 없는 미해결·결정 제목(110자), 대조를 통과한 사용자 인용.

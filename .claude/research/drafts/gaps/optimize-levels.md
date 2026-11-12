@@ -20,7 +20,7 @@
 - §8 확인하는 법
 - §9 공식 문서와 실측이 어긋난 곳
 
-표기: `verified` 는 스니펫(`drafts/gaps/snippets/`)이나 검사 스크립트(`drafts/gaps/tools/run_opt.sh`)가 luau 0.734 와 0.742 에서 그 주장대로 통과했다는 뜻이다. `described` 는 원천 서술이나 소스 읽기만 있다는 뜻이다.
+표기: `verified` 는 스니펫(`.claude/research/drafts/gaps/snippets/`)이나 검사 스크립트(`.claude/research/drafts/gaps/tools/run_opt.sh`)가 luau 0.734 와 0.742 에서 그 주장대로 통과했다는 뜻이다. `described` 는 원천 서술이나 소스 읽기만 있다는 뜻이다.
 
 자료와 시점 (모두 2026-11-10 확인):
 - Luau 소스 `stl-luau/refs-ignoreme/luau` 커밋 `8387cfb` (2026-10-09, 0.742 계열). 줄 번호는 이 커밋 기준.
@@ -81,7 +81,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippe
 - 인라인을 막는 사용자용 속성(`@noinline`, `@inline`)은 없다. `@inline` 은 SyntaxError 다(`snippets/native-attribute-syntax.luau`). `@debugnoinline` 은 디버그 플래그(`--fflags=DebugLuauNoInline=true`) 아래에서만 받아들여진다. Roblox 에서는 쓸 수 없다.
 
 ## §4 `-O2` 와 `error(msg, level)` 위치 (D-10)
-status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/optimize-o2-error-level.luau`, `snippets/optimize-o1-error-level.luau`(대조군), `run_opt.sh` B1–B4, C1–C2 · 관련: decisions D-10, `drafts/gaps/snippets/testing-o2-line-probe.luau`(테스트 주제 에이전트의 관측용 스니펫)
+status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/optimize-o2-error-level.luau`, `snippets/optimize-o1-error-level.luau`(대조군), `run_opt.sh` B1–B4, C1–C2 · 관련: decisions D-10, `.claude/research/drafts/gaps/snippets/testing-o2-line-probe.luau`(테스트 주제 에이전트의 관측용 스니펫)
 
 `error(msg, 2)` 는 "나를 부른 프레임"을 가리킨다. 인라인된 함수에는 프레임이 없으므로 level 이 한 칸씩 밀린다.
 

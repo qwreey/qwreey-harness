@@ -18,7 +18,7 @@
 - TR = table-sim 의 검토 기록 폴더(비공개, 경로 생략)
 - MQ / MS / MT = `/code/.claude/projects/-code-Projects-{quad,stl-luau,table-sim}/memory/`
 - SKq / SKs = `{quad,stl-luau}/.claude/skills/delegate-agy/SKILL.md`
-- 시범 = `drafts/delegate/trial-2026-11-10.md`
+- 시범 = `.claude/research/drafts/delegate/trial-2026-11-10.md`
 
 ## 한눈에
 

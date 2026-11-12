@@ -18,14 +18,14 @@
 
 | 코드 | 등급 | 내용 |
 |---|---|---|
-| `WEB-PLUGINS` | 정보 | security-guidance, frontend-design, context7, claude-security 가 project·local·user `enabledPlugins` 어디에도 없으면 하나씩 추천한다. 설정 안내는 메시지에 있다. 근거: [audit/16 §8](../../../../../../audit/16-marketplace.md) |
+| `WEB-PLUGINS` | 정보 | security-guidance, frontend-design, context7, claude-security 가 project·local·user `enabledPlugins` 어디에도 없으면 하나씩 추천한다. 설정 안내는 메시지에 있다. 근거: [.claude/audit/16 §8](../../../../../../.claude/audit/16-marketplace.md) |
 | `WEB-RULE` | 정보 | `web-security` 플러그인이 켜져 있지 않다(웹 보안 rule 은 그 플러그인의 `rules/` 에서 훅이 주입한다. 나중에 web-kb 로 옮겨지면 이 검사도 따라 바꾼다) |
 
 판정: 추천일 뿐이다. 공유 worktree 저장소는 security-guidance 에 `ENABLE_STOP_REVIEW=0` 을 더한다. 이미 다른 방식(로컬 마켓 등)으로 켜져 있으면 무시한다.
 
 ## 후보 (실측 후 도입)
 
-- typescript-lsp, gopls-lsp(vitrine Go), rust-analyzer-lsp(Rust 저장소): 바이너리 설치 후 audit/16 §7-5 실측을 거쳐 `WEB-PLUGINS` 목록에 더한다.
+- typescript-lsp, gopls-lsp(vitrine Go), rust-analyzer-lsp(Rust 저장소): 바이너리 설치 후 .claude/audit/16 §7-5 실측을 거쳐 `WEB-PLUGINS` 목록에 더한다.
 - modern-web-guidance, axe-accessibility: 참고. web-kb 후보.
 
 ## 이후 채울 검사 후보
@@ -47,6 +47,6 @@
 
 1. 프로젝트를 `intake/<이름>/`로 반입한다(`<doctor>/intake/README.md`).
 2. `scan.py intake/<이름>`으로 감지와 코어 결과를 본다.
-3. 위 후보를 그 프로젝트에 손으로 적용해 보고, 참 발견과 오탐을 `audit/intake/<이름>-<날짜>.md`에 적는다.
+3. 위 후보를 그 프로젝트에 손으로 적용해 보고, 참 발견과 오탐을 `.claude/audit/intake/<이름>-<날짜>.md`에 적는다.
 4. 참 발견이 있던 후보부터 `web.py`의 `check()`에 옮기고, 이 문서의 표를 "검사" 표로 바꾼다(형식은 `luau.md`의 툴체인 표).
 5. 재구성 전후 비교처럼, 옮긴 뒤 반입 사본과 vitrine에 다시 돌려 결과를 확인한다.
