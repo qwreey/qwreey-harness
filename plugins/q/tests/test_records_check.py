@@ -51,8 +51,8 @@ class Fixture(unittest.TestCase):
     def test_findings(self):
         got = codes(rc.check(self.root))
         for want in [("REC-STATUS-BAD", "plan/bad.md"), ("REC-STATUS-MISSING", "plan/nostatus.md"),
-                     ("REC-FINISHED-OUTSIDE-ARCHIVE", "plan/landed.md"), ("REC-FINISHED-OUTSIDE-ARCHIVE", "plan/sup-key.md"),
-                     ("REC-FINISHED-OUTSIDE-ARCHIVE", "plan/firstline.md"), ("REC-FINISHED-OUTSIDE-ARCHIVE", "plan/rejected.md"),
+                     ("REC-CLOSED-OUTSIDE-ARCHIVE", "plan/landed.md"), ("REC-CLOSED-OUTSIDE-ARCHIVE", "plan/sup-key.md"),
+                     ("REC-CLOSED-OUTSIDE-ARCHIVE", "plan/firstline.md"), ("REC-CLOSED-OUTSIDE-ARCHIVE", "plan/rejected.md"),
                      ("REC-INDEX-MISSING", "plan/unindexed.md"), ("REC-LINK-BROKEN", "plan/links.md"),
                      ("REC-RAW-NOT-IGNORED", "audit/01-snap/raw")]:
             self.assertIn(want, got)

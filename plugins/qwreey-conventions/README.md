@@ -12,6 +12,7 @@
 | 훅 | `hooks/memory-placement.py` (+`memory_signals.py`) | PostToolUse(Write, Edit, MultiEdit). auto memory 에 저장소 지식으로 보이는 내용을 쓰면 저장소로 옮기라고 알린다. `MEMORY_PLACEMENT=off` 로 끈다 |
 | 훅 | `hooks/rules_inject.py` | PostToolUse(Read, Edit, Write, MultiEdit, NotebookEdit). 같은 훅의 사본을 web-security 플러그인도 쓴다(정본은 여기). `rules/*.md`(comments, agent-docs, code-structure, memory)를 `paths:` glob 이 맞는 파일을 열 때 `<rule plugin=... name=...>` 로 감싸 주입한다. 키 (세션, 에이전트, compact 회차, rule) 당 한 번, `O_EXCL` 마커라 병렬 배치도 이중 주입이 없다. Read 뒤에는 본문만, 이 키로 처음인 Edit·Write 뒤에는 본문과 "방금 쓴 것을 rules 에 대조하고 어긋나면 Edit 로 고쳐라" 한 문장을 싣는다. PreToolUse deny 는 없다(큰 새 파일 Write 를 통째로 다시 내게 하고 hook error 로 보여서). node_modules, .git, dist, build, .venv, vendor, __pycache__ 아래와 프로젝트 밖 Read 는 주입하지 않는다(편집, 그리고 설정 디렉터리 `projects/*/memory/` 는 예외). 대조 실측: Read 뒤 주입이 지켜짐 |
 | 훅 | `hooks/reply_language.py` | 답변 언어 이탈. 언어는 `language` 설정(프로젝트 local > project > 사용자), 없으면 `${CLAUDE_PLUGIN_DATA}/language.json`. 둘 다 없으면 UserPromptSubmit 이 한 번 사용자에게 묻게 하고 `python3 -I reply_language.py set <language>` 로 저장. Stop: 목표 문자 비율 < 0.25 이고 라틴 글자 20자 이상이면 `decision: block` 으로 다시 쓰게 한다(`stop_hook_active` 면 통과). PostToolBatch: 도구 호출 사이 텍스트 이탈(warn, 쿨다운)과 긴 턴 알림(10회, 이후 15회마다 info). 감지·조치는 `${CLAUDE_PLUGIN_DATA}/drift.jsonl`(본문 없음). 메인 대화만. 라틴 문자 언어는 감지하지 않고 기록만 |
+| 위임 | 기록 규약(`.claude/`) | 이 플러그인에는 없다. coderag 플러그인의 `coderag:agent-records` 스킬과 그 rule 이 맡는다 |
 | 훅 | 같은 스크립트, Stop | 편집한 파일에 남은 기존 주석 문제를 사용자에게 한 줄로 보인다(아래 "남은 주석 보고") |
 
 ## 훅이 잡는 것

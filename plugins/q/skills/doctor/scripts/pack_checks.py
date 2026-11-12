@@ -1,4 +1,4 @@
-"""harness-doctor 항목 7(설정) 의 도메인 팩 검사: PACK-MISSING, PACK-DRIFT, PACK-UNUSED, PACK-USER-LEVEL, PACK-NO-CODERAG, PACK-UNREGISTERED. 읽기 전용.
+"""harness-doctor 항목 7(설정) 의 도메인 팩 검사: PACK-MISSING, PACK-DRIFT, PACK-UNUSED, PACK-USER-LEVEL, PACK-NO-CODERAG, PACK-UNREGISTERED, SET-CODERAG-BINARY. 읽기 전용.
 
 팩은 기본 꺼짐(defaultEnabled false) 플러그인이다. 스위치는 프로젝트 coderag.toml 의 [[packs]] 목록 하나이고(rule 주입은 coderag 플러그인이
 이 목록을 따른다), `coderag adapt --harness claude` 가 이 목록에서 .claude/settings.json 의 enabledPlugins(스킬 적재)를 만든다.
@@ -110,7 +110,13 @@ def run(add, repo, active, user_home, coderag_bin=None, coderag_home=None):
             add(7, "정보", "PACK-USER-LEVEL", user_home / "settings.json",
                 f"도메인 팩 {pack} 이 사용자 레벨 enabledPlugins 에서 켜져 있다. 팩은 프로젝트별로 켠다"
                 f"(정본 home/settings-migrations 로 걷어 내고 {toolkit} 저장소의 coderag.toml 목록과 adapt 로 켠다).", REF)
+    coderag_on = proj["coderag"] if "coderag" in proj else user.get("coderag", False)
     if in_use and not _coderag_ok(coderag_bin):
         add(7, "경고", "PACK-NO-CODERAG", repo / "coderag.toml",
             "도메인 팩이 켜져 있는데 coderag 바이너리가 없거나 실행할 수 없다(harness.env 의 HARNESS_CODERAG, 없으면 PATH). "
             "팩 rule 이 주입되지 않는다. coderag 를 빌드하고 coderag 플러그인을 설치한다.", REF)
+    elif coderag_on and not _coderag_ok(coderag_bin):
+        # 팩과 무관: 기록 규약 rule(coderag:agent-records)도 coderag 훅이 싣는다. 래퍼는 바이너리가 없으면 훅에서 조용히 0 으로 끝난다.
+        add(7, "경고", "SET-CODERAG-BINARY", user_home / "settings.json",
+            "coderag 플러그인이 켜져 있는데 coderag 바이너리가 없거나 실행할 수 없다(harness.env 의 HARNESS_CODERAG, 없으면 PATH). "
+            "훅이 조용히 끝나 기록 규약 rule 이 실리지 않는다. coderag 를 빌드한다.", REF)

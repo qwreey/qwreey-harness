@@ -1,6 +1,6 @@
 ---
 title: Landed plan
-description: Finished, outside archive
+description: Closed (landed), outside archive
 status: landed in base/decision.md
 ---
 Body.

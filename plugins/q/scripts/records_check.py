@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check agent records under <repo>/.claude against the qwreey-conventions:agent-records convention.
+"""Check agent records under <repo>/.claude against the coderag:agent-records convention.
 Usage: python3 -I records_check.py [--root <repo>] [--json] [--strict]
 Exit 0 always, except 2 with --strict when there are findings above info level.
 
@@ -140,7 +140,7 @@ def check(root):
             continue
         value, sup_by = read_status(text)
         if value is None:
-            # A folder's README status covers the files in that folder, and a file under archive/ is finished by
+            # A folder's README status covers the files in that folder, and a file under archive/ is closed by
             # where it is; flagging those would bury the docs that really lack a status.
             if not in_archive and not folder_status(path, claude):
                 add("REC-STATUS-MISSING", "info", path, "living doc has no status line (frontmatter or first line)")
@@ -154,7 +154,8 @@ def check(root):
                 if not any(os.path.exists(c) for c in cands):
                     add("REC-TARGET-MISSING", "warn", path, "status target %s does not exist" % target)
         if state and state != "active" and not in_archive:
-            add("REC-FINISHED-OUTSIDE-ARCHIVE", "warn", path, "status %s but not under archive/" % state)
+            add("REC-CLOSED-OUTSIDE-ARCHIVE", "warn", path,
+                    "status %s (not active) but not under archive/: git mv to archive/<origin>/ in the same commit, or set it back to active if it is still a current source" % state)
         if state == "active" and in_archive:
             add("REC-ACTIVE-IN-ARCHIVE", "warn", path, "active doc under archive/")
         if not in_archive:

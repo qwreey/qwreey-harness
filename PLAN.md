@@ -178,7 +178,7 @@
 - **도메인 팩은 기본 꺼짐 (동의).** `defaultEnabled: false` 로 두고, 쓰는 프로젝트가 `.claude/settings.json` 의 `enabledPlugins` 로 켠다. `q:start` 가 감지 표식(`.luaurc`, `package.json` …)으로 켤 팩을 제안한다. `HARNESS_TOOLKITS` 는 기계 단위로 훅을 끄는 스위치로만 남는다(스킬 설명 비용은 못 줄인다). 선행 실측: 스킬 `paths` 가 설명 목록에서도 빠지게 하는지, `defaultEnabled` 동작.
 - **기록 체계는 coderag 와 결합한다 (사용자 제안, 조사 중).** 사용자: "claude 기록의 경우는 coderag 와 같이 결합되는게 맞지 않을까…markdown 관련도 넣고 있으니까. 특히 검색 관련해서나 stale 관련해서나 이미 만들어진 틀이 있으니까. 또 하이쿠 모델을 통해서 찾도록 하는것도 coderag 와 연계 가능". 다루는 것:
   - 문서마다 status 한 줄(active / landed in X / superseded by Y / rejected)과 폴더별 README 색인.
-  - 검사: 깨진 링크, 색인 누락, 끝난 문서가 archive 밖에 있는 경우, 상시 로드 크기.
+  - 검사: 깨진 링크, 색인 누락, status 가 active 를 떠난 문서가 archive 밖에 있는 경우, 상시 로드 크기.
   - 오래된 기록을 읽을 때 stale 경고(지금은 `records_read.py`).
   - `q:recall` 의 haiku 위치 찾기를 coderag 검색으로 바꾸기.
   - coderag 가 없을 때도 기록은 평범한 markdown 으로 읽혀야 한다.
@@ -196,8 +196,8 @@
      - 끝: M1 rule 주입(coderag 1f234be), M5 본문 검색(329044c), M2 준비(98163e8, 2d40d39; 계획 .claude/audit/41-knowledge-packs-debate/m2-cutover-plan.md). 켜진 것 없음.
      - 배포: 사용자: "바이너리 배포 같은 경우는 어느정도 개발이 완료 되면 올릴려고. 서명은 내가 로컬에서 빌드를 하고 올리는 방식". M2 전환을 release 전에 이 기계의 로컬 빌드로 할지는 사용자에게 물었다.
      - VideoSync 의 web-security 는 사용자가 직접 켠다(그 저장소 사본이 최신이 아닐 수 있음).
-     - 기록 규약 정본을 coderag 로(사용자: "coderag 를 정본으로 두는게 맞는것 같기도 하고", (a) 승인): 합친 규약 초안 .claude/research/drafts/records-in-coderag/. "끝남"은 일을 마쳤다가 아니라 현재의 원천으로 필요 없어짐이 기준(사용자: "quad를 보면 slot 을 전부 구현 완료 했지만 그래도 base에 가지고 있음…'끝났다' 라는건 문서가 필요하지 않다가 기준일텐데").
-     - 나중: coderag 스킬 감사(사용자: "coderag skill 들도 사실 한국어일 필요는 없지 않나 싶으면서도 skill 생성 skill과 같이 감사해보는것도 좋겠다…천천히 해볼 일"). 합친 규약 스킬은 지금 영어로 쓴다. 대상에 `agents/doc-locator.md` 도(사용자: "하위 에이전트에 주입되는 것이라 영어인 편이 효율적일 수 있는데. 나중에 검토 한번 해볼래?"). 합친 규약 반영 때 qwreey-conventions agent-records 스킬·rule 과 coderag docs-frontmatter 삭제는 사용자 허가("그 부분은 삭제 해도 돼").
+     - 기록 규약 정본을 coderag 로(사용자: "coderag 를 정본으로 두는게 맞는것 같기도 하고", (a) 승인): 합친 규약은 coderag 0.3.0(`coderag:agent-records` 스킬, 플러그인 자체 rules/ 내장 팩 주입)에 들어갔고 초안은 .claude/archive/research/drafts/records-in-coderag/. qwreey-conventions 의 사본은 뺐고 `records_check.py` 의 coderag 이전은 다음 단계. 갈음은 `status: superseded by <경로>` 로 쓴다, frontmatter 는 새 살아 있는 기록에 필수(옛 기록은 채우지 않음), Codex·agy 용 본문은 M7 generator 가 rule 파일에서 생성. "끝남"은 일을 마쳤다가 아니라 현재의 원천으로 필요 없어짐이 기준(사용자: "quad를 보면 slot 을 전부 구현 완료 했지만 그래도 base에 가지고 있음…'끝났다' 라는건 문서가 필요하지 않다가 기준일텐데").
+     - 나중: coderag 스킬 감사(사용자: "coderag skill 들도 사실 한국어일 필요는 없지 않나 싶으면서도 skill 생성 skill과 같이 감사해보는것도 좋겠다…천천히 해볼 일"). 합친 규약 스킬은 지금 영어로 쓴다. 대상에 `agents/doc-locator.md` 도(사용자: "하위 에이전트에 주입되는 것이라 영어인 편이 효율적일 수 있는데. 나중에 검토 한번 해볼래?"). 합친 규약 반영 때 qwreey-conventions agent-records 스킬·rule 과 coderag docs-frontmatter 삭제는 사용자 허가("그 부분은 삭제 해도 돼", 삭제함).
   6. 자동화: 규약 스킬, doctor 검사, 커밋할 때 info 알림, `q:start` 의 `.claude/` 뼈대 템플릿.
 - **기록 규약 토론 결과(.claude/audit/38 synthesis)에 대한 사용자 답.** "추천대로 할게", "저장소 변경은 승인".
   - coderag 저장소 변경을 승인했다. coderag 에는 따로 세션이 없으므로 이 세션이 서브에이전트로 맡는다. 1단계는 C1, C2, C6 이다.

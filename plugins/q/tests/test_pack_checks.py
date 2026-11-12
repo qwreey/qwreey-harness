@@ -144,6 +144,16 @@ class Packs(unittest.TestCase):
         settings(self.repo / ".claude" / "settings.json", {KEY: True, "luau-kb@claude-doctor-market": True})
         self.assertEqual(self.run_check({"web": ["x"], "luau": ["y"]}, coderag_bin=False), ["PACK-NO-CODERAG"])
 
+    def test_coderag_plugin_without_binary_warns_without_packs(self):
+        settings(self.home / "settings.json", {"coderag@coderag-market": True})
+        self.assertEqual(self.run_check({}, coderag_bin=False), ["SET-CODERAG-BINARY"])
+        self.got.clear()
+        self.assertEqual(self.run_check({}), [])
+        self.got.clear()
+        listing(self.repo, "web-security")
+        settings(self.repo / ".claude" / "settings.json", {KEY: True})
+        self.assertEqual(self.run_check(WEB, coderag_bin=False), ["PACK-NO-CODERAG"], "팩이 켜져 있으면 한 번만")
+
     def test_no_coderag_silent_without_packs(self):
         self.assertEqual(self.run_check({}, coderag_bin=False), [])
 
