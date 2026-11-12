@@ -1,5 +1,5 @@
 ---
-description: 코드 구조 규칙 정본 안내 — 정본은 사용자 레벨 ~/.claude/rules/code-structure.md, 여기는 Luau 세부 위치만
+description: 코드 구조 규칙의 Luau 세부 위치 안내. 정본은 qwreey-conventions 플러그인의 code-structure rule
 paths:
   - "**/*.luau"
   - "**/*.lua"

@@ -2,7 +2,7 @@
 
 여러 Luau 저장소(quad, stl-luau, rbvm, table-sim, devplorer, tbox 등)에 흩어져 있던 **일반 Luau·Roblox 지식**을 한 곳에 모은 정본 저장소다. 타입 시스템의 한계, 검증 절차, 테스트, 성능 실측, 코드 스타일, Roblox 엔진 동작, 업스트림 변화를 다룬다. 모든 "verified" 주장은 `snippets/` 의 실행 가능한 재현 파일(성능 수치는 `bench/`)과 짝이고, 그 파일은 luau 0.734 와 0.742 에서 하네스로 검사된다. 프로젝트 고유 설계(특정 라이브러리의 타입 이름, API)는 넣지 않는다.
 
-- Claude Code: 플러그인으로 설치해 스킬 `luau-kb:luau-types`, `luau-kb:luau-verify`, `luau-kb:luau-testing`, `luau-kb:luau-perf`, `luau-kb:luau-style`, `luau-kb:luau-runtime`, `luau-kb:luau-roblox`, `luau-kb:roblox-engine`, `luau-kb:roblox-net`, `luau-kb:roblox-world`, `luau-kb:roblox-docs`, `luau-kb:luau-upstream` 으로 쓴다. `.lsp.json` 이 luau-lsp 를 LSP 도구로 붙인다(`.luau` 파일의 진단, hover, 정의 이동). `rules/` 의 경로 조건부 규칙은 사용자 홈 `~/.claude/rules/` 에 symlink 로 건다(`rules/README.md`).
+- Claude Code: 플러그인으로 설치해 스킬 `luau-kb:luau-types`, `luau-kb:luau-verify`, `luau-kb:luau-testing`, `luau-kb:luau-perf`, `luau-kb:luau-style`, `luau-kb:luau-runtime`, `luau-kb:luau-roblox`, `luau-kb:roblox-engine`, `luau-kb:roblox-net`, `luau-kb:roblox-world`, `luau-kb:roblox-docs`, `luau-kb:luau-upstream` 으로 쓴다. `.lsp.json` 이 luau-lsp 를 LSP 도구로 붙인다(`.luau` 파일의 진단, hover, 정의 이동). `rules/` 의 경로 조건부 규칙은 플러그인의 PostToolUse 훅(`hooks/rules_inject.py`)이 `.luau` 를 Read·Edit·Write 할 때 주입한다(`rules/README.md`). 훅 세 파일은 claude-doctor 정본의 바이트 같은 사본이고, `tools/tests/test-rules-inject.py` 가 검사한다.
 - codex, agy 등: `AGENTS.md` 가 같은 references 를 평문 경로로 안내한다.
 
 ## 구조
@@ -39,6 +39,7 @@ skills/
     references/          sources
   luau-upstream/         SKILL.md + references/ 5개
     references/          sources, watchlist, syntax-adoption, version-bump, roadmap-notes
+hooks/                   hooks.json + rules_inject.py·conv_env.py·compact_epoch.py (claude-doctor 정본의 사본, rules 주입)
 rules/                   luau-core.md(**/*.luau), code-structure.md(안내만: 정본은 ~/.claude/rules/code-structure.md), README.md(배포 방식과 로드 실측)
 snippets/                *.luau 152개(주장 하나에 파일 하나, 접두가 담당: perf- rbx- style- test- opt- native- pack- tf- …)
                          + *.sh 셸 하네스(require·stylua·cross-module) + RESULTS.md (버전 행렬 결과, 강등 목록)
