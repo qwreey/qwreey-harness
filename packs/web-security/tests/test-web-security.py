@@ -99,6 +99,31 @@ class Inject(unittest.TestCase):
         self.assertIsNotNone(run("PostToolUse", "Read", PROJ + "/a.ts", s))
 
 
+class Widened(unittest.TestCase):
+    def test_server_and_infra_globs(self):
+        for f in ("a.go", "Caddyfile", "x/y/Caddyfile", "site.caddy", "nginx.conf", "nginx-app.conf", "a.nginx", "Dockerfile", "a.Dockerfile",
+                  "compose.yaml", "compose.prod.yml", "docker-compose.yml", "docker-compose.override.yaml", "run.sh", "d/e/run.sh"):
+            self.assertIsNotNone(run("PostToolUse", "Read", PROJ + "/" + f, fresh()), f)
+
+    def test_luau_still_silent(self):
+        self.assertIsNone(run("PostToolUse", "Read", PROJ + "/a.luau", fresh()))
+
+
+class Skill(unittest.TestCase):
+    def test_hardening_skill_files(self):
+        d = os.path.join(ROOT, "skills", "hardening")
+        with open(os.path.join(d, "SKILL.md"), encoding="utf-8") as f:
+            text = f.read()
+        self.assertTrue(text.startswith("---\n"))
+        fm = text.split("---\n")[1]
+        self.assertIn("name: hardening\n", fm)
+        self.assertIn("description: ", fm)
+        for r in ("principles", "auth-gates", "client-identity", "browser-and-origin", "paths", "injection", "outbound-connections",
+                  "secrets", "resource-limits", "supply-chain", "state-changes", "privileges", "verification"):
+            self.assertTrue(os.path.isfile(os.path.join(d, "references", r + ".md")), r)
+            self.assertIn("`" + r + ".md`", text, r)
+
+
 class Layout(unittest.TestCase):
     def test_manifest_and_marketplace(self):
         with open(os.path.join(ROOT, ".claude-plugin", "plugin.json"), encoding="utf-8") as f:
