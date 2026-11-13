@@ -209,7 +209,7 @@
      - coderag 저장소 배치(사용자 "그 구조로 가자"; 제기: "coderag 가 벤더 맞춤형으로 두지 않고 호환성을 띈다 한다면 claude 에 관한걸 프로젝트 루트에 두는게 맞는가"): 벤더 중립 원천은 `conventions/`(기록 규약 rule·스킬 본문·references, MCP 안내문), 하네스별은 `harness/claude/`(플러그인 루트: plugin.json, hooks, doc-locator, 스킬 사본, bin) · 나중 `harness/codex/`·`harness/agy/`. 루트에는 로컬 마켓 `.claude-plugin/marketplace.json` 만(source ./harness/claude). 사본은 생성해 커밋하고 `@copy-of` + 비교 시험, 심볼릭 링크 안 씀. 내장 팩 위치는 `conventions/`. 기록 폴더 이름 `.claude/` 는 기본값일 뿐이라 그대로. 옮긴 뒤 사용자가 마켓 갱신·재로드.
      - 나중: coderag 스킬 감사(사용자: "coderag skill 들도 사실 한국어일 필요는 없지 않나 싶으면서도 skill 생성 skill과 같이 감사해보는것도 좋겠다…천천히 해볼 일"). 합친 규약 스킬은 지금 영어로 쓴다. 대상에 `agents/doc-locator.md` 도(사용자: "하위 에이전트에 주입되는 것이라 영어인 편이 효율적일 수 있는데. 나중에 검토 한번 해볼래?"). 합친 규약 반영 때 qwreey-conventions agent-records 스킬·rule 과 coderag docs-frontmatter 삭제는 사용자 허가("그 부분은 삭제 해도 돼", 삭제함).
      - 제안(사용자, 2026-11-13): 메인은 대화·판단, 구현은 서브에이전트(수행자-오퍼레이터) 를 규약으로. "이 프로젝트에서 수행자와 메인 오퍼레이터 패턴이 생각보다 좋은 성과를 내고 있잖아. 그런데 다른 곳에서는 내가 직접적으로 subagent 사용 지시를 해야 넘어가고, 메인이 직접 코드를 건들여서 컨텍스트가 부폐되거나 작업중인 시간동안 의논을 할 수 없어 시간이 버려지거나…quad 나 stl luau 의 경우…전반 개발이 지체…내 프롬프트가 길게 큐가 되어버리기도 하고. 그런데 주의점은 모든 상황에서 서브에이전트를 남용하는건 또 좋지 않아. 그 경계를 어떻게 잡아야". 후보: 훅 리마인더(메인이 코드를 크게 건드리려 할 때) + 스킬. 전역 문구라 토론. 비용 근거(사용자): "서브 에이전트가 비용이 덜 들기도 함…opus가 작업하는것 보다 sonnet 이 작업하는게 나아…다른 코드를 읽고 관계를 파악하거나 api에 관해 찾아보거나 외부 자료에 의존하는 경우가 아주 많고, 정본도 읽어야하는 경우도 많음. 그렇다면 fresh 컨텍스트에서 그 작업이 시작되고 끝나는게 나아…캐시 토큰이더라도 작업 결과, 툴콜, 테스트 결과 등이 전부 있으면 매 후행 토큰 생성마다 선행 토큰을 읽음…opus 가 opus수행자를 내리는게 더 싼 경우도 많이 존재함. 또 시간도 비용이기도 하고…설계 한 사람이 설계대로 짜면…확증편향에 걸려 과신하고 구현하는데, fresh 맥락은 아니니까". 측정할 것: 메인 맥락 누적의 캐시 읽기 비용 vs 서브에이전트 비용(같은 작업), 사용자 대기 시간.
-       - 실측 `.claude/research/drafts/main-delegate-evidence.md`, 토론 종합 `.claude/audit/50-main-delegate/synthesis.md`. 사용자 "문구 초안 자체는 괜찮은것 같아", implementer 스킬 짧게 지금 만들기·순서 1-3 "둘 다 동의". 동료의 opus 수행자는 sonnet 기본 + opus 는 이유 한 줄로 해석함(사용자 확인 필요).
+       - 실측 `.claude/research/drafts/main-delegate-evidence.md`, 토론 종합 `.claude/audit/50-main-delegate/synthesis.md`. 사용자 "문구 초안 자체는 괜찮은것 같아", 순서 1-3 "둘 다 동의". 수행자 모델은 그 뒤 opus 기본으로 정했고(아래 훅 원칙 줄), implementer 스킬은 operator 0.2.0 에서 상시 문구로 합쳐 지웠다.
      - 플러그인 나누기(사용자, 2026-11-13): "q하나에 기능 집합이 되어가는 느낌", 자연어로 시키거나 모델이 판단해 쓰는 것은 qwreey-advisor 처럼 따로("안 쓰고 싶은 곳에서는 끌 수 있는 모양"). "'최소한의 패키지' 로써 배포한다면…그 패키지가 뭘 하는지, 대략 비용이 어떻고 효과가 어떤지, 택한다면 왜 택해야하는지 알 수 있도록…판단 자체를 할 수 있게 돕는다면…각 동료들은…본인이 원하는 최선을 택할 수 있는것 같음". q 는 사용자 의견이 담긴 사람 명령(away, back, doctor 등). 구현 위임(서브에이전트 운용)과 다른 벤더 위임은 다르다: "구독을 다중으로…여러 모델을 쓰는 사람도 있는데 안 그런 사람도 많고…서브에이전트 이상의 delegate 는 잡음", uid 격리는 "windows 에서 먹지 않는 부분". workspace 도 "항상일까는 모르겠음", 사용자가 직접 쓰는 도구가 아님. quad 에서는 delegate 스킬 이름 없이 "codex랑 agy써서 작명 관해서 논의해봐" 로 시켰다.
        - 순서(동의): (1) `qwreey-operator`(문구 주입, delegate-nudge 훅, implementer 스킬)와 `qwreey-delegate`(agy·codex, Linux) 새로 (2) `qwreey-sessions` 는 의존 조사 뒤 (3) away·back·서브에이전트 슬롯과 workspace 는 조사 결과로. 플러그인마다 README 카드: 무엇을, 비용, 효과, 왜 택하나, 요구 사항, 끄기.
        - 나누기 정함(사용자 "확인. 추천대로"): `qwreey-sessions`(session-log 훅·sllib·bin, checkpoint·import·recall, records_read), `qwreey-workspace`(게이트, workspace 스킬, ambient 의 workspace 줄), q 에 남김(start, doctor+records_check, away·back+subagent-slots+원장(statusline 이 q 에서 찾음), drift, stale_work, ambient). compact 회차는 플러그인마다 `compact_epoch.py` 사본(`@copy-of`)으로 각자 PreCompact 에서 올린다(q 도 회차 전용 PreCompact). 새 settings 마이그레이션으로 새 이름을 켠다. coderag agent-records 스킬의 `q:recall` 은 이름이 정해진 뒤 고친다.
@@ -218,9 +218,11 @@
        - 같은 부분은 한 에이전트를 작은 단계로(사용자): "일시 중지만 시킨 에이전트도 재개 가능함…작은 작업 끝내 나온걸 약간의 검토와, 만일 사용자 지시나 결정이 필요하면 메인이 받으며 검토하고 프롬프트를 더 넣어 재개…캐시가 1시간 내로 된다면 유지도 되면서, 이미 읽은건 다시 안 읽을 수 있고, 실수한 부분을 언급해주면 본인이 알게 될 수 있음…반증 근거가 확실하게 들어오면 받아드리거든. 독립 부분엔 병렬 쓰는것 동의". operator 문구와 슬롯 훅 알림에 반영(4b55ba3).
        - 훅 원칙(사용자): "훅은 단순히 모델이 놓친 부분에 대해 판단할 기회를 줄 뿐이여야해(다른 workspace 쓰기처럼 위험하거나 꼭 확인해야하는 특정 상황 아니면)". HOOK-MESSAGES 규칙 4, 전수 점검 반영(4b55ba3, coderag 7ec4f5d). 수행자 모델은 opus 기본(사용자: sonnet 수행자는 시행착오로 더 비쌌다), 메인은 diff 를 다 읽지 않는다.
        - README 는 사람용 진입점(설치하면 에이전트가 어떻게 달라지나, 설치·끄기), 기술 세부는 플러그인 `docs/`(사용자). compact 뒤 주입 문구가 요약과 겹치는 문제: compact 전에 빼거나 요약 지시로 빼게(사용자).
-       - 나중(사용자 "rules inject 나 엠비언트 주입 ambient 도 잠정 라이브러리화 될 필요는 보이긴 하네. 플러그인의 특징과 상관 없게 필요한 코드기도 하니까. 나중에 옮겨보자"): 플러그인마다 따로 있는 ambient 주입(SessionStart·SubagentStart·PreCompact omit·규칙 줄)과 rules-inject 를 `lib/` 공용 모듈로, 플러그인은 사본(`tools/sync-copies.py`). `lib/`·sync 도구가 자리잡은 뒤.
+       - 공용 모듈(사용자 "rules inject 나 엠비언트 주입 ambient 도 잠정 라이브러리화 될 필요는 보이긴 하네. 플러그인의 특징과 상관 없게 필요한 코드기도 하니까. 나중에 옮겨보자"): `lib/` 와 `tools/sync-copies.py` 가 생겼고 ambient 주입은 `lib/ambient.py` 로 옮겼다(설정은 플러그인 `context/ambient.json`). 남은 것: rules-inject 를 `lib/` 로.
        - 나중(사용자 "3도 동의. 지금은 나중에 해야할 일로 인지를 해두는것으로 두자"): q doctor·start references 안의 모델용 지시문이 한국어라 agent-docs 영어 규칙과 어긋남. 큰 재작성이라 coderag 스킬 감사 때 함께. 사용자 호출 스킬 description 은 한국어 메뉴 줄로 정함("유저 invoke 는 한국어여도 된다").
        - 구현됨(2026-11-13): q 0.9.0, `qwreey-sessions` 0.1.0, `qwreey-workspace` 0.1.0, 마이그레이션 0009(sessions·workspace·operator 를 켬, delegate 는 안 켬). 스킬 이름이 `qwreey-sessions:recall|checkpoint|import`, `qwreey-workspace:workspace` 로 바뀌었다. workspace 의 UserPromptSubmit 보충 주입(ambient 의 회차 표지)은 두지 않았다: SessionStart·SubagentStart 만.
+       - 끄기 스위치는 `HARNESS_OPERATOR_AMBIENT`·`HARNESS_WORKSPACE_AMBIENT` 처럼 플러그인마다. 프로젝트별로 다르게 하려고 harness.env 를 층으로 읽는다(사용자: "local.env…settings.local.json…레이어로 합쳐지는 모양에 local 이 최상위"): 기본값 < `~/.claude/harness.env` < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`(커밋 안 함) < 환경 변수. `USER_ONLY` 키(경로·게이트 등)는 저장소 층이 못 바꾼다(31a552d).
+       - delegate 격리(사용자 "agy ACP 실측 먼저 해보자", "이대로 진행하자"): agy ACP 는 셸만 권한을 묻고 파일 읽기·쓰기는 워크스페이스 밖도 묻지 않으며, settings `permissions` 도 막지 못한다(cf321b7, 81b5c63, `.claude/research/drafts/delegate/portable-isolation.md`). 그래서 격리(root uid, codex 샌드박스, agy 샌드박스)가 없으면 읽기 전용 의견(empty)만 기본. 다음: 운영체제와 상관없이 도는 Python 드라이버 설계(`.claude/research/drafts/delegate/driver-design.md`, 진행 중). macOS·Win11 실측은 사용자 기기.
      - 나중(사용자 "일단 나중에 고려해볼 대상으로 두자"): 읽기 어려운 코드 알림. 빈 줄 없이 길게 이어진 코드, 주석 없이 일정 이상 이어진 코드, 주석이 한곳에 몰리고 아래 코드는 주석이 없는 경우에 경고(주석·빈 줄 비율). qwreey-conventions 후보.
   6. 자동화: 규약 스킬, doctor 검사, 커밋할 때 info 알림, `q:start` 의 `.claude/` 뼈대 템플릿.
 - **기록 규약 토론 결과(.claude/audit/38 synthesis)에 대한 사용자 답.** "추천대로 할게", "저장소 변경은 승인".
@@ -228,18 +230,21 @@
   - coderag 를 쓰는 형태: 먼저 바이너리 경로(harness.env `HARNESS_CODERAG`)로 시작하고, 실험을 본 뒤 사용자 설치에서 플러그인을 켠다. 최종적으로는 빌드된 바이너리를 배포한다. 사용자: "github release 로 실어서 넣고, 내가 gpg 사이닝을 더할게.(sandbox 바깥에서)". claude-doctor 에는 받기·서명 확인·없으면 소스 빌드를 하는 스크립트를 둔다.
   - 소급: 새 저장소와 claude-doctor 에만 적용한다. 형제 저장소의 옛 형태는 검사기가 인정만 한다.
   - raw 측정 출력은 gitignore 한다. 요약에 수치와 재생성 명령을 남긴다.
-- **아직 사용자에게 물을 것.** luau-kb 설치 범위(저장소별 켜기), 형제 저장소 지도의 포인터 방식. (`rules/code-structure.md` 9행은 가져온 뒤 고쳤다.)
 
 ## 4. 사용자가 결정할 것
 
-1. 공유 방식: `~/.claude/skills` 심볼릭 링크 vs 플러그인 설치 (버전 bump 필요)
-2. 규약 충돌 정리
-   - const: rbvm은 금지, 나머지는 기본
-   - stylua: Tabs/Spaces, call_parentheses Always/Input
-   - 러너: luau / lune / lute
-   - 타입 함수: "쓰지 않음" vs "진단 전용"
-   - 툴체인 pin: luau 0.734 vs 0.742
-3. 다른 프로젝트 수정 범위 (quad는 다른 세션이 활발히 수정 중)
-4. 미검증 서술의 처리 (예: tbox stylua `f<<T>>` 오염 경고는 재현 실패)
-5. 영어 지시가 늘면 모델이 사용자 언어를 잊고 영어로 답하는 문제(.claude/audit/31 남은 과제). 후보: 상시 본문 끝에 사용자 언어를 다시 적기, 응답 언어를 확인하는 훅. 정할 때 실측으로 판단한다.
-6. home-canon-guard 훅(정본 대신 `~/.claude` 를 직접 고치는 것 차단)과 worktree-guard 훅(lock·살아 있는 세션 확인 없는 worktree 삭제 차단). 생기면 q 규약(`plugins/q/context/ambient.md`)의 해당 상시 줄을 뺀다(.claude/audit/31).
+열린 결정만 둔다. 정해지면 본문 해당 절로 옮기고 여기서 지운다. Luau 규약 충돌(const, stylua, 러너, 타입 함수, 버전 핀 등)은 2026-11-10~11 에 모두 정했다(`.claude/base/decisions/README.md`, 각 D-xx 의 "사용자 결정" 절). 공유 방식은 플러그인으로 정했다(3.8). 영어 지시로 답 언어를 잊는 문제는 `qwreey-conventions` 의 `reply_language.py` 훅이 맡는다.
+
+| # | 결정 | 추천 | 근거·자리 |
+|---|---|---|---|
+| 1 | agy worktree 모드를 uid 격리가 있을 때만 허용(파일 도구가 OS 샌드박스에서 막히는지 실측 전까지) | 둔다 | ACP 파일 도구는 묻지 않음. `.claude/research/drafts/delegate/portable-isolation.md` |
+| 2 | 드라이버 설계의 열린 질문 | 설계 문서의 추천 | `.claude/research/drafts/delegate/driver-design.md`(작성 중) |
+| 3 | 저장소 `.claude/harness.local.env` 가 `USER_ONLY` 키를 바꿀 수 있게 할지 | 못 바꾸게 둔다(지금). 개인 기계값은 `~/.claude/harness.env` 에 | `home/.claude/lib/harness_env.py` |
+| 4 | "memory 는 이 기계·이 폴더에만 남는다" 한 줄을 상시 주입에 넣을지 | 넣지 않는다. memory rule 이 memory 파일을 쓸 때 실린다 | `plugins/qwreey-conventions/rules/memory.md`, 전역 CLAUDE.md 옮김 표(3.9 5a) |
+| 5 | home-canon-guard(정본 대신 `~/.claude` 직접 수정 차단)·worktree-guard(lock·살아 있는 세션 확인 없는 worktree 삭제 차단) 훅을 만들지 | 미정. 생기면 q·workspace 상시 줄을 뺀다 | `.claude/audit/31-home-claude-md-debate/verdict.md` |
+| 6 | luau-kb·web-security 를 어느 저장소에서 켤지 | 저장소마다 `coderag.toml` `[[packs]]` | `packs/README.md` |
+| 7 | 형제 저장소 지도의 포인터 방식 | 미정 | `qwreey-workspace` 지도 |
+| 8 | coderag Q4 바이너리 전달, M2 전환을 release 전 이 기계의 로컬 빌드로 할지 | 미정 | 3.9 5a, `../coderag/.claude/base/decisions/user-decisions-2026-11.md` |
+| 9 | 다른 하네스(codex·agy)에 규약을 주는 법 | 미정(규약은 coderag 와 잇지 않기로 함) | 3.9 5a |
+| 10 | 세션 기록 반입본을 compact 회차 단위로 나눌지(사용자 "천천히") | 회차마다 파일 하나, 머리에 날짜·transcript·줄 범위 | 3.9 5a, `.claude/audit/49-records-description/` |
+| 11 | 다른 저장소 세션에 인계 파일 전달(정정·`git push` deny 등) | 사용자가 각 세션에 전달 | `HUMAN_TODO.md`, `.claude/handoff/` |
