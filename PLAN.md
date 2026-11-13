@@ -217,6 +217,7 @@
        - 같은 부분은 한 에이전트를 작은 단계로(사용자): "일시 중지만 시킨 에이전트도 재개 가능함…작은 작업 끝내 나온걸 약간의 검토와, 만일 사용자 지시나 결정이 필요하면 메인이 받으며 검토하고 프롬프트를 더 넣어 재개…캐시가 1시간 내로 된다면 유지도 되면서, 이미 읽은건 다시 안 읽을 수 있고, 실수한 부분을 언급해주면 본인이 알게 될 수 있음…반증 근거가 확실하게 들어오면 받아드리거든. 독립 부분엔 병렬 쓰는것 동의". operator 문구와 슬롯 훅 알림에 반영(4b55ba3).
        - 훅 원칙(사용자): "훅은 단순히 모델이 놓친 부분에 대해 판단할 기회를 줄 뿐이여야해(다른 workspace 쓰기처럼 위험하거나 꼭 확인해야하는 특정 상황 아니면)". HOOK-MESSAGES 규칙 4, 전수 점검 반영(4b55ba3, coderag 7ec4f5d). 수행자 모델은 opus 기본(사용자: sonnet 수행자는 시행착오로 더 비쌌다), 메인은 diff 를 다 읽지 않는다.
        - README 는 사람용 진입점(설치하면 에이전트가 어떻게 달라지나, 설치·끄기), 기술 세부는 플러그인 `docs/`(사용자). compact 뒤 주입 문구가 요약과 겹치는 문제: compact 전에 빼거나 요약 지시로 빼게(사용자).
+       - 나중(사용자 "rules inject 나 엠비언트 주입 ambient 도 잠정 라이브러리화 될 필요는 보이긴 하네. 플러그인의 특징과 상관 없게 필요한 코드기도 하니까. 나중에 옮겨보자"): 플러그인마다 따로 있는 ambient 주입(SessionStart·SubagentStart·PreCompact omit·규칙 줄)과 rules-inject 를 `lib/` 공용 모듈로, 플러그인은 사본(`tools/sync-copies.py`). `lib/`·sync 도구가 자리잡은 뒤.
        - 구현됨(2026-11-13): q 0.9.0, `qwreey-sessions` 0.1.0, `qwreey-workspace` 0.1.0, 마이그레이션 0009(sessions·workspace·operator 를 켬, delegate 는 안 켬). 스킬 이름이 `qwreey-sessions:recall|checkpoint|import`, `qwreey-workspace:workspace` 로 바뀌었다. workspace 의 UserPromptSubmit 보충 주입(ambient 의 회차 표지)은 두지 않았다: SessionStart·SubagentStart 만.
      - 나중(사용자 "일단 나중에 고려해볼 대상으로 두자"): 읽기 어려운 코드 알림. 빈 줄 없이 길게 이어진 코드, 주석 없이 일정 이상 이어진 코드, 주석이 한곳에 몰리고 아래 코드는 주석이 없는 경우에 경고(주석·빈 줄 비율). qwreey-conventions 후보.
   6. 자동화: 규약 스킬, doctor 검사, 커밋할 때 info 알림, `q:start` 의 `.claude/` 뼈대 템플릿.
