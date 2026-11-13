@@ -14,7 +14,7 @@ status: active; draft for user review
 
 | 목표 | 비목표 |
 |---|---|
-| root 없이 Linux·macOS·Windows 에서 돈다. 격리가 없으면 읽기 전용 의견(`empty`)으로 내려간다 | 격리가 없는 곳에서 `empty` 를 보안 경계로 만들기(정책상 경계가 아님) |
+| root 없이 Linux·macOS·Windows 에서 돈다. 격리가 없으면 `empty` 로 내려간다(codex 는 읽기 전용 의견, agy 는 제한된 사본일 뿐 강제 아님, §3) | 격리가 없는 곳에서 `empty` 를 보안 경계로 만들기(정책상 경계가 아님) |
 | agy·codex 중 있는 것만 쓴다. 둘 다 없어도 오류가 아니라 "쓸 수 없음, Claude 서브에이전트로" 안내 | 세 번째 벤더 추가(어댑터 경계만 열어 둠) |
 | 지금 명령 표면과 작업 폴더 꼴을 유지해 SKILL 절차가 거의 그대로 | 서브에이전트 운용(qwreey-operator)과 합치기 |
 | 격리 판정은 모델 호출 없이, 판정이 불확실하면 닫힌 쪽 | 결과를 메인 저장소에 자동 반영 |
@@ -28,7 +28,7 @@ status: active; draft for user review
 |---|---|---|
 | 명령과 인자 | 위 7개, `--repo --mode --ref --model --effort --timeout`, `--discard --delete-branch`, `--all --days --apply` | 그대로. `run` 에 `empty` 용 `--files <경로…>` 추가(§6). `doctor --json` 추가(스킬이 쓸 수 있는 에이전트·모드를 읽음) |
 | 수명 주기 | run → collect → remove, gc 미리보기 기본 | 그대로 |
-| 작업 폴더 | `<dirname(ROOT)>/<key>-<agent>/{<name>/, .homes/, .hooks/, runs/}` | 그대로(`conventions.md` §1). `.delegate/` 의 pid·exit·collected 는 `state.json` 하나로, 옛 파일도 읽음 |
+| 작업 폴더 | `<dirname(ROOT)>/<key>-<agent>/{<name>/, .homes/, .hooks/, runs/}` | uid 백엔드는 그대로(`conventions.md` §1, 기존 runs 를 그 자리에서 찾음). uid 가 없으면 플랫폼 상태 폴더 아래(§6): 동료의 저장소 옆(Documents, OneDrive 동기화 폴더)에 사본과 토큰을 두지 않는다. `.delegate/` 의 pid·exit·collected 는 `state.json` 하나로, 옛 파일도 읽음 |
 | 격리 | 모든 모드가 setpriv uid(root 필수) | 백엔드 셋 중 판정된 것(§4). uid 는 Linux root 의 선택 강화층 |
 | agy 호출 | `agy -p … --dangerously-skip-permissions`, 셸·파일 모두 무조건 허용 | ACP 클라이언트(§5). 셸 요청을 모드에 따라 허가·거절. print 방식은 uid 백엔드 전용 대체 경로로만 남김 |
 | codex 호출 | `exec -s read-only --ignore-user-config …`, worktree 는 거부 | 작업별 `CODEX_HOME` 의 권한 프로필 + OS 샌드박스 자가 시험 통과 시 worktree 허용 |
@@ -43,20 +43,23 @@ status: active; draft for user review
 
 ## 3. 플랫폼 표
 
-모드: `worktree` = 저장소 사본에서 편집·셸 허용, `empty` = 읽기 전용 의견(셸 거절, 변경 버림, 보고만 남김).
-agy 열의 기본 = 보수 규칙(uid 있을 때만 worktree), 열림 = `HARNESS_DELEGATE_AGY_WORKTREE=sandbox`(§4.3).
+모드: `worktree` = 저장소 사본에서 편집·셸 허용. `empty` = 셸 거절, 변경 버림, 보고만 남김. 같은 `empty` 라도 뜻이 다르다:
+- codex `empty`: 읽기 전용 의견. OS 샌드박스 자가 시험이 통과했거나, Linux 에서 bwrap 이 뜨지 않아 셸이 아예 돌지 않을 때만(§5.2). 그 밖은 셸 없는 설정이 확인될 때까지 거절.
+- agy `empty`: **제한된 사본, 강제 아님.** cwd 가 빈 폴더(또는 `--files` 사본)이고 셸은 거절되지만, 파일 도구는 사용자 권한으로 밖을 묻지 않고 읽고 쓴다 [실측]. `read_url` 은 미측. uid 백엔드 아래에서만 실제로 밖 쓰기가 막힌다. M4 에서 SKILL·README 도 이 문구로 바꾼다.
+
+agy 열의 기본 = 보수 규칙(uid 있을 때만 worktree), 열림 = `HARNESS_DELEGATE_AGY_WORKTREE=sandbox`(§4.3). 열림은 셸 샌드박스의 양성 신호가 있는 곳에서만 효력이 있다.
 
 | 환경 | 격리 백엔드 | agy | codex | 근거 |
 |---|---|---|---|---|
-| Linux root, userns 꺼짐(이 호스트) | uid | worktree·empty | empty. worktree 는 거부(uid 아래 bwrap 실패), `danger-full-access`+uid 는 사용자 결정 | [실측] |
+| Linux root, userns 꺼짐(이 호스트) | uid | worktree·empty | empty(`-s read-only`, 셸 안 돎). worktree 는 거부(uid 아래 bwrap 실패), `danger-full-access`+uid 는 사용자 결정 | [실측] |
 | Linux root, userns 켜짐 | uid, codex bwrap | worktree·empty | 자가 시험 통과 시 worktree·empty | uid 아래 bwrap 동작 [추정] |
-| Linux 비root, userns 켜짐 | codex bwrap, agy 셸 샌드박스 | 기본 empty / 열림 worktree | 자가 시험 통과 시 worktree·empty | [문서] |
+| Linux 비root, userns 켜짐 | codex bwrap, agy 셸 샌드박스(양성 신호 필요, §4.1) | 기본 empty / 열림 worktree | 자가 시험 통과 시 worktree·empty | [문서]. agy 의 "샌드박스 있음" 로그는 아직 본 적 없음 |
 | Linux 비root, userns 꺼짐 | 없음 | empty | empty(셸이 돌지 않음) | agy [실측], codex [실측] |
-| macOS | codex Seatbelt, agy Seatbelt(셸만) | 기본 empty / 열림 worktree | 자가 시험 통과 시 worktree·empty | [문서], 미측 |
-| Windows 11 24H2 26100.9278+ | codex MXC, agy AppContainer(2026-08 업데이트+) | 기본 empty / 열림 worktree | 자가 시험 통과 시 worktree. `unelevated` 는 읽기를 막지 않아 시험에서 떨어짐 → empty | [문서], 미측 |
-| 그 밖의 Windows·알 수 없는 OS | 없음 | empty | empty | [추정] |
+| macOS | codex Seatbelt, agy Seatbelt(셸만) | empty. 열림 키는 무시(알려진 신호 없음) | 자가 시험 통과 시 worktree·empty, 실패 시 §5.2 | [문서], 미측 |
+| Windows 11 24H2 26100.9278+ | codex MXC, agy AppContainer(2026-08 업데이트+) | empty. 열림 키는 무시(알려진 신호 없음) | 자가 시험 통과 시 worktree·empty. `unelevated` 는 읽기를 막지 않아 시험에서 떨어짐 → §5.2 | [문서], 미측 |
+| 그 밖의 Windows·알 수 없는 OS | 없음 | empty | §5.2(거절 또는 셸 끈 empty) | [추정] |
 
-격리가 없을 때 남는 위험(모든 행 공통): agy 파일 도구는 사용자 권한으로 워크스페이스 밖을 묻지 않고 읽고 쓴다 [실측]. codex 는 샌드박스가 없으면 셸이 돌지 않아 파일을 못 본다(Linux [실측], 다른 OS [추정]).
+격리가 없을 때 남는 위험: agy 파일 도구는 사용자 권한으로 워크스페이스 밖을 묻지 않고 읽고 쓴다(모든 행, [실측 Linux]). "샌드박스가 안 되면 codex 셸이 돌지 않는다"는 Linux(bwrap 실패) 실측뿐이다. macOS·Windows 에서 샌드박스가 떠도 새는 경우(Windows `unelevated` 처럼)는 셸이 돌며 읽기가 열릴 수 있어 `-s read-only` 로 내리지 않는다(§5.2).
 
 ## 4. 격리 판정과 모드 선택
 
@@ -65,10 +68,10 @@ agy 열의 기본 = 보수 규칙(uid 있을 때만 worktree), 열림 = `HARNESS
 | 백엔드 | 통과 조건 | 실패 시 |
 |---|---|---|
 | uid | Linux, euid 0, `setpriv` 있음, uid 가 passwd 에 없음, 그 uid 로 ROOT 쓰기 실패, HOME 비밀(`<config_dir>/.credentials.json`, `~/.git-credentials`, `~/.ssh`) 읽기 실패. 경로는 `/code` 고정이 아니라 실행 사용자 HOME 에서 | 이 백엔드 없음 |
-| codex sandbox | `codex sandbox -P <프로필> -C <사본> -- <검사>` 로: 상태 폴더의 미끼 파일 읽기 실패, 사본 밖 쓰기 실패, 사본 안 쓰기 성공, 네트워크 실패. 미끼는 내용 없는 표지 파일(진짜 비밀을 시험에 쓰지 않음) | codex 는 empty 만 |
-| agy 셸 샌드박스 | `agy acp` 시작(initialize 만) 뒤 서버 로그에 `Terminal sandbox unavailable` 이 없음 | 열림 설정이어도 agy worktree 거절 |
+| codex sandbox | 양성 대조 먼저, 샌드박스 밖(드라이버 자신)에서: 미끼 파일(상태 폴더, 내용 없는 표지, 진짜 비밀은 쓰지 않음) 읽기 성공, 사본 밖 시험 경로 쓰기 성공. 그다음 `codex sandbox -P <프로필> -C <사본> -- <검사>` 로: `true` 가 exit 0(샌드박스가 떴다는 증거, bwrap 기동 실패와 거부를 가른다), 미끼 읽기 실패, 사본 밖 쓰기 실패, 사본 안 쓰기 성공, 네트워크 실패. 대조가 하나라도 어긋나면 판정 불가 = 실패 | codex 는 §5.2 의 empty 규칙 |
+| agy 셸 샌드박스 | 셋 다 필요. (1) agy 버전이 허용 목록(`DEFAULT_AGY_SANDBOX_VERSIONS`, 로그 꼴을 잰 판: 1.5.7·1.5.8)에 있음, 밖이면 없음으로. (2) `agy acp` 를 task_home(토큰 사본)으로 띄워 `initialize`·`session/new` 까지(프롬프트 없음, 모델 호출 없을 것으로 [추정]) 진행한 뒤 서버 로그에 `Terminal sandbox unavailable` 이 없음. 이 줄은 `session/new` 뒤에야 찍히고(로그 87-91행, session/new 는 5행), 아예 안 찍힌 로그도 하나 있었다 [실측]: 그래서 줄 부재는 필요조건일 뿐 양성 신호가 아니다. (3) Linux: 드라이버가 따로 비특권 userns 를 확인(`unshare -U true` 또는 `bwrap --unshare-user true` 성공). macOS·Windows 는 알려진 양성 신호가 없어 언제나 없음 | 열림 설정이어도 agy worktree 거절 |
 
-검사 하나라도 오류(시간 초과, 실행 파일 없음, 알 수 없는 출력)면 그 백엔드는 없는 것으로 본다. 결과는 캐시하지 않는다(uid 검사는 ms, codex 시험은 초 단위 [추정]).
+검사 하나라도 오류(시간 초과, 실행 파일 없음, 알 수 없는 출력)면 그 백엔드는 없는 것으로 본다. 결과는 캐시하지 않는다(uid 검사는 ms, codex 시험은 초 단위, agy 는 서버 기동 수 초 [추정]). agy 판정은 열림 키가 `sandbox` 일 때만 돌린다.
 
 ### 4.2 모드 선택
 
@@ -83,7 +86,7 @@ fail-closed 규칙: 알 수 없는 플랫폼·버전은 empty. ACP 권한 요청
 ### 4.3 agy worktree 규칙 (사용자 결정 반영)
 
 - 기본: agy `worktree` 는 uid 백엔드가 있을 때만. 없으면 empty.
-- 선택 키 `HARNESS_DELEGATE_AGY_WORKTREE`: `uid`(기본) | `sandbox`. `sandbox` 는 uid 가 없어도 agy 셸 샌드박스가 판정되면 worktree 를 연다. USER_ONLY 로 둔다: 커밋된 저장소 파일이 격리를 풀 수 있으면 안 된다.
+- 선택 키 `HARNESS_DELEGATE_AGY_WORKTREE`: `uid`(기본) | `sandbox`. `sandbox` 는 uid 가 없어도 agy 셸 샌드박스가 §4.1 의 양성 판정을 받으면 worktree 를 연다. 지금 그 판정이 날 수 있는 곳은 userns 가 켜진 Linux 뿐이고, macOS·Windows 에서는 신호를 잴 때까지 이 값을 받지 않는다(`doctor` 가 "set but not honored on this platform" 으로 알림). USER_ONLY 로 둔다: 커밋된 저장소 파일이 격리를 풀 수 있으면 안 된다.
 - `sandbox` 의 위험(키 설명과 `doctor` 출력에 그대로): 셸 명령만 OS 샌드박스에 들어가고, agy 파일 도구(`read_file`, `write_file`)는 사용자 권한으로 워크스페이스 밖, 메인 작업 트리, `.git`, HOME 비밀까지 묻지 않고 읽고 쓴다(ACP, settings `permissions` deny·ask 도 막지 못함 [실측, OS 샌드박스 없는 Linux]). OS 샌드박스 아래에서 파일 도구도 막히는지는 미측이다.
 - 셸 샌드박스도 없는 곳의 agy worktree 는 값으로 제공하지 않는다: 그때 셸은 사용자 권한 그대로라 격리가 0 이다.
 - 키가 `sandbox` 이면 `run` 시작 줄에 `agy worktree without uid isolation (HARNESS_DELEGATE_AGY_WORKTREE=sandbox): file tools are not confined` 를 찍는다.
@@ -119,12 +122,16 @@ fail-closed 규칙: 알 수 없는 플랫폼·버전은 empty. ACP 권한 요청
   - `deleg-rw`(worktree): 사본 쓰기, `.git` 읽기 전용(`:workspace` 기본 [문서]), 나머지 같음. worktree 의 gitdir 는 메인 `.git/worktrees/<id>` 라 사본 밖이므로 커밋 불가 [추정].
 - 실행: `codex exec -m <model> -c model_reasoning_effort=<e> -c approval_policy=never --skip-git-repo-check --ephemeral --color never --json --disable apps,browser_use,computer_use,plugins -C <사본> -o <last> -`(stdin 프롬프트). `--json` 이벤트는 `.delegate/events.jsonl`.
 - `--ignore-user-config` 가 작업 CODEX_HOME 의 `config.toml` 까지 무시하는지 미측. 무시하면 프로필을 `-c` 로 넘기거나 이 옵션을 뺀다(우리 파일이라). M3 에서 잰다.
-- uid 백엔드에서 샌드박스가 안 되면 지금처럼 `-s read-only`(셸 없음). `-s` 를 주면 프로필 대신 옛 방식이 쓰인다 [문서].
+- 자가 시험이 실패했을 때의 empty:
+  - Linux(uid 백엔드 포함): 지금처럼 `-s read-only`. bwrap 이 뜨지 않아 셸이 하나도 안 돈다 [실측, Linux 만]. `-s` 를 주면 프로필 대신 옛 방식이 쓰인다 [문서].
+  - macOS·Windows·그 밖: `-s read-only` 로 내리지 않는다. 샌드박스가 떠도 새는 경우(Windows `unelevated` 는 읽기를 막지 않음 [문서]) 셸이 돌며 디스크를 읽는다. 셸 도구를 끄는 codex 설정이 있다고 확인되면(키 이름 미확인 [추정], M3 에서 잼) 셸 없는 empty 로 돌고, 없으면 exit 4(이유: "codex sandbox self-test failed; no shell-less mode verified").
 - `HARNESS_DELEGATE_CODEX_SANDBOX=danger-full-access` 는 uid 백엔드에서만 받는다. uid 가 없으면 이 값은 exit 4.
 
 ### 5.3 인증 사본의 위험
 
 작업 사본에서 토큰이 갱신되면 원본 refresh token 이 무효가 될 수 있다 [추정]. 드라이버는 끝날 때 사본 토큰이 바뀌었는지 비교해 `state.json`·guard 에 `token refreshed in task` 를 적는다. 되돌려 쓰기는 하지 않는다(Q3).
+- 관문: refresh token 이 한 번 쓰면 바뀌는지(회전, 옛 토큰 무효) agy·codex 각각 재는 것을 M3 를 동료에게 내놓기 전의 조건으로 둔다. 회전한다면 동료의 원본 로그인이 위임 한 번에 끊길 수 있다.
+- 회전이 일회용이면 후보: 비교 후 교체(compare-and-swap). 복사 때 원본의 해시·mtime 을 기록해 두고, 끝날 때 사본이 바뀌었고 원본은 그대로면 사본을 원본 자리에 원자적으로 쓴다(임시 파일 + `os.replace`). 원본도 바뀌었으면(사용자가 그사이 로그인) 쓰지 않고 알림만. 채택은 사용자 결정.
 
 ## 6. 작업 사본, 수집, 정리, 상태
 
@@ -137,7 +144,8 @@ fail-closed 규칙: 알 수 없는 플랫폼·버전은 empty. ACP 권한 요청
 | 실행 잠금 | `.delegate/run.lock` 을 실행 내내 잡는다(POSIX `fcntl.flock`, Windows `msvcrt.locking`). 잡을 수 없으면 running. pid 재사용과 남은 잠금 파일 문제가 없다(`O_EXCL` 대신) |
 | 동시 실행 | 상태 폴더 `slots/<agent>-<n>.lock` N 개 중 빈 것을 비차단으로 잡음(N = `HARNESS_DELEGATE_MAX_CONCURRENT`, 저장소 합계) |
 | 프로세스 트리 | POSIX `start_new_session` + `killpg`, Windows Job Object(ctypes, 닫히면 종료) [추정, 미측] |
-| 상태 폴더 | 저장소를 넘는 것(슬롯 잠금, 미끼 파일)만: Linux `$XDG_STATE_HOME/qwreey-delegate`(기본 `~/.local/state`), macOS `~/Library/Application Support/qwreey-delegate`, Windows `%LOCALAPPDATA%\qwreey-delegate`. 작업별 것은 저장소 옆 작업 폴더 |
+| 상태 폴더 | Linux `$XDG_STATE_HOME/qwreey-delegate`(기본 `~/.local/state`), macOS `~/Library/Application Support/qwreey-delegate`, Windows `%LOCALAPPDATA%\qwreey-delegate`(동기화되지 않는 로컬 폴더). 슬롯 잠금, 미끼 파일을 둔다 |
+| 작업 폴더 위치 | uid 백엔드: 지금처럼 `<dirname(ROOT)>/<key>-<agent>/`(uid 소유 chown, 기존 runs). uid 없음: `<상태 폴더>/work/<key>-<ROOT 해시 8자>-<agent>/{<name>/, .homes/, .hooks/, runs/}`. 해시는 이름이 같은 두 저장소를 가른다. `runs/` 는 보존 기록이라 임시 폴더가 아니라 상태 폴더. `list`·`gc` 는 두 위치를 다 본다 |
 | state.json | 원자적 쓰기(임시 파일 + `os.replace`). 필드: agent, mode, isolation 백엔드, repo, commit, model, started/finished, rc, collected, token_refreshed |
 
 ## 7. 설정
@@ -188,8 +196,9 @@ harness.env 층(`load_layers(ROOT)`) 하나로 읽는다. 옛 `DELEGATE_*` 이�
 | 가짜 agy(ACP NDJSON 서버: 권한 요청, 사본 밖 도구 호출), 가짜 codex | run→collect→remove→gc, 표지선 cancel, 동시 실행 거절 | - |
 | uid 백엔드 | 실제 `doctor --all`, 실제 run 백엔드당 1회(사용자 동의, agy 1턴 약 2.5만 토큰 [실측]) | - |
 | 비root, userns 꺼짐 | 드라이버 자체를 setpriv 로 무권한 uid 아래 돌려 흉내: empty 만 나와야 함, agy 셸 거절 | - |
-| codex 권한 프로필 자가 시험 | 가짜 codex 로 코드 경로만(bwrap 불가) | macOS·Win11: 실제 `codex sandbox` 통과/실패, `--ignore-user-config` 와 CODEX_HOME config |
-| agy 셸 샌드박스 판정, 인증 위치 | 로그 줄 부재 판정 [실측] | macOS·Win11: 로그 줄, 토큰 파일인지 Keychain 인지 |
+| codex 권한 프로필 자가 시험 | 가짜 codex 로 코드 경로와 양성 대조(대조 실패 → 판정 불가)만(bwrap 불가) | macOS·Win11: 실제 `codex sandbox` 통과/실패, `--ignore-user-config` 와 CODEX_HOME config, 셸 도구를 끄는 설정 |
+| agy 셸 샌드박스 판정 | 음성만 잴 수 있음: `session/new` 뒤 `Terminal sandbox unavailable` 줄이 찍히고 `unshare -U` 가 실패해 "없음" 이 나와야 함. initialize 만으로는 줄이 없어 거짓 양성이 됨 [실측] | userns 켜진 Linux: 양성 로그 꼴. macOS·Win11: 쓸 만한 양성 신호가 있는지 |
+| 인증 위치, 토큰 회전(M3 관문) | agy·codex 각각: 사본에서 갱신이 일어난 뒤 원본 토큰이 아직 통하는지(사용자 동의, 실제 호출) | macOS: 토큰 파일인지 Keychain 인지 |
 | agy 파일 도구가 OS 샌드박스 아래 막히는지 | 불가 | macOS·Win11: `portable-isolation.md` 의 `acpprobe` 와 같은 1턴 |
 | Windows 고유 | - | 잠금(msvcrt), Job Object 종료, git 훅, 긴 경로, py 런처 |
 
@@ -200,8 +209,8 @@ harness.env 층(`load_layers(ROOT)`) 하나로 읽는다. 옛 `DELEGATE_*` 이�
 | M0 | 이 설계 검토 | 끝(§10) |
 | M1 | `delegate.py` 동등 이식(uid 백엔드, agy print, codex 지금 꼴). `delegate.sh` 손대지 않음 | 가짜 에이전트 시험 통과, 같은 runs/ 꼴 |
 | M2 | agy ACP 어댑터, 표지선 | uid 아래 실제 agy worktree·empty 각 1회 |
-| M3 | 격리 판정·모드 선택, 비root empty, codex 프로필·자가 시험, 새 harness.env 키(정본+sync) | 비root 흉내 시험, `doctor --json` |
-| M4 | `delegate.sh` 를 셈으로, SKILL·README·how-it-works·plugin.json 요구 사항 갱신, 버전 올림 | 세션 재시작 뒤 SKILL 이 새 경로 사용 |
+| M3 | 격리 판정·모드 선택, 비root empty, 상태 폴더 작업 위치, codex 프로필·자가 시험, 새 harness.env 키(정본+sync) | 비root 흉내 시험, `doctor --json`. 동료 배포 전 관문: 토큰 회전 실측(§5.3) |
+| M4 | `delegate.sh` 를 셈으로, SKILL·README·how-it-works·plugin.json 요구 사항 갱신(agy empty 는 "제한된 사본, 강제 아님", 비uid 작업 위치는 `conventions.md` §1 표에도), 버전 올림 | 세션 재시작 뒤 SKILL 이 새 경로 사용 |
 | M5 | macOS·Win11 실측, §3 표의 [추정] 갱신, agy 기본 재검토 질문 | 실측 기록 추가 |
 | M6 | proc-guard 패턴 갱신 뒤 SKILL 이 `delegate.py` 직접 호출. 셈은 남김(값쌈) | - |
 
@@ -213,10 +222,19 @@ harness.env 층(`load_layers(ROOT)`) 하나로 읽는다. 옛 `DELEGATE_*` 이�
 |---|---|
 | Q1 | `empty` 는 빈 폴더 + 프롬프트 맥락이 기본, `--files` 로 고른 추적 파일만 넣는다 |
 | Q2 | `--mode worktree` 를 명시했는데 격리가 없으면 거절(exit 4). 명시가 없을 때만 empty 로 내린다 |
-| Q3 | 작업 사본의 토큰이 갱신돼도 원본에 되쓰지 않고 알린다. 원본이 실제로 무효가 되는지 한 번 잰다 |
+| Q3 | 작업 사본의 토큰이 갱신돼도 원본에 되쓰지 않고 알린다. 원본이 실제로 무효가 되는지 한 번 잰다. 이 측정은 M3 를 동료에게 내놓기 전의 관문이고, 회전이 일회용이면 비교 후 교체 되쓰기(§5.3)를 후보로 다시 묻는다 |
 | Q4 | 비root 환경은 registry 없이 돈다(key = 폴더 이름) |
 | Q5 | `DELEGATE_*` 호환 없음, 새 `HARNESS_DELEGATE_*` 이름만 |
 | Q6 | codex 기본은 샌드박스가 통과해도 empty, worktree 는 명시할 때만 |
+
+### 남은 측정 (사용자 동의 필요, 각 1턴 정도)
+
+agy 파일 도구를 막을 손잡이 후보 둘. 하나라도 파일 도구를 막으면 agy `empty` 가 "강제 아님" 에서 한 단계 안전해진다.
+
+| # | 측정 | 막으면 |
+|---|---|---|
+| M-a | ACP `session/set_mode` 로 `plan`·`accept-edits` 를 건 뒤 사본 밖 `read_file`·`write_file` 지시 | empty 를 그 모드로 연다 |
+| M-b | print 방식 `-p --settings <JSON>` 의 `permissions.deny`(`read_file(<밖>)`, `write_file(<밖>)`)가 ACP 와 달리 듣는지 | empty 를 print 방식으로(셸은 settings 로 거절) |
 
 ## 11. 지금 문서·스크립트와 어긋나는 점
 
@@ -224,4 +242,5 @@ harness.env 층(`load_layers(ROOT)`) 하나로 읽는다. 옛 `DELEGATE_*` 이�
 - agy `empty` 는 지금 `--dangerously-skip-permissions` 로 셸까지 허용(uid 아래). 정책의 empty 는 셸 거절.
 - "`agy --sandbox`·codex `-s read-only` 가 cwd 밖을 못 막는다"는 서술이 `delegate.sh` 머리, SKILL "Isolation", how-it-works 에 일반 사실로 있으나 이 호스트(userns 꺼짐) 한정이다.
 - 경로 고정: `GEMINI_SRC=/code/.gemini`, `CODEX_AUTH=/code/.codex/auth.json`, `SECRETS_PROBE=/code/…`, 설치 기본 `/code/.local/share/mise/installs`(harness_env 기본은 `~/.local/share/mise/installs`).
+- `portable-isolation.md` "드라이버 기본 정책" 의 agy 판정("ACP 서버 시작 로그에 `Terminal sandbox unavailable` 줄이 없다")은 시작 직후에 보면 이 호스트에서도 거짓 양성이다. 줄은 `session/new` 뒤에 찍히고 안 찍힌 로그도 있다. 이 설계 §4.1 이 고친 판정이다.
 - `portable-isolation.md` 의 "권장 설계" agy 항목(deny 규칙, worktree 안 편집만 허가)은 같은 문서의 뒤 실측으로 성립하지 않는다(문서 스스로 적음). 드라이버 항목의 `O_EXCL` 잠금은 이 설계에서 OS 파일 잠금으로 바꿈.
