@@ -1,13 +1,13 @@
 ---
 format: 1
 title: 형제 저장소의 위임 사본을 정본과 대조하고 걷어내기
-description: 네 저장소(quad, stl-luau, tbox, table-sim)와 stl-luau-doctor 의 agy-delegate.sh·delegate-agy 사본은 plugins/q/skills/delegate 가 대체한다. 지우기 전에 각 저장소의 AGENTS.md 로 옮길 프로젝트 사실만 확인하면 된다.
+description: 네 저장소(quad, stl-luau, tbox, table-sim)와 stl-luau-doctor 의 agy-delegate.sh·delegate-agy 사본은 plugins/qwreey-delegate/skills/delegate 가 대체한다. 지우기 전에 각 저장소의 AGENTS.md 로 옮길 프로젝트 사실만 확인하면 된다.
 status: active
 ---
 
 # 형제 저장소 위임 사본 걷어내기
 
-정본: `plugins/q/skills/delegate/`(SKILL.md, scripts/delegate.sh, registry.tsv, templates/). 각 저장소 세션이 자기 저장소에서 대조하고 지운다. 이 문서는 읽기 전용 대조(2026-11-13)의 결과다.
+정본: `plugins/qwreey-delegate/skills/delegate/`(SKILL.md, scripts/delegate.sh, registry.tsv, templates/). 각 저장소 세션이 자기 저장소에서 대조하고 지운다. 이 문서는 읽기 전용 대조(2026-11-13)의 결과다.
 
 ## 공통
 

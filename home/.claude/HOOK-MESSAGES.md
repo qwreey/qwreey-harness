@@ -62,6 +62,8 @@ MANIFEST 대상 아님. 근거 실측: `.claude/audit/17-hook-messages.md`. 세�
 | | 요약 실패 | warn |
 | | PreCompact 상기 | warn |
 | records-read | (q 플러그인 `scripts/records_read.py`) 세션 기록을 Read·Grep 하면 스냅숏 경고(회차마다 한 번), 큰 기록을 통째로 Read 하면 검색 먼저 안내(매번) | info |
+| delegate-nudge | (플러그인 `qwreey-operator`, `hooks/delegate-nudge.py`, PostToolUse `*` + UserPromptSubmit) 메인(agent_id 없음)이 한 턴에 코드 쓰기 12회 또는 파일 8개, Agent 호출 없이: 백그라운드 서브에이전트 위임 고려(턴당 한 번). 끄기 `HARNESS_OPERATOR_NUDGE=off` | info |
+| | 직전 턴이 문턱을 넘었고 Agent 호출이 없었음: 이어지는 작업이면 먼저 위임 지시문(다음 UserPromptSubmit 에 한 번) | info |
 
 훅 코드 예: `plugins/qwreey-conventions/hooks/structure-reminder.py` 의 `Note`·`top_level`. 새 훅의 level 은 위 표에 행을 더해 정한다.
 

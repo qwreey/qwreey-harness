@@ -1,12 +1,14 @@
 ---
 name: delegate
-description: Hand one narrow question to another model family (Gemini `agy`, OpenAI `codex`) in an isolated unprivileged worktree and verify the answer yourself before using it. Use for a root cause that several findings may share, a view from outside the current frame, merging findings that share a mechanism, an objectivity check on names, or a bug hunt scoped to one mechanism. Do not use for review rounds, full audits, decisions, or anything that should land in the main repository as is. 다른 모델 계열에게 좁은 질문 맡기기, 제미니·코덱스 위임, 외부 시선.
+description: Hand one narrow question to another model family (Gemini `agy`, OpenAI `codex`) in an isolated unprivileged worktree and verify the answer yourself before using it. Use for a root cause that several findings may share, a view from outside the current frame, merging findings that share a mechanism, an objectivity check on names, or a bug hunt scoped to one mechanism. Do not use for review rounds, full audits, decisions, or anything that should land in the main repository as is. Also when the user asks in plain words, with or without naming the skill: "codex랑 agy써서 작명 논의해봐", "제미니한테도 물어봐", "코덱스한테 물어봐", "다른 모델 시선으로 봐줘". 다른 모델 계열에게 좁은 질문 맡기기, 제미니·코덱스 위임, 외부 시선.
 argument-hint: "<agy|codex> <name> <prompt file> [--mode worktree|empty] [--ref commit]"
 ---
 
 # delegate - a narrow question to another model family
 
 The script is `${CLAUDE_SKILL_DIR}/scripts/delegate.sh`; below `D` means that path. The uid table is `registry.tsv` (location: see Setup), prompt skeletons are `templates/tasks.md`.
+
+**Requirements:** Linux as root (`setpriv`, an unprivileged uid per repository, `choom`), the `agy` and/or `codex` CLI logged in with the user's own subscription. On Windows, macOS or without those CLIs the script stops with an error; use a Claude subagent instead.
 
 ## Why and when
 

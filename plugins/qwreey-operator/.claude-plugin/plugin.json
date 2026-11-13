@@ -1,0 +1,8 @@
+{
+  "name": "qwreey-operator",
+  "version": "0.1.0",
+  "description": "메인 세션은 대화와 판단을 맡고, 큰 구현은 백그라운드 서브에이전트에게 넘기는 규약. 규약 두 줄을 세션 시작에 주입하고, 메인이 한 턴에 코드를 많이 쓰면 위임을 권하는 알림 훅(delegate-nudge)과 위임 절차 스킬 qwreey-operator:implementer 를 둔다. 막지 않는다.",
+  "author": { "name": "qwreey", "email": "me@qwreey.moe" },
+  "license": "MIT",
+  "keywords": ["subagent", "delegation", "background", "conversation", "hooks"]
+}
