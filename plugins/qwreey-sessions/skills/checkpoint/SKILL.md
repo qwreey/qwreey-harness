@@ -5,7 +5,7 @@ description: Flush the automatic session log now (summarize everything since the
 
 # /qwreey-sessions:checkpoint — save the session log now
 
-The session-log hooks (part of the `q` plugin) summarize this session in the background on its own (PreCompact, SessionEnd, every ~20 min of growth).
+The session-log hooks (part of the `qwreey-sessions` plugin) summarize this session in the background on its own (PreCompact, SessionEnd, every ~20 min of growth).
 Use this skill when you want a checkpoint **now**.
 
 1. Flush synchronously (takes ~30–120 s; model: haiku, no tools):
