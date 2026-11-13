@@ -74,7 +74,15 @@ def is_off(name):
         spec = importlib.util.spec_from_file_location("harness_env", os.path.join(cd, "lib", "harness_env.py"))
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
-        return str(mod.load([os.path.join(cd, "harness.env")]).get(name, "")).strip().lower() == "off"
+        # The repo's own .claude/harness.env wins over the user's, so a switch can differ per project.
+        files = [os.path.join(os.environ["CLAUDE_PROJECT_DIR"], ".claude", "harness.env")] if os.environ.get("CLAUDE_PROJECT_DIR") else []
+        files.append(os.path.join(cd, "harness.env"))
+        for f in files:
+            if os.path.isfile(f):
+                v = str(mod.load([f]).get(name, "")).strip().lower()
+                if v:
+                    return v == "off"
+        return False
     except Exception:
         return False
 

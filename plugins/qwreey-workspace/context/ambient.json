@@ -1,4 +1,9 @@
 {
   "plugin": "qwreey-workspace",
-  "events": ["SessionStart", "SubagentStart", "PreCompact"]
+  "events": [
+    "SessionStart",
+    "SubagentStart",
+    "PreCompact"
+  ],
+  "off_switch": "HARNESS_WORKSPACE_AMBIENT"
 }

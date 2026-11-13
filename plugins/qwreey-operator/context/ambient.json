@@ -1,4 +1,9 @@
 {
   "plugin": "qwreey-operator",
-  "events": ["SessionStart", "SubagentStart", "PreCompact"]
+  "events": [
+    "SessionStart",
+    "SubagentStart",
+    "PreCompact"
+  ],
+  "off_switch": "HARNESS_OPERATOR_AMBIENT"
 }
