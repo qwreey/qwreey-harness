@@ -3,7 +3,8 @@
 
 검사
   C1 `@copy-of: <경로>[#이름]` 사본이 원본과 같은가(파일은 바이트, 값은 문자열 묶음). 풀리지 않거나 다르면 알린다.
-  C2 원본을 고치면 그것을 가리키는 사본 목록을 알린다(묶음은 원소가 바뀐 때만).
+     영역 사본(`@start-replace: <경로>#<이름> [옵션]` ... `@end-replace`)은 정본 영역에서 만든 줄과 같은가(copy_regions.py, 정본은 lib/).
+  C2 원본을 고치면 그것을 가리키는 사본 목록을 알린다(묶음은 원소가 바뀐 때만, 정본 영역은 그 안의 줄을 고친 때만).
   H1 추가한 문자열 묶음이 저장소의 다른 정의와 겹침(타입 합집합과 런타임 목록이 어긋난 것 포함). 기본은 그림자: 알리지 않고
      ${CLAUDE_PLUGIN_DATA}/reuse-shadow.jsonl(없으면 $TMPDIR/claude-qwreey-reuse/shadow.jsonl)에 한 줄씩 남긴다(본문 없음).
 모드: 환경 변수 REUSE_CHECK=off|shadow|on 이 저장소 .claude/conventions.json 의 reuse.mode 를 이긴다. 기본 shadow.
@@ -28,6 +29,7 @@ import time
 T0 = time.perf_counter()
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
+import copy_regions  # noqa: E402
 import harness_nonce  # noqa: E402
 from conv_edit import GEN_MARK, MAX_BYTES, SKIP_PARTS, SKIP_SUFFIX, collect, project_root  # noqa: E402
 from conv_env import env_value  # noqa: E402
@@ -49,6 +51,8 @@ COLD_MS, HARD_MS, WARM_BUDGET_MS = 300, 400, 150
 MAX_FILES = 5000
 MAX_NOTICES_PER_FILE = 2
 LABEL_BUDGET = "budget"
+INDEX_VERSION = 2  # 2: 표시에 영역 사본("r")이 들어간다. 옛 색인은 다시 만든다
+SYNC_HINT = "Edit the canon region, then sync the copies (python3 -I tools/sync-copies.py --apply where the repo has it)."
 
 
 # ---------- 설정, 경로 ----------
@@ -130,10 +134,10 @@ def load_index(root, files, own_rel):
     try:
         with open(ip, encoding="utf-8") as f:
             idx = json.load(f)
-        if idx.get("v") != 1:
-            idx = {"v": 1, "files": {}}
+        if idx.get("v") != INDEX_VERSION:
+            idx = {"v": INDEX_VERSION, "files": {}}
     except (OSError, ValueError):
-        idx = {"v": 1, "files": {}}
+        idx = {"v": INDEX_VERSION, "files": {}}
     ents = idx["files"]
     cut = False
     dirty = False
@@ -337,6 +341,8 @@ def check_copies(root, rel, text, own_entry, ents, added_lines):
     """C1. [(줄, 알림 문구 또는 None(풀 수 없음, 기록만), 결과, 대상, 새로 건드렸나)]. 결과: ok | unresolved | differs | sibling."""
     res = []
     for ln, tgt, name, kind in own_entry[3]:
+        if kind == "r":
+            continue  # 영역 사본은 check_regions
         if tgt == rel and kind == "f":
             continue  # 자기 경로를 적은 표시는 원본 표시
         path, sib = resolve(root, tgt)
@@ -372,15 +378,57 @@ def check_copies(root, rel, text, own_entry, ents, added_lines):
     return res
 
 
-def source_copies(rel, ents, prev, now, touched_file):
+def check_regions(root, rel, path, text, added_lines):
+    """C1 영역 사본. check_copies 와 같은 모양의 결과. 정본 영역은 건너뛴다."""
+    if "@start-replace" not in text and "@end-replace" not in text:
+        return []
+    regions, errors = copy_regions.parse_regions(text)
+    res = [(ln, f"{rel}:{ln}: copy marker: {msg}. Fix the marker.", "unresolved", "", (ln - 1) in added_lines) for ln, msg in errors]
+    lines = text.split("\n")
+    for r in regions:
+        if copy_regions.is_canon(r, path, (root,)):
+            continue
+        tgt = f"{r['path']}#{r['name']}"
+        touched = any(r["start"] <= k <= r["end"] for k in added_lines)
+        top = r["path"].split("/")
+        if top[0] == ".." and len(top) > 1 and not os.path.isdir(os.path.join(root, "..", top[1])):
+            res.append((r["line"], None, "sibling", tgt, False))  # 형제 저장소가 이 기계에 없다
+            continue
+        try:
+            want = copy_regions.expected(r, path, (root,))
+        except copy_regions.MarkError as e:
+            res.append((r["line"], f"{rel}:{r['line']}: @start-replace {tgt} does not resolve ({e}). Fix the copy or the mark.", "unresolved", tgt, touched))
+            continue
+        if want == copy_regions.body(lines, r):
+            res.append((r["line"], None, "ok", tgt, False))
+        else:
+            res.append((r["line"], f"{rel}:{r['line']}: @start-replace {tgt} differs from its canon. {SYNC_HINT}", "differs", tgt, touched))
+    return res
+
+
+def canon_regions_touched(rel, path, text, added_lines, root):
+    """이 파일의 정본 영역 중 추가한 줄이 든 것의 이름."""
+    if "@start-replace" not in text:
+        return set()
+    return {r["name"] for r in copy_regions.parse_regions(text)[0]
+            if copy_regions.is_canon(r, path, (root,)) and any(r["start"] < k < r["end"] for k in added_lines)}
+
+
+def source_copies(rel, ents, prev, now, touched_file, touched_regions=frozenset(), now_marks=None):
     """C2. 이 파일이 원본인 사본 목록 [(이름, [사본 rel:줄...], 줄)]. 묶음은 원소가 바뀐 때만, 파일은 추가한 줄이 있을 때."""
-    by = {}
+    by, regions = {}, {}
     for orel, e in ents.items():
         for ln, tgt, name, kind in e[3]:
             if orel == rel or tgt.lstrip("./") != rel:
                 continue
+            if kind == "r":
+                regions.setdefault(name, []).append(f"{orel}:{ln}")
+                continue
             by.setdefault((name if kind == "v" else None), []).append(f"{orel}:{ln}")
     out = []
+    for name, copies in regions.items():
+        if name in touched_regions:
+            out.append((name, copies, next((m[0] for m in (now_marks or []) if m[3] == "r" and m[2] == name), 1)))
     for name, copies in by.items():
         if name is None:
             if touched_file:
@@ -500,7 +548,7 @@ def main():
 
     # C1
     differ = 0
-    for ln, msg, status, tgt, touched in check_copies(root, rel, text, own, ents, added):
+    for ln, msg, status, tgt, touched in check_copies(root, rel, text, own, ents, added) + check_regions(root, rel, path, text, added):
         if status in ("differs", "unresolved"):
             differ += 1
         if msg and touched:
@@ -512,12 +560,13 @@ def main():
             log_rec("C1", "N4" if msg else "none", None, None, {"status": status})
     # C2
     now = own[2]
-    for name, copies, ln in source_copies(rel, ents, prev[2] if prev else None, now, bool(added)):
+    for name, copies, ln in source_copies(rel, ents, prev[2] if prev else None, now, bool(added),
+                                          canon_regions_touched(rel, path, text, added, root), own[3]):
         key = f"c2:{rel}:{name}"
         if key not in seen:
             seen.append(key)
             notes.append(f"{rel}:{ln}: {name} has {len(copies)} @copy-of copies: {', '.join(copies[:5])}"
-                         f"{' +%d' % (len(copies) - 5) if len(copies) > 5 else ''}. If this change altered what they copy, update them too.")
+                         f"{' +%d' % (len(copies) - 5) if len(copies) > 5 else ''}. If this change altered what they copy, update them too (python3 -I tools/sync-copies.py --apply where the repo has it).")
             log_rec("C2", "N3", None, None, {"name": name, "copies": len(copies)})
     # H1
     dup_old = 0

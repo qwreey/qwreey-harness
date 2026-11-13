@@ -18,8 +18,9 @@ import harness_nonce  # noqa: E402
 FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "context", "ambient.md")
 EVENTS = ("SessionStart", "SubagentStart", "PreCompact")
 TAG = "qwreey-workspace"
-# plugins/q/scripts/ambient.py 의 OMIT_LINE 과 같은 문장이다(따로 설치되는 플러그인이라 import 못 함). tools/tests/test-vendored-copies.py 가 비교한다.
+# @start-replace: lib/harness_texts.py#OMIT_LINE value=string template="OMIT_LINE = {value}"
 OMIT_LINE = "Omit the {block} block from the summary; it is re-injected after compaction."
+# @end-replace
 
 
 def main():

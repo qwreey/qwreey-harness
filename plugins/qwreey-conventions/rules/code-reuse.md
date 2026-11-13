@@ -23,7 +23,7 @@ paths:
 
 ## One definition
 - Before writing a helper (parser, walker, hash, glob, date, string trim) or a list of names (statuses, kinds, levels), search for one this package can import, and use or extend it. Two copies of one fact drift apart.
-- A copy this package cannot import (separately installed package, another repo, another language): keep it, mark it `@copy-of: <path>[#NAME]` in a line comment, and compare it with the source in a test, or generate one from the other. Do not replace it with an import across the package boundary. Vendored trees are not marked or edited: change the source and re-vendor.
+- A copy this package cannot import (separately installed package, another repo, another language): keep it, mark it `@copy-of: <path>[#NAME]` in a line comment (or wrap copied lines in `@start-replace: <path>#<NAME>` ... `@end-replace`), and compare it with the source in a test, or generate one from the other. Where the repo has `tools/sync-copies.py`, edit the canon (`lib/`) and run it with `--apply` instead of editing copies. Do not replace it with an import across the package boundary. Vendored trees are not marked or edited: change the source and re-vendor.
 - A literal checked against a type (a Luau or TS union) already references it. Names owned by an outside API (engine classes, tool names) are not your vocabulary.
 - A list that mirrors a union: TS derives the union from the list (`(typeof LIST)[number]`); Luau annotates the list with the union type.
 

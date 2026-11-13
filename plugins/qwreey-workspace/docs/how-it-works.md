@@ -44,4 +44,5 @@
 ## 테스트
 ```bash
 python3 -I plugins/qwreey-workspace/tests/test_workspace_gate.py
+python3 -I plugins/qwreey-workspace/tests/test_ambient.py
 ```

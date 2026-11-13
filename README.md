@@ -15,6 +15,8 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 | `plugins/qwreey-proc-guard/` | Linux 전용: 무거운 실행(벤치·퍼저)이 choom 없이 나가면 거절하는 PreToolUse 훅(`heavy-proc-guard`). Windows·macOS 에서는 끈다 |
 | `.claude/base/decisions/` | 저장소 사이 갈린 규약의 합의안(D-xx)과 사용자 결정 현황 |
 | `.claude/research/drafts/` | 설치 전 초안(감사 에이전트, 위임, coderag 분류 예시, 분리 계획). 결론이 자리 잡았거나(landed) 접은(rejected) 초안은 `.claude/archive/research/drafts/` 로 옮긴다 |
+| `lib/` | 플러그인(과 coderag)이 함께 쓰는 코드·문구의 정본. 설치되지 않고, 플러그인은 사본을 든다. 정본을 고친 뒤 `tools/sync-copies.py --apply`. 설명 `lib/README.md` |
+| `tools/sync-copies.py` | `@copy-of`(파일)·`@start-replace`/`@end-replace`(영역) 표시를 따라 사본을 정본에 맞춘다(기본 diff, `--apply`, `--check`) |
 | `intake/` | 외부 프로젝트 반입 자리(사본은 git 에서 제외). 절차 `intake/README.md` |
 | `.claude/audit/` | 조사·감사 보고서. 반입 프로젝트 감사는 `.claude/audit/intake/` |
 | `PLAN.md`, `HUMAN_TODO.md`, `.claude/handoff/` | 작업 계획, 사람이 할 일, 다른 세션 인계 |

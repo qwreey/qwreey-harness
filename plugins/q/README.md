@@ -1,16 +1,31 @@
-# q 플러그인
+# q
 
-사람이 직접 치는 하네스 명령을 한 접두(`/q:`)로 모은 플러그인이다. `/q:` 만 치면 자동완성에 전부 나온다. 이름 q 는 사용자명 qwreey 에서 왔다.
-모델이 부르는 것은 `qwreey-advisor`, 툴킷 지식은 `luau-kb` 플러그인에 따로 있다. 세션 기록(`/qwreey-sessions:checkpoint`·`import`·`recall`)은 `qwreey-sessions`, 다른 저장소 게이트와 지도(`qwreey-workspace:workspace`)는 `qwreey-workspace` 로 나뉘어 각각 고를 수 있다.
+사람이 직접 치는 명령을 `/q:` 아래에 모은 플러그인이다. `/q:` 만 치면 자동완성에 전부 나온다. 처음 쓰는 사람을 위한 온보딩, 저장소의 Claude 설정 진단, 자리를 비울 때 쓸 예산 걸어 두기가 들어 있다. 여기에 평소 돌아가는 안전장치 몇 가지가 붙는다. 서브에이전트를 한꺼번에 많이 띄우기 전에 규모를 알리게 하고, 멈춘 듯한 백그라운드 작업과 낡은 플러그인 설치를 알려 준다. 평소에는 아무것도 막지 않는다. 막는 것은 `/q:away` 로 예산을 걸었을 때뿐이고, 진단과 온보딩은 사용자가 동의한 것만 고친다. 이름 q 는 만든 사람(qwreey)에서 왔다.
 
-| 명령 | 무엇 | 자세히 |
-|---|---|---|
-| `/q:start` | 온보딩(묻기, 개념 설명, 읽기 전용 진단, 동의받은 개선만 적용) | `docs/onboarding.md` |
-| `/q:doctor` | 하네스 진단(결정적 검사 `scan.py` + 모델 판단) | `skills/doctor/SKILL.md` |
-| `/q:away`, `/q:back` | 자리 비움 예산·슬롯. 상태는 `scripts/subagent_ledger.py`(원장)와 `scripts/subagent-slots.py`(훅)가 맡는다 | `.claude/audit/21-cost-disclosure.md` |
+## 무엇이 달라지나
+- `/q:start`: 역할과 경험을 묻고, 모르는 개념만 쉽게 설명한 뒤, 지금 환경을 읽기만 해서 진단하고 개선안을 하나씩 제안한다. 동의한 것만 적용한다.
+- `/q:doctor`: 저장소의 CLAUDE.md, rules, 스킬, 설정, 훅을 진단하고 고칠 점을 제안한다. 항목마다 승인한 것만 고친다.
+- `/q:away 30%` 처럼 예산을 걸고 자리를 비우면 동시 서브에이전트가 정한 수(기본 2)로 묶이고, 예산만큼 쓴 뒤로는 서브에이전트를 하나씩만 돌리고, 두 배를 쓰면 새 서브에이전트를 멈추고 진행 상황을 적은 뒤 기다린다. 돌아와서 `/q:back` 하면 그동안 쓴 양을 요약한다.
+- 평소 Claude 가 서브에이전트를 한꺼번에 많이 띄우려 하면(동시 4개 이상, opus 2개 이상, Workflow) 먼저 몇 개를 어떤 모델로 돌리는지 알린다.
+- 백그라운드 작업이 15분 넘게 진척 없거나 2시간 넘게 돌면 화면에 한 줄로 알려 준다. 세션을 열 때 설치된 플러그인이 마켓보다 낡았으면 업데이트 명령을 한 줄로 보여 준다(하루 한 번).
+- 다른 플러그인의 훅 알림을 Claude 가 어떻게 다룰지(info, warn, action) 짧은 규약을 싣는다.
 
-- 훅(`hooks/hooks.json`): 상시 규약 주입(`ambient.py`), 서브에이전트 고지·슬롯(`subagent-slots.py`), 설치 어긋남 고지(`drift.py`, SessionStart: 켠 플러그인의 설치 버전이 마켓보다 낮거나 claude-doctor 에서 `home-sync.sh status` 가 어긋남을 보이면 사용자에게 한 줄, 같은 내용은 하루 한 번, 끄기 `HARNESS_Q_DRIFT=off`), 오래 방치된 백그라운드 작업 알림(`stale_work.py`, Stop·SubagentStop 이 판정하고 UserPromptSubmit 이 모델에, Stop 이 사용자에게 전달, 끄기 `HARNESS_Q_STALE=off`). PreCompact 에서 q 자기 compact 회차(`scripts/compact_epoch.py`, 정본)를 올리고, `ambient.py PreCompact` 가 요약기에게 compact 뒤 다시 실릴 `<plugin name="q">` 블록을 요약에서 빼라는 한 줄을 낸다(끄기는 주입과 같은 `HARNESS_Q_AMBIENT=off`).
-- away/back 은 이 플러그인의 `scripts/subagent_ledger.py` 를 부른다. statusline(`~/.claude/statusline/harness-status.py`)은 `installed_plugins.json` 에서 설치된 q 를 찾아 그 원장을 읽고, q 가 없으면 서브에이전트·away 항목만 뺀다.
-- doctor 가 정본 검사를 하려면 `HARNESS_DOCTOR_ROOT`(`~/.claude/harness.env`)가 claude-doctor 폴더를 가리켜야 한다.
-- 설치: `claude plugin install q@claude-doctor-market`.
-- 테스트: `plugins/q/tests/` 의 `test_*.py`, `test-subagent-slots.py`.
+## 비용
+- 늘 드는 것: 훅 알림 규약 두 줄(약 120 토큰)이 메인과 서브에이전트마다 실린다. 명령은 사용자 전용이라 설명이 맥락에 실리지 않는다. 훅은 모델을 부르지 않는다.
+- `/q:start`, `/q:doctor` 는 실행할 때 보통 대화만큼 든다.
+
+## 요구 사항
+- `python3`. Linux·macOS(`/q:away` 기록이 파일 잠금 `fcntl` 을 써서 Windows 에서는 동작하지 않는다).
+- 구독 한도 %로 예산을 걸려면 claude-doctor 의 statusline 이 한도 값을 기록해야 한다. 없으면 달러 기준으로 바뀐다.
+
+## 끄기
+- 하나씩: `HARNESS_SUBAGENT_SLOTS=off`(규모 알림과 away), `HARNESS_Q_STALE=off`(방치 작업), `HARNESS_Q_DRIFT=off`(설치 어긋남), `HARNESS_Q_AMBIENT=off`(규약). 모두 환경 변수다.
+- 전부: `claude plugin disable q@claude-doctor-market` (제거는 `uninstall`).
+
+## 설치
+```bash
+claude plugin marketplace add <claude-doctor 폴더>   # 마켓을 처음 쓸 때 한 번
+claude plugin install q@claude-doctor-market
+```
+
+자세한 동작(훅 구성, 알림 조건과 설정, away 단계, 테스트): [docs/how-it-works.md](docs/how-it-works.md). 온보딩 구성: [docs/onboarding.md](docs/onboarding.md)

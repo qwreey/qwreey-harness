@@ -39,10 +39,11 @@ The prefix `DEFAULT_` promises an override. A value nothing overrides is a plain
 | Marker | Where | Meaning |
 |---|---|---|
 | `@copy-of: <path>[#NAME]` | a line comment on the line above the copied definition (value copy), or in a line comment or the module docstring within the first 10 lines of the file (file copy) | this is a copy of `<NAME>` (or of the whole file) at `<path>`, repo-relative, or `<repo>:<path>` for a sibling repo |
+| `@start-replace: <path>#<NAME> [key=value ...]` ... `@end-replace` | each on a line of its own holding only the comment prefix and the marker, around the copied lines | the lines between are a copy of region `NAME` in `<path>`; the region whose path names its own file is the canon |
 | `@dup-ok: <reason>` | line comment on one of the 3 lines above the list | the overlap is not one fact; the reason must be a reason ("later", "TODO", "-" are not) |
 | `why not <library>: <reason>` | first 10 lines of a hand-written module | the library was considered and rejected; not checked |
 
-Check behavior: `@copy-of` must resolve; a file copy must be byte-identical to its source, a value copy must hold the same strings as `NAME` there. Editing a source lists its copies. `#NAME` is the name as written at the definition (a Luau table key, a module field, a `const`). A copy that is meant to hold fewer strings is not a copy: use `@dup-ok`.
+Check behavior: `@copy-of` and `@start-replace` must resolve; a file copy must be byte-identical to its source, a value copy must hold the same strings as `NAME` there, a region copy must equal what the canon region renders to. Editing a source (or the lines inside a canon region) lists its copies. `#NAME` is the name as written at the definition (a Luau table key, a module field, a `const`). A copy that is meant to hold fewer strings is not a copy: use `@dup-ok`.
 
 Syntax per language:
 
@@ -56,9 +57,33 @@ Syntax per language:
 | JSON | cannot hold markers; name the source in the code that reads it or in the comparison test | same |
 
 - Use a line comment, not a doc block: a moonwave `--[=[ ]=]` block or a JSDoc `/** */` can read `@copy-of` as a doc tag.
-- A marker that names its own file marks the source (an identical file whose header names its canonical path: the source carries the same bytes, so its marker names itself). Copies must stay byte-identical, so edit the source and copy it over.
+- A marker that names its own file marks the source (an identical file whose header names its canonical path: the source carries the same bytes, so its marker names itself). Copies must stay byte-identical, so edit the source and copy it over (see Syncing).
 - Vendored trees (`vendor.lock.json`, `vendor/`, `third_party/`) are not marked or edited. Change the source and vendor again.
 - Generated files carry the generator path and "do not edit" in the header instead of a marker.
+
+### Regions
+
+A region copies a few lines or one constant across files, languages and repos, where a value copy (a set of strings) cannot. Paths are relative to the repo root of the file holding the marker; a sibling repo is `../<repo>/<path>`.
+
+- Without options the canon lines are copied verbatim, re-indented to the copy's marker.
+- `value=string template="<text>"`: the canon region holds exactly one string literal; the copy is `<text>` with `{value}` replaced by that string as a double-quoted literal (escapes valid in Python, Rust, JS/TS and Luau).
+
+```text
+canon, lib/harness_texts.py:
+# @start-replace: lib/harness_texts.py#OMIT_LINE
+OMIT_LINE = "Omit the {block} block from the summary; it is re-injected after compaction."
+# @end-replace
+
+copy in another repo, Rust:
+// @start-replace: ../claude-doctor/lib/harness_texts.py#OMIT_LINE value=string template="pub const OMIT_LINE: &str = {value};"
+pub const OMIT_LINE: &str = "Omit the {block} block from the summary; it is re-injected after compaction.";
+// @end-replace
+```
+
+### Syncing
+
+- A repo with `tools/sync-copies.py` (claude-doctor): shared canon lives in `lib/`. Edit the canon, then run `python3 -I tools/sync-copies.py --apply`; `--check` (in its tests) fails on drift, and with no flag it prints the diff. Never edit text between region markers in a copy by hand.
+- A repo without the tool: compare each copy with its source in a test, or generate one from the other.
 
 ## Library or hand-written
 

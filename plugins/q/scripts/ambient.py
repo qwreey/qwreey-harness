@@ -11,8 +11,8 @@ context/ambient.md(영어, 사용자가 확정한 문구 그대로)를 `<plugin 
   $TMPDIR/claude-q-epoch/<sid>)를 읽기만 하고, 올리는 쪽은 PreCompact 의 hook.py 다. PreCompact 가 SessionStart(compact) 보다
   먼저라 두 훅 사이에 경합이 없다.
 - PreCompact: 요약기에게 이 블록을 요약에서 빼라는 한 줄(OMIT_LINE)을 일반 stdout 으로 낸다. SessionStart(compact) 가 요약 뒤에
-  다시 실으므로, 요약이 풀어 쓴 사본까지 남으면 같은 규약이 두 번 실린다. 다른 플러그인의 같은 줄은 이 OMIT_LINE 의
-  사본이다. 서브에이전트(agent_id)의 compact 뒤에는 SessionStart 가 다시 싣지 않으므로 내지 않는다. 끄기 스위치가 켜졌거나
+  다시 실으므로, 요약이 풀어 쓴 사본까지 남으면 같은 규약이 두 번 실린다. OMIT_LINE 은 lib/harness_texts.py 의
+  사본이다(다른 플러그인도 같다). 서브에이전트(agent_id)의 compact 뒤에는 SessionStart 가 다시 싣지 않으므로 내지 않는다. 끄기 스위치가 켜졌거나
   파일이 비면 블록이 없으니 내지 않는다.
 - 한계: 플러그인을 세션 중간에 끄면 이미 실린 맥락은 못 지운다. 플러그인 자신의 훅이 멈추므로 이 쪽에서 알아챌 수단이 없다(만들지 않음).
 - 파일이 없거나 읽기 실패는 fail-open(아무것도 내지 않음). 끄기: HARNESS_Q_AMBIENT=off(환경 변수 또는 harness.env).
@@ -35,7 +35,9 @@ SKIP_AGENTS = {"fork"}
 NS = "claude-q-ambient"
 EVENTS = ("SessionStart", "SubagentStart", "UserPromptSubmit")
 TAG = "q"
+# @start-replace: lib/harness_texts.py#OMIT_LINE value=string template="OMIT_LINE = {value}"
 OMIT_LINE = "Omit the {block} block from the summary; it is re-injected after compaction."
+# @end-replace
 
 
 def _sid(s) -> str:

@@ -7,6 +7,7 @@ import bisect
 import re
 
 from conv_lex import lex
+from copy_regions import parse_regions
 
 STR = r'"[^"\\\n]*"|\'[^\'\\\n]*\''
 GROUP = re.compile(r"[\[\{\(]((?:\s*(?:" + STR + r")\s*[,;]?)+)\s*[\]\}\)]|((?:(?:" + STR + r")\s*(?:\||\bor\b)\s*)+(?:" + STR + r"))", re.S)
@@ -16,7 +17,8 @@ DEF = re.compile(r"^\s*(?:pub(?:\([\w:]+\))?\s+)?(?:export\s+)?(?:const|static|l
                  r"|^\s*[A-Za-z_]\w*\s*(?::[^=]+)?=\s*(?:table\.freeze\(|frozenset\(|set\()?[\[\{\(]|^\s*[A-Za-z_]\w*\s*:\s*&?\[")
 NAME = re.compile(r"^\s*(?:pub(?:\([\w:]+\))?\s+)?(?:export\s+)?(?:(?:const|static|let|local|type)\s+(?:mut\s+)?)?([A-Za-z_]\w*)")
 TYPE = re.compile(r"^\s*(?:export\s+)?type\s+\w+|^\s*\w+\s*:\s*[\"']")
-COPY = re.compile(r"@copy-of:\s*(\S+)")
+# 대상은 경로처럼 시작해야 표시다: 표시를 설명하는 글(백틱으로 감싼 이름, `<path>` 자리표시)을 사본 표시로 읽지 않게.
+COPY = re.compile(r"@copy-of:[ \t]*([A-Za-z0-9_.][^\s`'\"<>]*)")
 DUP = re.compile(r"(?:--|//|#|/\*|\{/\*)\s*@dup-ok\b:?[ \t]*([^\n]*)")
 HEADER_LINES = 10
 BAD_REASONS = {"", "-", "later", "todo", "fixme", "tbd", "n/a", "나중에", "추후"}
@@ -41,7 +43,7 @@ def _is_def(lines, ln):
 
 def extract(text, fam):
     """(묶음 목록, 표시 목록). 묶음: [줄(1 기반), 이름, 플래그(1 정의, 2 타입), 원소(정렬), 표시 대상 또는 None, @dup-ok 사유 또는 None].
-    표시: [줄, 대상 경로, 이름 또는 None, "f"(파일 사본) | "v"(값 사본)]."""
+    표시: [줄, 대상 경로, 이름 또는 None, "f"(파일 사본) | "v"(값 사본) | "r"(영역 사본, 정본 영역 포함)]."""
     if fam == "rust" and "#[cfg(test)]" in text:
         text = text[:text.find("#[cfg(test)]")]
     lines = text.split("\n")
@@ -94,4 +96,6 @@ def extract(text, fam):
                     break
             else:
                 marks.append([i + 1, tgt, name, "v"] if name else [i + 1, tgt, None, "f"])
+    if "@start-replace" in text:
+        marks += [[r["line"], r["path"], r["name"], "r"] for r in parse_regions(text)[0]]
     return sets, marks

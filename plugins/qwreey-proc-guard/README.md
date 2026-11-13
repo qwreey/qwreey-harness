@@ -1,14 +1,25 @@
 # qwreey-proc-guard
 
-공유 메모리 cgroup 에서 벤치·퍼저·성능 실측이 남은 메모리를 다 쓰면 OOM killer 가 Claude 프로세스를 죽일 수 있다(quad 2026-09-28, exit 137). 이 플러그인의 PreToolUse(Bash) 훅은 그런 실행을 `choom -n 1000 --` 로 감싸지 않았으면 deny(level=action)하고, 다시 칠 명령을 알려 준다.
+이 플러그인을 켜면 Claude 가 벤치마크, 퍼저, 성능 측정처럼 메모리를 많이 쓸 수 있는 명령을 그냥 돌리려 할 때 한 번 막고, `choom` 으로 감싼 명령으로 다시 치게 한다. 여러 세션이 메모리를 같이 쓰는 Linux 컨테이너에서 무거운 실행이 남은 메모리를 다 먹으면, 커널의 OOM killer 가 엉뚱하게 Claude 프로세스를 죽일 수 있기 때문이다. 감싸 두면 그 실행이 먼저 죽고 Claude 는 산다. `choom` 이 없는 환경(대부분의 개인 PC, macOS, Windows)에서는 아무것도 하지 않는다.
 
-Linux 전용이라 따로 뒀다. Windows·macOS 에서는 이 플러그인을 끄면 된다. 래퍼 프로그램(choom)이 없으면 훅이 아무것도 막지 않는다.
+## 무엇이 달라지나
+- `luau bench.luau`, `cargo bench`, `npm run perf` 같은 명령이 한 번 거절되고, Claude 가 감싼 형태로 다시 실행한다. 사람이 터미널에서 직접 치는 명령은 상관없다.
+- git 명령, 이미 감싼 명령, 벤치 폴더 안에서 결과를 집계하는 `python3` 같은 명령은 통과한다.
+- 낱말로 짐작하는 검사라 가끔 오탐이 있다. 그때도 감싸서 다시 치면 되므로 손해는 재시도 한 번이다.
 
-| 구성 | 이름 | 하는 일 |
-|---|---|---|
-| 훅 | `hooks/heavy-proc-guard.py` | PreToolUse(Bash). 어느 구간(`&&` `||` `;` `|` 줄바꿈으로 나눔)이 실행기(luau, bash, python, node, ./x.sh 등)를 돌리고 그 같은 구간에 무거운 낱말(bench, fuzz, perf, stress 등)이 있으면 deny. heredoc 본문은 먼저 버린다(본문은 데이터이고 줄이 구간 머리로 오인되므로; heredoc 로 인터프리터에 먹인 무거운 스크립트는 못 잡는 것을 받아들임). 낱말이 다른 구간에 있으면 통과. 예외: 낱말이 든 변수를 펼칠 때(`F=x/fuzz.luau; luau $F`), 낱말이 든 디렉터리로 `cd` 한 뒤 툴킷 실행기나 스크립트를 돌릴 때(`cd fuzz && luau a.luau`, `cd bench && ./run.sh`). 그 뒤의 python3·bash 같은 인터프리터는 집계·편집용이 많아 통과(`cd bench && python3 summarize.py`). heredoc 본문에 시간 재기 호출(`os.clock(`, `perf_counter`, `timeit`, `performance.now(`, `hrtime`, `Instant::now`)이 있으면 같은 방식으로 뒤의 툴킷 실행기·스크립트를 잡음(`cat > b.luau <<EOF … EOF; luau b.luau`). 인터프리터에 heredoc 으로 먹인 무거운 스크립트는 여전히 못 잡음. git·gh 명령과 이미 감싼 명령은 통과 |
+## 비용
+- 늘 드는 것: 없다. 모델을 부르지 않는 가벼운 훅 하나가 Claude 의 셸 명령마다 돈다.
 
-설정(`~/.claude/harness.env`, 선택. `lib/harness_env.py` 가 없으면 기본값): `HARNESS_HEAVY_WRAP`(기본 auto: choom 이 있으면 `choom -n 1000 --`, 없으면 끔; 빈 값이면 끔), `HARNESS_HEAVY_EXECUTORS`, `HARNESS_HEAVY_KEYWORDS`, `HARNESS_TOOLKITS`.
+## 요구 사항
+- Linux, `choom`(util-linux), `python3`.
 
-## 테스트
-`python3 -I tests/test-heavy-proc-guard.py`
+## 끄기
+- `claude plugin disable qwreey-proc-guard@claude-doctor-market` (제거는 `uninstall`).
+
+## 설치
+```bash
+claude plugin marketplace add <claude-doctor 폴더>   # 마켓을 처음 쓸 때 한 번
+claude plugin install qwreey-proc-guard@claude-doctor-market
+```
+
+자세한 동작(판정 규칙, 설정, 테스트): [docs/how-it-works.md](docs/how-it-works.md)

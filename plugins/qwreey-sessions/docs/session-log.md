@@ -53,7 +53,7 @@ index.json                         rid → pending | imported(위치, 커밋) | 
 
 - dedup 단위는 **(session_id, compact 회차, 트리거)** 다.
   - 회차는 qwreey-sessions 자기 것(`scripts/compact_epoch.py`, `$TMPDIR/claude-qwreey-sessions-epoch/<sid>`)이고 hook.py 가 PreCompact 에서 올린다. PreCompact 는 SessionStart(compact)·PostCompact 보다 먼저라 읽는 훅(records_read 포함)이 항상 올라간 값을 본다. 취소된 compact 는 알림을 한 번 더 낼 뿐이다.
-  - 같은 모듈의 사본이 qwreey-advisor·qwreey-conventions 에 있고(정본은 q, 테스트가 바이트 동일성을 검사), 각자 자기 회차를 올린다. 하네스가 없어도 돈다.
+  - 같은 모듈의 사본이 q·qwreey-advisor·qwreey-conventions·qwreey-workspace 에 있고(정본은 저장소 `lib/compact_epoch.py`, `tools/tests/test-vendored-copies.py` 가 바이트 동일성을 검사), 각자 자기 회차를 올린다. 하네스가 없어도 돈다.
 - pending 알림 level (action 은 쓰지 않는다: import 는 명령 하나라 막고 물을 일이 아니다)
   - 보관 위치 설정됨: 평소 info, commit 직전이거나 `SESSION_LOG_PENDING_STRONG_COUNT`(5)개·`…_DAYS`(7)일 이상이면 warn. 내용은 `session-log import` 한 줄.
   - 미설정: 평소 info, `SESSION_LOG_HOME_NUDGE_COUNT`(3)개 또는 `SESSION_LOG_HOME_NUDGE_DAYS`(3)일 이상(strong 도 포함)이면 warn 으로 위치를 사용자에게 제안하라고 한다(`docs/sessions/` 팀 공개, `.claude/sessions/` 에이전트 전용, 있으면 `handover/`·`handoff/`·`audit/`·`.claude/audit/`·`.claude/handoff/` 같은 이력 폴더, 밖에 두기).

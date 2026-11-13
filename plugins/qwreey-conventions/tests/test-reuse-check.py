@@ -123,6 +123,32 @@ put("p/src.py", cp)
 r = run("p/src.py", cp + "Z = 3\n", "X = 1\n", "X = 1\nZ = 3\n")
 check("C2 editing a file source lists file copies", "src.py has 1 @copy-of copies: q/cp.py:2" in r)
 
+# ---- 영역 사본(@start-replace ... @end-replace), 정본은 lib/ ----
+def lines(*xs):
+    return "\n".join(xs) + "\n"
+
+
+put("lib/texts.py", lines("# @start-replace: lib/texts.py#OMIT", 'OMIT = "Omit the {block} block."', "# @end-replace"))
+reg_ok = lines("A = 1", '# @start-replace: lib/texts.py#OMIT value=string template="OMIT = {value}"', 'OMIT = "Omit the {block} block."', "# @end-replace")
+check("R1 region copy equal -> silent", run("r/ok.py", reg_ok) == "")
+reg_bad = reg_ok.replace("block.", "blocks.")
+r = run("r/bad.py", reg_bad)
+check("R1 region copy differs -> notice with sync hint", "r/bad.py:2: @start-replace lib/texts.py#OMIT differs from its canon" in r and "sync-copies.py --apply" in r)
+check("R1 untouched region -> silent", run("r/bad.py", reg_bad + "B = 2\n", "", "B = 2\n") == "")
+reg_none = lines('# @start-replace: lib/texts.py#NOPE value=string template="OMIT = {value}"', 'OMIT = "x"', "# @end-replace")
+check("R1 missing canon region -> does not resolve", "lib/texts.py#NOPE does not resolve (canon region" in run("r/none.py", reg_none))
+check("R1 unpaired marker -> notice", "copy marker: start-replace without an end-replace" in run("r/open.py", lines("# @start-replace: lib/texts.py#OMIT", "x = 1")))
+check("R1 lib/ whole-file canon resolves", run("r/whole.py", lines('"""Mod.', "@copy-of: lib/texts.py", '"""')) .find("does not resolve") < 0)
+check("R1 prose naming the marker is not a mark", run("r/prose.py", lines('"""Marks: `@copy-of: <path>`, the `@copy-of:` header."""', "X = 1")) == "")
+r = run("lib/texts.py", lines("# @start-replace: lib/texts.py#OMIT", 'OMIT = "Omit the {block} block."', "# @end-replace"))
+check("R1 canon region is not checked as a copy", "differs" not in r and "does not resolve" not in r)
+r = run("lib/texts.py", lines("# @start-replace: lib/texts.py#OMIT", 'OMIT = "Omit the {block} block now."', "# @end-replace"),
+        'block."', 'block now."')
+check("C2 editing a canon region lists its region copies", "OMIT has" in r and "r/ok.py:2" in r and "update them too" in r)
+r = run("lib/texts.py", lines("# @start-replace: lib/texts.py#OMIT", 'OMIT = "Omit the {block} block now."', "# @end-replace", "Y = 1"),
+        "# @end-replace\n", "# @end-replace\nY = 1\n", sid="c2r")
+check("C2 edit outside the canon region -> no region list", "OMIT has" not in r)
+
 # ---- H1: 그림자 ----
 put("m/one.py", 'SKIP = ["alpha", "bravo", "charlie", "delta"]\n')
 n0 = len(shadow())
