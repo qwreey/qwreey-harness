@@ -1,0 +1,40 @@
+# <repository name> - entry point for external models (Gemini `agy`, OpenAI `codex`)
+
+<!-- This file holds no knowledge; it only points at the canonical sources. Restating decisions or structure here makes
+     it stale. Keep it under 6KB. Role and reporting rules (measured vs estimated, suggestions are not decisions) are
+     added by the delegate skill's preamble on every run, so do not write them here. -->
+
+<One line: what this repository is>. The main worker is a Claude session; you were called to give a different view on a narrow question.
+
+## Canonical sources - the only standard of judgment
+
+The rules originate below; if this file disagrees, they win.
+
+- `CLAUDE.md` and the files it imports with `@`: <`.claude/conventions.md`, ...>
+- `.claude/rules/*.md`: follow the rule whose `paths:` header matches the file you touch.
+- Design sources: <`.claude/base/` etc.; one line on source priority>
+- Shared Luau knowledge (read-only): `/code/Projects/claude-doctor/packs/luau-kb/AGENTS.md`
+
+## Already known - do not raise again
+
+- Review ledger: <path> (one line on the finding numbering)
+- Open user questions: <`.claude/question.md`>
+- Reversed or rejected designs: <`.claude/archive/`>
+- Known limits: <path>
+
+## Checks
+
+The verdict is the exit code.
+- Full: `<./scripts/check.sh>`
+- Tests only: `<command>`
+- Types: `<command>`. Use the limit flags if any.
+- Where probes go: `<path>`. Require form: `<example>`.
+
+## Repository-specific cautions
+
+- <e.g. `vendor/` is absent from the worktree; read it from the original path `/code/Projects/<repo>/vendor/`, read-only>
+- <e.g. `src/server` needs the Roblox engine to run; claims about it are "estimated">
+
+## When asked for a full audit
+
+<If there is one: read `.claude/qa-request/external-review-entry.md` first and follow it. Otherwise delete this section.>

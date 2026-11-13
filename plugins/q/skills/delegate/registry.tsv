@@ -1,0 +1,14 @@
+# delegate registry: one delegation uid per repository (backends agy and codex share it).
+# Columns: key<TAB>root<TAB>uid<TAB>setup<TAB>note
+#   key   : prefix of the workspace name. The workspace is <dirname(root)>/<key>-<backend>/ (e.g. /code/Projects/quad-agy)
+#   root  : main repository path (working tree root)
+#   uid   : from 61000 upward. No two repositories share a uid, so a task in one cannot modify the other's worktree.
+#           It must not collide with a real user in /etc/passwd (`delegate.sh doctor` checks).
+#   setup : command run once as root inside the new worktree right after it is created (`-` for none). Failure only warns.
+#   note  : free text for humans
+# A new repository gets the next free uid from `delegate.sh register <root>`. Edit by hand only while no delegation is running.
+# This file is edited in place, so HARNESS_DELEGATE_REGISTRY must point at the git clone copy, not a plugin cache copy.
+quad	/code/Projects/quad	61000	timeout 300 mise exec -- pesde install	codex records for quad also use 61000
+stl-luau	/code/Projects/stl-luau	61001	-
+table-sim	/code/Projects/table-sim	61002	-	vendor/ is gitignored and absent from the worktree; AGENTS.md states the read exception
+tbox	/code/Projects/tbox	61003	-	was 61000 (collided with quad); the user removes files the old tbox-agy left owned by 61000 before the first run

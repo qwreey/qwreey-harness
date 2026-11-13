@@ -3,7 +3,7 @@
 2026-11-10 기준 상태
 - `pgrep -x claude`의 cwd를 보면 quad, devplorer, stl-luau, tbox에서 다른 Claude 세션이 돌고 있다.
 - table-sim에는 돌고 있는 세션이 없다.
-- 위임 과제는 하나도 돌고 있지 않다(`gc --all` 미리보기에 "보류" 없음).
+- 위임 과제는 하나도 돌고 있지 않다(`gc --all` 미리보기에 "held" 없음).
 
 ## 왜 시점이 중요한가
 
@@ -16,7 +16,7 @@
 ```bash
 R=/code/Projects/<repo>
 for p in $(pgrep -x claude); do readlink /proc/$p/cwd; done | grep -qx "$R" && echo "세션 있음 — 기다림"
-delegate.sh gc --repo <repo> | grep -q '^보류' && echo "위임 과제 도는 중 — 기다림"
+delegate.sh gc --repo <repo> | grep -q '^held' && echo "위임 과제 도는 중 — 기다림"
 git -C "$R" status --porcelain -- .claude CLAUDE.md GEMINI.md AGENTS.md | grep -q . && echo ".claude 에 미커밋 변경 — 그 세션 몫인지 확인"
 ```
 

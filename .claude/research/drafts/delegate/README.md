@@ -1,4 +1,4 @@
-status: active; registry in use (HARNESS_DELEGATE_REGISTRY), not installed as a plugin
+status: active; canonical skill, script and registry moved to plugins/q/skills/delegate (English); skills/delegate here is the Korean pre-install copy, do not edit; sibling-retirement.md lists what each sibling session checks before deleting its copy
 # (B) agy/Codex 위임 통합 설계
 
 2026-11-10 초안. 근거:
