@@ -41,6 +41,29 @@ DEFAULTS = {
     "HARNESS_TOOLKITS": "",
     # 위임(agy·codex) uid 표 위치. 비면 uid 충돌 검사는 저장소 안의 사본만 본다.
     "HARNESS_DELEGATE_REGISTRY": "",
+    # 위임 실행 파일. 비면 PATH 의 agy/codex(mise shim 은 빈 환경에서 돌지 않아 건너뜀), 없으면 HARNESS_TOOL_INSTALLS 아래.
+    "HARNESS_DELEGATE_AGY_BIN": "",
+    "HARNESS_DELEGATE_CODEX_BIN": "",
+    # 위임 인증 원본. agy 는 이 폴더를, codex 는 이 폴더의 auth.json 을 작업마다 복사한다. codex 가 비면 $CODEX_HOME, 없으면 ~/.codex.
+    "HARNESS_DELEGATE_AGY_HOME": "~/.gemini",
+    "HARNESS_DELEGATE_CODEX_HOME": "",
+    # agy worktree 를 여는 격리: uid(root 의 uid 격리가 있을 때만) | sandbox(agy 셸 샌드박스만으로도 연다. 파일 도구는 갇히지 않는다).
+    "HARNESS_DELEGATE_AGY_WORKTREE": "uid",
+    # 격리(uid)가 없을 때의 agy: 빈 값이면 끔, allow 면 empty 만 연다(파일 도구가 사용자 권한으로 HOME 비밀을 읽고 밖에 쓴다).
+    "HARNESS_DELEGATE_AGY_UNISOLATED": "",
+    # codex 샌드박스. 비면 드라이버 기본(read-only). danger-full-access 는 uid 격리가 있을 때만 받는다.
+    "HARNESS_DELEGATE_CODEX_SANDBOX": "",
+    # 비어 있지 않으면 위임 작업에 빈 환경 대신 지금 환경을 넘긴다(토큰 같은 변수가 샐 수 있다).
+    "HARNESS_DELEGATE_KEEP_ENV": "",
+    # 저장소를 넘는 위임 상태(동시 실행 슬롯) 폴더. 비면 플랫폼 상태 폴더(Linux ~/.local/state/qwreey-delegate).
+    "HARNESS_DELEGATE_STATE": "",
+    # 에이전트마다 동시에 도는 위임 수, 모든 저장소 합계. 토큰 한도가 사용자 구독 단위라서.
+    "HARNESS_DELEGATE_MAX_CONCURRENT": "1",
+    # 위임 기본 모델(run --model 이 이긴다). 저장소 층이 정해도 격리와 무관하다.
+    "HARNESS_DELEGATE_AGY_MODEL": "gemini-3.8-flash-high",
+    "HARNESS_DELEGATE_CODEX_MODEL": "gpt-6-luna",
+    # empty 모드에 파일을 넣을 때 더 거를 이름(공백 구분 glob). 기본 목록에 더해질 뿐이라 저장소 층도 정할 수 있다.
+    "HARNESS_DELEGATE_SECRET_GLOBS": "",
     # 에이전트 git push 정책: normal(에이전트 push 가 정상 흐름) | deny | 빈 값(모름).
     "HARNESS_AGENT_PUSH": "",
 }
@@ -86,6 +109,9 @@ USER_ONLY = frozenset({
     "HARNESS_WORKSPACE", "HARNESS_DOCTOR_ROOT", "HARNESS_TOOL_INSTALLS", "HARNESS_HEAVY_WRAP", "HARNESS_DELEGATE_REGISTRY",
     "HARNESS_AGENT_PUSH", "HARNESS_CODERAG", "HARNESS_LUAU_KB", "HARNESS_ROBLOX_DOCS_CACHE", "HARNESS_WORKSPACE_GATE",
     "SESSION_LOG_HOME", "SESSION_LOG_CLAUDE",
+    "HARNESS_DELEGATE_AGY_BIN", "HARNESS_DELEGATE_CODEX_BIN", "HARNESS_DELEGATE_AGY_HOME", "HARNESS_DELEGATE_CODEX_HOME",
+    "HARNESS_DELEGATE_AGY_WORKTREE", "HARNESS_DELEGATE_AGY_UNISOLATED", "HARNESS_DELEGATE_CODEX_SANDBOX", "HARNESS_DELEGATE_KEEP_ENV", "HARNESS_DELEGATE_STATE",
+    "HARNESS_DELEGATE_MAX_CONCURRENT",
 })
 
 

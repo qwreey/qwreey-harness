@@ -1,0 +1,185 @@
+"""qwreey-delegate 드라이버의 설정 층과 USER_ONLY 방어 시험. 실행: python3 -I tools/tests/test-delegate-config.py
+
+- 저장소 층(.claude/harness.env, harness.local.env)은 실행 파일·인증 위치·격리 게이트·동시 실행 한도를 바꾸지 못하고 모델은 바꾼다.
+- 설치된 ~/.claude/lib/harness_env.py 가 새 USER_ONLY 키를 모르는 옛 판이면 드라이버는 자기 옆 사본을 쓴다.
+- 비밀 점검 경로와 상태 폴더는 고정 /code 가 아니라 HOME 과 설정 디렉터리에서 나온다.
+모델 호출 없음, 다른 uid 로 실행 없음.
+"""
+import importlib.util
+import os
+import shutil
+import sys
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from delegate_fixture import CANON_HE, SCRIPTS, Fixture  # noqa: E402
+
+sys.path.insert(0, str(SCRIPTS))
+import delegate  # noqa: E402
+import delegate_agents as agents  # noqa: E402
+import delegate_isolation as iso  # noqa: E402
+import delegate_workspace as ws  # noqa: E402
+
+# 위임 드라이버 설계 문서 설정 표의 USER_ONLY 열(예, 아니오). 정본 USER_ONLY 와 맞춰 본다.
+USER_ONLY_YES = {
+    "HARNESS_DELEGATE_REGISTRY", "HARNESS_TOOL_INSTALLS", "HARNESS_HEAVY_WRAP", "HARNESS_DELEGATE_AGY_BIN",
+    "HARNESS_DELEGATE_CODEX_BIN", "HARNESS_DELEGATE_AGY_HOME", "HARNESS_DELEGATE_CODEX_HOME",
+    "HARNESS_DELEGATE_AGY_WORKTREE", "HARNESS_DELEGATE_AGY_UNISOLATED", "HARNESS_DELEGATE_CODEX_SANDBOX", "HARNESS_DELEGATE_KEEP_ENV",
+    "HARNESS_DELEGATE_STATE", "HARNESS_DELEGATE_MAX_CONCURRENT",
+}
+USER_ONLY_NO = {"HARNESS_DELEGATE_AGY_MODEL", "HARNESS_DELEGATE_CODEX_MODEL", "HARNESS_DELEGATE_SECRET_GLOBS"}
+
+
+def load(path, name):
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+canon = load(CANON_HE, "harness_env_canon")
+
+
+class Env(unittest.TestCase):
+    def setUp(self):
+        self.f = Fixture()
+        self.saved = dict(os.environ)
+        os.environ.clear()
+        os.environ.update(self.f.env())
+
+    def tearDown(self):
+        os.environ.clear()
+        os.environ.update(self.saved)
+        self.f.cleanup()
+
+    def repo_layer(self, text, local=False):
+        p = self.f.repo / ".claude" / ("harness.local.env" if local else "harness.env")
+        p.parent.mkdir(exist_ok=True)
+        p.write_text(text)
+
+    def install(self, text):
+        lib = self.f.cfg / "lib"
+        lib.mkdir(exist_ok=True)
+        (lib / "harness_env.py").write_text(text)
+
+
+class Keys(unittest.TestCase):
+    def test_canon_user_only_matches_design_table(self):
+        self.assertLessEqual(USER_ONLY_YES, canon.USER_ONLY)
+        self.assertFalse(USER_ONLY_NO & canon.USER_ONLY, "더하기만 되거나 격리와 무관한 키는 저장소가 정해도 된다")
+        self.assertEqual(set(delegate.KEYS), USER_ONLY_YES | USER_ONLY_NO, "드라이버가 읽는 키 = 설계 표의 키")
+
+    def test_every_key_has_a_canon_default(self):
+        for k in delegate.KEYS:
+            self.assertIn(k, canon.DEFAULTS, k)
+        self.assertEqual(canon.DEFAULTS["HARNESS_DELEGATE_MAX_CONCURRENT"], "1")
+        self.assertEqual(canon.DEFAULTS["HARNESS_DELEGATE_AGY_WORKTREE"], "uid")
+        self.assertEqual(canon.DEFAULTS["HARNESS_DELEGATE_AGY_HOME"], "~/.gemini")
+        self.assertEqual(canon.DEFAULTS["HARNESS_DELEGATE_AGY_UNISOLATED"], "", "격리 없는 agy 는 기본으로 꺼짐")
+
+
+class Layers(Env):
+    def test_repo_layers_cannot_open_user_only_keys(self):
+        self.repo_layer("HARNESS_DELEGATE_AGY_BIN=/evil/agy\nHARNESS_DELEGATE_CODEX_SANDBOX=danger-full-access\n"
+                        "HARNESS_DELEGATE_AGY_MODEL=repo-model\nHARNESS_DELEGATE_SECRET_GLOBS=*.secret\n")
+        self.repo_layer("HARNESS_DELEGATE_MAX_CONCURRENT=99\nHARNESS_DELEGATE_KEEP_ENV=1\nHARNESS_DELEGATE_AGY_UNISOLATED=allow\n"
+                        "HARNESS_DELEGATE_AGY_HOME=/evil\nHARNESS_DELEGATE_REGISTRY=/evil.tsv\n", local=True)
+        ctx = delegate.Ctx()
+        cfg = ctx.layers(str(self.f.repo))
+        self.assertEqual(cfg["HARNESS_DELEGATE_AGY_BIN"], str(self.f.bin / "agy"))
+        self.assertEqual(cfg["HARNESS_DELEGATE_CODEX_SANDBOX"], "")
+        self.assertEqual(cfg["HARNESS_DELEGATE_MAX_CONCURRENT"], "1")
+        self.assertEqual(cfg["HARNESS_DELEGATE_KEEP_ENV"], "")
+        self.assertEqual(cfg["HARNESS_DELEGATE_AGY_UNISOLATED"], "")
+        self.assertEqual(cfg["HARNESS_DELEGATE_AGY_HOME"], str(self.f.home / ".gemini"))
+        self.assertEqual(ctx.registry, str(self.f.registry))
+        self.assertEqual((cfg["HARNESS_DELEGATE_AGY_MODEL"], cfg["HARNESS_DELEGATE_SECRET_GLOBS"]), ("repo-model", "*.secret"))
+
+    def test_environment_and_user_layer_win(self):
+        os.environ["HARNESS_DELEGATE_MAX_CONCURRENT"] = "3"
+        self.repo_layer("HARNESS_DELEGATE_CODEX_MODEL=repo\n")
+        os.environ["HARNESS_DELEGATE_CODEX_MODEL"] = "env"
+        cfg = delegate.Ctx().layers(str(self.f.repo))
+        self.assertEqual((cfg["HARNESS_DELEGATE_MAX_CONCURRENT"], cfg["HARNESS_DELEGATE_CODEX_MODEL"]), ("3", "env"))
+
+    def test_registry_is_read_without_repo_layers(self):
+        # registry 는 저장소를 찾기 전에 읽는다. 저장소 층이 USER_ONLY 를 무시하지 않는 판이어도 닿지 않게.
+        self.repo_layer("HARNESS_DELEGATE_REGISTRY=/evil.tsv\n")
+        os.chdir(self.f.repo)
+        try:
+            self.assertEqual(delegate.Ctx().registry, str(self.f.registry))
+        finally:
+            os.chdir(self.f.tmp)
+
+    def test_run_end_to_end_uses_user_bin_and_repo_model(self):
+        self.repo_layer("HARNESS_DELEGATE_AGY_BIN=/evil/agy\nHARNESS_DELEGATE_AGY_MODEL=repo-model\n")
+        p = self.f.drive("run", "agy", "t1", self.f.prompt, "--mode", "empty")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("model: repo-model", (self.f.base("agy") / "t1" / ".delegate" / "meta.txt").read_text())
+
+
+class InstalledModule(Env):
+    def test_old_installed_module_falls_back_to_own_copy(self):
+        # 새 위임 키를 USER_ONLY 에 넣기 전의 정본을 흉내 낸다.
+        self.install(CANON_HE.read_text() + "\nUSER_ONLY = frozenset(k for k in USER_ONLY if not k.startswith"
+                     "('HARNESS_DELEGATE_') or k == 'HARNESS_DELEGATE_REGISTRY')\n")
+        self.repo_layer("HARNESS_DELEGATE_AGY_BIN=/evil/agy\n")
+        old = load(self.f.cfg / "lib" / "harness_env.py", "old_installed")
+        self.assertEqual(old.load_layers(str(self.f.repo))["HARNESS_DELEGATE_AGY_BIN"], "/evil/agy",
+                         "옛 판만으로는 저장소가 실행 파일을 바꾼다(방어가 필요한 이유)")
+        he, desc = delegate.harness_loader()
+        self.assertIs(he, delegate.own_he)
+        self.assertIn("installed lacks USER_ONLY HARNESS_DELEGATE_AGY_BIN", desc)
+        self.assertEqual(delegate.Ctx().layers(str(self.f.repo))["HARNESS_DELEGATE_AGY_BIN"], str(self.f.bin / "agy"))
+        p = self.f.drive("doctor")
+        self.assertIn("(own copy: installed lacks USER_ONLY", p.stdout)
+
+    def test_current_installed_module_is_used(self):
+        (self.f.cfg / "lib").mkdir()
+        shutil.copy(CANON_HE, self.f.cfg / "lib" / "harness_env.py")
+        he, desc = delegate.harness_loader()
+        self.assertEqual(Path(he.__file__), self.f.cfg / "lib" / "harness_env.py")
+        self.assertIn("(installed)", desc)
+
+    def test_no_installed_module(self):
+        he, desc = delegate.harness_loader()
+        self.assertIs(he, delegate.own_he)
+
+
+class Paths(Env):
+    def test_secret_paths_come_from_home_and_config_dir(self):
+        got = iso.secret_paths(Path.home(), delegate.own_he.config_dir())
+        self.assertEqual(got, [self.f.cfg / ".credentials.json", self.f.home / ".git-credentials", self.f.home / ".ssh"])
+
+    def test_state_dir(self):
+        self.assertEqual(ws.default_state_dir(), self.f.home / ".local" / "state" / "qwreey-delegate")
+        os.environ["XDG_STATE_HOME"] = str(self.f.tmp / "xdg")
+        self.assertEqual(ws.default_state_dir(), self.f.tmp / "xdg" / "qwreey-delegate")
+
+    def test_credentials_default_from_home(self):
+        cfg = delegate.Ctx().layers("")
+        self.assertEqual(agents.ADAPTERS["agy"].credentials(cfg), self.f.home / ".gemini")
+        self.assertEqual(agents.ADAPTERS["codex"].credentials(cfg), self.f.home / ".codex" / "auth.json")
+        os.environ["CODEX_HOME"] = str(self.f.tmp / "ch")
+        self.assertEqual(agents.ADAPTERS["codex"].credentials(cfg), self.f.tmp / "ch" / "auth.json")
+
+    def test_find_bin(self):
+        tmp = self.f.tmp
+        shims = tmp / "mise" / "shims"
+        shims.mkdir(parents=True)
+        for p in (shims / "agy", tmp / "inst" / "antigravity-cli" / "latest" / "agy"):
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text("#!/bin/sh\n")
+            p.chmod(0o755)
+        os.environ["PATH"] = f"{shims}:/usr/bin:/bin"
+        self.assertEqual(agents.find_bin("", "agy", str(tmp / "inst"), "antigravity-cli/latest/agy"),
+                         str(tmp / "inst" / "antigravity-cli" / "latest" / "agy"), "shim 은 건너뛰고 설치 경로로")
+        self.assertIsNone(agents.find_bin(str(tmp / "nope"), "agy", str(tmp / "inst"), "antigravity-cli/latest/agy"),
+                          "설정한 경로가 없으면 다른 곳을 찾지 않는다")
+        os.environ["PATH"] = f"{self.f.bin}:/usr/bin:/bin"
+        self.assertEqual(agents.find_bin("", "agy", "", "x"), str(self.f.bin / "agy"))
+
+
+if __name__ == "__main__":
+    unittest.main()

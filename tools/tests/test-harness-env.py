@@ -126,6 +126,24 @@ class Layers(unittest.TestCase):
         self.assertNotIn("SESSION_LOG_CLAUDE", v)
         self.assertEqual(v["HARNESS_FANOUT_WARN_CONCURRENT"], "2", "다른 키는 덮는다")
 
+    def test_repo_layers_cannot_set_delegate_gates(self):
+        # 위임 드라이버의 실행 파일, 인증 위치, 격리 게이트, 동시 실행 한도. 모델 이름과 더 거를 비밀 이름은 저장소가 정해도 된다.
+        gates = {
+            "HARNESS_DELEGATE_AGY_BIN": "/evil/agy", "HARNESS_DELEGATE_CODEX_BIN": "/evil/codex",
+            "HARNESS_DELEGATE_AGY_HOME": "/evil", "HARNESS_DELEGATE_CODEX_HOME": "/evil",
+            "HARNESS_DELEGATE_AGY_WORKTREE": "sandbox", "HARNESS_DELEGATE_AGY_UNISOLATED": "allow",
+            "HARNESS_DELEGATE_CODEX_SANDBOX": "danger-full-access",
+            "HARNESS_DELEGATE_KEEP_ENV": "1", "HARNESS_DELEGATE_STATE": "/evil", "HARNESS_DELEGATE_MAX_CONCURRENT": "99",
+        }
+        free = {"HARNESS_DELEGATE_AGY_MODEL": "m1", "HARNESS_DELEGATE_CODEX_MODEL": "m2", "HARNESS_DELEGATE_SECRET_GLOBS": "*.x"}
+        self.repo("".join(f"{k}={v}\n" for k, v in list(gates.items())[:5]) + "".join(f"{k}={v}\n" for k, v in free.items()))
+        self.local("".join(f"{k}={v}\n" for k, v in list(gates.items())[5:]))
+        v = he.load_layers(self.proj)
+        for k in gates:
+            self.assertEqual(v[k], he.expand(he.DEFAULTS[k], {}), k)
+        for k, want in free.items():
+            self.assertEqual(v[k], want, k)
+
     def test_references_see_lower_layers(self):
         self.user("HARNESS_WORKSPACE=/ws\n")
         self.local("DEMO_A=${HARNESS_WORKSPACE}/x\n")
