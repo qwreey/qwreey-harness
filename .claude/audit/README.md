@@ -61,4 +61,5 @@ Multi-file audits:
 - [47-coderag-code-quality/](47-coderag-code-quality/) - coderag hardcoding, duplicates, reinvented wheels; convention input with measured precision
 - [48-code-reuse-debate/](48-code-reuse-debate/) - code-reuse rule wording debate (P concise, Q toolkit-wide) and the revised rule
 - [49-records-description/](49-records-description/) - who writes search summary lines: descriptions required on new records incl. snapshots, write-time lint, no backfill
+- [50-main-delegate/](50-main-delegate/) - main talks, big implementation goes to a background subagent: boundary wording, q delegate-nudge hook (12 edits/8 files + carry-over), skill left to the user
 - [drafts/](drafts/) - drafts written during audits
