@@ -29,7 +29,7 @@ EXT = re.compile(r"\.([A-Za-z0-9]{1,6})$")
 
 NUDGE = (
     "Main has written code {n} times across {m} files this turn without a subagent. If what remains is mostly "
-    "implementation, a background subagent (sonnet unless design judgment remains) frees you to talk with the user; "
+    "implementation, a background subagent frees you to talk with the user; "
     "stay if it is nearly done or needs the user midway."
 )
 CARRY = (
