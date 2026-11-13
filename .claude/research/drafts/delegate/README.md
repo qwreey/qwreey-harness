@@ -1,4 +1,4 @@
-status: active; canonical skill, script and registry moved to plugins/qwreey-delegate/skills/delegate (English); skills/delegate here is the Korean pre-install copy, do not edit; sibling-retirement.md lists what each sibling session checks before deleting its copy; skills/debate is superseded by .claude/research/drafts/debate
+status: active; canonical skill, script and registry moved to plugins/qwreey-delegate/skills/delegate (English); skills/delegate here is the Korean pre-install copy, do not edit; sibling-retirement.md lists what each sibling session checks before deleting its copy; skills/debate is superseded by plugins/qwreey-debate (draft: .claude/archive/research/drafts/debate)
 # (B) agy/Codex 위임 통합 설계
 
 2026-11-10 초안. 근거:
@@ -18,6 +18,7 @@ status: active; canonical skill, script and registry moved to plugins/qwreey-del
 | `skills/delegate/templates/AGENTS.md.template` | 프로젝트 외부 모델 진입점 틀 |
 | `conventions.md` | `-agy / -codex / -scratch / -proto` 명명 규약, GEMINI.md·AGENTS.md 배치 |
 | `migration.md` | 4벌 걷어내기 순서와 시점 |
+| `portable-isolation.md` | root 없이 macOS·Windows·Linux 에서 돌리는 방안(codex 권한 프로필, agy ACP) |
 
 ## 1. 핵심 결정
 

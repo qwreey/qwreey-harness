@@ -47,6 +47,11 @@
       "description": "다른 모델 계열(Gemini agy, OpenAI codex)에게 좁은 질문(근본 원인, 틀 밖 시선, 작명 객관성)을 격리 worktree 에서 맡기는 스킬 qwreey-delegate:delegate. Linux 전용(setpriv, uid 격리, choom)이며 agy·codex CLI 와 각자 구독이 필요하다"
     },
     {
+      "name": "qwreey-debate",
+      "source": "./plugins/qwreey-debate",
+      "description": "메인이 정하지 못했거나 따져 보지 않은 선택(이름, 규약, 상시 문구, 설계 갈림길)을 서브에이전트 둘의 맞선 토론에 붙이는 스킬 qwreey-debate:debate. 토론자가 코드·기록·웹에서 근거를 찾고 지금 안의 약한 근거와 대안별 장단점을 내면 메인이 갈림 표와 적용할 문구로 종합하고 사용자가 정한다. 다른 모델 계열 도구는 있으면 선택적으로. 훅 없음, 모든 OS"
+    },
+    {
       "name": "qwreey-sessions",
       "source": "./plugins/qwreey-sessions",
       "description": "세션 기록 자동화: 훅이 트랜스크립트를 분리 프로세스에서 증분 요약해 저장소 밖에 기록하고(PreCompact 상기, SessionStart 인계, pending 알림), 스킬 qwreey-sessions:checkpoint·import·recall 로 저장·가져오기·옛 논의 찾기. 요약은 백그라운드 haiku 호출이라 비용이 든다. Linux·macOS 전용(fcntl)"

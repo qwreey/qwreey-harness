@@ -2,7 +2,7 @@
 format: 1
 title: 토론 스킬 초안 (debate)
 description: 기본은 Claude 서브에이전트 둘이 같은 근거로 맞선 입장(P 최소 vs Q 넓게)을 1라운드 쓰고 메인이 종합해 사용자가 정하는 꼴, 반박 라운드와 다른 계열 제3 목소리는 조건부, 기록은 audit/NN-<주제>/synthesis.md. 착륙 추천은 qwreey-advisor
-status: active; not installed
+status: landed in plugins/qwreey-debate
 ---
 Supersedes: `.claude/research/drafts/delegate/skills/debate/`
 

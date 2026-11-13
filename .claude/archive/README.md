@@ -9,3 +9,4 @@ Living records that left active (no longer a current source) at their original s
 - [research/drafts/distill-brief.md](research/drafts/distill-brief.md) - brief for the second distillation into luau-kb
 - [research/drafts/records-in-coderag/](research/drafts/records-in-coderag/) - merged records convention draft, landed in coderag skills/agent-records (0.3.0)
 - [research/drafts/code-quality-conventions/](research/drafts/code-quality-conventions/) - code-reuse rule, skill and reuse-check hook draft with probes, landed in plugins/qwreey-conventions
+- [research/drafts/debate/](research/drafts/debate/) - debate skill draft (P/Q one round, conditional rebuttal, synthesis template), landed in plugins/qwreey-debate
