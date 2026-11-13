@@ -1,4 +1,4 @@
 {
   "plugin": "qwreey-operator",
-  "events": ["SessionStart", "PreCompact"]
+  "events": ["SessionStart", "SubagentStart", "PreCompact"]
 }

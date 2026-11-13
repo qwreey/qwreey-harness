@@ -16,7 +16,7 @@
 | PreToolUse | `Bash\|Skill` | `git … commit` 이면 pending(warn, 막지 않음). handover·checkpoint 스킬이면 pending |
 | PostToolUse | 전부 | 요약 완료 알림 전달, 쿨다운 트리거 검사 |
 | PostToolUse | `Read\|Grep` | `records_read.py`: 기록을 읽으면 스냅숏 경고, 큰 기록 통째 읽기면 검색 먼저 안내 |
-| PreCompact | `manual\|auto` | compact 회차를 올리고, 강제 요약을 띄우고, 회차당 한 번 상기(warn)를 낸다 |
+| PreCompact | `manual\|auto` | compact 회차를 올리고, 강제 요약을 띄우고, 요약기에게 남길 것·뺄 것 두 줄(태그 없는 일반 stdout, compact 마다, `SESSION_LOG_COMPACT_INSTRUCTIONS=off` 로 끔)과 회차당 한 번 상기(warn)를 낸다 |
 | PostCompact | 전부 | `compact_summary` 를 외부 저장소 `.state/<sid>.compact-<n>.md` 에 남긴다 |
 | SessionEnd | 전부 | 강제 요약을 띄운다 |
 

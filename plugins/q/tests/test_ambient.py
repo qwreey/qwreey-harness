@@ -56,6 +56,13 @@ class T(unittest.TestCase):
             self.assertIn(TEXT.strip(), h["additionalContext"])
             self.assertLess(len(h["additionalContext"]), 10000)
 
+    def test_environment_lines_main_and_subagent(self):
+        self.assertFalse((ROOT / "context" / "subagent.md").exists(), "서브에이전트도 메인 글 전체를 받는다")
+        for ev, extra in (("SessionStart", {"source": "startup"}), ("SubagentStart", {"agent_type": "general-purpose", "agent_id": "a1"})):
+            ctx = self.run_hook(ev, extra)["hookSpecificOutput"]["additionalContext"]
+            self.assertIn("edited at their source under claude-doctor `home/`, never in place", ctx)
+            self.assertIn('If a mise shim fails with "No version is set"', ctx)
+
     def test_rule_line_once_per_event(self):
         first = self.run_hook("SessionStart", {"source": "resume"})["hookSpecificOutput"]["additionalContext"]
         again = self.run_hook("SessionStart", {"source": "resume"})["hookSpecificOutput"]["additionalContext"]

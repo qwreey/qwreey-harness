@@ -14,7 +14,7 @@
 모든 훅은 모델을 부르지 않고, 실패하면 조용히 통과한다.
 
 ## 규약 주입 (`ambient.py`)
-- `context/ambient.md`(훅 알림의 위상과 info·warn·action 의 뜻, 영어 두 줄)를 `<plugin name="q" nonce="…">` 로 감싸 `additionalContext` 로 낸다. 다른 플러그인의 훅 메시지는 이 배경을 전제로 쓰인다(`home/.claude/HOOK-MESSAGES.md`).
+- `context/ambient.md`(훅 알림의 위상과 info·warn·action 의 뜻, `~/.claude` 는 claude-doctor `home/` 에서 고친다는 줄, mise shim 우회 줄. 영어 다섯 줄)를 `<plugin name="q" nonce="…">` 로 감싸 `additionalContext` 로 낸다. 다른 플러그인의 훅 메시지는 이 배경을 전제로 쓰인다(`home/.claude/HOOK-MESSAGES.md`).
 - SessionStart 는 메인에, SubagentStart 는 서브에이전트에 싣는다. fork 는 부모 맥락을 물려받으므로 건너뛴다.
 - UserPromptSubmit 은 세션 중간에 플러그인을 켠 경우의 보충으로, (세션, compact 회차)당 한 번만 싣는다.
 - 끄기: `HARNESS_Q_AMBIENT=off`(환경 변수 또는 harness.env).

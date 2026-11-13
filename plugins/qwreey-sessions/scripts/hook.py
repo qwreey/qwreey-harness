@@ -163,12 +163,16 @@ def main() -> None:
         if transcript:
             store.ensure()
             spawn_flush(store, sid, transcript, f"PreCompact({trig})", True)
+        out = []
+        if config.get("SESSION_LOG_COMPACT_INSTRUCTIONS").strip().lower() != "off":
+            out.append(messages.COMPACT_INSTRUCTIONS)  # 회차마다 한 번이 아니라 compact 마다: 요약기는 매번 새로 읽는다
         if first:
             text = brief.precompact(store, sid, transcript) if transcript else ""
             plv, p = brief.pending_line(store, "precompact")
-            out = messages.wrap_parts([("warn", text), (plv, p)], data.get("session_id"))
-            if out:
-                sys.stdout.write(out + "\n")
+            out.append(messages.wrap_parts([("warn", text), (plv, p)], data.get("session_id")))
+        out = "\n".join(o for o in out if o)
+        if out:
+            sys.stdout.write(out + "\n")
 
     elif event == "PostCompact":
         summ = data.get("compact_summary")

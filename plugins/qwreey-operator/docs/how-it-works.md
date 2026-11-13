@@ -1,20 +1,20 @@
 # qwreey-operator 동작 상세
 
-플러그인은 두 가지로 이루어진다: 메인 세션에 넣는 규약(`context/ambient.md`)과 알림 훅 `delegate-nudge`. 스킬과 에이전트 정의는 없다. 무엇도 막지 않는다.
+플러그인은 두 가지로 이루어진다: 메인 세션에 넣는 규약(`context/ambient.md`, 서브에이전트에는 모델 줄만 담은 `context/subagent.md`)과 알림 훅 `delegate-nudge`. 스킬과 에이전트 정의는 없다. 무엇도 막지 않는다.
 
 ## 규약 주입
-- 훅: `SessionStart`, matcher `startup|resume|clear|compact` → `hooks/ambient.py`.
+- 훅: `SessionStart`, matcher `startup|resume|clear|compact` → `hooks/ambient.py`. `SubagentStart` → `hooks/ambient.py SubagentStart`.
 - `context/ambient.md` 를 `<plugin name="qwreey-operator">…</plugin>` 로 감싸 `additionalContext` 로 낸다. compact 요약 과정에서 규약이 빠질 수 있어 compact 뒤에도 다시 넣는다.
 - 태그 끝에 이 세션의 `nonce="…"` 속성을 달고, 같은 이벤트의 규칙 줄을 이 훅이 먼저 맡으면 블록 맨 앞에 싣는다(`hooks/harness_nonce.py`, 규약은 `home/.claude/HOOK-MESSAGES.md` 2번).
 - `PreCompact`(manual·auto) → `hooks/ambient.py PreCompact`: 요약기에게 `Omit the <plugin name="qwreey-operator"> block from the summary; it is re-injected after compaction.` 한 줄을 일반 stdout 으로 낸다. compact 뒤에 다시 넣으므로 요약에 남은 사본은 중복이다. 서브에이전트의 compact(`agent_id` 있음)와 규약 파일이 없을 때는 내지 않는다.
-- `SessionStart` 는 메인 세션에만 불리고 `SubagentStart` 는 등록하지 않았다. 그래서 수행자 서브에이전트에는 이 규약이 실리지 않는다.
+- `SessionStart` 는 메인 세션에만 불린다. `SubagentStart` 는 `context/subagent.md`(모델 줄 하나)만 싣는다. 서브에이전트도 다른 서브에이전트를 띄우므로 모델 규칙은 같이 가야 하고, 넘길 경계·병렬·확인 줄은 메인의 일이라 싣지 않는다. fork 는 부모 맥락을 물려받으므로 건너뛴다.
 - 파일이 없거나 읽기에 실패하면 아무것도 내지 않는다. 크기는 약 2KB(약 550 토큰).
 - `hooks/ambient.py` 은 저장소 `lib/ambient.py` 의 바이트 사본이다(고치지 말고 정본을 고친 뒤 `python3 -I tools/sync-copies.py --apply`). 플러그인마다 다른 것은 `context/ambient.json`(`plugin`, `events`)에 둔다. 끄기 스위치는 없다. SessionStart 훅은 인자 없이 불리므로 이벤트는 입력의 `hook_event_name` 으로 정해진다.
 
 ### 규약 다섯 줄의 내용
 1. 넘길 경계: 코드 파일 3개 이상, 새 줄 약 150 이상, 다른 코드·문서를 많이 읽는 구현은 백그라운드 서브에이전트(fork 가 아닌 새 에이전트)로. 설계가 정해져 파일이나 구조화된 지시문으로 적힌 뒤에 넘긴다. 설계가 가능한지 판가름하는 프로브는 메인이 사용자와 한다(시험 대상이 메인의 가정이라서). 작은 수정, 방금 내린 결정, 문서·설정, 중간에 사용자 답이 필요한 일도 메인에 둔다.
 2. 병렬: 독립된 경계(백엔드·프론트엔드, 별개 모듈)마다 하나씩 동시에. 한 부분이 다른 부분의 결과를 필요로 할 때만 잇는다. 한 부분 안에서는 새 에이전트보다 같은 에이전트를 작은 단계로 이어 쓴다(결과 검토 → 사용자 결정이나 구체적 반례 전달 → SendMessage 로 재개; 읽은 것을 유지하고 캐시는 약 한 시간). 사용자가 동시 상한을 정했거나 언급했으면 따른다. 무엇을, 몇 개, 어떤 모델, 예상 크기를 한 줄로 알린다.
-3. 수행자 모델: opus 기본. sonnet 은 가볍고 완전히 정해졌으며 틀려도 싸고 금방 보이는 일에만, 보안·이론이 무거운 코드에는 쓰지 않는다.
+3. 서브에이전트 모델: haiku 는 읽기 전용 조사만, 쓰기·실행·판단·검토·실측은 sonnet 이상(일 크기에 맞게). 수행자는 opus 기본. sonnet 은 가볍고 완전히 정해졌으며 틀려도 싸고 금방 보이는 일에만, 보안·이론이 무거운 코드에는 쓰지 않는다.
 4. 지시문에 더할 것: 사용자 원문 인용, 테스트 명령이 든 완료 기준, 바뀐 파일·테스트 출력·미결 질문 보고(모호함을 몰래 정하지 않게). 메인이나 다른 서브에이전트가 그동안 같은 파일을 만질 수 있으면 `isolation: "worktree"` 로 띄운다. 이때 수행자는 자기 worktree 브랜치에 커밋하고, 메인이 그 브랜치를 병합한 뒤 worktree 를 지운다. 그 밖에는 수행자가 커밋하지 않는다.
 5. 확인: 다시 하지 않고 확인한다. 수행자의 테스트를 다시 돌리고 보고를 완료 기준과 대조하며, 보고가 모호하거나 테스트가 닿지 않는 곳만 파일을 연다. 크거나 위험한 diff 는 새 리뷰어 서브에이전트에게 보이고, 각 발견은 재현한 뒤에 다룬다. 커밋은 메인이 한다.
 

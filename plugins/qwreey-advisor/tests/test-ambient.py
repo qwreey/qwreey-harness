@@ -48,6 +48,11 @@ def bump():
 o = run("SessionStart", {"source": "startup"})
 ctx = o["hookSpecificOutput"]["additionalContext"]
 check("format", ctx.startswith(f'<plugin name="qwreey-advisor" nonce="{NONCE}">\n{RULE_HEAD}"{NONCE}"') and ctx.endswith("</plugin>") and "call them yourself" in ctx)
+check("reviews lines", "## Reviews: do them unasked" in ctx and "reproduce findings before reporting" in ctx
+      and "Use the built-in advisor tool only when the user asks." in ctx)
+check("main only: no subagent text", run("SubagentStart", {"agent_type": "general-purpose", "agent_id": "a9"}) is None)
+with open(os.path.join(os.path.dirname(HERE), "hooks", "hooks.json"), encoding="utf-8") as fh:
+    check("SubagentStart not registered", "SubagentStart" not in json.load(fh)["hooks"])
 again = run("SessionStart", {"source": "startup"})["hookSpecificOutput"]["additionalContext"]
 check("rule line once per event", RULE_HEAD not in again and again.startswith(f'<plugin name="qwreey-advisor" nonce="{NONCE}">\n'))
 check("ss marks", run("UserPromptSubmit") is None)

@@ -28,6 +28,7 @@ DEFAULTS = {
     "SESSION_LOG_HANDOVER_LAG_LINES": "400",  # 마지막 절 끝줄이 트랜스크립트 끝보다 이만큼 넘게 뒤처지면 미해결을 보이지 않는다(요약은 512KB 자랄 때마다라 평소 뒤처짐은 수백 줄 이하, 낡은 항목은 이미 해결됐을 수 있다)
     "SESSION_LOG_HANDOVER_LIVE_MIN": "10",   # 다른 세션 트랜스크립트가 이 분 안에 바뀌었으면 아직 일하는 중이라 인계하지 않는다
     "SESSION_LOG_PRECOMPACT_CHARS": "3000",  # PreCompact 상기 주입 상한
+    "SESSION_LOG_COMPACT_INSTRUCTIONS": "on",  # off 면 PreCompact 에서 요약기에게 남길 것·뺄 것 두 줄을 내지 않는다
     "SESSION_LOG_PENDING_STRONG_COUNT": "5",  # pending 이 이 개수 이상이면 강한 문구
     "SESSION_LOG_PENDING_STRONG_DAYS": "7",   # 가장 오래된 pending 이 이 일수 이상이면 강한 문구
     "SESSION_LOG_HOME_NUDGE_COUNT": "3",     # 보관 위치가 없고 pending 이 이 개수 이상이면 위치를 정하자고 제안한다(세션 하나가 기록 하나라 세 번 쌓였다면 우연이 아니다)

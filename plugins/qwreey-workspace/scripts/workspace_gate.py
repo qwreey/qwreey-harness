@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """workspace 게이트. 사용: python3 -I workspace_gate.py <PreToolUse|PostToolUse|UserPromptExpansion>  (stdin: 훅 JSON)
 
-규칙(사용자 CLAUDE.md): 이 세션의 저장소가 아닌 `HARNESS_WORKSPACE/<X>` 는 읽기 전용이고 고치기 전에 묻는다.
+규칙(qwreey-workspace 규약 context/ambient.md): 이 세션의 저장소가 아닌 `HARNESS_WORKSPACE/<X>` 는 읽기 전용이고 고치기 전에 묻는다.
 - 쓰기(Edit|Write|MultiEdit|NotebookEdit, 쓰기로 분류된 Bash)가 형제 저장소를 건드리고, (세션, agent_id, compact 회차)에
   qwreey-workspace:workspace 스킬 로드 표시가 없으면 deny(level=action). PreToolUse additionalContext 는 도구가 실행된 뒤에 들어오므로
   알림만으로는 첫 쓰기를 막지 못한다(.claude/audit/31).

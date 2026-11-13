@@ -122,7 +122,17 @@ class Nudge(unittest.TestCase):
         out = json.loads(self.run_hook({"hook_event_name": "SessionStart"}, script=AMBIENT))
         ctx = out["hookSpecificOutput"]["additionalContext"]
         self.assertIn("background subagent", ctx)
-        self.assertIn("Implementer model: opus by default", ctx)
+        self.assertIn("Implementers: opus by default", ctx)
+        self.assertIn("haiku for read-only lookup only", ctx)
+
+    def test_ambient_subagent_model_line_only(self):
+        out = json.loads(self.run_hook({"hook_event_name": "SubagentStart", "agent_type": "general-purpose", "agent_id": "a1"}, script=AMBIENT))
+        ctx = out["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("haiku for read-only lookup only", ctx)
+        self.assertIn("Implementers: opus by default", ctx)
+        self.assertNotIn("background subagent", ctx)
+        self.assertNotIn("Check without redoing", ctx)
+        self.assertEqual(self.run_hook({"hook_event_name": "SubagentStart", "agent_type": "fork", "agent_id": "a2"}, script=AMBIENT), "")
 
     def precompact(self, payload, stdin=None):
         r = subprocess.run([sys.executable, "-I", AMBIENT, "PreCompact"], input=json.dumps(payload) if stdin is None else stdin,

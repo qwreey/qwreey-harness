@@ -15,7 +15,7 @@
 ## 훅
 | 이벤트(matcher) | 스크립트 | 하는 일 |
 |---|---|---|
-| SessionStart(startup·resume·clear·compact), UserPromptSubmit | `ambient.py` | `context/ambient.md` 한 줄을 `<plugin name="qwreey-advisor">` 로 감싸 싣는다. 메인 세션에만. UserPromptSubmit 은 SessionStart 가 안 돈 세션(세션 중간에 켬)의 보충으로 (세션, compact 회차)당 한 번 |
+| SessionStart(startup·resume·clear·compact), UserPromptSubmit | `ambient.py` | `context/ambient.md`(자기 점검 한 줄과 "Reviews: do them unasked" 두 줄: 언제 검토하나, 시작한 검토·요청받은 검토를 어떻게 보고하나, 내장 advisor 도구는 사용자가 요청할 때만)를 `<plugin name="qwreey-advisor">` 로 감싸 싣는다. 메인 세션에만(SubagentStart 를 등록하지 않는다: 검토 시점과 보고는 메인의 일). UserPromptSubmit 은 SessionStart 가 안 돈 세션(세션 중간에 켬)의 보충으로 (세션, compact 회차)당 한 번 |
 | PreCompact(manual·auto) | `compact_epoch.py`, `ambient.py PreCompact` | 이 플러그인의 compact 회차를 올리고, 요약기에게 다시 실릴 블록을 요약에서 빼라는 한 줄을 낸다 |
 | PreToolUse(Bash·Write·Edit·MultiEdit·NotebookEdit·mcp__.*) | `readonly-for-reviewers.py` → `auditor-readonly-guard.py` | 입력의 `agent_type` 이 리뷰어일 때만 읽기 전용 가드를 건다 |
 | PreToolUse(Bash·ExitPlanMode), PostToolUseFailure, SubagentStop(리뷰어), Stop | `second-opinion-nudge.py` | 검토 시점 알림(아래) |

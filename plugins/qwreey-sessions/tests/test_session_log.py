@@ -355,6 +355,10 @@ class TestHooks(Env):
         # compact: PreCompact → SessionStart(compact) → PostCompact
         pre = self.hook("PreCompact", self.payload(trigger="manual", custom_instructions=""), {"SESSION_LOG_CLAUDE": "/bin/false"})
         self.assertIn('level="warn"', pre)
+        from sllib import messages
+        self.assertTrue(pre.startswith(messages.COMPACT_INSTRUCTIONS + "\n<harness-hook "), pre[:300])  # 요약기 지시는 태그 밖, 맨 앞
+        self.assertIn("Keep in the summary: user decisions with verbatim quotes", pre)
+        self.assertIn("Drop from the summary: raw tool output", pre)
         self.assertIn("Session-log reminder for this compaction", pre)
         self.assertIn("값을 4242 로 해 줘", pre)            # 대조를 통과한 사용자 인용
         ss = self.ctx(self.hook("SessionStart", self.payload(source="compact")))
@@ -382,6 +386,15 @@ class TestHooks(Env):
         self.write(human("또 지시 6666", ts="2026-11-10T05:00:00Z"), mode="a")
         worker.flush(st, self.sid, str(self.tp), "SessionEnd", force=True)
         self.assertIn("Session log: saved 1 new section", self.ctx(self.hook("SessionStart", self.payload(source="resume"))))
+
+    def test_compact_instructions_switch(self):
+        self.seed()
+        pc = self.payload(trigger="auto", custom_instructions=None)
+        env = {"SESSION_LOG_CLAUDE": "/bin/false"}
+        self.assertIn("Drop from the summary", self.hook("PreCompact", pc, env))
+        self.assertIn("Drop from the summary", self.hook("PreCompact", pc, env))  # 회차마다가 아니라 compact 마다
+        self.assertNotIn("Keep in the summary", self.hook("PreCompact", pc, dict(env, SESSION_LOG_COMPACT_INSTRUCTIONS="off")))
+        self.assertEqual(self.hook("PreCompact", dict(pc, agent_id="a1"), env), "")  # 서브에이전트 compact
 
     def test_nested_and_subagent_noop(self):
         self.seed()

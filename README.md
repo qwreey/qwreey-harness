@@ -5,9 +5,9 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 
 | 위치 | 무엇 |
 |---|---|
-| `home/.claude/` | `~/.claude` 관리 파일의 정본(CLAUDE.md, settings.json, harness.env, lib/harness_env.py, statusline/. rules/ 는 luau-core 링크만 남고 나머지는 qwreey-conventions 플러그인의 `rules/`. 훅은 플러그인으로 옮겼다. 사용자 호출 스킬은 `q` 플러그인으로 옮겼다). 목록 `home/MANIFEST` |
+| `home/.claude/` | `~/.claude` 관리 파일의 정본(settings.json, harness.env, lib/harness_env.py, statusline/. rules/ 는 luau-core 링크만 남고 나머지는 qwreey-conventions 플러그인의 `rules/`. 훅은 플러그인으로 옮겼다. 사용자 호출 스킬은 `q` 플러그인으로 옮겼다. 전역 CLAUDE.md 는 두지 않고, 상시 규약은 플러그인 주입(`plugins/<p>/context/`)이라 플러그인마다 끄고 켠다). 목록 `home/MANIFEST` |
 | `tools/home-sync.sh` | 정본 ↔ 실제 `~/.claude` 동기화(status / diff / apply / pull / new-migration / env). settings.json 은 복사가 아니라 `home/settings-migrations/` 마이그레이션(`tools/settings-migrate.py`) |
-| `plugins/q/` | 사람이 치는 명령 플러그인 `q`(`/q:` 만 치면 전부 나온다): `/q:start` 온보딩, `/q:doctor` 진단(코어 검사 + `skills/doctor/scripts/toolkits/<이름>.py`), `/q:away`·`/q:back` 자리 비움, 서브에이전트 고지·슬롯 훅(원장 `scripts/subagent_ledger.py`) 포함. 이름은 사용자명 qwreey 에서 왔다. 설명 `plugins/q/docs/` 상시 규약(훅 메시지 배경)은 q 의 SessionStart·SubagentStart·UserPromptSubmit(보충) 주입(`plugins/q/context/ambient.md`, `<plugin name="q">`)이 싣는다. 사용자 CLAUDE.md 에는 없고 q 를 끄면 같이 빠진다(끄기 `HARNESS_Q_AMBIENT=off`). |
+| `plugins/q/` | 사람이 치는 명령 플러그인 `q`(`/q:` 만 치면 전부 나온다): `/q:start` 온보딩, `/q:doctor` 진단(코어 검사 + `skills/doctor/scripts/toolkits/<이름>.py`), `/q:away`·`/q:back` 자리 비움, 서브에이전트 고지·슬롯 훅(원장 `scripts/subagent_ledger.py`) 포함. 이름은 사용자명 qwreey 에서 왔다. 설명 `plugins/q/docs/` 상시 규약(훅 메시지 배경)은 q 의 SessionStart·SubagentStart·UserPromptSubmit(보충) 주입(`plugins/q/context/ambient.md`, `<plugin name="q">`)이 싣는다. q 를 끄면 같이 빠진다(끄기 `HARNESS_Q_AMBIENT=off`). |
 | `plugins/qwreey-sessions/` | 세션 기록 자동화: session-log 훅(분리 프로세스 요약, 저장소 밖 보관), `/qwreey-sessions:checkpoint`·`import`·`recall`. README 카드 `plugins/qwreey-sessions/README.md` |
 | `plugins/qwreey-workspace/` | 형제 저장소 읽기 전용 게이트(`workspace_gate.py`)와 `qwreey-workspace:workspace` 스킬(지도, 살아 있는 세션, worktree 잠금), 규약 주입. 카드 `plugins/qwreey-workspace/README.md` |
 | `plugins/qwreey-advisor/` | 모델이 부르는 독립 검토(별도 플러그인). luau 지식은 `luau-kb` 플러그인 |
@@ -36,7 +36,6 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
    - `HARNESS_HEAVY_WRAP`: 무거운 실행 래퍼. 메모리를 다른 세션과 공유하지 않으면 빈 값으로 둔다(훅이 아무것도 막지 않는다). 키를 지우면 choom 이 있을 때만 쓴다
    - `HARNESS_DELEGATE_REGISTRY`: 위임 uid 표(위임을 안 쓰면 비움). `HARNESS_AGENT_PUSH`: 에이전트 push 정책(normal / deny)
    - 파일을 커밋하고 싶지 않으면 다른 곳에 두고 `HARNESS_ENV=<경로>` 를 셸 환경에 둔다. 같은 이름의 환경 변수는 파일보다 우선한다.
-   - `home/.claude/CLAUDE.md` 의 "이 환경" 절과 형제 저장소 지도도 그 sandbox 에 맞게 고친다(상시 로드 문서라 harness.env 를 읽지 못한다).
 3. **확인**: `tools/home-sync.sh env` 로 푼 값을, `tools/home-sync.sh status` 로 링크 대상(MANIFEST 의 `link` 줄)이 있는지 본다.
    `~/.claude` 대신 다른 곳에 먼저 시험하려면 `CLAUDE_HOME=/tmp/test-home tools/home-sync.sh apply`.
 4. **반영**: `tools/home-sync.sh diff` 로 검토한 뒤 `tools/home-sync.sh apply`. 기존 파일은 `*.bak-<시각>` 으로 남는다.

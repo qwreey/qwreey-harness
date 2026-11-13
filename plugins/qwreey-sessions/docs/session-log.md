@@ -50,6 +50,7 @@ index.json                         rid → pending | imported(위치, 커밋) | 
 | 인계·정리 | UserPromptSubmit(`/handover`·`/qwreey-sessions:checkpoint`·인계 낱말), PreToolUse(Skill handover) | info·warn | pending |
 | 기록을 읽음 | PostToolUse(Read·Grep, `records_read.py`) | info | 스냅샷이니 현재 파일·git log 로 확인하라는 한 줄(세션·에이전트·compact 회차마다 한 번). 큰 기록(`SESSION_LOG_READ_WARN_KB`, 16KB 초과)을 offset·limit 없이 읽으면 `/qwreey-sessions:recall` 이나 검색 먼저 안내(그때마다) |
 | compact 직전 | PreCompact(manual·auto) stdout | warn | 상기: 사용자 지시 원문, 아직 기록 안 된 최근 사용자 발언, 결정, 미해결, 끝난 일, 기록 경로 |
+| compact 직전 | PreCompact(manual·auto) stdout, 태그 없음 | - | 요약기 지시 두 줄(`messages.COMPACT_INSTRUCTIONS`): 남길 것(사용자 결정 원문, 답 안 된 질문, 도는 백그라운드 에이전트, 커밋·바뀐 파일, 지금 걸린 제약)과 뺄 것(도구 원출력, 커밋된 파일 내용, 끝난 에이전트의 상세 보고). compact 마다 |
 
 - dedup 단위는 **(session_id, compact 회차, 트리거)** 다.
   - 회차는 qwreey-sessions 자기 것(`scripts/compact_epoch.py`, `$TMPDIR/claude-qwreey-sessions-epoch/<sid>`)이고 hook.py 가 PreCompact 에서 올린다. PreCompact 는 SessionStart(compact)·PostCompact 보다 먼저라 읽는 훅(records_read 포함)이 항상 올라간 값을 본다. 취소된 compact 는 알림을 한 번 더 낼 뿐이다.
@@ -86,7 +87,7 @@ session-log backfill --plan plan.json [--budget 4] [--dry-run]
 
 ## 설정
 우선순위는 환경 변수 > `harness.env`(`$HARNESS_ENV` → `$CLAUDE_CONFIG_DIR/harness.env` → `~/.claude/harness.env`, `SESSION_LOG_*` 키만) > 기본값이다. 목록과 기본값은 `scripts/sllib/config.py` `DEFAULTS` 에 있다.
-- 주요 키: `SESSION_LOG_HOME`, `SESSION_LOG_MODEL`(haiku), `SESSION_LOG_DISABLE`, `SESSION_LOG_RECORD_NONINTERACTIVE`(기본 꺼짐: `CLAUDE_CODE_ENTRYPOINT` 가 `sdk` 로 시작하는 `claude -p`·SDK 세션은 기록하지 않는다), `SESSION_LOG_COOLDOWN_MIN`(20), `SESSION_LOG_GROW_KB`(512), `SESSION_LOG_HANDOVER_CHARS`(800), `SESSION_LOG_HANDOVER_LAG_LINES`(400), `SESSION_LOG_HANDOVER_LIVE_MIN`(10), `SESSION_LOG_PRECOMPACT_CHARS`(3000), `SESSION_LOG_PENDING_STRONG_COUNT`(5), `SESSION_LOG_PENDING_STRONG_DAYS`(7), `SESSION_LOG_HOME_NUDGE_COUNT`(3), `SESSION_LOG_HOME_NUDGE_DAYS`(3), `SESSION_LOG_READ_WARN_KB`(16), `SESSION_LOG_MAX_PARALLEL`(2).
+- 주요 키: `SESSION_LOG_HOME`, `SESSION_LOG_MODEL`(haiku), `SESSION_LOG_DISABLE`, `SESSION_LOG_RECORD_NONINTERACTIVE`(기본 꺼짐: `CLAUDE_CODE_ENTRYPOINT` 가 `sdk` 로 시작하는 `claude -p`·SDK 세션은 기록하지 않는다), `SESSION_LOG_COOLDOWN_MIN`(20), `SESSION_LOG_GROW_KB`(512), `SESSION_LOG_HANDOVER_CHARS`(800), `SESSION_LOG_HANDOVER_LAG_LINES`(400), `SESSION_LOG_HANDOVER_LIVE_MIN`(10), `SESSION_LOG_PRECOMPACT_CHARS`(3000), `SESSION_LOG_COMPACT_INSTRUCTIONS`(on), `SESSION_LOG_PENDING_STRONG_COUNT`(5), `SESSION_LOG_PENDING_STRONG_DAYS`(7), `SESSION_LOG_HOME_NUDGE_COUNT`(3), `SESSION_LOG_HOME_NUDGE_DAYS`(3), `SESSION_LOG_READ_WARN_KB`(16), `SESSION_LOG_MAX_PARALLEL`(2).
 - harness.env 제안(하네스 담당이 정본에 넣을 때): `SESSION_LOG_HOME=${XDG_DATA_HOME:-~/.local/share}/session-log` 를 명시하고, 필요하면 `SESSION_LOG_MODEL=haiku` 를 둔다. 다른 sandbox 로 옮길 때는 이 두 키만 본다.
 
 ## coderag 연결 (메모)

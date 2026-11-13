@@ -23,7 +23,7 @@
 | 8 | 스킬 | `~/.claude/skills/*/SKILL.md`, `./.claude/skills/*/SKILL.md` | 개수. 30개 넘으면 주의(설명이 늘 읽힘) |
 | 9 | subagent 정의 | `~/.claude/agents/*.md`, `./.claude/agents/*.md` | 개수, `model:` 값 |
 | 10 | MCP | `./.mcp.json` 의 서버 이름 | 개수, `Roblox_Studio` 류 연결 유무. 다른 범위 설정은 `claude mcp list` (조회 명령) |
-| 11 | 사내 하네스 | `~/.claude/harness.env`, `q` 플러그인의 `/q:doctor` 와 `~/.claude/lib/harness_env.py`, `~/.claude/HOOK-MESSAGES.md`, 또는 내 CLAUDE.md 가 "정본" 위치를 따로 밝힘 | 하나라도 있으면 `~/.claude` 를 다른 곳(claude-doctor `home/` 등)에서 관리하는 환경이다 → 고칠 것은 정본 쪽 요청으로 바꾼다. 표의 상태 칸에도 그렇게 적는다 |
+| 11 | 사내 하네스 | `~/.claude/harness.env`, `q` 플러그인의 `/q:doctor` 와 `~/.claude/lib/harness_env.py`, `~/.claude/HOOK-MESSAGES.md`, 또는 내 CLAUDE.md 나 맥락의 `<plugin name="q">` 규약이 "정본" 위치를 따로 밝힘 | 하나라도 있으면 `~/.claude` 를 다른 곳(claude-doctor `home/` 등)에서 관리하는 환경이다 → 고칠 것은 정본 쪽 요청으로 바꾼다. 표의 상태 칸에도 그렇게 적는다 |
 | 12 | 작업 폴더 | 현재 폴더 | git 저장소인지(`.git`), 홈·바탕화면·다운로드 같은 넓은 폴더인지 |
 
 ## 사용자에게 부탁할 것 (Claude 가 실행할 수 없는 명령)

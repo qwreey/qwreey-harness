@@ -71,7 +71,8 @@
   3. `tools/home-sync.sh diff` 로 검토한 뒤 `apply` (0009 가 세 플러그인을 켠다. `HARNESS_DELEGATE_REGISTRY` 경로도 바뀐다)
   4. `/reload-plugins` 또는 새 세션. 확인: `/qwreey-sessions:checkpoint` 가 보이고, 다른 저장소 파일을 고치려 할 때 workspace 게이트가 뜬다
   - 첫 정본 delegate 실행 전에 `tbox-agy` 에 61000 소유로 남은 파일을 지운다(tbox uid 는 61003)
-- 새 정본 변경(CLAUDE.md, rules, hooks)이 생기면 다시 `tools/home-sync.sh diff` 로 검토하고 `apply` 한다. 이때도 같은 백업이 생긴다.
+- [ ] 전역 CLAUDE.md 지우기: 정본에서 빠졌고 내용은 플러그인 주입으로 옮겼다(q·qwreey-operator·qwreey-advisor 의 `context/`, qwreey-sessions PreCompact). 플러그인을 갱신하고 `tools/home-sync.sh diff`·`apply` 한 뒤 `rm ~/.claude/CLAUDE.md`. home-sync 는 MANIFEST 에서 빠진 파일을 지우지 않고 `status` 에 고아로 보인다
+- 새 정본 변경(rules, settings 마이그레이션 등)이 생기면 다시 `tools/home-sync.sh diff` 로 검토하고 `apply` 한다. 이때도 같은 백업이 생긴다.
 
 ## 다른 세션에 넘길 것
 - [ ] stl-luau 세션에 `.claude/handoff/stl-luau.md` 전달

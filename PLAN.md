@@ -8,7 +8,7 @@
 
 - 매 세션 수십 KB를 낭비한다. quad는 약 28~31k 토큰, table-sim은 73.6KB를 로드한다.
 - 프로젝트 간 지식 이동이 "저쪽 보고 오기"(복사 후 포크)로만 일어난다.
-- 사용자 레벨(`~/.claude`)이 비어 있었다(2026-11-10 시점: 사용자 스킬, rules, hooks, CLAUDE.md, agents 모두 0개 `(검)`). 지금은 `home/.claude/` 정본을 apply 해 CLAUDE.md·rules·hooks·settings·플러그인(q, qwreey-advisor, qwreey-conventions)이 있다. 현황은 `tools/home-sync.sh status`.
+- 사용자 레벨(`~/.claude`)이 비어 있었다(2026-11-10 시점: 사용자 스킬, rules, hooks, CLAUDE.md, agents 모두 0개 `(검)`). 지금은 `home/.claude/` 정본을 apply 해 rules·settings·플러그인(q, qwreey-advisor, qwreey-conventions 등)이 있다. 전역 CLAUDE.md 는 두지 않는다(상시 규약은 플러그인 주입). 현황은 `tools/home-sync.sh status`.
 
 ## 1. 목표 구조 (3층)
 
@@ -156,12 +156,12 @@
   - luau-kb 는 툴킷 pack 플러그인으로, Luau 저장소에서만 켠다.
   - 사람이 치는 명령은 짧은 이름공간 `q` 에 모은다(`/q:start`·`doctor`·`away`·`back`·`checkpoint`·`import`).
   - 모델이 부르는 qwreey-advisor 는 별도 플러그인이다.
-  - rules 와 CLAUDE.md 파일은 플러그인에 담을 수 없으므로 home-sync 로 반영한다(개인 정책·환경 지도). 이식 가능한 상시 규약은 플러그인 SessionStart·SubagentStart 훅의 additionalContext 로 실을 수 있다(.claude/audit/32): q 의 훅 메시지·workspace 규약, qwreey-advisor 의 자기 점검 한 줄. 경로 조건부 로드(paths)는 대체재가 없다. settings 는 마이그레이션으로 반영한다.
+  - CLAUDE.md 는 플러그인에 담을 수 없지만 전역 CLAUDE.md 는 두지 않는다. 상시 규약은 플러그인 SessionStart·SubagentStart 훅의 additionalContext(`lib/ambient.py`, 글은 `plugins/<p>/context/`)로 싣고 플러그인마다 끈다(.claude/audit/32): q 의 훅 메시지·`~/.claude` 정본·mise 줄, qwreey-workspace 규약, qwreey-operator 의 위임·모델 줄, qwreey-advisor 의 자기 점검·검토 줄. compact 요약 지시는 qwreey-sessions 의 PreCompact stdout. 경로 조건부 로드(paths)는 대체재가 없다. settings 는 마이그레이션으로 반영한다.
 - **비용은 막지 않고 알리고 줄 세운다.** 근거(사용자): "강제라면 위임해 두고 갔는데 멈춰 버려 오히려 손해", "전체 예산을 한계치로 두고 하나가 끝나면 다음을 돌리는 게 실제로 좋더라", "작은 패스를 여러 번 하는 게 토큰이 덜 든다".
   - 사용자가 있을 때는 팬아웃 전에 고지한다(말은 2개부터, 훅 warn 은 4개부터).
   - away 상태에서는 예산 상한과 슬롯으로 직렬화한다. 2배를 넘으면 기록하고 기다린다.
   - 예산 단위는 요금제에 맞춘다(USD 또는 한도 %).
-  - 구현: CLAUDE.md "모델 사용과 서브에이전트 비용", `plugins/q/scripts/subagent-slots.py`, .claude/audit/21.
+  - 구현: qwreey-operator 규약(`plugins/qwreey-operator/context/ambient.md`, 모델 줄은 서브에이전트에도), `plugins/q/scripts/subagent-slots.py`, .claude/audit/21.
 - **second opinion:** 내장 advisor 도구는 사용자가 요청할 때만 쓴다. 근거(사용자): 가격 대비 효용이 diff 기반 리뷰보다 너무 낮다. 흐름 검토는 `qwreey-advisor:inherit-advisor`(fork + 표지를 훅이 후행 프롬프트로 펼침), diff 검토는 `qwreey-advisor:fresh-advisor` 로 한다. 근거 실험은 .claude/audit/18 §9·§11·§12.
 - **사용자 가시성도 개선 대상이다.** statusline, 테마, 응답 형식이 해당한다. 주관적이므로 설치는 묻고, 켜고 끌 수 있게 둔다(.claude/audit/22).
 
@@ -214,7 +214,7 @@
        - 순서(동의): (1) `qwreey-operator`(문구 주입, delegate-nudge 훅, implementer 스킬)와 `qwreey-delegate`(agy·codex, Linux) 새로 (2) `qwreey-sessions` 는 의존 조사 뒤 (3) away·back·서브에이전트 슬롯과 workspace 는 조사 결과로. 플러그인마다 README 카드: 무엇을, 비용, 효과, 왜 택하나, 요구 사항, 끄기.
        - 나누기 정함(사용자 "확인. 추천대로"): `qwreey-sessions`(session-log 훅·sllib·bin, checkpoint·import·recall, records_read), `qwreey-workspace`(게이트, workspace 스킬, ambient 의 workspace 줄), q 에 남김(start, doctor+records_check, away·back+subagent-slots+원장(statusline 이 q 에서 찾음), drift, stale_work, ambient). compact 회차는 플러그인마다 `compact_epoch.py` 사본(`@copy-of`)으로 각자 PreCompact 에서 올린다(q 도 회차 전용 PreCompact). 새 settings 마이그레이션으로 새 이름을 켠다. coderag agent-records 스킬의 `q:recall` 은 이름이 정해진 뒤 고친다.
        - 전역 CLAUDE.md 를 없애는 쪽(사용자, 2026-11-13): "전역 CLAUDE.md 가 있음? 그건 가급적 안 쓰고 싶어서. 끄고 켜거나 하는 유연성도 적고 이식성이 적어서. 없는게 나아보이기도 하더라. 하나를 정본으로 두고 끄고 켜는 방법을 선호". `home/.claude/CLAUDE.md` 의 절(~/.claude·memory, Subagents, Reviews, Toolchain, Compact instructions)을 각 플러그인 주입으로 옮기는 안을 짜서 보인다. Compact instructions 는 PreCompact stdout 이 요약 지시가 되는지 실측 중.
-         - 옮길 곳 정함(사용자 "표 확인. 이견 없어"): ~/.claude 는 home/ 에서 고침·Toolchain(mise) -> q 주입(서브에도), memory 줄 -> 뺌(qwreey-conventions memory rule 이 이미 경로 주입), haiku·모델 줄 -> qwreey-operator(서브에도), 작은 패스·한 줄 고지 -> 뺌(operator·슬롯 훅이 다룸), Reviews -> qwreey-advisor(메인만), Compact instructions -> qwreey-sessions PreCompact stdout. 그릇은 `lib/ambient.py`. 다 옮기면 `~/.claude/CLAUDE.md` 는 MANIFEST 에서 빼고 지우기(사용자 몫).
+         - 옮길 곳 정함(사용자 "표 확인. 이견 없어"): ~/.claude 는 home/ 에서 고침·Toolchain(mise) -> q 주입(서브에도), memory 줄 -> 뺌(qwreey-conventions memory rule 이 이미 경로 주입), haiku·모델 줄 -> qwreey-operator(서브에도), 작은 패스·한 줄 고지 -> 뺌(operator·슬롯 훅이 다룸), Reviews -> qwreey-advisor(메인만), Compact instructions -> qwreey-sessions PreCompact stdout. 그릇은 `lib/ambient.py`. 다 옮기면 `~/.claude/CLAUDE.md` 는 MANIFEST 에서 빼고 지우기(사용자 몫). 옮김: 정본 `home/.claude/CLAUDE.md` 와 MANIFEST 줄을 지웠고, 실제 파일 삭제는 HUMAN_TODO.
        - 같은 부분은 한 에이전트를 작은 단계로(사용자): "일시 중지만 시킨 에이전트도 재개 가능함…작은 작업 끝내 나온걸 약간의 검토와, 만일 사용자 지시나 결정이 필요하면 메인이 받으며 검토하고 프롬프트를 더 넣어 재개…캐시가 1시간 내로 된다면 유지도 되면서, 이미 읽은건 다시 안 읽을 수 있고, 실수한 부분을 언급해주면 본인이 알게 될 수 있음…반증 근거가 확실하게 들어오면 받아드리거든. 독립 부분엔 병렬 쓰는것 동의". operator 문구와 슬롯 훅 알림에 반영(4b55ba3).
        - 훅 원칙(사용자): "훅은 단순히 모델이 놓친 부분에 대해 판단할 기회를 줄 뿐이여야해(다른 workspace 쓰기처럼 위험하거나 꼭 확인해야하는 특정 상황 아니면)". HOOK-MESSAGES 규칙 4, 전수 점검 반영(4b55ba3, coderag 7ec4f5d). 수행자 모델은 opus 기본(사용자: sonnet 수행자는 시행착오로 더 비쌌다), 메인은 diff 를 다 읽지 않는다.
        - README 는 사람용 진입점(설치하면 에이전트가 어떻게 달라지나, 설치·끄기), 기술 세부는 플러그인 `docs/`(사용자). compact 뒤 주입 문구가 요약과 겹치는 문제: compact 전에 빼거나 요약 지시로 빼게(사용자).
@@ -242,4 +242,4 @@
 3. 다른 프로젝트 수정 범위 (quad는 다른 세션이 활발히 수정 중)
 4. 미검증 서술의 처리 (예: tbox stylua `f<<T>>` 오염 경고는 재현 실패)
 5. 영어 지시가 늘면 모델이 사용자 언어를 잊고 영어로 답하는 문제(.claude/audit/31 남은 과제). 후보: 상시 본문 끝에 사용자 언어를 다시 적기, 응답 언어를 확인하는 훅. 정할 때 실측으로 판단한다.
-6. home-canon-guard 훅(정본 대신 `~/.claude` 를 직접 고치는 것 차단)과 worktree-guard 훅(lock·살아 있는 세션 확인 없는 worktree 삭제 차단). 생기면 사용자 CLAUDE.md 의 해당 상시 줄을 뺀다(.claude/audit/31).
+6. home-canon-guard 훅(정본 대신 `~/.claude` 를 직접 고치는 것 차단)과 worktree-guard 훅(lock·살아 있는 세션 확인 없는 worktree 삭제 차단). 생기면 q 규약(`plugins/q/context/ambient.md`)의 해당 상시 줄을 뺀다(.claude/audit/31).

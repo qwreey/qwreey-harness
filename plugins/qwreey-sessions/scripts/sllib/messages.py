@@ -134,6 +134,12 @@ def more(n: int) -> str:
 
 
 # ---- PreCompact 상기 -----------------------------------------------------------------
+# 요약기에게 주는 상시 지시. 태그 없이 일반 stdout 으로 낸다(PreCompact stdout 은 요약 지시가 된다). 수동 compact 뒤에도 맥락에 남으므로 짧게.
+COMPACT_INSTRUCTIONS = (
+    "Keep in the summary: user decisions with verbatim quotes, unanswered questions to the user, running background agents and their tasks, "
+    "commit hashes and changed files, constraints in force (read-only repos, no direct ~/.claude edits).\n"
+    "Drop from the summary: raw tool output, contents of committed files, finished agents' detailed reports (keep conclusions and numbers)."
+)
 PRECOMPACT_HEAD = ("Session-log reminder for this compaction. Keep the items below in the summary; "
                    "quote user directives verbatim.")
 PRECOMPACT_DIRECTIVES = "User directives and corrections (verbatim):"
