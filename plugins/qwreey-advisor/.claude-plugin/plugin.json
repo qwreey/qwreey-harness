@@ -1,6 +1,6 @@
 {
   "name": "qwreey-advisor",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "정해진 시점의 독립 검토. qwreey-advisor:inherit-advisor 는 대화를 이어받은 fork(표지를 훅이 검토자 후행 프롬프트로 펼친다)로 흐름에서 놓친 것을 짚고, qwreey-advisor:fresh-advisor 는 새 컨텍스트의 읽기 전용 리뷰어가 diff·주장을 반증한다. 훅이 반복 실패·큰 커밋 시점을 알린다. 내장 advisor 도구는 사용자가 요청할 때만 쓴다.",
   "author": { "name": "qwreey", "email": "me@qwreey.moe" },
   "license": "MIT",

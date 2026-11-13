@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""qwreey-advisor 상시 규약 주입. 사용: python3 -I ambient.py <SessionStart|UserPromptSubmit>  (stdin: 훅 JSON)
+"""qwreey-advisor 상시 규약 주입. 사용: python3 -I ambient.py <SessionStart|UserPromptSubmit|PreCompact>  (stdin: 훅 JSON)
 
 context/ambient.md 를 `<plugin name="qwreey-advisor">` 로 감싸 additionalContext 로 낸다. 이 플러그인이 켜져 있을 때만
 "qwreey-advisor 스킬을 스스로 부른다" 는 지시가 실리게 하려는 것이다(꺼진 스킬을 가리키면 틀린 지시).
@@ -7,6 +7,8 @@ context/ambient.md 를 `<plugin name="qwreey-advisor">` 로 감싸 additionalCon
 - UserPromptSubmit: SessionStart 가 안 돈 세션(플러그인을 세션 중간에 켠 경우)의 보충. (세션, compact 회차) 표지가 없을 때 한 번.
   회차는 compact_epoch.py(이 플러그인 자기 것, $TMPDIR/claude-qwreey-advisor-epoch/<sid>)를 읽기만 한다. 올리는 쪽은 PreCompact 의
   같은 모듈이라 SessionStart(compact) 보다 먼저 끝난다(경합 없음).
+- PreCompact: 요약기에게 이 블록을 요약에서 빼라는 한 줄을 일반 stdout 으로 낸다. SessionStart(compact) 가 요약 뒤에 다시
+  실으므로 요약의 사본까지 남으면 두 번 실린다. 서브에이전트(agent_id)와 끈 경우는 내지 않는다.
 - 한계: 플러그인을 세션 중간에 끄면 이미 실린 맥락은 못 지운다. 플러그인 자신의 훅이 멈추므로 알아챌 수단이 없다(만들지 않음).
 - 파일이 없거나 읽기 실패는 fail-open. 끄기: HARNESS_QWREEY_ADVISOR_AMBIENT=off.
 """
@@ -21,6 +23,9 @@ import compact_epoch  # noqa: E402
 
 FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "context", "ambient.md")
 NS = "claude-qwreey-advisor-ambient"
+TAG = "qwreey-advisor"
+# plugins/q/scripts/ambient.py 의 OMIT_LINE 과 같은 문장이다(따로 설치되는 플러그인이라 import 못 함). tools/tests/test-vendored-copies.py 가 비교한다.
+OMIT_LINE = "Omit the {block} block from the summary; it is re-injected after compaction."
 
 
 def _sid(s):
@@ -57,8 +62,14 @@ def build(event, data, text):
     if event == "UserPromptSubmit" and (data.get("agent_id") or injected(sid)):
         return ""
     mark(sid)
-    ctx = '<plugin name="qwreey-advisor">\n' + text.strip("\n") + "\n</plugin>"
+    ctx = f'<plugin name="{TAG}">\n' + text.strip("\n") + "\n</plugin>"
     return json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": ctx}}, ensure_ascii=False)
+
+
+def precompact(data, text):
+    if data.get("agent_id") or not text.strip():
+        return ""
+    return OMIT_LINE.format(block=f'<plugin name="{TAG}">')
 
 
 def main():
@@ -75,7 +86,8 @@ def main():
             text = f.read()
     except OSError:
         return 0
-    out = build(sys.argv[1] if len(sys.argv) > 1 else "", data, text)
+    event = sys.argv[1] if len(sys.argv) > 1 else ""
+    out = precompact(data, text) if event == "PreCompact" else build(event, data, text)
     if out:
         print(out)
     return 0

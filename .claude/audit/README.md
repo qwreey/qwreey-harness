@@ -62,4 +62,5 @@ Multi-file audits:
 - [48-code-reuse-debate/](48-code-reuse-debate/) - code-reuse rule wording debate (P concise, Q toolkit-wide) and the revised rule
 - [49-records-description/](49-records-description/) - who writes search summary lines: descriptions required on new records incl. snapshots, write-time lint, no backfill
 - [50-main-delegate/](50-main-delegate/) - main talks, big implementation goes to a background subagent: boundary wording, q delegate-nudge hook (12 edits/8 files + carry-over), skill left to the user
+- [51-precompact-omit/](51-precompact-omit/) - PreCompact stdout steers the compaction summary; plugins that re-inject a block at compact tell it to omit that block
 - [drafts/](drafts/) - drafts written during audits

@@ -1,5 +1,5 @@
 {
-  "description": "ambient.py 가 상시 규약(context/ambient.md)을 SessionStart·SubagentStart 로 싣는다. subagent-slots.py 는 서브에이전트 고지·슬롯 훅이다. PreCompact 는 q 자기 compact 회차만 올린다.",
+  "description": "ambient.py 가 상시 규약(context/ambient.md)을 SessionStart·SubagentStart 로 싣는다. subagent-slots.py 는 서브에이전트 고지·슬롯 훅이다. PreCompact 는 q 자기 compact 회차를 올리고, ambient.py 가 요약기에게 다시 실릴 <plugin name=\"q\"> 블록을 요약에서 빼라고 한 줄 낸다.",
   "hooks": {
     "SessionStart": [
       {
@@ -134,6 +134,11 @@
           {
             "type": "command",
             "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/compact_epoch.py\" q",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" PreCompact",
             "timeout": 5
           }
         ]

@@ -13,7 +13,7 @@
       { "matcher": "Skill", "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/workspace_gate.py\" PostToolUse", "timeout": 10 } ] }
     ],
     "PreCompact": [
-      { "matcher": "manual|auto", "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/compact_epoch.py\" qwreey-workspace", "timeout": 5 } ] }
+      { "matcher": "manual|auto", "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/compact_epoch.py\" qwreey-workspace", "timeout": 5 }, { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" PreCompact", "timeout": 5 } ] }
     ],
     "UserPromptExpansion": [
       { "hooks": [ { "type": "command", "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/workspace_gate.py\" UserPromptExpansion", "timeout": 10 } ] }

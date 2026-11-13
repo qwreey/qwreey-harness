@@ -56,5 +56,25 @@ check("ups again no", run("UserPromptSubmit") is None)
 check("off", run("SessionStart", env=dict(ENV, HARNESS_QWREEY_ADVISOR_AMBIENT="off")) is None)
 check("bad stdin", run("SessionStart", stdin="x") is not None)
 check("subagent ups", run("UserPromptSubmit", {"agent_id": "a"}) is None)
+
+
+def precompact(extra=None, env=None, stdin=None):
+    d = {"session_id": "s1", "hook_event_name": "PreCompact", "trigger": "manual", "custom_instructions": None}
+    d.update(extra or {})
+    p = subprocess.run([sys.executable, "-I", HOOK, "PreCompact"], input=json.dumps(d) if stdin is None else stdin,
+                       capture_output=True, text=True, env=env or ENV, timeout=30)
+    assert p.returncode == 0, p.stderr
+    return p.stdout
+
+
+OMIT = 'Omit the <plugin name="qwreey-advisor"> block from the summary; it is re-injected after compaction.\n'
+check("precompact omit", precompact() == OMIT)
+check("precompact auto", precompact({"trigger": "auto"}) == OMIT)
+check("precompact bad stdin", precompact(stdin="x") == OMIT)
+check("precompact subagent", precompact({"agent_id": "a"}) == "")
+check("precompact off", precompact(env=dict(ENV, HARNESS_QWREEY_ADVISOR_AMBIENT="off")) == "")
+with open(os.path.join(os.path.dirname(HERE), "hooks", "hooks.json"), encoding="utf-8") as fh:
+    pc = json.load(fh)["hooks"]["PreCompact"]
+check("precompact registered", any('ambient.py" PreCompact' in h["command"] for g in pc for h in g["hooks"]))
 print(f"ok={ok} fail={fail}")
 sys.exit(1 if fail else 0)

@@ -85,3 +85,12 @@ MANIFEST 대상 아님. 근거 실측: `.claude/audit/17-hook-messages.md`. 세�
   구현 예: `plugins/qwreey-conventions/hooks/bash-bypass-reminder.py` 의 `dedup_path`.
 - 테스트: `plugins/q/tests/test_compact_epoch.py`.
 - 참고: 회차가 오르면 structure-reminder 의 "이번 세션 성장" 기준점도 새로 잡힌다.
+
+## compact: 다시 실리는 블록은 요약에서 빼게 한다
+근거 실측: `.claude/audit/51-precompact-omit/`.
+- PreCompact 훅의 일반 stdout(exit 0)은 compact 요약기에게 지시로 들어간다. PreCompact 훅이 여럿이면 출력이 합쳐진다. stdin 은 `{"hook_event_name":"PreCompact","trigger":"manual|auto","custom_instructions":null}`(+ session_id 등).
+- 지시가 없으면 요약이 SessionStart 로 실린 `<plugin name="X">` 블록을 풀어 쓰고, SessionStart(source=compact) 가 요약 뒤에 블록을 다시 실어 같은 내용이 두 번 남는다. `Omit any <plugin name="X"> block from the summary; it is re-injected after compaction.` 한 줄이면 요약에서 빠졌다(2/2).
+- 수동 `/compact` 에서는 PreCompact stdout 이 compact 뒤에도 `PreCompact [명령] completed successfully: …` 줄로 맥락에 남는다. 그래서 한 훅에 한 줄, 짧게 쓴다.
+- 규칙: compact 때 블록을 다시 싣는 플러그인은 PreCompact 에서 그 블록을 요약에서 빼라는 한 줄(`Omit the <plugin name="X"> block from the summary; it is re-injected after compaction.`, 정본 `plugins/q/scripts/ambient.py` 의 `OMIT_LINE`, 사본 비교 `tools/tests/test-vendored-copies.py`)을 낸다. 주입이 꺼졌거나(끄기 스위치, 빈 파일) 서브에이전트(`agent_id`)의 compact 이면 내지 않는다. 요약기에게 주는 지시라 `<harness-hook>` 으로 감싸지 않는다.
+  - 지금 내는 플러그인: q, qwreey-advisor, qwreey-operator, qwreey-workspace(각자 `ambient.py PreCompact`), coderag(`coderag hook pre-compact`, 지난 compact 뒤에 `<harness-hook name="coderag-recall">` 목록을 실었을 때만).
+  - 다시 실리지 않는 `<harness-hook>` 알림은 요약에 맡긴다. qwreey-sessions 의 compact 뒤 알림은 기록 경로 한 줄뿐이고, startup 인계는 다시 실리지 않으므로 빼라고 하지 않는다.

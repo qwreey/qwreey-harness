@@ -103,6 +103,37 @@ class T(unittest.TestCase):
     def test_ups_skips_subagent(self):
         self.assertIsNone(self.run_hook("UserPromptSubmit", {"agent_id": "a1"}))
 
+    def run_precompact(self, extra=None, env=None, script=SCRIPT, stdin=None):
+        data = {"session_id": self.sid, "hook_event_name": "PreCompact", "trigger": "manual", "custom_instructions": None}
+        data.update(extra or {})
+        p = subprocess.run([sys.executable, "-I", str(script), "PreCompact"], input=json.dumps(data) if stdin is None else stdin,
+                           capture_output=True, text=True, env=env or self.env, timeout=30)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        return p.stdout
+
+    def test_precompact_omit_line(self):
+        want = 'Omit the <plugin name="q"> block from the summary; it is re-injected after compaction.\n'
+        self.assertEqual(self.run_precompact(), want)
+        self.assertEqual(self.run_precompact({"trigger": "auto"}), want)
+        self.assertEqual(self.run_precompact(stdin="not json"), want)
+        self.assertEqual(self.run_precompact({"agent_id": "a1"}), "", "서브에이전트 compact 뒤에는 다시 싣지 않는다")
+        self.assertEqual(self.run_precompact(env=dict(self.env, HARNESS_Q_AMBIENT="off")), "")
+        hooks = json.loads((ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]["PreCompact"]
+        self.assertTrue(any('ambient.py" PreCompact' in h["command"] for g in hooks for h in g["hooks"]))
+
+    def test_precompact_off_in_harness_env_and_missing_file(self):
+        cfg = Path(self.tmp) / "cfg"
+        (cfg / "lib").mkdir(parents=True)
+        shutil.copy(ROOT.parent.parent / "home" / ".claude" / "lib" / "harness_env.py", cfg / "lib")
+        (cfg / "harness.env").write_text("HARNESS_Q_AMBIENT=off\n")
+        self.assertEqual(self.run_precompact(), "")
+        (cfg / "harness.env").unlink()
+        d = Path(self.tmp) / "plug"
+        (d / "scripts").mkdir(parents=True)
+        shutil.copy(SCRIPT, d / "scripts" / "ambient.py")
+        shutil.copy(ROOT / "scripts" / "compact_epoch.py", d / "scripts" / "compact_epoch.py")
+        self.assertEqual(self.run_precompact(script=d / "scripts" / "ambient.py"), "", "블록이 없으면 뺄 것도 없다")
+
 
 if __name__ == "__main__":
     unittest.main()

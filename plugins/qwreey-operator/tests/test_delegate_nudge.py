@@ -120,6 +120,22 @@ class Nudge(unittest.TestCase):
         self.assertIn("background subagent", ctx)
         self.assertIn("Implementer model: opus by default", ctx)
 
+    def precompact(self, payload, stdin=None):
+        r = subprocess.run([sys.executable, "-I", AMBIENT, "PreCompact"], input=json.dumps(payload) if stdin is None else stdin,
+                           capture_output=True, text=True, env=self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return r.stdout
+
+    def test_ambient_precompact_omit_line(self):
+        want = 'Omit the <plugin name="qwreey-operator"> block from the summary; it is re-injected after compaction.\n'
+        pc = {"session_id": "s1", "hook_event_name": "PreCompact", "trigger": "manual", "custom_instructions": None}
+        self.assertEqual(self.precompact(pc), want)
+        self.assertEqual(self.precompact(pc, stdin="x"), want)
+        self.assertEqual(self.precompact(dict(pc, agent_id="a1")), "", "서브에이전트 compact 뒤에는 다시 싣지 않는다")
+        with open(os.path.join(os.path.dirname(os.path.dirname(HOOK)), "hooks", "hooks.json"), encoding="utf-8") as f:
+            groups = json.load(f)["hooks"]["PreCompact"]
+        self.assertTrue(any('ambient.py" PreCompact' in h["command"] for g in groups for h in g["hooks"]))
+
 
 if __name__ == "__main__":
     unittest.main()

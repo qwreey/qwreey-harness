@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""qwreey-workspace 규약 주입. 사용: python3 -I ambient.py <SessionStart|SubagentStart>  (stdin: 훅 JSON)
+"""qwreey-workspace 규약 주입. 사용: python3 -I ambient.py <SessionStart|SubagentStart|PreCompact>  (stdin: 훅 JSON)
 
 context/ambient.md 를 additionalContext 로 낸다. SessionStart 는 메인 세션(startup·resume·clear·compact), SubagentStart 는
 서브에이전트에 싣는다(게이트는 서브에이전트의 쓰기도 막으므로 규약을 알아야 한다). fork 는 부모 문맥을 물려받으므로 건너뛴다.
+PreCompact 는 요약기에게 이 블록을 요약에서 빼라는 한 줄을 일반 stdout 으로 낸다. SessionStart(compact) 가 요약 뒤에 다시 실으므로
+요약의 사본까지 남으면 두 번 실린다. 서브에이전트(agent_id)의 compact 뒤에는 다시 싣지 않으므로 내지 않는다.
 파일이 없거나 읽기 실패는 조용히 넘긴다(훅은 세션을 막지 않는다).
 """
 import json
@@ -10,7 +12,10 @@ import os
 import sys
 
 FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "context", "ambient.md")
-EVENTS = ("SessionStart", "SubagentStart")
+EVENTS = ("SessionStart", "SubagentStart", "PreCompact")
+TAG = "qwreey-workspace"
+# plugins/q/scripts/ambient.py 의 OMIT_LINE 과 같은 문장이다(따로 설치되는 플러그인이라 import 못 함). tools/tests/test-vendored-copies.py 가 비교한다.
+OMIT_LINE = "Omit the {block} block from the summary; it is re-injected after compaction."
 
 
 def main():
@@ -28,8 +33,12 @@ def main():
             text = f.read().strip()
     except OSError:
         return 0
+    if event == "PreCompact":
+        if text and not (isinstance(data, dict) and data.get("agent_id")):
+            print(OMIT_LINE.format(block=f'<plugin name="{TAG}">'))
+        return 0
     if text:
-        ctx = '<plugin name="qwreey-workspace">\n' + text + "\n</plugin>"
+        ctx = f'<plugin name="{TAG}">\n' + text + "\n</plugin>"
         print(json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": ctx}}, ensure_ascii=False))
     return 0
 
