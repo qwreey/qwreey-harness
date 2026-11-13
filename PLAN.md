@@ -240,11 +240,10 @@
 
 | # | 결정 | 추천 | 근거·자리 |
 |---|---|---|---|
-| 1 | 저장소 `.claude/harness.local.env` 가 `USER_ONLY` 키를 바꿀 수 있게 할지 | 실행 경로 키(`HARNESS_CODERAG`, `SESSION_LOG_CLAUDE` 등)는 계속 못 바꿈. 안전 스위치 키만 local 층 허용 + 에이전트 쓰기 deny 훅, 실제로 바꾸고 싶은 키가 생길 때(사용자 "에딧에 실패하도록 하는 훅이 있으면 괜찮겠긴 한데") | `home/.claude/lib/harness_env.py` |
+| 1 | 저장소 `.claude/harness.local.env` 가 `USER_ONLY` 키를 바꿀 수 있게 할지 | 실행 경로 키(`HARNESS_CODERAG`, `SESSION_LOG_CLAUDE` 등)와 격리를 푸는 키(`HARNESS_DELEGATE_AGY_WORKTREE`, `HARNESS_DELEGATE_CODEX_SANDBOX` 등)는 계속 못 바꿈. local 층에서 바꿀 수 있는 키 목록을 따로 정하고 에이전트 쓰기 deny 훅과 함께, 실제로 바꾸고 싶은 키가 생길 때(사용자 "에딧에 실패하도록 하는 훅이 있으면 괜찮겠긴 한데") | `home/.claude/lib/harness_env.py` |
 | 2 | home-canon-guard(정본 대신 `~/.claude` 직접 수정 차단)·worktree-guard(lock·살아 있는 세션 확인 없는 worktree 삭제 차단) 훅을 만들지 | 미정. 생기면 q·workspace 상시 줄을 뺀다 | `.claude/audit/31-home-claude-md-debate/verdict.md` |
-| 3 | luau-kb·web-security 를 어느 저장소에서 켤지 | 저장소마다 `coderag.toml` `[[packs]]` | `packs/README.md` |
-| 4 | 형제 저장소 지도의 포인터 방식 | 미정 | `qwreey-workspace` 지도 |
-| 5 | coderag Q4 바이너리 전달, M2 전환을 release 전 이 기계의 로컬 빌드로 할지 | 미정 | 3.9 5a, `../coderag/.claude/base/decisions/user-decisions-2026-11.md` |
-| 6 | 다른 하네스(codex·agy)에 규약을 주는 법 | 미정(규약은 coderag 와 잇지 않기로 함) | 3.9 5a |
-| 7 | 세션 기록 반입본을 compact 회차 단위로 나눌지(사용자 "천천히") | 회차마다 파일 하나, 머리에 날짜·transcript·줄 범위 | 3.9 5a, `.claude/audit/49-records-description/` |
-| 8 | 다른 저장소 세션에 인계 파일 전달(정정·`git push` deny 등) | 사용자가 각 세션에 전달 | `HUMAN_TODO.md`, `.claude/handoff/` |
+| 3 | 형제 저장소 지도의 포인터 방식 | 미정 | `qwreey-workspace` 지도 |
+| 4 | coderag Q4 바이너리 전달, M2 전환을 release 전 이 기계의 로컬 빌드로 할지 | 미정 | 3.9 5a, `../coderag/.claude/base/decisions/user-decisions-2026-11.md` |
+| 5 | 다른 하네스(codex·agy)에 규약을 주는 법 | 미정(규약은 coderag 와 잇지 않기로 함) | 3.9 5a |
+| 6 | 세션 기록 반입본을 compact 회차 단위로 나눌지(사용자 "천천히") | 회차마다 파일 하나, 머리에 날짜·transcript·줄 범위 | 3.9 5a, `.claude/audit/49-records-description/` |
+| 7 | 다른 저장소 세션에 인계 파일 전달(정정·`git push` deny 등) | 사용자가 각 세션에 전달 | `HUMAN_TODO.md`, `.claude/handoff/` |
