@@ -36,7 +36,7 @@
 - 저장소 이름은 git common dir 의 부모 폴더 이름이라 worktree 안에서도 본 저장소로 센다. git 저장소가 아니면 아무것도 하지 않는다.
 
 ### 설정
-`~/.claude/harness.env`(`$CLAUDE_CONFIG_DIR` 가 있으면 그 아래, 읽기는 하네스의 `lib/harness_env.py`)와 환경 변수에서 읽고, 환경 변수가 이긴다. 하네스가 없으면 환경 변수와 기본값만 쓴다.
+harness.env 층(사용자 `~/.claude/harness.env`, `$CLAUDE_CONFIG_DIR` 가 있으면 그 아래 < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`)과 환경 변수에서 읽고, 환경 변수가 이긴다. 저장소는 `$CLAUDE_PROJECT_DIR`, 없으면 훅 `cwd`. 읽기는 설치된 하네스 `lib/harness_env.py`, 없으면 옆의 `hooks/harness_env.py` 사본. 파일이 없으면 환경 변수와 기본값만 쓴다.
 
 | 키 | 기본 | 뜻 |
 |---|---|---|

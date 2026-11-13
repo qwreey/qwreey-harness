@@ -161,6 +161,9 @@ def check_settings(repo, files):
         if sp.name == "settings.local.json" and inrepo:
             if C.run(["git", "check-ignore", "-q", str(sp)], cwd=repo) is None:
                 C.add(7, "경고", "SET-LOCALIGNORE", r, "settings.local.json 이 무시되지 않는다(개인 설정이 커밋될 수 있음).")
+    hl = repo / ".claude" / "harness.local.env"
+    if inrepo and hl.is_file() and C.run(["git", "check-ignore", "-q", str(hl)], cwd=repo) is None:
+        C.add(7, "경고", "SET-LOCALIGNORE", C.rel(hl, repo), "harness.local.env 가 무시되지 않는다(개인 harness 설정이 커밋될 수 있음).")
     if nested:  # 반입 사본(intake/<이름>/) 등: 바깥 저장소의 git 상태는 이 대상의 것이 아니다
         C.add(7, "정보", "SET-NOGIT", repo, f"자기 git 저장소가 아니다(바깥 저장소 {nested.strip()} 안의 하위 디렉터리). "
             "반입 사본이면 정상이다. git 기반 검사(7의 나머지, 9 worktree)는 건너뛴다.", "references/drift-and-settings.md#7-설정")

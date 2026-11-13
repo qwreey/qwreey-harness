@@ -41,11 +41,12 @@ class Lib(unittest.TestCase):
         (self.plug / "context").mkdir()
         for name in ("ambient.py", "harness_nonce.py", "compact_epoch.py"):
             shutil.copy(LIB / name, self.plug / "hooks" / name)
+        shutil.copy(HOME_LIB, self.plug / "hooks" / "harness_env.py")
         self.write_config(CONFIG)
         (self.plug / "context" / "ambient.md").write_text(MAIN, encoding="utf-8")
         (self.tmp / "salt").write_text("00" * 32)
         self.nonce = hashlib.sha256(("00" * 32 + ":" + SID).encode()).hexdigest()[:12]
-        self.env = {k: v for k, v in os.environ.items() if not k.startswith("HARNESS_")}
+        self.env = {k: v for k, v in os.environ.items() if not k.startswith("HARNESS_") and k != "CLAUDE_PROJECT_DIR"}
         self.env.update(TMPDIR=str(self.tmp), HOME=str(self.tmp), CLAUDE_CONFIG_DIR=str(self.tmp / "cfg"),
                         QWREEY_HARNESS_SALT_FILE=str(self.tmp / "salt"))
 
@@ -168,6 +169,21 @@ class Lib(unittest.TestCase):
         self.assertIsNotNone(self.ctx("SessionStart", {"source": "startup"}, env=dict(self.env, HARNESS_DEMO_AMBIENT="")), "환경 변수가 이긴다")
         self.write_config({k: v for k, v in CONFIG.items() if k != "off_switch"})
         self.assertIsNotNone(self.ctx("SessionStart", {"source": "startup"}), "off_switch 가 없으면 스위치도 없다")
+
+    def test_off_switch_layers(self):
+        """사용자 < 저장소 harness.env < 저장소 harness.local.env. 설치된 lib 가 없으면 플러그인 옆 사본이 같은 층을 읽는다."""
+        cfg, proj = self.tmp / "cfg", self.tmp / "proj"
+        cfg.mkdir()
+        (proj / ".claude").mkdir(parents=True)
+        on = lambda **kw: self.ctx("SessionStart", {"source": "startup"}, **kw) is not None  # noqa: E731
+        (cfg / "harness.env").write_text("HARNESS_DEMO_AMBIENT=off\n")
+        self.assertFalse(on(), "설치된 lib 없이도 사용자 층을 읽는다")
+        (proj / ".claude" / "harness.env").write_text("HARNESS_DEMO_AMBIENT=on\n")
+        self.assertTrue(on(env=dict(self.env, CLAUDE_PROJECT_DIR=str(proj))), "저장소 층이 사용자 층을 이긴다")
+        self.assertIsNotNone(self.ctx("SessionStart", {"source": "startup", "cwd": str(proj)}), "CLAUDE_PROJECT_DIR 이 없으면 훅 cwd")
+        (proj / ".claude" / "harness.local.env").write_text("HARNESS_DEMO_AMBIENT=off\n")
+        self.assertFalse(on(env=dict(self.env, CLAUDE_PROJECT_DIR=str(proj))), "local 이 저장소 층을 이긴다")
+        self.assertTrue(on(env=dict(self.env, CLAUDE_PROJECT_DIR=str(proj), HARNESS_DEMO_AMBIENT="on")), "환경 변수가 이긴다")
 
     def test_fail_silent(self):
         for bad in ("not json", "[]", json.dumps({"events": ["SessionStart"]}), json.dumps(dict(CONFIG, plugin=""))):

@@ -1,8 +1,9 @@
-"""설정 읽기. 우선순위: 환경 변수 > harness.env > DEFAULTS.
+"""설정 읽기. 우선순위: 환경 변수 > harness.env 층 > DEFAULTS. 이 모듈의 키(DEFAULTS)만 읽는다.
 
-harness.env 는 하네스(claude-doctor home/.claude)의 sandbox 고유값 파일이다. 있으면 SESSION_LOG_* 키만 읽는다.
-없어도 플러그인은 기본값으로 돈다(툴킷·하네스 무관). 파일 위치: $HARNESS_ENV → $CLAUDE_CONFIG_DIR/harness.env
-→ ~/.claude/harness.env. 파서는 같은 디렉터리의 lib/harness_env.py 가 있으면 그것을, 없으면 아래 작은 파서를 쓴다.
+harness.env 층은 scripts/harness_env.py(하네스 정본 home/.claude/lib/harness_env.py 의 사본, 설치된 정본이 있으면 그것)의
+load_layers 다: 사용자($HARNESS_ENV, 없으면 $CLAUDE_CONFIG_DIR 또는 ~/.claude 의 harness.env) < 저장소($CLAUDE_PROJECT_DIR)
+.claude/harness.env < .claude/harness.local.env. SESSION_LOG_HOME, SESSION_LOG_CLAUDE 는 저장소 층이 바꾸지 못한다(USER_ONLY).
+파일이 없어도 플러그인은 기본값으로 돈다(툴킷, 하네스 무관).
 """
 from __future__ import annotations
 
@@ -38,54 +39,16 @@ DEFAULTS = {
 }
 
 
-def _fallback_parse(text: str) -> dict:
-    out: dict = {}
-    for line in text.splitlines():
-        s = line.strip()
-        if not s or s.startswith("#") or "=" not in s:
-            continue
-        k, v = s.split("=", 1)
-        k = k.strip().removeprefix("export ").strip()
-        v = v.strip()
-        if v[:1] in ("'", '"') and v.endswith(v[0]) and len(v) > 1:
-            v = v[1:-1]
-        elif " #" in v:
-            v = v.split(" #", 1)[0].strip()
-        v = os.path.expandvars(v)
-        out[k] = os.path.expanduser(v) if v.startswith("~") else v
-    return out
-
-
-def harness_env_file() -> Path | None:
-    cands = [os.environ.get("HARNESS_ENV", "")]
-    cfg = os.environ.get("CLAUDE_CONFIG_DIR")
-    if cfg:
-        cands.append(os.path.join(cfg, "harness.env"))
-    cands.append(os.path.join(os.path.expanduser("~"), ".claude", "harness.env"))
-    for c in cands:
-        if c and os.path.isfile(c):
-            return Path(c)
-    return None
-
-
 def _read_harness_env() -> dict:
-    f = harness_env_file()
-    if not f:
-        return {}
+    """harness.env 층. 실패하면 {}(기본값으로 돈다)."""
     try:
-        text = f.read_text(encoding="utf-8")
-    except OSError:
+        spec = importlib.util.spec_from_file_location("_sl_harness_env", Path(__file__).resolve().parent.parent / "harness_env.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        he = mod.installed()
+        return he.load_layers()
+    except Exception:
         return {}
-    lib = f.parent / "lib" / "harness_env.py"
-    if lib.is_file():
-        try:
-            spec = importlib.util.spec_from_file_location("_sl_harness_env", lib)
-            mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(mod)  # type: ignore[union-attr]
-            return mod.parse(text)
-        except Exception:
-            pass
-    return _fallback_parse(text)
 
 
 _CACHE: dict | None = None

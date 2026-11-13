@@ -201,6 +201,16 @@ class Gate(Env):
         (self.t / "cfg" / "harness.env").write_text("HARNESS_WORKSPACE_GATE=off\n")
         self.assertIsNone(self.pre("Write", {"file_path": self.sibling()}))
 
+    def test_repo_layers_cannot_open_the_gate(self):
+        # 게이트 스위치와 작업공간 루트는 USER_ONLY: 저장소가 커밋한 파일로 끌 수 없다. 설치된 lib 없이 플러그인 사본이 읽는다.
+        claude = Path(self.proj) / ".claude"
+        claude.mkdir(parents=True, exist_ok=True)
+        (claude / "harness.env").write_text("HARNESS_WORKSPACE_GATE=off\n")
+        (claude / "harness.local.env").write_text("HARNESS_WORKSPACE_GATE=off\n")
+        self.assertIsNotNone(self.pre("Write", {"file_path": self.sibling()}))
+        (self.t / "cfg" / "harness.env").write_text("HARNESS_WORKSPACE_GATE=off\n")
+        self.assertIsNone(self.pre("Write", {"file_path": self.sibling()}), "사용자 층은 끈다")
+
     def test_symlink_path_not_sibling(self):
         # 홈의 rules 파일은 형제 저장소로 이어진 symlink 일 수 있다. normpath 만 쓰므로 형제 경로가 아니다.
         real = self.ws / "other" / "rules"

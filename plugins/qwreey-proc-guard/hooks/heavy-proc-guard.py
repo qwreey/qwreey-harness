@@ -19,7 +19,6 @@ Portable: the wrapper comes from ~/.claude/harness.env (HARNESS_HEAVY_WRAP). Emp
 installed (no choom in this sandbox) -> the guard allows everything. Executors are a base set plus a
 per-toolkit table, filtered by HARNESS_TOOLKITS; HARNESS_HEAVY_EXECUTORS / _KEYWORDS add more.
 """
-import importlib.util
 import json
 import os
 import re
@@ -93,14 +92,14 @@ def is_executor(head, executors):
     return head in executors or head.endswith(".sh") or head.startswith("./")
 
 
-def load_env():
-    """~/.claude/lib/harness_env.py 로 harness.env 를 읽는다. 없거나 깨졌으면 {}(= 기본값 auto)."""
-    home = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
+def load_env(cwd=None):
+    """harness.env 층(옆의 harness_env.py 사본, 설치된 정본이 있으면 그것). 깨졌으면 {}(= 기본값 auto).
+    HARNESS_HEAVY_WRAP 은 USER_ONLY 라 저장소 파일이 바꾸지 못한다. 저장소는 실행기와 키워드를 더할 수만 있다."""
     try:
-        spec = importlib.util.spec_from_file_location("harness_env", home / "lib" / "harness_env.py")
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod.load([home / "harness.env"])
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import harness_env
+        he = harness_env.installed()
+        return he.load_layers(he.project_dir(cwd))
     except Exception:
         return {}
 
@@ -151,7 +150,7 @@ def main():
     except Exception:
         return 0
     cmd = (data.get("tool_input") or {}).get("command") or ""
-    env = load_env()
+    env = load_env(data.get("cwd"))
     wrap = wrap_argv(env)
     if not wrap:  # 래퍼를 끈 환경이거나 래퍼 프로그램이 없다(choom 없는 sandbox) — 막지 않는다
         return 0

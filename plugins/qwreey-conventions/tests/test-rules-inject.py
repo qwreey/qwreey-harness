@@ -248,6 +248,27 @@ class Switches(unittest.TestCase):
             os.remove(os.path.join(CFG, "harness.env"))
         self.assertTrue(run("PostToolUse", "Read", X + "/a.py", fresh()))
 
+    def test_repo_local_env_off(self):
+        # 저장소 .claude/harness.local.env(개인, 커밋 안 함)가 사용자 층과 저장소 층을 이긴다.
+        os.makedirs(os.path.join(PROJ, ".claude"), exist_ok=True)
+        files = {os.path.join(CFG, "harness.env"): "HARNESS_CONVENTIONS_RULES=off\n",
+                 os.path.join(PROJ, ".claude", "harness.env"): "HARNESS_CONVENTIONS_RULES=off\n",
+                 os.path.join(PROJ, ".claude", "harness.local.env"): "HARNESS_CONVENTIONS_RULES=on\n"}
+        for f, text in files.items():
+            with open(f, "w") as fh:
+                fh.write(text)
+        try:
+            self.assertTrue(run("PostToolUse", "Read", X + "/a.py", fresh()))
+            with open(os.path.join(PROJ, ".claude", "harness.local.env"), "w") as fh:
+                fh.write("HARNESS_CONVENTIONS_RULES=off\n")
+            os.remove(os.path.join(CFG, "harness.env"))
+            os.remove(os.path.join(PROJ, ".claude", "harness.env"))
+            self.assertIsNone(run("PostToolUse", "Read", X + "/a.py", fresh()))
+        finally:
+            for f in files:
+                if os.path.exists(f):
+                    os.remove(f)
+
     def test_rules_exclude(self):
         p = os.path.join(PROJ, ".claude", "conventions.json")
         with open(p, "w") as f:

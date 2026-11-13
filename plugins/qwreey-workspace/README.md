@@ -19,7 +19,7 @@
 ## 끄기
 - 게이트만: `HARNESS_WORKSPACE_GATE=off`. `HARNESS_WORKSPACE` 가 비어도 꺼진다.
 - 상시 안내만: `HARNESS_WORKSPACE_AMBIENT=off`.
-- 한 프로젝트에서만: 그 저장소 `.claude/settings.json` 의 `enabledPlugins` 로 끄거나, 스위치를 그 저장소 `.claude/harness.env`(또는 settings 의 `env`)에 둔다.
+- 한 프로젝트에서만: 그 저장소 `.claude/settings.json` 의 `enabledPlugins` 로 끄거나, 상시 안내 스위치를 그 저장소 `.claude/harness.env`(팀 공유, 커밋)나 `.claude/harness.local.env`(나만, `.gitignore` 에 넣는다), 또는 settings 의 `env` 에 둔다. local 이 공유 파일을 이기고 환경 변수가 둘 다 이긴다. 게이트 스위치와 `HARNESS_WORKSPACE` 는 저장소 파일로 바꿀 수 없다(클론한 저장소가 게이트를 끄지 못하게).
 - 전부: `claude plugin disable qwreey-workspace@claude-doctor-market`.
 
 ## 설치

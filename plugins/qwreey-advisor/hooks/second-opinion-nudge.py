@@ -10,8 +10,9 @@ advisor 는 언제 불릴지 모델이 정해서 예측이 안 됐다(.claude/au
      (호출자는 track-reviewer.py 가 prompt 끝에 붙인 run 줄을 리뷰어 transcript 에서 읽는다. 줄이 없으면 main 으로 친다)
 '접근 확정 전'은 잴 수 없어서 메인 판단(CLAUDE.md, 스킬)에 맡긴다. 이 저장소들에서 ExitPlanMode 사용은 0회였다(.claude/audit/18 §1.4).
 
-설치: qwreey-advisor 플러그인의 hooks/hooks.json 이 등록한다. 공용 라이브러리(harness_env)와 harness.env 는
-$CLAUDE_CONFIG_DIR(기본 ~/.claude) 아래 claude-doctor 하네스의 것을 쓰고, 없으면 내장 기본값으로 돈다(등급 mid, 상태는 $TMPDIR).
+설치: qwreey-advisor 플러그인의 hooks/hooks.json 이 등록한다. 설정은 harness.env 층(옆의 harness_env.py 사본, 설치된 정본이
+있으면 그것): 사용자 $CLAUDE_CONFIG_DIR/harness.env < 저장소 .claude/harness.env < 저장소 .claude/harness.local.env < 환경 변수.
+파일이 하나도 없으면 내장 기본값으로 돈다(등급 mid, 상태는 $TMPDIR).
 
 규칙
   - 서브에이전트 안(agent_id 있음)에서는 아무것도 하지 않는다. 일꾼이 리뷰어를 또 띄우는 연쇄를 막는다($589 사고, .claude/audit/10 §2.2).
@@ -25,7 +26,6 @@ $CLAUDE_CONFIG_DIR(기본 ~/.claude) 아래 claude-doctor 하네스의 것을 �
 from __future__ import annotations
 
 import hashlib
-import importlib.util
 import json
 import os
 import re
@@ -39,7 +39,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
 import harness_nonce  # noqa: E402
 
-HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"))  # 하네스 lib, harness.env 위치
 NS = "claude-second-opinion"
 RUN_LINE = re.compile(r"\[qwreey-advisor run: ([0-9a-f-]{36}) caller=(main|subagent) scratch=[^\]\n]*\]")
 REVIEWERS = {"qwreey-advisor:reviewer", "qwreey-advisor-reviewer"}  # 플러그인 이름공간 + 예전 이름
@@ -47,19 +46,14 @@ MODEL = {"high": "opus", "mid": "sonnet", "low": "sonnet"}
 BENIGN = re.compile(r"^\s*(grep|rg|egrep|fgrep|test|\[|diff|cmp|pgrep|pidof|which|command)\b")
 
 
-def load(name):
+def env_vals(cwd=None) -> dict:
+    """harness.env 층(옆의 harness_env.py 사본, 설치된 정본이 있으면 그것): 사용자 < 저장소 < 저장소 local < 환경 변수."""
     try:
-        spec = importlib.util.spec_from_file_location(name, HOME / "lib" / f"{name}.py")
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod
+        import harness_env
+        he = harness_env.installed()
+        vals = he.load_layers(he.project_dir(cwd))
     except Exception:
-        return None
-
-
-def env_vals() -> dict:
-    he = load("harness_env")
-    vals = he.load([HOME / "harness.env"]) if he else {}
+        vals = {}
     for k in ("HARNESS_REVIEW_TIERS", "HARNESS_REVIEW_DEFAULT", "HARNESS_REVIEW_LINES", "HARNESS_REVIEW_FRESH_MIN",
               "HARNESS_REVIEW_STOP", "HARNESS_REVIEW_PLAN"):
         if k in os.environ:
@@ -184,7 +178,7 @@ def main() -> int:
     if data.get("agent_id"):  # 서브에이전트 안: 아무것도 하지 않는다
         return 0
     cwd = data.get("cwd") or os.getcwd()
-    vals = env_vals()
+    vals = env_vals(cwd)
 
     repo, tier = tier_of(cwd, vals)
     if tier == "off" or not repo:

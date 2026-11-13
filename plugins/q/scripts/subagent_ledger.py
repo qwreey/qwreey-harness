@@ -16,7 +16,6 @@
 """
 import fcntl
 import glob
-import importlib.util
 import json
 import os
 import re
@@ -26,7 +25,7 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
-HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")  # 사용자 설정 위치(harness.env, lib/harness_env.py, projects/)
+HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")  # 사용자 설정 위치(projects/)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
 NS = "claude-subagent-slots"
@@ -73,26 +72,15 @@ CFG_PREFIXES = ("HARNESS_SUBAGENT_", "HARNESS_FANOUT_", "HARNESS_AWAY_", "HARNES
 
 
 # ---------- 설정 ----------
-def _load_mod(name):
-    spec = importlib.util.spec_from_file_location(name, HOME / "lib" / f"{name}.py")
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
-
-
 def config(project_dir=None):
-    """우선순위: 환경 변수 > 저장소 <project>/.claude/harness.env (위 접두 키만) > ~/.claude/harness.env > CFG_DEFAULTS."""
+    """harness.env 층(harness_env.load_layers: 사용자 < 저장소 harness.env < 저장소 harness.local.env < 환경 변수) 위의 CFG_DEFAULTS.
+    이 모듈의 키(CFG_DEFAULTS 와 CFG_PREFIXES 접두)만 낸다. project_dir 이 None 이면 $CLAUDE_PROJECT_DIR."""
     vals = dict(CFG_DEFAULTS)
     try:
-        he = _load_mod("harness_env")
-        user = he.load([HOME / "harness.env"])
-        vals.update({k: v for k, v in user.items() if k in vals or k.startswith(CFG_PREFIXES)})
-        if project_dir:
-            repo = Path(project_dir) / ".claude" / "harness.env"
-            if repo.is_file():
-                for k, v in he.parse(repo.read_text(encoding="utf-8"), vals).items():
-                    if k.startswith(CFG_PREFIXES):
-                        vals[k] = v
+        import harness_env
+        he = harness_env.installed()
+        layered = he.load_layers(project_dir)
+        vals.update({k: v for k, v in layered.items() if k in vals or k.startswith(CFG_PREFIXES)})
     except Exception:
         pass
     vals.update({k: os.environ[k] for k in list(vals) if k in os.environ})

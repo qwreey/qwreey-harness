@@ -20,7 +20,7 @@
 ## 끄기
 - 알림만: 환경 변수 `HARNESS_OPERATOR_NUDGE=off`.
 - 규약 주입만: `HARNESS_OPERATOR_AMBIENT=off`.
-- 한 프로젝트에서만: 그 저장소 `.claude/settings.json` 의 `enabledPlugins` 로 끄거나, 스위치를 그 저장소 `.claude/harness.env`(또는 settings 의 `env`)에 둔다.
+- 한 프로젝트에서만: 그 저장소 `.claude/settings.json` 의 `enabledPlugins` 로 끄거나, 규약 주입 스위치를 그 저장소 `.claude/harness.env`(팀 공유, 커밋)나 `.claude/harness.local.env`(나만, `.gitignore` 에 넣는다), 또는 settings 의 `env` 에 둔다. local 이 공유 파일을 이기고 환경 변수가 둘 다 이긴다. 알림 스위치는 환경 변수만 본다.
 - 전부: `claude plugin disable qwreey-operator@claude-doctor-market` (제거는 `uninstall`).
 
 ## 설치

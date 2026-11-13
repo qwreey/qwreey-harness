@@ -16,7 +16,7 @@
 
 ## 요구 사항
 - 훅이 `python3` 와 `git` 을 부른다. Linux·macOS 에서 쓴다.
-- 저장소별 등급을 정하려면 `~/.claude/harness.env` 나 환경 변수에 `HARNESS_REVIEW_TIERS="저장소이름=high 다른저장소=off"`. 없으면 모두 mid.
+- 저장소별 등급을 정하려면 `~/.claude/harness.env` 나 환경 변수에 `HARNESS_REVIEW_TIERS="저장소이름=high 다른저장소=off"`. 없으면 모두 mid. 한 저장소에서만 바꾸려면 그 저장소 `.claude/harness.env`(공유)나 `.claude/harness.local.env`(나만, `.gitignore` 에 넣는다)에 같은 키를 둔다.
 
 ## 끄기
 - 한 저장소의 알림만: `HARNESS_REVIEW_TIERS` 에서 그 저장소를 `off` 로.

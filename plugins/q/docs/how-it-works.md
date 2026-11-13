@@ -17,7 +17,7 @@
 - `context/ambient.md`(훅 알림의 위상과 info·warn·action 의 뜻, `~/.claude` 는 claude-doctor `home/` 에서 고친다는 줄, mise shim 우회 줄. 영어 다섯 줄)를 `<plugin name="q" nonce="…">` 로 감싸 `additionalContext` 로 낸다. 다른 플러그인의 훅 메시지는 이 배경을 전제로 쓰인다(`home/.claude/HOOK-MESSAGES.md`).
 - SessionStart 는 메인에, SubagentStart 는 서브에이전트에 싣는다. fork 는 부모 맥락을 물려받으므로 건너뛴다.
 - UserPromptSubmit 은 세션 중간에 플러그인을 켠 경우의 보충으로, (세션, compact 회차)당 한 번만 싣는다.
-- 끄기: `HARNESS_Q_AMBIENT=off`(환경 변수 또는 harness.env).
+- 끄기: `HARNESS_Q_AMBIENT=off`(환경 변수 또는 harness.env 층: 사용자 `~/.claude/harness.env` < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`. 층 규칙은 `home/.claude/lib/harness_env.py` 머리, 플러그인은 옆의 `scripts/harness_env.py` 사본을 쓴다).
 - `scripts/ambient.py` 은 저장소 `lib/ambient.py` 의 바이트 사본이다(고치지 말고 정본을 고친 뒤 `python3 -I tools/sync-copies.py --apply`). 플러그인마다 다른 것은 `context/ambient.json`(`plugin`, `events`, `off_switch`, `epoch`)에 둔다. 서브에이전트에 다른 글을 실으려면 `context/subagent.md` 를 둔다(없으면 `ambient.md`).
 
 ## 서브에이전트 규모 고지와 away (`subagent-slots.py`, 원장 `subagent_ledger.py`)
@@ -26,7 +26,7 @@
 - 예산 단위: 구독 한도 %(statusline 이 쓰는 `<sid>.limits.json` 을 읽는다), USD(트랜스크립트 usage 를 API 목록가로 환산), 에이전트 수. `HARNESS_AWAY_PLAN=auto|usd|pct`. 한도 값이 `HARNESS_AWAY_LIMITS_STALE_MIN`(기본 10분) 넘게 갱신되지 않으면 USD 로 바꾼다. away 중 Workflow 는 `HARNESS_AWAY_WORKFLOW`(기본 `idle`: 실행 중 0 일 때만).
 - 세는 법: PreToolUse 에서 예약(+1), PostToolUse(`async_launched`)·SubagentStart 에서 실행 중, SubagentStop 에서 −1. 어긋나면 `background_tasks`, 트랜스크립트 mtime, 예약 TTL 로 복구하고, 수동으로는 `/q:away reset`.
 - 평소에는 PostToolUse 마다 상태 파일의 `away.on` 만 보고 끝난다(원장 모듈을 읽지 않는다).
-- 상태: `$TMPDIR/claude-subagent-slots/<sid>.json`. 설정 우선순위: 환경 변수 > 저장소 `.claude/harness.env`(`HARNESS_SUBAGENT_`·`HARNESS_FANOUT_`·`HARNESS_AWAY_`·`HARNESS_SLOTS_` 키만) > `~/.claude/harness.env` > 기본값(`subagent_ledger.py` 의 `CFG_DEFAULTS`).
+- 상태: `$TMPDIR/claude-subagent-slots/<sid>.json`. 설정 우선순위: 환경 변수 > 저장소 `.claude/harness.local.env` > 저장소 `.claude/harness.env` > `~/.claude/harness.env` > 기본값(`subagent_ledger.py` 의 `CFG_DEFAULTS`). 원장은 자기 키(`HARNESS_SUBAGENT_`·`HARNESS_FANOUT_`·`HARNESS_AWAY_`·`HARNESS_SLOTS_` 접두)만 낸다. 저장소 층이 실행 경로 같은 하네스 값을 바꾸지 못하게 하는 것은 로더의 `USER_ONLY` 다.
 - claude-doctor 의 statusline 은 설치된 q 의 원장을 읽어 away 상태와 서브에이전트 수를 보인다. q 가 없으면 그 항목만 뺀다.
 - 끄기: `HARNESS_SUBAGENT_SLOTS=off`.
 

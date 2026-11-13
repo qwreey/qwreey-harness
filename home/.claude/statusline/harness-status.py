@@ -5,7 +5,8 @@ settings.json: "statusLine": {"type": "command", "command": "python3 $HOME/.clau
 - 읽기 전용. 잠금을 잡지 않고 원장(q 플러그인의 subagent_ledger.py) 파일을 읽기만 한다. 실패해도 있는 것만 낸다.
   q 가 설치돼 있지 않으면 서브에이전트·away 항목만 조용히 빠진다(find_ledger).
 - 어떤 스타일이든(off 포함) rate_limits 를 $TMPDIR/claude-subagent-slots/<sid>.limits.json 에 적는다. away 훅이 이 파일을 읽는다.
-- 설정(harness.env 키, 환경 변수 > 저장소 <project>/.claude/harness.env > 사용자 ~/.claude/harness.env, 전부 HARNESS_STATUSLINE_ 접두):
+- 설정(harness.env 키, 환경 변수 > 저장소 <project>/.claude/harness.local.env > <project>/.claude/harness.env > 사용자 ~/.claude/harness.env,
+  전부 HARNESS_STATUSLINE_ 접두):
   STYLE=plain(기본)|nerd|minimal|off, LINES=1(기본)|2, COST=always(기본, 구독 여부와 무관한 작업량 지표)|auto(구독자면 숨김)|never, WARN_PCT=70, HOT_PCT=90
 - 폭이 좁으면(COLUMNS) 뒤 항목부터 통째로 뺀다. NO_COLOR 가 있으면 색을 쓰지 않는다.
 - 비용은 cost.total_cost_usd(목록가 환산, 서브에이전트 포함)다. away 예산은 원장 기준이다.
@@ -71,22 +72,14 @@ def find_ledger():
 
 
 def config(project_dir):
-    """환경 변수 > 저장소 harness.env > 사용자 harness.env > 기본값. 이 스크립트의 키(접두)만 읽는다."""
+    """harness.env 층(lib/harness_env.py load_layers: 사용자 < 저장소 harness.env < 저장소 harness.local.env < 환경 변수) 위의 기본값.
+    이 스크립트의 키(접두)만 읽는다. 사용자 층은 이 스크립트 옆의 harness.env 다(HARNESS_ENV 가 있으면 그것)."""
     cfg = dict(DEFAULTS)
     try:
         he = load_mod("harness_env")
-        files = []
-        user = he.find_file([HOME / "harness.env"])
-        if user:
-            files.append(user)
-        if project_dir:
-            repo = Path(project_dir) / ".claude" / "harness.env"
-            if repo.is_file():
-                files.append(repo)  # 뒤에 읽은 것이 이긴다
-        for f in files:
-            for k, v in he.parse(f.read_text(encoding="utf-8")).items():
-                if k.startswith(PREFIX):
-                    cfg[k[len(PREFIX):]] = v
+        for k, v in he.load_layers(project_dir or "", candidates=[HOME / "harness.env"]).items():
+            if k.startswith(PREFIX):
+                cfg[k[len(PREFIX):]] = v
     except Exception:
         pass
     for k in cfg:

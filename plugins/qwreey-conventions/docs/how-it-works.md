@@ -30,7 +30,7 @@
 - 키: (세션, 에이전트, compact 회차, 규칙). `O_EXCL` 마커라 병렬 호출에도 한 번만 들어간다.
 - 넣지 않는 곳: `node_modules`, `.git`, `dist`, `build`, `.venv`, `vendor`, `__pycache__` 아래, 그리고 프로젝트 밖 Read(설정 디렉터리의 `projects/*/memory/` 는 예외). 프로젝트 밖이라도 편집은 넣는다.
 - 도메인 팩(`packs/*`)의 규칙은 이 훅이 아니라 coderag 플러그인이 넣고, 이 파일이 그 대조 기준이다(`tools/tests/test-coderag-rules-parity.py`).
-- 끄기: `HARNESS_CONVENTIONS_RULES=off`(환경 변수 또는 harness.env), 규칙별로는 저장소 `.claude/conventions.json` 의 `rules_exclude`.
+- 끄기: `HARNESS_CONVENTIONS_RULES=off`(환경 변수 또는 harness.env 층: 사용자 < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`, `hooks/conv_env.py` 가 옆의 `hooks/harness_env.py` 사본으로 읽는다), 규칙별로는 저장소 `.claude/conventions.json` 의 `rules_exclude`.
 
 ## 주석·문서 검사 (`conventions-check.py`)
 이번에 추가한 줄만 본다(Edit 는 `new_string` 에서 `old_string` 에 없던 줄, Write 는 새 파일이면 전체, 덮어쓰기면 원본과의 차이). (세션, 에이전트, 파일, 범주)마다 한 번, level=info.

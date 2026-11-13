@@ -12,7 +12,8 @@
           6 복제본 표류, 7 설정(+도메인 팩 pack_checks.py), 8 툴체인(툴킷), 9 worktree, 10 메모리 이식성(memory_checks.py).
 코어(이 파일)는 언어와 무관한 검사만 한다. 항목별 구현은 같은 디렉터리의 scan_load.py(1·2·3), scan_stale.py(4),
 scan_settings.py(6·7), scan_toolkit.py(툴킷 감지·ctx·실행)가 맡고, 이 파일은 공용 도우미·세션·worktree·출력·main 을 둔다. 언어·툴체인 검사는 toolkits/<이름>.py 가 맡고,
-저장소마다 감지 표식이 있을 때만 켠다(--toolkits 로 강제). 환경 고유값은 ~/.claude/harness.env 에서 읽는다.
+저장소마다 감지 표식이 있을 때만 켠다(--toolkits 로 강제). 환경 고유값은 harness.env 층(~/.claude/harness.env, 저장소 .claude/harness.env,
+.claude/harness.local.env)에서 읽는다.
 판단이 필요한 것은 '경고'나 '정보'로만 낸다. 고칠지는 모델과 사용자가 정한다.
 표준 라이브러리만 쓴다. git 은 GIT_OPTIONAL_LOCKS=0 으로 불러 인덱스를 건드리지 않는다.
 """
@@ -36,15 +37,17 @@ _PATH_ROOT = HERE.parents[5] if (HERE.parents[4].name == "plugins" and (HERE.par
 
 
 def _load_env():
-    """harness.env 를 lib/harness_env.py 로 읽는다. lib 가 없으면 ({}, None)."""
-    for lib in (USER_HOME / "lib" / "harness_env.py", *([_PATH_ROOT / "home" / ".claude" / "lib" / "harness_env.py"] if _PATH_ROOT else [])):
-        if lib.is_file():
-            spec = importlib.util.spec_from_file_location("harness_env", lib)
-            mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(mod)
-            cands = [USER_HOME / "harness.env"] + ([_PATH_ROOT / "home" / ".claude" / "harness.env"] if _PATH_ROOT else [])
-            return mod.load(cands), mod
-    return {}, None
+    """harness.env 층(harness_env.load_layers)과 그 모듈. 설치된 정본(~/.claude/lib)이 있으면 그것, 없으면 옆의 사본.
+    사용자 층은 ~/.claude/harness.env, 없으면 클론의 정본 home/.claude/harness.env. 저장소 층은 $CLAUDE_PROJECT_DIR, 없으면 cwd
+    (검사 대상 저장소 인자가 아니다: ENV 는 인자를 읽기 전에 정한다)."""
+    try:
+        sys.path.insert(0, str(HERE.parent))
+        import harness_env
+        mod = harness_env.installed()
+        cands = [USER_HOME / "harness.env"] + ([_PATH_ROOT / "home" / ".claude" / "harness.env"] if _PATH_ROOT else [])
+        return mod.load_layers(mod.project_dir(os.getcwd()), candidates=cands), mod
+    except Exception:
+        return {}, None
 
 
 ENV, ENVLIB = _load_env()
@@ -520,7 +523,7 @@ def main():
     ap.add_argument("--env", action="store_true", help="harness.env 값과 툴킷 목록만 보인다")
     a = ap.parse_args()
     if a.env:
-        print(f"# harness.env: {ENV.get('_file') or '(없음 — 기본값)'}")
+        print(f"# harness.env 층(낮은 층부터): {ENV.get('_files') or '(없음 - 기본값)'}")
         print(f"DOCTOR_ROOT={DOCTOR_ROOT or '(모름)'}\nWORKSPACE={WORKSPACE}\nCANON_HOME={CANON_HOME}\nUSER_HOME={USER_HOME}")
         for k, v in sorted(ENV.items()):
             if not k.startswith("_"):

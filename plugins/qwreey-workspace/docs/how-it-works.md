@@ -3,7 +3,7 @@
 세 부분으로 이루어진다: 규약 주입(`scripts/ambient.py`), 게이트(`scripts/workspace_gate.py`), 스킬 `qwreey-workspace:workspace`.
 
 ## 작업공간과 형제 저장소
-- 작업공간 루트는 환경 변수 `HARNESS_WORKSPACE`, 없으면 `~/.claude/harness.env`(또는 `$CLAUDE_CONFIG_DIR/harness.env`) 의 같은 키. harness.env 는 하네스의 `lib/harness_env.py` 로 읽으므로, 그 파일이 없는 환경에서는 환경 변수로 줘야 한다. 둘 다 비면 게이트와 지도가 꺼진다.
+- 작업공간 루트는 환경 변수 `HARNESS_WORKSPACE`, 없으면 `~/.claude/harness.env`(또는 `$CLAUDE_CONFIG_DIR/harness.env`) 의 같은 키. harness.env 는 설치된 하네스 `lib/harness_env.py` 로, 없으면 옆의 `scripts/harness_env.py` 사본으로 읽는다. 둘 다 비면 게이트와 지도가 꺼진다. `HARNESS_WORKSPACE` 와 `HARNESS_WORKSPACE_GATE` 는 로더의 `USER_ONLY` 라 저장소 `.claude/harness.env`·`.claude/harness.local.env` 가 바꾸지 못한다(클론한 저장소가 게이트를 끄지 못하게). `HARNESS_WORKSPACE_AMBIENT` 같은 다른 스위치는 저장소 층(local 이 공유 파일을 이긴다)에 둘 수 있다.
 - 이 세션의 저장소는 `CLAUDE_PROJECT_DIR`(없으면 입력의 `cwd`). `HARNESS_WORKSPACE/<X>` 중 이 저장소가 아닌 것이 형제 저장소다.
 - 경로는 `normpath` 로만 비교한다. `realpath` 를 쓰지 않는 것은 `~/.claude/rules` 같은 심볼릭 링크가 형제 경로로 풀려 오판되지 않게 하려는 것이다.
 
@@ -40,7 +40,7 @@
 - `HARNESS_WORKSPACE` 가 없으면 사용자에게 설정을 안내하고 `~/.claude/harness.env` 를 직접 고치지 않는다.
 
 ## 끄기
-- `HARNESS_WORKSPACE_GATE=off`(환경 변수 또는 harness.env): 게이트만 끈다. 규약 주입은 플러그인이 켜져 있는 한 계속된다.
+- `HARNESS_WORKSPACE_GATE=off`(환경 변수 또는 사용자 harness.env): 게이트만 끈다. 규약 주입은 플러그인이 켜져 있는 한 계속된다.
 
 ## 테스트
 ```bash

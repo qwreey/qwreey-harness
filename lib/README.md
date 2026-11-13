@@ -7,6 +7,7 @@
 |---|---|
 | `compact_epoch.py`, `harness_nonce.py`, `memory_signals.py`, `copy_regions.py` | 파일째 복사하는 모듈. 사본 머리에 `@copy-of: lib/<파일>` |
 | `ambient.py` | 플러그인 상시 규약 주입 훅. 파일째 복사하고, 플러그인마다 다른 것(태그 이름, 이벤트, 끄기 스위치, 회차 이름공간)은 플러그인의 `context/ambient.json`, 글은 `context/ambient.md`(서브에이전트용은 `context/subagent.md`, 없으면 메인 글). 형식은 파일 머리. 테스트 `tools/tests/test-ambient-lib.py` |
+| (`home/.claude/lib/harness_env.py`) | harness.env 층 로더. 정본은 `~/.claude/lib` 로 설치되는 `home/` 쪽에 있고 여기엔 없다. 플러그인은 설치본(`installed()`)을 먼저 쓰고 없으면 파일째 사본을 쓴다. 테스트 `tools/tests/test-harness-env.py` |
 | `harness_texts.py` | 언어를 넘어 같은 문장을 써야 하는 상수(`OMIT_LINE`, `NONCE_RULE`). 사본은 영역 표시로 옮긴다 |
 
 사본이 있어야 하는 곳의 목록은 `tools/tests/test-vendored-copies.py` 의 `EXPECTED`(파일), `REGIONS`(영역).

@@ -112,7 +112,7 @@ def judge(data, ws, project):
 
 
 def pre(data) -> None:
-    vals = wslib.load_env()
+    vals = wslib.load_env(data.get("cwd"))
     ws = wslib.workspace(vals)
     if not ws or wslib.setting("HARNESS_WORKSPACE_GATE", vals).strip().lower() == "off":
         return

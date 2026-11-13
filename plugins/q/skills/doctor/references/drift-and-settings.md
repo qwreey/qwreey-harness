@@ -53,7 +53,7 @@ agy 위임 도구는 4벌이다(quad, stl-luau, tbox, table-sim). 지금은 고�
 | `SET-HOOKPATH` | 훅이 가리키는 스크립트가 없다(`$CLAUDE_PROJECT_DIR` 풀어서 확인) | 오류. 경로를 고치거나 훅 항목을 걷는다 |
 | `SET-PUSHDENY` | `git push` deny가 있다 | 정보. 환경 정책(`HARNESS_AGENT_PUSH`)에 따라 다르다(아래) |
 | `SET-BROADALLOW` | `Bash(sed/cp/mv/curl/python3/…:*)` allow가 있다 | 읽기 전용만 남기는 안 |
-| `SET-LOCALIGNORE` | `settings.local.json`이 git에서 무시되지 않는다 | `.gitignore` 한 줄 |
+| `SET-LOCALIGNORE` | `settings.local.json`이나 `.claude/harness.local.env`(개인 harness 층)가 git에서 무시되지 않는다 | `.gitignore` 한 줄 |
 | `SET-WTIGNORE` | 경고: `.claude/worktrees/`가 무시되지 않는다. 정보: `.git/info/exclude`(이 기기 전용)로만 무시한다 | `.gitignore`에 `/.claude/worktrees/` 한 줄 |
 | `SET-UNTRACKED` | `.claude/`와 CLAUDE.md가 한 번도 커밋되지 않았다 | 사용자 결정 → HUMAN_TODO |
 | `SET-DIRTY` | 에이전트 문서에 미추적이나 미커밋 변경이 있다 | 정보. 세션이 작업 중일 수 있다 |

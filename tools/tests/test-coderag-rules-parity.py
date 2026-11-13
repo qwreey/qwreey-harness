@@ -62,7 +62,7 @@ class Runner:
         (plug / ".claude-plugin" / "plugin.json").write_text(json.dumps({"name": pack}))
         hooks = plug / "hooks"
         hooks.mkdir()
-        for f in ("rules_inject.py", "conv_env.py", "compact_epoch.py", "harness_nonce.py"):
+        for f in ("rules_inject.py", "conv_env.py", "harness_env.py", "compact_epoch.py", "harness_nonce.py"):
             shutil.copy2(CANON_HOOKS / f, hooks / f)
         (plug / "rules").symlink_to(ROOT / "packs" / pack / "rules")
         return hooks

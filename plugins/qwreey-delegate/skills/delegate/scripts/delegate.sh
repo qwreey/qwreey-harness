@@ -40,18 +40,17 @@ trap 'rm -f "$DELEGATE_REEXEC"' EXIT
 SKILL_DIR=$(dirname "$DELEGATE_SELF_DIR")
 TEMPLATES=$SKILL_DIR/templates
 
-# Read one key of the harness environment file through the same loader the hooks use. The environment variable wins.
+# Read one key of the harness environment layers (harness_env.load_layers: user < repo .claude/harness.env < repo
+# .claude/harness.local.env < environment) through the loader the hooks use: HARNESS_ENV_LIB if set, else the installed
+# ~/.claude/lib copy, else the byte copy next to this script.
 harness_value() { # $1 = key
-	local lib=${HARNESS_ENV_LIB:-$HOME/.claude/lib}
-	[[ -f "$lib/harness_env.py" ]] || return 0
 	python3 -I -c '
-import sys
+import os, sys
 sys.path.insert(0, sys.argv[1])
 import harness_env
-from pathlib import Path
-v = harness_env.load([Path.home() / ".claude" / "harness.env"])
-print(v.get(sys.argv[2], ""))
-' "$lib" "$1" 2>/dev/null || true
+he = harness_env if os.environ.get("HARNESS_ENV_LIB") else harness_env.installed()
+print(he.load_layers(he.project_dir(os.getcwd())).get(sys.argv[2], ""))
+' "${HARNESS_ENV_LIB:-$DELEGATE_SELF_DIR}" "$1" 2>/dev/null || true
 }
 
 # The registry is edited in place, so a copy inside a plugin cache would be stale per version.

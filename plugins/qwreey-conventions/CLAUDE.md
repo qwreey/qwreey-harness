@@ -11,7 +11,7 @@ Comment, model-doc, copy and structure conventions: skills (`skills/`), path-sco
 Run each `tests/test-*.py` with `python3 -I` (exit 0 = pass, no model calls). Also from the repo root: `python3 -I tools/tests/test-vendored-copies.py` (copies) and `python3 -I tools/tests/test-coderag-rules-parity.py` (coderag injects pack rules byte-identically to `rules_inject.py`; needs the coderag binary).
 
 ## Rules for this plugin
-- `hooks/harness_nonce.py`, `hooks/compact_epoch.py`, `hooks/memory_signals.py` and `hooks/copy_regions.py` are byte copies of the repo's `lib/`. Edit the canon in `lib/`, then run `python3 -I tools/sync-copies.py --apply`; never edit the copies here.
+- `hooks/harness_nonce.py`, `hooks/compact_epoch.py`, `hooks/memory_signals.py` and `hooks/copy_regions.py` are byte copies of the repo's `lib/`; `hooks/harness_env.py` is a byte copy of `home/.claude/lib/harness_env.py` (the harness.env layer loader). Edit the canon, then run `python3 -I tools/sync-copies.py --apply`; never edit the copies here.
 - `rules_inject.py` is the reference that coderag's Rust hook matches for pack rules; a behavior change here needs the same change in coderag and a passing parity test.
 - The marketplace is a directory source, so installed hooks run live from this folder. Do not move, rename or delete hook scripts while the plugin is enabled.
 - Model-facing hook text follows `home/.claude/HOOK-MESSAGES.md`: English, `<harness-hook ...>` with the session nonce. The Stop report to the user (`systemMessage`) is Korean.

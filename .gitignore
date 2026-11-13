@@ -16,3 +16,6 @@ usernotes/
 
 # coderag 색인 캐시
 .coderag/
+
+# 개인 harness 층(home/.claude/lib/harness_env.py). 저장소 공유 층 .claude/harness.env 는 커밋한다.
+.claude/harness.local.env

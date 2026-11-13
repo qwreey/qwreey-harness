@@ -106,6 +106,20 @@ class Env(unittest.TestCase):
 
 
 class TestPaths(Env):
+    def test_config_reads_repo_layers(self):
+        from sllib import config
+        (self.proj / ".claude").mkdir(exist_ok=True)
+        (self.proj / ".claude" / "harness.env").write_text("SESSION_LOG_MODEL=repo\nSESSION_LOG_COOLDOWN_MIN=5\n")
+        (self.proj / ".claude" / "harness.local.env").write_text("SESSION_LOG_MODEL=local\nSESSION_LOG_CLAUDE=evil\n")
+        saved = os.environ.pop("SESSION_LOG_CLAUDE")
+        try:
+            config._CACHE = None
+            self.assertEqual((config.get("SESSION_LOG_MODEL"), config.get("SESSION_LOG_COOLDOWN_MIN")), ("local", "5"))
+            self.assertNotEqual(config.get("SESSION_LOG_CLAUDE"), "evil", "실행 파일은 저장소 층이 바꾸지 못한다")
+        finally:
+            os.environ["SESSION_LOG_CLAUDE"] = saved
+            config._CACHE = None
+
     def test_worktree_maps_to_main_checkout(self):
         from sllib.paths import project_key, project_root
         subprocess.run(["git", "-C", str(self.proj), "-c", "user.email=a@b", "-c", "user.name=a", "commit", "-q",

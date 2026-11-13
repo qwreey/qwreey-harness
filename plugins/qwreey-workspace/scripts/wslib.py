@@ -1,13 +1,13 @@
 """workspace 게이트와 지도가 같이 쓰는 도우미(표준 라이브러리만).
 
-- 작업공간 루트: 환경 변수 HARNESS_WORKSPACE, 없으면 harness.env(하네스 lib/harness_env.py 의 읽는 방식). 둘 다 없으면 "".
+- 작업공간 루트: 환경 변수 HARNESS_WORKSPACE, 없으면 사용자 harness.env(옆의 harness_env.py 사본, 설치된 정본이 있으면 그것).
+  저장소 층은 이 키를 바꾸지 못한다(USER_ONLY). 둘 다 없으면 "".
 - 경로 판정은 normpath 만 한다(realpath 금지: ~/.claude/rules 의 symlink 는 형제 경로가 아니라 이 세션의 규칙 파일이다).
 - Bash 명령 분류: 어떤 형제 저장소를 쓰는가("write"), 읽는가("read"). 하네스의 bash-bypass-reminder 분류기는
   경로를 보지 않고 코드 확장자 리다이렉트와 sed -i 만 쓰기로 보므로(.claude/audit/31 probes.md §2) 경로를 보는 분류기를 따로 둔다.
 """
 from __future__ import annotations
 
-import importlib.util
 import os
 import re
 import shlex
@@ -24,18 +24,13 @@ REDIR = re.compile(r"(?<![0-9&<>])\d?>>?(?!&)\s*([^\s;|&<>()]+)")
 ABS = re.compile(r"(?:~|\$\{?HOME\}?|/)[^\s'\";|&<>()=]*")
 
 
-def config_dir() -> str:
-    return os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
-
-
-def load_env() -> dict:
-    """harness.env 값(환경 변수가 이김). 읽기 실패는 빈 dict."""
-    cd = config_dir()
+def load_env(cwd: str | None = None) -> dict:
+    """harness.env 층 값(harness_env.load_layers: 사용자 < 저장소 < 저장소 local < 환경 변수). 읽기 실패는 빈 dict.
+    HARNESS_WORKSPACE, HARNESS_WORKSPACE_GATE 는 USER_ONLY 라 저장소 파일이 바꾸지 못한다."""
     try:
-        spec = importlib.util.spec_from_file_location("harness_env", os.path.join(cd, "lib", "harness_env.py"))
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod.load([os.path.join(cd, "harness.env")])
+        import harness_env
+        he = harness_env.installed()
+        return he.load_layers(he.project_dir(cwd))
     except Exception:
         return {}
 

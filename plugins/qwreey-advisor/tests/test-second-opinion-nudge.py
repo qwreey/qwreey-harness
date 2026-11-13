@@ -18,7 +18,7 @@ T = tempfile.mkdtemp(prefix="so-nudge-")
 CH = os.path.join(T, "home", ".claude")
 shutil.copytree(os.path.join(DOCTOR, "home", ".claude", "lib"), os.path.join(CH, "lib"), ignore=shutil.ignore_patterns("__pycache__"))
 open(os.path.join(CH, "harness.env"), "w").write("HARNESS_REVIEW_TIERS=hi=high docs=off\nHARNESS_REVIEW_LINES=high=10 mid=50\n")
-ENV = {k: v for k, v in os.environ.items() if not k.startswith("HARNESS_") and k != "CLAUDE_CONFIG_DIR"}
+ENV = {k: v for k, v in os.environ.items() if not k.startswith("HARNESS_") and k not in ("CLAUDE_CONFIG_DIR", "CLAUDE_PROJECT_DIR")}
 ENV.update(TMPDIR=os.path.join(T, "tmp"), HOME=os.path.join(T, "home"), GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
            GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
 os.makedirs(ENV["TMPDIR"])
@@ -97,6 +97,17 @@ plan = lambda sid, text, mode: run({"hook_event_name": "PreToolUse", "session_id
 out = plan("s10", "do X", "deny")
 check("plan deny → permissionDecision deny + action", '"deny"' in out and 'level=\\"action\\"' in out)
 check("plan 표시 있으면 통과", plan("s10", "do X\nqwreey-advisor: reviewed", "deny") == "")
+
+# 저장소 개인 층(.claude/harness.local.env)이 사용자 층의 등급을 덮는다. 저장소는 훅 cwd 로 안다.
+LOC = repo("loc")
+open(os.path.join(LOC, "b.txt"), "w").write("y\n" * 20)
+subprocess.run(["git", "-C", LOC, "add", "b.txt"], check=True, env=ENV)
+loc_commit = lambda sid: run({"hook_event_name": "PreToolUse", "session_id": sid, "cwd": LOC, "tool_name": "Bash",  # noqa: E731
+                              "tool_input": {"command": "git commit -m x"}})
+check("층: 사용자 층만이면 mid, 20줄 -> 조용", loc_commit("s12") == "")
+os.makedirs(os.path.join(LOC, ".claude"))
+open(os.path.join(LOC, ".claude", "harness.local.env"), "w").write("HARNESS_REVIEW_TIERS=loc=high\n")
+check("층: harness.local.env 가 high 로 -> 알림(opus)", "model=opus" in loc_commit("s13"))
 
 # 하네스 없는 환경: lib, harness.env 가 없어도 기본값(mid, 200줄)으로 돈다
 bare = dict(ENV, HOME=os.path.join(T, "bare"))

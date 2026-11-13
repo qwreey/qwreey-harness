@@ -13,5 +13,6 @@ There is no automated test. After a change, run `bash -n skills/delegate/scripts
 ## Rules for this plugin
 - Isolation is the point: changes must keep the delegate unable to write the main worktree or `.git/objects`, read credentials outside its own HOME, or push. `doctor` checks this; extend it with any new isolation step.
 - The script re-executes from a temporary copy, so editing it does not break a running job.
+- `skills/delegate/scripts/harness_env.py` is a byte copy of `home/.claude/lib/harness_env.py` (the harness.env layer loader, used when `~/.claude/lib` has none). Edit the canon, then run `python3 -I tools/sync-copies.py --apply`.
 - Delegate output is a claim, never a decision; keep the SKILL.md verification rules intact when editing.
 - Requires Linux and root (`setpriv`, `choom`); do not add paths that silently weaken isolation on other platforms.

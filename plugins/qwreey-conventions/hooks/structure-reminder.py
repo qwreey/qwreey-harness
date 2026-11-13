@@ -42,7 +42,6 @@ audit 10 기준 이 세션들의 파일 수정은 Bash(sed -i·python) 쪽이 Ed
 성장 기준점: $TMPDIR/claude-structure-reminder/<session_id>.base.json (session_id 단위. compact 회차가 올라도 유지한다)
 """
 import fnmatch
-import importlib.util
 import json
 import os
 import re
@@ -88,15 +87,12 @@ _ENV = None
 
 
 def harness_env():
-    """~/.claude/lib/harness_env.py 로 harness.env 를 읽는다(한 번). 없거나 깨졌으면 {}."""
+    """harness.env 층(옆의 harness_env.py 사본, 설치된 정본이 있으면 그것)을 한 번 읽는다. 깨졌으면 {}."""
     global _ENV
     if _ENV is None:
-        home = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
         try:
-            spec = importlib.util.spec_from_file_location("harness_env", home / "lib" / "harness_env.py")
-            mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(mod)
-            _ENV = mod.load([home / "harness.env"])
+            import harness_env as he
+            _ENV = he.installed().load_layers()
         except Exception:
             _ENV = {}
     return _ENV

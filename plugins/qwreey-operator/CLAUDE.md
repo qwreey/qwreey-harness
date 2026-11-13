@@ -6,7 +6,7 @@ Keeps the main session talking with the user while large implementations go to b
 `python3 -I tests/test_delegate_nudge.py` (exit 0 = pass, no model calls; it redirects `TMPDIR`). Cross-plugin copy checks: `python3 -I tools/tests/test-vendored-copies.py` from the repo root.
 
 ## Rules for this plugin
-- `hooks/ambient.py` and `hooks/harness_nonce.py` are byte copies of the repo's `lib/`. Edit the canon in `lib/`, then run `python3 -I tools/sync-copies.py --apply`; never edit the copies here. Ambient settings (events) live in `context/ambient.json`.
+- `hooks/ambient.py` and `hooks/harness_nonce.py` are byte copies of the repo's `lib/`; `hooks/harness_env.py` is a byte copy of `home/.claude/lib/harness_env.py` (the harness.env layer loader). Edit the canon, then run `python3 -I tools/sync-copies.py --apply`; never edit the copies here. Ambient settings (events) live in `context/ambient.json`.
 - The marketplace is a directory source, so installed hooks run live from this folder. Do not move, rename or delete hook scripts while the plugin is enabled.
 - Model-facing hook text follows `home/.claude/HOOK-MESSAGES.md`: English, `<harness-hook ...>` with the session nonce, observation plus advice, and the cases where it need not be followed.
 - The full ambient goes to the main session only (SessionStart). SubagentStart sends `context/subagent.md`, the subagent-model line alone, because subagents launch subagents too; the delegation, parallel and check lines stay main-only. Do not restate what Claude Code's own subagent guidance already covers.

@@ -6,7 +6,8 @@ python3 -I tools/sync-copies.py --apply 로 옮긴다. 플러그인마다 다른
 - context/ambient.json: 설정. 없거나 읽지 못하면 아무것도 내지 않는다.
     plugin      태그 이름(<plugin name="...">), 표지 이름공간(claude-<plugin>-ambient). 필수.
     events      켤 이벤트: SessionStart, SubagentStart, UserPromptSubmit, PreCompact 중에서.
-    off_switch  끄기 스위치 이름(값이 off 면 끈다). 환경 변수가 이기고, 없으면 harness.env. 없으면 스위치 없음.
+    off_switch  끄기 스위치 이름(값이 off 면 끈다). 환경 변수가 이기고, 없으면 harness.env 층(옆의 harness_env.py 사본,
+                설치된 정본이 있으면 그것). 없으면 스위치 없음.
     epoch       compact 회차 이름공간(compact_epoch.py). 기본은 plugin. UserPromptSubmit 보충만 쓴다.
 - context/ambient.md: 메인 세션 글. context/subagent.md: 서브에이전트 글(없으면 ambient.md). 파일이 비면 블록이 없다.
 
@@ -62,27 +63,16 @@ def read_text(name, context=CONTEXT):
         return ""
 
 
-def is_off(name):
-    """끄기 스위치: 환경 변수가 이기고, 없으면 harness.env(하네스 lib/harness_env.py 로더)."""
+def is_off(name, cwd=None):
+    """끄기 스위치: 환경 변수가 이기고, 없으면 harness.env 층(harness_env.load_layers: 사용자 < 저장소 < 저장소 local)."""
     if not name:
         return False
     if name in os.environ:
         return os.environ[name].strip().lower() == "off"
     try:
-        import importlib.util
-        cd = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
-        spec = importlib.util.spec_from_file_location("harness_env", os.path.join(cd, "lib", "harness_env.py"))
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        # The repo's own .claude/harness.env wins over the user's, so a switch can differ per project.
-        files = [os.path.join(os.environ["CLAUDE_PROJECT_DIR"], ".claude", "harness.env")] if os.environ.get("CLAUDE_PROJECT_DIR") else []
-        files.append(os.path.join(cd, "harness.env"))
-        for f in files:
-            if os.path.isfile(f):
-                v = str(mod.load([f]).get(name, "")).strip().lower()
-                if v:
-                    return v == "off"
-        return False
+        import harness_env
+        he = harness_env.installed()
+        return str(he.load_layers(he.project_dir(cwd)).get(name, "")).strip().lower() == "off"
     except Exception:
         return False
 
@@ -156,7 +146,7 @@ def precompact(cfg, data, main_text):
 
 def main():
     cfg = load_config()
-    if cfg is None or is_off(cfg.get("off_switch")):
+    if cfg is None:
         return 0
     try:
         data = json.load(sys.stdin)
@@ -164,6 +154,8 @@ def main():
         data = {}
     if not isinstance(data, dict):
         data = {}
+    if is_off(cfg.get("off_switch"), data.get("cwd")):
+        return 0
     event = sys.argv[1] if len(sys.argv) > 1 else str(data.get("hook_event_name") or "")
     main_text = read_text("ambient.md")
     if event == "PreCompact":

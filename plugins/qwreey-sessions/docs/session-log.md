@@ -86,7 +86,7 @@ session-log backfill --plan plan.json [--budget 4] [--dry-run]
 - 스킬: `/qwreey-sessions:import`(한 줄 import, 위치 없으면 사용자에게 한 번 묻기), `/qwreey-sessions:recall`(옛 논의 찾기: haiku 가 위치만 찾고 sonnet 이 그 절만 읽어 요약하며 현재 상태와 대조, 메인이 행동 전에 검증), `/qwreey-sessions:checkpoint`(지금 flush 하고 새 미해결·지시만 본다).
 
 ## 설정
-우선순위는 환경 변수 > `harness.env`(`$HARNESS_ENV` → `$CLAUDE_CONFIG_DIR/harness.env` → `~/.claude/harness.env`, `SESSION_LOG_*` 키만) > 기본값이다. 목록과 기본값은 `scripts/sllib/config.py` `DEFAULTS` 에 있다.
+우선순위는 환경 변수 > 저장소 `.claude/harness.local.env` > 저장소 `.claude/harness.env`(저장소는 `$CLAUDE_PROJECT_DIR`) > 사용자 `harness.env`(`$HARNESS_ENV`, 없으면 `$CLAUDE_CONFIG_DIR/harness.env` 또는 `~/.claude/harness.env`) > 기본값이다. `SESSION_LOG_*` 키만 읽고, `SESSION_LOG_HOME`·`SESSION_LOG_CLAUDE` 는 저장소 층이 바꾸지 못한다. 읽기는 `scripts/harness_env.py`(하네스 로더의 사본, 설치된 로더가 있으면 그것). 목록과 기본값은 `scripts/sllib/config.py` `DEFAULTS` 에 있다.
 - 주요 키: `SESSION_LOG_HOME`, `SESSION_LOG_MODEL`(haiku), `SESSION_LOG_DISABLE`, `SESSION_LOG_RECORD_NONINTERACTIVE`(기본 꺼짐: `CLAUDE_CODE_ENTRYPOINT` 가 `sdk` 로 시작하는 `claude -p`·SDK 세션은 기록하지 않는다), `SESSION_LOG_COOLDOWN_MIN`(20), `SESSION_LOG_GROW_KB`(512), `SESSION_LOG_HANDOVER_CHARS`(800), `SESSION_LOG_HANDOVER_LAG_LINES`(400), `SESSION_LOG_HANDOVER_LIVE_MIN`(10), `SESSION_LOG_PRECOMPACT_CHARS`(3000), `SESSION_LOG_COMPACT_INSTRUCTIONS`(on), `SESSION_LOG_PENDING_STRONG_COUNT`(5), `SESSION_LOG_PENDING_STRONG_DAYS`(7), `SESSION_LOG_HOME_NUDGE_COUNT`(3), `SESSION_LOG_HOME_NUDGE_DAYS`(3), `SESSION_LOG_READ_WARN_KB`(16), `SESSION_LOG_MAX_PARALLEL`(2).
 - harness.env 제안(하네스 담당이 정본에 넣을 때): `SESSION_LOG_HOME=${XDG_DATA_HOME:-~/.local/share}/session-log` 를 명시하고, 필요하면 `SESSION_LOG_MODEL=haiku` 를 둔다. 다른 sandbox 로 옮길 때는 이 두 키만 본다.
 

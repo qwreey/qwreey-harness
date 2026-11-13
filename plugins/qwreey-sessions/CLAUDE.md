@@ -12,7 +12,7 @@ Automatic session log: hooks decide when to summarize, a detached worker summari
 - `tests/e2e.sh [--auto-compact]` calls the real `claude -p` and haiku and costs money; run it only when the user agrees.
 
 ## Rules for this plugin
-- `scripts/harness_nonce.py` and `scripts/compact_epoch.py` are byte copies of the repo's `lib/`. Edit the canon in `lib/`, then run `python3 -I tools/sync-copies.py --apply`; never edit the copies here.
+- `scripts/harness_nonce.py` and `scripts/compact_epoch.py` are byte copies of the repo's `lib/`; `scripts/harness_env.py` is a byte copy of `home/.claude/lib/harness_env.py` (the harness.env layer loader). Edit the canon, then run `python3 -I tools/sync-copies.py --apply`; never edit the copies here.
 - The marketplace is a directory source, so installed hooks run live from this folder. Do not move, rename or delete hook scripts while the plugin is enabled.
 - Model-facing hook text lives in `scripts/sllib/messages.py` and follows `home/.claude/HOOK-MESSAGES.md`: English, `<harness-hook ...>` with the session nonce.
 - Everything written out of a session (records, summaries, handovers, import copies) goes through `redact.py`, so a live nonce never lands in a file.

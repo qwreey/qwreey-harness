@@ -26,7 +26,7 @@ def check(name, cond):
         print("FAIL", name)
 
 
-def run(cmd, wrap="choom -n 1000 --", raw=None):
+def run(cmd, wrap="choom -n 1000 --", raw=None, proj=None):
     cfg = os.path.join(T, "cfg")
     os.makedirs(os.path.join(cfg, "lib"), exist_ok=True)
     if wrap is not None:
@@ -37,6 +37,9 @@ def run(cmd, wrap="choom -n 1000 --", raw=None):
             f.write(f"HARNESS_HEAVY_WRAP={wrap}\n")
     env = {k: v for k, v in os.environ.items() if not k.startswith("HARNESS_")}
     env["CLAUDE_CONFIG_DIR"] = cfg if wrap is not None else os.path.join(T, "nocfg")
+    env.pop("CLAUDE_PROJECT_DIR", None)
+    if proj:
+        env["CLAUDE_PROJECT_DIR"] = proj
     p = subprocess.run([sys.executable, "-I", HOOK], input=raw if raw is not None else json.dumps({"tool_input": {"command": cmd}}),
                        capture_output=True, text=True, env=env, timeout=10)
     assert p.returncode == 0, p.stderr
@@ -58,6 +61,16 @@ check("heavy word but no executor passes", run("echo bench") is None)
 check("empty wrapper disables the guard", run("bash run-bench.sh", wrap="") is None)
 check("bad stdin is silent", run("", raw="{no") is None)
 check("no harness lib: defaults, no crash", run("ls", wrap=None) is None)
+
+# 저장소 층은 래퍼를 끄지 못하고(USER_ONLY), 실행기는 더할 수 있다
+PROJ = os.path.join(T, "proj")
+os.makedirs(os.path.join(PROJ, ".claude"), exist_ok=True)
+with open(os.path.join(PROJ, ".claude", "harness.env"), "w") as f:
+    f.write("HARNESS_HEAVY_WRAP=\nHARNESS_HEAVY_EXECUTORS=mytool\n")
+with open(os.path.join(PROJ, ".claude", "harness.local.env"), "w") as f:
+    f.write("HARNESS_HEAVY_WRAP=\n")
+check("repo layers cannot turn the wrapper off", denied(run("bash run-bench.sh", proj=PROJ)))
+check("repo layer adds an executor", denied(run("mytool bench", proj=PROJ)) and run("mytool bench") is None)
 for c in ["python3 fuzz.py", "./bench.sh", "luau bench/a.luau", "cargo bench", "npm run bench", "hyperfine 'x'",
           "timeout 60 lune run perf.luau", 'luau "bench/x.luau"', "cd x && FOO=1 nice python3 stress.py", "ls | bash bench.sh", "F=a/fuzz.luau; luau $F -a 1", "A=x/perf; mise exec -- luau ${A}/a.luau",
           "cd x/round13-tree-fuzz && luau axes.luau 2>&1 | tail -22", "cd bench && ./run.sh", "cd e-fuzz && timeout 100 luau gc.luau"]:

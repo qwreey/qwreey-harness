@@ -165,6 +165,9 @@ ra, _ = r.launch()
 rb, _ = r.launch()
 check("repo .claude/harness.env lowers the concurrent threshold", ctx(ra) == "" and "Several subagents at once" in ctx(rb))
 check("repo env only overrides slot keys", L.config(PROJ).get("HARNESS_HEAVY_WRAP") != "evil")
+open(os.path.join(PROJ, ".claude", "harness.local.env"), "w").write("HARNESS_FANOUT_WARN_CONCURRENT=7\n")
+check("repo .claude/harness.local.env wins over the repo file", L.config(PROJ)["HARNESS_FANOUT_WARN_CONCURRENT"] == "7")
+os.remove(os.path.join(PROJ, ".claude", "harness.local.env"))
 os.remove(os.path.join(PROJ, ".claude", "harness.env"))
 
 # ---- away: 슬롯 2 로 줄 세우기 ----
@@ -574,6 +577,11 @@ open(os.path.join(PROJ, ".claude", "harness.env"), "w").write("HARNESS_STATUSLIN
 repo_out = subprocess.run([sys.executable, "-I", SL], input=json.dumps(dict(SAMPLE, workspace={"current_dir": PROJ, "project_dir": PROJ})),
                           capture_output=True, text=True, env={k: v for k, v in ENV.items() if k != "HARNESS_STATUSLINE_STYLE"}).stdout.strip()
 check("repo harness.env sets style (env var unset)", repo_out == "Opus 34% · 5h 92%", repo_out)
+open(os.path.join(PROJ, ".claude", "harness.local.env"), "w").write("HARNESS_STATUSLINE_STYLE=off\n")
+local_out = subprocess.run([sys.executable, "-I", SL], input=json.dumps(dict(SAMPLE, workspace={"current_dir": PROJ, "project_dir": PROJ})),
+                           capture_output=True, text=True, env={k: v for k, v in ENV.items() if k != "HARNESS_STATUSLINE_STYLE"}).stdout.strip()
+check("repo harness.local.env wins over the repo file", local_out == "", local_out)
+os.remove(os.path.join(PROJ, ".claude", "harness.local.env"))
 os.remove(os.path.join(PROJ, ".claude", "harness.env"))
 
 # ---- statusline: 설치된 q 찾기 ----
