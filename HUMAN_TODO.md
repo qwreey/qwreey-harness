@@ -65,9 +65,9 @@
   - 목록: `ls ~/.claude/*.bak-* ~/.claude/{hooks,lib,rules}/*.bak-*`
   - 지우기: `rm ~/.claude/*.bak-* ~/.claude/{hooks,lib,rules}/*.bak-*`
   - 되돌릴 일이 없다고 확인한 뒤에만 지운다. 현재 19개 있다(2026-11-10 16:00 ~ 2026-11-11 17:58).
-- [ ] q 나누기 반영(q 0.9.0, 새 qwreey-sessions·qwreey-workspace·qwreey-operator·qwreey-delegate·qwreey-debate, coderag 0.22.1). q 는 지금 꺼 둔 상태다. 순서:
+- [ ] q 나누기 반영(q 0.9.8 이상, 새 qwreey-sessions·qwreey-workspace·qwreey-operator·qwreey-delegate·qwreey-debate, coderag 0.22.4 이상). 순서:
   1. `claude plugin marketplace update claude-doctor-market` (coderag 마켓도 갱신)
-  2. q 를 0.9.0 으로 갱신하고 켠다. qwreey-sessions, qwreey-workspace, qwreey-operator, qwreey-debate 를 설치한다. qwreey-delegate 는 agy·codex 위임을 쓸 때만 설치한다
+  2. q 를 최신으로 갱신하고 켠다(꺼 두었다면). qwreey-sessions, qwreey-workspace, qwreey-operator, qwreey-debate 를 설치한다. qwreey-delegate 는 agy·codex 위임을 쓸 때만 설치한다
   3. `tools/home-sync.sh diff` 로 검토한 뒤 `apply` (0009 가 세 플러그인을 켠다. `HARNESS_DELEGATE_REGISTRY` 경로도 바뀐다)
   4. `/reload-plugins` 또는 새 세션. 확인: `/qwreey-sessions:checkpoint` 가 보이고, 다른 저장소 파일을 고치려 할 때 workspace 게이트가 뜬다
   - 첫 정본 delegate 실행 전에 `tbox-agy` 에 61000 소유로 남은 파일을 지운다(tbox uid 는 61003)
