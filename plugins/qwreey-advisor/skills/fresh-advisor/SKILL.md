@@ -25,7 +25,7 @@ Agent(subagent_type="qwreey-advisor:reviewer", model="<opus|sonnet>",
 - If the user narrowed the budget (project CLAUDE.md or memory), lower one step (opus to sonnet, sonnet to skip) and say so.
 - Defects in a diff (bugs, missing tests, style) belong to `/code-review`; this skill checks claims and approaches, and does not replace it.
 - One `done` review per work unit. Re-run after fixing only if a `must` finding was fixed, and only for that scope.
-- A review costs about $1 on opus and $0.4 on sonnet, and takes 2-3 minutes, so it is not for frequent calls.
+- A review costs about USD 1 on opus and USD 0.4 on sonnet, and takes 2-3 minutes, so it is not for frequent calls.
 - It may run in the background, but for `done` do not declare completion before the result arrives. If the reviewer fails or hits maxTurns, do not relaunch it: a relaunch repeats the full cost and can chain. Tell the user "review incomplete: <what was not seen>". If it returns a partial report, handle only the findings from the range it read and add the same line.
 - The built-in `advisor` tool is not involved.
 

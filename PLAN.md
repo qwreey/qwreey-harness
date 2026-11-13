@@ -225,6 +225,8 @@
        - delegate 격리(사용자 "agy ACP 실측 먼저 해보자", "이대로 진행하자"): agy ACP 는 셸만 권한을 묻고 파일 읽기·쓰기는 워크스페이스 밖도 묻지 않으며, settings `permissions` 도 막지 못한다(cf321b7, 81b5c63, `.claude/research/drafts/delegate/portable-isolation.md`). 그래서 격리(root uid, codex 샌드박스, agy 샌드박스)가 없으면 읽기 전용 의견(empty)만 기본. 다음: 운영체제와 상관없이 도는 Python 드라이버 설계(`.claude/research/drafts/delegate/driver-design.md`, 질문 6개는 권고대로 정함, 구현 M1 부터). macOS·Win11 실측은 사용자 기기. agy worktree 모드는 uid 격리가 있을 때만이 기본이고, 사용자가 harness.env 키(USER_ONLY)로 풀 수 있게 한다(사용자 "옵션을 주는건 괜찮을것 같아").
        - memory 줄은 상시 주입에 넣지 않는다(사용자 "메모리 쓰는건 소수 경우고 그 때 알려주는게 일반적으로 싼것 같아"): memory 파일을 쓸 때 실리는 memory rule 과 memory-placement 훅이 맡는다.
      - 나중(사용자 "일단 나중에 고려해볼 대상으로 두자"): 읽기 어려운 코드 알림. 빈 줄 없이 길게 이어진 코드, 주석 없이 일정 이상 이어진 코드, 주석이 한곳에 몰리고 아래 코드는 주석이 없는 경우에 경고(주석·빈 줄 비율). qwreey-conventions 후보.
+     - 나중(사용자 "advisor 를 확정 전, 그런데 추천안을 내기 전에도 볼 수 있도록 약간 조건을 다듬어주는것도 좋을것 같네. 나중에 다뤄보자"): 계기는 서브에이전트 설계의 추천 6개를 검토 없이 전달해 사용자가 승인한 일. qwreey-advisor 의 상시 줄·스킬 설명 조건에 "사용자에게 결정을 맡길 추천안을 내기 전"을 더하는 안. 상시 문구라 기본 지시와 겹침을 먼저 본다.
+     - 스킬 본문의 `$숫자` 는 Claude Code 가 스킬 인자로 바꾼다(fresh-advisor 의 "$1 on opus" 가 인자 단어로 바뀌어 실림). 비용은 `USD 1` 로 쓴다. 검사(doctor 나 시험)로 잡을지 나중에.
   6. 자동화: 규약 스킬, doctor 검사, 커밋할 때 info 알림, `q:start` 의 `.claude/` 뼈대 템플릿.
 - **기록 규약 토론 결과(.claude/audit/38 synthesis)에 대한 사용자 답.** "추천대로 할게", "저장소 변경은 승인".
   - coderag 저장소 변경을 승인했다. coderag 에는 따로 세션이 없으므로 이 세션이 서브에이전트로 맡는다. 1단계는 C1, C2, C6 이다.

@@ -21,13 +21,13 @@ Which one: ask what you doubt. If it is whether your reasoning holds, inherit-ad
 
 - `next:` one factual line about what you are about to do or say. Leave your suspicions out: the fork would look only there and skip the rest.
 - `options: reqs` (optional; add it as a last line `options: reqs` in the prompt) adds a check of the user's messages against the result. It searches wider, so use it at a big turning point (after a compact, when pending decisions are being tidied) or when the user asks.
-- Call it in the same turn, at the decision point, before the step it guards; the fork reuses the prompt cache only while it is warm. The fork runs on your model. A cold cache makes it re-write the whole context (about $1.5 more at 300k tokens on opus).
+- Call it in the same turn, at the decision point, before the step it guards; the fork reuses the prompt cache only while it is warm. The fork runs on your model. A cold cache makes it re-write the whole context (about USD 1.5 more at 300k tokens on opus).
 - Once per turning point.
 - If the repo tier is `off` (`HARNESS_REVIEW_TIERS` in `~/.claude/harness.env`), the user has turned reviews off for that repo: call it only when they ask. Hooks do not block this skill, so this line is the only guard.
 
 ## What comes back
 
-An English report written for you. Each item has what was missed, evidence, why it matters before the next step, and severity (must / should / note). Checked facts are separated from inference, and it ends with "Before next step:" in at most 3 lines. A category with nothing is marked n/a with a reason. A run costs about $0.5-0.6 at 300k tokens of context on opus, mostly cache reads, and the report (2-3k tokens) joins your context.
+An English report written for you. Each item has what was missed, evidence, why it matters before the next step, and severity (must / should / note). Checked facts are separated from inference, and it ends with "Before next step:" in at most 3 lines. A category with nothing is marked n/a with a reason. A run costs about USD 0.5-0.6 at 300k tokens of context on opus, mostly cache reads, and the report (2-3k tokens) joins your context.
 
 ## How to read what comes back
 

@@ -49,7 +49,7 @@ Show it to the user in their language before applying anything.
 - Add the folder to `.claude/audit/README.md` if the repo keeps one. The decision itself lands in the living doc it changes (a plan, a decision record, the target file).
 
 ## Cost
-Two opus debaters, one round: about $1; two rounds: about $2-3. These are estimates; web research adds to them. An external voice runs against that tool's own quota.
+Two opus debaters, one round: about USD 1; two rounds: about USD 2-3. These are estimates; web research adds to them. An external voice runs against that tool's own quota.
 
 ## Failure modes
 - Both sides converge on an answer a grep of the ecosystem disproves. Agreement is a claim to check, not proof.
