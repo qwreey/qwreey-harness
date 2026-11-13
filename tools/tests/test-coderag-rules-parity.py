@@ -3,9 +3,10 @@
 실행: python3 -I tools/tests/test-coderag-rules-parity.py   (종료 0 = 통과)
 
 대조 대상: 참조 구현 대 `coderag hook post-tool --pack <팩>` (+ `hook pre-compact`). 팩에는 훅이 없으므로 팩마다 임시 플러그인 폴더
-<tmp>/<팩>/plugin/{.claude-plugin/plugin.json(name = 팩), hooks/(정본 세 파일 사본), rules -> 팩의 rules} 를 만들어 거기서 파이썬을 돌린다.
+<tmp>/<팩>/plugin/{.claude-plugin/plugin.json(name = 팩), hooks/(정본 네 파일 사본), rules -> 팩의 rules} 를 만들어 거기서 파이썬을 돌린다.
 coderag 바이너리는 $CODERAG_BIN, 없으면 ../coderag/target/{debug,release}/coderag. 없으면 사유를 출력하고 0 으로 끝낸다.
 
+nonce: 두 쪽이 같은 임시 HOME 의 salt(~/.local/share/qwreey-harness/salt)를 읽으므로 태그의 nonce 값도 같아야 한다.
 격리: 두 쪽 모두 임시 폴더만 쓴다. 파이썬은 TMPDIR(회차·마커 상태), 코어는 CODERAG_HOME·CODERAG_CACHE(상태 `$CODERAG_HOME/state`).
 팩은 임시 CODERAG_HOME/coderag.toml 의 [[packs]] path 로 등록한다.
 
@@ -61,7 +62,7 @@ class Runner:
         (plug / ".claude-plugin" / "plugin.json").write_text(json.dumps({"name": pack}))
         hooks = plug / "hooks"
         hooks.mkdir()
-        for f in ("rules_inject.py", "conv_env.py", "compact_epoch.py"):
+        for f in ("rules_inject.py", "conv_env.py", "compact_epoch.py", "harness_nonce.py"):
             shutil.copy2(CANON_HOOKS / f, hooks / f)
         (plug / "rules").symlink_to(ROOT / "packs" / pack / "rules")
         return hooks

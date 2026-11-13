@@ -23,6 +23,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
+import harness_nonce  # noqa: E402
 import wslib  # noqa: E402
 
 NS = "claude-workspace-gate"
@@ -30,13 +31,13 @@ WRITE_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 READ_TOOLS = {"Read", "Grep", "Glob"}
 SKILL_RX = re.compile(r"^(?:[\w.-]+:)?workspace$")
 
-DENY = ('<harness-hook name="workspace-gate" level="action">\n'
+DENY = ('<harness-hook name="workspace-gate" level="action"{nonce}>\n'
         "This changes the sibling repo `{x}`, which is outside this session's repo. Repos other than this session's are "
         "read-only unless the user approves a change; other sessions may be working there, and `.claude/worktrees/*` "
         "entries must not be deleted before checking the lock file and live sessions. "
         "Load the qwreey-workspace:workspace skill (Skill tool), then retry; if the user has not approved this change, ask first.\n"
         "</harness-hook>")
-READ_INFO = ('<harness-hook name="workspace-gate" level="info">\n'
+READ_INFO = ('<harness-hook name="workspace-gate" level="info"{nonce}>\n'
              "Reading `{x}` is fine; changing it needs the user's approval and the qwreey-workspace:workspace skill first.\n"
              "</harness-hook>")
 
@@ -126,13 +127,13 @@ def pre(data) -> None:
             return
         log_deny(data, x, what)
         json.dump({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
-                                          "permissionDecisionReason": DENY.format(x=x)}}, sys.stdout)
+                                          "permissionDecisionReason": DENY.format(x=x, nonce=harness_nonce.attr(data.get("session_id")))}}, sys.stdout)
         return
     if st.get("loaded") or st.get("warned"):
         return
     st["warned"] = True
     write_state(sp, st)
-    json.dump({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": READ_INFO.format(x=x)}}, sys.stdout)
+    json.dump({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": READ_INFO.format(x=x, nonce=harness_nonce.attr(data.get("session_id")))}}, sys.stdout)
 
 
 def mark_loaded(data) -> None:

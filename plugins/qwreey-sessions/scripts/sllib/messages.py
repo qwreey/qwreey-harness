@@ -12,13 +12,21 @@ TAG_NAME = "session-log"
 LEVELS = ("info", "warn", "action")
 
 
-def wrap(body: str, level: str = "info") -> str:
+def _nonce_attr(sid) -> str:
+    if not sid:
+        return ""
+    from .redact import redact  # noqa: F401  (harness_nonce 를 sys.path 에 올린다)
+    import harness_nonce
+    return harness_nonce.attr(sid)
+
+
+def wrap(body: str, level: str = "info", sid: str | None = None) -> str:
     body = body.strip()
     level = level if level in LEVELS else "info"
-    return f'<harness-hook name="{TAG_NAME}" level="{level}">\n{body}\n</harness-hook>' if body else ""
+    return f'<harness-hook name="{TAG_NAME}" level="{level}"{_nonce_attr(sid)}>\n{body}\n</harness-hook>' if body else ""
 
 
-def wrap_parts(parts: list[tuple[str, str]]) -> str:
+def wrap_parts(parts: list[tuple[str, str]], sid: str | None = None) -> str:
     """[(level, text)] -> level 마다 태그 하나(처음 나온 순서). 낮은 level 알림이 같은 태그의 높은 level 에 끌려
     올라가지 않게 한다(예: 인계 info 가 pending warn 으로 읽히는 일)."""
     order: list[str] = []
@@ -30,7 +38,7 @@ def wrap_parts(parts: list[tuple[str, str]]) -> str:
         if lv not in by:
             order.append(lv); by[lv] = []
         by[lv].append(t)
-    return "\n".join(wrap("\n".join(by[lv]), lv) for lv in order)
+    return "\n".join(wrap("\n".join(by[lv]), lv, sid) for lv in order)
 
 
 # ---- 요약 완료와 진행 알림 -------------------------------------------------------------

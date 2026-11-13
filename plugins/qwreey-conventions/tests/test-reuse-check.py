@@ -16,6 +16,9 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOOK = os.path.join(HERE, "hooks", "reuse-check.py")
 CONV = os.path.join(HERE, "hooks", "conventions-check.py")
 T = tempfile.mkdtemp(prefix="reuse-")
+# nonce 는 고정 salt 로(실제 ~/.local/share 의 salt 를 쓰지 않게)
+open(os.path.join(T, "salt"), "w").write("00" * 32)
+os.environ["QWREEY_HARNESS_SALT_FILE"] = os.path.join(T, "salt")
 REPO = os.path.join(T, "repo")
 os.makedirs(os.path.join(REPO, ".git"))
 os.makedirs(os.path.join(REPO, ".claude"))
@@ -65,7 +68,7 @@ def run(rel, content, old="", new=None, sid=None, agent=None, env=None):
     if not p.stdout.strip():
         return ""
     ctx = json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"]
-    assert re.match(r'<harness-hook name="qwreey-conventions" level="info">[^\n]+</harness-hook>$', ctx), ctx
+    assert re.match(r'<harness-hook name="qwreey-conventions" level="info" nonce="[0-9a-f]{12}">[^\n]+</harness-hook>$', ctx), ctx
     return ctx
 
 

@@ -16,6 +16,10 @@ T = tempfile.mkdtemp(prefix="conv-")
 REPO = os.path.join(T, "repo")
 os.makedirs(os.path.join(REPO, ".git"))
 os.makedirs(os.path.join(REPO, ".claude"))
+# nonce 는 고정 salt 로(실제 ~/.local/share 의 salt 를 쓰지 않게)
+SALT = os.path.join(T, "salt")
+open(SALT, "w").write("00" * 32)
+os.environ["QWREEY_HARNESS_SALT_FILE"] = SALT
 LIBHOME = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "home", ".claude")
 res = []
 CNT = [0]
@@ -42,7 +46,7 @@ def call(tool, rel, ti, resp=None, sid="s1", agent=None, disk=None, env_extra=No
     if not p.stdout.strip():
         return ""
     ctx = json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"]
-    assert re.match(r'<harness-hook name="qwreey-conventions" level="info">[^\n]+</harness-hook>$', ctx), ctx
+    assert re.match(r'<harness-hook name="qwreey-conventions" level="info" nonce="[0-9a-f]{12}">[^\n]+</harness-hook>$', ctx), ctx
     return ctx
 
 
@@ -325,6 +329,19 @@ local x = 1 -- 1-based
 -- 이 값은 렌더러가 프레임마다 다시 읽기 때문에 캐시하지 않는다.
 """
 check("plain reason comments -> no false positive", write_new("k/clean.luau", clean, sid="fp1") == "")
+
+# ---- 줄 번호 목록: 범위로 묶고 숫자 40개에서 자른다 ----
+import importlib.util as _ilu
+_spec = _ilu.spec_from_file_location("cc_lines", HOOK)
+sys.path.insert(0, os.path.dirname(HOOK))
+_cc = _ilu.module_from_spec(_spec)
+_spec.loader.exec_module(_cc)
+check("line_list: ranges", _cc.line_list([40, 12, 13, 14, 15, 16, 17, 18, 3]) == "L3, L12-18, L40")
+check("line_list: all lines shown under the cap", _cc.line_list(range(1, 80, 2)) == ", ".join(f"L{n}" for n in range(1, 80, 2)))
+check("line_list: capped at 40 numbers, rest counted", _cc.line_list(range(1, 200, 2)) == ", ".join(f"L{n}" for n in range(1, 80, 2)) + " (+60 more)")
+check("line_list: a long run costs two numbers", _cc.line_list(list(range(1, 501)) + [600]) == "L1-500, L600")
+c = write_new("ll/many.luau", "".join(f"-- see Q{100 + i} for more\nlocal a{i} = 1\n" for i in range(8)), sid=uniq("ll"))
+check("notice lists every flagged line (no 5-line cut)", all(f"L{2 * i + 1}" in c for i in range(8)) and "more)" not in c)
 
 # ---- quad 표본(읽기 전용; 없으면 건너뜀) ----
 QUAD = "/code/Projects/quad"

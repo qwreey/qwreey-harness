@@ -190,11 +190,12 @@ def wrap(name, body):
     return '<rule plugin="%s" name="%s">\n%s\n</rule>' % (PLUGIN, name, body)
 
 
-def injection(files_label, picked, after_write):
+def injection(files_label, picked, after_write, session_id=None):
+    import harness_nonce
     text = "Rules for files matching these paths (shown once per context; you %s %s)." % ("wrote" if after_write else "opened", files_label)
     text += " Check what you wrote against them and fix only what conflicts.\n" if after_write else "\n"
-    return ('<harness-hook name="rules-inject" level="info">\n%s%s\n</harness-hook>'
-            % (text, "\n".join(wrap(n, b) for n, b in picked)))
+    return ('<harness-hook name="rules-inject" level="info"%s>\n%s%s\n</harness-hook>'
+            % (harness_nonce.attr(session_id), text, "\n".join(wrap(n, b) for n, b in picked)))
 
 
 def skipped_dir(abs_path, root):
@@ -254,7 +255,7 @@ def main():
             return 0
         label = os.path.basename(abs_path)
         out = {"hookSpecificOutput": {"hookEventName": "PostToolUse",
-                                      "additionalContext": injection(label, picked, data.get("tool_name") != "Read")}}
+                                      "additionalContext": injection(label, picked, data.get("tool_name") != "Read", data.get("session_id"))}}
         json.dump(out, sys.stdout, ensure_ascii=False)
     except Exception:
         pass

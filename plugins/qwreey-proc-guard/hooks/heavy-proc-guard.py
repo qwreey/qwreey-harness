@@ -180,7 +180,9 @@ def main():
         "by every Claude session, and the OOM killer has killed a Claude process before. " + how +
         " If this is a false positive, wrapping the same way passes."
     )
-    reason = f'<harness-hook name="heavy-proc-guard" level="action">\n{reason}\n</harness-hook>'
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
+    import harness_nonce
+    reason = f'<harness-hook name="heavy-proc-guard" level="action"{harness_nonce.attr(data.get("session_id"))}>\n{reason}\n</harness-hook>'
     json.dump({"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
         "permissionDecision": "deny",

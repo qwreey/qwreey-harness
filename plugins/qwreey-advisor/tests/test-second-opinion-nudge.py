@@ -22,6 +22,8 @@ ENV = {k: v for k, v in os.environ.items() if not k.startswith("HARNESS_") and k
 ENV.update(TMPDIR=os.path.join(T, "tmp"), HOME=os.path.join(T, "home"), GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
            GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
 os.makedirs(ENV["TMPDIR"])
+ENV["QWREEY_HARNESS_SALT_FILE"] = os.path.join(T, "salt")  # nonce 는 고정 salt 로
+open(ENV["QWREEY_HARNESS_SALT_FILE"], "w").write("00" * 32)
 ok = fail = 0
 
 
@@ -59,7 +61,7 @@ commit = lambda d, sid="s1", **kw: run({"hook_event_name": "PreToolUse", "sessio
                                         "tool_input": {"command": "git commit -m 'x'"}, **kw})
 out = commit(HI)
 ctx = json.loads(out)["hookSpecificOutput"]["additionalContext"] if out else ""
-check("high: 20줄 커밋 → 알림", ctx.startswith('<harness-hook name="qwreey-advisor" level="warn">') and "model=opus" in ctx)
+check("high: 20줄 커밋 → 알림", ctx.startswith('<harness-hook name="qwreey-advisor" level="warn" nonce="985461182738">') and "model=opus" in ctx)
 check("알림은 플러그인 이름을 쓴다", "qwreey-advisor:fresh-advisor" in ctx and "subagent_type=qwreey-advisor:reviewer" in ctx)
 check("같은 diff 두 번째 → 조용", commit(HI) == "")
 open(os.path.join(HI, "c.txt"), "w").write("z\n" * 30)

@@ -37,6 +37,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
+import harness_nonce  # noqa: E402
 
 HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"))  # 하네스 lib, harness.env 위치
 NS = "claude-second-opinion"
@@ -134,8 +135,11 @@ def read_json(p: str) -> dict:
         return {}
 
 
+SID = ""  # main() 이 채운다. wrap() 이 nonce 를 달 때 쓴다
+
+
 def wrap(body: str, level: str = "warn") -> str:
-    return f'<harness-hook name="qwreey-advisor" level="{level}">\n{body}\n</harness-hook>'
+    return f'<harness-hook name="qwreey-advisor" level="{level}"{harness_nonce.attr(SID)}>\n{body}\n</harness-hook>'
 
 
 def emit(event: str, text: str, **extra) -> None:
@@ -165,12 +169,13 @@ def done_advice(repo, tier, n, where) -> str:
 
 
 def main() -> int:
+    global SID
     try:
         data = json.load(sys.stdin)
     except ValueError:
         return 0
     ev = data.get("hook_event_name") or ""
-    sid = data.get("session_id") or ""
+    sid = SID = data.get("session_id") or ""
     if ev == "SubagentStop":
         # 호출자는 리뷰어 transcript 의 run 줄에서 읽는다. 메인이 부른 리뷰어만 '최근 검토'로 센다(일꾼이 띄운 것은 메인의 검토가 아니다).
         if data.get("agent_type") in REVIEWERS and caller_of(data) != "subagent":

@@ -26,9 +26,12 @@ from pathlib import Path
 
 from . import config
 from .paths import project_key, short_home
+from .redact import redact
 
 
-def atomic_write(path: Path, text: str) -> None:
+def atomic_write(path: Path, text: str, sid: str | None = None) -> None:
+    """모든 기록, 상태 파일을 쓰는 곳. nonce 를 지운다(sid 를 주면 그 세션의 값 자체도)."""
+    text = redact(text, sid)
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix="." + path.name + ".")
     try:
@@ -188,7 +191,7 @@ class Store:
             seq = self.notice_seq() + 1
             notice = dict(notice, seq=seq, ts=datetime.now().isoformat(timespec="seconds"))
             with open(self.state / "notices.jsonl", "a", encoding="utf-8") as f:
-                f.write(json.dumps(notice, ensure_ascii=False) + "\n")
+                f.write(redact(json.dumps(notice, ensure_ascii=False), notice.get("session_id")) + "\n")
             atomic_write(self.state / "notice.seq", str(seq))
 
     def notices_after(self, seq: int) -> list[dict]:
@@ -210,6 +213,7 @@ class Store:
     def append_section(self, sid: str, st: dict, section: str, desc: str, kws: list[str], counts: dict,
                        model: str, transcript: str) -> str:
         """세션 기록에 절 하나를 덧붙이고 index 를 갱신한다. 돌려주는 값은 rid."""
+        section, desc, kws = redact(section, sid), redact(desc, sid), [redact(k, sid) for k in kws]
         self.ensure()
         max_bytes = int(config.num("SESSION_LOG_RECORD_MAX_KB") * 1024)
         start_day = (st.get("started") or datetime.now().isoformat())[:10]
@@ -256,7 +260,7 @@ class Store:
         if part > 1:
             fm.append(f"part: {part}")
         fm.append("---")
-        atomic_write(path, "\n".join(fm) + "\n" + body)
+        atomic_write(path, "\n".join(fm) + "\n" + body, sid)
         now = datetime.now().isoformat(timespec="seconds")
         with self.index_tx() as idx:
             e = idx.setdefault(rid, {"session_id": sid, "file": f"records/{rid}.md", "created": now, "status": "pending"})

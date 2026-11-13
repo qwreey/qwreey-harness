@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """qwreey-advisor 상시 규약 주입. 사용: python3 -I ambient.py <SessionStart|UserPromptSubmit|PreCompact>  (stdin: 훅 JSON)
 
-context/ambient.md 를 `<plugin name="qwreey-advisor">` 로 감싸 additionalContext 로 낸다. 이 플러그인이 켜져 있을 때만
+context/ambient.md 를 `<plugin name="qwreey-advisor">` 로 감싸 additionalContext 로 낸다(태그 끝에 nonce, SessionStart 에서
+규칙 줄을 맡으면 맨 앞에 싣는다: harness_nonce.py). 이 플러그인이 켜져 있을 때만
 "qwreey-advisor 스킬을 스스로 부른다" 는 지시가 실리게 하려는 것이다(꺼진 스킬을 가리키면 틀린 지시).
 - SessionStart(startup·resume·clear·compact): 메인 세션에만. 서브에이전트에는 안 싣는다.
 - UserPromptSubmit: SessionStart 가 안 돈 세션(플러그인을 세션 중간에 켠 경우)의 보충. (세션, compact 회차) 표지가 없을 때 한 번.
@@ -20,6 +21,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
+import harness_nonce  # noqa: E402
 
 FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "context", "ambient.md")
 NS = "claude-qwreey-advisor-ambient"
@@ -62,7 +64,9 @@ def build(event, data, text):
     if event == "UserPromptSubmit" and (data.get("agent_id") or injected(sid)):
         return ""
     mark(sid)
-    ctx = f'<plugin name="{TAG}">\n' + text.strip("\n") + "\n</plugin>"
+    rule = harness_nonce.rule_for(event, data)
+    body = (rule + "\n" if rule else "") + text.strip("\n")
+    ctx = f'<plugin name="{TAG}"{harness_nonce.attr(sid)}>\n' + body + "\n</plugin>"
     return json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": ctx}}, ensure_ascii=False)
 
 

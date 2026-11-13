@@ -11,6 +11,7 @@
 - 훅: `SessionStart`(matcher `startup|resume|clear|compact`)와 `SubagentStart` → `scripts/ambient.py`.
 - `context/ambient.md` 세 줄을 `<plugin name="qwreey-workspace">` 로 감싸 `additionalContext` 로 낸다: `*-kb` 먼저, 형제 저장소는 승인 없이 고치지 않음(고치기 전 스킬 로드), `.claude/worktrees/*` 는 잠금·세션 확인 전에 지우지 않음.
 - 서브에이전트에도 싣는 이유: 게이트가 서브에이전트의 쓰기도 막으므로 규약을 알아야 한다. fork(`agent_type == "fork"`)는 부모 맥락을 물려받으므로 건너뛴다.
+- 블록과 게이트의 태그 끝에 이 세션의 `nonce="…"` 속성을 달고, 같은 이벤트의 규칙 줄을 이 훅이 먼저 맡으면 블록 맨 앞에 싣는다(`scripts/harness_nonce.py`, 규약은 `home/.claude/HOOK-MESSAGES.md` 2번).
 - `PreCompact`(manual·auto) → `scripts/ambient.py PreCompact`: 요약기에게 `Omit the <plugin name="qwreey-workspace"> block from the summary; it is re-injected after compaction.` 한 줄을 일반 stdout 으로 낸다. SessionStart(compact) 가 다시 실으므로 요약에 남은 사본은 중복이다. 서브에이전트의 compact(`agent_id` 있음)와 규약 파일이 없을 때는 내지 않는다.
 
 ## 게이트

@@ -13,6 +13,9 @@ import tempfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOOK = os.path.join(ROOT, "hooks", "memory-placement.py")
 T = tempfile.mkdtemp(prefix="mem-place-")
+# nonce 는 고정 salt 로(실제 ~/.local/share 의 salt 를 쓰지 않게)
+open(os.path.join(T, "salt"), "w").write("00" * 32)
+os.environ["QWREEY_HARNESS_SALT_FILE"] = os.path.join(T, "salt")
 CFG = os.path.join(T, "cfg")
 MEM = os.path.join(CFG, "projects", "-tmp-demo", "memory")
 os.makedirs(MEM)
@@ -41,7 +44,7 @@ def call(path, sid="s1", agent=None, tool="Write", cwd=T, env_extra=None):
     if not p.stdout.strip():
         return ""
     ctx = json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"]
-    assert re.match(r'<harness-hook name="memory-placement" level="warn">\n', ctx) and ctx.endswith("\n</harness-hook>"), ctx
+    assert re.match(r'<harness-hook name="memory-placement" level="warn" nonce="[0-9a-f]{12}">\n', ctx) and ctx.endswith("\n</harness-hook>"), ctx
     return ctx
 
 

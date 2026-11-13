@@ -46,8 +46,13 @@ def load_ledger():
     return mod
 
 
+SID = None  # main() 이 채운다. tag() 가 nonce 를 달 때 쓴다
+
+
 def tag(level, body):
-    return f'<harness-hook name="subagent-slots" level="{level}">\n{body}\n</harness-hook>'
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
+    import harness_nonce
+    return f'<harness-hook name="subagent-slots" level="{level}"{harness_nonce.attr(SID)}>\n{body}\n</harness-hook>'
 
 
 def context(text):
@@ -348,6 +353,7 @@ HANDLERS = {
 
 
 def main():
+    global SID
     raw = sys.stdin.read()
     if quick_not_away(raw) or os.environ.get("HARNESS_SUBAGENT_SLOTS", "").lower() in ("off", "0", "no") and '"PostToolUse"' in raw:
         return 0
@@ -356,7 +362,7 @@ def main():
         data = json.loads(raw)
     except Exception:
         return 0
-    ev = data.get("hook_event_name")
+    ev, SID = data.get("hook_event_name"), data.get("session_id")
     fn = HANDLERS.get((ev, data.get("tool_name"))) or HANDLERS.get((ev, None))
     if not fn:
         return 0

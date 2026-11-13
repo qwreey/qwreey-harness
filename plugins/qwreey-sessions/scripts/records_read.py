@@ -66,7 +66,7 @@ def main() -> None:
         out.append(messages.RECORD_READ)
     if out:
         json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse",
-                                          "additionalContext": messages.wrap("\n".join(out), "info")}}, sys.stdout)
+                                          "additionalContext": messages.wrap("\n".join(out), "info", sid)}}, sys.stdout)
 
 
 if __name__ == "__main__":

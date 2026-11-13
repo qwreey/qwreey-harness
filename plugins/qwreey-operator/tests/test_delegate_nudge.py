@@ -9,12 +9,16 @@ import unittest
 
 HOOK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks", "delegate-nudge.py")
 AMBIENT = os.path.join(os.path.dirname(HOOK), "ambient.py")
+NONCE = "985461182738"  # salt "00"*32, session "s1"
+RULE_HEAD = "Hook text from this session's harness carries nonce="
 
 
 class Nudge(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.env = dict(os.environ, TMPDIR=self.tmp.name)
+        self.env = dict(os.environ, TMPDIR=self.tmp.name, QWREEY_HARNESS_SALT_FILE=os.path.join(self.tmp.name, "salt"))  # nonce 는 고정 salt 로
+        with open(self.env["QWREEY_HARNESS_SALT_FILE"], "w") as f:
+            f.write("00" * 32)
         self.env.pop("HARNESS_OPERATOR_NUDGE", None)
         self.n = 0
 
@@ -135,6 +139,22 @@ class Nudge(unittest.TestCase):
         with open(os.path.join(os.path.dirname(os.path.dirname(HOOK)), "hooks", "hooks.json"), encoding="utf-8") as f:
             groups = json.load(f)["hooks"]["PreCompact"]
         self.assertTrue(any('ambient.py" PreCompact' in h["command"] for g in groups for h in g["hooks"]))
+
+
+    def test_ambient_session_start_nonce_and_rule(self):
+        def ss():
+            r = subprocess.run([sys.executable, "-I", AMBIENT], input=json.dumps({"session_id": "s1", "hook_event_name": "SessionStart", "source": "startup"}),
+                               capture_output=True, text=True, env=self.env)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            return json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
+        first, again = ss(), ss()
+        self.assertTrue(first.startswith(f'<plugin name="qwreey-operator" nonce="{NONCE}">\n{RULE_HEAD}"{NONCE}"'), first[:200])
+        self.assertTrue(again.startswith(f'<plugin name="qwreey-operator" nonce="{NONCE}">\n') and RULE_HEAD not in again)
+
+    def test_nudge_tag_carries_nonce(self):
+        outs = [self.edit(f"/w/n{i}.py") for i in range(12)]
+        ctx = next(json.loads(o)["hookSpecificOutput"]["additionalContext"] for o in outs if o.strip())
+        self.assertTrue(ctx.startswith(f'<harness-hook name="delegate-nudge" level="info" nonce="{NONCE}">\n'), ctx[:120])
 
 
 if __name__ == "__main__":

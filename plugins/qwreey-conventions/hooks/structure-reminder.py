@@ -52,6 +52,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
+import harness_nonce  # noqa: E402
 
 # 툴킷 표: 확장자·예외 표식 주석·생성물 접미사·건너뛸 폴더·테스트 판정. 새 툴킷은 한 줄 더한다(또는 저장소 structure.json 의 toolkits).
 TOOLKITS = {
@@ -331,14 +332,14 @@ def top_level(notes):
     return max(lv, key=order.index) if lv else "info"
 
 
-def render(notes):
+def render(notes, session_id=None):
     """One tag per level, highest first, so a lower notice is not read at a higher level. Level-less notes ride with the highest."""
     top = top_level(notes)
     tags = []
     for lv in ("action", "warn", "info"):
         body = [n for n in notes if (getattr(n, "level", None) or top) == lv]
         if body:
-            tags.append(f'<harness-hook name="structure-reminder" level="{lv}">\n' + " ".join(body) + "\n</harness-hook>")
+            tags.append(f'<harness-hook name="structure-reminder" level="{lv}"{harness_nonce.attr(session_id)}>\n' + " ".join(body) + "\n</harness-hook>")
     return "\n".join(tags)
 
 
@@ -404,7 +405,7 @@ def main():
     if not notes:
         return 0
     json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse",
-                                      "additionalContext": render(notes)}},
+                                      "additionalContext": render(notes, data.get("session_id"))}},
               sys.stdout, ensure_ascii=False)
     return 0
 

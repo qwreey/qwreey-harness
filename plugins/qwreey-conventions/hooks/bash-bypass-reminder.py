@@ -23,6 +23,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
+import harness_nonce  # noqa: E402
 import rules_inject  # noqa: E402
 
 # 플러그인이 싣는 rules(이 플러그인과 web-security 등 설치된 모든 플러그인의 `rules/`): 공식 .claude/rules 가 아니라 rules_inject 훅이
@@ -211,7 +212,7 @@ def main():
     except OSError:
         pass
     json.dump({"hookSpecificOutput": {"hookEventName": "PreToolUse",
-                                      "additionalContext": f'<harness-hook name="bash-bypass-reminder" level="{"warn" if "warn" in levels else "info"}">\n' + " ".join(notes) + "\n</harness-hook>"}},
+                                      "additionalContext": f'<harness-hook name="bash-bypass-reminder" level="{"warn" if "warn" in levels else "info"}"{harness_nonce.attr(data.get("session_id"))}>\n' + " ".join(notes) + "\n</harness-hook>"}},
               sys.stdout, ensure_ascii=False)
     return 0
 

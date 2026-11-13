@@ -5,6 +5,7 @@
 ## 규약 주입
 - 훅: `SessionStart`, matcher `startup|resume|clear|compact` → `hooks/ambient.py`.
 - `context/ambient.md` 를 `<plugin name="qwreey-operator">…</plugin>` 로 감싸 `additionalContext` 로 낸다. compact 요약 과정에서 규약이 빠질 수 있어 compact 뒤에도 다시 넣는다.
+- 태그 끝에 이 세션의 `nonce="…"` 속성을 달고, 같은 이벤트의 규칙 줄을 이 훅이 먼저 맡으면 블록 맨 앞에 싣는다(`hooks/harness_nonce.py`, 규약은 `home/.claude/HOOK-MESSAGES.md` 2번).
 - `PreCompact`(manual·auto) → `hooks/ambient.py PreCompact`: 요약기에게 `Omit the <plugin name="qwreey-operator"> block from the summary; it is re-injected after compaction.` 한 줄을 일반 stdout 으로 낸다. compact 뒤에 다시 넣으므로 요약에 남은 사본은 중복이다. 서브에이전트의 compact(`agent_id` 있음)와 규약 파일이 없을 때는 내지 않는다.
 - `SessionStart` 는 메인 세션에만 불리고 `SubagentStart` 는 등록하지 않았다. 그래서 수행자 서브에이전트에는 이 규약이 실리지 않는다.
 - 파일이 없거나 읽기에 실패하면 아무것도 내지 않는다. 크기는 약 2KB(약 550 토큰).
@@ -29,7 +30,7 @@ Claude Code 의 기본 지침이 이미 다루는 것은 반복하지 않는다:
 - 문턱: 한 턴(사용자 입력 사이)에 코드 쓰기 12회 또는 서로 다른 코드 파일 8개. 넘으면 그 턴에 한 번 알린다.
 - 리셋: `UserPromptSubmit`, 그리고 `Agent`·`Task`·`Workflow` 호출. 즉 "서브에이전트를 부른 뒤부터" 다시 센다.
 - 이월: 직전 턴이 문턱을 넘었고 그 뒤 Agent 류 호출이 없었으면, 다음 `UserPromptSubmit` 에서 "이어지는 작업이고 구현이 많이 남았으면 넘기기를 고려하라" 는 알림을 한 번 낸다.
-- 메시지: 영어, `<harness-hook name="delegate-nudge" level="info">`. 관찰과 권고만 쓰고 따르지 않아도 되는 경우(거의 끝남, 중간에 사용자가 필요함)를 함께 적는다. 규약은 `home/.claude/HOOK-MESSAGES.md`.
+- 메시지: 영어, `<harness-hook name="delegate-nudge" level="info" nonce="…">`. 관찰과 권고만 쓰고 따르지 않아도 되는 경우(거의 끝남, 중간에 사용자가 필요함)를 함께 적는다. 규약은 `home/.claude/HOOK-MESSAGES.md`.
 - 상태: `$TMPDIR/claude-qwreey-operator/<session_id>.json`(세션당 작은 파일 하나). 턴 단위라 compact 회차는 쓰지 않는다.
 - 설정(환경 변수):
   - `HARNESS_OPERATOR_NUDGE=off`(`0`, `no` 도 같음): 알림 끔.

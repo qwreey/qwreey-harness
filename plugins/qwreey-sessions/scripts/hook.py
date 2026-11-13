@@ -23,8 +23,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import compact_epoch  # noqa: E402
+import harness_nonce  # noqa: E402
 from sllib import brief, config, messages, records_home  # noqa: E402
 from sllib.paths import project_root, short_home  # noqa: E402
+from sllib.redact import redact  # noqa: E402
 from sllib.store import Store  # noqa: E402
 
 CLI = os.path.join(HERE, "cli.py")
@@ -32,8 +34,13 @@ COMMIT_RX = re.compile(r"(^|[;&|(\s])git(\s+-[Cc]\s+\S+)*\s+commit\b")
 HANDOVER_RX = re.compile(r"^\s*/(?:qwreey-sessions:)?(handover|checkpoint)\b|\b(handover|핸드오버|인계)\b", re.I)
 
 
-def emit_context(event: str, parts: list[tuple[str, str]]) -> None:
-    text = messages.wrap_parts(parts)
+def emit_context(event: str, parts: list[tuple[str, str]], data: dict) -> None:
+    parts = [(lv, t) for lv, t in parts if t and t.strip()]
+    if parts:
+        rule = harness_nonce.rule_for(event, data)  # SessionStart 에서만 줄이 나온다. 다른 플러그인이 맡았으면 ""
+        if rule:
+            parts[0] = (parts[0][0], rule + "\n" + parts[0][1])
+    text = messages.wrap_parts(parts, data.get("session_id"))
     if text:
         json.dump({"hookSpecificOutput": {"hookEventName": event, "additionalContext": text}}, sys.stdout)
 
@@ -130,13 +137,13 @@ def main() -> None:
             if seq > hs.get("notice_seq", 0):  # 아직 전하지 않은 요약 완료 알림
                 parts.insert(0, ("info", brief.saved_line(store, store.notices_after(hs.get("notice_seq", 0)))))
             hs["notice_seq"] = seq
-        emit_context(event, parts)
+        emit_context(event, parts, data)
 
     elif event in ("PostToolUse", "UserPromptSubmit"):
         parts = tick(store, sid, transcript, hs)
         if event == "UserPromptSubmit" and HANDOVER_RX.search(str(data.get("prompt", ""))[:400]):
             parts.append(pending_once(store, hs, sid, "handover"))
-        emit_context(event, parts)
+        emit_context(event, parts, data)
 
     elif event == "PreToolUse":
         tool, inp = data.get("tool_name"), data.get("tool_input") or {}
@@ -146,7 +153,7 @@ def main() -> None:
         elif tool == "Skill" and re.search(r"handover|checkpoint", str(inp.get("skill", "")), re.I):
             trig = "handover"
         if trig and store.exists():
-            emit_context(event, [pending_once(store, hs, sid, trig)])
+            emit_context(event, [pending_once(store, hs, sid, trig)], data)
 
     elif event == "PreCompact":
         trig = data.get("trigger") or "auto"
@@ -159,7 +166,7 @@ def main() -> None:
         if first:
             text = brief.precompact(store, sid, transcript) if transcript else ""
             plv, p = brief.pending_line(store, "precompact")
-            out = messages.wrap_parts([("warn", text), (plv, p)])
+            out = messages.wrap_parts([("warn", text), (plv, p)], data.get("session_id"))
             if out:
                 sys.stdout.write(out + "\n")
 
@@ -167,7 +174,7 @@ def main() -> None:
         summ = data.get("compact_summary")
         if summ:
             store.ensure()
-            (store.state / f"{sid}.compact-{compact_epoch.epoch('qwreey-sessions', sid)}.md").write_text(summ, encoding="utf-8")
+            (store.state / f"{sid}.compact-{compact_epoch.epoch('qwreey-sessions', sid)}.md").write_text(redact(summ, sid), encoding="utf-8")
 
     elif event == "SessionEnd":
         if transcript:

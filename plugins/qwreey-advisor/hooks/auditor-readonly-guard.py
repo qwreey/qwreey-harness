@@ -34,6 +34,7 @@ import sys
 
 SCRATCH_BASE = os.environ.get("CLAUDE_AUDIT_SCRATCH", "/tmp/claude-audit")
 SCRATCH = SCRATCH_BASE
+NONCE = ""  # main() 이 채운다: deny 태그 끝의 nonce 속성
 
 WRITE_CMDS = {
     "rm", "rmdir", "mv", "cp", "ln", "chmod", "chown", "chgrp", "touch", "truncate",
@@ -58,7 +59,7 @@ REDIR = re.compile(r"(?<![0-9&<])(?:[0-9]?)(>>?|&>>?)\s*([^\s;&|<>]+)")
 
 
 def deny(msg: str) -> None:
-    print(f'<harness-hook name="auditor-readonly-guard" level="action">\n{msg}. Reviewers are read-only: '
+    print(f'<harness-hook name="auditor-readonly-guard" level="action"{NONCE}>\n{msg}. Reviewers are read-only: '
           f'make probes only inside {SCRATCH}/<run>/.\n</harness-hook>', file=sys.stderr)
     sys.exit(2)
 
@@ -154,10 +155,17 @@ def check_bash(cmd: str, cwd: str) -> None:
 
 
 def main() -> None:
+    global NONCE
     try:
         data = json.load(sys.stdin)
     except Exception:
         sys.exit(0)  # 입력을 못 읽으면 막지 않는다(훅 자체 고장으로 감사가 멈추지 않게)
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import harness_nonce
+        NONCE = harness_nonce.attr(data.get("session_id"))
+    except Exception:
+        pass
     tool = data.get("tool_name", "")
     ti = data.get("tool_input", {}) or {}
     cwd = data.get("cwd") or os.getcwd()

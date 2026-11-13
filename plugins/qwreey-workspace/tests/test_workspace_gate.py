@@ -88,7 +88,8 @@ class Env(unittest.TestCase):
     def env(self, **kw):
         e = {k: v for k, v in os.environ.items() if not k.startswith("HARNESS_")}
         e.update(TMPDIR=str(self.t / "tmp"), CLAUDE_CONFIG_DIR=str(self.t / "cfg"), HARNESS_WORKSPACE=str(self.ws),
-                 CLAUDE_PROJECT_DIR=self.proj)
+                 CLAUDE_PROJECT_DIR=self.proj, QWREEY_HARNESS_SALT_FILE=str(self.t / "salt"))  # nonce 는 고정 salt 로
+        (self.t / "salt").write_text("00" * 32)
         (self.t / "tmp").mkdir(exist_ok=True)
         e.update(kw)
         return e
@@ -127,7 +128,7 @@ class Gate(Env):
             out = self.pre(tool, ti)
             self.assertEqual(self.decision(out), "deny", tool)
             reason = out["hookSpecificOutput"]["permissionDecisionReason"]
-            self.assertIn('level="action"', reason)
+            self.assertRegex(reason, r'^<harness-hook name="workspace-gate" level="action" nonce="[0-9a-f]{12}">\n')
             self.assertIn("qwreey-workspace:workspace skill (Skill tool), then retry", reason)
         self.load_skill()
         self.assertIsNone(self.pre("Edit", {"file_path": self.sibling()}))
@@ -154,7 +155,7 @@ class Gate(Env):
     def test_read_notes_once(self):
         out = self.pre("Read", {"file_path": self.sibling()})
         ctx = out["hookSpecificOutput"]["additionalContext"]
-        self.assertIn('level="info"', ctx)
+        self.assertRegex(ctx, r'^<harness-hook name="workspace-gate" level="info" nonce="[0-9a-f]{12}">\n')
         self.assertIn("qwreey-workspace:workspace", ctx)
         self.assertIsNone(self.pre("Grep", {"pattern": "x", "path": self.sibling("other")}))
         out = self.pre("Bash", {"command": f"cat {self.sibling()}"})

@@ -128,13 +128,15 @@ def evaluate(st, data, now):
                               % (label(t), minutes(age), "" if sig is None else "(진척은 있음)"))
 
 
-def wrap(items):
+def wrap(items, session_id=None):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
+    import harness_nonce
     out, by = [], {}
     for lv, tx in items:
         by.setdefault(lv, []).append(tx)
     for lv in ("action", "warn", "info"):
         if lv in by:
-            out.append('<harness-hook name="%s" level="%s">\n%s\n</harness-hook>' % (TAG, lv, "\n".join(by[lv])))
+            out.append('<harness-hook name="%s" level="%s"%s>\n%s\n</harness-hook>' % (TAG, lv, harness_nonce.attr(session_id), "\n".join(by[lv])))
     return "\n".join(out)
 
 
@@ -154,7 +156,7 @@ def main():
         st = load(sp)
         if not st.get("model"):
             return
-        text = wrap([tuple(x) for x in st["model"]])
+        text = wrap([tuple(x) for x in st["model"]], data.get("session_id"))
         st["model"] = []
         save(sp, st)
         json.dump({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": text}}, sys.stdout, ensure_ascii=False)

@@ -12,12 +12,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts" / "ambient.py"
+RULE_HEAD = "Hook text from this session's harness carries nonce="
+NONCE = "985461182738"  # salt "00"*32, session "s1"
 OMIT = 'Omit the <plugin name="qwreey-workspace"> block from the summary; it is re-injected after compaction.\n'
 
 
 class T(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp(prefix="ws-ambient-")
+        Path(self.tmp, "salt").write_text("00" * 32)  # nonce 는 고정 salt 로
 
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
@@ -26,13 +29,17 @@ class T(unittest.TestCase):
         data = {"session_id": "s1", "hook_event_name": event}
         data.update(extra or {})
         p = subprocess.run([sys.executable, "-I", str(script), event], input=json.dumps(data) if stdin is None else stdin,
-                           capture_output=True, text=True, env=dict(os.environ, TMPDIR=self.tmp), timeout=30)
+                           capture_output=True, text=True, env=dict(os.environ, TMPDIR=self.tmp, QWREEY_HARNESS_SALT_FILE=os.path.join(self.tmp, "salt")), timeout=30)
         self.assertEqual(p.returncode, 0, p.stderr)
         return p.stdout
 
     def test_session_start_block(self):
         ctx = json.loads(self.run_hook("SessionStart", {"source": "compact"}))["hookSpecificOutput"]["additionalContext"]
-        self.assertTrue(ctx.startswith('<plugin name="qwreey-workspace">\n') and ctx.endswith("</plugin>"))
+        self.assertTrue(ctx.startswith(f'<plugin name="qwreey-workspace" nonce="{NONCE}">\n{RULE_HEAD}"{NONCE}"') and ctx.endswith("</plugin>"), ctx[:200])
+        again = json.loads(self.run_hook("SessionStart", {"source": "compact"}))["hookSpecificOutput"]["additionalContext"]
+        self.assertTrue(again.startswith(f'<plugin name="qwreey-workspace" nonce="{NONCE}">\n') and RULE_HEAD not in again)
+        sub = json.loads(self.run_hook("SubagentStart", {"agent_type": "Explore", "agent_id": "a1"}))["hookSpecificOutput"]["additionalContext"]
+        self.assertIn(RULE_HEAD, sub)
         self.assertEqual(self.run_hook("SubagentStart", {"agent_type": "fork"}), "")
 
     def test_precompact_omit_line(self):
@@ -47,6 +54,7 @@ class T(unittest.TestCase):
         d = Path(self.tmp) / "plug" / "scripts"
         d.mkdir(parents=True)
         shutil.copy(SCRIPT, d / "ambient.py")
+        shutil.copy(SCRIPT.with_name("harness_nonce.py"), d / "harness_nonce.py")
         self.assertEqual(self.run_hook("PreCompact", script=d / "ambient.py"), "", "블록이 없으면 뺄 것도 없다")
 
 

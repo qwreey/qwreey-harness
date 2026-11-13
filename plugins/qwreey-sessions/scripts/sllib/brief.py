@@ -15,6 +15,7 @@ from pathlib import Path
 
 from . import config, extract as ex, messages, records_home
 from .paths import short_home
+from .redact import redact
 from .store import Store, escape_tags, parse_sections
 
 WARN = "⚠"
@@ -134,7 +135,7 @@ def handover(store: Store, sid: str, source: str, transcript: str = "") -> str:
         return ""
     head = messages.handover_head(target[:8], when)
     tail = [f"Record: {short_home(path)}"] if path else []
-    return fit(head, items, limit, tail)
+    return redact(fit(head, items, limit, tail), target)  # 다른 세션의 기록이라 그 세션의 nonce 를 지운다(이전 판이 쓴 기록 대비)
 
 
 def pending_line(store: Store, trigger: str) -> tuple[str, str]:

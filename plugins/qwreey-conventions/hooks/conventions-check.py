@@ -43,6 +43,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
+import harness_nonce  # noqa: E402
 from conv_edit import GEN_MARK, MAX_BYTES, SKIP_PARTS, SKIP_SUFFIX, collect, project_root  # noqa: E402
 from conv_lex import FAMILY, comment_body, lex  # noqa: E402
 
@@ -466,10 +467,27 @@ def escape_detail(text, lines):
     return " ".join(found[:4]) + " (write the character itself or reword)" if found else ""
 
 
+LINE_LIST_MAX = 40  # 범주당 찍는 숫자 수 상한. 줄을 다 알려야 모델이 파일을 통째로 읽지 않고 고치지만, 알림이 길어지지는 않게
+
+
 def line_list(lines):
+    """줄 번호를 범위로 묶는다(L12-18, L40). 찍은 숫자가 LINE_LIST_MAX 를 넘으면 남은 줄은 "+N more" 로 센다."""
     nums = sorted(set(lines))
-    shown = ", ".join(f"L{n}" for n in nums[:5])
-    return shown + (f" (+{len(nums) - 5} more)" if len(nums) > 5 else "")
+    runs = []
+    for n in nums:
+        if runs and n == runs[-1][1] + 1:
+            runs[-1][1] = n
+        else:
+            runs.append([n, n])
+    parts, used, covered = [], 0, 0
+    for a, b in runs:
+        cost = 1 if a == b else 2
+        if used + cost > LINE_LIST_MAX:
+            break
+        parts.append(f"L{a}" if a == b else f"L{a}-{b}")
+        used, covered = used + cost, covered + b - a + 1
+    rest = len(nums) - covered
+    return ", ".join(parts) + (f" (+{rest} more)" if rest else "")
 
 
 # ---------- 남은 기존 주석 보고 ----------
@@ -667,7 +685,7 @@ def main():
             det = ""
         parts.append(f"{line_list(lns)} {cat}" + (f": {det}" if det else ""))
     what, skill = ("comment", "comments") if kind == "comment" else ("agent-doc", "agent-docs")
-    msg = (f'<harness-hook name="{NAME}" level="info">{rel} may not follow the {what} conventions. {"; ".join(parts)}. '
+    msg = (f'<harness-hook name="{NAME}" level="info"{harness_nonce.attr(data.get("session_id"))}>{rel} may not follow the {what} conventions. {"; ".join(parts)}. '
            f'If a hit is real, the {NAME}:{skill} skill has the fix; false matches (quoted text, a needed symbol) can stay.</harness-hook>')
     json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": msg}}, sys.stdout, ensure_ascii=False)
     return 0

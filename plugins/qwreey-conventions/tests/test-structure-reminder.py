@@ -13,6 +13,9 @@ import tempfile
 
 HOOK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks", "structure-reminder.py")
 T = tempfile.mkdtemp(prefix="structrem-")
+# nonce 는 고정 salt 로(실제 ~/.local/share 의 salt 를 쓰지 않게)
+open(os.path.join(T, "salt"), "w").write("00" * 32)
+os.environ["QWREEY_HARNESS_SALT_FILE"] = os.path.join(T, "salt")
 REPO = os.path.join(T, "repo")
 STATE = os.path.join(T, "state")
 os.makedirs(os.path.join(REPO, ".git"))
@@ -46,10 +49,10 @@ def run(tool, path, sid="s1", ti_extra=None, resp=None, env_extra=None, raw=None
     out = json.loads(p.stdout)
     assert out["hookSpecificOutput"]["hookEventName"] == "PostToolUse"
     ctx = out["hookSpecificOutput"]["additionalContext"]
-    m = re.match(r'<harness-hook name="structure-reminder" level="(info|warn|action)">\n', ctx)
+    m = re.match(r'<harness-hook name="structure-reminder" level="(info|warn|action)" nonce="[0-9a-f]{12}">\n', ctx)
     assert m and ctx.endswith("\n</harness-hook>"), ctx
     LAST["level"] = m.group(1)
-    return ctx
+    return re.sub(r' nonce="[0-9a-f]{12}">', ">", ctx)  # 아래 표는 태그 모양만 본다(nonce 는 위에서 확인)
 
 
 def edit(add):

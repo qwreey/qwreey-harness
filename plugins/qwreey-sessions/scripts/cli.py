@@ -27,6 +27,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 from sllib import brief, config, extract as ex, records_home, summarize, verify, worker  # noqa: E402
+from sllib.redact import redact  # noqa: E402
 from sllib.paths import find_transcript, latest_transcript_for, project_root, short_home  # noqa: E402
 from sllib.store import Store, fmt_tokens, token_estimate  # noqa: E402
 
@@ -120,7 +121,7 @@ def cmd_import(a):
             print(f"이미 있음(--force 로 덮어씀): {dst}", file=sys.stderr); continue
         to_dir.mkdir(parents=True, exist_ok=True)
         text = st.record_path(rid).read_text(encoding="utf-8")
-        dst.write_text(records_home.with_header(text, rid), encoding="utf-8")
+        dst.write_text(redact(records_home.with_header(text, rid), idx[rid].get("session_id")), encoding="utf-8")
         st.mark(rid, status="imported", imported_to=rel, imported_at=now,
                 imported_sections=idx[rid].get("sections", 0), imported_commit="")
         print(f"imported {rid} → {dst}")

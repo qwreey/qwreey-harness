@@ -11,6 +11,9 @@ import tempfile
 
 HOOK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks", "heavy-proc-guard.py")
 T = tempfile.mkdtemp(prefix="procguard-")
+# nonce 는 고정 salt 로(실제 ~/.local/share 의 salt 를 쓰지 않게). salt "00"*32 + 세션 "abc" 의 nonce 는 39596342ed0e
+open(os.path.join(T, "salt"), "w").write("00" * 32)
+os.environ["QWREEY_HARNESS_SALT_FILE"] = os.path.join(T, "salt")
 ok = fail = 0
 
 
@@ -46,6 +49,8 @@ def denied(o):
 
 check("bench via bash denied", denied(run("bash run-bench.sh")))
 check("deny message is an action hook message", run("python3 fuzz.py")["hookSpecificOutput"]["permissionDecisionReason"].startswith('<harness-hook name="heavy-proc-guard" level="action">'))
+check("deny tag carries the session nonce", run(None, raw=json.dumps({"session_id": "abc", "tool_input": {"command": "python3 fuzz.py"}}))
+      ["hookSpecificOutput"]["permissionDecisionReason"].startswith('<harness-hook name="heavy-proc-guard" level="action" nonce="39596342ed0e">\n'))
 check("wrapped passes", run("choom -n 1000 -- bash run-bench.sh") is None)
 check("git commit mentioning bench passes", run("git commit -m 'add bench'") is None)
 check("no heavy keyword passes", run("python3 build.py") is None)

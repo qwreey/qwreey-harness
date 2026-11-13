@@ -5,7 +5,11 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 
+T = tempfile.mkdtemp(prefix="ro-reviewers-")
+os.environ["QWREEY_HARNESS_SALT_FILE"] = os.path.join(T, "salt")  # nonce 는 고정 salt 로
+open(os.environ["QWREEY_HARNESS_SALT_FILE"], "w").write("00" * 32)
 HOOK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks", "readonly-for-reviewers.py")
 CASES = [
     # (기대 종료 코드, agent_type, 도구, 입력)
@@ -41,5 +45,10 @@ rc = subprocess.run([sys.executable, "-I", HOOK], input="not json", capture_outp
 if rc != 0:
     fail += 1
     print("FAIL: 깨진 입력은 통과해야 한다")
-print(f"{len(CASES) + 1 - fail}/{len(CASES) + 1}")
+err = subprocess.run([sys.executable, "-I", HOOK], capture_output=True, text=True, input=json.dumps(
+    {"tool_name": "Bash", "tool_input": {"command": "rm -rf src"}, "cwd": "/code/Projects/x", "session_id": "S1", "agent_type": "qwreey-advisor:reviewer"})).stderr
+if not err.startswith('<harness-hook name="auditor-readonly-guard" level="action" nonce="1c2df154ed44">\n'):
+    fail += 1
+    print("FAIL: 거절 사유 태그에 세션 nonce", err[:120])
+print(f"{len(CASES) + 2 - fail}/{len(CASES) + 2}")
 sys.exit(1 if fail else 0)

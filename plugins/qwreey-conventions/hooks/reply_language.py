@@ -28,6 +28,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import conv_env  # noqa: E402
+import harness_nonce  # noqa: E402
 
 NS = "claude-conventions-lang"
 MIN_LATIN = 20
@@ -197,8 +198,8 @@ def log(session_id, kind, ratio=None, length=None):
         pass
 
 
-def tag(level, body):
-    return '<harness-hook name="reply-language" level="%s">\n%s\n</harness-hook>' % (level, body)
+def tag(level, body, session_id=None):
+    return '<harness-hook name="reply-language" level="%s"%s>\n%s\n</harness-hook>' % (level, harness_nonce.attr(session_id), body)
 
 
 # ---- 이벤트 ----
@@ -261,7 +262,7 @@ def on_prompt(data):
         "No reply language is configured, so replies cannot be checked for language drift. Answer the user's request first, as usual. "
         "Then, at the end of that reply, ask in one short question which language to reply in, and store the answer with this command: %s\n"
         "If the user's message already makes the language clear (they write in it or name it), store that instead of asking. "
-        "The `language` key in a Claude Code settings.json sets it too." % cmd)}}
+        "The `language` key in a Claude Code settings.json sets it too." % cmd, sid)}}
 
 
 def on_stop(data):
@@ -289,7 +290,7 @@ def on_stop(data):
         "Your last reply looked not in %s (a script-ratio check; code or quoted output can trip it). If it is %s prose around code "
         "or quotes, or the user explicitly asked in this turn for another language, add nothing. Otherwise output only the rewritten reply, "
         "the same content in %s, with no line about rewriting, the earlier version, the language or this notice, and no apology."
-        % (lang, lang, lang))}
+        % (lang, lang, lang), sid)}
 
 
 def read_new_lines(path, st):
@@ -359,12 +360,12 @@ def on_batch(data):
             st["last_interim"] = total
             log(sid, "interim_drift", worst, worst_len)
             out.append(tag("info", "Some text between tool calls looked not in %s; progress notes count, quoted output and "
-                           "identifiers do not. Do not mention this notice." % lang))
+                           "identifiers do not. Do not mention this notice." % lang, sid))
     if total >= st["next"]:
         while st["next"] <= total:
             st["next"] += EVERY
         log(sid, "long_turn_reminder", None, total)
-        out.append(tag("info", "Reply to the user in %s." % lang))
+        out.append(tag("info", "Reply to the user in %s." % lang, sid))
     save_state(sid, st)
     if not out:
         return None

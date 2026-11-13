@@ -19,6 +19,7 @@ from pathlib import Path
 NS = "claude-memory-placement"
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
+import harness_nonce  # noqa: E402
 import memory_signals  # noqa: E402
 
 
@@ -42,9 +43,9 @@ def seen_before(data, file_path):
     return False
 
 
-def message(name, evidence):
+def message(name, evidence, session_id=None):
     return (
-        '<harness-hook name="memory-placement" level="warn">\n'
+        f'<harness-hook name="memory-placement" level="warn"{harness_nonce.attr(session_id)}>\n'
         f"Memory file {name} looks like repo knowledge ({evidence}). Auto memory is machine-local: it does not travel with the repo, "
         "to another clone or machine, or to teammates, and it detaches if the folder moves. "
         "Before continuing, propose moving the repo-specific part to the repo (CLAUDE.md, .claude/rules/<topic>.md, or docs/), "
@@ -70,7 +71,7 @@ def main():
         verdict, _score, sig, _type = ms.classify(text)
         if verdict != "repo" or seen_before(data, fp):
             return 0
-        out = {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": message(Path(fp).name, ms.describe(sig))}}
+        out = {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": message(Path(fp).name, ms.describe(sig), data.get("session_id"))}}
         print(json.dumps(out))
     except Exception:
         pass

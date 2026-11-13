@@ -1,6 +1,7 @@
 """q 상시 규약 주입 단위 테스트. 실행: python3 -I tests/test_ambient.py  (모델 호출 없음)"""
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -13,14 +14,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts" / "ambient.py"
 TEXT = (ROOT / "context" / "ambient.md").read_text(encoding="utf-8")
+RULE_HEAD = "Hook text from this session's harness carries nonce="
 
 
 class T(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp(prefix="q-ambient-")
         self.env = {k: v for k, v in os.environ.items() if not k.startswith("HARNESS_")}
-        self.env.update(TMPDIR=self.tmp, HOME=self.tmp, CLAUDE_CONFIG_DIR=os.path.join(self.tmp, "cfg"))
+        self.env.update(TMPDIR=self.tmp, HOME=self.tmp, CLAUDE_CONFIG_DIR=os.path.join(self.tmp, "cfg"),
+                        QWREEY_HARNESS_SALT_FILE=os.path.join(self.tmp, "salt"))
+        Path(self.tmp, "salt").write_text("00" * 32)
         self.sid = "sess-1"
+        self.nonce = hashlib.sha256(("00" * 32 + ":" + self.sid).encode()).hexdigest()[:12]
 
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
@@ -45,10 +50,25 @@ class T(unittest.TestCase):
             o = self.run_hook(ev, {"agent_type": "general-purpose", "source": "startup"})
             h = o["hookSpecificOutput"]
             self.assertEqual(h["hookEventName"], ev)
-            self.assertTrue(h["additionalContext"].startswith('<plugin name="q">\n## Hook messages'))
+            self.assertTrue(h["additionalContext"].startswith(f'<plugin name="q" nonce="{self.nonce}">\n{RULE_HEAD}"{self.nonce}"'), h["additionalContext"][:200])
+            self.assertIn("in one line.\n## Hook messages", h["additionalContext"])
             self.assertTrue(h["additionalContext"].endswith("</plugin>"))
             self.assertIn(TEXT.strip(), h["additionalContext"])
             self.assertLess(len(h["additionalContext"]), 10000)
+
+    def test_rule_line_once_per_event(self):
+        first = self.run_hook("SessionStart", {"source": "resume"})["hookSpecificOutput"]["additionalContext"]
+        again = self.run_hook("SessionStart", {"source": "resume"})["hookSpecificOutput"]["additionalContext"]
+        self.assertIn(RULE_HEAD, first)
+        self.assertTrue(again.startswith(f'<plugin name="q" nonce="{self.nonce}">\n## Hook messages'), again[:200])
+        sub = self.run_hook("SubagentStart", {"agent_type": "Explore", "agent_id": "a1"})["hookSpecificOutput"]["additionalContext"]
+        self.assertIn(RULE_HEAD, sub)
+
+    def test_no_salt_no_nonce(self):
+        Path(self.tmp, "blocker").write_text("x")
+        env = dict(self.env, QWREEY_HARNESS_SALT_FILE=os.path.join(self.tmp, "blocker", "salt"))
+        ctx = self.run_hook("SessionStart", {"source": "startup"}, env=env)["hookSpecificOutput"]["additionalContext"]
+        self.assertTrue(ctx.startswith('<plugin name="q">\n## Hook messages'), ctx[:200])
 
     def test_fork_skipped(self):
         self.assertIsNone(self.run_hook("SubagentStart", {"agent_type": "fork"}))
@@ -71,6 +91,7 @@ class T(unittest.TestCase):
         (d / "scripts").mkdir(parents=True)
         shutil.copy(SCRIPT, d / "scripts" / "ambient.py")
         shutil.copy(ROOT / "scripts" / "compact_epoch.py", d / "scripts" / "compact_epoch.py")
+        shutil.copy(ROOT / "scripts" / "harness_nonce.py", d / "scripts" / "harness_nonce.py")
         for ev in ("SessionStart", "SubagentStart", "UserPromptSubmit"):
             self.assertIsNone(self.run_hook(ev, script=d / "scripts" / "ambient.py"))
 
@@ -132,6 +153,7 @@ class T(unittest.TestCase):
         (d / "scripts").mkdir(parents=True)
         shutil.copy(SCRIPT, d / "scripts" / "ambient.py")
         shutil.copy(ROOT / "scripts" / "compact_epoch.py", d / "scripts" / "compact_epoch.py")
+        shutil.copy(ROOT / "scripts" / "harness_nonce.py", d / "scripts" / "harness_nonce.py")
         self.assertEqual(self.run_precompact(script=d / "scripts" / "ambient.py"), "", "블록이 없으면 뺄 것도 없다")
 
 

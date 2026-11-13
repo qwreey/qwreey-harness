@@ -111,7 +111,9 @@ class Stale(unittest.TestCase):
         self.t = t
         (t / "tmp").mkdir()
         self.env = {"PATH": os.environ["PATH"], "TMPDIR": str(t / "tmp"),
-                    "HARNESS_Q_STALE_IDLE_MIN": "0.05", "HARNESS_Q_STALE_AGE_MIN": "0.1", "HARNESS_Q_STALE_LONG_MIN": "0.15"}
+                    "HARNESS_Q_STALE_IDLE_MIN": "0.05", "HARNESS_Q_STALE_AGE_MIN": "0.1", "HARNESS_Q_STALE_LONG_MIN": "0.15",
+                    "QWREEY_HARNESS_SALT_FILE": str(t / "salt")}  # nonce 는 고정 salt 로
+        (t / "salt").write_text("00" * 32)
         self.tp = t / "s1.jsonl"
         self.tp.write_text("")
         self.agent = t / "s1" / "subagents" / "agent-abc.jsonl"
@@ -136,7 +138,7 @@ class Stale(unittest.TestCase):
         self.assertIsNone(run(STALE, self.payload("Stop", [self.SUB]), self.env))   # 상태당 한 번
         ctx = run(STALE, {"hook_event_name": "UserPromptSubmit", "session_id": "s1", "prompt": "hi"}, self.env)
         text = ctx["hookSpecificOutput"]["additionalContext"]
-        self.assertIn('name="stale-work" level="warn"', text)
+        self.assertRegex(text, r'<harness-hook name="stale-work" level="warn" nonce="[0-9a-f]{12}">\n')
         self.assertIn("may be stalled or waiting", text)
         self.assertIsNone(run(STALE, {"hook_event_name": "UserPromptSubmit", "session_id": "s1", "prompt": "hi"}, self.env))
 

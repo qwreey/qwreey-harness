@@ -17,6 +17,7 @@ MARK = re.compile(r"@copy-of:\s*(\S+)")
 EXPECTED = {
     "plugins/q/scripts/compact_epoch.py": ["plugins/qwreey-advisor/hooks/compact_epoch.py", "plugins/qwreey-conventions/hooks/compact_epoch.py", "plugins/qwreey-sessions/scripts/compact_epoch.py", "plugins/qwreey-workspace/scripts/compact_epoch.py"],
     "plugins/qwreey-conventions/hooks/memory_signals.py": ["plugins/q/skills/doctor/scripts/memory_signals.py"],
+    "plugins/q/scripts/harness_nonce.py": ["plugins/qwreey-advisor/hooks/harness_nonce.py", "plugins/qwreey-conventions/hooks/harness_nonce.py", "plugins/qwreey-operator/hooks/harness_nonce.py", "plugins/qwreey-proc-guard/hooks/harness_nonce.py", "plugins/qwreey-sessions/scripts/harness_nonce.py", "plugins/qwreey-workspace/scripts/harness_nonce.py"],
 }
 
 # PreCompact 에서 요약기에게 다시 실릴 블록을 빼라고 하는 문장. 정본과 사본(따로 설치되는 플러그인, 다른 저장소의 Rust).

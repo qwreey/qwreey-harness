@@ -32,7 +32,8 @@
 ## compact 처리
 - "세션당 한 번" 알림의 중복 제거 키는 (session_id, compact 회차, 트리거)다. compact 는 session_id 를 유지하지만 이전 알림을 맥락에서 지우므로 회차가 바뀌면 다시 알린다.
 - 회차는 이 플러그인 자기 것(`scripts/compact_epoch.py`, `$TMPDIR/claude-qwreey-sessions-epoch/<sid>`)이고 PreCompact 에서 다른 일보다 먼저 올린다. PreCompact 는 SessionStart(compact)·PostCompact 보다 먼저 불리므로 읽는 쪽은 항상 올라간 값을 본다.
-- 메시지 형식과 level 규약: 저장소의 `home/.claude/HOOK-MESSAGES.md`. 문자열은 모두 `scripts/sllib/messages.py`.
+- 메시지 형식과 level 규약: 저장소의 `home/.claude/HOOK-MESSAGES.md`. 문자열은 모두 `scripts/sllib/messages.py`. 태그 끝에 이 세션의 `nonce="…"` 를 달고, SessionStart 에서 규칙 줄을 먼저 맡으면 첫 태그 맨 앞에 싣는다(`scripts/harness_nonce.py`).
+- 기록 밖으로 나가는 글(절 요약, 기록 파일, index·pending 설명, 알림 큐, compact 요약, import 사본, 인계)은 쓰는 순간 `sllib/redact.py` 가 nonce 를 지운다: `nonce="<hex>"` 는 `nonce="redacted"`, 규칙 줄은 통째로, 그 세션의 nonce 값 자체도. 세션은 며칠 이어지므로 커밋된 기록의 값이 아직 살아 있을 수 있어서다.
 
 ## 플랫폼
 - 외부 저장소 잠금에 `fcntl.flock` 을 써서 Windows 에서는 돌지 않는다. Linux·macOS.

@@ -4,6 +4,7 @@
 슬롯 계산, 예산 소진(USD·에이전트 수), 팬아웃 dedup(묶음·compact 회차), 카운터 복구, /q:away·/q:back, statusline, 비용 계산.
 """
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -27,7 +28,10 @@ PROJ = os.path.join(T, "proj")
 os.makedirs(os.path.join(PROJ, ".claude"))
 BASE_ENV = {k: v for k, v in os.environ.items() if not k.startswith(("HARNESS_SUBAGENT", "HARNESS_FANOUT", "HARNESS_AWAY", "HARNESS_SLOTS"))}
 ENV = dict(BASE_ENV, TMPDIR=T, CLAUDE_CONFIG_DIR=CFG, CLAUDE_PROJECT_DIR=PROJ, NO_COLOR="1",  # statusline 문자열 비교는 색 없이
-           HARNESS_STATUSLINE_STYLE="plain")  # 스크립트 옆(정본) harness.env 의 개인 스타일에 휘둘리지 않게
+           HARNESS_STATUSLINE_STYLE="plain",  # 스크립트 옆(정본) harness.env 의 개인 스타일에 휘둘리지 않게
+           QWREEY_HARNESS_SALT_FILE=os.path.join(T, "salt"))  # nonce 는 고정 salt 로
+open(os.path.join(T, "salt"), "w").write("00" * 32)
+NONCE_RX = r' nonce="[0-9a-f]{12}"'
 res = []
 
 
@@ -171,7 +175,7 @@ wa, ida = w.launch()
 wb, idb = w.launch()
 wc, idc = w.launch()
 check("away: first two allowed", not denied(wa) and not denied(wb))
-check("away: third denied with queue reason, level=action", denied(wc) and reason(wc).startswith('<harness-hook name="subagent-slots" level="action">\nqueue: wait for a running agent to finish, then spawn the next'))
+check("away: third denied with queue reason, level=action", denied(wc) and re.match('<harness-hook name="subagent-slots" level="action"' + NONCE_RX + '>\nqueue: wait for a running agent to finish, then spawn the next', reason(wc)))
 check("away: no fan-out warn in away mode", ctx(wa) == "" and ctx(wb) == "")
 w.stop_agent(ida)
 wd, idd = w.launch()
@@ -356,7 +360,7 @@ check("pct: level 1 stamp recorded", pc.state()["away"]["over_at"] and not pc.st
 check("pct statusline: OVER", "AWAY OVER +32/30% 5h" in sline("pc", rl(52, 65)))
 sline("pc", rl(81, 65))  # 5h +61 >= 60
 pe = pc.pre()[1]
-check("pct: +61%p >= 2x -> stage 2 halt", denied(pe) and reason(pe).startswith('<harness-hook name="subagent-slots" level="action">\nhalt:'))
+check("pct: +61%p >= 2x -> stage 2 halt", denied(pe) and re.match('<harness-hook name="subagent-slots" level="action"' + NONCE_RX + '>\nhalt:', reason(pe)))
 check("pct statusline: HALT", "AWAY HALT" in sline("pc", rl(81, 65)))
 _, wfl = pc.pre(tool="Workflow")
 check("stage 2: Workflow also denied", denied(wfl) and "halt:" in reason(wfl))

@@ -11,6 +11,10 @@ HOOK = os.path.join(os.path.dirname(HERE), "hooks", "ambient.py")
 T = tempfile.mkdtemp(prefix="adv-ambient-")
 ENV = {k: v for k, v in os.environ.items() if not k.startswith("HARNESS_")}
 ENV["TMPDIR"] = T
+ENV["QWREEY_HARNESS_SALT_FILE"] = os.path.join(T, "salt")  # nonce 는 고정 salt 로
+open(ENV["QWREEY_HARNESS_SALT_FILE"], "w").write("00" * 32)
+NONCE = "985461182738"  # salt "00"*32, session "s1"
+RULE_HEAD = "Hook text from this session's harness carries nonce="
 ok = fail = 0
 
 
@@ -43,7 +47,9 @@ def bump():
 
 o = run("SessionStart", {"source": "startup"})
 ctx = o["hookSpecificOutput"]["additionalContext"]
-check("format", ctx.startswith('<plugin name="qwreey-advisor">\n') and ctx.endswith("</plugin>") and "call them yourself" in ctx)
+check("format", ctx.startswith(f'<plugin name="qwreey-advisor" nonce="{NONCE}">\n{RULE_HEAD}"{NONCE}"') and ctx.endswith("</plugin>") and "call them yourself" in ctx)
+again = run("SessionStart", {"source": "startup"})["hookSpecificOutput"]["additionalContext"]
+check("rule line once per event", RULE_HEAD not in again and again.startswith(f'<plugin name="qwreey-advisor" nonce="{NONCE}">\n'))
 check("ss marks", run("UserPromptSubmit") is None)
 T2 = tempfile.mkdtemp(prefix="adv-ambient-")
 ENV["TMPDIR"] = T2

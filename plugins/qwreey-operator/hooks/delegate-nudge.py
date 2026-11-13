@@ -98,8 +98,10 @@ def threshold(name, default):
         return default
 
 
-def message(event, level, body):
-    text = '<harness-hook name="delegate-nudge" level="%s">\n%s\n</harness-hook>' % (level, body)
+def message(event, level, body, session_id=None):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
+    import harness_nonce
+    text = '<harness-hook name="delegate-nudge" level="%s"%s>\n%s\n</harness-hook>' % (level, harness_nonce.attr(session_id), body)
     return json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": text}}, ensure_ascii=False)
 
 
@@ -116,7 +118,7 @@ def handle(data):
     out = ""
     if event == "UserPromptSubmit":
         if st.get("crossed"):
-            out = message(event, "info", CARRY.format(n=st.get("n", 0), m=len(st.get("files", []))))
+            out = message(event, "info", CARRY.format(n=st.get("n", 0), m=len(st.get("files", []))), data.get("session_id"))
         st = {}
     elif tool in RESET_TOOLS:
         st = {}
@@ -130,7 +132,7 @@ def handle(data):
         if not st.get("crossed") and (st["n"] >= threshold("HARNESS_OPERATOR_NUDGE_WRITES", DEFAULT_WRITES)
                                       or len(files) >= threshold("HARNESS_OPERATOR_NUDGE_FILES", DEFAULT_FILES)):
             st["crossed"] = True
-            out = message(event, "info", NUDGE.format(n=st["n"], m=len(files)))
+            out = message(event, "info", NUDGE.format(n=st["n"], m=len(files)), data.get("session_id"))
     if st or os.path.exists(path):
         save(path, st)
     return out

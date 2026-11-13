@@ -28,6 +28,7 @@ import time
 T0 = time.perf_counter()
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
+import harness_nonce  # noqa: E402
 from conv_edit import GEN_MARK, MAX_BYTES, SKIP_PARTS, SKIP_SUFFIX, collect, project_root  # noqa: E402
 from conv_env import env_value  # noqa: E402
 from conv_lex import FAMILY  # noqa: E402
@@ -553,7 +554,7 @@ def main():
     except OSError:
         pass
     if notes:
-        msg = f'<harness-hook name="{NAME}" level="info">{"; ".join(notes)}</harness-hook>'
+        msg = f'<harness-hook name="{NAME}" level="info"{harness_nonce.attr(sid)}>{"; ".join(notes)}</harness-hook>'
         json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": msg}}, sys.stdout, ensure_ascii=False)
     return 0
 

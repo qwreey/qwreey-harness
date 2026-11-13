@@ -2,6 +2,7 @@
 """q 상시 규약 주입. 사용: python3 -I ambient.py <SessionStart|SubagentStart|UserPromptSubmit|PreCompact>  (stdin: 훅 JSON)
 
 context/ambient.md(영어, 사용자가 확정한 문구 그대로)를 `<plugin name="q">` 로 감싸 additionalContext 로 낸다.
+태그 끝에 이 세션의 nonce 속성을 달고, SessionStart, SubagentStart 에서 규칙 줄을 맡으면 블록 맨 앞에 싣는다(harness_nonce.py).
 - SessionStart: 메인 세션에 startup·resume·clear·compact 마다 실린다(hooks.json 의 matcher).
 - SubagentStart: 서브에이전트에 실린다(.claude/audit/32 실험 2: general-purpose·커스텀(omitClaudeMd 여부 무관)·Explore 모두 실림).
   fork 는 부모 문맥(SessionStart 주입 포함)을 물려받으므로 건너뛴다(중복 방지).
@@ -28,6 +29,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import compact_epoch  # noqa: E402
+import harness_nonce  # noqa: E402
 FILE = os.path.join(os.path.dirname(HERE), "context", "ambient.md")
 SKIP_AGENTS = {"fork"}
 NS = "claude-q-ambient"
@@ -77,7 +79,9 @@ def build(event: str, data: dict, text: str) -> str:
         return ""
     if event in ("SessionStart", "UserPromptSubmit"):
         _write_marker(data.get("session_id"))
-    ctx = f'<plugin name="{TAG}">\n' + text.strip("\n") + "\n</plugin>"
+    rule = harness_nonce.rule_for(event, data)
+    body = (rule + "\n" if rule else "") + text.strip("\n")
+    ctx = f'<plugin name="{TAG}"{harness_nonce.attr(data.get("session_id"))}>\n' + body + "\n</plugin>"
     return json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": ctx}}, ensure_ascii=False)
 
 
