@@ -118,7 +118,7 @@ class Nudge(unittest.TestCase):
         out = json.loads(self.run_hook({"hook_event_name": "SessionStart"}, script=AMBIENT))
         ctx = out["hookSpecificOutput"]["additionalContext"]
         self.assertIn("background subagent", ctx)
-        self.assertIn("Keep in main", ctx)
+        self.assertIn("Implementer model: opus by default", ctx)
 
 
 if __name__ == "__main__":

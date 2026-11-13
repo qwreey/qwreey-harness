@@ -39,7 +39,7 @@
     {
       "name": "qwreey-operator",
       "source": "./plugins/qwreey-operator",
-      "description": "메인은 대화·판단, 큰 구현은 백그라운드 서브에이전트로: 세션 시작에 위임 규약을 주입하고, 메인이 한 턴에 코드를 많이 쓰면 위임을 권하는 알림 훅(끄기 HARNESS_OPERATOR_NUDGE=off)과 위임 절차 스킬 qwreey-operator:implementer 를 둔다. 구독만으로 모든 OS 에서 동작, 막지 않는다"
+      "description": "메인은 대화·판단, 큰 구현은 백그라운드 서브에이전트로: 세션 시작에 위임 규약을 주입하고, 메인이 한 턴에 코드를 많이 쓰면 위임을 권하는 알림 훅(끄기 HARNESS_OPERATOR_NUDGE=off)을 둔다. 구독만으로 모든 OS 에서 동작, 막지 않는다"
     },
     {
       "name": "qwreey-delegate",
