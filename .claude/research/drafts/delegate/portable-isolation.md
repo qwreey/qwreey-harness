@@ -1,7 +1,7 @@
 ---
 format: 1
 title: delegate 를 root 없이 macOS·Windows·Linux 에서 돌리는 방안
-description: codex 는 exec+권한 프로필·작업별 CODEX_HOME 으로 root 없이 가능(OS 샌드박스 있을 때). agy ACP 는 파일 도구를 묻지 않고 settings permissions deny·ask 도 무시(실측). 격리 없으면 기본은 읽기 전용 의견(empty)
+description: codex 는 exec+권한 프로필·작업별 CODEX_HOME 으로 root 없이 가능(OS 샌드박스 있을 때). agy ACP 는 파일 도구를 묻지 않고 settings permissions·plan 모드도 무시하지만, print 모드 --settings deny 는 파일 도구를 막음(실측). 격리 없으면 agy 는 기본 꺼짐
 status: active
 ---
 # delegate 이식성 조사
@@ -60,6 +60,13 @@ status: active
 - 비용: 모델 1턴 11.2초, 약 2.5만 토큰(입력 1.9만, 캐시 0.6만, 출력 188). 나머지 세 번은 `session/new` 없는 시작만.
 - 결론: ACP 에서는 settings `permissions` 의 deny·ask 도 파일 도구를 막거나 요청으로 바꾸지 않는다. agy 의 파일 접근을 ACP 안에서 막을 손잡이는 지금 찾은 것이 없다. 남은 후보(재지 않음): Project 범위 파일, OS 샌드박스가 있는 호스트.
 - 로그: `/tmp/acpprobe-2/log1.jsonl`, 서버 로그 `/tmp/acpprobe-2/gem/antigravity-cli/log/`, 클라이언트 `/tmp/acpprobe-2/client/acp_client.py`(`--allow-reads` 추가).
+
+### ACP plan 모드, print 모드 `--settings` (agy 1.5.8)
+- 공통: HOME 과 `--gemini-dir` 은 일회용 폴더(토큰 파일만 복사), 프로세스 cwd 는 빈 작업 폴더, flash-low 1턴, 파일 도구만으로 작업 폴더 밖 `outside/secret*.txt` 읽기와 줄 추가를 지시.
+- A. ACP `session/set_mode` `plan`(설명 "Plan carefully before executing a task"): `set_mode` 응답은 성공, `session/request_permission` 0건, `read`·`edit` 가 요청 없이 `completed`, 파일에 `probe-A` 줄이 붙었다(sha256 `106cead2…` → `b27ba70e…`). plan 모드도 파일 도구를 막지 않는다. 27.8k 토큰, 14초.
+- B. print 모드 `agy -p --settings '{"permissions":{"deny":["read_file(<outside>)","write_file(<outside>)"]}}'`, `--dangerously-skip-permissions` 없음: 두 도구가 `Matches user-configured deny rule` 로 거절되고 파일은 그대로(sha256 `106cead2…`). CLI 로그에 `CLI settings initialized: permissions=&{… Deny:[read_file(…) write_file(…)]}, toolPermission=request-review`. 12.7k 토큰, 12.6초.
+- 결론: settings `permissions` 는 print 모드에서는 듣고 ACP 에서는 듣지 않는다(ACP 는 CLI settings 의 permissions 를 읽지 않는 것으로 보인다[추정]). 격리가 없는 기계에서 agy 파일 도구를 막을 손잡이 후보는 print 모드 + deny 규칙이다. 재지 않은 것: 넓은 deny(`/`, HOME)와 작업 폴더 allow 의 우선순위, print 모드에서 셸(`command()`)과 `read_url()` 이 어떻게 되는지, 기호 링크·`..` 경로, 버전 차이.
+- 로그: `/tmp/acpprobe-3/`(`logA.jsonl`, `outB.json`, `homeB/.gemini/antigravity-cli/log/`).
 
 ## 드라이버 기본 정책
 OS 격리가 없는 곳(uid 격리도, 동작하는 OS 샌드박스도 없음, 비개발자 동료의 기본 환경)의 기본은 "읽기 전용 의견"이다. 위 실측 결과와 상관없이 사용자가 정했다.
