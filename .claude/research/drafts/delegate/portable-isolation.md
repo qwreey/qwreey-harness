@@ -1,7 +1,7 @@
 ---
 format: 1
 title: delegate 를 root 없이 macOS·Windows·Linux 에서 돌리는 방안
-description: codex 는 exec + 권한 프로필(worktree 만 쓰기, 메인 .git 읽기, 네트워크 끔)과 작업별 CODEX_HOME, agy 는 ACP 클라이언트로 돌려 worktree 안 편집만 허가. 둘 다 OS 샌드박스 내장이라 root 불필요, uid 격리는 Linux 선택 강화층으로
+description: codex 는 exec + 권한 프로필과 작업별 CODEX_HOME 으로 root 없이 가능(OS 샌드박스가 있는 곳). agy 는 ACP 권한 응답이 셸 명령만 묻고 파일 읽기·쓰기는 워크스페이스 밖이어도 묻지 않아(실측), OS 격리 없이는 격리되지 않는다
 status: active
 ---
 # delegate 이식성 조사
@@ -40,3 +40,14 @@ status: active
 2. agy ACP `session/new` 뒤 `request_permission` 내용(kind, locations).
 3. 그 상태에서 worktree `.git` 접근.
 4. `--gemini-dir` 분리 상태의 인증.
+
+## 실측: agy 1.5.7 ACP (이 호스트, OS 샌드박스 없음)
+- 줄 단위 JSON(NDJSON), 응답 id 는 문자열. 메서드: `initialize`, `session/new`(modes·configOptions·models), `session/set_model`, `session/prompt`, `session/update`, `session/request_permission`.
+- `request_permission` 은 셸(`run_command`, kind `execute`, locations 없음)에만 온다. 옵션 `allow`(allow_once)·`deny`(reject_once). 거절한 셸 명령은 실행되지 않았다.
+- 파일 도구(`read_file`, `write_file`)는 default 모드에서도 권한 요청 없이 돈다. 워크스페이스 밖 `../outside/secret.txt` 읽기와 줄 추가가 요청 없이 성공했다(`--add-dir wt` 를 줘도, 서버 로그 `workspaceDirs=[]`).
+- `session/new` 의 `cwd` 는 무시되고 프로세스 cwd 가 쓰인다(드라이버는 Popen cwd 를 worktree 로).
+- 시작 로그에 `Terminal sandbox unavailable: unprivileged user namespaces are disabled` 를 찍고 경고 없이 계속한다.
+- 인증: 빈 `--gemini-dir` 는 `Authentication required`. `<gemini-dir>/antigravity-cli/antigravity-oauth-token` 하나만 복사하면 된다(D-Bus 없음, 파일 저장소). `--app-data-dir` 는 상대 이름만. `--gemini-dir` 를 따로 줘도 `$HOME/.config/antigravity/plugin-secrets.json` 은 읽는다.
+- 비용: flash-low 6턴, 턴당 6-17초, 합계 약 14.5만 토큰.
+- 결론: OS 격리(uid 분리, 컨테이너, OS 샌드박스)가 없으면 agy 는 ACP 만으로 격리되지 않는다. 위 "권장 설계"의 agy 항목(worktree 안 편집만 허가)은 이 호스트에서 성립하지 않는다. OS 샌드박스가 있는 macOS·Windows·userns 켜진 Linux 에서 파일 도구도 막히는지는 아직 모른다. 남은 후보: settings `permissions.deny/ask`(`read_file()`/`write_file()`) 가 ACP 에서 요청·거부로 이어지는지(모델 호출 1회), 이것도 프로세스 안 정책.
+- 클라이언트와 로그: `/tmp/acpprobe-1/client/acp_client.py`, `/tmp/acpprobe-1/log.jsonl`.
