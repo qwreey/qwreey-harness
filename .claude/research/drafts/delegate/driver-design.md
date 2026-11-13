@@ -142,7 +142,7 @@ fail-closed 규칙: 알 수 없는 플랫폼·버전은 empty. ACP 권한 요청
 
 ## 7. 설정
 
-harness.env 층(`load_layers(ROOT)`) 하나로 읽는다. 옛 `DELEGATE_*` 환경 변수는 이전 기간 동안 같은 뜻으로 받고 `doctor` 가 새 이름을 알린다.
+harness.env 층(`load_layers(ROOT)`) 하나로 읽는다. 옛 `DELEGATE_*` 이름은 배포 전 스크립트의 환경 변수였고 어느 harness.env 에도 없으므로, 호환 없이 새 이름으로 바꾼다(아래 "옛 이름" 열은 대응만 적는다).
 
 | 키 | 기본 | USER_ONLY | 옛 이름 |
 |---|---|---|---|
@@ -197,7 +197,7 @@ harness.env 층(`load_layers(ROOT)`) 하나로 읽는다. 옛 `DELEGATE_*` 환�
 
 | 단계 | 내용 | 끝 조건 |
 |---|---|---|
-| M0 | 이 설계 검토 | 사용자 답(§10) |
+| M0 | 이 설계 검토 | 끝(§10) |
 | M1 | `delegate.py` 동등 이식(uid 백엔드, agy print, codex 지금 꼴). `delegate.sh` 손대지 않음 | 가짜 에이전트 시험 통과, 같은 runs/ 꼴 |
 | M2 | agy ACP 어댑터, 표지선 | uid 아래 실제 agy worktree·empty 각 1회 |
 | M3 | 격리 판정·모드 선택, 비root empty, codex 프로필·자가 시험, 새 harness.env 키(정본+sync) | 비root 흉내 시험, `doctor --json` |
@@ -205,16 +205,18 @@ harness.env 층(`load_layers(ROOT)`) 하나로 읽는다. 옛 `DELEGATE_*` 환�
 | M5 | macOS·Win11 실측, §3 표의 [추정] 갱신, agy 기본 재검토 질문 | 실측 기록 추가 |
 | M6 | proc-guard 패턴 갱신 뒤 SKILL 이 `delegate.py` 직접 호출. 셈은 남김(값쌈) | - |
 
-## 10. 사용자 질문
+## 10. 사용자 결정
 
-| # | 질문 | 권고 |
-|---|---|---|
-| Q1 | `empty` 를 "빈 폴더 + 맥락은 프롬프트"(지금)로 둘지, 정책 문구처럼 "비밀 뺀 사본"을 기본으로 할지 | 빈 폴더 기본 + `--files` 로 고른 추적 파일만. 무엇이 보이는지 메인이 정하고, 프롬프트 비용도 줄일 수 있다 |
-| Q2 | `--mode worktree` 를 명시했는데 격리가 없으면 거절(exit 4)인가, empty 로 내리고 알림인가 | 거절. 명시 없을 때만 내린다 |
-| Q3 | 작업 사본에서 토큰이 갱신되면 원본에 되돌려 쓸지 | 되돌려 쓰지 않고 알리기만. 실제로 원본이 무효가 되는지 한 번 재 보고 다시 정함 |
-| Q4 | 비root 환경에서 registry 없이 돌기(key = 폴더 이름) | 예. 동료 기본 환경에서 `register` 를 요구하지 않음 |
-| Q5 | 옛 `DELEGATE_*` 환경 변수를 언제까지 받을지 | M6 까지 받고 `doctor` 가 새 이름을 알림 |
-| Q6 | codex 기본 모드: 샌드박스 통과 환경에서도 empty 유지인가 | 유지(구독 한도가 작고 맥락 전체 프롬프트가 싸고 빠름 [실측 trial]). worktree 는 명시할 때만 |
+§10 의 질문 6개는 권고대로 정했다(사용자 "전부 동의"). Q5 는 옛 이름이 배포되지 않았으므로 호환을 두지 않는다.
+
+| # | 결정 |
+|---|---|
+| Q1 | `empty` 는 빈 폴더 + 프롬프트 맥락이 기본, `--files` 로 고른 추적 파일만 넣는다 |
+| Q2 | `--mode worktree` 를 명시했는데 격리가 없으면 거절(exit 4). 명시가 없을 때만 empty 로 내린다 |
+| Q3 | 작업 사본의 토큰이 갱신돼도 원본에 되쓰지 않고 알린다. 원본이 실제로 무효가 되는지 한 번 잰다 |
+| Q4 | 비root 환경은 registry 없이 돈다(key = 폴더 이름) |
+| Q5 | `DELEGATE_*` 호환 없음, 새 `HARNESS_DELEGATE_*` 이름만 |
+| Q6 | codex 기본은 샌드박스가 통과해도 empty, worktree 는 명시할 때만 |
 
 ## 11. 지금 문서·스크립트와 어긋나는 점
 

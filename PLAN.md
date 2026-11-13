@@ -222,7 +222,7 @@
        - 나중(사용자 "3도 동의. 지금은 나중에 해야할 일로 인지를 해두는것으로 두자"): q doctor·start references 안의 모델용 지시문이 한국어라 agent-docs 영어 규칙과 어긋남. 큰 재작성이라 coderag 스킬 감사 때 함께. 사용자 호출 스킬 description 은 한국어 메뉴 줄로 정함("유저 invoke 는 한국어여도 된다").
        - 구현됨(2026-11-13): q 0.9.0, `qwreey-sessions` 0.1.0, `qwreey-workspace` 0.1.0, 마이그레이션 0009(sessions·workspace·operator 를 켬, delegate 는 안 켬). 스킬 이름이 `qwreey-sessions:recall|checkpoint|import`, `qwreey-workspace:workspace` 로 바뀌었다. workspace 의 UserPromptSubmit 보충 주입(ambient 의 회차 표지)은 두지 않았다: SessionStart·SubagentStart 만.
        - 끄기 스위치는 `HARNESS_OPERATOR_AMBIENT`·`HARNESS_WORKSPACE_AMBIENT` 처럼 플러그인마다. 프로젝트별로 다르게 하려고 harness.env 를 층으로 읽는다(사용자: "local.env…settings.local.json…레이어로 합쳐지는 모양에 local 이 최상위"): 기본값 < `~/.claude/harness.env` < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`(커밋 안 함) < 환경 변수. `USER_ONLY` 키(경로·게이트 등)는 저장소 층이 못 바꾼다(31a552d).
-       - delegate 격리(사용자 "agy ACP 실측 먼저 해보자", "이대로 진행하자"): agy ACP 는 셸만 권한을 묻고 파일 읽기·쓰기는 워크스페이스 밖도 묻지 않으며, settings `permissions` 도 막지 못한다(cf321b7, 81b5c63, `.claude/research/drafts/delegate/portable-isolation.md`). 그래서 격리(root uid, codex 샌드박스, agy 샌드박스)가 없으면 읽기 전용 의견(empty)만 기본. 다음: 운영체제와 상관없이 도는 Python 드라이버 설계(`.claude/research/drafts/delegate/driver-design.md`, 진행 중). macOS·Win11 실측은 사용자 기기. agy worktree 모드는 uid 격리가 있을 때만이 기본이고, 사용자가 harness.env 키(USER_ONLY)로 풀 수 있게 한다(사용자 "옵션을 주는건 괜찮을것 같아").
+       - delegate 격리(사용자 "agy ACP 실측 먼저 해보자", "이대로 진행하자"): agy ACP 는 셸만 권한을 묻고 파일 읽기·쓰기는 워크스페이스 밖도 묻지 않으며, settings `permissions` 도 막지 못한다(cf321b7, 81b5c63, `.claude/research/drafts/delegate/portable-isolation.md`). 그래서 격리(root uid, codex 샌드박스, agy 샌드박스)가 없으면 읽기 전용 의견(empty)만 기본. 다음: 운영체제와 상관없이 도는 Python 드라이버 설계(`.claude/research/drafts/delegate/driver-design.md`, 질문 6개는 권고대로 정함, 구현 M1 부터). macOS·Win11 실측은 사용자 기기. agy worktree 모드는 uid 격리가 있을 때만이 기본이고, 사용자가 harness.env 키(USER_ONLY)로 풀 수 있게 한다(사용자 "옵션을 주는건 괜찮을것 같아").
        - memory 줄은 상시 주입에 넣지 않는다(사용자 "메모리 쓰는건 소수 경우고 그 때 알려주는게 일반적으로 싼것 같아"): memory 파일을 쓸 때 실리는 memory rule 과 memory-placement 훅이 맡는다.
      - 나중(사용자 "일단 나중에 고려해볼 대상으로 두자"): 읽기 어려운 코드 알림. 빈 줄 없이 길게 이어진 코드, 주석 없이 일정 이상 이어진 코드, 주석이 한곳에 몰리고 아래 코드는 주석이 없는 경우에 경고(주석·빈 줄 비율). qwreey-conventions 후보.
   6. 자동화: 규약 스킬, doctor 검사, 커밋할 때 info 알림, `q:start` 의 `.claude/` 뼈대 템플릿.
@@ -238,7 +238,7 @@
 
 | # | 결정 | 추천 | 근거·자리 |
 |---|---|---|---|
-| 2 | 드라이버 설계의 열린 질문 | 설계 문서의 추천 | `.claude/research/drafts/delegate/driver-design.md`(작성 중) |
+
 | 3 | 저장소 `.claude/harness.local.env` 가 `USER_ONLY` 키를 바꿀 수 있게 할지 | 실행 경로 키(`HARNESS_CODERAG`, `SESSION_LOG_CLAUDE` 등)는 계속 못 바꿈. 안전 스위치 키만 local 층 허용 + 에이전트 쓰기 deny 훅, 실제로 바꾸고 싶은 키가 생길 때(사용자 "에딧에 실패하도록 하는 훅이 있으면 괜찮겠긴 한데") | `home/.claude/lib/harness_env.py` |
 | 5 | home-canon-guard(정본 대신 `~/.claude` 직접 수정 차단)·worktree-guard(lock·살아 있는 세션 확인 없는 worktree 삭제 차단) 훅을 만들지 | 미정. 생기면 q·workspace 상시 줄을 뺀다 | `.claude/audit/31-home-claude-md-debate/verdict.md` |
 | 6 | luau-kb·web-security 를 어느 저장소에서 켤지 | 저장소마다 `coderag.toml` `[[packs]]` | `packs/README.md` |
