@@ -1,0 +1,33 @@
+{
+  "id": "0009-split-q-plugin",
+  "why": "q 플러그인에서 세션 기록(훅·checkpoint·import·recall)을 qwreey-sessions 로, 형제 저장소 게이트와 workspace 스킬을 qwreey-workspace 로 나눴고, 메인 대화·서브 구현 규약은 qwreey-operator 가 맡는다. q 만 켜 둔 사용자가 기능을 조용히 잃지 않도록 세 플러그인을 켠다(keep_existing: 사용자가 이미 false 로 둔 값은 건드리지 않는다). 마이그레이션에는 'q 가 켜져 있을 때만' 조건이 없으므로 이 홈은 원래 q 를 쓰는 사용자 것으로 본다. qwreey-delegate(agy·codex, 구독·Linux 필요)는 켜지 않는다. 플러그인 갱신과 같은 시점에 apply 한다: 갱신 전에 apply 하면 설치본이 없어 무동작, 갱신 뒤 apply 전에는 세션 기록·게이트 훅이 없다",
+  "ops": [
+    {
+      "op": "set",
+      "path": [
+        "enabledPlugins",
+        "qwreey-sessions@claude-doctor-market"
+      ],
+      "value": true,
+      "keep_existing": true
+    },
+    {
+      "op": "set",
+      "path": [
+        "enabledPlugins",
+        "qwreey-workspace@claude-doctor-market"
+      ],
+      "value": true,
+      "keep_existing": true
+    },
+    {
+      "op": "set",
+      "path": [
+        "enabledPlugins",
+        "qwreey-operator@claude-doctor-market"
+      ],
+      "value": true,
+      "keep_existing": true
+    }
+  ]
+}

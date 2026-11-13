@@ -101,8 +101,8 @@ class Env(unittest.TestCase):
         return json.loads(r.stdout) if r.stdout.strip() else None
 
     def precompact(self):
-        """PreCompact 가 올리는 q 회차(hook.py 가 같은 모듈로 올린다)를 흉내 낸다."""
-        r = subprocess.run([sys.executable, "-I", str(SCRIPTS / "compact_epoch.py"), "q"], input=json.dumps({"session_id": self.sid}),
+        """PreCompact 가 올리는 회차(PreCompact 훅이 같은 모듈로 올린다)를 흉내 낸다."""
+        r = subprocess.run([sys.executable, "-I", str(SCRIPTS / "compact_epoch.py"), "qwreey-workspace"], input=json.dumps({"session_id": self.sid}),
                            capture_output=True, text=True, env=self.env(), timeout=30)
         self.assertEqual(r.returncode, 0, r.stderr)
 
@@ -116,7 +116,7 @@ class Env(unittest.TestCase):
         return str(self.ws / rel)
 
     def load_skill(self, **extra):
-        self.run_gate("PostToolUse", {"tool_name": "Skill", "tool_input": {"skill": "q:workspace"}, **extra})
+        self.run_gate("PostToolUse", {"tool_name": "Skill", "tool_input": {"skill": "qwreey-workspace:workspace"}, **extra})
 
 
 class Gate(Env):
@@ -128,14 +128,14 @@ class Gate(Env):
             self.assertEqual(self.decision(out), "deny", tool)
             reason = out["hookSpecificOutput"]["permissionDecisionReason"]
             self.assertIn('level="action"', reason)
-            self.assertIn("q:workspace skill (Skill tool), then retry", reason)
+            self.assertIn("qwreey-workspace:workspace skill (Skill tool), then retry", reason)
         self.load_skill()
         self.assertIsNone(self.pre("Edit", {"file_path": self.sibling()}))
         self.assertIn("deny.log", os.listdir(self.t / "tmp" / "claude-workspace-gate"))
 
     def test_slash_command_loads(self):
         self.assertEqual(self.decision(self.pre("Write", {"file_path": self.sibling()})), "deny")
-        self.run_gate("UserPromptExpansion", {"expansion_type": "slash_command", "command_name": "q:workspace"})
+        self.run_gate("UserPromptExpansion", {"expansion_type": "slash_command", "command_name": "qwreey-workspace:workspace"})
         self.assertIsNone(self.pre("Write", {"file_path": self.sibling()}))
 
     def test_other_skill_does_not_load(self):
@@ -155,7 +155,7 @@ class Gate(Env):
         out = self.pre("Read", {"file_path": self.sibling()})
         ctx = out["hookSpecificOutput"]["additionalContext"]
         self.assertIn('level="warn"', ctx)
-        self.assertIn("q:workspace", ctx)
+        self.assertIn("qwreey-workspace:workspace", ctx)
         self.assertIsNone(self.pre("Grep", {"pattern": "x", "path": self.sibling("other")}))
         out = self.pre("Bash", {"command": f"cat {self.sibling()}"})
         self.assertIsNone(out)
@@ -177,7 +177,7 @@ class Gate(Env):
 
     def test_epoch_file_resets(self):
         self.load_skill()
-        d = self.t / "tmp" / "claude-q-epoch"
+        d = self.t / "tmp" / "claude-qwreey-workspace-epoch"
         d.mkdir(parents=True)
         (d / self.sid).write_text("1")
         self.assertEqual(self.decision(self.pre("Write", {"file_path": self.sibling()})), "deny")

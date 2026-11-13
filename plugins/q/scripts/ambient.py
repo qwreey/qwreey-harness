@@ -75,14 +75,24 @@ def build(event: str, data: dict, text: str) -> str:
     return json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": ctx}}, ensure_ascii=False)
 
 
-def main() -> int:
+def _off() -> bool:
+    """끄기 스위치: 환경 변수가 이기고, 없으면 harness.env(하네스 lib/harness_env.py)."""
+    if "HARNESS_Q_AMBIENT" in os.environ:
+        return os.environ["HARNESS_Q_AMBIENT"].strip().lower() == "off"
     try:
-        import wslib
-        if wslib.setting("HARNESS_Q_AMBIENT").strip().lower() == "off":
-            return 0
+        import importlib.util
+        cd = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
+        spec = importlib.util.spec_from_file_location("harness_env", os.path.join(cd, "lib", "harness_env.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return str(mod.load([os.path.join(cd, "harness.env")]).get("HARNESS_Q_AMBIENT", "")).strip().lower() == "off"
     except Exception:
-        if os.environ.get("HARNESS_Q_AMBIENT", "").strip().lower() == "off":
-            return 0
+        return False
+
+
+def main() -> int:
+    if _off():
+        return 0
     try:
         data = json.load(sys.stdin)
         if not isinstance(data, dict):

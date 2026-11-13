@@ -53,7 +53,7 @@ def main() -> None:
             large = True
             out.append(messages.RECORD_READ_LARGE.format(kb=int(kb)))
     import compact_epoch
-    marker = compact_epoch.state_path("q", "claude-q-records-read", sid, data.get("agent_id"))
+    marker = compact_epoch.state_path("qwreey-sessions", "claude-sessions-records-read", sid, data.get("agent_id"))
     first = False
     try:
         os.close(os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY))

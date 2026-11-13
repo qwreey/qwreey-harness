@@ -99,7 +99,7 @@ rep = {
     "after_compact_notice": any("Session log for this session" in u[3] for u in uniq),
     "precompact_in_compact_summary": ("records/" in csum) or ("session-log" in csum),
     "compact_boundaries": boundaries,
-    "epoch": open(f"{os.environ.get('TMPDIR', '/tmp')}/claude-q-epoch/{SID}").read() if os.path.exists(f"{os.environ.get('TMPDIR', '/tmp')}/claude-q-epoch/{SID}") else None, "reminded": hs.get("reminded"),
+    "epoch": open(f"{os.environ.get('TMPDIR', '/tmp')}/claude-qwreey-sessions-epoch/{SID}").read() if os.path.exists(f"{os.environ.get('TMPDIR', '/tmp')}/claude-qwreey-sessions-epoch/{SID}") else None, "reminded": hs.get("reminded"),
     "worker_sections": ws.get("sections"), "worker_cost_usd": ws.get("cost_usd"),
     "sessionend_flush_wall_s": int(tf),
     "bin_on_path": bash_out,

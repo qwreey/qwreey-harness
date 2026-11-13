@@ -80,7 +80,7 @@ def pending(count: int, oldest_date: str, oldest_days: int, trigger: str, strong
         head += (f"`session-log import` copies them verbatim into {home} "
                  "(no curation; each gets a snapshot header); `session-log dismiss <rid>...` drops them.")
     else:
-        head += ("No records home is set yet, so import will not run until the user picks one; see /q:import. "
+        head += ("No records home is set yet, so import will not run until the user picks one; see /qwreey-sessions:import. "
                  "`session-log dismiss <rid>...` drops them.")
     reason = REASONS.get(trigger, "")
     return head + (" " + reason if reason else "") + (" (Not blocking.)" if trigger == "commit" else "")
@@ -110,14 +110,14 @@ def handover_behind(sid8: str, when: str, end: int, total: int) -> str:
 
 def records_hint(store_records: str, home: str | None = None) -> str:
     where = f"{store_records}" + (f" or {home}" if home else "")
-    return f"Session records: {where}. They are snapshots; look things up with /q:recall instead of reading them here."
+    return f"Session records: {where}. They are snapshots; look things up with /qwreey-sessions:recall instead of reading them here."
 
 
 # ---- 기록을 읽을 때(PostToolUse Read, Grep) ----
 RECORD_READ = ("You read or searched session records. Records are snapshots of what was discussed then and may be stale: "
                "verify any decision or fact against current files and the git log before acting on it.")
 RECORD_READ_LARGE = ("This session record is large ({kb} KB) and was read without offset/limit. Records are snapshots and may be stale. "
-                     "Use /q:recall (subagents locate and summarize the needed sections), or search first (coderag global docs, or grep) "
+                     "Use /qwreey-sessions:recall (subagents locate and summarize the needed sections), or search first (coderag global docs, or grep) "
                      "and read only the needed section with offset/limit; verify what you rely on against current files and the git log.")
 
 

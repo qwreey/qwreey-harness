@@ -10,7 +10,7 @@
      서브에이전트의 Bash 에도 부모 세션의 CLAUDE_CODE_SESSION_ID 가 들어 있다(문서에 없는 동작이므로 없으면 --transcript 를 쓴다).
      → $CLAUDE_CONFIG_DIR(기본 ~/.claude)/projects/*/<UUID>.jsonl
 
-무엇을 '사용자 발언'으로 치나 (plugins/q/scripts/sllib/extract.py classify 와 같은 기준을 옮김):
+무엇을 '사용자 발언'으로 치나 (plugins/qwreey-sessions/scripts/sllib/extract.py classify 와 같은 기준을 옮김):
   - type=user, content 가 문자열, origin.kind 가 human 이거나 없음, isMeta/isCompactSummary 아님,
     '<command-…>', '<local-command…>', '<system-reminder>', '<task-notification>' 로 시작하지 않음
   - attachment.type=queued_command 이고 origin.kind=human  (작업 중에 끼워 넣은 지시. compact 에서 잘 사라진다)

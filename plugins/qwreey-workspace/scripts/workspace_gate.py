@@ -3,12 +3,12 @@
 
 규칙(사용자 CLAUDE.md): 이 세션의 저장소가 아닌 `HARNESS_WORKSPACE/<X>` 는 읽기 전용이고 고치기 전에 묻는다.
 - 쓰기(Edit|Write|MultiEdit|NotebookEdit, 쓰기로 분류된 Bash)가 형제 저장소를 건드리고, (세션, agent_id, compact 회차)에
-  q:workspace 스킬 로드 표시가 없으면 deny(level=action). PreToolUse additionalContext 는 도구가 실행된 뒤에 들어오므로
+  qwreey-workspace:workspace 스킬 로드 표시가 없으면 deny(level=action). PreToolUse additionalContext 는 도구가 실행된 뒤에 들어오므로
   알림만으로는 첫 쓰기를 막지 못한다(.claude/audit/31).
 - 읽기(Read|Grep|Glob, 그 밖의 Bash)는 compact 회차마다 한 번 warn 만 한다.
-- 로드 표시: PostToolUse(Skill) 의 tool_input.skill 이 `q:workspace`(플러그인 스킬은 `<플러그인>:<스킬>`, .claude/audit/31 probes.md §1),
+- 로드 표시: PostToolUse(Skill) 의 tool_input.skill 이 `qwreey-workspace:workspace`(플러그인 스킬은 `<플러그인>:<스킬>`, .claude/audit/31 probes.md §1),
   슬래시로 치면 UserPromptExpansion 의 command_name.
-- compact 회차: compact_epoch.py(q 자기 것, $TMPDIR/claude-q-epoch/<sid>)를 읽기만 한다. 올리는 쪽은 PreCompact 의 hook.py 다.
+- compact 회차: compact_epoch.py(qwreey-workspace 자기 것, $TMPDIR/claude-qwreey-workspace-epoch/<sid>)를 읽기만 한다. 올리는 쪽은 PreCompact 훅(compact_epoch.py qwreey-workspace)이다.
 - 예외는 통과(fail-open). deny 는 $TMPDIR/claude-workspace-gate/deny.log 에 남긴다.
 - 끄기: HARNESS_WORKSPACE_GATE=off(환경 변수 또는 harness.env), HARNESS_WORKSPACE 가 비어 있어도 꺼진다.
 """
@@ -34,11 +34,11 @@ DENY = ('<harness-hook name="workspace-gate" level="action">\n'
         "This changes the sibling repo `{x}`, which is outside this session's repo. Repos other than this session's are "
         "read-only unless the user approves a change; other sessions may be working there, and `.claude/worktrees/*` "
         "entries must not be deleted before checking the lock file and live sessions. "
-        "Load the q:workspace skill (Skill tool), then retry; if the user has not approved this change, ask first.\n"
+        "Load the qwreey-workspace:workspace skill (Skill tool), then retry; if the user has not approved this change, ask first.\n"
         "</harness-hook>")
 WARN = ('<harness-hook name="workspace-gate" level="warn">\n'
         "This touches the sibling repo `{x}`. Repos other than this session's are read-only unless the user approves a "
-        "change, and other sessions may be working there. The q:workspace skill lists the repos and has the live-session "
+        "change, and other sessions may be working there. The qwreey-workspace:workspace skill lists the repos and has the live-session "
         "check; load it before changing anything there.\n"
         "</harness-hook>")
 
@@ -48,7 +48,7 @@ def _sid(s) -> str:
 
 
 def _epoch(sid) -> int:
-    return compact_epoch.epoch("q", sid)
+    return compact_epoch.epoch("qwreey-workspace", sid)
 
 
 def state_file(data) -> str:

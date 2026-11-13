@@ -3,7 +3,7 @@ name: checkpoint
 description: Flush the automatic session log now (summarize everything since the last saved point), then show only the new open items and user directives, and draft /compact arguments from the record instead of from memory. Use before /compact, before a handover, or when the user asks to save/record the session.
 ---
 
-# /q:checkpoint — save the session log now
+# /qwreey-sessions:checkpoint — save the session log now
 
 The session-log hooks (part of the `q` plugin) summarize this session in the background on its own (PreCompact, SessionEnd, every ~20 min of growth).
 Use this skill when you want a checkpoint **now**.
@@ -22,4 +22,4 @@ Use this skill when you want a checkpoint **now**.
 
 Notes
 - Items marked `⚠원문 불일치` / `⚠근거 줄 다름` failed the mechanical check against the transcript. Check the cited `(L…)` line in the transcript before relying on them.
-- The record lives outside the repo until imported. To bring it into the repo, use /q:import.
+- The record lives outside the repo until imported. To bring it into the repo, use /qwreey-sessions:import.

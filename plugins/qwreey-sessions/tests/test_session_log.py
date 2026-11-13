@@ -352,7 +352,7 @@ class TestHooks(Env):
         self.assertIn("Session log for this session", ss)
         self.hook("PostCompact", self.payload(trigger="manual", compact_summary="SUMMARY"))
         hs = st.hstate(self.sid)
-        self.assertEqual((Path(os.environ["TMPDIR"]) / "claude-q-epoch" / self.sid).read_text(), "1")  # 한 compact 에 한 번만 오른다
+        self.assertEqual((Path(os.environ["TMPDIR"]) / "claude-qwreey-sessions-epoch" / self.sid).read_text(), "1")  # 한 compact 에 한 번만 오른다
         self.assertTrue((st.state / f"{self.sid}.compact-1.md").exists())
         c2 = self.ctx(self.hook("PreToolUse", self.payload(tool_name="Bash", tool_input={"command": "git commit -m z"})))
         self.assertIn("about to commit", c2)                # 새 회차라 commit 알림도 다시
@@ -493,7 +493,7 @@ class TestHooks(Env):
     def test_records_hint_mentions_recall(self):
         self.seed()
         out = self.ctx(self.hook("SessionStart", self.payload(source="startup")))
-        self.assertIn("/q:recall", out)
+        self.assertIn("/qwreey-sessions:recall", out)
         self.assertIn("snapshots", out)
 
 
@@ -527,8 +527,8 @@ class TestRecordsRead(Env):
         self.assertIn('level="info"', out)
         self.assertEqual(self.run_hook("Read", {"file_path": str(small)}), "")            # 같은 (세션, 회차)엔 한 번
         self.assertIn("snapshots", self.run_hook("Grep", {"path": str(recdir), "pattern": "x"}, agent="sub1"))  # 에이전트는 따로
-        self.assertIn("/q:recall", self.run_hook("Read", {"file_path": str(big)}))           # 큰 기록, 범위 없음
-        self.assertIn("/q:recall", self.run_hook("Read", {"file_path": str(big)}))           # 반복되면 다시
+        self.assertIn("/qwreey-sessions:recall", self.run_hook("Read", {"file_path": str(big)}))           # 큰 기록, 범위 없음
+        self.assertIn("/qwreey-sessions:recall", self.run_hook("Read", {"file_path": str(big)}))           # 반복되면 다시
         self.assertEqual(self.run_hook("Read", {"file_path": str(big), "limit": 50}, sid="r2") .count("large"), 0)  # 범위가 있으면 일반 안내
         # 다른 파일은 조용
         other = self.proj / "x.md"; other.write_text("z")
@@ -539,7 +539,7 @@ class TestRecordsRead(Env):
         f = self.proj / "docs/sessions/r.md"; f.write_text("q")
         self.assertIn("snapshots", self.run_hook("Read", {"file_path": str(f)}, sid="r3"))
         # compact 회차가 오르면 다시
-        subprocess.run([sys.executable, "-I", str(SCRIPTS / "compact_epoch.py"), "q"], input=json.dumps({"session_id": "r3"}),
+        subprocess.run([sys.executable, "-I", str(SCRIPTS / "compact_epoch.py"), "qwreey-sessions"], input=json.dumps({"session_id": "r3"}),
                        text=True, check=True, env=dict(os.environ))  # tempfile.gettempdir() 캐시를 피해 자식 프로세스에서 올린다
         self.assertIn("snapshots", self.run_hook("Read", {"file_path": str(f)}, sid="r3"))
 

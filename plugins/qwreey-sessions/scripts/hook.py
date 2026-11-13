@@ -29,7 +29,7 @@ from sllib.store import Store  # noqa: E402
 
 CLI = os.path.join(HERE, "cli.py")
 COMMIT_RX = re.compile(r"(^|[;&|(\s])git(\s+-[Cc]\s+\S+)*\s+commit\b")
-HANDOVER_RX = re.compile(r"^\s*/(?:q:)?(handover|checkpoint)\b|\b(handover|핸드오버|인계)\b", re.I)
+HANDOVER_RX = re.compile(r"^\s*/(?:qwreey-sessions:)?(handover|checkpoint)\b|\b(handover|핸드오버|인계)\b", re.I)
 
 
 def emit_context(event: str, parts: list[tuple[str, str]]) -> None:
@@ -51,7 +51,7 @@ def spawn_flush(store: Store, sid: str, transcript: str, trigger: str, force: bo
 # ---- compact 회차 ----
 def once(hs: dict, sid: str, trigger: str) -> bool:
     """(session, 회차, 트리거) 마다 한 번만 True."""
-    key = f"{trigger}@{compact_epoch.epoch('q', sid)}"
+    key = f"{trigger}@{compact_epoch.epoch('qwreey-sessions', sid)}"
     done = hs.setdefault("reminded", [])
     if key in done:
         return False
@@ -96,7 +96,7 @@ def main() -> None:
         return  # 서브에이전트 안의 훅은 무시
     if os.environ.get("SESSION_LOG_NESTED") or config.disabled() or config.skip_noninteractive():
         if event == "PreCompact":
-            compact_epoch.bump_for_precompact("q", data)
+            compact_epoch.bump_for_precompact("qwreey-sessions", data)
         return
     sid = data.get("session_id") or os.environ.get("CLAUDE_CODE_SESSION_ID") or ""
     if not sid:
@@ -152,7 +152,7 @@ def main() -> None:
         trig = data.get("trigger") or "auto"
         first = once(hs, sid, "precompact")  # 올리기 전 회차로 판단한다
         # 기록이나 요약이 실패해도 회차는 올라가야 하므로(ambient·workspace_gate 가 읽는다) 다른 일보다 먼저 올린다.
-        compact_epoch.bump("q", sid)
+        compact_epoch.bump("qwreey-sessions", sid)
         if transcript:
             store.ensure()
             spawn_flush(store, sid, transcript, f"PreCompact({trig})", True)
@@ -167,7 +167,7 @@ def main() -> None:
         summ = data.get("compact_summary")
         if summ:
             store.ensure()
-            (store.state / f"{sid}.compact-{compact_epoch.epoch('q', sid)}.md").write_text(summ, encoding="utf-8")
+            (store.state / f"{sid}.compact-{compact_epoch.epoch('qwreey-sessions', sid)}.md").write_text(summ, encoding="utf-8")
 
     elif event == "SessionEnd":
         if transcript:

@@ -100,7 +100,7 @@ PREFIX = {"(", "{", "time", "nice", "env", "command", "exec", "nohup", "sudo", "
 INPLACE = re.compile(r"\bsed\s+(-\S*\s+)*-i|\bperl\s+(-\S*\s+)*-\S*p\S*i|\bawk\s+-i\s+inplace|\bpatch\b|\bgit\s+apply\b")
 CODE_EXT = r"\.(luau|lua|py|ts|tsx|js|jsx|mjs|cjs|astro|vue|svelte|css|rs|go|json|toml|md|mdx|ya?ml|sh)"
 REDIRECT = re.compile(r"(?<![0-9&])>>?\s*['\"]?([^\s;|&'\"]+" + CODE_EXT + r")\b|\btee\s+(-a\s+)?['\"]?([^\s;|&'\"]+" + CODE_EXT + r")")
-# 인터프리터 스크립트가 쓰기를 한다는 신호(q 플러그인 scripts/wslib.py 의 SCRIPT_WRITE 와 같은 패턴. 서로 import 하지 않아 복사해 둔다).
+# 인터프리터 스크립트가 쓰기를 한다는 신호(qwreey-workspace 플러그인 scripts/wslib.py 의 SCRIPT_WRITE 와 같은 패턴. 서로 import 하지 않아 복사해 둔다).
 # 읽기만 하는 python3 heredoc 이나 테스트 실행에 warn 을 내면 무겁다
 SCRIPT_WRITE = re.compile(r"""['"][wa]\+?b?['"]|write|unlink|rmtree|rename|\.replace\(|copyfile|appendFile|\bmkdir""")
 PATHLIKE = re.compile(r"[\w./@-]+" + CODE_EXT + r"\b")

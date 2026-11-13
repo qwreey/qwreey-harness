@@ -17,7 +17,7 @@
 | G | Studio MCP 연결 | Roblox 작업자인데 Studio MCP 연결이 없을 때 | Roblox 작업자 |
 | H | 작업 전용 폴더·백업 습관 | 작업 폴더가 홈·바탕화면·다운로드이거나 git 이 아닐 때 | 비프로그래머 |
 | I | 권한 모드 확인 | `bypassPermissions` 이거나, 비프로그래머가 중요한 폴더에서 auto 로 일할 때 | 모두 |
-| J | 세션 기록(q 플러그인의 session-log 훅) | 개발자이고 한 일을 여러 세션에 걸쳐 할 때 | 개발자 |
+| J | 세션 기록(qwreey-sessions 플러그인의 session-log 훅) | 개발자이고 한 일을 여러 세션에 걸쳐 할 때 | 개발자 |
 
 ## A. 동의 원칙 넣기
 - 둘 중 **하나만** 고른다(둘 다 넣으면 같은 말이 두 번 읽힌다).
@@ -65,7 +65,7 @@
 - `bypassPermissions` 가 기본으로 잡혀 있으면 문제로 보고하고, 설정에서 지우거나 `auto`/`default` 로 바꾸는 안을 낸다(설정 변경, 동의 필수).
 - 비프로그래머에게는 "중요한 폴더에서는 `Shift+Tab` 으로 manual mode 로 바꿔 하나씩 확인" 을 안내만 한다.
 
-## J. 세션 기록 (q 플러그인에 들어 있음)
+## J. 세션 기록 (qwreey-sessions 플러그인)
 - 하는 일: 세션을 백그라운드에서 요약해 저장소 밖에 쌓고, 다음 세션에서 이어받게 한다.
 - 비용·주의: 요약에 별도 모델 호출(haiku)이 든다. 기록은 이 컴퓨터에 남는다.
-- 명령(동의 후): q 가 이미 설치돼 있으면 따로 깔 것이 없다(훅은 q 가 켜져 있으면 돈다). 끄려면 환경 변수 `SESSION_LOG_DISABLE=1`. q 가 없으면 `claude plugin marketplace add <claude-doctor 저장소 주소>` → `claude plugin install q@claude-doctor-market`
+- 명령(동의 후): qwreey-sessions 가 이미 켜져 있으면 따로 깔 것이 없다. 끄려면 환경 변수 `SESSION_LOG_DISABLE=1` 이나 `claude plugin disable qwreey-sessions@claude-doctor-market`. 없으면 `claude plugin marketplace add <claude-doctor 저장소 주소>` → `claude plugin install qwreey-sessions@claude-doctor-market`

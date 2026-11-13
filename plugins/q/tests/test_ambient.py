@@ -70,7 +70,6 @@ class T(unittest.TestCase):
         d = Path(self.tmp) / "plug"
         (d / "scripts").mkdir(parents=True)
         shutil.copy(SCRIPT, d / "scripts" / "ambient.py")
-        shutil.copy(ROOT / "scripts" / "wslib.py", d / "scripts" / "wslib.py")
         shutil.copy(ROOT / "scripts" / "compact_epoch.py", d / "scripts" / "compact_epoch.py")
         for ev in ("SessionStart", "SubagentStart", "UserPromptSubmit"):
             self.assertIsNone(self.run_hook(ev, script=d / "scripts" / "ambient.py"))

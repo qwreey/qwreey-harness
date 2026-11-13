@@ -15,7 +15,7 @@ SUFFIX = {".py", ".sh", ".luau", ".lua", ".ts", ".js", ".mjs", ".rs", ".toml"}
 MARK = re.compile(r"@copy-of:\s*(\S+)")
 # 사본이 있어야 하는 곳(없으면 실패): 지워지거나 옮겨진 사본을 알아채려고 둔다. 키는 원본 경로.
 EXPECTED = {
-    "plugins/q/scripts/compact_epoch.py": ["plugins/qwreey-advisor/hooks/compact_epoch.py", "plugins/qwreey-conventions/hooks/compact_epoch.py"],
+    "plugins/q/scripts/compact_epoch.py": ["plugins/qwreey-advisor/hooks/compact_epoch.py", "plugins/qwreey-conventions/hooks/compact_epoch.py", "plugins/qwreey-sessions/scripts/compact_epoch.py", "plugins/qwreey-workspace/scripts/compact_epoch.py"],
     "plugins/qwreey-conventions/hooks/memory_signals.py": ["plugins/q/skills/doctor/scripts/memory_signals.py"],
 }
 

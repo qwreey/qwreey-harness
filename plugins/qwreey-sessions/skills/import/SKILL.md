@@ -3,7 +3,7 @@ name: import
 description: Copy pending auto-summarized session records into this repo's records home, or dismiss them. Use when a session-log notice says records are pending (it also fires before a commit), or when the user asks to import or clean up session records.
 ---
 
-# /q:import - move pending session records into the repo
+# /qwreey-sessions:import - move pending session records into the repo
 
 Records are snapshots and are copied verbatim (plus a two-line header). No curation, no rewriting.
 

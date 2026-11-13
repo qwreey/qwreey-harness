@@ -3,7 +3,7 @@ name: recall
 description: Find what earlier sessions discussed or decided, from the saved session records and the repo .claude records (including superseded, rejected and archived ones). Use for "what did we decide before", "what problem did we have with X", "why was X decided or changed", "find the earlier discussion of Y". Not for facts that git log or the current files answer. 전에 뭐라고 정했지, 예전 논의 찾기, 그때 무슨 문제였지, 왜 이렇게 정했지.
 ---
 
-# /q:recall - look things up in session records
+# /qwreey-sessions:recall - look things up in session records
 
 Records are **snapshots** of what was discussed at that time. They may be stale; reading them is slow and heavy, so do it only for a specific need, and never read whole records in the main session.
 

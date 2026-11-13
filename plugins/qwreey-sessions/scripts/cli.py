@@ -6,7 +6,7 @@
   session-log import [rid…] [--to DIR] [--force]  대기 기록(rid 생략 시 전부)을 보관 폴더로 그대로 복사하고 imported 로 표시. 머리말 두 줄만 붙는다
   session-log home [PATH | --archive-only | --unset]  저장소 보관 폴더 보기·저장(.claude/session-log.json, 커밋해 공유)
   session-log dismiss <rid…> [--reason TEXT]    고르지 않은 기록을 dismissed 로
-  session-log flush [--session SID] [--transcript P] [--trigger T] [--force] [--wait]   지금 요약(수동 /q:checkpoint)
+  session-log flush [--session SID] [--transcript P] [--trigger T] [--force] [--wait]   지금 요약(수동 /qwreey-sessions:checkpoint)
   session-log status                            저장소 위치·세션별 상태·최근 오류
   session-log brief precompact|handover [--session SID]   주입 문자열 미리 보기
   session-log backfill --plan plan.json [--budget USD] [--dry-run]   남은 트랜스크립트 소급 요약

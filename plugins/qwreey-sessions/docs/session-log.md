@@ -1,12 +1,12 @@
 ---
-title: session-log 훅과 /q:checkpoint·/q:import (q 플러그인) — 세션 기록 자동화
-description: 훅이 트랜스크립트를 분리 프로세스에서 증분 요약하고 원문과 기계 대조해 저장소 밖 외부 저장소에 coderag 기록으로 남긴다. 저장소 메인 에이전트가 /q:import 로 받아 간다
-keywords: [session-log, 세션 기록, PreCompact, SessionStart, handover, q:import, q:checkpoint, haiku, 외부 저장소, pending]
+title: session-log 훅과 /qwreey-sessions:checkpoint·/qwreey-sessions:import (qwreey-sessions 플러그인) — 세션 기록 자동화
+description: 훅이 트랜스크립트를 분리 프로세스에서 증분 요약하고 원문과 기계 대조해 저장소 밖 외부 저장소에 coderag 기록으로 남긴다. 저장소 메인 에이전트가 /qwreey-sessions:import 로 받아 간다
+keywords: [session-log, 세션 기록, PreCompact, SessionStart, handover, qwreey-sessions:import, qwreey-sessions:checkpoint, haiku, 외부 저장소, pending]
 kind: reference
 status: active
 last_verified: 2026-11-10
 ---
-# session-log 훅 (q 플러그인)
+# session-log 훅 (qwreey-sessions 플러그인)
 
 메인 세션이 아무것도 하지 않아도 세션 기록이 남게 한다. 설계 근거는 `.claude/archive/research/drafts/session-log/DESIGN.md`, 조사·실측은 `.claude/audit/15-session-log.md`.
 
@@ -19,7 +19,7 @@ last_verified: 2026-11-10
    - 원문에 없는 인용은 **뺀다**. 원문에 없는 숫자는 `⚠원문 불일치`, 근거 줄이 틀리면 `⚠근거 줄 다름` 을 붙인다.
    - 합계는 frontmatter `verify:` 에 남는다.
 4. **외부 저장소**에 절을 덧붙인다. 저장소 안에는 아무것도 쓰지 않는다.
-5. 다음 훅 기회에 메인 세션에 알린다. 저장소의 메인 에이전트가 `/q:import` 로 골라 받아 가고, 커밋은 그 에이전트가 한다.
+5. 다음 훅 기회에 메인 세션에 알린다. 저장소의 메인 에이전트가 `/qwreey-sessions:import` 로 골라 받아 가고, 커밋은 그 에이전트가 한다.
 
 ## 외부 저장소
 `${SESSION_LOG_HOME:-${XDG_DATA_HOME:-~/.local/share}/session-log}/<project-key>/`
@@ -47,12 +47,12 @@ index.json                         rid → pending | imported(위치, 커밋) | 
 | 세션 시작 | SessionStart | info / warn·action (level 마다 태그 하나) | 인계(startup·clear 만, 직전 다른 세션의 미해결, ≤800자; resume 은 맥락이 복원되므로 없음. 기록이 트랜스크립트보다 `SESSION_LOG_HANDOVER_LAG_LINES` 넘게 뒤처졌으면 항목 대신 "뒤처짐" 한 줄, 트랜스크립트가 `SESSION_LOG_HANDOVER_LIVE_MIN` 분 안에 바뀐 세션은 아직 일하는 중이라 생략) + pending + 찾는 법 한 줄 |
 | compact 뒤 | SessionStart(compact) | info / warn | 이 세션 기록 경로 + pending(새 회차라 다시) |
 | commit 직전 | PreToolUse(Bash, `git … commit`) | warn | pending 과 정확한 명령 `session-log import`(막지 않음) |
-| 인계·정리 | UserPromptSubmit(`/handover`·`/q:checkpoint`·인계 낱말), PreToolUse(Skill handover) | info·warn | pending |
-| 기록을 읽음 | PostToolUse(Read·Grep, `records_read.py`) | info | 스냅샷이니 현재 파일·git log 로 확인하라는 한 줄(세션·에이전트·compact 회차마다 한 번). 큰 기록(`SESSION_LOG_READ_WARN_KB`, 16KB 초과)을 offset·limit 없이 읽으면 `/q:recall` 이나 검색 먼저 안내(그때마다) |
+| 인계·정리 | UserPromptSubmit(`/handover`·`/qwreey-sessions:checkpoint`·인계 낱말), PreToolUse(Skill handover) | info·warn | pending |
+| 기록을 읽음 | PostToolUse(Read·Grep, `records_read.py`) | info | 스냅샷이니 현재 파일·git log 로 확인하라는 한 줄(세션·에이전트·compact 회차마다 한 번). 큰 기록(`SESSION_LOG_READ_WARN_KB`, 16KB 초과)을 offset·limit 없이 읽으면 `/qwreey-sessions:recall` 이나 검색 먼저 안내(그때마다) |
 | compact 직전 | PreCompact(manual·auto) stdout | warn | 상기: 사용자 지시 원문, 아직 기록 안 된 최근 사용자 발언, 결정, 미해결, 끝난 일, 기록 경로 |
 
 - dedup 단위는 **(session_id, compact 회차, 트리거)** 다.
-  - 회차는 q 자기 것(`scripts/compact_epoch.py`, `$TMPDIR/claude-q-epoch/<sid>`)이고 hook.py 가 PreCompact 에서 올린다. PreCompact 는 SessionStart(compact)·PostCompact 보다 먼저라 읽는 훅(ambient·workspace_gate 포함)이 항상 올라간 값을 본다. 취소된 compact 는 알림을 한 번 더 낼 뿐이다.
+  - 회차는 qwreey-sessions 자기 것(`scripts/compact_epoch.py`, `$TMPDIR/claude-qwreey-sessions-epoch/<sid>`)이고 hook.py 가 PreCompact 에서 올린다. PreCompact 는 SessionStart(compact)·PostCompact 보다 먼저라 읽는 훅(records_read 포함)이 항상 올라간 값을 본다. 취소된 compact 는 알림을 한 번 더 낼 뿐이다.
   - 같은 모듈의 사본이 qwreey-advisor·qwreey-conventions 에 있고(정본은 q, 테스트가 바이트 동일성을 검사), 각자 자기 회차를 올린다. 하네스가 없어도 돈다.
 - pending 알림 level (action 은 쓰지 않는다: import 는 명령 하나라 막고 물을 일이 아니다)
   - 보관 위치 설정됨: 평소 info, commit 직전이거나 `SESSION_LOG_PENDING_STRONG_COUNT`(5)개·`…_DAYS`(7)일 이상이면 warn. 내용은 `session-log import` 한 줄.
@@ -74,7 +74,7 @@ session-log home [PATH | --archive-only | --unset]   # 저장소 보관 폴더 �
 session-log pending                     # rid  ~토큰  절 수  생성일  [⚠대조 실패] + 요약 한 줄
 session-log show <rid> [--section N]
 session-log status                      # 세션별 오프셋·비용·실패, imported 기록의 커밋
-session-log flush [--force] [--wait]    # 지금 요약(/q:checkpoint)
+session-log flush [--force] [--wait]    # 지금 요약(/qwreey-sessions:checkpoint)
 session-log backfill --plan plan.json [--budget 4] [--dry-run]
 ```
 - 보관 위치는 저장소의 `.claude/session-log.json` 이다: `{"records_home": "docs/sessions"}` 또는 `{"archive_only": true}`. 커밋하면 동료가 같은 위치를 쓴다. 외부 저장소 `project.json` 은 기계마다 달라 공유가 안 되고, `.claude/conventions.json` 은 qwreey-conventions 의 스키마라 q 전용 파일로 나눴다.
@@ -82,7 +82,7 @@ session-log backfill --plan plan.json [--budget 4] [--dry-run]
 - 복사본은 frontmatter 바로 뒤에 두 줄 머리말(세션 id, 덮는 기간, 원본 트랜스크립트, "스냅샷이라 낡았을 수 있으니 현재 파일·git log 로 확인")만 붙고 본문은 그대로다.
 - 가져간 뒤 새 절이 붙으면 다시 pending 이 되고, 다음 import 가 같은 파일을 늘어난 판으로 덮는다.
 - `bin/session-log` 이 PATH 에 없으면 `"${CLAUDE_PLUGIN_ROOT}/bin/session-log"` 로 부른다.
-- 스킬: `/q:import`(한 줄 import, 위치 없으면 사용자에게 한 번 묻기), `/q:recall`(옛 논의 찾기: haiku 가 위치만 찾고 sonnet 이 그 절만 읽어 요약하며 현재 상태와 대조, 메인이 행동 전에 검증), `/q:checkpoint`(지금 flush 하고 새 미해결·지시만 본다).
+- 스킬: `/qwreey-sessions:import`(한 줄 import, 위치 없으면 사용자에게 한 번 묻기), `/qwreey-sessions:recall`(옛 논의 찾기: haiku 가 위치만 찾고 sonnet 이 그 절만 읽어 요약하며 현재 상태와 대조, 메인이 행동 전에 검증), `/qwreey-sessions:checkpoint`(지금 flush 하고 새 미해결·지시만 본다).
 
 ## 설정
 우선순위는 환경 변수 > `harness.env`(`$HARNESS_ENV` → `$CLAUDE_CONFIG_DIR/harness.env` → `~/.claude/harness.env`, `SESSION_LOG_*` 키만) > 기본값이다. 목록과 기본값은 `scripts/sllib/config.py` `DEFAULTS` 에 있다.
@@ -101,5 +101,5 @@ session-log backfill --plan plan.json [--budget 4] [--dry-run]
 - 경로를 하드코딩하지 않는다. 트랜스크립트는 stdin `transcript_path` 로 받는다. 소급(backfill)만 `${CLAUDE_CONFIG_DIR:-~/.claude}/projects` 를 본다.
 
 ## 테스트
-- `python3 -I plugins/q/tests/test_session_log.py`: 단위 테스트. 가짜 `claude`(`plugins/q/tests/fake_claude.py`)를 쓰고 비용은 0이다.
-- `plugins/q/tests/e2e.sh [--auto-compact]`: 임시 git 프로젝트에서 `claude -p --plugin-dir` 로 실제 훅과 haiku 를 돌린다. 결과는 `$T/report.json` 에 남는다. 모델이 실제로 본 문자열은 e2e 세션 트랜스크립트에서 뽑는다.
+- `python3 -I plugins/qwreey-sessions/tests/test_session_log.py`: 단위 테스트. 가짜 `claude`(`plugins/qwreey-sessions/tests/fixtures/fake_claude.py`)를 쓰고 비용은 0이다.
+- `plugins/qwreey-sessions/tests/e2e.sh [--auto-compact]`: 임시 git 프로젝트에서 `claude -p --plugin-dir` 로 실제 훅과 haiku 를 돌린다. 결과는 `$T/report.json` 에 남는다. 모델이 실제로 본 문자열은 e2e 세션 트랜스크립트에서 뽑는다.

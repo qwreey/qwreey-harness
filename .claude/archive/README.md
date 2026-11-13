@@ -1,6 +1,6 @@
 # archive
 
-Living records that left active (no longer a current source) at their original subpath. Hidden from default coderag search; `q:recall` and `--all` include them.
+Living records that left active (no longer a current source) at their original subpath. Hidden from default coderag search; `qwreey-sessions:recall` and `--all` include them.
 - [research/drafts/hooks/](research/drafts/hooks/) - hook drafts, landed in home/ and plugins
 - [research/drafts/second-opinion/](research/drafts/second-opinion/) - second-opinion plugin draft, landed in qwreey-advisor
 - [research/drafts/session-log/](research/drafts/session-log/) - session-log design and backfill, landed in plugins/q

@@ -9,7 +9,7 @@
     {
       "name": "q",
       "source": "./plugins/q",
-      "description": "사람이 직접 치는 하네스 명령 모음(/q: 만 치면 전부 나온다): /q:start 온보딩, /q:doctor 하네스 진단, /q:away·/q:back 자리 비움 예산, /q:checkpoint·/q:import 세션 기록. 세션 기록 훅(분리 프로세스 요약, 저장소 밖 보관), 서브에이전트 고지·슬롯 훅(/q:away 예산)과 statusline 이 읽는 원장도 포함"
+      "description": "사람이 직접 치는 하네스 명령과 개인 안전장치(/q: 만 치면 전부 나온다): /q:start 온보딩, /q:doctor 하네스 진단, /q:away·/q:back 자리 비움 예산. 서브에이전트 고지·슬롯 훅(/q:away 예산)과 statusline 이 읽는 원장, 설치 어긋남·방치 작업 알림 포함. 세션 기록은 qwreey-sessions, 형제 저장소 게이트는 qwreey-workspace"
     },
     {
       "name": "qwreey-advisor",
@@ -45,6 +45,16 @@
       "name": "qwreey-delegate",
       "source": "./plugins/qwreey-delegate",
       "description": "다른 모델 계열(Gemini agy, OpenAI codex)에게 좁은 질문(근본 원인, 틀 밖 시선, 작명 객관성)을 격리 worktree 에서 맡기는 스킬 qwreey-delegate:delegate. Linux 전용(setpriv, uid 격리, choom)이며 agy·codex CLI 와 각자 구독이 필요하다"
+    },
+    {
+      "name": "qwreey-sessions",
+      "source": "./plugins/qwreey-sessions",
+      "description": "세션 기록 자동화: 훅이 트랜스크립트를 분리 프로세스에서 증분 요약해 저장소 밖에 기록하고(PreCompact 상기, SessionStart 인계, pending 알림), 스킬 qwreey-sessions:checkpoint·import·recall 로 저장·가져오기·옛 논의 찾기. 요약은 백그라운드 haiku 호출이라 비용이 든다. Linux·macOS 전용(fcntl)"
+    },
+    {
+      "name": "qwreey-workspace",
+      "source": "./plugins/qwreey-workspace",
+      "description": "HARNESS_WORKSPACE 의 형제 저장소를 읽기 전용으로 지키는 게이트(스킬 qwreey-workspace:workspace 를 로드하기 전까지 쓰기 거절)와 저장소 지도·살아 있는 세션·worktree 잠금 확인 스킬. 훅은 순수 Python, 스킬의 세션 확인은 Linux /proc·macOS lsof"
     }
   ]
 }
