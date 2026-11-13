@@ -9,6 +9,7 @@
 - `PreCompact`(manual·auto) → `hooks/ambient.py PreCompact`: 요약기에게 `Omit the <plugin name="qwreey-operator"> block from the summary; it is re-injected after compaction.` 한 줄을 일반 stdout 으로 낸다. compact 뒤에 다시 넣으므로 요약에 남은 사본은 중복이다. 서브에이전트의 compact(`agent_id` 있음)와 규약 파일이 없을 때는 내지 않는다.
 - `SessionStart` 는 메인 세션에만 불리고 `SubagentStart` 는 등록하지 않았다. 그래서 수행자 서브에이전트에는 이 규약이 실리지 않는다.
 - 파일이 없거나 읽기에 실패하면 아무것도 내지 않는다. 크기는 약 2KB(약 550 토큰).
+- `hooks/ambient.py` 은 저장소 `lib/ambient.py` 의 바이트 사본이다(고치지 말고 정본을 고친 뒤 `python3 -I tools/sync-copies.py --apply`). 플러그인마다 다른 것은 `context/ambient.json`(`plugin`, `events`)에 둔다. 끄기 스위치는 없다. SessionStart 훅은 인자 없이 불리므로 이벤트는 입력의 `hook_event_name` 으로 정해진다.
 
 ### 규약 다섯 줄의 내용
 1. 넘길 경계: 코드 파일 3개 이상, 새 줄 약 150 이상, 다른 코드·문서를 많이 읽는 구현은 백그라운드 서브에이전트(fork 가 아닌 새 에이전트)로. 설계가 정해져 파일이나 구조화된 지시문으로 적힌 뒤에 넘긴다. 설계가 가능한지 판가름하는 프로브는 메인이 사용자와 한다(시험 대상이 메인의 가정이라서). 작은 수정, 방금 내린 결정, 문서·설정, 중간에 사용자 답이 필요한 일도 메인에 둔다.

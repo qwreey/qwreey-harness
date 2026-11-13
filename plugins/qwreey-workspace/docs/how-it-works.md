@@ -13,6 +13,7 @@
 - 서브에이전트에도 싣는 이유: 게이트가 서브에이전트의 쓰기도 막으므로 규약을 알아야 한다. fork(`agent_type == "fork"`)는 부모 맥락을 물려받으므로 건너뛴다.
 - 블록과 게이트의 태그 끝에 이 세션의 `nonce="…"` 속성을 달고, 같은 이벤트의 규칙 줄을 이 훅이 먼저 맡으면 블록 맨 앞에 싣는다(`scripts/harness_nonce.py`, 규약은 `home/.claude/HOOK-MESSAGES.md` 2번).
 - `PreCompact`(manual·auto) → `scripts/ambient.py PreCompact`: 요약기에게 `Omit the <plugin name="qwreey-workspace"> block from the summary; it is re-injected after compaction.` 한 줄을 일반 stdout 으로 낸다. SessionStart(compact) 가 다시 실으므로 요약에 남은 사본은 중복이다. 서브에이전트의 compact(`agent_id` 있음)와 규약 파일이 없을 때는 내지 않는다.
+- `scripts/ambient.py` 은 저장소 `lib/ambient.py` 의 바이트 사본이다(고치지 말고 정본을 고친 뒤 `python3 -I tools/sync-copies.py --apply`). 플러그인마다 다른 것은 `context/ambient.json`(`plugin`, `events`)에 둔다. 끄기 스위치는 없다.
 
 ## 게이트
 - 훅: `PreToolUse`(matcher `Edit|Write|MultiEdit|NotebookEdit|Read|Grep|Glob|Bash`).

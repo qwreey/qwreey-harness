@@ -18,6 +18,7 @@
 - SessionStart 는 메인에, SubagentStart 는 서브에이전트에 싣는다. fork 는 부모 맥락을 물려받으므로 건너뛴다.
 - UserPromptSubmit 은 세션 중간에 플러그인을 켠 경우의 보충으로, (세션, compact 회차)당 한 번만 싣는다.
 - 끄기: `HARNESS_Q_AMBIENT=off`(환경 변수 또는 harness.env).
+- `scripts/ambient.py` 은 저장소 `lib/ambient.py` 의 바이트 사본이다(고치지 말고 정본을 고친 뒤 `python3 -I tools/sync-copies.py --apply`). 플러그인마다 다른 것은 `context/ambient.json`(`plugin`, `events`, `off_switch`, `epoch`)에 둔다. 서브에이전트에 다른 글을 실으려면 `context/subagent.md` 를 둔다(없으면 `ambient.md`).
 
 ## 서브에이전트 규모 고지와 away (`subagent-slots.py`, 원장 `subagent_ledger.py`)
 - 평소(attended): 막지 않는다. 이 호출로 동시 실행이 `HARNESS_FANOUT_WARN_CONCURRENT`(기본 4)개 이상, opus 이상이 `HARNESS_FANOUT_WARN_BIG`(기본 2)개 이상, 또는 Workflow 호출(`HARNESS_FANOUT_WARN_WORKFLOW=on`)이면 "사용자에게 규모를 알리라" 는 warn 을 낸다. 팬아웃 한 묶음(실행 중 0 에서 다시 0 이 될 때까지)과 compact 회차마다 한 번.

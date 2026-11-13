@@ -11,7 +11,7 @@ User-invoked commands (`/q:start`, `/q:doctor`, `/q:away`, `/q:back`) plus alway
 Run each `tests/test*.py` and `skills/doctor/tests/*.py` with `python3 -I` (exit 0 = pass, no model calls). Cross-plugin copy checks: `python3 -I tools/tests/test-vendored-copies.py` from the repo root.
 
 ## Rules for this plugin
-- `scripts/harness_nonce.py`, `scripts/compact_epoch.py` and `skills/doctor/scripts/memory_signals.py` are byte copies of the repo's `lib/`. Edit the canon in `lib/`, then run `python3 -I tools/sync-copies.py --apply`; never edit the copies here.
+- `scripts/ambient.py`, `scripts/harness_nonce.py`, `scripts/compact_epoch.py` and `skills/doctor/scripts/memory_signals.py` are byte copies of the repo's `lib/`. Edit the canon in `lib/`, then run `python3 -I tools/sync-copies.py --apply`; never edit the copies here. Ambient settings (events, off switch, epoch) live in `context/ambient.json`.
 - `context/ambient.md` is wording the user approved and other plugins' hook messages rely on it (`home/.claude/HOOK-MESSAGES.md` rule 3); propose changes, do not rewrite it on your own.
 - The marketplace is a directory source, so installed hooks run live from this folder. Do not move, rename or delete hook scripts while the plugin is enabled.
 - Model-facing hook text follows `home/.claude/HOOK-MESSAGES.md`: English, `<harness-hook ...>` with the session nonce. User-facing lines (`systemMessage`) are Korean.

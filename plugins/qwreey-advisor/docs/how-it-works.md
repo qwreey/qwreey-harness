@@ -21,6 +21,8 @@
 | PreToolUse(Bash·ExitPlanMode), PostToolUseFailure, SubagentStop(리뷰어), Stop | `second-opinion-nudge.py` | 검토 시점 알림(아래) |
 | PreToolUse(Agent·Task) | `expand-inherit-prompt.py`, `track-reviewer.py` | fork 표지 펼치기, 리뷰어 호출 표시 |
 
+`hooks/ambient.py` 은 저장소 `lib/ambient.py` 의 바이트 사본이다(고치지 말고 정본을 고친 뒤 `python3 -I tools/sync-copies.py --apply`). 플러그인마다 다른 것은 `context/ambient.json`(`plugin`, `events`, `off_switch`, `epoch`)에 둔다. 끄기: `HARNESS_QWREEY_ADVISOR_AMBIENT=off`(환경 변수 또는 harness.env).
+
 플러그인 에이전트는 frontmatter 의 `hooks`·`permissionMode`·`mcpServers` 를 무시한다. 그래서 가드는 에이전트 파일이 아니라 `hooks/hooks.json` 에 걸고 `agent_type` 으로 리뷰어만 고른다.
 
 ## 검토 시점 알림 (`second-opinion-nudge.py`)

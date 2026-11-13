@@ -1,0 +1,6 @@
+{
+  "plugin": "q",
+  "events": ["SessionStart", "SubagentStart", "UserPromptSubmit", "PreCompact"],
+  "off_switch": "HARNESS_Q_AMBIENT",
+  "epoch": "q"
+}

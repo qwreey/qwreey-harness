@@ -1,0 +1,6 @@
+{
+  "plugin": "qwreey-advisor",
+  "events": ["SessionStart", "UserPromptSubmit", "PreCompact"],
+  "off_switch": "HARNESS_QWREEY_ADVISOR_AMBIENT",
+  "epoch": "qwreey-advisor"
+}

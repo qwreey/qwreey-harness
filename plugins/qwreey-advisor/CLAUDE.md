@@ -11,7 +11,7 @@ Self-review plugin: skills `inherit-advisor` (fork) and `fresh-advisor` (fresh r
 Run each file under `tests/` with `python3 -I`; exit 0 means pass, no model calls. Cross-plugin copy checks: `python3 -I tools/tests/test-vendored-copies.py` from the repo root.
 
 ## Rules for this plugin
-- `hooks/harness_nonce.py` and `hooks/compact_epoch.py` are byte copies of the repo's `lib/`. Edit the canon in `lib/`, then run `python3 -I tools/sync-copies.py --apply`; never edit the copies here. `OMIT_LINE` in `ambient.py` is the same sentence as in the other plugins' ambient hooks; `tools/tests/test-vendored-copies.py` compares them.
+- `hooks/ambient.py`, `hooks/harness_nonce.py` and `hooks/compact_epoch.py` are byte copies of the repo's `lib/`. Edit the canon in `lib/`, then run `python3 -I tools/sync-copies.py --apply`; never edit the copies here. Ambient settings (events, off switch, epoch) live in `context/ambient.json`.
 - The marketplace is a directory source, so installed hooks run live from this folder. Do not move, rename or delete hook scripts while the plugin is enabled; a missing script breaks every session's hook.
 - Model-facing hook text (additionalContext, deny reasons) follows `home/.claude/HOOK-MESSAGES.md`: English, wrapped in `<harness-hook ...>` with the session nonce.
 - Plugin agents ignore frontmatter `hooks`, so the reviewer guard must stay in `hooks/hooks.json`, selected by `agent_type`.

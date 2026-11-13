@@ -1,0 +1,4 @@
+{
+  "plugin": "qwreey-workspace",
+  "events": ["SessionStart", "SubagentStart", "PreCompact"]
+}
