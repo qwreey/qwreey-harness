@@ -1,7 +1,7 @@
 ---
 format: 1
 title: delegate 를 root 없이 macOS·Windows·Linux 에서 돌리는 방안
-description: codex 는 exec + 권한 프로필과 작업별 CODEX_HOME 으로 root 없이 가능(OS 샌드박스가 있는 곳). agy 는 ACP 권한 응답이 셸 명령만 묻고 파일 읽기·쓰기는 워크스페이스 밖이어도 묻지 않아(실측), OS 격리 없이는 격리되지 않는다
+description: codex 는 exec+권한 프로필·작업별 CODEX_HOME 으로 root 없이 가능(OS 샌드박스 있을 때). agy ACP 는 파일 도구를 묻지 않고 settings permissions deny·ask 도 무시(실측). 격리 없으면 기본은 읽기 전용 의견(empty)
 status: active
 ---
 # delegate 이식성 조사
@@ -27,7 +27,7 @@ status: active
 
 ## 권장 설계(root 불필요)
 - codex: 작업별 `CODEX_HOME`(auth.json 사본 + 위 프로필), 워크스페이스 = worktree, 메인 `.git` 읽기만, 네트워크 끔, `--disable apps,browser_use,computer_use,plugins`(기본 켜짐[실행]), `exec -o … --json`.
-- agy: ACP 클라이언트로. accept-edits, `toolPermission: proceed-in-sandbox`, deny `write_file`(메인 저장소)·`read_file(~)`·`read_url(*)`. 권한 요청은 worktree 안 편집만 허가. OS 샌드박스가 없으면 명령 요청을 전부 거절하는 셸 없는 모드(codex `empty` 에 해당).
+- agy: ACP 클라이언트로. accept-edits, `toolPermission: proceed-in-sandbox`, deny `write_file`(메인 저장소)·`read_file(~)`·`read_url(*)`(실측: ACP 에서는 이 규칙이 듣지 않는다, 아래). 권한 요청은 worktree 안 편집만 허가. OS 샌드박스가 없으면 명령 요청을 전부 거절하는 셸 없는 모드(codex `empty` 에 해당).
 - 잃는 것: 에이전트 프로세스는 사용자 권한이라 HOME 비밀·대화 기록·Keychain 은 정책 코드로만 막힌다. 저장소별 uid 분리와 `choom` 은 Linux 선택 강화층(root 있을 때 `setpriv`·`choom` 덧씌움)으로.
 - 유지: pre-push 거부 훅(`GIT_CONFIG_*`), 실행 전후 HEAD 비교.
 - 드라이버: `delegate.sh` 를 Python 하나로(`run/collect/remove/list/gc/doctor`, 상태 `.delegate/state.json`, `O_EXCL` 잠금, timeout, agy 는 ACP 루프). `doctor` 는 모델 호출 없이 `codex sandbox -P deleg -C <wt> -- cat ~/.ssh/...`·밖 쓰기·`git push` 실패와 agy OS·userns 를 검사.
@@ -49,5 +49,25 @@ status: active
 - 시작 로그에 `Terminal sandbox unavailable: unprivileged user namespaces are disabled` 를 찍고 경고 없이 계속한다.
 - 인증: 빈 `--gemini-dir` 는 `Authentication required`. `<gemini-dir>/antigravity-cli/antigravity-oauth-token` 하나만 복사하면 된다(D-Bus 없음, 파일 저장소). `--app-data-dir` 는 상대 이름만. `--gemini-dir` 를 따로 줘도 `$HOME/.config/antigravity/plugin-secrets.json` 은 읽는다.
 - 비용: flash-low 6턴, 턴당 6-17초, 합계 약 14.5만 토큰.
-- 결론: OS 격리(uid 분리, 컨테이너, OS 샌드박스)가 없으면 agy 는 ACP 만으로 격리되지 않는다. 위 "권장 설계"의 agy 항목(worktree 안 편집만 허가)은 이 호스트에서 성립하지 않는다. OS 샌드박스가 있는 macOS·Windows·userns 켜진 Linux 에서 파일 도구도 막히는지는 아직 모른다. 남은 후보: settings `permissions.deny/ask`(`read_file()`/`write_file()`) 가 ACP 에서 요청·거부로 이어지는지(모델 호출 1회), 이것도 프로세스 안 정책.
+- 결론: OS 격리(uid 분리, 컨테이너, OS 샌드박스)가 없으면 agy 는 ACP 만으로 격리되지 않는다. 위 "권장 설계"의 agy 항목(worktree 안 편집만 허가)은 이 호스트에서 성립하지 않는다. OS 샌드박스가 있는 macOS·Windows·userns 켜진 Linux 에서 파일 도구도 막히는지는 아직 모른다.
 - 클라이언트와 로그: `/tmp/acpprobe-1/client/acp_client.py`, `/tmp/acpprobe-1/log.jsonl`.
+
+### settings `permissions` 규칙 (agy 1.5.8, ACP)
+- 배치: `--gemini-dir <d>` 의 `<d>/antigravity-cli/settings.json`(문서상 CLI 전역 위치, CLI 에는 저장소 단위 settings.json 이 없다). 규칙은 문서 문법대로 `ask: ["read_file(/tmp/acpprobe-2/outside)"]`, `deny: ["write_file(/tmp/acpprobe-2/outside)"]`(절대 경로, 디렉터리는 하위 전체). Popen cwd = worktree, flash-low 1턴, 파일 도구로 `outside/secret.txt` 읽기와 줄 추가를 지시.
+- 서버는 이 파일을 읽는다: 깨진 JSON 이면 `Failed to load CLI settings, using defaults: malformed settings json`, `enableTerminalSandbox: "zz"` 면 타입 오류를 찍는다(모델 호출 없이 확인). 그런데 `"permissions": "x"` 는 아무 오류 없이 넘어간다. ACP 의 `cliSettings` 는 `permissions` 를 읽지 않는 것으로 보인다[추정].
+- 결과: `session/request_permission` 0건. `read`(locations `/tmp/acpprobe-2/outside/secret.txt`)와 `edit`(`Append: true`)가 요청 없이 `completed`, 파일 sha256 이 `fe28b616…` 에서 `5a11658f…` 로 바뀌고 `probe` 줄이 붙었다. 모델 답: "Neither tool was denied". 도구가 보낸 경로가 규칙 접두와 정확히 같으므로 경로 표기 차이로 설명되지 않는다.
+- 세션은 프로젝트 `default-cli-project` 를 쓰고 `<d>/config/projects/default-cli-project.json` 을 찾는다(없으면 오류 로그). 문서의 Project 범위 규칙이 여기 있을 수 있으나 스키마가 문서에 없어 재지 않았다.
+- 비용: 모델 1턴 11.2초, 약 2.5만 토큰(입력 1.9만, 캐시 0.6만, 출력 188). 나머지 세 번은 `session/new` 없는 시작만.
+- 결론: ACP 에서는 settings `permissions` 의 deny·ask 도 파일 도구를 막거나 요청으로 바꾸지 않는다. agy 의 파일 접근을 ACP 안에서 막을 손잡이는 지금 찾은 것이 없다. 남은 후보(재지 않음): Project 범위 파일, OS 샌드박스가 있는 호스트.
+- 로그: `/tmp/acpprobe-2/log1.jsonl`, 서버 로그 `/tmp/acpprobe-2/gem/antigravity-cli/log/`, 클라이언트 `/tmp/acpprobe-2/client/acp_client.py`(`--allow-reads` 추가).
+
+## 드라이버 기본 정책
+OS 격리가 없는 곳(uid 격리도, 동작하는 OS 샌드박스도 없음, 비개발자 동료의 기본 환경)의 기본은 "읽기 전용 의견"이다. 위 실측 결과와 상관없이 사용자가 정했다.
+- 격리 판정(모델 호출 없이 `doctor` 와 `run` 시작 때):
+  - uid 격리: root 이고 `setpriv` 로 작업 uid 가 메인 작업 트리 쓰기, HOME 비밀(`~/.claude/.credentials.json`, `.git-credentials`, `.ssh`) 읽기에 실패한다(지금 `doctor` 검사).
+  - codex OS 샌드박스: `codex sandbox` 자가 시험. 권한 프로필로 `~/.ssh` 읽기, worktree 밖 쓰기, `git push` 가 모두 실패하고 worktree 안 쓰기는 성공해야 통과.
+  - agy OS 샌드박스: ACP 서버 시작 로그에 `Terminal sandbox unavailable` 줄이 없다. 이 샌드박스는 셸 명령만 감싸고 파일 도구는 위 실측처럼 따로 돈다. 파일 도구도 막는지 재기 전까지 agy 는 uid 격리가 있을 때만 worktree 모드로 연다.
+- 모드:
+  - `worktree`(격리 있음): worktree 안 편집과 셸 허용. 바뀐 내용은 `diff.patch` 로 참고용 수집, 메인에 그대로 적용하지 않는다.
+  - `empty`(읽기 전용 의견, 격리 없을 때 기본이자 유일): 드라이버가 필요한 파일만 비밀 없이(`.env`, 키, 자격 증명 파일 제외) 버릴 임시 사본에 복사하고 그 사본을 cwd 로 돌린다. 셸 요청은 거절한다. 끝나면 사본의 변경은 버리고 보고만 남긴다. 지금 `empty` 모드에 가깝다.
+- 한계: `empty` 는 보안 경계가 아니다. 에이전트는 사용자 권한으로 돌므로 파일 도구로 HOME 비밀을 읽을 수 있다. 사본은 에이전트가 보는 범위와 쓰기가 남는 곳을 줄일 뿐이다. 작업용 `--gemini-dir`·`CODEX_HOME` 에는 인증 파일만 넣는다.

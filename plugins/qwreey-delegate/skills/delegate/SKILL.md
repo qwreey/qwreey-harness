@@ -8,7 +8,7 @@ argument-hint: "<agy|codex> <name> <prompt file> [--mode worktree|empty] [--ref 
 
 The script is `${CLAUDE_SKILL_DIR}/scripts/delegate.sh`; below `D` means that path. The uid table is `registry.tsv` (location: see Setup), prompt skeletons are `templates/tasks.md`.
 
-**Requirements:** Linux as root (`setpriv`, an unprivileged uid per repository, `choom`), the `agy` and/or `codex` CLI logged in with the user's own subscription. On Windows, macOS or without those CLIs the script stops with an error; use a Claude subagent instead.
+**Requirements:** Linux as root (`setpriv`, an unprivileged uid per repository, `choom`), the `agy` and/or `codex` CLI logged in with the user's own subscription. On Windows, macOS or without those CLIs the script stops with an error; use a Claude subagent instead. Without OS isolation (no root uid isolation, no working OS sandbox) only `empty` mode, a read-only opinion, is acceptable; the script needs root for every mode today.
 
 ## Why and when
 

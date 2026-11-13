@@ -13,7 +13,8 @@
 - 실행: Claude 쪽은 지시문 작성과 검증 정도. 본 비용은 각 벤더 구독 한도에서 나간다(agy 는 flash 만, codex 는 Plus 한도가 작아 사용자가 사용량을 확인).
 
 ## 요구 사항
-- Linux, root(`setpriv`, 저장소별 uid, `choom`). Windows·macOS 불가.
+- Linux, root(`setpriv`, 저장소별 uid, `choom`). Windows·macOS 불가. 지금 스크립트는 empty 모드도 같은 uid 격리로 돌려서 모드와 상관없이 root 가 있어야 한다.
+- OS 격리(root 의 uid 분리, 동작하는 OS 샌드박스)가 없는 곳에서는 empty 모드(읽기 전용 의견: 비밀을 뺀 버릴 사본만 보여 주고 보고만 남김)만 쓴다. root 없이 macOS·Windows·Linux 에서 도는 드라이버를 계획 중이다(`.claude/research/drafts/delegate/portable-isolation.md`).
 - `agy` 또는 `codex` CLI 설치와 각자 구독. 저장소 루트에 `AGENTS.md`, uid 표 등록(`delegate.sh register`).
 - uid 표 `registry.tsv` 는 고쳐 쓰므로 `HARNESS_DELEGATE_REGISTRY`(`~/.claude/harness.env`)가 이 클론의 `skills/delegate/registry.tsv` 를 가리켜야 한다.
 

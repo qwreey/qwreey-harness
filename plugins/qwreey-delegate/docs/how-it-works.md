@@ -34,6 +34,8 @@
 5. 작업마다 HOME 을 따로(`<workspace>/.homes/<name>`), 인증 정보 사본만 넣는다. `doctor` 가 그 uid 로 `~/.claude/.credentials.json`·`.git-credentials`·`.ssh` 를 읽을 수 없는지 확인한다.
 6. 스크립트는 임시 사본에서 다시 실행된다. 실행 중에 `delegate.sh` 를 고쳐도 돌던 작업이 깨지지 않는다.
 
+이 격리는 Linux root 에 기대고, 지금 스크립트는 empty 모드도 같은 uid 로 돌려서 모드와 상관없이 root 가 필요하다. OS 격리가 없는 곳에서는 empty 모드(읽기 전용 의견)만 쓴다. agy 는 ACP 에서도 워크스페이스 밖 파일 읽기·쓰기를 묻지 않고 settings `permissions` 규칙도 듣지 않아서(OS 샌드박스 없는 Linux 실측) 에이전트 쪽 설정으로는 막을 수 없다. root 없이 도는 크로스플랫폼 드라이버와 그 기본 정책: `.claude/research/drafts/delegate/portable-isolation.md`.
+
 ## 설정
 - uid 표 `registry.tsv`(열: key, root, uid, setup, note). 찾는 순서: `DELEGATE_REGISTRY`, `HARNESS_DELEGATE_REGISTRY`(환경 변수 또는 `~/.claude/harness.env`), 스킬 옆 사본. 고쳐 쓰는 파일이라 플러그인 캐시의 사본은 버전마다 낡으므로 claude-doctor 클론의 것을 가리킨다. 새 저장소는 `delegate.sh register <path> [key]` 가 다음 빈 uid 를 준다(`/etc/passwd` 와 겹치지 않게).
 - 저장소마다 루트에 `AGENTS.md`(골격 `templates/AGENTS.md.template`): 정본 경로, 확인 명령, 저장소 전용 주의를 담은 6KB 이하의 지도. 두 모델이 모두 읽는다. `GEMINI.md` 는 지운다(agy 가 둘 다 읽어 겹친다).
