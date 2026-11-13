@@ -177,7 +177,7 @@ def main():
         how = f"Re-run wrapped as `{' '.join(wrap)} <command>`."
     reason = (
         "Bench/fuzz/perf/stress-looking runs must raise their OOM-victim rank first. The container's memory cgroup is shared "
-        "by every Claude session, and the OOM killer has killed a Claude process before (quad 2026-09-28). " + how +
+        "by every Claude session, and the OOM killer has killed a Claude process before. " + how +
         " If this is a false positive, wrapping the same way passes."
     )
     reason = f'<harness-hook name="heavy-proc-guard" level="action">\n{reason}\n</harness-hook>'

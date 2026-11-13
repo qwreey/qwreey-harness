@@ -286,9 +286,10 @@ def on_stop(data):
     log(sid, "stop_block", ratio, len(msg))
     return {"decision": "block", "reason": tag(
         "action",
-        "Your last reply is not in %s. If the user explicitly asked in this turn for that reply in another language, keep the reply "
-        "and add nothing. Otherwise output only the rewritten reply, the same content in %s, with no line about rewriting, the "
-        "earlier version, the language or this notice, and no apology." % (lang, lang))}
+        "Your last reply looked not in %s (a script-ratio check; code or quoted output can trip it). If it is %s prose around code "
+        "or quotes, or the user explicitly asked in this turn for another language, add nothing. Otherwise output only the rewritten reply, "
+        "the same content in %s, with no line about rewriting, the earlier version, the language or this notice, and no apology."
+        % (lang, lang, lang))}
 
 
 def read_new_lines(path, st):
@@ -357,8 +358,8 @@ def on_batch(data):
         if worst is not None and total - st.get("last_interim", -99) >= INTERIM_COOLDOWN_CALLS:
             st["last_interim"] = total
             log(sid, "interim_drift", worst, worst_len)
-            out.append(tag("info", "Text you wrote to the user between tool calls was not in %s. Write all text to the user in %s, "
-                           "including short progress notes. Do not mention this notice." % (lang, lang)))
+            out.append(tag("info", "Some text between tool calls looked not in %s; progress notes count, quoted output and "
+                           "identifiers do not. Do not mention this notice." % lang))
     if total >= st["next"]:
         while st["next"] <= total:
             st["next"] += EVERY

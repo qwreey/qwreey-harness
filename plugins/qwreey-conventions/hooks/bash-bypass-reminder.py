@@ -178,17 +178,17 @@ def main():
     if writes and "write" not in seen:
         seen.add("write")
         levels.append("warn")
-        notes.append("This command changes files without the Edit/Write tools (sed -i, redirect, patch, ...). "
-                     "PostToolUse hooks on Edit|Write (formatters, checkers) do not run, and path-scoped .claude/rules "
-                     "and skill conventions for the file are not applied. After the change, Read the file to check it "
-                     "against the conventions, and run the formatter/checker yourself.")
+        notes.append("This command changes files without the Edit/Write tools (sed -i, redirect, patch, ...), so "
+                     "PostToolUse hooks on Edit|Write (formatters, checkers) do not run and path-scoped .claude/rules "
+                     "and skill conventions for the file are not applied. If the file has such conventions, Read it after "
+                     "the change to check it against them, and run the formatter/checker yourself.")
     elif interp and "interp" not in seen:
         seen.add("interp")
         levels.append("warn" if interp_writes else "info")
         notes.append("Reading or changing files through an interpreter (" + ", ".join(sorted(set(hs) & INTERP)) + ") bypasses the "
                      "Read/Edit/Write tools: path-scoped .claude/rules may not load and Edit|Write hooks do not run. "
                      "If you generate or bulk-edit source with a script, first check the relevant skills and rules "
-                     "(naming, idioms).")
+                     "(naming, idioms). Scratch or generated output needs nothing.")
 
     if writes or interp:
         plugin_dirs = plugin_rule_dirs(proj)
@@ -202,7 +202,7 @@ def main():
             seen.update(hit)
             levels.append("warn" if risky else "info")
             rel = [describe(h, plugin_dirs, proj) for h in hit]
-            notes.append("Rules that apply to files this command touches: " + ", ".join(rel) + " - Read them first if you have not.")
+            notes.append("Rules that apply to files this command touches: " + ", ".join(rel) + ". If this command writes these files, read the rules first if you have not; read-only commands need nothing.")
 
     if not notes:
         return 0

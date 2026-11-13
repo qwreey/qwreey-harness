@@ -159,7 +159,7 @@ class AfterWrite(unittest.TestCase):
             s = fresh()
             c = ctx(run("PostToolUse", tool, os.path.join(PROJ, "w.py"), s))
             self.assertIn('name="comments"', c, tool)
-            self.assertIn("Check what you wrote against them and fix it.", c, tool)
+            self.assertIn("Check what you wrote against them and fix only what conflicts.", c, tool)
             self.assertIsNone(run("PostToolUse", tool, os.path.join(PROJ, "w2.py"), s), tool)
 
     def test_read_has_no_check_sentence(self):

@@ -668,7 +668,7 @@ def main():
         parts.append(f"{line_list(lns)} {cat}" + (f": {det}" if det else ""))
     what, skill = ("comment", "comments") if kind == "comment" else ("agent-doc", "agent-docs")
     msg = (f'<harness-hook name="{NAME}" level="info">{rel} may not follow the {what} conventions. {"; ".join(parts)}. '
-           f'Load the {NAME}:{skill} skill and fix the lines you added.</harness-hook>')
+           f'If a hit is real, the {NAME}:{skill} skill has the fix; false matches (quoted text, a needed symbol) can stay.</harness-hook>')
     json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": msg}}, sys.stdout, ensure_ascii=False)
     return 0
 

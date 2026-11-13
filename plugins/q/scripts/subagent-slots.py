@@ -140,8 +140,8 @@ def pre_agent(L, st, data, cfg, now):
             st["notes"][f"over:{who}"] = f"{ep}:{away.get('since')}"
             out = context(tag("warn",
                               f"Away budget reached ({over}). Subagents are now serialized ({limit} at a time); nothing is stopped. "
-                              f"Before each further spawn, reconsider: can sonnet do it instead of opus/fable; can the work be a small "
-                              f"find -> review -> fix -> review pass instead of a fan-out; is the remaining work worth the spend. "
+                              f"Before each further spawn, consider: can an agent you already have be resumed (SendMessage) instead of a new one; "
+                              f"can a lighter model do it where a mistake is cheap; is the remaining work worth the spend. "
                               f"Mention this in your next report to the user."))
     else:
         after = n + 1
@@ -154,11 +154,11 @@ def pre_agent(L, st, data, cfg, now):
             L.log(st, "fanout-warn", n=after, big=big)
             mix = fams_text(L, items + [{"fam": fam}])
             out = context(tag("warn",
-                              f"Large fan-out: with this call {after} subagents run at once ({mix}; opus-or-above: {big}). Not blocked. "
-                              f"Tell the user in one line now: how many agents, which models, why, and the expected size (files, rounds). "
-                              f"Unless speed matters, prefer small sequential passes (one finder, then a reviewer, fix, review again): "
-                              f"parallel agents re-read the same code, and the fixes need another review anyway. "
-                              f"Match the model to the task size (sonnet for search and mechanical work)."))
+                              f"Several subagents at once: with this call {after} run ({mix}; opus-or-above: {big}). Not blocked. "
+                              f"If you have not yet, tell the user in one line: how many, which models, why, and the expected size. "
+                              f"Independent parts in parallel are fine. If several of them cover the same code or question, consider one "
+                              f"agent working in small steps instead, reviewed between steps and resumed with SendMessage: it keeps what "
+                              f"it has read (its cache lasts about an hour) and corrects itself from concrete counter-evidence."))
     st["reserved"][data.get("tool_use_id") or f"anon-{now}"] = {
         "t": now, "fam": fam, "type": ti.get("subagent_type") or "general-purpose", "bg": bool(ti.get("run_in_background", True)), "kind": "agent"}
     st["spawned"] = st.get("spawned", 0) + 1

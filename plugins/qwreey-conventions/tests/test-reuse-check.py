@@ -113,7 +113,7 @@ check("C1 source marker naming itself -> silent", run("p/src.py", '"""mod.\n@cop
 # ---- C2: 원본을 고치면 사본 목록 ----
 srcnew = '-- source\nlocal FORMS = { "coin", "stick", "back", "card", "ring" }\nreturn FORMS\n'
 r = run("a/src.luau", srcnew, '"card" }', '"card", "ring" }')
-check("C2 editing a source set lists its copies", "FORMS has" in r and "b/copy.luau:1" in r and "Update them in this change" in r)
+check("C2 editing a source set lists its copies", "FORMS has" in r and "b/copy.luau:1" in r and "update them too" in r)
 r2 = run("a/src.luau", srcnew + "-- note\n", "return FORMS\n", "return FORMS\n-- note\n", sid="c2b")
 check("C2 comment-only edit in the source -> silent", "FORMS has" not in r2)
 put("p/src.py", cp)

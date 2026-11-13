@@ -62,7 +62,7 @@ def after_compact(record: str | None, store: str) -> str:
 # ---- pending(받아 가지 않은 기록) 알림 --------------------------------------------------
 REASONS = {
     "session_start": "",
-    "commit": "You are about to commit: import now and include the files in this commit.",
+    "commit": "You are about to commit. If they belong with this work, importing now puts them in this commit; otherwise leave them.",
     "precompact": "Compaction is about to drop details; importing keeps them in the repo.",
     "handover": "A handover is a good time to import or dismiss them.",
 }

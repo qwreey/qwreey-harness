@@ -305,8 +305,8 @@ def check_file(path, tool, ti, data, state, created, bases=None):
         entry_name = "init.luau" if tk == "luau" else "an index file"
         if len(srcs) >= cfg["flat"] and len(subdirs) <= 2 and drel not in seen_dirs:
             seen_dirs.append(drel)
-            notes.append(Note("warn", f"`{drel}/` has {len(srcs)} source files and {len(subdirs)} subfolders. "
-                         f"Propose to the user grouping related files into folders ({entry_name})."))
+            notes.append(Note("info", f"`{drel}/` has {len(srcs)} source files and {len(subdirs)} subfolders. "
+                         f"If related files form groups, consider proposing folders ({entry_name}); a flat layout by design needs nothing."))
         prefix = prefix_of(os.path.splitext(os.path.basename(path))[0])
         fam = sorted({os.path.splitext(x)[0] for x in srcs if prefix_of(os.path.splitext(x)[0]) == prefix})
         key = drel + "::" + prefix
@@ -329,6 +329,17 @@ def top_level(notes):
     order = ["info", "warn", "action"]
     lv = [n.level for n in notes if getattr(n, "level", None) in order]
     return max(lv, key=order.index) if lv else "info"
+
+
+def render(notes):
+    """One tag per level, highest first, so a lower notice is not read at a higher level. Level-less notes ride with the highest."""
+    top = top_level(notes)
+    tags = []
+    for lv in ("action", "warn", "info"):
+        body = [n for n in notes if (getattr(n, "level", None) or top) == lv]
+        if body:
+            tags.append(f'<harness-hook name="structure-reminder" level="{lv}">\n' + " ".join(body) + "\n</harness-hook>")
+    return "\n".join(tags)
 
 
 def prefix_of(stem):
@@ -393,7 +404,7 @@ def main():
     if not notes:
         return 0
     json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse",
-                                      "additionalContext": f'<harness-hook name="structure-reminder" level="{top_level(notes)}">\n' + " ".join(notes) + "\n</harness-hook>"}},
+                                      "additionalContext": render(notes)}},
               sys.stdout, ensure_ascii=False)
     return 0
 

@@ -151,10 +151,10 @@ class Gate(Env):
         self.load_skill(agent_id="a1")
         self.assertIsNone(self.sub_write())
 
-    def test_read_warns_once(self):
+    def test_read_notes_once(self):
         out = self.pre("Read", {"file_path": self.sibling()})
         ctx = out["hookSpecificOutput"]["additionalContext"]
-        self.assertIn('level="warn"', ctx)
+        self.assertIn('level="info"', ctx)
         self.assertIn("qwreey-workspace:workspace", ctx)
         self.assertIsNone(self.pre("Grep", {"pattern": "x", "path": self.sibling("other")}))
         out = self.pre("Bash", {"command": f"cat {self.sibling()}"})

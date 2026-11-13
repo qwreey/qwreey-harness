@@ -516,7 +516,7 @@ def main():
         if key not in seen:
             seen.append(key)
             notes.append(f"{rel}:{ln}: {name} has {len(copies)} @copy-of copies: {', '.join(copies[:5])}"
-                         f"{' +%d' % (len(copies) - 5) if len(copies) > 5 else ''}. Update them in this change.")
+                         f"{' +%d' % (len(copies) - 5) if len(copies) > 5 else ''}. If this change altered what they copy, update them too.")
             log_rec("C2", "N3", None, None, {"name": name, "copies": len(copies)})
     # H1
     dup_old = 0

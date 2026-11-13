@@ -58,7 +58,8 @@ REDIR = re.compile(r"(?<![0-9&<])(?:[0-9]?)(>>?|&>>?)\s*([^\s;&|<>]+)")
 
 
 def deny(msg: str) -> None:
-    print(f"auditor-readonly-guard: {msg}. 감사자는 읽기 전용이다. 프로브는 {SCRATCH}/<run>/ 안에서만 만든다.", file=sys.stderr)
+    print(f'<harness-hook name="auditor-readonly-guard" level="action">\n{msg}. Reviewers are read-only: '
+          f'make probes only inside {SCRATCH}/<run>/.\n</harness-hook>', file=sys.stderr)
     sys.exit(2)
 
 
@@ -95,7 +96,7 @@ def check_bash(cmd: str, cwd: str) -> None:
         if target.startswith("&") or target in ("/dev/null", "/dev/stderr", "/dev/stdout"):
             continue
         if not in_scratch(target, cwd):
-            deny(f"리다이렉션 대상 {target!r} 이 스크래치 밖")
+            deny(f"Redirect target {target!r} is outside the scratch folder")
     # 2) 명령별 (따옴표는 shlex 가 다뤄야 하므로 heredoc 만 지운 원문을 쓴다)
     body_stripped = HEREDOC.sub(lambda m: m.group(0).split("\n", 1)[0], raw)
     for seg in segments(body_stripped):
@@ -123,17 +124,17 @@ def check_bash(cmd: str, cwd: str) -> None:
         a0 = os.path.basename(argv[0])
         args = argv[1:]
         if a0 in DENY_CMDS:
-            deny(f"`{a0}` 는 감사자에게 허용되지 않음")
+            deny(f"`{a0}` is not allowed for reviewers")
         if a0 == "mise" and args and args[0] in MISE_DENY_SUB:
-            deny(f"`mise {args[0]}` 는 툴체인을 바꾼다")
+            deny(f"`mise {args[0]}` changes the toolchain")
         if a0 in WRITE_CMDS:
             paths = [x for x in args if not x.startswith("-")]
             if a0 in ("cp", "install", "rsync", "ln") and paths:
                 paths = paths[-1:]  # 원본은 읽기만 한다 - 대상만 본다
             if not paths or not all(in_scratch(p, cwd) for p in paths):
-                deny(f"`{a0}` 의 경로가 스크래치 밖")
+                deny(f"A path of `{a0}` is outside the scratch folder")
         if a0 in ("sed", "perl", "ruby") and INPLACE.search(" ".join(args)):
-            deny(f"`{a0} -i` (제자리 수정)")
+            deny(f"`{a0} -i` edits files in place")
         if a0 == "git":
             i = 0
             while i < len(args) and args[i].startswith("-"):
@@ -149,7 +150,7 @@ def check_bash(cmd: str, cwd: str) -> None:
             if sub == "config" and any(r in ("--get", "--list", "-l", "--get-all", "--get-regexp") for r in rest):
                 continue
             if sub not in GIT_READ_SUB:
-                deny(f"`git {sub}` 는 작업 트리·인덱스·ref 를 바꿀 수 있다 (HEAD 내용은 `git show HEAD:<경로>` 로 읽는다)")
+                deny(f"`git {sub}` can change the work tree, index or refs (read HEAD content with `git show HEAD:<path>`)")
 
 
 def main() -> None:
@@ -161,11 +162,11 @@ def main() -> None:
     ti = data.get("tool_input", {}) or {}
     cwd = data.get("cwd") or os.getcwd()
     if tool.startswith("mcp__roblox-studio"):
-        deny("Roblox Studio MCP 는 감사자에게 허용되지 않음 — 'Studio 실측 필요'로 보고할 것")
+        deny("Roblox Studio MCP is not allowed for reviewers; report it as 'needs a Studio measurement'")
     if tool in ("Write", "Edit", "MultiEdit", "NotebookEdit"):
         path = ti.get("file_path") or ti.get("notebook_path") or ""
         if not in_scratch(path, cwd):
-            deny(f"{tool} 대상 {path!r} 이 스크래치 밖")
+            deny(f"{tool} target {path!r} is outside the scratch folder")
         sys.exit(0)
     if tool == "Bash":
         check_bash(ti.get("command", ""), cwd)

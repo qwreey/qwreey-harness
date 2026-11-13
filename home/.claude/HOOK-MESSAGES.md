@@ -6,7 +6,7 @@ MANIFEST 대상 아님. 근거 실측: `.claude/audit/17-hook-messages.md`. 세�
 1. **영어, 짧게.** 모델이 읽고 행동을 바꾸는 텍스트(additionalContext, deny 사유)는 영어. 문서·주석·사용자 대상 안내는 한국어.
 2. **감싼다.** 본문 전체를 `<harness-hook name="<훅 이름>" level="<info|warn|action>">\n…\n</harness-hook>` 한 덩어리로 감싼다. `[hook-name]` 접두는 쓰지 않는다.
    - 실측: 하네스는 additionalContext 를 `<system-reminder>` 로 감싸지 **않고**(트랜스크립트 `rendered` 에만 있음), `PreToolUse:Bash hook additional context: ` 접두만 붙여 system 위치로 넣는다. SessionStart·UserPromptSubmit 은 사용자 턴 안에 일반 텍스트로 붙는다. 그래서 우리 태그가 필요하다.
-3. **배경 설명(위상과 level 뜻, 3줄 이내)의 출처는 q 플러그인 주입이다**(`plugins/q/context/ambient.md`, SessionStart·SubagentStart 훅이 `<plugin name="q">` 로 감싸 영어 그대로 싣는다. 사용자 CLAUDE.md 에는 없다). 위상(사용자가 설치한 상시 규약, 반드시 다룸)과 level 뜻이 거기 있다. q 를 끄면 이 배경도 같이 빠진다. 태그 안에서 반복하지 않는다. 끄기: `HARNESS_Q_AMBIENT=off`. 세션 중간에 q 를 켠 경우는 UserPromptSubmit 이 (세션, compact 회차)당 한 번 보충하고, 중간에 끄면 이미 실린 맥락은 남는다(한계).
+3. **배경 설명(위상과 level 뜻, 3줄 이내)의 출처는 q 플러그인 주입이다**(`plugins/q/context/ambient.md`, SessionStart·SubagentStart 훅이 `<plugin name="q">` 로 감싸 영어 그대로 싣는다. 사용자 CLAUDE.md 에는 없다). 위상(사용자가 설치한 훅이지만 맥락을 놓칠 수 있는 기계적 검사라, 따져 보고 따르거나 안 따르는 이유를 짧게 말함)과 level 뜻이 거기 있다. q 를 끄면 이 배경도 같이 빠진다. 태그 안에서 반복하지 않는다. 끄기: `HARNESS_Q_AMBIENT=off`. 세션 중간에 q 를 켠 경우는 UserPromptSubmit 이 (세션, compact 회차)당 한 번 보충하고, 중간에 끄면 이미 실린 맥락은 남는다(한계).
 4. 본문은 지시가 아니라 **관찰 + 권고**로 쓴다(무엇이 일어났는지, 왜 중요한지, 할 일). 의미 없는 인사·반복 금지.
    - 훅은 기계적 휴리스틱이라 맥락을 모르고 한쪽으로 치우치기 쉽다. 모델이 놓쳤을 수 있는 것을 다시 판단할 기회를 주는 데서 그친다. 할 일은 "고려하라·이런 경우면" 꼴로 쓰고, 따르지 않아도 되는 경우를 함께 적는다. 명령형은 위험하거나 꼭 확인해야 하는 상황(형제 저장소 쓰기, deny, `action`)에만 쓴다(사용자: "훅은 단순히 모델이 놓친 부분에 대해 판단할 기회를 줄 뿐이여야해").
 5. **deny 사유** (`permissionDecisionReason`)도 같은 태그로 감싼 영어. 모델에게는 `<error>PreToolUse:Bash hook error: …</error>` 도구 결과로 들어간다.
@@ -31,18 +31,18 @@ MANIFEST 대상 아님. 근거 실측: `.claude/audit/17-hook-messages.md`. 세�
 |---|---|---|
 | heavy-proc-guard | (플러그인 `qwreey-proc-guard`, Linux 전용) deny(choom 래핑 요구) | action |
 | bash-bypass-reminder | (플러그인 `qwreey-conventions`) 셸로 파일 변경(sed -i, 리다이렉트 등) | warn |
-| | 해당 rules 파일 안내(설치된 모든 플러그인의 `rules/` 포함): 쓰기 신호가 있으면 | warn |
+| | 해당 rules 파일 안내(설치된 모든 플러그인의 `rules/` 포함, 쓰는 명령이면 먼저 읽고 읽기만 하면 할 것 없음): 쓰기 신호가 있으면 | warn |
 | | 같은 안내와 인터프리터 안내: 읽기만 하는 명령(쓰기 신호 없음) | info |
-| | 인터프리터로 쓰기 신호가 있는 스크립트 | warn |
+| | 인터프리터로 쓰기 신호가 있는 스크립트(스크래치·생성 출력이면 할 것 없음) | warn |
 | structure-reminder | (플러그인 `qwreey-conventions`) 강제 한도(1,500) 초과 | action |
-| rules-inject | (플러그인 `qwreey-conventions`, `web-security` 도 같은 훅) PostToolUse. Read 뒤 경로가 맞는 rule 본문을 `<rule>` 태그 안에 주입. 이 키로 처음인 Edit·Write 뒤에는 "방금 쓴 것을 대조하고 어긋나면 Edit 로 고쳐라" 한 문장을 더함. deny 는 없음 | info |
+| | 경고 한도(800) 초과, 세션 성장, 잘못된 예외 사유 | warn |
+| | 유효한 예외 사유 안내, 접두 묶음 제안, 폴더 파일 과다(관련 파일이 묶이면 폴더 제안 고려, 의도된 평면 구성이면 할 것 없음) | info |
+| rules-inject | (플러그인 `qwreey-conventions`, `web-security` 도 같은 훅) PostToolUse. Read 뒤 경로가 맞는 rule 본문을 `<rule>` 태그 안에 주입. 이 키로 처음인 Edit·Write 뒤에는 "방금 쓴 것을 대조하고 어긋나는 것만 고쳐라" 한 문장(`Check what you wrote against them and fix only what conflicts.`, coderag `rules/mod.rs` 와 같은 문장)을 더함. deny 는 없음 | info |
 | reply-language | (플러그인 `qwreey-conventions`) 답변 언어 미설정: 요청에 먼저 답하고 답 끝에서 어느 언어로 답할지 물어 저장 명령 실행(첫 요청을 막지 않는다) | info |
-| reply-language | (같은 훅) Stop 에서 마지막 답변이 사용자 언어가 아님: 다시 쓰라는 block(사용자가 이번 턴에 다른 언어를 명시했으면 그대로 두고, 아니면 다시 쓴 답만 내며 언어·알림 언급과 사과 금지). 마지막 사용자 프롬프트 자체가 사용자 언어가 아니면 block 하지 않는다 | action |
-| reply-language | (같은 훅) 도구 호출 사이 텍스트가 사용자 언어가 아님(알림 자체는 사용자에게 언급하지 않는다) | info |
+| reply-language | (같은 훅) Stop 에서 마지막 답변이 사용자 언어가 아님: 다시 쓰라는 block(글자 비율 검사라 코드·인용 출력에 걸릴 수 있다고 밝힌다. 코드·인용을 둘러싼 사용자 언어 산문이거나 사용자가 이번 턴에 다른 언어를 명시했으면 그대로 두고, 아니면 다시 쓴 답만 내며 언어·알림 언급과 사과 금지). 마지막 사용자 프롬프트 자체가 사용자 언어가 아니면 block 하지 않는다 | action |
+| reply-language | (같은 훅) 도구 호출 사이 텍스트가 사용자 언어가 아닌 듯함(진행 메모는 포함, 인용 출력·식별자는 제외. 알림 자체는 사용자에게 언급하지 않는다) | info |
 | reply-language | (같은 훅) 긴 턴(도구 10회, 이후 15회마다) 한 줄 상기 | info |
 | memory-placement | (플러그인 `qwreey-conventions`) auto memory 에 저장소 지식으로 보이는 내용을 씀(경로·명령·규약 신호) | warn |
-| | 경고 한도(800) 초과, 세션 성장, 잘못된 예외 사유, 폴더 파일 과다 | warn |
-| | 유효한 예외 사유 안내, 접두 묶음 제안 | info |
 | subagent-slots | (q 플러그인 `scripts/subagent-slots.py`) away 중 슬롯이 차서 deny(사유 `queue: wait for a running agent to finish, then spawn the next`) | action |
 | | away 예산 도달(1단계) → 직렬화 + 재고 리마인더(compact 회차·away 선언마다 한 번) | warn |
 | | away 예산 2배(2단계) → 새 Agent·Workflow deny(`halt: …`; 전체 지시는 회차·away 선언마다 한 번, 이후 짧게) | action |
@@ -52,12 +52,13 @@ MANIFEST 대상 아님. 근거 실측: `.claude/audit/17-hook-messages.md`. 세�
 | stale-work | (q 플러그인 `scripts/stale_work.py`) 백그라운드 작업(subagent, workflow. monitor 제외)이 진척 없이 15분+·관측 30분+: 멈췄거나 대기 중일 수 있다는 질문형 문구(UserPromptSubmit 으로 전달, (세션, task id, 상태)마다 한 번). 끄기 `HARNESS_Q_STALE=off` | warn |
 | | 같은 작업이 2시간+ 실행 중(진척 신호가 없거나 아직 있음) | info |
 | workspace-gate | (qwreey-workspace 플러그인 `scripts/workspace_gate.py`, .claude/audit/31) 이 세션의 저장소가 아닌 `HARNESS_WORKSPACE/<X>` 에 쓰기(Edit·Write·MultiEdit·NotebookEdit, 쓰기로 분류된 Bash)를 qwreey-workspace:workspace 스킬 로드 전에 시도 → deny(`Load the qwreey-workspace:workspace skill (Skill tool), then retry`; 로드 표시는 세션·agent_id·compact 회차 단위). 예외는 통과, `HARNESS_WORKSPACE_GATE=off` 로 끔 | action |
-| | 형제 저장소 읽기(Read·Grep·Glob, 그 밖의 Bash) → compact 회차마다 한 번 규칙과 스킬 포인터 | warn |
-| qwreey-conventions | (플러그인 `qwreey-conventions`. 예전 user-level `comment-hygiene` 훅을 대체한다. 같은 마이그레이션 0005 apply 에서 옛 훅을 빼고 플러그인을 켠다) 추가한 코드 주석 줄에 작업 이력·키보드로 치지 않는 문자·이스케이프·보이지 않는 문자·언어 불일치가 있거나, 모델용 문서 줄에 이력 표지가 있음. 파일·범주별 줄 번호와 글자·대체를 한 줄로(파일마다 범주당 회차당 한 번) | info |
-| qwreey-advisor | (플러그인 `qwreey-advisor`, 옛 이름 second-opinion) 임계 이상 커밋·같은 실패 2회·high 등급 계획 검토 알림. 이름이 바뀌어도 상태 경로(`claude-second-opinion`)는 기존 기록과 이어지게 그대로 둔다 | warn |
+| | 형제 저장소 읽기(Read·Grep·Glob, 그 밖의 Bash) → compact 회차마다 한 번: 읽기는 괜찮고 바꾸려면 사용자 승인과 스킬이 먼저 | info |
+| qwreey-conventions | (플러그인 `qwreey-conventions`. 예전 user-level `comment-hygiene` 훅을 대체한다. 같은 마이그레이션 0005 apply 에서 옛 훅을 빼고 플러그인을 켠다) 추가한 코드 주석 줄에 작업 이력·키보드로 치지 않는 문자·이스케이프·보이지 않는 문자·언어 불일치가 있거나, 모델용 문서 줄에 이력 표지가 있음. 파일·범주별 줄 번호와 글자·대체를 한 줄로(파일마다 범주당 회차당 한 번). 맞으면 스킬에 고치는 법, 오탐(인용, 필요한 기호)은 둬도 됨 | info |
+| qwreey-advisor | (플러그인 `qwreey-advisor`, 옛 이름 second-opinion) 임계 이상 커밋·같은 실패 2회·high 등급 계획 검토 권고(qwreey-advisor 리뷰어만 추적함을 밝히고, 기계적·문서만·이미 검토·사용자 생략이면 한 줄로 건너뜀. 계획 deny 모드는 action). 이름이 바뀌어도 상태 경로(`claude-second-opinion`)는 기존 기록과 이어지게 그대로 둔다 | warn |
+| auditor-readonly-guard | (플러그인 `qwreey-advisor`, 리뷰어 에이전트에만) 스크래치 밖 쓰기·금지 명령 거절(exit 2, stderr 사유) | action |
 |   (이중 구조) | 메인의 말 고지는 CLAUDE.md 가 2개부터, 훅 warn 은 4개부터다. 의도된 설계: 훅은 메인이 고지를 놓쳤을 때의 보강이라 일부러 더 늦게 울린다(둘 다 2면 warn 이 잦아 무뎌진다). `.claude/audit/21` §5-3 | - |
 | | away 중 허용된 Workflow(내부 동시성은 슬롯 밖) | warn |
-| session-log | (qwreey-sessions 플러그인의 session-log 훅, `scripts/sllib/brief.py`) pending: 보관 위치(home) 있음 | info (commit 직전, 또는 `SESSION_LOG_PENDING_STRONG_*` 초과면 warn) |
+| session-log | (qwreey-sessions 플러그인의 session-log 훅, `scripts/sllib/brief.py`) pending: 보관 위치(home) 있음(commit 직전이면 이 작업에 속할 때만 가져오라는 권고) | info (commit 직전, 또는 `SESSION_LOG_PENDING_STRONG_*` 초과면 warn) |
 | | home 없음 + 쌓임(`SESSION_LOG_HOME_NUDGE_*`): 사용자에게 위치를 제안하라는 알림. action 은 쓰지 않는다(import 는 명령 하나) | warn |
 | | 요약 시작·완료 알림, 인계(SessionStart), SessionStart 기록 안내 | info |
 | | 요약 실패 | warn |

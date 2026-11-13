@@ -139,7 +139,7 @@ check("away args: defaults", L.parse_away_args([], L.CFG_DEFAULTS) == (20.0, Non
 s = S("att")
 outs = [s.launch("sonnet") for _ in range(5)]
 check("attended: 3 sonnet -> silent", all(ctx(o) == "" for o, _ in outs[:3]))
-check("attended: 4th concurrent -> warn", 'level="warn"' in ctx(outs[3][0]) and "Large fan-out" in ctx(outs[3][0]))
+check("attended: 4th concurrent -> warn", 'level="warn"' in ctx(outs[3][0]) and "Several subagents at once" in ctx(outs[3][0]))
 check("attended: never denies", not any(denied(o) for o, _ in outs))
 check("attended: 5th in same burst -> silent (dedup)", ctx(outs[4][0]) == "")
 for _, aid in outs:
@@ -150,7 +150,7 @@ o2, a2 = s.launch("opus")
 check("attended: 1 opus silent, 2nd opus -> warn (new burst)", ctx(o1) == "" and "opus-or-above: 2" in ctx(o2))
 subprocess.run([sys.executable, "-I", os.path.join(H, "compact_epoch.py"), "q"], input=json.dumps({"session_id": "att", "source": "compact"}), text=True, env=ENV)
 o3, a3 = s.launch("opus")
-check("attended: compact epoch re-arms the warn in the same burst", "Large fan-out" in ctx(o3))
+check("attended: compact epoch re-arms the warn in the same burst", "Several subagents at once" in ctx(o3))
 _, ow = s.pre(tool="Workflow")
 check("attended: Workflow -> warn, not denied", "Workflow requested" in ctx(ow) and not denied(ow))
 
@@ -159,7 +159,7 @@ open(os.path.join(PROJ, ".claude", "harness.env"), "w").write("HARNESS_FANOUT_WA
 r = S("repo")
 ra, _ = r.launch()
 rb, _ = r.launch()
-check("repo .claude/harness.env lowers the concurrent threshold", ctx(ra) == "" and "Large fan-out" in ctx(rb))
+check("repo .claude/harness.env lowers the concurrent threshold", ctx(ra) == "" and "Several subagents at once" in ctx(rb))
 check("repo env only overrides slot keys", L.config(PROJ).get("HARNESS_HEAVY_WRAP") != "evil")
 os.remove(os.path.join(PROJ, ".claude", "harness.env"))
 
@@ -189,7 +189,7 @@ we, ide = w.launch()  # running: idd 하나, 초과 → 슬롯 1 → 거절
 check("budget over: serialized to 1 slot (1 running -> queued)", denied(we) and "budget" in reason(we))
 w.stop_agent(idd)
 wf1, idf = w.launch()
-check("budget over: 0 running -> allowed with reconsider warn", not denied(wf1) and 'level="warn"' in ctx(wf1) and "sonnet" in ctx(wf1))
+check("budget over: 0 running -> allowed with reconsider warn", not denied(wf1) and 'level="warn"' in ctx(wf1) and "SendMessage" in ctx(wf1))
 w.stop_agent(idf)
 wg, idg = w.launch()
 check("budget over: reconsider warn only once", not denied(wg) and ctx(wg) == "")
@@ -449,9 +449,9 @@ nn = S("nest", envn)
 nn.launch()
 sub_pre = hook(dict(nn.base(hook_event_name="PreToolUse", tool_name="Agent", tool_use_id="nest-sub", agent_id="zz", agent_type="general-purpose",
                             tool_input={"model": "sonnet", "run_in_background": True})), envn)
-check("nested (agent_id) call gets the fan-out warn", "Large fan-out" in ctx(sub_pre))
+check("nested (agent_id) call gets the fan-out warn", "Several subagents at once" in ctx(sub_pre))
 _, main_pre = nn.pre()
-check("main still gets its own fan-out warn after the subagent consumed one", "Large fan-out" in ctx(main_pre))
+check("main still gets its own fan-out warn after the subagent consumed one", "Several subagents at once" in ctx(main_pre))
 _, main_pre2 = nn.pre()
 check("main dedup within the burst is unchanged (silent)", ctx(main_pre2) == "")
 

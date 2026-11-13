@@ -192,7 +192,7 @@ def wrap(name, body):
 
 def injection(files_label, picked, after_write):
     text = "Rules for files matching these paths (shown once per context; you %s %s)." % ("wrote" if after_write else "opened", files_label)
-    text += " Check what you wrote against them and fix it.\n" if after_write else "\n"
+    text += " Check what you wrote against them and fix only what conflicts.\n" if after_write else "\n"
     return ('<harness-hook name="rules-inject" level="info">\n%s%s\n</harness-hook>'
             % (text, "\n".join(wrap(n, b) for n, b in picked)))
 

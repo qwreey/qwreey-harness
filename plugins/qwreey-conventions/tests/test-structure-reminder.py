@@ -77,8 +77,8 @@ case("같은 파일 다시 → 조용(세션당 한 번)", run("Edit", mid, ti_e
 mk("src/Mid.luau", 1600)
 out = run("Edit", mid, ti_extra=edit(5))
 case("1600줄로 커짐 → hard", out, "hard limit (1500)")
-case("  … level=action(경고 800 이 섞여도 최고 단계)", out, 'level="action">')
-case("  … 세션 성장(848→1600)도 같은 알림에", out, "848 -> 1600")
+case("  … level=action 태그", out, 'level="action">\n`src/Mid.luau` is 1600')
+case("  … 세션 성장(848→1600)은 따로 warn 태그에", out, 'level="warn">\n`src/Mid.luau` grew 848 -> 1600')
 case("그 뒤 → 조용", run("Edit", mid, ti_extra=edit(1)), want_empty=True)
 
 g = mk("src/Grow.luau", 1050)
@@ -101,7 +101,7 @@ case("생성물 머리 → 조용", run("Edit", gen, ti_extra=edit(1)), want_emp
 for i in range(15):
     mk(f"src/flat/Mod{i:02d}.luau", 20)
 newf = mk("src/flat/Extra.luau", 20)
-case("새 파일, 폴더에 16개 → flat", run("Write", newf, sid="s3", resp={"type": "create"}), "0 subfolders")
+case("새 파일, 폴더에 16개 → flat(info)", run("Write", newf, sid="s3", resp={"type": "create"}), 'level="info">\n`src/flat/` has 16 source files and 0 subfolders')
 newf2 = mk("src/flat/Extra2.luau", 20)
 case("같은 폴더 두 번째 → 조용", run("Write", newf2, sid="s3", resp={"type": "create"}), want_empty=True)
 
