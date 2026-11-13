@@ -1,4 +1,4 @@
-status: active; canonical skill, script and registry moved to plugins/qwreey-delegate/skills/delegate (English); skills/delegate here is the Korean pre-install copy, do not edit; sibling-retirement.md lists what each sibling session checks before deleting its copy
+status: active; canonical skill, script and registry moved to plugins/qwreey-delegate/skills/delegate (English); skills/delegate here is the Korean pre-install copy, do not edit; sibling-retirement.md lists what each sibling session checks before deleting its copy; skills/debate is superseded by .claude/research/drafts/debate
 # (B) agy/Codex 위임 통합 설계
 
 2026-11-10 초안. 근거:
