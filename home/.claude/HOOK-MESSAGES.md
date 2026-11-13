@@ -8,6 +8,7 @@ MANIFEST 대상 아님. 근거 실측: `.claude/audit/17-hook-messages.md`. 세�
    - 실측: 하네스는 additionalContext 를 `<system-reminder>` 로 감싸지 **않고**(트랜스크립트 `rendered` 에만 있음), `PreToolUse:Bash hook additional context: ` 접두만 붙여 system 위치로 넣는다. SessionStart·UserPromptSubmit 은 사용자 턴 안에 일반 텍스트로 붙는다. 그래서 우리 태그가 필요하다.
 3. **배경 설명(위상과 level 뜻, 3줄 이내)의 출처는 q 플러그인 주입이다**(`plugins/q/context/ambient.md`, SessionStart·SubagentStart 훅이 `<plugin name="q">` 로 감싸 영어 그대로 싣는다. 사용자 CLAUDE.md 에는 없다). 위상(사용자가 설치한 상시 규약, 반드시 다룸)과 level 뜻이 거기 있다. q 를 끄면 이 배경도 같이 빠진다. 태그 안에서 반복하지 않는다. 끄기: `HARNESS_Q_AMBIENT=off`. 세션 중간에 q 를 켠 경우는 UserPromptSubmit 이 (세션, compact 회차)당 한 번 보충하고, 중간에 끄면 이미 실린 맥락은 남는다(한계).
 4. 본문은 지시가 아니라 **관찰 + 권고**로 쓴다(무엇이 일어났는지, 왜 중요한지, 할 일). 의미 없는 인사·반복 금지.
+   - 훅은 기계적 휴리스틱이라 맥락을 모르고 한쪽으로 치우치기 쉽다. 모델이 놓쳤을 수 있는 것을 다시 판단할 기회를 주는 데서 그친다. 할 일은 "고려하라·이런 경우면" 꼴로 쓰고, 따르지 않아도 되는 경우를 함께 적는다. 명령형은 위험하거나 꼭 확인해야 하는 상황(형제 저장소 쓰기, deny, `action`)에만 쓴다(사용자: "훅은 단순히 모델이 놓친 부분에 대해 판단할 기회를 줄 뿐이여야해").
 5. **deny 사유** (`permissionDecisionReason`)도 같은 태그로 감싼 영어. 모델에게는 `<error>PreToolUse:Bash hook error: …</error>` 도구 결과로 들어간다.
 6. PreToolUse/PostToolUse 의 **일반 stdout 은 모델에게 가지 않는다**(실측). 모델에게 보일 말은 JSON `additionalContext` 로 낸다.
 

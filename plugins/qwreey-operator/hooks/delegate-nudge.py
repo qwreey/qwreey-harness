@@ -33,8 +33,8 @@ NUDGE = (
     "stay if it is nearly done or needs the user midway."
 )
 CARRY = (
-    "Last turn main wrote code {n} times in {m} files directly. If this prompt continues that work, "
-    "brief a background subagent first."
+    "Last turn main wrote code {n} times in {m} files directly. If this prompt continues that work and much "
+    "implementation remains, consider handing it to a background subagent; carry on in main if it is nearly done."
 )
 
 
