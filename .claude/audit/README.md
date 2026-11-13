@@ -59,4 +59,6 @@ Multi-file audits:
 - [45-search-descriptions/](45-search-descriptions/) - search summary line length and language vs picking accuracy
 - [46-coderag-agent-surface/](46-coderag-agent-surface/) - review of every coderag string a model sees (skill/MCP view)
 - [47-coderag-code-quality/](47-coderag-code-quality/) - coderag hardcoding, duplicates, reinvented wheels; convention input with measured precision
+- [48-code-reuse-debate/](48-code-reuse-debate/) - code-reuse rule wording debate (P concise, Q toolkit-wide) and the revised rule
+- [49-records-description/](49-records-description/) - who writes search summary lines: descriptions required on new records incl. snapshots, write-time lint, no backfill
 - [drafts/](drafts/) - drafts written during audits
