@@ -1,7 +1,7 @@
 # 툴킷 luau (Luau/Roblox)
 
 검사 모듈: `scripts/toolkits/luau.py`. 공유 지식 저장소: luau-kb(`<작업공간>/luau-kb`, `--kb`로 바꿈).
-갈린 규약의 합의안은 `<doctor>/decisions/D-xx`다(`.claude/base/decisions/README.md` 현황표가 확정 여부의 정본).
+갈린 규약의 합의안은 `<doctor>/.claude/base/decisions/D-xx`다(`<doctor>/.claude/base/decisions/README.md` 현황표가 확정 여부의 정본).
 
 ## 목차
 - [감지 표식](#감지-표식)
@@ -34,10 +34,10 @@
 | `TOOL-LUAURC` | `.luaurc`가 없다 | 정보 |
 
 **판단 근거**
-- **D-05 (버전 핀, 미확정)**: 목표값(예: 0.742 통일)은 정하지 않았다. 그래서 scan은 목표와 비교하지 않는다.
+- **D-05 (버전 핀, 확정)**: 핀 값은 저장소 소유다. 공통 목표값은 없으므로 scan은 목표와 비교하지 않는다.
   - 비교 대상은 형제 저장소(같은 작업공간, 자기 worktree와 `-agy`·`-doctor` 같은 사본은 뺌)의 실제 핀이다. 어긋난 도구마다 "값(저장소…)"을 적는다.
-  - 핀을 올리자고 고치지 않는다. 사용자가 물으면 D-05를 가리킨다.
-  - 제안된 공통 규칙 둘(확정 전): 수치·결함 서술에는 그 버전을 같이 적는다. 0.734를 쓰는 저장소는 `luau-analyze`의 비정상 종료를 실패로 판정한다(본보기 stl `check.sh:29`).
+  - 핀 값을 고치자는 안은 내지 않는다. 0.742로 올리는 일은 그 저장소 세션의 할 일로만 제안한다.
+  - 공통 규칙 둘: 수치·결함 서술에는 그 버전을 같이 적는다. 0.734를 쓰는 저장소는 `luau-analyze`의 비정상 종료를 실패로 판정한다(본보기 stl `check.sh:29`). 어긋나면 고칠 안을 낸다.
   - luau-lsp 핀은 Roblox `globalTypes.d.luau` 판과 짝이다(table-sim, devplorer, tbox). lsp만 따로 올리면 안 된다.
 - **D-02 (stylua, 확정)**: 사고를 내는 것은 설정 값이 아니라 설정이 적용되지 않은 실행이다.
   - `syntax = "Luau"`가 없거나 하위 폴더에서 실행하면 `f<<T>>`가 exit 0인 채로 시프트 연산이 된다(재현됨).
@@ -58,7 +58,7 @@
   - stl `stylua.toml:1`: "tbox/quad와 같은 설정"이라고 하지만 tbox는 Spaces+Input이고 quad는 설정 파일이 없다.
 - **고치는 법**: 형제 이름 대신 그 값을 고른 이유를 적는다. 예: "typedefs 정의 파일과 짝", "배터리 기대 건수 재현".
   형제 이름을 주석에 넣지 않으면 형제가 바뀌어도 낡지 않는다.
-- `<doctor>/decisions/README.md`의 "이번에 발견한 낡은 서술" 목록과 대조해 이미 알려진 것인지 적는다.
+- `<doctor>/.claude/base/decisions/README.md`의 "이번에 발견한 낡은 서술" 목록과 대조해 이미 알려진 것인지 적는다.
 
 ## 공유 지식 (luau-kb)
 
@@ -72,7 +72,7 @@
 **모델이 볼 것** (`KB-CAND` 판정)
 - **후보**: 라이브러리 없이 재현되거나 Luau 버전에만 의존하는 사실. 솔버 동작, 표준 라이브러리 성능, stylua·luau-analyze의 함정, `-O2` 인라인 문제.
 - **후보 아님**: 프로젝트 API, 설계 결정, 그 저장소의 수치 계약에 묶인 것.
-- 둘이 섞였으면 "혼합"으로 적는다. 분류 예시는 `<doctor>/audit/07-stl-luau-diet.md` §5의 23개 표다.
+- 둘이 섞였으면 "혼합"으로 적는다.
 - 이미 luau-kb에 있는지 확인한다: `grep -rn <핵심어> <doctor>/packs/luau-kb/skills`. 있으면 프로젝트 문서의 서술을 포인터로 바꾸는 안을 낸다.
 
 **옮기는 순서**(luau-kb 작업에서 한다): snippet으로 재현(`packs/luau-kb/tools/check_snippets.py`) → 스킬 reference에 적기 → 프로젝트 문서에는 포인터만.
@@ -87,7 +87,7 @@
 
 ## 걸린 결정 (D-xx)
 
-이 툴킷의 scan 코드나 발견이 아래 D-xx에 걸리면 한쪽으로 고치지 않고 묻는다(`fix-protocol.md#규약이-갈리는-항목`).
+이 툴킷의 scan 코드나 발견이 아래 D-xx에 걸리면 한쪽으로 고치지 않는다(`fix-protocol.md#규약이-갈리는-항목`).
 상태는 `.claude/base/decisions/README.md` "사용자 결정 현황"을 먼저 본다. 확정된 것은 그 결정대로 고칠 안을 낸다.
 
 | scan 코드나 발견 | D-xx |

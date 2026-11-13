@@ -63,6 +63,7 @@ Research ledgers whose numbers are the structure (numbered entries that other do
 ## Shape of the text
 
 - Skill description: what it does plus when to use it, in English, third person, a little pushy so it is not under-triggered, with a few Korean trigger phrases at the end. The body is usage: how to call, what comes back, what to do next.
+- Exception: a skill with `disable-model-invocation: true` gets a menu-line description (any language, no trigger phrases), since the model does not see it; only the user reads it in the `/` menu.
 - Text that passes between models (skills, agent prompts, hook messages) is English. Only wording meant for the user is Korean.
 - Explain the principle once rather than listing cases; the model generalizes.
 - Rationale for maintainers goes in the skill's own `references/rationale.md` (opened on demand, linked in one line from the body) or in a docs folder outside the skill, not in the body.

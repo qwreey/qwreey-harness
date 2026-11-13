@@ -101,7 +101,7 @@ def check_load(repo, user=False):
             done_bytes = len(t[m.start():].encode()) if m else 0
             if strike or done_bytes:
                 C.add(1, "경고", "LOAD-TODOS-DONE", C.rel(rp, repo),
-                    f"상시 로드되는 할 일 문서에 끝난 항목이 있다(취소선 {strike}줄, 끝난 절 {done_bytes:,} B). 처리 방식은 D-07 미결.",
+                    f"상시 로드되는 할 일 문서에 끝난 항목이 있다(취소선 {strike}줄, 끝난 절 {done_bytes:,} B). D-07: 끝난 항목은 import 되지 않는 파일로 옮긴다.",
                     "references/staleness-and-kb.md#d-07")
     return {"files": rows, "total": total}
 

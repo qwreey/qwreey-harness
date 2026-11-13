@@ -53,5 +53,5 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 
 ## 새 언어·툴체인
 
-`plugins/q/skills/doctor/references/toolkits/README.md` 의 "새 툴킷 추가하기"를 따른다.
+`plugins/q/docs/doctor-toolkits.md` 의 "새 툴킷 추가하기"를 따른다.
 coderag 의 지식 계층과 같은 구도다: 코어 = global, 툴킷 + `<툴킷>-kb` = pack, 대상 저장소 = project.

@@ -29,11 +29,11 @@ done
 ```
 
 세션이 있는 저장소는 직접 고치지 않는다. 대신 다음 중 하나를 한다.
-- **인계 문서**(기본): `<doctor>/handoff/<repo>.md`를 만든다(`<doctor>` = `scan.py --env`의 `DOCTOR_ROOT`). 파일이 이미 있으면 날짜를 단 절을 덧붙인다.
+- **인계 문서**(기본): `<doctor>/.claude/handoff/<repo>.md`를 만든다(`<doctor>` = `scan.py --env`의 `DOCTOR_ROOT`). 파일이 이미 있으면 날짜를 단 절을 덧붙인다.
 - **초안 브랜치**(큰 재구성일 때, 사용자가 승인한 경우만): 별도 worktree `<작업공간>/<repo>-doctor`와 브랜치 `doctor/<주제>`에 초안을 만든다.
   인계 문서에 그 브랜치를 적는다. 선례는 stl-luau-doctor다.
 
-인계 문서 틀 (선례: `<doctor>/handoff/stl-luau.md`)
+인계 문서 틀
 ```markdown
 # <repo> 세션에게 — <한 줄 요지>
 
@@ -44,7 +44,7 @@ claude-doctor 의 harness-doctor 가 <날짜>에 이 저장소를 진단했습�
 ## 고칠 안 (사용자가 승인한 것만)
 1. <어디를 어떻게. 바꿀 문장이나 diff 요지>
 ## 하지 말 것
-- <예: indent 값은 D-02 미결이라 바꾸지 않음, 삭제는 HUMAN_TODO 에 있음>
+- <예: indent 값은 D-02 상 저장소 소유라 바꾸지 않음, 삭제는 HUMAN_TODO 에 있음>
 ## 반영 뒤 확인
 - `python3 -I <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py <경로> --only <항목>` 에서 해당 코드가 사라지는지
 - 다 끝나면 사용자에게 알려 주세요.
@@ -65,23 +65,23 @@ claude-doctor 의 harness-doctor 가 <날짜>에 이 저장소를 진단했습�
 
 ## 규약이 갈리는 항목
 
-`<doctor>/decisions/D-xx`가 걸린 항목은 한쪽으로 고치지 않는다. 확정 여부는 `.claude/base/decisions/README.md`의 "사용자 결정 현황" 표가 정본이다.
+`<doctor>/.claude/base/decisions/D-xx`가 걸린 항목은 한쪽으로 고치지 않는다. 확정 여부는 `<doctor>/.claude/base/decisions/README.md`의 "사용자 결정 현황" 표가 정본이다.
 확정된 결정은 그 내용대로 고칠 안을 내고, 미확인·수정 중인 결정만 묻는다.
 
 코어(언어 무관) 결정:
 
 | scan 코드나 발견 | 관련 D-xx |
 |---|---|
-| `LOAD-TODOS-DONE`, 끝난 항목 규칙 | D-07 끝난 할 일 |
+| `LOAD-TODOS-DONE`, 끝난 항목 규칙 | D-07 끝난 할 일 (확정: 상시 로드 todos에서 지우고 import되지 않는 파일로 보존) |
 | 파일 길이·폴더 구조 알림 기준 | D-13 (기준 값은 언어 무관) |
 
 툴킷 결정(대부분 Luau 저장소 사이의 규약): 각 `references/toolkits/<이름>.md`의 "걸린 결정" 표. luau는 D-01~D-06, D-08~D-12.
 
-질문 틀: 각 D 파일의 "사용자 확인 질문" 절을 그대로 쓰고, 이 저장소에 미치는 변경량만 더한다.
+질문 틀(미확정 결정만): 각 D 파일의 "사용자 확인 질문" 절을 그대로 쓰고, 이 저장소에 미치는 변경량만 더한다.
 ```markdown
-**D-07 (끝난 할 일)** — 제안된 추천안: 상시 로드 todos 에서 지우고 archive 로 보존.
-이 저장소 영향: `.claude/todos.md` "된 것" 절 16,962 B 가 매 세션 로드됨.
-가) 추천안대로 옮긴다  나) 지금 규칙("아래로 내린다")을 유지한다  다) D-07 을 먼저 확정한다
+**D-xx (<주제>)** — 추천안: <D 파일 4절 요지>.
+이 저장소 영향: <파일:줄, 바이트나 줄 수>.
+가) 추천안대로 고친다  나) 지금 규칙을 유지한다  다) D-xx 를 먼저 확정한다
 ```
 
 ## 사용자 레벨(~/.claude)
@@ -100,7 +100,7 @@ claude-doctor 의 harness-doctor 가 <날짜>에 이 저장소를 진단했습�
 1. scan을 그 항목만 다시 돌린다(`--only N`). 해당 코드가 사라졌는지 확인한다.
 2. 상시 로드량이 바뀌었으면 전후 B/줄을 보고한다.
 3. rules를 바꿨으면 실제로 로드되는지 확인한다.
-   - 방법: `claude -p`로 그 rule의 paths에 맞는 파일을 한 번 Read하게 하고, 컨텍스트에 보이는 rule 파일 이름을 인용하게 한다(`.claude/audit/07` §1).
+   - 방법: `claude -p`로 그 rule의 paths에 맞는 파일을 한 번 Read하게 하고, 컨텍스트에 보이는 rule 파일 이름을 인용하게 한다.
    - 모델은 sonnet 이상을 쓴다. haiku 결과로는 결론 내지 않는다.
 4. 스킬을 바꿨으면 `claude plugin validate <스킬 디렉터리의 상위>`로 형식을 확인한다.
 5. 커밋은 사용자가 요청할 때만 한다. 고친 파일 목록과 diff 요지를 보고한다.

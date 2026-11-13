@@ -5,17 +5,18 @@
   - [훅 중복](#훅-중복)
   - [위임 사본](#위임-사본)
 - [7. 설정](#7-설정)
+  - [도메인 팩](#도메인-팩)
 
 ## 6. 복제본 표류
 
-같은 파일을 "복사 후 방치"하면 사본마다 다른 수정이 쌓인다(`.claude/audit/04` §3.2).
+같은 파일을 "복사 후 방치"하면 사본마다 다른 수정이 쌓인다.
 
 | 코드 | 대상 | 정본 |
 |---|---|---|
 | `DRIFT-TYPEDEFS` | (툴킷 luau) `globalTypes*.d.luau` | luau-kb `typedefs/globalTypes.d.luau` — `toolkits/luau.md#typedefs-사본` |
 | `DRIFT-HOOK` | `heavy-proc-guard.py` 사본 | `<doctor>/plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py` |
 | `DRIFT-HOOKDUP` | 사용자 레벨과 같은 훅을 프로젝트 settings가 또 등록 | 사용자 레벨 `settings.json` |
-| `DRIFT-DELEGATE` | `agy-delegate.sh`, `skills/delegate-agy` 사본 | 통합안 `<doctor>/drafts/delegate/` (P4) |
+| `DRIFT-DELEGATE` | `agy-delegate.sh`, `skills/delegate-agy` 사본 | `<doctor>/plugins/qwreey-delegate/` (초안: `<doctor>/.claude/research/drafts/delegate/`) |
 | `DRIFT-UID` | 서로 다른 저장소가 같은 위임 uid를 쓴다. 저장소 안의 사본과 `harness.env`의 `HARNESS_DELEGATE_REGISTRY`(uid 표)를 함께 본다 | uid 표 |
 | `DRIFT-SKILLCOPY` | 같은 이름 스킬이 다른 저장소나 사용자 레벨에 있는데 내용이 다르다 | 원본 쪽(사례마다 확인) |
 
@@ -38,7 +39,7 @@
 ### 위임 사본
 
 agy 위임 도구는 4벌이다(quad, stl-luau, tbox, table-sim). 지금은 고치지 않는다.
-- 통합안과 걷어내기 순서는 `<doctor>/drafts/delegate/README.md`와 `migration.md`에 있다.
+- 통합안과 걷어내기 순서는 `<doctor>/.claude/research/drafts/delegate/README.md`와 `migration.md`에 있다.
 - uid 충돌(`DRIFT-UID`)은 격리 보장을 깨므로 보고에 꼭 넣는다. 사례: quad와 tbox가 모두 61000.
   - 고치는 일은 P4 통합 때 한다. 대상 저장소에 세션이 있으면 인계한다.
 - `DRIFT-SKILLCOPY`는 어느 쪽이 정본인지부터 확인한다. CLAUDE.md의 "사본" 서술과 git log를 본다.
@@ -71,3 +72,21 @@ agy 위임 도구는 4벌이다(quad, stl-luau, tbox, table-sim). 지금은 고�
 - 훅의 matcher가 의도와 맞는지 본다. 예: `Bash` 대신 `*`를 쓰고 있지 않은지.
 - 사용자 레벨로 올릴 만한 공통 설정이 있으면 `<doctor>/home/settings-migrations/` 에 새 마이그레이션을 추가하는 안을 낸다.
 - 훅 명령의 경로는 `$HOME/.claude/hooks/…`나 `$CLAUDE_PROJECT_DIR/…`로 쓴다. 절대 경로(`/code/...`)는 다른 환경에서 깨진다. scan은 환경 변수를 풀어 `SET-HOOKPATH`를 본다.
+
+### 도메인 팩
+
+팩(`packs/`)은 기본 꺼짐 플러그인이다. 스위치는 저장소 `coderag.toml`의 `[[packs]]` 목록 하나다. coderag 플러그인이 이 목록대로 팩 rule을 주입하고, `coderag adapt --harness claude`가 이 목록에서 `.claude/settings.json` `enabledPlugins`(스킬 적재)를 만든다. 팩 표(팩 → 툴킷)는 `scripts/pack_checks.py`의 `PACKS`다.
+
+| 코드 | 뜻 | 등급 |
+|---|---|---|
+| `PACK-MISSING` | 툴킷 표식이 있는데 팩이 `coderag.toml` 목록에도 없고 `enabledPlugins`에서 false로 꺼 두지도 않았다. 메시지에 더할 줄과 `coderag adapt --harness claude`가 있다 | 경고 |
+| `PACK-DRIFT` | 목록에 있는데 `enabledPlugins`에 없거나 false다, 또는 켜져 있는데 목록에 없다 | 경고 |
+| `PACK-UNUSED` | 팩이 켜져 있는데 그 툴킷 표식이 없다 | 정보 |
+| `PACK-USER-LEVEL` | 팩이 사용자 레벨 `enabledPlugins`에서 켜져 있다 | 정보 |
+| `PACK-NO-CODERAG` | 팩이 켜져 있는데 `HARNESS_CODERAG` 바이너리가 없다. 팩 rule이 주입되지 않는다 | 경고 |
+| `PACK-UNREGISTERED` | 목록의 팩이 프로젝트 항목에도 사용자 coderag 설정에도 경로가 없다. coderag가 조용히 건너뛴다 | 경고 |
+| `SET-CODERAG-BINARY` | 팩과 무관하게, coderag 플러그인이 켜져 있는데 바이너리가 없다. 기록 규약 rule이 실리지 않는다 | 경고 |
+
+**고치는 법**
+- `PACK-MISSING`, `PACK-DRIFT`는 고칠 안이다. 그 저장소 `coderag.toml`을 사용자 승인 뒤 고치고 adapt를 돌린다. 세션이 있으면 `인계`다.
+- 팩을 사용자 레벨에서 켜자고 제안하지 않는다. 팩은 저장소마다 켠다.

@@ -1,6 +1,6 @@
 ---
 name: start
-description: Onboarding entry point for the Claude Code harness. Asks the user's role and experience, checks which concepts they know with a checklist, explains only the unknown ones in plain words, diagnoses the current environment read-only, then proposes improvements one at a time and applies only what the user agrees to. User-invoked only. 처음 시작, 온보딩, 하네스 설명해 줘.
+description: 온보딩 — 역할을 묻고 모르는 개념만 설명한 뒤, 환경을 읽기 전용으로 진단하고 개선을 하나씩 제안한다
 argument-hint: "[처음부터 | 개념 이름 | 진단]"
 disable-model-invocation: true
 ---
@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Guide a colleague who does not know Claude Code well (artist, planner, Luau developer, web developer) through
 **ask -> explain -> read-only diagnosis -> propose one at a time -> apply only what is approved**.
-Reply to the user in Korean. Explain each technical term in one line the first time it appears. Text in Korean below (questions, tables, proposal frame, notices) is shown to the user as written. Background: `references/rationale.md`.
+Reply to the user in Korean. Explain each technical term in one line the first time it appears. Text in Korean below (questions, tables, proposal frame, notices) is shown to the user as written.
 
 ## Consent rule (first, no exceptions)
 
@@ -29,7 +29,7 @@ Company security policy rejects actions without consent. Before doing any of the
 
 ## Flow
 
-If `$ARGUMENTS` is a concept name, start at step 3 with that concept; if `진단`, start at step 4 (still ask step 1 briefly, once). If empty, start at step 1.
+If `$ARGUMENTS` is a concept name, start at step 3 with that concept; if `진단`, start at step 4 (still ask step 1 briefly, once). If empty or `처음부터`, start at step 1.
 Do one step at a time and stop at the end of each step to wait for the user.
 
 ### Step 1. Ask role and experience (3 questions, one message)

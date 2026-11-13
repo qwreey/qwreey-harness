@@ -18,7 +18,7 @@ PACKS = {
     "web-security": ("web", "claude-doctor-market"),
     "luau-kb": ("luau", "claude-doctor-market"),
 }
-REF = "plugins/q/skills/doctor/SKILL.md (항목 7, PACK-)"
+REF = "plugins/q/skills/doctor/references/drift-and-settings.md#도메인-팩"
 
 
 def _enabled_map(path):

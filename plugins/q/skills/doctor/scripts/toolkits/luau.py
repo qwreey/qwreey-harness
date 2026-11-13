@@ -1,7 +1,7 @@
 """harness-doctor 툴킷: luau (Luau/Roblox). 판정 기준은 references/toolkits/luau.md.
 
 scan.py 가 importlib 로 읽는다(-I 라 sys.path 에 기대지 않는다). 이 모듈은 scan.py 를 import 하지 않고
-ctx 로 받은 도우미만 쓴다. 인터페이스는 references/toolkits/README.md.
+ctx 로 받은 도우미만 쓴다. 인터페이스는 plugins/q/docs/doctor-toolkits.md.
 """
 import re
 
@@ -106,12 +106,12 @@ def check_toolchain(ctx):
     if tools is None:
         ctx.add(8, "정보", "TOOL-PIN", "mise.toml", "mise.toml 이 없거나 읽히지 않는다. 버전 핀이 없다(D-05).")
     else:
-        # D-05 는 미확정이다. 목표값과 비교하지 않고, 형제 저장소 핀과 어긋날 때만 알린다.
+        # 핀 값은 저장소 소유라(D-05) 공통 목표값이 없다. 형제 저장소 핀과 어긋날 때만 알린다.
         diff = ctx.pin_mismatch(tools, PIN_TOOLS)
         if diff:
             ctx.add(8, "정보", "TOOL-PIN", "mise.toml",
                     "핀: " + ", ".join(f"{k}={tools.get(k, '없음')}" for k in PIN_TOOLS) +
-                    ". 형제 저장소 핀과 다름 — " + "; ".join(diff) + ". 맞출지는 D-05(미확정)라 정보로만 낸다.",
+                    ". 형제 저장소 핀과 다름 — " + "; ".join(diff) + ". 핀은 저장소 소유(D-05)라 정보로만 낸다.",
                     TOOL_REF)
     sty = repo / "stylua.toml"
     alt = repo / ".stylua.toml"

@@ -40,21 +40,23 @@ GEMINI.md와 AGENTS.md는 agy·codex의 진입점이다. 이들에게는 rules�
 그래서 이 문서들이 규약을 복제하고 있으면 Claude 쪽 규약과 따로 낡는다.
 
 - **실례**: stl-luau `GEMINI.md:24`가 "확정된 결정" 절에 질문 AB를 적고 있었다. 그런데 `conventions.md:36`은 "AB 규칙은 뒤집혔다(질문 BI)"고 한다.
-  - scan이 원본 stl-luau에서 이것을 `STALE-SUPERSEDED`로 잡는다(실측).
+  - scan이 원본 stl-luau에서 이것을 `STALE-SUPERSEDED`로 잡는다.
   - 고친 초안 stl-luau-doctor에서는 잡히지 않는다. 그 초안의 GEMINI.md는 AB를 "지금 전환 중인 것" 절로 옮겼다.
 - **검출 한계**: scan은 "질문 XX" 꼴의 결정 ID를 쓰는 저장소에서만 잡는다.
   - 그 밖의 모순은 모델이 직접 본다. 툴체인 버전, 검사 명령, 금지 사항, 커밋·push 정책 같은 것이다.
   - 방법: CLAUDE.md의 "넘지 않는 선"·명령 표와 GEMINI.md·AGENTS.md를 나란히 읽는다.
 - **고치는 법**: GEMINI.md와 AGENTS.md는 규약을 다시 적지 않고 CLAUDE.md와 rules 파일을 가리키게 한다.
-  - 틀은 `<doctor>/drafts/delegate/skills/delegate/templates/AGENTS.md.template`이다.
+  - 틀은 `<doctor>/plugins/qwreey-delegate/skills/delegate/templates/AGENTS.md.template`이다.
   - 당장은 어긋난 줄만 고치는 안을 낸다.
 
 ### D-07
 
-끝난 할 일을 어떻게 다룰지는 D-07(`<doctor>/decisions/D-07-finished-todos.md`)에서 아직 미결이다.
-- 제안된 추천안: 상시 로드되는 todos에서는 끝난 항목을 지우고, 보존이 필요하면 import되지 않는 파일(`archive/todos-history.md`)로 옮긴다.
-- table-sim `todos.md:5`는 정반대 규칙("된 것은 지우지 않고 아래로 내린다")을 적고 있다. 바꾸게 되면 그 규칙 문장도 같이 바꿔야 한다.
-- `LOAD-TODOS-DONE`이 나오면 고치지 말고 D-07을 가리키며 묻는다. 질문 틀은 `fix-protocol.md`에 있다.
+끝난 할 일은 D-07(`<doctor>/.claude/base/decisions/D-07-finished-todos.md`, 확정)대로 다룬다.
+- 상시 로드되는(`@import`되는) todos에서는 끝난 항목을 지운다. 보존이 필요하면 import되지 않는 파일(예: `archive/todos-history.md`)로 옮긴다.
+- 상시 로드되지 않는 할 일 문서(`backlog.md` 등)는 형식이 자유다.
+- 코드 `TODO` 마커는 이유 문장과 추적처(`todos.md` 항목이나 원장 번호)를 붙이고, 끝나면 지운다.
+- table-sim `todos.md:5`는 정반대 규칙("된 것은 지우지 않고 아래로 내린다")을 적고 있다. 옮기는 안에는 그 규칙 문장을 바꾸는 것도 넣는다.
+- `LOAD-TODOS-DONE`이 나오면 위대로 옮기는 고칠 안을 낸다. 옮기기는 내용을 걷어내는 일이라 승인이 필요하다.
 
 ## 5. 공유 지식 쏠림
 

@@ -1,6 +1,6 @@
 # 10. 메모리 이식성 (MEM-*)
 
-근거와 실측: `<doctor>/audit/23-memory-portability.md`. auto memory 는 이 컴퓨터의 `~/.claude/projects/<키>/memory/` 파일이라 저장소와 함께 다니지 않는다.
+auto memory 는 이 컴퓨터의 `~/.claude/projects/<키>/memory/` 파일이라 저장소와 함께 다니지 않는다.
 검사 구현은 `scripts/memory_checks.py`(scan.py 항목 10), 판정 규칙은 `scripts/memory_signals.py`(claude-doctor `lib/memory_signals.py` 의 사본).
 
 | 코드 | 뜻 | 판정 |
@@ -9,7 +9,7 @@
 | `MEM-REPO` | 경로·빌드 명령·"이 저장소에서"·규약 문구가 있어 저장소 지식으로 보인다 | 후보일 뿐이다. 원문을 읽고 분류(아래)한다. 점수 5 이상이 경고, 3~4 가 정보 |
 | `MEM-SIZE` | MEMORY.md 가 앞 200줄 또는 25KB 한도에 근접(80%)·초과 | 초과분은 시작 때 읽히지 않는다. 한 줄 요약만 남기고 상세는 토픽 파일로, 낡은 줄은 지운다(동의 후) |
 
-키 규칙(2.1.316 실측): 절대 경로에서 영숫자가 아닌 모든 문자를 `-` 로 바꾼다(`/tmp/a.dot_1` → `-tmp-a-dot-1`). 거꾸로는 모호해서 파일 시스템을 걸어 찾는다. 빈 `memory/` 폴더는 자동으로 생기므로 `.md` 가 있는 키만 센다.
+키 규칙(Claude Code 2.1.316 기준): 절대 경로에서 영숫자가 아닌 모든 문자를 `-` 로 바꾼다(`/tmp/a.dot_1` → `-tmp-a-dot-1`). 거꾸로는 모호해서 파일 시스템을 걸어 찾는다. 빈 `memory/` 폴더는 자동으로 생기므로 `.md` 가 있는 키만 센다.
 
 ## MEM-REPO 항목 분류 (모델이 판정)
 | 분류 | 기준 | 처리 |

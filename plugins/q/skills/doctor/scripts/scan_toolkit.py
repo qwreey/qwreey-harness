@@ -50,7 +50,7 @@ def sibling_repos(repo, projects):
 
 def pin_mismatch(repo, projects, mine, tools):
     """mine(이 저장소 mise 핀)과 형제 저장소 핀이 다른 도구마다 '도구: 값(저장소, …)' 문자열.
-    D-05 처럼 목표값이 확정되지 않은 동안에는 목표와 비교하지 않고 저장소 사이 불일치만 본다."""
+    핀 값은 저장소 소유라(D-05) 목표와 비교하지 않고 저장소 사이 불일치만 본다."""
     out = []
     theirs = {}
     for sib in sibling_repos(repo, projects):
