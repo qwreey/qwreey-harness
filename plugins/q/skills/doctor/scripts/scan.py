@@ -36,16 +36,21 @@ USER_HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
 _PATH_ROOT = HERE.parents[5] if (HERE.parents[4].name == "plugins" and (HERE.parents[5] / "home" / "MANIFEST").is_file()) else None
 
 
+# /q:doctor 만 읽는 harness.env 키 가운데 저장소 층이 바꾸지 못하는 것.
+# HARNESS_AGENT_PUSH: 에이전트 git push 정책, normal(에이전트 push 가 정상 흐름) | deny | 빈 값(모름). scan_settings.py 가 읽는다.
+# 환경을 설명하는 사용자의 말이라 클론한 저장소가 바꾸면 안 된다.
+ENV_USER_ONLY = frozenset({"HARNESS_AGENT_PUSH"})
+
+
 def _load_env():
-    """harness.env 층(harness_env.load_layers)과 그 모듈. 설치된 정본(~/.claude/lib)이 있으면 그것, 없으면 옆의 사본.
+    """harness.env 층(옆의 harness_env.py 사본의 load_layers)과 그 모듈. 설치된 ~/.claude/lib 판은 옛 판일 수 있어 쓰지 않는다.
     사용자 층은 ~/.claude/harness.env, 없으면 클론의 정본 home/.claude/harness.env. 저장소 층은 $CLAUDE_PROJECT_DIR, 없으면 cwd
     (검사 대상 저장소 인자가 아니다: ENV 는 인자를 읽기 전에 정한다)."""
     try:
         sys.path.insert(0, str(HERE.parent))
-        import harness_env
-        mod = harness_env.installed()
+        import harness_env as mod
         cands = [USER_HOME / "harness.env"] + ([_PATH_ROOT / "home" / ".claude" / "harness.env"] if _PATH_ROOT else [])
-        return mod.load_layers(mod.project_dir(os.getcwd()), candidates=cands), mod
+        return mod.load_layers(mod.project_dir(os.getcwd()), candidates=cands, user_only=ENV_USER_ONLY), mod
     except Exception:
         return {}, None
 

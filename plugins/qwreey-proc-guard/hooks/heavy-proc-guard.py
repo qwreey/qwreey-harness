@@ -34,6 +34,9 @@ TOOLKIT_EXECUTORS = {
     "web": {"npm", "npx", "pnpm", "yarn", "bun", "deno", "vitest"},
     "rust": {"cargo"},
 }
+# 이 훅만 읽는 harness.env 키: 위 표에 더할 실행기와 키워드(공백 구분). 더하기만 하므로 저장소 층도 정할 수 있다.
+# HARNESS_HEAVY_WRAP, HARNESS_TOOLKITS 는 여러 플러그인이 읽는 키라 harness_env.DEFAULTS 에 있다.
+ENV_DEFAULTS = {"HARNESS_HEAVY_EXECUTORS": "", "HARNESS_HEAVY_KEYWORDS": ""}
 PREFIX_WORDS = {"(", "{", "time", "nice", "env", "command", "exec", "nohup"}
 EXEMPT_HEADS = {"git", "gh"}
 DELEGATE_SCRIPTS = ("delegate.py", "delegate.sh")  # file names of qwreey-delegate's driver; see main()
@@ -94,13 +97,12 @@ def is_executor(head, executors):
 
 
 def load_env(cwd=None):
-    """harness.env 층(옆의 harness_env.py 사본, 설치된 정본이 있으면 그것). 깨졌으면 {}(= 기본값 auto).
+    """harness.env 층(옆의 harness_env.py 사본). 깨졌으면 {}(= 기본값 auto).
     HARNESS_HEAVY_WRAP 은 USER_ONLY 라 저장소 파일이 바꾸지 못한다. 저장소는 실행기와 키워드를 더할 수만 있다."""
     try:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         import harness_env
-        he = harness_env.installed()
-        return he.load_layers(he.project_dir(cwd))
+        return harness_env.load_layers(harness_env.project_dir(cwd), defaults=ENV_DEFAULTS)
     except Exception:
         return {}
 

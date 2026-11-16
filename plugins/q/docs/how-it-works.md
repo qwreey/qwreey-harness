@@ -17,7 +17,7 @@
 - `context/ambient.md`(훅 알림의 위상과 info·warn·action 의 뜻, `~/.claude` 는 claude-doctor `home/` 에서 고친다는 줄, mise shim 우회 줄. 영어 다섯 줄)를 `<plugin name="q" nonce="…">` 로 감싸 `additionalContext` 로 낸다. 다른 플러그인의 훅 메시지는 이 배경을 전제로 쓰인다(`home/.claude/HOOK-MESSAGES.md`).
 - SessionStart 는 메인에, SubagentStart 는 서브에이전트에 싣는다. fork 는 부모 맥락을 물려받으므로 건너뛴다.
 - UserPromptSubmit 은 세션 중간에 플러그인을 켠 경우의 보충으로, (세션, compact 회차)당 한 번만 싣는다.
-- 끄기: `HARNESS_Q_AMBIENT=off`(환경 변수 또는 harness.env 층: 사용자 `~/.claude/harness.env` < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`. 층 규칙은 `home/.claude/lib/harness_env.py` 머리, 플러그인은 옆의 `scripts/harness_env.py` 사본을 쓴다).
+- 끄기: `HARNESS_Q_AMBIENT=off`(환경 변수 또는 harness.env 층: 사용자 `~/.claude/harness.env` < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`. 층 규칙은 `home/.claude/lib/harness_env.py` 머리, 플러그인은 늘 옆의 `scripts/harness_env.py` 사본을 쓴다).
 - `scripts/ambient.py` 은 저장소 `lib/ambient.py` 의 바이트 사본이다(고치지 말고 정본을 고친 뒤 `python3 -I tools/sync-copies.py --apply`). 플러그인마다 다른 것은 `context/ambient.json`(`plugin`, `events`, `off_switch`, `epoch`)에 둔다. 서브에이전트에 다른 글을 실으려면 `context/subagent.md` 를 둔다(없으면 `ambient.md`).
 
 ## 서브에이전트 규모 고지와 away (`subagent-slots.py`, 원장 `subagent_ledger.py`)

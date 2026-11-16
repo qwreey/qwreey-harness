@@ -1,8 +1,8 @@
 """설정 읽기. 우선순위: 환경 변수 > harness.env 층 > DEFAULTS. 이 모듈의 키(DEFAULTS)만 읽는다.
 
-harness.env 층은 scripts/harness_env.py(하네스 정본 home/.claude/lib/harness_env.py 의 사본, 설치된 정본이 있으면 그것)의
+harness.env 층은 scripts/harness_env.py(하네스 정본 home/.claude/lib/harness_env.py 의 사본)의
 load_layers 다: 사용자($HARNESS_ENV, 없으면 $CLAUDE_CONFIG_DIR 또는 ~/.claude 의 harness.env) < 저장소($CLAUDE_PROJECT_DIR)
-.claude/harness.env < .claude/harness.local.env. SESSION_LOG_HOME, SESSION_LOG_CLAUDE 는 저장소 층이 바꾸지 못한다(USER_ONLY).
+.claude/harness.env < .claude/harness.local.env. USER_ONLY 의 키는 저장소 층이 바꾸지 못한다.
 파일이 없어도 플러그인은 기본값으로 돈다(툴킷, 하네스 무관).
 """
 from __future__ import annotations
@@ -37,16 +37,17 @@ DEFAULTS = {
     "SESSION_LOG_READ_WARN_KB": "16",        # 기록을 offset, limit 없이 읽을 때 이 크기 넘으면 먼저 검색하라고 안내한다(한글 기준 약 8k 토큰)
     "SESSION_LOG_RECORD_MAX_KB": "64",   # 기록 파일이 이보다 크면 -2, -3 으로 나눈다
 }
+# 저장소 층이 바꾸지 못하는 키: 기록을 쓸 곳과 실행할 claude. 클론한 저장소가 커밋한 파일로 기록을 빼돌리거나 다른 프로그램을 돌리면 안 된다.
+USER_ONLY = frozenset({"SESSION_LOG_HOME", "SESSION_LOG_CLAUDE"})
 
 
 def _read_harness_env() -> dict:
-    """harness.env 층. 실패하면 {}(기본값으로 돈다)."""
+    """harness.env 층. 실패하면 {}(기본값으로 돈다). 설치된 ~/.claude/lib 판은 옛 판일 수 있어 USER_ONLY 를 모르므로 늘 옆 사본을 쓴다."""
     try:
         spec = importlib.util.spec_from_file_location("_sl_harness_env", Path(__file__).resolve().parent.parent / "harness_env.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)  # type: ignore[union-attr]
-        he = mod.installed()
-        return he.load_layers()
+        return mod.load_layers(user_only=USER_ONLY)
     except Exception:
         return {}
 

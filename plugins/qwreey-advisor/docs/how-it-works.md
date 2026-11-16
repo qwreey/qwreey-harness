@@ -50,7 +50,7 @@
 - 재생(이 저장소의 한 세션 transcript, 메인에 온 서브에이전트 보고 252건, 에이전트 217개): 검토 3개는 0건, 검토가 아닌 에이전트 214개 중 51개(24%)에서 한 번씩 났다. 대부분 설계안·조사·토론 입장이고, 사용자에게 결정을 넘기는 "Open questions ... each with my recommendation" 보고가 포함된다.
 
 ### 설정
-harness.env 층(사용자 `~/.claude/harness.env`, `$CLAUDE_CONFIG_DIR` 가 있으면 그 아래 < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`)과 환경 변수에서 읽고, 환경 변수가 이긴다. 저장소는 `$CLAUDE_PROJECT_DIR`, 없으면 훅 `cwd`. 읽기는 설치된 하네스 `lib/harness_env.py`, 없으면 옆의 `hooks/harness_env.py` 사본. 파일이 없으면 환경 변수와 기본값만 쓴다.
+harness.env 층(사용자 `~/.claude/harness.env`, `$CLAUDE_CONFIG_DIR` 가 있으면 그 아래 < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`)과 환경 변수에서 읽고, 환경 변수가 이긴다. 저장소는 `$CLAUDE_PROJECT_DIR`, 없으면 훅 `cwd`. 읽기는 옆의 `hooks/harness_env.py` 사본(하네스 로더의 사본). 파일이 없으면 환경 변수와 기본값만 쓴다.
 
 | 키 | 기본 | 뜻 |
 |---|---|---|

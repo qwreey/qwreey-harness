@@ -1,6 +1,6 @@
 {
   "name": "qwreey-delegate",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "다른 모델 계열(Gemini agy, OpenAI codex)에게 좁은 질문(근본 원인, 틀 밖 시선, 이름 객관성, 한 메커니즘 버그 사냥)을 격리 worktree 나 빈 폴더에서 맡기고 결과를 메인이 검증하는 스킬 qwreey-delegate:delegate. 작업 폴더와 결과는 상태 폴더(~/.local/state/qwreey-delegate)에 두고 실행이 끝나면 결과를 모은 뒤 작업 폴더를 지운다. Linux root 전용(setpriv, 저장소·모델별 비특권 uid, choom)이며 Python 3.11 이상, agy·codex CLI 와 각자의 구독이 필요하다.",
   "author": { "name": "qwreey", "email": "me@qwreey.moe" },
   "license": "MIT",

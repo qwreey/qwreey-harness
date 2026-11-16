@@ -1,13 +1,12 @@
 """qwreey-delegate 드라이버의 설정 층과 USER_ONLY 방어 시험. 실행: python3 -I tools/tests/test-delegate-config.py
 
 - 저장소 층(.claude/harness.env, harness.local.env)은 실행 파일·인증 위치·격리 게이트·동시 실행 한도를 바꾸지 못하고 모델은 바꾼다.
-- 설치된 ~/.claude/lib/harness_env.py 가 새 USER_ONLY 키를 모르는 옛 판이면 드라이버는 자기 옆 사본을 쓴다.
+- 드라이버는 늘 자기 옆 harness_env.py 사본을 쓴다. 설치된 ~/.claude/lib/harness_env.py 가 드라이버 키를 모르는 옛 판이어도 같다.
 - 비밀 점검 경로와 상태 폴더는 고정 /code 가 아니라 HOME 과 설정 디렉터리에서 나온다.
 모델 호출 없음, 다른 uid 로 실행 없음.
 """
 import importlib.util
 import os
-import shutil
 import sys
 import unittest
 from pathlib import Path
@@ -21,7 +20,7 @@ import delegate_agents as agents  # noqa: E402
 import delegate_isolation as iso  # noqa: E402
 import delegate_workspace as ws  # noqa: E402
 
-# 위임 드라이버 설계 문서 설정 표의 USER_ONLY 열(예, 아니오). 정본 USER_ONLY 와 맞춰 본다.
+# 위임 드라이버 설계 문서 설정 표의 USER_ONLY 열(예, 아니오). 드라이버의 ENV_USER_ONLY 와 공용 USER_ONLY 를 합쳐 맞춰 본다.
 USER_ONLY_YES = {
     "HARNESS_DELEGATE_REGISTRY", "HARNESS_TOOL_INSTALLS", "HARNESS_HEAVY_WRAP", "HARNESS_DELEGATE_AGY_BIN",
     "HARNESS_DELEGATE_CODEX_BIN", "HARNESS_DELEGATE_AGY_HOME", "HARNESS_DELEGATE_CODEX_HOME",
@@ -65,18 +64,23 @@ class Env(unittest.TestCase):
 
 
 class Keys(unittest.TestCase):
-    def test_canon_user_only_matches_design_table(self):
-        self.assertLessEqual(USER_ONLY_YES, canon.USER_ONLY)
-        self.assertFalse(USER_ONLY_NO & canon.USER_ONLY, "더하기만 되거나 격리와 무관한 키는 저장소가 정해도 된다")
+    def test_user_only_matches_design_table(self):
+        user_only = delegate.ENV_USER_ONLY | (canon.USER_ONLY & set(delegate.SHARED_KEYS))
+        self.assertEqual(user_only, USER_ONLY_YES)
+        self.assertFalse(USER_ONLY_NO & (delegate.ENV_USER_ONLY | canon.USER_ONLY), "더하기만 되거나 격리와 무관한 키는 저장소가 정해도 된다")
         self.assertEqual(set(delegate.KEYS), USER_ONLY_YES | USER_ONLY_NO, "드라이버가 읽는 키 = 설계 표의 키")
 
-    def test_every_key_has_a_canon_default(self):
-        for k in delegate.KEYS:
+    def test_shared_keys_come_from_the_loader(self):
+        for k in delegate.SHARED_KEYS:
             self.assertIn(k, canon.DEFAULTS, k)
-        self.assertEqual(canon.DEFAULTS["HARNESS_DELEGATE_MAX_CONCURRENT"], "1")
-        self.assertEqual(canon.DEFAULTS["HARNESS_DELEGATE_AGY_WORKTREE"], "uid")
-        self.assertEqual(canon.DEFAULTS["HARNESS_DELEGATE_AGY_HOME"], "~/.gemini")
-        self.assertEqual(canon.DEFAULTS["HARNESS_DELEGATE_AGY_UNISOLATED"], "", "격리 없는 agy 는 기본으로 꺼짐")
+            self.assertNotIn(k, delegate.ENV_DEFAULTS, f"{k}: 공용 키는 로더가 정한다")
+
+    def test_driver_defaults(self):
+        d = delegate.ENV_DEFAULTS
+        self.assertEqual(d["HARNESS_DELEGATE_MAX_CONCURRENT"], "1")
+        self.assertEqual(d["HARNESS_DELEGATE_AGY_WORKTREE"], "uid")
+        self.assertEqual(d["HARNESS_DELEGATE_AGY_HOME"], "~/.gemini")
+        self.assertEqual(d["HARNESS_DELEGATE_AGY_UNISOLATED"], "", "격리 없는 agy 는 기본으로 꺼짐")
 
 
 class Layers(Env):
@@ -120,36 +124,23 @@ class Layers(Env):
 
 
 class InstalledModule(Env):
-    def test_old_installed_module_falls_back_to_own_copy(self):
-        # 새 위임 키를 USER_ONLY 에 넣기 전의 정본을 흉내 낸다.
-        self.install(CANON_HE.read_text() + "\nUSER_ONLY = frozenset(k for k in USER_ONLY if not k.startswith"
-                     "('HARNESS_DELEGATE_') or k == 'HARNESS_DELEGATE_REGISTRY')\n")
-        self.repo_layer("HARNESS_DELEGATE_AGY_BIN=/evil/agy\n")
+    def test_old_installed_module_is_not_used(self):
+        # 위임 키를 모르는 옛 정본을 흉내 낸다: 저장소 층을 막지 않는다.
+        self.install(CANON_HE.read_text() + "\nUSER_ONLY = frozenset()\n")
+        self.repo_layer("HARNESS_DELEGATE_AGY_BIN=/evil/agy\nHARNESS_DELEGATE_REGISTRY=/evil.tsv\n")
         old = load(self.f.cfg / "lib" / "harness_env.py", "old_installed")
         self.assertEqual(old.load_layers(str(self.f.repo))["HARNESS_DELEGATE_AGY_BIN"], "/evil/agy",
-                         "옛 판만으로는 저장소가 실행 파일을 바꾼다(방어가 필요한 이유)")
-        he, desc = delegate.harness_loader()
-        self.assertIs(he, delegate.own_he)
-        self.assertIn("installed lacks USER_ONLY HARNESS_DELEGATE_AGY_BIN", desc)
-        self.assertEqual(delegate.Ctx().layers(str(self.f.repo))["HARNESS_DELEGATE_AGY_BIN"], str(self.f.bin / "agy"))
+                         "옛 판만으로는 저장소가 실행 파일을 바꾼다(드라이버가 자기 사본을 쓰는 이유)")
+        cfg = delegate.Ctx().layers(str(self.f.repo))
+        self.assertEqual(cfg["HARNESS_DELEGATE_AGY_BIN"], str(self.f.bin / "agy"))
+        self.assertEqual(cfg["HARNESS_DELEGATE_REGISTRY"], str(self.f.registry))
         p = self.f.drive("doctor")
-        self.assertIn("(own copy: installed lacks USER_ONLY", p.stdout)
-
-    def test_current_installed_module_is_used(self):
-        (self.f.cfg / "lib").mkdir()
-        shutil.copy(CANON_HE, self.f.cfg / "lib" / "harness_env.py")
-        he, desc = delegate.harness_loader()
-        self.assertEqual(Path(he.__file__), self.f.cfg / "lib" / "harness_env.py")
-        self.assertIn("(installed)", desc)
-
-    def test_no_installed_module(self):
-        he, desc = delegate.harness_loader()
-        self.assertIs(he, delegate.own_he)
+        self.assertIn(f"INFO harness_env {SCRIPTS / 'harness_env.py'}", p.stdout)
 
 
 class Paths(Env):
     def test_secret_paths_come_from_home_and_config_dir(self):
-        got = iso.secret_paths(Path.home(), delegate.own_he.config_dir())
+        got = iso.secret_paths(Path.home(), delegate.harness_env.config_dir())
         self.assertEqual(got, [self.f.cfg / ".credentials.json", self.f.home / ".git-credentials", self.f.home / ".ssh"])
 
     def test_state_dir(self):

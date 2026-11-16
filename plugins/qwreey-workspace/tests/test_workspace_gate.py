@@ -196,13 +196,14 @@ class Gate(Env):
         self.assertIsNone(self.pre("Write", {"file_path": self.sibling()}, HARNESS_WORKSPACE=""))
 
     def test_harness_env_file_switch(self):
-        (self.t / "cfg" / "lib").mkdir()
-        (self.t / "cfg" / "lib" / "harness_env.py").write_text((ROOT.parent.parent / "home/.claude/lib/harness_env.py").read_text())
         (self.t / "cfg" / "harness.env").write_text("HARNESS_WORKSPACE_GATE=off\n")
         self.assertIsNone(self.pre("Write", {"file_path": self.sibling()}))
 
     def test_repo_layers_cannot_open_the_gate(self):
-        # 게이트 스위치와 작업공간 루트는 USER_ONLY: 저장소가 커밋한 파일로 끌 수 없다. 설치된 lib 없이 플러그인 사본이 읽는다.
+        # 게이트 스위치와 작업공간 루트는 USER_ONLY: 저장소가 커밋한 파일로 끌 수 없다. 설치된 lib 가 막지 않는 옛 판이어도 같다.
+        (self.t / "cfg" / "lib").mkdir()
+        (self.t / "cfg" / "lib" / "harness_env.py").write_text((ROOT.parent.parent / "home/.claude/lib/harness_env.py").read_text()
+                                                              + "\nUSER_ONLY = frozenset()\n")
         claude = Path(self.proj) / ".claude"
         claude.mkdir(parents=True, exist_ok=True)
         (claude / "harness.env").write_text("HARNESS_WORKSPACE_GATE=off\n")

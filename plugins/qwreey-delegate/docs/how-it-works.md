@@ -46,7 +46,7 @@
 - 표 위치: `HARNESS_DELEGATE_REGISTRY`, 없으면 스킬 옆 사본. 고쳐 쓰는 파일이라 플러그인 캐시의 사본은 버전마다 낡으므로 claude-doctor 클론의 것을 가리킨다.
 - 저장소마다 루트에 `AGENTS.md`(골격 `templates/AGENTS.md.template`): 정본 경로, 확인 명령, 저장소 전용 주의를 담은 6KB 이하의 지도. 두 모델이 모두 읽는다. `GEMINI.md` 는 지운다(agy 가 둘 다 읽어 겹친다).
 - `delegate.py doctor --all`: 인터프리터, 쓰는 harness_env, uid 중복, uid 별 setpriv·메인 트리 쓰기·비밀 읽기, 상태 폴더까지 지나갈 수 있는지, agy 가 deny 하는 임시 폴더, `AGENTS.md`, 적용된 harness.env 파일.
-- 설정 키는 harness.env 층(기본값 < `~/.claude/harness.env` < 저장소 `.claude/harness.env` < `.claude/harness.local.env` < 환경 변수)에서 읽는다. 모델 키 말고는 모두 USER_ONLY 라 저장소 파일로는 바꾸지 못한다(클론한 저장소가 격리를 풀면 안 되므로).
+- 설정 키는 harness.env 층(기본값 < `~/.claude/harness.env` < 저장소 `.claude/harness.env` < `.claude/harness.local.env` < 환경 변수)에서 옆의 `harness_env.py` 사본으로 읽는다. 위임 키의 기본값과 설명은 `delegate.py` 의 `ENV_DEFAULTS`, 저장소 층이 바꾸지 못하는 키는 `ENV_USER_ONLY` 다. 모델 키와 `HARNESS_DELEGATE_SECRET_GLOBS` 말고는 모두 USER_ONLY 라 저장소 파일로는 바꾸지 못한다(클론한 저장소가 격리를 풀면 안 되므로). `HARNESS_DELEGATE_REGISTRY`, `HARNESS_TOOL_INSTALLS`, `HARNESS_HEAVY_WRAP` 은 다른 플러그인도 읽어 로더(`home/.claude/lib/harness_env.py`)가 정한다.
   - `HARNESS_DELEGATE_MAX_CONCURRENT`(기본 1): 에이전트마다, 모든 저장소 합계. 토큰 한도가 사용자 단위라서. 사용자가 여유가 있다고 할 때만 늘린다.
   - `HARNESS_DELEGATE_STATE`: 상태 폴더(작업 폴더 `work/`, 결과 `runs/`, 잠금). 기본 `$XDG_STATE_HOME/qwreey-delegate`(없으면 `~/.local/state/qwreey-delegate`). 작업 uid 가 그 부모들을 지나갈 수 있어야 한다.
   - `HARNESS_DELEGATE_RUNS_DAYS`(기본 14): gc 가 지우는 결과의 나이(일).

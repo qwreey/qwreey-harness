@@ -14,7 +14,7 @@
   권한이 없으면(다른 uid 로 도는 위임) 모르는 채로 둔다.
 - 커밋 안 한 변경: 알림에 보일 worktree(최대 SHOW 개)만, index 가 STATUS_MAX_INDEX 바이트 이하일 때, 추적 파일만(-uno) 1.5초 안에서 본다.
   그 밖은 확인하지 않고 표시도 하지 않는다.
-- 문턱: HARNESS_WORKSPACE_STALE_WORKTREE_DAYS(일, 기본은 harness_env DEFAULTS). off, 0, 빈 값이면 끈다. 저장소 층도 정할 수 있다.
+- 문턱: HARNESS_WORKSPACE_STALE_WORKTREE_DAYS(일, 기본은 wslib.ENV_DEFAULTS). off, 0, 빈 값이면 끈다. 저장소 층도 정할 수 있다.
 - 세션마다 한 번: $TMPDIR/claude-workspace-worktrees/<sid> 를 O_EXCL 로 만든 쪽만 낸다(resume 해도 다시 내지 않는다).
 - HARNESS_WORKSPACE 가 비면 아무것도 하지 않는다(플러그인 규칙). 어떤 실패든 출력 없이 exit 0.
 """

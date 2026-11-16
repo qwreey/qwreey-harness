@@ -119,31 +119,31 @@ class Layers(unittest.TestCase):
     def test_repo_layers_cannot_set_user_only_keys(self):
         self.user("HARNESS_HEAVY_WRAP=choom -n 1000 --\nHARNESS_WORKSPACE=/ws\n")
         self.repo("HARNESS_HEAVY_WRAP=evil\nHARNESS_FANOUT_WARN_CONCURRENT=2\n")
-        self.local("HARNESS_WORKSPACE=/elsewhere\nHARNESS_WORKSPACE_GATE=off\nSESSION_LOG_CLAUDE=evil\n")
+        self.local("HARNESS_WORKSPACE=/elsewhere\nHARNESS_CODERAG=/evil\n")
         v = he.load_layers(self.proj)
         self.assertEqual((v["HARNESS_HEAVY_WRAP"], v["HARNESS_WORKSPACE"]), ("choom -n 1000 --", "/ws"))
-        self.assertNotIn("HARNESS_WORKSPACE_GATE", v)
-        self.assertNotIn("SESSION_LOG_CLAUDE", v)
+        self.assertNotIn("HARNESS_CODERAG", v)
         self.assertEqual(v["HARNESS_FANOUT_WARN_CONCURRENT"], "2", "다른 키는 덮는다")
 
-    def test_repo_layers_cannot_set_delegate_gates(self):
-        # 위임 드라이버의 실행 파일, 인증 위치, 격리 게이트, 동시 실행 한도. 모델 이름과 더 거를 비밀 이름은 저장소가 정해도 된다.
-        gates = {
-            "HARNESS_DELEGATE_AGY_BIN": "/evil/agy", "HARNESS_DELEGATE_CODEX_BIN": "/evil/codex",
-            "HARNESS_DELEGATE_AGY_HOME": "/evil", "HARNESS_DELEGATE_CODEX_HOME": "/evil",
-            "HARNESS_DELEGATE_AGY_WORKTREE": "sandbox", "HARNESS_DELEGATE_AGY_UNISOLATED": "allow",
-            "HARNESS_DELEGATE_CODEX_SANDBOX": "danger-full-access",
-            "HARNESS_DELEGATE_KEEP_ENV": "1", "HARNESS_DELEGATE_STATE": "/evil", "HARNESS_DELEGATE_MAX_CONCURRENT": "99",
-            "HARNESS_DELEGATE_RUNS_DAYS": "0",
-        }
-        free = {"HARNESS_DELEGATE_AGY_MODEL": "m1", "HARNESS_DELEGATE_CODEX_MODEL": "m2", "HARNESS_DELEGATE_SECRET_GLOBS": "*.x"}
-        self.repo("".join(f"{k}={v}\n" for k, v in list(gates.items())[:5]) + "".join(f"{k}={v}\n" for k, v in free.items()))
-        self.local("".join(f"{k}={v}\n" for k, v in list(gates.items())[5:]))
-        v = he.load_layers(self.proj)
-        for k in gates:
-            self.assertEqual(v[k], he.expand(he.DEFAULTS[k], {}), k)
-        for k, want in free.items():
-            self.assertEqual(v[k], want, k)
+    def test_caller_user_only_keys(self):
+        # 한 플러그인만 읽는 사용자 전용 키는 그 플러그인이 user_only 로 넘긴다. 넘기지 않은 호출은 막지 않는다.
+        self.user("DEMO_GATE=on\n")
+        self.repo("DEMO_GATE=off\nDEMO_FREE=repo\n")
+        self.local("DEMO_NEW=evil\n")
+        v = he.load_layers(self.proj, user_only={"DEMO_GATE", "DEMO_NEW"})
+        self.assertEqual((v["DEMO_GATE"], v["DEMO_FREE"]), ("on", "repo"))
+        self.assertNotIn("DEMO_NEW", v)
+        self.assertEqual(he.load_layers(self.proj)["DEMO_GATE"], "off")
+        self.assertNotIn("DEMO_GATE", he.USER_ONLY, "호출자 키가 모듈 표에 새지 않는다")
+
+    def test_caller_defaults(self):
+        v = he.load_layers(self.proj, defaults={"DEMO_HOME": "~/x", "HARNESS_TOOLKITS": "luau"})
+        self.assertEqual(v["DEMO_HOME"], os.path.expanduser("~/x"), "호출자 기본값의 ~ 도 푼다")
+        self.assertEqual(v["HARNESS_TOOLKITS"], "luau", "호출자 기본값이 모듈 기본값을 이긴다")
+        self.user("DEMO_HOME=/u\n")
+        self.assertEqual(he.load_layers(self.proj, defaults={"DEMO_HOME": "~/x"})["DEMO_HOME"], "/u")
+        os.environ["DEMO_HOME"] = "/env"
+        self.assertEqual(he.load_layers(self.proj, defaults={"DEMO_HOME": "~/x"})["DEMO_HOME"], "/env")
 
     def test_references_see_lower_layers(self):
         self.user("HARNESS_WORKSPACE=/ws\n")
@@ -163,37 +163,6 @@ class Layers(unittest.TestCase):
         os.environ["CLAUDE_PROJECT_DIR"] = str(self.proj)
         v = he.load([self.cfg / "harness.env"])
         self.assertEqual((v["DEMO_A"], v["_file"]), ("user", str(self.cfg / "harness.env")))
-
-
-class Installed(unittest.TestCase):
-    def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="harness-env-inst-"))
-        self.saved = os.environ.get("CLAUDE_CONFIG_DIR")
-        os.environ["CLAUDE_CONFIG_DIR"] = str(self.tmp / "cfg")
-        (self.tmp / "cfg" / "lib").mkdir(parents=True)
-        (self.tmp / "plug").mkdir()
-        shutil.copy(CANON, self.tmp / "plug" / "harness_env.py")
-        self.copy = load_canon(self.tmp / "plug" / "harness_env.py", "harness_env_plugin_copy")
-
-    def tearDown(self):
-        if self.saved is None:
-            os.environ.pop("CLAUDE_CONFIG_DIR", None)
-        else:
-            os.environ["CLAUDE_CONFIG_DIR"] = self.saved
-        shutil.rmtree(self.tmp, ignore_errors=True)
-
-    def test_falls_back_to_own_copy(self):
-        self.assertIs(self.copy.installed().load_layers, self.copy.load_layers, "설치된 lib 가 없다")
-        (self.tmp / "cfg" / "lib" / "harness_env.py").write_text("def load(c=(), defaults=None):\n    return {}\n")
-        self.assertIs(self.copy.installed().load_layers, self.copy.load_layers, "load_layers 가 없는 옛 판")
-        (self.tmp / "cfg" / "lib" / "harness_env.py").write_text("raise RuntimeError\n")
-        self.assertIs(self.copy.installed().load_layers, self.copy.load_layers, "깨진 판")
-
-    def test_prefers_installed_canon(self):
-        shutil.copy(CANON, self.tmp / "cfg" / "lib" / "harness_env.py")
-        mod = self.copy.installed()
-        self.assertIsNot(mod.load_layers, self.copy.load_layers)
-        self.assertEqual(Path(mod.__file__), self.tmp / "cfg" / "lib" / "harness_env.py")
 
 
 if __name__ == "__main__":

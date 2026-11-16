@@ -82,7 +82,7 @@ agy 열: "꺼짐" = 격리가 없어 기본으로 막힘, `allow` = `HARNESS_DEL
 | `--mode empty` | codex: §5.2 조건. agy: 격리가 있거나 `UNISOLATED=allow` | exit 4 |
 | agy, 격리 없음 | `HARNESS_DELEGATE_AGY_UNISOLATED=allow` 이면 empty 만(worktree 요청은 exit 4). 제안(§10 P1, 확인 대기): 허용 목록 판이면 키 없이도 empty | 모드와 상관없이 exit 4. 이유와 선택지(codex, Claude 서브에이전트, 위험을 받아들이면 그 키) |
 
-fail-closed 규칙: 알 수 없는 플랫폼·버전은 격리 없음(codex 는 §5.2, agy 는 꺼짐). agy 작업 폴더가 정책이 거절하는 임시 폴더 아래면 거절(exit 4, §5.1). 설치된 `harness_env` 가 이 드라이버의 USER_ONLY 키를 모르면 저장소 층을 읽지 않는다(§7).
+fail-closed 규칙: 알 수 없는 플랫폼·버전은 격리 없음(codex 는 §5.2, agy 는 꺼짐). agy 작업 폴더가 정책이 거절하는 임시 폴더 아래면 거절(exit 4, §5.1). 드라이버는 설치된 `harness_env` 가 아니라 늘 자기 옆 사본을 써서, 옛 설치본이 드라이버의 USER_ONLY 키를 몰라도 저장소 층이 격리를 풀지 못한다(§7).
 
 ### 4.3 agy worktree 규칙 (사용자 결정 반영)
 
@@ -179,8 +179,8 @@ harness.env 층(`load_layers(ROOT)`) 하나로 읽는다. 옛 `DELEGATE_*` 이�
 | `HARNESS_DELEGATE_AGY_MODEL`, `HARNESS_DELEGATE_CODEX_MODEL` | `gemini-3.8-flash-high`, `gpt-6-luna` | 아니오(저장소가 정해도 무해) | 스크립트 고정값 |
 | `HARNESS_DELEGATE_SECRET_GLOBS` | 빈 값(기본 목록에 더함) | 아니오(더하기만 됨, 더 엄격해질 뿐) | - |
 
-- 새 키는 정본 `home/.claude/lib/harness_env.py` 의 `DEFAULTS`·`USER_ONLY` 에 넣고 `python3 -I tools/sync-copies.py --apply`, `tools/tests/test-harness-env.py` 에 USER_ONLY 검사 추가.
-- 설치된 `~/.claude/lib/harness_env.py` 가 옛 판이라 새 USER_ONLY 키를 모르면 저장소 층이 격리를 풀 수 있다. 드라이버는 `installed()` 모듈의 `USER_ONLY` 가 위 "예" 키를 모두 포함하는지 보고, 아니면 자기 옆 사본을 쓴다.
+- 위임 키는 `delegate.py` 의 `ENV_DEFAULTS`·`ENV_USER_ONLY` 에 넣고 `load_layers(defaults=, user_only=)` 로 넘긴다. `HARNESS_DELEGATE_REGISTRY`, `HARNESS_TOOL_INSTALLS`, `HARNESS_HEAVY_WRAP` 은 다른 플러그인도 읽어 로더(`home/.claude/lib/harness_env.py`)가 정한다. 위 표는 `tools/tests/test-delegate-config.py` 의 `USER_ONLY_YES`·`USER_ONLY_NO` 와 맞춘다.
+- 설치된 `~/.claude/lib/harness_env.py` 는 옛 판일 수 있어 새 USER_ONLY 키를 모를 수 있다. 그래서 드라이버는 늘 자기 옆 사본을 쓴다(`tools/tests/test-harness-env-owners.py` 가 옛 설치본으로 확인).
 - `DELEGATE_AGY_FULL_HOME` 은 없앤다(토큰 하나로 인증됨 [실측]).
 - `registry.tsv`: uid 백엔드 전용으로 남긴다. 에이전트별 uid 열(§6 uid 행)을 더했고 `register` 는 에이전트마다 uid 를 준다. uid 가 없는 환경은 등록 없이 돈다: key = `basename(ROOT)`, setup 없음(registry 에 줄이 있으면 setup 을 쓰되 사용자 권한으로). setup 은 명령 실행이므로 저장소 층으로 옮기지 않는다.
 

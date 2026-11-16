@@ -51,11 +51,10 @@ COMMIT = re.compile(r"\bgit\b(\s+-C\s+\S+)?\s+commit\b")
 
 
 def env_vals(cwd=None) -> dict:
-    """harness.env 층(옆의 harness_env.py 사본, 설치된 정본이 있으면 그것): 사용자 < 저장소 < 저장소 local < 환경 변수."""
+    """harness.env 층(옆의 harness_env.py 사본): 사용자 < 저장소 < 저장소 local < 환경 변수."""
     try:
         import harness_env
-        he = harness_env.installed()
-        vals = he.load_layers(he.project_dir(cwd))
+        vals = harness_env.load_layers(harness_env.project_dir(cwd))
     except Exception:
         vals = {}
     for k in ("HARNESS_REVIEW_TIERS", "HARNESS_REVIEW_DEFAULT", "HARNESS_REVIEW_LINES", "HARNESS_REVIEW_FRESH_MIN",

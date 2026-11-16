@@ -71,6 +71,10 @@
   2. qwreey-proc-guard 를 먼저, 그다음 qwreey-delegate 를 갱신한다(거꾸로 하면 그 사이 무거운 낱말이 든 `delegate.py` 명령을 옛 proc-guard 가 막을 수 있다)
   3. 돌고 있는 위임이 없을 때 `/reload-plugins` 또는 새 세션. 확인: `python3 -I <스킬>/scripts/delegate.py doctor --all` 에 FAIL 이 없다
   4. `tools/home-sync.sh diff` 로 harness.env 의 위임 주석 예시를 보고 `apply`(값은 바뀌지 않는다)
+- [ ] harness_env 키 주인 나누기(q 0.9.10, qwreey-advisor 0.4.14, qwreey-conventions 0.8.7, qwreey-delegate 0.2.1, qwreey-operator 0.2.9, qwreey-proc-guard 0.1.7, qwreey-sessions 0.1.6, qwreey-workspace 0.1.10). 새 `~/.claude/lib/harness_env.py` 는 플러그인 하나만 읽는 키(`HARNESS_WORKSPACE_GATE`, `SESSION_LOG_CLAUDE` 등)를 더는 막지 않는다. 막는 것은 새 플러그인 쪽이라, 옛 플러그인이 새 lib 를 읽는 사이가 생기지 않게 순서를 지킨다:
+  1. `claude plugin marketplace update claude-doctor-market`, 위 플러그인을 모두 갱신(다른 기기도 같은 순서)
+  2. `/reload-plugins` 또는 새 세션
+  3. `tools/home-sync.sh diff` 로 `lib/harness_env.py`, `harness.env` 주석을 보고 `apply`
 - 새 정본 변경(rules, settings 마이그레이션 등)이 생기면 다시 `tools/home-sync.sh diff` 로 검토하고 `apply` 한다. 이때도 같은 백업이 생긴다.
 
 ## 다른 세션에 넘길 것
