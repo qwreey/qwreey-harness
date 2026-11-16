@@ -2,7 +2,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { Engine, Mounted } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
-import { NEW_MARK as NEW_RULE, cells, laidOut, markdownRows, wrap } from '../hooks/layout'
+import { NEW_MARK as NEW_RULE, cells, laidOut, markdownRows, regions, wrap } from '../hooks/layout'
 import { decisionDetail } from '../hooks/views'
 import type { Do } from '../hooks/views'
 
@@ -1730,4 +1730,150 @@ test('the stored log keeps its newest 500 entries, in time order, older stores i
   expect(log.at(-2)?.text).toBe('예전 600')
   expect(log.at(-1)?.text).toBe('새 요약')
   for (let i = 1; i < log.length; i += 1) expect(log[i]!.at).toBeGreaterThanOrEqual(log[i - 1]!.at)
+})
+
+// ---- the window cuts rows, not items ------------------------------------------------
+// An item the window's edge crosses shows its rows on the near side of the
+// edge; the markers count the items not wholly in view.
+
+/** The list's rows of a drawn tab, between its two marker rows. */
+const listRows = (lines: readonly string[], rows: number) => feed(lines).slice(3, 3 + rows)
+
+test('a log entry the window foot crosses shows its first lines, its last ones at the top once scrolled', async ($, on) => {
+  engine(on)
+  await start($)
+  for (let i = 1; i <= 3; i += 1) await $.tool.call(desk({ action: 'note', text: `짧은 요약 ${i}` }))
+  await $.tool.call(desk({ action: 'note', text: Array.from({ length: 12 }, (_, i) => `긴 요약 ${i + 1}행`).join('\n') }))
+  for (let i = 4; i <= 6; i += 1) await $.tool.call(desk({ action: 'note', text: `짧은 요약 ${i}` }))
+  // 13 list rows: the day's rule, three short entries, then the long one's first nine lines.
+  const target = pane(45, 20)
+  const columns = target.props.bodyColumns
+  const body = regions(20).body
+  expect(body).toBe(13)
+  const ui = await $.ui.mount({ ...target, surface: 'terminal' })
+  await ui.press({ key: 'tab-away' })
+  const opened = listRows(await screen(ui, columns), body)
+  show('a long entry across the window foot', await screen(ui, columns), columns)
+  expect(opened[3]).toMatch(/^\d\d:\d\d {3}짧은 요약 3$/)
+  expect(opened[4]).toMatch(/^\d\d:\d\d {3}긴 요약 1행$/)
+  expect(opened.slice(5)).toEqual(Array.from({ length: 8 }, (_, i) => `${' '.repeat(8)}긴 요약 ${i + 2}행`))
+  expect(await ui.find({ type: 'Button', key: 'scroll-up' })).toBeUndefined()
+  // The long entry and the three after it.
+  expect((await ui.find({ type: 'Button', key: 'scroll-down' }))?.text).toContain('아래 4개')
+
+  // At the end the last entry is on the window foot, the long one's last lines at its top.
+  for (let i = 0; i < 10; i += 1) await ui.press({ key: 'scroll-down' }).catch(() => undefined)
+  expect(await ui.find({ type: 'Button', key: 'scroll-down' })).toBeUndefined()
+  const end = listRows(await screen(ui, columns), body)
+  show('a long entry across the window top', await screen(ui, columns), columns)
+  expect(end.slice(0, 10)).toEqual(Array.from({ length: 10 }, (_, i) => `${' '.repeat(8)}긴 요약 ${i + 3}행`))
+  end.slice(10).forEach((l, i) => expect(l).toMatch(new RegExp(`^\\d\\d:\\d\\d {3}짧은 요약 ${i + 4}$`)))
+  // The rule, three short entries and the long one are not wholly in view above.
+  expect((await ui.find({ type: 'Button', key: 'scroll-up' }))?.text).toContain('위에 5개')
+
+  // One step back: the long entry from its first line again, cut at the foot.
+  await ui.press({ key: 'scroll-up' })
+  const back = listRows(await screen(ui, columns), body)
+  expect(back[0]).toMatch(/^\d\d:\d\d {3}긴 요약 1행$/)
+  expect(back[11]).toBe(`${' '.repeat(8)}긴 요약 12행`)
+  expect(back[12]).toMatch(/^\d\d:\d\d {3}짧은 요약 4$/)
+  expect((await ui.find({ type: 'Button', key: 'scroll-up' }))?.text).toContain('위에 4개')
+  expect((await ui.find({ type: 'Button', key: 'scroll-down' }))?.text).toContain('아래 2개')
+  await ui.unmount()
+})
+
+test('a log entry taller than the window shows its head, and its tail at the end', async ($, on) => {
+  engine(on)
+  await start($)
+  await $.tool.call(desk({ action: 'note', text: '짧은 요약' }))
+  await $.tool.call(desk({ action: 'note', text: Array.from({ length: 20 }, (_, i) => `긴 요약 ${i + 1}행`).join('\n') }))
+  const target = pane(45, 20)
+  const columns = target.props.bodyColumns
+  const body = regions(20).body
+  const ui = await $.ui.mount({ ...target, surface: 'terminal' })
+  await ui.press({ key: 'tab-away' })
+  for (let i = 0; i < 10; i += 1) await ui.press({ key: 'scroll-down' }).catch(() => undefined)
+  const end = listRows(await screen(ui, columns), body)
+  expect(end).toEqual(Array.from({ length: body }, (_, i) => `${' '.repeat(8)}긴 요약 ${i + 8}행`))
+  expect((await ui.find({ type: 'Button', key: 'scroll-up' }))?.text).toContain('위에 3개')
+  await ui.press({ key: 'scroll-up' })
+  const head = listRows(await screen(ui, columns), body)
+  expect(head[0]).toMatch(/^\d\d:\d\d {3}긴 요약 1행$/)
+  expect(head.at(-1)).toBe(`${' '.repeat(8)}긴 요약 ${body}행`)
+  expect((await ui.find({ type: 'Button', key: 'scroll-down' }))?.text).toContain('아래 1개')
+  await ui.unmount()
+})
+
+const TWO_LINES = '두 줄로 감기는 질문: 창의 바닥에 걸려도 보이는 줄까지는 그려진다'
+
+test('a decision the window foot crosses shows its first line, its last at the top at the end', async ($, on) => {
+  engine(on)
+  await start($)
+  for (let i = 0; i < 12; i += 1) await $.tool.call(desk({ action: 'add_decision', question: `${i + 1}번 ${TWO_LINES}`, options: [] }))
+  const target = pane(45, 20)
+  const columns = target.props.bodyColumns
+  const body = regions(20).body
+  const ui = await $.ui.mount({ ...target, surface: 'terminal' })
+  // Two rows and a blank each: the fifth starts on the last row.
+  const opened = listRows(await screen(ui, columns), body)
+  show('a decision across the window foot', await screen(ui, columns), columns)
+  expect(opened[9]).toMatch(/^! {2}D4 {2}4번 /)
+  expect(opened[12]).toMatch(/^! {2}D5 {2}5번 /)
+  expect(await ui.find({ type: 'Button', key: 'dec-D5' })).toBeDefined()
+  expect((await ui.find({ type: 'Button', key: 'scroll-down' }))?.text).toContain('아래 8개')
+
+  for (let i = 0; i < 20; i += 1) await ui.press({ key: 'scroll-down' }).catch(() => undefined)
+  const end = listRows(await screen(ui, columns), body)
+  show('a decision across the window top', await screen(ui, columns), columns)
+  // D8's second line on the top row, D12 ending on the foot.
+  expect(end[0]).toMatch(/^ {7}\S/)
+  expect(end[0]).toBe(opened[10])
+  expect(end[1]).toBe('')
+  expect(end[2]).toMatch(/^! {2}D9 {2}9번 /)
+  expect(end[12]).toMatch(/^ {7}\S/)
+  expect((await ui.find({ type: 'Button', key: 'scroll-up' }))?.text).toContain('위에 8개')
+  await ui.unmount()
+})
+
+test('a step the window foot crosses shows its first rows, its last at the top at the end', async ($, on) => {
+  engine(on)
+  await start($)
+  await $.tool.call(
+    desk({
+      action: 'set_plan',
+      steps: Array.from({ length: 6 }, (_, i) => ({
+        text: `${i + 1}단계: 패널 레이아웃을 손보고 폰에서 다시 읽어 보기`,
+        detail: `${i + 1}번째 단계의 설명, 길면 다음 줄로 이어져서 제목 아래에 들여 쓴 채로 보인다`,
+      })),
+    }),
+  )
+  await $.tool.call(desk({ action: 'update_step', id: 'S1', state: 'doing' }))
+  const target = pane(45, 20)
+  const columns = target.props.bodyColumns
+  const body = regions(20).body
+  const ui = await $.ui.mount({ ...target, surface: 'terminal' })
+  await ui.press({ key: 'tab-tasks' })
+  const opened = listRows(await screen(ui, columns), body)
+  show('a step across the window foot', await screen(ui, columns), columns)
+  // Each step its title, its detail and the link row under it; S3 starts above the foot.
+  const s3 = opened.findIndex(l => l.startsWith('○ S3 '))
+  expect(s3).toBeGreaterThan(0)
+  expect(s3).toBeLessThan(body - 1)
+  expect(opened.slice(s3 + 1).every(l => l.startsWith('│ '))).toBe(true)
+  expect(await ui.find({ type: 'Button', key: 'step-S3' })).toBeDefined()
+  expect((await ui.find({ type: 'Button', key: 'scroll-down' }))?.text).toContain('아래 4개')
+
+  for (let i = 0; i < 10; i += 1) await ui.press({ key: 'scroll-down' }).catch(() => undefined)
+  const end = listRows(await screen(ui, columns), body)
+  show('a step across the window top', await screen(ui, columns), columns)
+  // The last step ends on the foot, with no link under it; the rows above the
+  // first node in view are the tail of the step before it.
+  expect(end[body - 1]).toMatch(/^ {4}\S/)
+  const first = end.findIndex(l => /^[✓◉○] /.test(l))
+  expect(first).toBeGreaterThan(0)
+  expect(end.slice(0, first).every(l => l.startsWith('│'))).toBe(true)
+  expect(end.slice(0, first).some(l => l.includes('번째') || l.includes('보인다'))).toBe(true)
+  const hidden = Number(/S(\d) /.exec(end[first] ?? '')?.[1]) - 1
+  expect((await ui.find({ type: 'Button', key: 'scroll-up' }))?.text).toContain(`위에 ${hidden}개`)
+  await ui.unmount()
 })

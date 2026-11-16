@@ -502,34 +502,54 @@ export type Window = {
 const THUMB = '┃'
 const TRACK = '│'
 
-/** The rows of `list` from its stored offset (or where it opens), in a window `rows` tall. */
+/**
+ * The rows of `list` from its stored offset (or where it opens), in a window
+ * `rows` tall. The offset is an item, but the window is cut in rows: an item
+ * the window's foot crosses shows its first rows, and at the list's end the
+ * last row sits on the window's foot, the item above it showing its last
+ * rows. The markers count the items not wholly in view on each side.
+ */
 export const windowOf = (list: List, stored: number, rows: number, columns: number): Window => {
   const last = lastOffsetOf(list, rows)
   const offset = Math.max(0, Math.min(stored < 0 ? list.auto : stored, last))
-  const body: Line[] = []
-  let shown = 0
-  for (let i = offset; i < list.items.length; i += 1) {
-    const item = list.items[i]
-    if (!item) break
-    const gap = shown > 0 && !list.tight ? 1 : 0
-    if (body.length + gap + item.rows.length > rows) {
-      // An item taller than the whole window shows its head.
-      if (shown === 0) {
-        body.push(...item.rows.slice(0, rows))
-        shown = 1
-      }
-      break
-    }
-    if (gap) body.push(list.items[i - 1]?.gap ?? BLANK)
-    body.push(...item.rows)
-    shown += 1
+  const gap = list.tight ? 0 : 1
+  const count = list.items.length
+  // Where each item's first row stands in the whole list, its gap row after it.
+  const starts: number[] = []
+  let total = 0
+  for (const item of list.items) {
+    starts.push(total)
+    total += item.rows.length + gap
   }
-  if (list.items.length === 0) body.push({ prefix: '', text: list.empty, tone: 'dim' })
+  total = Math.max(0, total - gap)
+  const startOf = (i: number) => (i < count ? (starts[i] ?? total) : total + gap)
+  // The end of the list stops on the window's foot, but the timeline may
+  // still bring its step in hand to the top with little after it.
+  const furthestStart = Math.max(0, total - rows, list.keepsAutoAtTop && count > 0 ? startOf(Math.min(list.auto, count - 1)) : 0)
+  const start = Math.min(startOf(offset), furthestStart)
+  const end = start + rows
+
+  // Only the items in view are sliced; their rows are already laid out.
+  const body: Line[] = []
+  for (let i = 0; i < count && body.length < rows; i += 1) {
+    const item = list.items[i]
+    const from = starts[i] ?? 0
+    const after = from + (item?.rows.length ?? 0)
+    if (!item || after + gap <= start) continue
+    const skip = Math.max(0, start - from)
+    body.push(...item.rows.slice(skip, skip + rows - body.length))
+    if (gap && i < count - 1 && after >= start && body.length < rows) body.push(item.gap ?? BLANK)
+  }
+  if (count === 0) body.push({ prefix: '', text: list.empty, tone: 'dim' })
   while (body.length < rows) body.push(BLANK)
 
-  const above = offset
-  const below = list.items.length - offset - shown
-  const total = list.items.reduce((sum, item) => sum + item.rows.length, 0) + (list.tight ? 0 : Math.max(0, list.items.length - 1))
+  let above = 0
+  let below = 0
+  list.items.forEach((item, i) => {
+    const from = starts[i] ?? 0
+    if (from < start) above += 1
+    if (from + item.rows.length > end) below += 1
+  })
   const bar = scrollBar(rows, total, offset, last, above > 0 || below > 0)
   const room = textWidth(columns, list.prefix)
   const top = above > 0 ? marker(-1, `위에 ${above}개`, room) : BLANK
