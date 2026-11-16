@@ -12,7 +12,7 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 | `plugins/qwreey-workspace/` | 형제 저장소 읽기 전용 게이트(`workspace_gate.py`)와 `qwreey-workspace:workspace` 스킬(지도, 살아 있는 세션, worktree 잠금), 규약 주입. 카드 `plugins/qwreey-workspace/README.md` |
 | `plugins/qwreey-advisor/` | 모델이 부르는 독립 검토(별도 플러그인). luau 지식은 `luau-kb` 플러그인 |
 | `plugins/qwreey-conventions/` | 코드 주석·모델용 문서 관례(스킬 `comments`, `agent-docs`)와 추가한 줄을 한 줄로 알리는 훅, 구조 한도(`structure-reminder`)·셸 우회 쓰기(`bash-bypass-reminder`)·auto memory 배치(`memory-placement`) 알림 훅. 옛 user-level 훅들을 대체 |
-| `plugins/qwreey-proc-guard/` | Linux 전용: 무거운 실행(벤치·퍼저)이 choom 없이 나가면 거절하는 PreToolUse 훅(`heavy-proc-guard`). Windows·macOS 에서는 끈다 |
+| `plugins/qwreey-proc-guard/` | 무거운 실행(벤치·퍼저)이 choom 없이 나가면 거절하는 PreToolUse 훅(`heavy-proc-guard`, Linux 전용)과 자기 셸에 걸리는 `pgrep -f` 대기 루프를 거절하는 훅(`self-match-guard`, 모든 플랫폼) |
 | `.claude/base/decisions/` | 저장소 사이 갈린 규약의 합의안(D-xx)과 사용자 결정 현황 |
 | `.claude/research/drafts/` | 설치 전 초안(감사 에이전트, 위임, coderag 분류 예시, 분리 계획). 결론이 자리 잡았거나(landed) 접은(rejected) 초안은 `.claude/archive/research/drafts/` 로 옮긴다 |
 | `lib/` | 플러그인(과 coderag)이 함께 쓰는 코드·문구의 정본. 설치되지 않고, 플러그인은 사본을 든다. 정본을 고친 뒤 `tools/sync-copies.py --apply`. 설명 `lib/README.md` |

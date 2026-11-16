@@ -31,9 +31,9 @@
 - 끄기: `HARNESS_SUBAGENT_SLOTS=off`.
 
 ## 방치된 작업 알림 (`stale_work.py`)
-- 출처: Stop·SubagentStop 입력의 `background_tasks`. 시작 시각이 없어 나이는 이 훅이 처음 본 때부터 센다. 진척 신호는 서브에이전트 트랜스크립트의 크기와 mtime 이고, 신호가 없는 작업(workflow 등)은 멈춤 판정을 하지 않는다.
+- 출처: Stop·SubagentStop 입력의 `background_tasks`(type 은 subagent, workflow, shell 등. monitor 는 뺀다). 시작 시각이 없어 나이는 이 훅이 처음 본 때부터 센다. 진척 신호는 출력 파일의 크기와 mtime 이다: 서브에이전트는 트랜스크립트, 셸 등은 Claude Code 가 쓰는 `<tmp>/claude-<uid>/<프로젝트 키>/<sid>/tasks/<id>.output`(프로젝트 키는 트랜스크립트가 있는 디렉터리 이름, tmp 는 `CLAUDE_CODE_TMPDIR`, 훅의 `TMPDIR`, `/tmp` 순으로 찾는다). 신호가 없는 작업(workflow 등)은 멈춤 판정을 하지 않는다.
 - 멈춤: 진척 없이 `HARNESS_Q_STALE_IDLE_MIN`(15)분 이상이고 나이 `HARNESS_Q_STALE_AGE_MIN`(30)분 이상. 오래 실행: 나이 `HARNESS_Q_STALE_LONG_MIN`(120)분 이상.
-- 전달: Stop(메인)이 사용자에게 `systemMessage` 한 줄, 다음 UserPromptSubmit 이 모델에 `additionalContext`. 문구는 "멈췄거나 대기 중일 수 있음" 같은 질문형이다. (세션, 작업, 상태)마다 한 번.
+- 전달: Stop(메인)이 사용자에게 `systemMessage` 한 줄, 다음 UserPromptSubmit 이 모델에 `additionalContext`. 문구는 "멈췄거나 대기 중일 수 있음" 같은 질문형이다. 두 상태 모두 끝난 일에 딸린 작업이나 조건을 기다리며 도는 루프면 명령과 출력을 보고 멈추거나(TaskStop) 사용자에게 알리라고 권하고, 오래 실행 문구는 그 밖이면 사용자에게 한 줄 알리라고 한다. 셸 등은 출력 파일 경로를 함께 싣는다. (세션, 작업, 상태)마다 한 번.
 - 상태: `$TMPDIR/claude-q-stale/<sid>.json`. 끄기: `HARNESS_Q_STALE=off`(환경 변수).
 
 ## 설치 어긋남 고지 (`drift.py`)
@@ -53,6 +53,7 @@
 python3 -I plugins/q/tests/test-subagent-slots.py
 python3 -I plugins/q/tests/test_ambient.py
 python3 -I plugins/q/tests/test_notices.py          # drift, stale_work
+python3 -I plugins/q/tests/test_stale_work.py       # stale_work: 셸 출력 파일 신호와 문구
 python3 -I plugins/q/tests/test_compact_epoch.py
 python3 -I plugins/q/tests/test_harness_nonce.py
 python3 -I plugins/q/tests/test_records_check.py

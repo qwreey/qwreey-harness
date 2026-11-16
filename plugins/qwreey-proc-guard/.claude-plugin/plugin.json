@@ -1,7 +1,7 @@
 {
   "name": "qwreey-proc-guard",
-  "version": "0.1.7",
-  "description": "벤치·퍼저·성능 실측처럼 무거운 실행이 choom 으로 OOM 희생 순위를 올리지 않은 채 Bash 로 나가면 거절하고 감싸는 법을 알려 준다(PreToolUse). Linux 전용(choom, 공유 메모리 cgroup). choom 이 없는 환경에서는 아무것도 막지 않는다.",
+  "version": "0.2.0",
+  "description": "벤치·퍼저·성능 실측처럼 무거운 실행이 choom 으로 OOM 희생 순위를 올리지 않은 채 Bash 로 나가면 거절하고 감싸는 법을 알려 준다(PreToolUse, Linux 전용: choom, 공유 메모리 cgroup. choom 이 없는 환경에서는 막지 않는다). pgrep -f·pkill -f 패턴이 자기 셸의 명령줄에 걸리면 while/until 대기 루프는 거절하고 그 밖은 알린다(모든 플랫폼).",
   "author": { "name": "qwreey", "email": "me@qwreey.moe" },
   "license": "MIT",
   "keywords": ["choom", "oom", "cgroup", "benchmark", "linux", "hooks"]
