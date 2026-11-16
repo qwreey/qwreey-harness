@@ -1,11 +1,9 @@
 ---
 name: luau-verify
 description: >-
-  Procedure and tool usage for actually verifying Luau code and type claims: calling luau-analyze and luau-lsp analyze
-  directly (including the mise shim "No version is set" failure), reading stderr and exit codes, trusting zero
-  diagnostics only after negative controls, snippet harness markers, checker-vs-runtime require mismatches, gates, and
-  lsp hover/completion probes. Use when you must confirm a check result is trustworthy, build a repro, or write or fix a
-  check gate. Type rules are in luau-types. 트리거: 진단 0건 믿어도 돼?, 검사 게이트, 재현 파일.
+  Verifying Luau check results: running luau-analyze and luau-lsp analyze (mise shim "No version is set"), exit
+  codes, negative controls before trusting zero diagnostics, repro files, CI gates. Use when a check must be
+  trusted, a repro built, or a gate written. Type rules are luau-types. 트리거: 진단 0건 믿어도 돼?, 검사 게이트, 재현 파일.
 ---
 # luau-verify
 

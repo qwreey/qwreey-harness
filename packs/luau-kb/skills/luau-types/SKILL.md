@@ -1,11 +1,10 @@
 ---
 name: luau-types
 description: >-
-  Explains how the Luau type system behaves and where it breaks, with reproduced snippets: generic inference and f<<T>>,
-  variance, unions and narrowing, recursive aliases, "Code is too complex to typecheck", type functions, type packs and
-  varargs, false-positive errors on correct code, and old vs new solver differences. Use when a .luau type error is
-  confusing, correct-looking code is rejected, an error is expected but diagnostics are empty, or a result leaks to
-  unknown/any. Not for tool usage (luau-verify) or Roblox API typing (luau-roblox). 트리거: 타입 에러 이해 안 됨, 진단 0건, 제네릭 추론.
+  How the Luau type system behaves and breaks: generic inference and f<<T>>, narrowing, recursive aliases, "Code is
+  too complex to typecheck", type functions, false positives, old vs new solver. Use when a .luau type error is
+  confusing or correct code is rejected. Tools are luau-verify; Roblox API types are luau-roblox. 트리거: 타입 에러 이해 안 됨,
+  제네릭 추론.
 ---
 # luau-types
 

@@ -1,11 +1,9 @@
 ---
 name: luau-upstream
 description: >-
-  Tracks the fast-moving Luau ecosystem (luau releases, luau-lang/rfcs, luau-lsp, StyLua, rojo, FFlags): a watchlist
-  linking recorded type limitations to the upstream issues or RFCs that fix them, an adoption table for new syntax, the
-  version-bump procedure with bug-scan, and summaries of ongoing changes. Use when deciding whether to bump a tool
-  version, when diagnostics change after an update, or when asking if a new syntax or RFC is safe to use or a limitation
-  is being fixed. Limitation details are luau-types. 트리거: 버전 올려도 돼?, 업스트림에서 고쳐져?, RFC.
+  Luau ecosystem changes (releases, RFCs, luau-lsp, StyLua, rojo): whether a type limitation is fixed upstream,
+  whether new syntax is safe, and the version-bump procedure. Use when bumping a tool, diagnostics change after an
+  update, or asking if an RFC is usable. 트리거: 버전 올려도 돼?, 업스트림에서 고쳐져?, RFC.
 ---
 # luau-upstream
 

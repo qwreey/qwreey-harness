@@ -1,11 +1,9 @@
 ---
 name: roblox-world
 description: >-
-  Engine rules for Roblox GUI and the 3D world: GUI input delivery (click-through, gameProcessed, focus),
-  AutomaticSize/AbsoluteSize/TextBounds update timing, ZIndex and clipping, topbar inset, SurfaceGui, DragDetector,
-  physics (tunneling, overlap), welds, characters and Humanoid, camera, EditableMesh and asset loading. Use when GUI
-  clicks, layout or text size misbehave, or when dealing with input and focus, physics, characters or camera. 트리거: GUI
-  클릭 관통, AutomaticSize, 물리 뚫림.
+  Roblox GUI and 3D world rules: click-through and gameProcessed, AutomaticSize and AbsoluteSize timing, ZIndex,
+  SurfaceGui, physics tunneling, welds, Humanoid, camera. Use when GUI input or layout misbehaves, or for physics,
+  characters or camera. 트리거: GUI 클릭 관통, AutomaticSize, 물리 뚫림.
 ---
 # roblox-world
 

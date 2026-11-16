@@ -1,11 +1,9 @@
 ---
 name: roblox-net
 description: >-
-  Engine rules for Roblox server-client communication and platform services: RemoteEvent, RemoteFunction and
-  BindableEvent argument copying, validating remote input and trust boundaries, replication and execution context,
-  network ownership, streaming, DataStore, MemoryStore, MessagingService, product receipts, text filter, HttpService,
-  Open Cloud. Use when designing remotes, validating client input, handling replication, ownership or streaming issues,
-  or writing DataStore or purchase code. 트리거: RemoteEvent 검증, DataStore 저장, 영수증.
+  Roblox client-server and services: RemoteEvent, RemoteFunction and BindableEvent rules, validating client input,
+  replication, network ownership, streaming, DataStore, MemoryStore, product receipts. Use when designing remotes or
+  writing DataStore or purchase code. 트리거: RemoteEvent 검증, DataStore 저장, 영수증.
 ---
 # roblox-net
 

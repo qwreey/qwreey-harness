@@ -1,11 +1,9 @@
 ---
 name: luau-style
 description: >-
-  Style and idiom guidance for Luau with rationale and good/bad examples: naming, syntax idioms, module and require
-  paths, file length and splitting, error handling, comments, stylua formatting, and language traps the type checker
-  misses (table.insert, mutation while iterating, varargs with nil, patterns and UTF-8, NaN). Use when writing or
-  editing .luau files, or when a review needs to judge style, const vs local, error levels, or pcall pitfalls.
-  Type-system defects are luau-types; require resolution is luau-runtime. 트리거: 네이밍 기준, 파일 분리, 스타일 리뷰.
+  Luau style and idioms with rationale: naming, modules and file splitting, error handling, comments, stylua, and
+  traps the checker misses (table.insert, nil varargs, patterns). Use when writing or reviewing .luau files. Type
+  defects are luau-types; require is luau-runtime. 트리거: 네이밍 기준, 파일 분리, 스타일 리뷰.
 ---
 
 # luau-style

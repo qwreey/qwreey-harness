@@ -1,11 +1,9 @@
 ---
 name: luau-perf
 description: >-
-  Measured knowledge for judging and measuring Luau runtime performance: benchmark method (warmup, median, GC control,
-  negative controls), metatable cost, table array/hash growth traps, iteration shape, calls and closures, string
-  building, -O1/-O2/native effects, weak tables and GC pressure, algorithm choices. Use when code is slow, an
-  optimization is requested, a benchmark must be written or read, or --!native or --!optimize is being considered.
-  Engine API cost is roblox-engine. 트리거: 코드가 느려, 최적화해 줘, 벤치마크.
+  Measured Luau performance: benchmark method, metatable, table, closure and string costs, -O2 and --!native
+  effects, GC pressure. Use when Luau code is slow, optimization is asked, or a benchmark is written or read. Engine
+  API cost is roblox-engine. 트리거: 코드가 느려, 최적화해 줘, 벤치마크.
 ---
 # luau-perf
 

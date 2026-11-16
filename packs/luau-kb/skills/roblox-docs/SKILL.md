@@ -1,10 +1,8 @@
 ---
 name: roblox-docs
 description: >-
-  Usage of tools/roblox_docs.py, which queries the official Roblox documentation from a local cache of
-  Roblox/creator-docs: search by section, get a page section, and api for Class.Member signatures, security level,
-  thread safety and deprecation. Use when verifying a Roblox API signature, needing a documentation citation for
-  behavior or limits, or checking deprecated or parallel-safe status. 트리거: 공식 문서 확인, API 시그니처, deprecated 여부.
+  Queries the official Roblox docs from a local cache (tools/roblox_docs.py): API signatures, security level, thread
+  safety, deprecation. Use when verifying a Roblox API or citing the docs. 트리거: 공식 문서 확인, API 시그니처, deprecated 여부.
 ---
 # roblox-docs
 

@@ -55,6 +55,12 @@ def main():
     ap.add_argument("--reps", type=int, default=1)
     ap.add_argument("-j", type=int, default=4)
     o = ap.parse_args()
+    # The pack ships defaultEnabled false, so --plugin-dir loads it disabled and every question would read
+    # as "no trigger"; the work dir's project settings (read via --setting-sources project) enable it.
+    cfg = os.path.join(WORK, o.cond, ".claude")
+    os.makedirs(cfg, exist_ok=True)
+    with open(os.path.join(cfg, "settings.json"), "w", encoding="utf-8") as f:
+        json.dump({"enabledPlugins": {"luau-kb@inline": True}}, f)
     rows = load()
     jobs = [(o.plugin_dir, o.cond, rows[i], r) for i in o.ids.split(",") for r in range(o.reps)]
     with ThreadPoolExecutor(o.j) as ex, open(o.out, "a", encoding="utf-8") as f:

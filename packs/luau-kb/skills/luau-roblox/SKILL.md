@@ -1,11 +1,9 @@
 ---
 name: luau-roblox
 description: >-
-  Luau typing and verification procedure on Roblox: luau-lsp --platform=roblox with definition files and sourcemap,
-  typing and narrowing for Instance.new, GetService, FindFirstChild, IsA, GetAttribute and Enum, a table for deciding
-  whether the luau CLI plus mocks suffices or Studio is needed, mock writing and fidelity checks, and Roblox Studio MCP
-  usage. Use when testing Roblox code under the luau CLI, mocking game or Instance, deciding on Studio MCP, or fixing
-  Roblox API type errors. Engine behavior is roblox-engine/net/world. 트리거: mock 으로 충분해?, Studio MCP, 정의 파일 설정.
+  Roblox typing and test setup: luau-lsp definition files and sourcemap, typing GetService, Instance.new,
+  FindFirstChild and IsA, luau CLI mocks vs Studio, Studio MCP. Use when Roblox API types fail or deciding mock vs
+  Studio. Engine behavior is roblox-engine/net/world. 트리거: mock 으로 충분해?, Studio MCP, 정의 파일 설정.
 ---
 # luau-roblox
 

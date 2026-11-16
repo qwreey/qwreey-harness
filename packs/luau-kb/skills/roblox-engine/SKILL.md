@@ -1,12 +1,10 @@
 ---
 name: roblox-engine
 description: >-
-  Actual behavior of the core Roblox engine runtime, mostly Studio-measured: RBXScriptSignal delivery (Deferred vs
-  Immediate, Disconnect and Destroy edge cases), Instance lifetime and Destroy, tree API and attributes, TweenService,
-  the task library and cooperative scheduling races, Actors and parallel Luau, Studio require and caching, GC in Roblox.
-  Use when events do not fire or arrive late, when checking Destroy, Tween or leaks, or when reasoning about task
-  ordering or parallel code. Remotes are roblox-net; GUI and physics are roblox-world. 트리거: 이벤트가 안 와, Destroy 뒤, task
-  순서.
+  Measured Roblox engine behavior: signal delivery (Deferred vs Immediate), Destroy and Instance lifetime,
+  TweenService, task scheduling races, Actors and parallel Luau, GC. Use when events do not fire or arrive late, or
+  for Destroy, Tween or task ordering. Remotes are roblox-net; GUI and physics are roblox-world. 트리거: 이벤트가 안 와,
+  Destroy 뒤, task 순서.
 ---
 # roblox-engine
 

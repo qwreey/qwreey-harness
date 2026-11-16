@@ -1,11 +1,9 @@
 ---
 name: luau-runtime
 description: >-
-  Language and runtime semantics of Luau that hold without the Roblox engine: weak tables and GC (leak judgment, no
-  ephemeron, probe pitfalls), coroutines (swallowed errors, yield across C-call boundary), and require-by-string in the
-  luau CLI (init.luau, @self, aliases, symlinks, ambiguity). Use when weak table entries do not disappear, a leak is
-  suspected, a coroutine error vanishes, or require cannot resolve in the luau CLI. In-engine GC, Instance requires and
-  task are roblox-engine. 트리거: weak table 안 사라짐, 코루틴 에러 삼킴, require 안 풀림.
+  Luau semantics without the Roblox engine: weak tables and GC leaks, swallowed coroutine errors, require-by-string
+  in the luau CLI (init.luau, @self, aliases). Use when weak entries persist, a coroutine error vanishes, or require
+  cannot resolve. In-engine behavior is roblox-engine. 트리거: weak table 안 사라짐, 코루틴 에러 삼킴, require 안 풀림.
 ---
 # luau-runtime
 

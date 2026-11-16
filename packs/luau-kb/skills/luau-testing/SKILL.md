@@ -1,11 +1,9 @@
 ---
 name: luau-testing
 description: >-
-  How to write and run execution tests for Luau, backed by measured snippets: the plain luau CLI as a runner (exit
-  codes, assert/pcall patterns, error message shapes), why tests must run under both -O1 and -O2, negative controls,
-  golden files, mocks and where they diverge from the engine, and testing time-dependent logic (debounce, timers,
-  virtual clock) or GC behavior. Use when writing specs or a runner, when a test fails only under -O2 or Studio, or when
-  choosing a test framework. Check-result validation is luau-verify. 트리거: 테스트 러너 짜기, -O2 에서만 깨짐, 디바운스·타이머 시험.
+  Writing and running Luau tests: luau CLI runner (exit codes, assert, pcall), -O1 vs -O2, golden files, mocks,
+  time-dependent logic (debounce, timers, virtual clock) and GC. Use when writing specs or a runner, or a test fails
+  only under -O2. Check results are luau-verify. 트리거: 테스트 러너 짜기, -O2 에서만 깨짐, 디바운스·타이머 시험.
 ---
 # luau-testing
 
