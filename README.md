@@ -30,13 +30,13 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
    cd <작업공간>            # 예: ~/Projects
    git clone <claude-doctor 저장소 URL> claude-doctor
    ```
-2. **환경 설정**: `home/.claude/harness.env` 를 이 sandbox 값으로 고친다. 키 설명과 기본값은 `home/.claude/lib/harness_env.py` 의 `DEFAULTS`.
+2. **환경 설정**: `home/.claude/harness.env` 를 이 sandbox 값으로 고친다. 키 설명은 이 파일의 주석에 있다. 기본값은 여러 플러그인이 읽는 키면 `home/.claude/lib/harness_env.py` 의 `DEFAULTS`, 한 플러그인만 읽는 키면 그 플러그인의 `docs/how-it-works.md` 와 읽는 코드(`ENV_DEFAULTS` 등).
    - `HARNESS_WORKSPACE`: 형제 저장소 루트(지우면 claude-doctor 의 부모)
    - `HARNESS_TOOL_INSTALLS`: 툴체인 설치 경로(mise 기본은 `~/.local/share/mise/installs`)
    - `HARNESS_HEAVY_WRAP`: 무거운 실행 래퍼. 메모리를 다른 세션과 공유하지 않으면 빈 값으로 둔다(훅이 아무것도 막지 않는다). 키를 지우면 choom 이 있을 때만 쓴다
    - `HARNESS_DELEGATE_REGISTRY`: 위임 uid 표(위임을 안 쓰면 비움). `HARNESS_AGENT_PUSH`: 에이전트 push 정책(normal / deny)
    - 파일을 커밋하고 싶지 않으면 다른 곳에 두고 `HARNESS_ENV=<경로>` 를 셸 환경에 둔다. 같은 이름의 환경 변수는 파일보다 우선한다.
-   - 이 파일은 사용자 층이다. 저장소마다 다르게 하려면 그 저장소 `.claude/harness.env`(팀 공유, 커밋), 나만 쓰려면 `.claude/harness.local.env`(그 저장소 `.gitignore` 에 넣는다)에 같은 키를 둔다. 키마다 합치고 local > 저장소 공유 > 사용자 순으로 이기며 환경 변수가 모두를 이긴다. 실행 경로·기기 고유값·보안 게이트 키는 저장소 층이 바꾸지 못한다(`home/.claude/lib/harness_env.py` 의 `USER_ONLY`).
+   - 이 파일은 사용자 층이다. 저장소마다 다르게 하려면 그 저장소 `.claude/harness.env`(팀 공유, 커밋), 나만 쓰려면 `.claude/harness.local.env`(그 저장소 `.gitignore` 에 넣는다)에 같은 키를 둔다. 키마다 합치고 local > 저장소 공유 > 사용자 순으로 이기며 환경 변수가 모두를 이긴다. 실행 경로·기기 고유값·보안 게이트 키는 저장소 층이 바꾸지 못한다(공용 키는 `home/.claude/lib/harness_env.py` 의 `USER_ONLY`, 플러그인 키는 그 플러그인의 `ENV_USER_ONLY` 등).
 3. **확인**: `tools/home-sync.sh env` 로 푼 값을, `tools/home-sync.sh status` 로 링크 대상(MANIFEST 의 `link` 줄)이 있는지 본다.
    `~/.claude` 대신 다른 곳에 먼저 시험하려면 `CLAUDE_HOME=/tmp/test-home tools/home-sync.sh apply`.
 4. **반영**: `tools/home-sync.sh diff` 로 검토한 뒤 `tools/home-sync.sh apply`. 기존 파일은 `*.bak-<시각>` 으로 남는다.

@@ -3,7 +3,7 @@
 네 부분으로 이루어진다: 규약 주입(`scripts/ambient.py`), 게이트(`scripts/workspace_gate.py`), 오래된 worktree 알림(`scripts/stale_worktrees.py`), 스킬 `qwreey-workspace:workspace`.
 
 ## 작업공간과 형제 저장소
-- 작업공간 루트는 환경 변수 `HARNESS_WORKSPACE`, 없으면 `~/.claude/harness.env`(또는 `$CLAUDE_CONFIG_DIR/harness.env`) 의 같은 키. harness.env 는 설치된 하네스 `lib/harness_env.py` 로, 없으면 옆의 `scripts/harness_env.py` 사본으로 읽는다. 둘 다 비면 게이트와 지도가 꺼진다. `HARNESS_WORKSPACE` 와 `HARNESS_WORKSPACE_GATE` 는 로더의 `USER_ONLY` 라 저장소 `.claude/harness.env`·`.claude/harness.local.env` 가 바꾸지 못한다(클론한 저장소가 게이트를 끄지 못하게). `HARNESS_WORKSPACE_AMBIENT` 같은 다른 스위치는 저장소 층(local 이 공유 파일을 이긴다)에 둘 수 있다.
+- 작업공간 루트는 환경 변수 `HARNESS_WORKSPACE`, 없으면 `~/.claude/harness.env`(또는 `$CLAUDE_CONFIG_DIR/harness.env`) 의 같은 키. harness.env 는 옆의 `scripts/harness_env.py` 사본(하네스 로더의 사본)으로 읽는다. 둘 다 비면 게이트와 지도가 꺼진다. `HARNESS_WORKSPACE`(로더의 `USER_ONLY`, 여러 플러그인이 읽는다)와 `HARNESS_WORKSPACE_GATE`(`scripts/wslib.py` 의 `ENV_USER_ONLY`)는 저장소 `.claude/harness.env`·`.claude/harness.local.env` 가 바꾸지 못한다(클론한 저장소가 게이트를 끄지 못하게). `HARNESS_WORKSPACE_AMBIENT` 같은 다른 스위치는 저장소 층(local 이 공유 파일을 이긴다)에 둘 수 있다.
 - 이 세션의 저장소는 `CLAUDE_PROJECT_DIR`(없으면 입력의 `cwd`). `HARNESS_WORKSPACE/<X>` 중 이 저장소가 아닌 것이 형제 저장소다.
 - 경로는 `normpath` 로만 비교한다. `realpath` 를 쓰지 않는 것은 `~/.claude/rules` 같은 심볼릭 링크가 형제 경로로 풀려 오판되지 않게 하려는 것이다.
 
@@ -35,7 +35,7 @@
 - 폴더가 사라진 등록(porcelain `prunable` 또는 폴더 없음)은 잠기지 않았으면 나이와 무관하게 따로 적는다. 잃을 작업이 없고 등록만 남은 것이기 때문이다.
 - 커밋 안 한 변경: 알림에 이름이 나오는 worktree(오래된 순 3개)만, 관리 폴더 index 가 2MB 이하일 때, `GIT_OPTIONAL_LOCKS=0 git status --porcelain --untracked-files=no` 를 1.5초 안에서 본다. 추적하지 않는 새 파일은 보지 않는다(폴더 전체를 훑어야 해서). 못 보면 표시하지 않는다.
 - 시간: git 호출마다 3초, 전체 6초 예산(hooks.json timeout 10초). 어떤 실패든 출력 없이 exit 0.
-- 문턱: `HARNESS_WORKSPACE_STALE_WORKTREE_DAYS`(일, 기본 14, harness_env `DEFAULTS`). `off`·`0`·빈 값이면 끈다. 저장소 층에 둘 수 있다(USER_ONLY 아님). 설치된 `~/.claude/lib/harness_env.py` 가 이 키를 모르는 옛 판이어도 `wslib.load_env` 가 옆 사본의 `DEFAULTS` 로 없는 키를 채운다.
+- 문턱: `HARNESS_WORKSPACE_STALE_WORKTREE_DAYS`(일, 기본 14, `scripts/wslib.py` 의 `ENV_DEFAULTS`). `off`·`0`·빈 값이면 끈다. 저장소 층에 둘 수 있다(USER_ONLY 아님).
 - 알림(`<harness-hook name="stale-worktrees" level="info">`, 규칙 줄을 맡으면 맨 앞에): 개수, 오래된 순 3개의 경로(저장소 안이면 상대 경로)·브랜치·일수·변경 여부, prunable 목록, 그리고 "끝난 작업일 수 있다. 정리할 때면 스킬의 worktree 잠금·살아 있는 세션 확인을 거치고 지우기 전에 사용자에게 물어라. 사용자가 두는 것이거나 지금 일과 무관하면 할 것 없다". 지우는 명령은 적지 않는다.
 - 세션마다 한 번: `$TMPDIR/claude-workspace-worktrees/<sid>` 를 O_EXCL 로 만든 경우만 낸다. resume 은 같은 session_id 라 다시 내지 않는다.
 

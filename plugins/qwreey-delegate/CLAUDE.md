@@ -14,7 +14,7 @@ From the repo root (fake agy/codex; nothing calls a vendor):
 ```bash
 timeout 590 choom -n 1000 -- python3 -I tools/tests/test-delegate-cli.py </dev/null
 timeout 590 choom -n 1000 -- python3 -I tools/tests/test-delegate-config.py </dev/null
-python3 -I tools/tests/test-harness-env.py </dev/null    # after changing harness.env keys
+python3 -I tools/tests/test-harness-env-owners.py </dev/null    # after changing harness.env keys
 python3 -I plugins/qwreey-proc-guard/tests/test-heavy-proc-guard.py </dev/null    # after renaming the driver
 bash -n plugins/qwreey-delegate/skills/delegate/scripts/delegate.sh
 python3 -I plugins/qwreey-delegate/skills/delegate/scripts/delegate.py doctor --all </dev/null
@@ -25,6 +25,6 @@ Run the CLI tests as root too: the uid isolation cases skip without it. A real `
 - Isolation is the point: changes must keep the delegate unable to write the main worktree or `.git/objects`, read credentials outside its own HOME, or push. `doctor` checks this; extend it with any new isolation step.
 - Every driver module is imported at start, so editing the plugin does not break a running job; keep new imports at the top of `delegate.py`.
 - agy never gets `--dangerously-skip-permissions`: it turns off the headless refusals the `--settings` policy relies on.
-- `skills/delegate/scripts/harness_env.py` is a byte copy of `home/.claude/lib/harness_env.py` (the harness.env layer loader, used when `~/.claude/lib` has none or lacks the driver's USER_ONLY keys). Edit the canon, then run `python3 -I tools/sync-copies.py --apply`. A new `HARNESS_DELEGATE_*` key goes into its `DEFAULTS` (and `USER_ONLY` when a repository must not set it) and into `KEYS` in `delegate.py`.
+- `skills/delegate/scripts/harness_env.py` is a byte copy of `home/.claude/lib/harness_env.py` (the harness.env layer loader); the driver always uses this copy, never `~/.claude/lib`, which can be older. Edit the canon, then run `python3 -I tools/sync-copies.py --apply`. A new `HARNESS_DELEGATE_*` key goes into `ENV_DEFAULTS` in `delegate.py` (and `ENV_USER_ONLY` when a repository must not set it), plus the design table in `.claude/research/drafts/delegate/driver-design.md`.
 - Delegate output is a claim, never a decision; keep the SKILL.md verification rules intact when editing.
 - Requires Linux and root (`setpriv`, `choom`); do not add paths that silently weaken isolation on other platforms.

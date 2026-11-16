@@ -188,7 +188,8 @@ class Hook(Base):
         (self.repo / ".claude" / "harness.local.env").write_text(KEY + "=7\n")
         self.assertIn("7+ days", self.run_hook(sid="r2"))
 
-    def test_older_installed_loader_still_gets_default(self):
+    def test_older_installed_loader_is_not_used(self):
+        # 설치된 ~/.claude/lib 판이 이 키를 몰라도 플러그인은 옆 사본과 자기 기본값을 쓴다.
         self.add(".claude/worktrees/agent-old", 20)
         lib = self.t / "cfg" / "lib"
         lib.mkdir()

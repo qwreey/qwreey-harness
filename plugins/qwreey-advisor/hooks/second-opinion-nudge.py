@@ -12,8 +12,8 @@ advisor 는 언제 불릴지 모델이 정해서 예측이 안 됐다(.claude/au
   6. UserPromptSubmit, PostToolBatch (메인)  5 에서 권고·질문이 있던 보고가 메인에 들어오면 info 한 줄(에이전트마다 한 번)
 '접근 확정 전'은 잴 수 없어서 메인 판단(CLAUDE.md, 스킬)에 맡긴다. 이 저장소들에서 ExitPlanMode 사용은 0회였다(.claude/audit/18 §1.4).
 
-설치: qwreey-advisor 플러그인의 hooks/hooks.json 이 등록한다. 설정은 harness.env 층(옆의 harness_env.py 사본, 설치된 정본이
-있으면 그것): 사용자 $CLAUDE_CONFIG_DIR/harness.env < 저장소 .claude/harness.env < 저장소 .claude/harness.local.env < 환경 변수.
+설치: qwreey-advisor 플러그인의 hooks/hooks.json 이 등록한다. 설정은 harness.env 층(늘 옆의 harness_env.py
+사본): 사용자 $CLAUDE_CONFIG_DIR/harness.env < 저장소 .claude/harness.env < 저장소 .claude/harness.local.env < 환경 변수.
 파일이 하나도 없으면 내장 기본값으로 돈다(등급 mid, 상태는 $TMPDIR).
 
 규칙
@@ -51,11 +51,10 @@ COMMIT = re.compile(r"\bgit\b(\s+-C\s+\S+)?\s+commit\b")
 
 
 def env_vals(cwd=None) -> dict:
-    """harness.env 층(옆의 harness_env.py 사본, 설치된 정본이 있으면 그것): 사용자 < 저장소 < 저장소 local < 환경 변수."""
+    """harness.env 층(옆의 harness_env.py 사본): 사용자 < 저장소 < 저장소 local < 환경 변수."""
     try:
         import harness_env
-        he = harness_env.installed()
-        vals = he.load_layers(he.project_dir(cwd))
+        vals = harness_env.load_layers(harness_env.project_dir(cwd))
     except Exception:
         vals = {}
     for k in ("HARNESS_REVIEW_TIERS", "HARNESS_REVIEW_DEFAULT", "HARNESS_REVIEW_LINES", "HARNESS_REVIEW_FRESH_MIN",

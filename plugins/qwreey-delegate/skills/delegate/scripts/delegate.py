@@ -34,16 +34,13 @@ import delegate_agents as agents  # noqa: E402
 import delegate_isolation as iso  # noqa: E402
 import delegate_results as results  # noqa: E402
 import delegate_workspace as ws  # noqa: E402
-import harness_env as own_he  # noqa: E402
+import harness_env  # noqa: E402
 
 PROG = ws.PROG
 SKILL_DIR = Path(HERE).parent
 TEMPLATES = SKILL_DIR / "templates"
 DEFAULT_EFFORT = "medium"
 DEFAULT_TIMEOUT_SECONDS = 3600
-# gc deletes results in <state>/runs/ older than this. Results are read right after the run, and a report worth
-# keeping is moved into the repository (.claude/audit/), so two weeks covers a missed read or a weekend.
-DEFAULT_RUNS_DAYS = 14
 START_LOCK_SECONDS = 120     # wait for another start of the same agent (seconds of git and copying) before giving up
 LEGACY_LOCK_SECONDS = 30
 SETUP_TIMEOUT_SECONDS = 900  # the registry's setup line, run once in a new worktree
@@ -53,46 +50,66 @@ LEGACY_LOCK = "/tmp/delegate-{agent}.lock"
 MODES = ("worktree", "empty")
 PRE_PUSH = '#!/bin/sh\necho "push refused: delegate workspace" >&2\nexit 1\n'
 
-# harness.env keys this driver reads. Defaults and the USER_ONLY set live in harness_env.py.
-KEYS = (
-    "HARNESS_DELEGATE_REGISTRY", "HARNESS_TOOL_INSTALLS", "HARNESS_HEAVY_WRAP",
+# harness.env keys only this driver reads, with their defaults. It also reads the shared HARNESS_DELEGATE_REGISTRY,
+# HARNESS_TOOL_INSTALLS and HARNESS_HEAVY_WRAP, whose defaults and user-only status are in harness_env.py.
+ENV_DEFAULTS = {
+    # Agent executables. Empty: agy/codex on PATH (mise shims are skipped: they fail in the empty task environment),
+    # else under HARNESS_TOOL_INSTALLS.
+    "HARNESS_DELEGATE_AGY_BIN": "",
+    "HARNESS_DELEGATE_CODEX_BIN": "",
+    # Credential sources: agy copies this folder per task, codex copies auth.json from it. Empty codex: $CODEX_HOME, else ~/.codex.
+    "HARNESS_DELEGATE_AGY_HOME": "~/.gemini",
+    "HARNESS_DELEGATE_CODEX_HOME": "",
+    # What opens an agy worktree: uid (only with root's uid isolation) | sandbox (agy's shell sandbox alone; file tools are not confined).
+    "HARNESS_DELEGATE_AGY_WORKTREE": "uid",
+    # agy without uid isolation: empty is off; allow opens empty mode only (file tools read HOME secrets and write outside as the user).
+    "HARNESS_DELEGATE_AGY_UNISOLATED": "",
+    # codex sandbox. Empty: the driver default (read-only). danger-full-access is accepted only with uid isolation.
+    "HARNESS_DELEGATE_CODEX_SANDBOX": "",
+    # Non-empty: tasks get the current environment instead of an empty one (tokens in variables can leak).
+    "HARNESS_DELEGATE_KEEP_ENV": "",
+    # State folder (work/, runs/, concurrency slots and locks). Empty: the platform state folder (Linux ~/.local/state/qwreey-delegate).
+    "HARNESS_DELEGATE_STATE": "",
+    # gc deletes results in <state>/runs/ older than this many days. Results are read right after the run, and a report
+    # worth keeping is moved into the repository (.claude/audit/), so two weeks covers a missed read or a weekend.
+    "HARNESS_DELEGATE_RUNS_DAYS": "14",
+    # Delegations running at once per agent, summed over every repository: the token limit is per user subscription.
+    "HARNESS_DELEGATE_MAX_CONCURRENT": "1",
+    # Default models (run --model wins). Unrelated to isolation, so a repository layer may set them.
+    "HARNESS_DELEGATE_AGY_MODEL": "gemini-3.8-flash-high",
+    "HARNESS_DELEGATE_CODEX_MODEL": "gpt-6-luna",
+    # Extra names (space-separated globs) kept out of empty-mode files. It only adds to the built-in list, so a repository may set it.
+    "HARNESS_DELEGATE_SECRET_GLOBS": "",
+}
+# A repository's committed harness.env must not change what runs, where credentials come from, the isolation gates,
+# or limits that span every repository. Only the user layer and the environment set these.
+ENV_USER_ONLY = frozenset({
     "HARNESS_DELEGATE_AGY_BIN", "HARNESS_DELEGATE_CODEX_BIN", "HARNESS_DELEGATE_AGY_HOME", "HARNESS_DELEGATE_CODEX_HOME",
     "HARNESS_DELEGATE_AGY_WORKTREE", "HARNESS_DELEGATE_AGY_UNISOLATED", "HARNESS_DELEGATE_CODEX_SANDBOX",
-    "HARNESS_DELEGATE_KEEP_ENV",
-    "HARNESS_DELEGATE_STATE", "HARNESS_DELEGATE_MAX_CONCURRENT", "HARNESS_DELEGATE_AGY_MODEL",
-    "HARNESS_DELEGATE_CODEX_MODEL", "HARNESS_DELEGATE_SECRET_GLOBS", "HARNESS_DELEGATE_RUNS_DAYS",
-)
+    "HARNESS_DELEGATE_KEEP_ENV", "HARNESS_DELEGATE_STATE", "HARNESS_DELEGATE_MAX_CONCURRENT", "HARNESS_DELEGATE_RUNS_DAYS",
+})
+SHARED_KEYS = ("HARNESS_DELEGATE_REGISTRY", "HARNESS_TOOL_INSTALLS", "HARNESS_HEAVY_WRAP")
+KEYS = SHARED_KEYS + tuple(ENV_DEFAULTS)
 die = ws.die
 note = ws.note
 
 
 # ---------- config ----------
-def harness_loader():
-    """(module whose load_layers to use, description). An installed harness_env that does not list this driver's
-    USER_ONLY keys would let a repository's committed harness.env open the isolation, so the copy next to this file
-    is used instead."""
-    he = own_he.installed()
-    if he.load_layers is own_he.load_layers:
-        return own_he, f"{own_he.__file__} (own copy)"
-    need = own_he.USER_ONLY & set(KEYS)
-    missing = need - set(getattr(he, "USER_ONLY", ()))
-    if missing:
-        return own_he, f"{own_he.__file__} (own copy: installed lacks USER_ONLY {', '.join(sorted(missing))})"
-    return he, f"{getattr(he, '__file__', '?')} (installed)"
+def config(project):
+    """harness.env layers for this driver: user layer and environment (project ''), or with that repository's layers on
+    top. Always the copy next to this file: an installed ~/.claude/lib/harness_env.py can be older and not know ENV_USER_ONLY."""
+    return harness_env.load_layers(project, defaults=ENV_DEFAULTS, user_only=ENV_USER_ONLY)
 
 
 class Ctx:
     def __init__(self):
-        self.he, self.he_desc = harness_loader()
         self.cfg = self.layers("")
         self.registry = self.cfg["HARNESS_DELEGATE_REGISTRY"] or str(SKILL_DIR / "registry.tsv")
         # USER_ONLY, so the user layer decides for every repository.
         self.state_dir = Path(self.cfg["HARNESS_DELEGATE_STATE"] or ws.default_state_dir())
 
     def layers(self, project):
-        """Config of the user layer and environment (project ''), or with that repository's layers on top."""
-        defaults = {k: own_he.expand(own_he.DEFAULTS.get(k, ""), {}) for k in KEYS}
-        return self.he.load_layers(project, defaults=defaults)
+        return config(project)
 
     def repo(self, arg):
         return ws.resolve_repo(self.registry, arg or "")
@@ -282,7 +299,7 @@ def cmd_run(ctx, args):
                      f"{': ' + err.strip().splitlines()[-1] if err.strip() else ''}")
         before = ws.main_snapshot(repo.root)
         note(f"start {agent}/{name} ({model}, {mode}) {ws.now_iso()} - {wt}")
-        argv = iso.heavy_prefix(own_he, cfg) + backend.wrap(
+        argv = iso.heavy_prefix(harness_env, cfg) + backend.wrap(
             adapter.argv(bin_path, model, effort, timeout, prompt, wt, adapter.last_path(wt, mode), cfg, settings))
         rc = iso.run_task(argv, wt, env, rec / "stdout.txt", timeout + agents.PRINT_TIMEOUT_MARGIN, stop,
                           adapter.stdin(rec), rec / "stderr.txt" if adapter.separate_stderr else None)
@@ -415,7 +432,7 @@ def cmd_gc(ctx, args):
     _, opts = parse(args, {"--repo": 1, "--all": 0, "--days": 1, "--apply": 0}, 0,
                     "gc [--repo R|--all] [--days N] [--apply]")
     what = "--days" if "--days" in opts else "HARNESS_DELEGATE_RUNS_DAYS"
-    days = str(opts.get("--days") or ctx.cfg["HARNESS_DELEGATE_RUNS_DAYS"] or DEFAULT_RUNS_DAYS)
+    days = str(opts.get("--days") or ctx.cfg["HARNESS_DELEGATE_RUNS_DAYS"] or ENV_DEFAULTS["HARNESS_DELEGATE_RUNS_DAYS"])
     if not days.isdigit():
         die(f"{what} must be a number: {days}")
     days = int(days)
@@ -439,7 +456,7 @@ def dup(values):
 def doctor_global(ctx):
     print(f"== registry {ctx.registry}")
     print(f"  INFO python {sys.executable} {sys.version.split()[0]}")
-    print(f"  INFO harness_env {ctx.he_desc}")
+    print(f"  INFO harness_env {harness_env.__file__}")
     if not Path(ctx.registry).is_file():
         print("  FAIL registry file missing")
         return
@@ -474,7 +491,7 @@ def doctor_one(ctx, repo):
             continue
         print(f"  ok   setpriv {backend.setpriv} {' '.join(iso.SETPRIV_HARDENING)}")
         print("  FAIL uid can write the main working tree" if backend.can("w", root) else "  ok   uid cannot write the main working tree")
-        for s in iso.secret_paths(Path.home(), own_he.config_dir()):
+        for s in iso.secret_paths(Path.home(), harness_env.config_dir()):
             if os.path.exists(s):
                 print(f"  FAIL uid can read a secret: {s}" if backend.can("r", s) else f"  ok   cannot read: {s}")
         # The work folder sits in the state folder (0711, set by run); everything above it must let the uid pass.

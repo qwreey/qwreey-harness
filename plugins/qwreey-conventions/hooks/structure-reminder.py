@@ -83,16 +83,18 @@ PLANNER_REL = "skills/luau-style/scripts/split-plan.py"
 # 사유가 아닌 말: 비었거나, 미루기, 귀찮음, 자리표시
 NOT_A_REASON = re.compile(r"^(?:[-.…~_?!\s]*|todo|tbd|fixme|later|wip|n/?a|none|x+|임시|나중에?|나중에 ?나눔|추후|일단|귀찮.*)$", re.I)
 
+# 이 훅만 읽는 harness.env 키 가운데 저장소 층이 바꾸지 못하는 것: find_planner 가 실행할 스크립트를 찾는 경로다.
+ENV_USER_ONLY = frozenset({"HARNESS_LUAU_KB"})
 _ENV = None
 
 
 def harness_env():
-    """harness.env 층(옆의 harness_env.py 사본, 설치된 정본이 있으면 그것)을 한 번 읽는다. 깨졌으면 {}."""
+    """harness.env 층(옆의 harness_env.py 사본)을 한 번 읽는다. 깨졌으면 {}."""
     global _ENV
     if _ENV is None:
         try:
             import harness_env as he
-            _ENV = he.installed().load_layers()
+            _ENV = he.load_layers(user_only=ENV_USER_ONLY)
         except Exception:
             _ENV = {}
     return _ENV

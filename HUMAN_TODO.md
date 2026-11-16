@@ -71,6 +71,11 @@
   2. qwreey-proc-guard 를 먼저, 그다음 qwreey-delegate 를 갱신한다(거꾸로 하면 그 사이 무거운 낱말이 든 `delegate.py` 명령을 옛 proc-guard 가 막을 수 있다)
   3. 돌고 있는 위임이 없을 때 `/reload-plugins` 또는 새 세션. 확인: `python3 -I <스킬>/scripts/delegate.py doctor --all` 에 FAIL 이 없다
   4. `tools/home-sync.sh diff` 로 harness.env 의 위임 주석 예시를 보고 `apply`(값은 바뀌지 않는다)
+- [ ] harness_env 키 주인 나누기(q 0.9.10, qwreey-advisor 0.4.14, qwreey-conventions 0.8.7, qwreey-delegate 0.2.1, qwreey-operator 0.2.9, qwreey-proc-guard 0.1.7, qwreey-sessions 0.1.6, qwreey-workspace 0.1.10). 새 플러그인은 플러그인 하나만 읽는 키(`HARNESS_WORKSPACE_GATE`, `SESSION_LOG_CLAUDE` 등)를 자기 사본으로 막고, 옛 플러그인은 설치된 `~/.claude/lib/harness_env.py` 를 읽는다. 순서:
+  1. 모든 기기에서 먼저 플러그인: `claude plugin marketplace update claude-doctor-market`, 위 플러그인을 모두 갱신
+  2. 그 기기에서 돌고 있는 세션을 모두 다시 읽힌다(`/reload-plugins` 또는 새 세션). 하나라도 남으면 그 세션은 옛 플러그인으로 돈다
+  3. 그다음 `tools/home-sync.sh diff` 로 `lib/harness_env.py`, `harness.env` 주석을 보고 `apply`
+  - 새 lib 의 `LEGACY_USER_ONLY` 가 예전 lib 이 막던 키(위 두 키, `HARNESS_AGENT_PUSH`, `HARNESS_LUAU_KB`, `SESSION_LOG_HOME`, 위임의 실행 파일·인증·격리·상태 키)를 계속 막으므로, 순서가 뒤바뀌어(apply 먼저, 또는 옛 플러그인이 남은 기기) 옛 플러그인이 새 lib 를 읽어도 이 키들은 저장소 층이 바꾸지 못한다
 - 새 정본 변경(rules, settings 마이그레이션 등)이 생기면 다시 `tools/home-sync.sh diff` 로 검토하고 `apply` 한다. 이때도 같은 백업이 생긴다.
 
 ## 다른 세션에 넘길 것

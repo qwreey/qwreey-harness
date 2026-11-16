@@ -1,6 +1,6 @@
 """workspace 게이트와 지도가 같이 쓰는 도우미(표준 라이브러리만).
 
-- 작업공간 루트: 환경 변수 HARNESS_WORKSPACE, 없으면 사용자 harness.env(옆의 harness_env.py 사본, 설치된 정본이 있으면 그것).
+- 작업공간 루트: 환경 변수 HARNESS_WORKSPACE, 없으면 사용자 harness.env(옆의 harness_env.py 사본으로 읽는다).
   저장소 층은 이 키를 바꾸지 못한다(USER_ONLY). 둘 다 없으면 "".
 - 경로 판정은 normpath 만 한다(realpath 금지: ~/.claude/rules 의 symlink 는 형제 경로가 아니라 이 세션의 규칙 파일이다).
 - Bash 명령 분류: 어떤 형제 저장소를 쓰는가("write"), 읽는가("read"). 하네스의 bash-bypass-reminder 분류기는
@@ -24,16 +24,21 @@ REDIR = re.compile(r"(?<![0-9&<>])\d?>>?(?!&)\s*([^\s;|&<>()]+)")
 ABS = re.compile(r"(?:~|\$\{?HOME\}?|/)[^\s'\";|&<>()=]*")
 
 
+# 이 플러그인만 읽는 harness.env 키. HARNESS_WORKSPACE 는 여러 플러그인이 읽어 harness_env.DEFAULTS, USER_ONLY 에 있다.
+ENV_DEFAULTS = {
+    # stale_worktrees.py: 세션 시작에 알리는 오래된 worktree 의 문턱(일, 손대지 않은 기간). off 나 0 이면 끈다. 저장소 층도 정할 수 있다.
+    "HARNESS_WORKSPACE_STALE_WORKTREE_DAYS": "14",
+}
+# workspace_gate.py 의 끄기 스위치. 클론한 저장소가 커밋한 파일로 게이트를 끄면 안 된다.
+ENV_USER_ONLY = frozenset({"HARNESS_WORKSPACE_GATE"})
+
+
 def load_env(cwd: str | None = None) -> dict:
     """harness.env 층 값(harness_env.load_layers: 사용자 < 저장소 < 저장소 local < 환경 변수). 읽기 실패는 빈 dict.
-    HARNESS_WORKSPACE, HARNESS_WORKSPACE_GATE 는 USER_ONLY 라 저장소 파일이 바꾸지 못한다."""
+    늘 옆의 harness_env.py 사본을 쓴다: 설치된 ~/.claude/lib 판은 옛 판일 수 있어 ENV_USER_ONLY 를 모른다."""
     try:
         import harness_env
-        he = harness_env.installed()
-        # 설치된 정본이 이 플러그인보다 옛 판이면 새 키의 기본값이 없다. 옆 사본의 DEFAULTS 로 없는 키만 채운다.
-        known = getattr(he, "DEFAULTS", {})
-        fill = {k: harness_env.expand(v, {}) for k, v in harness_env.DEFAULTS.items() if k not in known}
-        return he.load_layers(he.project_dir(cwd), defaults=fill)
+        return harness_env.load_layers(harness_env.project_dir(cwd), defaults=ENV_DEFAULTS, user_only=ENV_USER_ONLY)
     except Exception:
         return {}
 

@@ -78,8 +78,7 @@ def config(project_dir=None):
     vals = dict(CFG_DEFAULTS)
     try:
         import harness_env
-        he = harness_env.installed()
-        layered = he.load_layers(project_dir)
+        layered = harness_env.load_layers(project_dir)
         vals.update({k: v for k, v in layered.items() if k in vals or k.startswith(CFG_PREFIXES)})
     except Exception:
         pass

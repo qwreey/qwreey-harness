@@ -23,7 +23,7 @@
 `permissionDecision: "deny"` 와 영어 사유(`<harness-hook name="heavy-proc-guard" level="action">`). 래퍼가 choom 이면 `choom -n 1000 -p $$;` 를 앞에 붙이거나 `choom -n 1000 -- prlimit --data=3221225472 -- <명령>` 으로 감싸라고 안내하고, 오탐이어도 같은 방식으로 감싸면 통과한다고 적는다.
 
 ## 설정
-harness.env 층의 `HARNESS_HEAVY_WRAP`, `HARNESS_HEAVY_EXECUTORS`, `HARNESS_HEAVY_KEYWORDS`, `HARNESS_TOOLKITS`: 사용자 `~/.claude/harness.env`(`$CLAUDE_CONFIG_DIR` 아래) < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env` < 환경 변수. 읽기는 설치된 하네스 `lib/harness_env.py`, 없으면 옆의 `hooks/harness_env.py` 사본. `HARNESS_HEAVY_WRAP` 은 로더의 `USER_ONLY` 라 저장소 층이 바꾸지 못한다(클론한 저장소가 래퍼를 끄거나 다른 프로그램을 쓰게 하지 못하게). 저장소 층은 실행기·키워드를 더할 수 있다. 파일이 없으면 기본값(`auto`)으로 돈다.
+harness.env 층의 `HARNESS_HEAVY_WRAP`, `HARNESS_HEAVY_EXECUTORS`, `HARNESS_HEAVY_KEYWORDS`, `HARNESS_TOOLKITS`: 사용자 `~/.claude/harness.env`(`$CLAUDE_CONFIG_DIR` 아래) < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env` < 환경 변수. 읽기는 옆의 `hooks/harness_env.py` 사본(하네스 로더의 사본). `HARNESS_HEAVY_EXECUTORS`, `HARNESS_HEAVY_KEYWORDS` 는 이 훅만 읽어 `heavy-proc-guard.py` 의 `ENV_DEFAULTS` 에 있고, `HARNESS_HEAVY_WRAP`, `HARNESS_TOOLKITS` 는 여러 플러그인이 읽어 로더에 있다. `HARNESS_HEAVY_WRAP` 은 로더의 `USER_ONLY` 라 저장소 층이 바꾸지 못한다(클론한 저장소가 래퍼를 끄거나 다른 프로그램을 쓰게 하지 못하게). 저장소 층은 실행기·키워드를 더할 수 있다. 파일이 없으면 기본값(`auto`)으로 돈다.
 
 ## 테스트
 ```bash

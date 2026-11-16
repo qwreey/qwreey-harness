@@ -6,8 +6,8 @@ python3 -I tools/sync-copies.py --apply 로 옮긴다. 플러그인마다 다른
 - context/ambient.json: 설정. 없거나 읽지 못하면 아무것도 내지 않는다.
     plugin      태그 이름(<plugin name="...">), 표지 이름공간(claude-<plugin>-ambient). 필수.
     events      켤 이벤트: SessionStart, SubagentStart, UserPromptSubmit, PreCompact 중에서.
-    off_switch  끄기 스위치 이름(값이 off 면 끈다). 환경 변수가 이기고, 없으면 harness.env 층(옆의 harness_env.py 사본,
-                설치된 정본이 있으면 그것). 없으면 스위치 없음.
+    off_switch  끄기 스위치 이름(값이 off 면 끈다). 환경 변수가 이기고, 없으면 harness.env 층(옆의 harness_env.py 사본).
+                없으면 스위치 없음.
     epoch       compact 회차 이름공간(compact_epoch.py). 기본은 plugin. UserPromptSubmit 보충만 쓴다.
 - context/ambient.md: 메인 세션 글. context/subagent.md: 서브에이전트 글(없으면 ambient.md). 파일이 비면 블록이 없다.
 
@@ -71,8 +71,7 @@ def is_off(name, cwd=None):
         return os.environ[name].strip().lower() == "off"
     try:
         import harness_env
-        he = harness_env.installed()
-        return str(he.load_layers(he.project_dir(cwd)).get(name, "")).strip().lower() == "off"
+        return str(harness_env.load_layers(harness_env.project_dir(cwd)).get(name, "")).strip().lower() == "off"
     except Exception:
         return False
 
