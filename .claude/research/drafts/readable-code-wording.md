@@ -123,8 +123,9 @@ switch: HARNESS_READABLE_CODE
 ---
 # Readable code
 - In a function longer than about 10 lines, separate its steps (guards, each unit of work, final checks, the return) with single blank lines; a short function has none.
-- Head a paragraph whose intent is not obvious with a step label: English, 3-10 words, shorter than the code line, naming what the step is for, with no period, numbering or reason. Reading only the labels should give the function's flow. A label summarizes several lines for navigation; restating one line in words is still noise.
-- What a function does for callers goes in a doc comment above it (public functions in code others call always get one; first line a one-line summary of about 80 characters for completion popups and hover, details after a blank comment line). Reasons for a design go above the declaration too; inside a body, a reason is one line at the trap, never a multi-line block between statements.
+- Head a paragraph whose intent is not obvious with a step label: English, 2-10 words, shorter than the code line, naming what the step is for, with no period, numbering or reason. Reading only the labels should give the function's flow. A label summarizes several lines for navigation; restating one line in words is still noise.
+- What a function does for callers goes in a doc comment above it, in the form the editor shows on hover and completion (Luau `---`, Python docstring, `/** */`). Public functions in code others call always get one. Its first sentence ends on the first line, about 80 characters; details follow after a blank doc line.
+- Reasons for a design go in a plain comment above the declaration, apart from the doc comment so hover stays about use. Inside a body a reason is one line at the trap, after the step label; never a multi-line block between statements.
 - Declare a local at its first use in the narrowest block (handles every step uses go together at the top, loop state right before the loop), one name per declaration except when receiving multiple returns. One role keeps one name across the file; paired operations get symmetric names.
 - When the same few-line loop appears a second time, extract a helper instead of copying it.
 - Examples, branch ladders, sibling modules and toolkit details: load the `qwreey-conventions:comments` skill, section Readable code. A repo's own rules win.
@@ -143,10 +144,10 @@ Applies when the readable-code rule is loaded (it is switched per user and per r
 
 | Kind | Where | Shape |
 |---|---|---|
-| Doc comment | Above a function, type or module | First line: one-sentence summary of about 80 characters (it is what a completion popup or hover shows first). Details after a blank comment line. Public functions in code others call always get one, even with a clear name; private helpers get one only when the name does not say it. |
-| Design reason | Above the declaration it explains | As long as the reason needs. |
+| Doc comment | Above a function, type or module, in the hover form (Luau `---` or `--[=[ ]=]`; `--` never shows) | First sentence ends on the first line, about 80 characters (it is what a completion popup or hover shows first). Details after a blank doc line. Public functions in code others call always get one, even with a clear name; metamethods and private helpers get one only when the name does not say it. |
+| Design reason | Plain comment above the declaration, separate from the doc comment | As long as the reason needs; hover shows the doc comment only, so callers are not handed the history of the design. |
 | Step label | First line of a paragraph inside a body | English, 3-10 words (2 is fine when it reads), shorter than the code width, names the step's intent. No period, no numbering, no reason. Skip it when the code says it (`return result`). |
-| Trap note | At the line, inside the body | One line. A longer reason moves above the declaration. |
+| Trap note | At the line, inside the body, below the paragraph's step label | One line. A longer reason moves above the declaration. |
 
 Example (the labels alone read as the flow):
 
@@ -207,7 +208,7 @@ Hook notice: a `layout` notice gives per-function numbers (lines, blank lines, l
   > - 한 번 쓰면 쓰는 자리에서 캐스트한다. 같은 값을 여러 번 쓰면 이름 붙인 뷰 지역을 한 번 만든다(`local typedNs = ns :: TypedNamespace`). 쓰는 곳마다 `(x :: any).field` 를 되풀이하지 않는다.
   > - 근거: tbox 사용자 줄의 `:: any` 2/42, 에이전트 줄 22/47.
 - `rules/luau-core.md` "Names and comments" 에 한 줄(luau-kb 를 켠 모든 저장소에 실리므로 사용자 확인 필요):
-  > - Public functions get a `---` doc comment (luau-lsp shows only `---` and `--[=[ ]=]` in hover and completion, never `--`); first line a summary of about 80 characters. → `[quality§1](../skills/luau-style/references/quality.md)` (link relative to `packs/luau-kb/rules/`)
+  > - Public functions in code others call (a library, a module other modules require) get a `---` doc comment (luau-lsp shows only `---` and `--[=[ ]=]` in hover and completion, never `--`); first line a summary of about 80 characters. → `[quality§1](../skills/luau-style/references/quality.md)` (link relative to `packs/luau-kb/rules/`)
 - 캐스트는 luau-core 에 올리지 않는다(상시 비용, 근거는 tbox 한 저장소).
 
 ### 3.5 켜고 끄기
@@ -215,7 +216,7 @@ Hook notice: a `layout` notice gives per-function numbers (lines, blank lines, l
 
 제안:
 - rule frontmatter 의 `switch: <KEY>` 를 `rules_inject.py` 가 읽어 `conv_env.env_value(KEY).lower() == "on"` 일 때만 싣는다. `switch` 없는 rule 은 지금과 같다. 플러그인 기본은 꺼짐(동료 배포에서 개인 취향이 퍼지지 않게).
-- 사용자: `home/.claude/harness.env` 에 `HARNESS_READABLE_CODE=on`(사용자가 `home-sync.sh diff` 뒤 `apply`).
+- 사용자: 자기 `~/.claude/harness.env` 에 `HARNESS_READABLE_CODE=on` 을 직접 적는다. 정본 `home/` 에는 넣지 않는다(동료가 같은 `home/` 을 받으면 퍼지므로; 사용자 "개인 기본값은 그쪽에 두는것 괜찮은것 같아"). `home/.claude/harness.env` 에는 주석 처리한 예시 줄만 둔다.
 - 저장소 끄기: 팀 공유는 `.claude/harness.env` 에 `HARNESS_READABLE_CODE=off`, 개인은 `.claude/harness.local.env`. harness.env 층은 높은 층의 빈 값·off 가 이긴다(`lib/harness_env.py` 16행). 기존 `rules_exclude: ["readable-code"]` 도 그대로 먹는다.
 - 같은 키가 conventions-check 의 layout 알림(4절)도 켜고 끈다. 언어 불일치의 라벨 예외는 키와 무관하게 늘 둔다(잘못된 알림을 없애는 것뿐이라).
 - 주의: `rules_inject.py` 는 coderag Rust 훅의 팩 rule 주입과 대조 기준이다(플러그인 CLAUDE.md). `switch` 는 플러그인 rule 에만 쓰고 팩 rule 에는 쓰지 않으면 coderag 동작은 같지만, 대조 시험(`tools/tests/test-coderag-rules-parity.py`)이 `rules_inject.py` 를 복사해 돌리므로 `switch` 없는 rule 결과가 같음을 시험에 한 줄 더한다. 팩에도 쓰려면 coderag 에 같은 변경이 필요하다.
@@ -258,9 +259,12 @@ Hook notice: a `layout` notice gives per-function numbers (lines, blank lines, l
 - PLAN 의 "읽기 어려운 코드 알림(빈 줄 없이 길게 이어진 코드, 주석이 한곳에 몰림)" 항목이 이것이다.
 
 동작:
-- PostToolUse(Write|Edit|MultiEdit), `HARNESS_READABLE_CODE=on` 이고 `CONVENTIONS_CHECK` 가 꺼지지 않았을 때. 이번 편집이 줄을 더한 함수만 본다.
+- PostToolUse(Write|Edit|MultiEdit), `HARNESS_READABLE_CODE=on` 이고 `CONVENTIONS_CHECK` 가 꺼지지 않았을 때. 이번 편집이 새로 만들었거나(함수 줄의 절반 이상을 썼거나) 빈 줄 아닌 줄을 15줄 이상 더한 함수만 본다. 후자가 없으면 기존 함수 키우기(audit 55 E1)를 못 잡는다. 알림 끝에 `[grown by N lines]` 를 붙인다.
+- Bash 로 고친 파일(python heredoc, sed)은 이 훅이 못 본다(audit 55 에서 45회 중 약 13회). `bash-bypass-reminder` 가 이미 그런 편집을 알리므로, 그 알림에 "readable-code 가 켜져 있으면 `conventions-scan.py layout <file>` 로 확인" 한 줄을 더한다.
 - 범주 `layout`: 본문 15줄 이상이고 (빈 줄 없음 또는 빈 줄 없이 20줄 넘게 이어짐). 범주 `interleaved comment`: 본문 안에서 위아래가 코드인 2줄 이상 주석 덩어리. 범주 `doc summary`: 공개 함수에 문서 주석이 없거나(Luau 는 `---`/`--[=[` 가 아니면 없음으로 셈) 첫 줄이 100자 넘음.
 - 문서 주석은 본문 밖이라 뭉침으로 세지 않는다.
+- `doc summary`: 없을 때 문구에 그 언어의 형태를 적는다(Luau "`---` doc comment; `--` is not shown on hover"). 메타메서드(`__tostring` 등)는 뺀다. 한 번 알린 함수도 다음 편집 뒤 여전히 없으면 한 번 더 알린다(audit 55 L1-D-2 가 `--` 로 답하고 끝났다).
+- 첫 줄 검사는 길이만이 아니라 "첫 문장이 첫 줄에서 끝나는가"(첫 줄이 `.` `?` `!` 나 콜론 없이 끝나고 다음 줄이 이어지는 문장이면 걸림)도 본다(audit 55 B 4/15, D 5/14).
 - 문구 예(영어, `HOOK-MESSAGES.md` 형식, nonce 붙임):
   `foo.luau: functions you edited read as one block: reparent L40-78 (34 lines, 0 blank lines, longest run 34); wrap L90-121 (a 4-line comment block between statements at L101). For comparison, the user's functions of this size have about 4 paragraphs and runs under 13 lines. If these have steps, separate them with blank lines and short labels; if a function is one step (a literal, one expression), leave it.`
 - (파일, 범주)당 한 번, compact 회차마다 다시. Stop 보고에는 넣지 않는다(기존 코드 문제가 아니다).
