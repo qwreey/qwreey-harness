@@ -37,6 +37,7 @@ Multi-file audits:
 - [56-readable-code-wording/](56-readable-code-wording/) - always-loaded readable-code rule wording debate: about 2.4k chars, language-neutral, skill pointers are not read so moved items vanish
 - [57-skill-pointer-probe/](57-skill-pointer-probe/) - rule pointers to skills do not load them (sonnet 0/21, opus current form 0/3); only "Before you <action>, load X" worked on opus; skills load when their description matches the task
 - [58-external-skills-survey/](58-external-skills-survey/) - alirezarezvani/claude-skills: description rewrites left silent skills, a UserPromptSubmit router hook lifted sonnet loads 2/84 to 24/84; worth borrowing the router and trigger-eval design
+- [59-external-plugins-survey/](59-external-plugins-survey/) - seven external plugins/harnesses: borrow only measured ideas (compact recovery anchors, 10,000-char hook output cliff, read gate, router false-fire guards); skip always-on "must invoke skills" bootstraps and first-edit denies
 
 Audits about one plugin, pack or `home/` part live in that part's scope, `../scopes/<repo path>/audit/`, with the same numbers:
 - [scopes/packs/luau-kb/audit/](../scopes/packs/luau-kb/audit/) - 05, 08, 09, 11, 13 (Luau knowledge map, mines, gaps, upstream), 52-luau-kb-skill-descriptions/ (descriptions can shrink to 57% without losing triggers), drafts/ (drafts written during audits)
