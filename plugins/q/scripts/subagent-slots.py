@@ -163,7 +163,8 @@ def pre_agent(L, st, data, cfg, now):
                               f"If you have not yet, tell the user in one line: how many, which models, why, and the expected size. "
                               f"Independent parts in parallel are fine. If several of them cover the same code or question, consider one "
                               f"agent working in small steps instead, reviewed between steps and resumed with SendMessage: it keeps what "
-                              f"it has read (its cache lasts about an hour) and corrects itself from concrete counter-evidence."))
+                              f"it has read (its cache lasts about an hour) and corrects itself from concrete counter-evidence, "
+                              f"until its context grows large (past about 200k tokens), when a fresh agent with a short brief is cheaper."))
     st["reserved"][data.get("tool_use_id") or f"anon-{now}"] = {
         "t": now, "fam": fam, "type": ti.get("subagent_type") or "general-purpose", "bg": bool(ti.get("run_in_background", True)), "kind": "agent"}
     st["spawned"] = st.get("spawned", 0) + 1
