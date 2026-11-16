@@ -1,6 +1,6 @@
 """compact 회차: 플러그인마다 자기 회차를 갖는다. 표준 라이브러리만 쓴다.
 @copy-of: lib/compact_epoch.py
-플러그인 사본(q/scripts, qwreey-advisor/hooks, qwreey-conventions/hooks, qwreey-sessions/scripts, qwreey-workspace/scripts)은 바이트가 같아야 한다.
+플러그인 사본(q/scripts, qwreey-advisor/hooks, qwreey-conventions/hooks, qwreey-operator/hooks, qwreey-sessions/scripts, qwreey-workspace/scripts)은 바이트가 같아야 한다.
 고칠 때는 lib/compact_epoch.py 만 고치고 python3 -I tools/sync-copies.py --apply 로 사본에 옮긴다.
 
 왜: "세션당 한 번 알린다" 류 훅은 session_id 로 dedup 하는데, compact 는 session_id 를 유지하면서 요약으로 이전 알림을 맥락에서

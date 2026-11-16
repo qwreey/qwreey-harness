@@ -17,7 +17,7 @@ import copy_regions  # noqa: E402
 
 # 키는 정본 경로(저장소 기준), 값은 파일 사본.
 EXPECTED = {
-    "lib/compact_epoch.py": ["plugins/q/scripts/compact_epoch.py", "plugins/qwreey-advisor/hooks/compact_epoch.py", "plugins/qwreey-conventions/hooks/compact_epoch.py", "plugins/qwreey-sessions/scripts/compact_epoch.py", "plugins/qwreey-workspace/scripts/compact_epoch.py"],
+    "lib/compact_epoch.py": ["plugins/q/scripts/compact_epoch.py", "plugins/qwreey-advisor/hooks/compact_epoch.py", "plugins/qwreey-conventions/hooks/compact_epoch.py", "plugins/qwreey-operator/hooks/compact_epoch.py", "plugins/qwreey-sessions/scripts/compact_epoch.py", "plugins/qwreey-workspace/scripts/compact_epoch.py"],
     "lib/memory_signals.py": ["plugins/qwreey-conventions/hooks/memory_signals.py", "plugins/q/skills/doctor/scripts/memory_signals.py"],
     "lib/harness_nonce.py": ["plugins/q/scripts/harness_nonce.py", "plugins/qwreey-advisor/hooks/harness_nonce.py", "plugins/qwreey-conventions/hooks/harness_nonce.py", "plugins/qwreey-operator/hooks/harness_nonce.py", "plugins/qwreey-proc-guard/hooks/harness_nonce.py", "plugins/qwreey-sessions/scripts/harness_nonce.py", "plugins/qwreey-workspace/scripts/harness_nonce.py"],
     "lib/copy_regions.py": ["plugins/qwreey-conventions/hooks/copy_regions.py"],
@@ -28,6 +28,7 @@ EXPECTED = {
 REGIONS = {
     "lib/harness_texts.py#OMIT_LINE": ["lib/ambient.py", "../coderag/crates/coderag-core/src/rules/ledger.rs"],
     "lib/harness_texts.py#NONCE_RULE": ["lib/harness_nonce.py", "../coderag/crates/coderag-core/src/hooktag.rs"],
+    "lib/harness_texts.py#STOP_ERROR": ["plugins/qwreey-advisor/hooks/second-opinion-nudge.py", "plugins/qwreey-operator/hooks/subagent-bg-tasks.py"],
 }
 
 
