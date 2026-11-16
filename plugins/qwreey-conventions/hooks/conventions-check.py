@@ -653,7 +653,13 @@ def leftover_message(sid, d=None):
     if items:
         shown = ", ".join(f"{rel}(" + ", ".join(f"{c} {n[c]}" for c in order if c in n) + ")" for rel, n in items[:LEFT_MAX_FILES])
         more = f" 외 {len(items) - LEFT_MAX_FILES}개" if len(items) > LEFT_MAX_FILES else ""
-        lines.append(f'손댄 파일에 전부터 있던 문제: {shown}{more}. 고치려면 "기존 문제도 정리해줘" 라고 하시면 됩니다.')
+        cats = {c for _, n in items for c in n}
+        how = []
+        if cats - {"같은 목록이 두 곳"}:
+            how.append("주석은 /qwreey-conventions:comments-cleanup 으로 정리합니다.")
+        if "같은 목록이 두 곳" in cats:
+            how.append('같은 목록은 "기존 문제도 정리해줘" 라고 하시면 됩니다.')
+        lines.append(f'손댄 파일에 전부터 있던 문제: {shown}{more}. ' + " ".join(how))
     if diff:
         shown = ", ".join(f"{rel} {n}" for rel, n in sorted(diff)[:LEFT_MAX_FILES])
         more = f" 외 {len(diff) - LEFT_MAX_FILES}개" if len(diff) > LEFT_MAX_FILES else ""

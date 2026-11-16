@@ -1,11 +1,11 @@
 # qwreey-conventions (plugin development)
 
-Comment, model-doc, copy and structure conventions: skills (`skills/`), path-scoped rules (`rules/`), and notice hooks (`hooks/`). How it fits together: `docs/how-it-works.md`.
+Comment, model-doc, copy and structure conventions: path-scoped rules (`rules/`), notice hooks (`hooks/`), skills (`skills/`) and human docs (`docs/`). How it fits together: `docs/how-it-works.md`.
 
 ## Where things are
 - `hooks/hooks.json`: every hook registration. Main scripts: `conventions-check.py` (added-line checks, Stop report), `reuse-check.py` + `reuse_sets.py`, `structure-reminder.py`, `rules_inject.py`, `reply_language.py`, `memory-placement.py`, `bash-bypass-reminder.py` (also takes the before-command snapshot), `bash_writes.py` (PostToolUse:Bash: runs `conventions-check.py`'s `file_notice`, reuse-check and rule injection on the files a Bash command changed). Shared helpers: `conv_env.py` (off and on switches, the plugin's harness.env key defaults, config dir), `conv_lex.py` (comment lexer, also returns comment column spans and, with `keep_code`, code text), `conv_edit.py`, `layout_metrics.py` (function spans, readable-code metrics and the layout notice text, used by `conventions-check.py` and `conventions-scan.py layout`).
 - `scripts/conventions-scan.py`: whole-file `scan` and mechanical `fix` for existing problems (not a hook). It imports the check functions from `hooks/conventions-check.py`, so a check change there changes the scan too; `tests/test-conventions-scan.py` covers it, including the token guard that refuses a fix touching anything outside comments.
-- A rule (`rules/*.md`) is a few lines that point to its skill; the skill holds the full convention. Change both together. `readable-code.md` is the exception: the whole convention is in the rule (skill pointers are rarely followed), and the comments skill only explains the layout notice. A rule with `switch: KEY` loads only when the harness.env layers give KEY = `on`.
+- A convention is a rule (`rules/*.md`, everything a model must follow, injected when a matching file is opened or written) plus hook checks whose notices carry the fix; models rarely load a skill a rule points to. A procedure is a user command (`disable-model-invocation: true`, e.g. `skills/comments-cleanup`) or a skill named for the task. Reference for people (settings, notice tables) goes in `docs/` (`docs/comments.md`). `agent-docs` and `code-reuse` still keep a skill beside their rule; change rule and skill together there. A rule with `switch: KEY` loads only when the harness.env layers give KEY = `on`.
 - `README.md` is for people deciding whether to install; technical detail goes in `docs/how-it-works.md`.
 
 ## Tests

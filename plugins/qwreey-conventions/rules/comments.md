@@ -1,5 +1,5 @@
 ---
-description: Source-code comment conventions, all toolkits. Details are in the qwreey-conventions:comments skill
+description: Source-code comment conventions, all toolkits. The whole convention is here; hook notices name the lines and the fix
 paths: ["**/*.{luau,lua,ts,tsx,js,jsx,mjs,astro,rs,py,go,kt,sh,html,htm}"]
 ---
 # Comments
