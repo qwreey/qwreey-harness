@@ -124,6 +124,25 @@ class TestExtraction(AnchorsEnv):
                          ["사람 말 하나", "/q:away $40", "둘째 말", "작업 중 지시", '(answer) User has answered your questions: "어느 쪽?"="b".'])
         self.assertIn("D7", col.ids)  # 플러그인 프롬프트는 원문에서 빠지지만 id 는 본다
 
+    def test_desk_prompts_in_short_form(self):
+        from sllib import anchors
+        wrap = "The qwreey-desk plugin sent a message:\n%s\n\nThis is how Claude Code surfaces a prompt a plugin submits between turns."
+        body = "D3 → a\nD6 코멘트: " + "긴" * 400 + "\n잡담 줄\nD2 더 논의: 다시\n전체 메모: 전부 좋음"
+        self.write(
+            rec(type="user", origin={"kind": "plugin", "name": "qwreey-desk"}, message={"content": wrap % body},
+                pluginPrompt={"name": "qwreey-desk", "text": body}),
+            rec(type="user", origin={"kind": "plugin", "name": "qwreey-desk"}, message={"content": wrap % "D4 메모: 본문만"}),
+            rec(type="user", origin={"kind": "plugin", "name": "qwreey-desk"}, message={"content": wrap % "그냥 알림"}),
+            rec(type="user", origin={"kind": "plugin", "name": "other"}, message={"content": wrap % "D9 → a"},
+                pluginPrompt={"name": "other", "text": "D9 → a"}),
+        )
+        users = self.users()
+        self.assertEqual(len(users), 2)
+        self.assertEqual(users[0], "(desk) D3 → a D6 코멘트: " + "긴" * (300 - len("D6 코멘트: ")) + " D2 더 논의: 다시 전체 메모: 전부 좋음")
+        self.assertEqual(users[1], "(desk) D4 메모: 본문만")
+        self.assertIn("D9", self.collect().ids)  # 다른 플러그인은 원문에서 빠지고 id 만 본다
+        self.assertLessEqual(len(anchors.build(self.collect(), 2000, "", self.sid)), 2000)
+
     def test_identifiers(self):
         proj = str(self.proj)
         self.write(

@@ -86,6 +86,28 @@ def clean_user_text(text: str, kind) -> str | None:
     return text
 
 
+DESK_LINE_RX = re.compile(r"^(?:D\d+ (?:→|->|=|:|코멘트:|메모:|더 논의:)|전체 메모:)")
+DESK_LINE_CAP = 300
+DESK_WRAP_RX = re.compile(r"^The [\w-]+ plugin sent a message:\n([\s\S]*?)\n\nThis is how Claude Code surfaces")
+
+
+def desk_text(o: dict) -> str | None:
+    """qwreey-desk 가 대신 낸 프롬프트에서 사용자 결정 줄만 `(desk) ` 짧은 꼴로. 다른 플러그인이거나 결정 줄이 없으면 None."""
+    og = o.get("origin")
+    if not (isinstance(og, dict) and og.get("kind") == "plugin" and og.get("name") == "qwreey-desk") or o.get("isMeta"):
+        return None
+    pp = o.get("pluginPrompt")
+    text = pp.get("text") if isinstance(pp, dict) else None
+    if not isinstance(text, str):
+        c = _content(o)
+        m = DESK_WRAP_RX.match(c) if isinstance(c, str) else None
+        text = m.group(1) if m else None
+    if not text:
+        return None
+    lines = [ln.strip()[:DESK_LINE_CAP] for ln in text.splitlines() if DESK_LINE_RX.match(ln.strip())]
+    return "(desk) " + "\n".join(lines) if lines else None
+
+
 def _user_record_text(o: dict) -> str | None:
     if o.get("isMeta") or o.get("isCompactSummary") or o.get("isSidechain"):
         return None
@@ -216,7 +238,9 @@ class Collector:
             self.conversation = True
         c = _content(o)
         if kind == "plugin" and isinstance(c, str):
-            self._ids(c)  # 플러그인이 대신 낸 프롬프트(데스크 답 등)는 원문에 넣지 않고 id 만 본다
+            self._ids(c)  # 플러그인이 대신 낸 프롬프트는 원문에 넣지 않고 id 만 본다. 데스크의 결정 줄만 짧게 A 에 넣는다
+            self._user(line, desk_text(o))
+            return
         if isinstance(c, list) and any(isinstance(b, dict) and b.get("type") == "tool_result" for b in c):
             for b in c:
                 if isinstance(b, dict) and b.get("type") == "tool_result":
