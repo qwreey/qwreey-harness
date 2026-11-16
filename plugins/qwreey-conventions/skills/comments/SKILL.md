@@ -20,6 +20,7 @@ The notice names a file and, per category, the line numbers you added, for examp
 | escaped character | A `\uXXXX`-style escape inside a comment is a way around the symbol check. Write the replacement from the table, or reword. |
 | invisible character | Delete the code point the notice names (for example `U+00A0`). If the line is otherwise fine, rewrite it with a plain space. |
 | language mismatch | Rewrite the comment in the file's comment language. |
+| layout, interleaved comment, doc summary | Readable-code notices; see Readable code below. |
 
 Example. Notice: `L12 history marker`. Line 12 is `-- Clamp the index (added in round 3, see H-973).` Rewrite it as `-- Clamp the index so the loop never reads past the end.` and put `round 3, H-973` in the commit message. When the repo keeps a ledger, add the `Ref:` tail instead.
 
@@ -81,13 +82,15 @@ The check passes letters of every writing system (Hangul, Cyrillic, kana, accent
 - A new file follows the repo's `comment_language`, else the majority of sibling files in the folder. With neither, nothing is checked.
 - A public library that wants English only sets `"comment_language": "en"`.
 - Tool directives (`--!strict`, lint-disable lines) are not language.
+- A step label (a short English line heading a step inside a body) is not judged for language, so English labels sit in a Korean file. A line with a reason word (`because`, `so`, `must`, `never`, ...), a period or more than 10 words is a sentence and follows the file's language.
+- Korean comments follow the sentence ending the file already uses (합니다체 or 한다체); a new file follows its siblings.
 
 ## Style
 
 Write for a person reading in a diff or a terminal.
 
 - Length: as much as the reason needs and no more. One line is typical. A comment longer than the code it explains usually wants to be a design note somewhere else.
-- Silence where nothing is surprising. Do not restate the code, label sections with banners, or describe an obviously named function.
+- Silence where nothing is surprising. Do not restate a line of code in words, draw banners, or describe an obviously named private function. A short step label above a paragraph is not a restatement: it names what several lines are for, so a reader can skim labels as an index (section Readable code).
 - Force where it is needed. A real trap gets a plain, direct warning right at the line. A routine reason is a quiet clause. Do not use capitals, exclamation marks or markers like IMPORTANT for ordinary notes; one marker per real hazard at most.
 - Vocabulary: plain words the surrounding comments already use, identifiers in backticks, ASCII punctuation. Skip ceremony words (robust, seamless, leverage, ensure, crucial).
 
@@ -96,20 +99,36 @@ Write for a person reading in a diff or a terminal.
 -- Bad: Increment i by one.
 -- Good: Walk in reverse so removals do not shift indices we have not visited.
 -- Good: Roblox fires this twice on respawn; the second call must be a no-op.
+-- Good (step label above a paragraph): Detach from the previous parent
 ```
+
+## Readable code
+
+The `readable-code` rule holds the convention and is loaded only where `HARNESS_READABLE_CODE=on` (the user's `~/.claude/harness.env`; a repo turns it off in `.claude/harness.env`). With it on, the hook adds a `layout (readable-code)` part to its notice for functions an edit wrote (half or more of the function's lines) or grew by 15 or more lines:
+
+| Category | Fires when | Answer |
+|---|---|---|
+| layout | body of 15+ non-blank lines with no blank line, or a run of more than 20 lines without one | Split the whole function into steps with blank lines and labels. If it really is one step (a table literal, one expression), leave it and say so once in your report. |
+| interleaved comment | a comment of 2+ lines with code directly above and below, inside a body | Move a design reason above the declaration, apart from the doc comment; keep one line at the trap. |
+| doc summary | a public function without a doc comment in the editor's hover form (Luau `---` or `--[=[`, Python docstring, `/** */`, Rust `///`), or a first doc line over 100 characters, or a first sentence that continues on the next line | Write or fix the doc comment. A function flagged here is checked once more after your next edit. Metamethods and private functions are not asked for one. |
+
+The numbers in the notice: lines are non-blank body lines, blank are blank lines inside the body, longest run is the most lines in a row without a blank line (comment lines count). Edits made through Bash are not seen; check them with `python3 -I "${CLAUDE_SKILL_DIR}/../../scripts/conventions-scan.py" layout <file>`, which prints the same numbers for every function plus labels, multi-name declarations (receiving multiple returns does not count) and one-letter locals.
 
 ## Repo settings
 
 `.claude/conventions.json` in the repo (all keys optional; the older name `.claude/comments.json` is read when `conventions.json` does not exist):
 
 ```json
-{"comment_language": "ko", "allow_chars": ["emoji", "~"], "public_ids": ["Quad\\d{4}"], "exclude": ["docs/**"]}
+{"comment_language": "ko", "allow_chars": ["emoji", "~"], "public_ids": ["Quad\\d{4}"], "exclude": ["docs/**"],
+ "label_language": "en", "layout": {"min_lines": 15, "max_run": 20, "doc_first_max": 100, "grow": 15}}
 ```
 
 - `comment_language`: `en`, `ko`, `ja`, `zh`, `ru`. Used for new files.
 - `allow_chars`: `"emoji"` allows emoji; any other entry is a string of characters to allow.
 - `public_ids`: regexes for identifiers that are not history.
 - `exclude`: path globs the hook skips. `patterns` can override or disable a detector (`null` disables), `allow_ref_tail` turns the `Ref:` allowance off, `min_reason_words` (default 3) is how many words a reason sentence needs before a `Ref:` tail counts as backed.
+- `label_language`: the language of step labels exempt from the language check (default `en`; `null` turns the exemption off).
+- `layout`: thresholds of the readable-code notice (see Readable code).
 - Environment variable `CONVENTIONS_CHECK=off` silences the hook.
 - A repo's own `.claude/rules/` or conventions file wins over this skill.
 
