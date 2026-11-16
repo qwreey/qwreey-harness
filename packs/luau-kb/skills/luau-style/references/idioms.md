@@ -37,6 +37,7 @@ last_confirmed:
 - 옵셔널 값과 배열 구멍을 어떻게 다루나?
 - 맨 `function name()` 은 왜 문제인가?
 - 메타테이블 객체로 만들까, 네임스페이스 함수로 만들까?
+- `:: any` 로 캐스트해도 되나? 같은 값을 여러 번 캐스트하면?
 
 ## 목차
 - §1 `const` 와 `local` (결정 D-01)
@@ -47,6 +48,7 @@ last_confirmed:
 - §6 전역 대입 함정 — 맨 `function name()`
 - §7 메타테이블과 메서드에 관한 사실
 - §8 객체 모양 (결정 D-11)
+- §9 캐스트
 
 ---
 
@@ -156,6 +158,12 @@ status: described · 근거: claude-doctor `.claude/base/decisions/D-11-object-s
 
 - 저장소에 본보기 파일이 있으면 그 모양을 따른다. 공통 규칙은 모양을 정하지 않는다.
 - 모듈 필드를 지역에 받아 둘지는 `modules.md` §5 에 있다.
+
+## §9 캐스트
+status: described · 근거: tbox 사용자 줄의 `:: any` 2/42, 에이전트 줄 22/47
+
+- 캐스트는 다음 줄들이 필요로 하는 가장 좁은 타입으로 한다(`:: any` 대신 `:: TypedNamespace`).
+- 한 번 쓰면 쓰는 자리에서 캐스트한다. 같은 값을 여러 번 쓰면 이름 붙인 뷰 지역을 한 번 만든다(`local typedNs = ns :: TypedNamespace`). 쓰는 곳마다 `(x :: any).field` 를 되풀이하지 않는다.
 
 ## 정정 (원천 서술이 재현과 다른 것, 각 저장소 세션에 전달)
 - `local const x = 1` 은 "린트 경고만 난다"(claude-doctor `.claude/base/decisions/D-01-const.md` §2, `claude-doctor .claude/scopes/packs/luau-kb/archive/research/drafts/style` 초안)는 nonstrict 에서만 맞다. `--!strict` 에서는 luau-analyze 0.734·0.742 가 `TypeError: Unknown global 'x'` 를 낸다(`snippets/style-const-local-const-global.luau`). 실행은 두 모드 모두 된다.
