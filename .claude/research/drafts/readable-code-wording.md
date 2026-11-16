@@ -207,7 +207,7 @@ Hook notice: a `layout` notice gives per-function numbers (lines, blank lines, l
   > - 한 번 쓰면 쓰는 자리에서 캐스트한다. 같은 값을 여러 번 쓰면 이름 붙인 뷰 지역을 한 번 만든다(`local typedNs = ns :: TypedNamespace`). 쓰는 곳마다 `(x :: any).field` 를 되풀이하지 않는다.
   > - 근거: tbox 사용자 줄의 `:: any` 2/42, 에이전트 줄 22/47.
 - `rules/luau-core.md` "Names and comments" 에 한 줄(luau-kb 를 켠 모든 저장소에 실리므로 사용자 확인 필요):
-  > - Public functions get a `---` doc comment (luau-lsp shows only `---` and `--[=[ ]=]` in hover and completion, never `--`); first line a summary of about 80 characters. → [quality§1](../skills/luau-style/references/quality.md)
+  > - Public functions get a `---` doc comment (luau-lsp shows only `---` and `--[=[ ]=]` in hover and completion, never `--`); first line a summary of about 80 characters. → `[quality§1](../skills/luau-style/references/quality.md)` (link relative to `packs/luau-kb/rules/`)
 - 캐스트는 luau-core 에 올리지 않는다(상시 비용, 근거는 tbox 한 저장소).
 
 ### 3.5 켜고 끄기
