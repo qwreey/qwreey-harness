@@ -2,7 +2,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { Engine, Mounted } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
-import { cells, laidOut, markdownRows, wrap } from '../hooks/layout'
+import { NEW_MARK as NEW_RULE, cells, laidOut, markdownRows, wrap } from '../hooks/layout'
 import { decisionDetail } from '../hooks/views'
 import type { Do } from '../hooks/views'
 
@@ -239,7 +239,7 @@ test('the tool actions change the desk and persist it', async ($, on) => {
   expect(d.plan.map((s: any) => s.state)).toEqual(['done', 'doing', 'todo'])
   expect(d.plan.map((s: any) => s.detail)).toEqual([undefined, '밴드는 두 줄로', '탭, 타임라인, 스크롤'])
   expect(d.plan[0].endedAt).toBe(1_000_000)
-  expect(d.log.map((l: any) => l.text)).toEqual(['D2 답: 응, 프로젝트별로', 'S1 타입 쓰기', '리뷰 끝'])
+  expect(d.log.map((l: any) => l.text)).toEqual(['D1 올림: 밴드는 몇 줄까지?', 'D2 올림: 책상 저장은 프로젝트별?', 'D2 답: 응, 프로젝트별로', 'S1 타입 쓰기', '리뷰 끝'])
 
   // Sending the plan again (here to add a detail) keeps the progress.
   await $.tool.call(desk({ action: 'set_plan', steps: [{ text: '타입 쓰기', detail: '끝난 일' }, '밴드 그리기', '패널 그리기', '정리'] }))
@@ -797,7 +797,8 @@ test('agents and background shells show while they run', async ($, on) => {
   })
   d = stored()
   expect(d.running.map((r: any) => r.status)).toEqual(['done', 'failed'])
-  expect(d.log.map((l: any) => l.text)).toEqual(['끝남: 코드 리뷰', '실패: 테스트 돌리기'])
+  // An agent is logged as it starts and ends, a shell only as it ends, each end with how long it ran.
+  expect(d.log.map((l: any) => l.text)).toEqual(['시작: 코드 리뷰', '끝남 (5분): 코드 리뷰', '실패 (5분): 테스트 돌리기'])
 })
 
 // ---- layout ---------------------------------------------------------------------
@@ -857,7 +858,7 @@ test('a wrapped line continues under its text, not under its prefix', async ($, 
       options: [{ key: 'a', label: '두 줄', why: '목록에서 맥락이 조금 더 보이고, 길게 늘어진 질문은 상세 화면에서 다 읽을 수 있다' }],
     }),
   )
-  await $.tool.call(desk({ action: 'note', text: '자리 비운 사이의 기록도 길면 시간 칸 아래가 아니라 글 아래로 이어지고 세 줄까지 보인다' }))
+  await $.tool.call(desk({ action: 'note', text: '기록 탭의 요약도 길면 시간 칸 아래가 아니라 글 아래로 이어지고 끝까지 다 보인다' }))
   const target = pane(40)
   const columns = target.props.bodyColumns
   const ui = await $.ui.mount({ ...target, surface: 'terminal' })
@@ -874,10 +875,10 @@ test('a wrapped line continues under its text, not under its prefix', async ($, 
 
   await ui.press({ key: 'tab-away' })
   const away = await screen(ui, columns)
-  const entry = away.findIndex(l => l.includes('자리 비운 사이의 기록'))
-  // The time and mark take ten cells; the entry wraps under its own text.
-  expect(away[entry + 1]?.slice(0, 10)).toBe('          ')
-  expect(away[entry + 1]?.[10]).not.toBe(' ')
+  const entry = away.findIndex(l => l.includes('기록 탭의 요약'))
+  // The time and mark take eight cells; the entry wraps under its own text.
+  expect(away[entry + 1]?.slice(0, 8)).toBe('        ')
+  expect(away[entry + 1]?.[8]).not.toBe(' ')
   await ui.press({ key: 'tab-wait' })
 
   await ui.press({ key: 'dec-D1' })
@@ -1579,8 +1580,8 @@ test('the tab row is compact, a dim bar between tabs, and holds still as its cou
     return { line, bars }
   }
   // No counts: no room held for one.
-  expect((await head(41)).line).toBe('1: 기다림 │ 2: 작업 │ 3: 비운')
-  expect((await head(60)).line).toBe('1: 답을 기다림 │ 2: 작업 │ 3: 자리 비운 사이')
+  expect((await head(41)).line).toBe('1: 기다림 │ 2: 작업 │ 3: 기록')
+  expect((await head(60)).line).toBe('1: 답을 기다림 │ 2: 작업 │ 3: 기록')
   const { bars } = await head(60)
   expect(bars.length).toBe(2)
   for (const bar of bars) expect(bar.props.dimColor).toBe(true)
@@ -1590,10 +1591,143 @@ test('the tab row is compact, a dim bar between tabs, and holds still as its cou
   const one = await head(60)
   show('the tab row at 60 columns', [one.line], 58)
   show('the tab row at 41 columns', [(await head(41)).line], 39)
-  expect(one.line).toBe('1: 답을 기다림 1  │ 2: 작업 │ 3: 자리 비운 사이 1')
+  expect(one.line).toBe('1: 답을 기다림 1  │ 2: 작업 │ 3: 기록 2')
   for (let i = 0; i < 10; i += 1) await $.tool.call(desk({ action: 'add_decision', question: `결정 ${i}`, options: [] }))
   const many = await head(60)
-  expect(many.line).toBe('1: 답을 기다림 11 │ 2: 작업 │ 3: 자리 비운 사이 1')
+  expect(many.line).toBe('1: 답을 기다림 11 │ 2: 작업 │ 3: 기록 12')
   // Two digits where one stood: the tabs after it do not move.
   expect(many.line.indexOf('2: 작업')).toBe(one.line.indexOf('2: 작업'))
+})
+
+// ---- the 기록 tab ---------------------------------------------------------------------
+
+const hm = (at: number) => {
+  const t = new Date(at)
+  return `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`
+}
+
+/** A drawn pane's rows without the scrollbar's cell. */
+const feed = (lines: readonly string[]) => lines.map(l => l.replace(/ [┃│]$/, '').trimEnd())
+
+const SUMMARY =
+  '스크롤 성능을 손봤다. 결정 상세에서 휠 한 칸이 42ms 걸리던 것을 6ms 로 줄였고, 표와 마크다운은 폭마다 한 번만 감는다. 탭 줄도 가운데 막대로 바꿨다.'
+
+test('the 기록 tab is the work log as a feed: whole entries, oldest first, a rule per day', async ($, on) => {
+  const { clock } = engine(on)
+  await start($)
+  const first = new Date(2026, 10, 15, 22, 30).getTime()
+  await clock.set(first)
+  await $.tool.call(desk({ action: 'note', text: SUMMARY }))
+  await clock.advance(10 * 60_000)
+  await $.tool.call(desk({ action: 'add_decision', question: '탭 이름을 기록으로?', options: [] }))
+  const morning = new Date(2026, 10, 16, 9, 5).getTime()
+  await clock.set(morning)
+  await $.tool.call(desk({ action: 'note', text: '다음 날 아침: 기록 탭을 피드로 바꿈' }))
+
+  const target = pane(45)
+  const columns = target.props.bodyColumns
+  const ui = await $.ui.mount({ ...target, surface: 'terminal' })
+  // Nothing read yet: all three are unseen.
+  expect((await screen(ui, columns))[0]).toMatch(/3: 기록 3$/)
+  await ui.press({ key: 'tab-away' })
+  const lines = await screen(ui, columns)
+  show('the 기록 tab at 45 columns', lines, columns)
+  // Opened, it is read: no count on the tab.
+  expect(lines[0]).toMatch(/3: 기록$/)
+  // The summary whole, under its time, no line of it cut.
+  expect(lines.some(l => l.includes('…'))).toBe(false)
+  const at = lines.findIndex(l => l.startsWith(`${hm(first)}   스크롤`))
+  expect(at).toBeGreaterThan(0)
+  const body = lines.slice(at, at + 5).filter(l => l.startsWith(hm(first)) || l.startsWith('        '))
+  expect(body.map(l => l.slice(8)).join(' ').replace(/\s+/g, '')).toContain(SUMMARY.replace(/\s+/g, ''))
+  // Oldest first, a dim rule where each day starts; the decision is one dim line marked `?`.
+  const order = [
+    lines.findIndex(l => /^── 11월 15일 ─+$/.test(l)),
+    at,
+    lines.findIndex(l => l.startsWith(`${hm(first + 10 * 60_000)} ? D1 올림: 탭 이름을 기록으로?`)),
+    lines.findIndex(l => /^── 11월 16일 ─+$/.test(l)),
+    lines.findIndex(l => l.startsWith(`${hm(morning)}   다음 날 아침`)),
+  ]
+  expect(order.every(i => i > 0)).toBe(true)
+  expect([...order].sort((a, b) => a - b)).toEqual(order)
+  // The summaries plain, what the desk logged on its own dim.
+  expect((await ui.find({ type: 'Text', text: /^다음 날 아침/ }))?.props.dimColor).toBeFalsy()
+  expect((await ui.find({ type: 'Text', text: /^D1 올림/ }))?.props.dimColor).toBe(true)
+  await ui.unmount()
+})
+
+test('the 기록 tab opens at its end, or where the unseen entries begin, under a rule', async ($, on) => {
+  const { clock } = engine(on)
+  await start($)
+  const target = pane(45)
+  const columns = target.props.bodyColumns
+  const ui = await $.ui.mount({ ...target, surface: 'terminal' })
+  // More than the window holds.
+  for (let i = 1; i <= 50; i += 1) {
+    await clock.advance(60_000)
+    await $.tool.call(desk({ action: 'note', text: `${i}번째 요약` }))
+  }
+  await ui.press({ key: 'tab-away' })
+  // All of it unseen until now: it opens at its first entry.
+  expect((feed(await screen(ui, columns))).some(l => /^\d\d:\d\d {3}1번째 요약$/.test(l))).toBe(true)
+  expect(await ui.find({ type: 'Button', key: 'scroll-up' })).toBeUndefined()
+
+  // Opened again with nothing new: at the end, the newest at the bottom.
+  await ui.press({ key: 'tab-wait' })
+  await clock.advance(60_000)
+  await ui.press({ key: 'tab-away' })
+  let lines = feed(await screen(ui, columns))
+  expect(lines.some(l => l.includes(NEW_RULE))).toBe(false)
+  expect(await ui.find({ type: 'Button', key: 'scroll-down' })).toBeUndefined()
+  expect(await ui.find({ type: 'Button', key: 'scroll-up' })).toBeDefined()
+  const list = lines.filter(l => /^\d\d:\d\d /.test(l))
+  expect(list.at(-1)).toMatch(/50번째 요약$/)
+
+  // Two new: the rule stands above them, all in view, the tab counting them until opened.
+  await ui.press({ key: 'tab-wait' })
+  for (const i of [51, 52]) {
+    await clock.advance(60_000)
+    await $.tool.call(desk({ action: 'note', text: `${i}번째 요약` }))
+  }
+  expect((feed(await screen(ui, columns)))[0]).toMatch(/3: 기록 2$/)
+  await ui.press({ key: 'tab-away' })
+  lines = feed(await screen(ui, columns))
+  const rule = lines.findIndex(l => l.startsWith(`── ${NEW_RULE} ─`))
+  expect(rule).toBeGreaterThan(0)
+  expect(lines[rule - 1]).toMatch(/50번째 요약$/)
+  expect(lines[rule + 1]).toMatch(/51번째 요약$/)
+  expect(lines[rule + 2]).toMatch(/52번째 요약$/)
+
+  // Many new: the window opens with the rule on its first row.
+  await ui.press({ key: 'tab-wait' })
+  for (let i = 53; i <= 100; i += 1) {
+    await clock.advance(60_000)
+    await $.tool.call(desk({ action: 'note', text: `${i}번째 요약` }))
+  }
+  await ui.press({ key: 'tab-away' })
+  lines = feed(await screen(ui, columns))
+  // Row 0 the tabs, 1 blank, 2 the marker above the list.
+  expect(lines[3]).toMatch(new RegExp(`^── ${NEW_RULE} ─+$`))
+  expect(lines[4]).toMatch(/53번째 요약$/)
+  expect((await ui.find({ type: 'Button', key: 'scroll-up' }))?.text).toMatch(/위에 \d+개/)
+  // Read now: opened again, no rule.
+  await ui.press({ key: 'tab-wait' })
+  await clock.advance(60_000)
+  await ui.press({ key: 'tab-away' })
+  expect((feed(await screen(ui, columns))).some(l => l.includes(NEW_RULE))).toBe(false)
+  await ui.unmount()
+})
+
+test('the stored log keeps its newest 500 entries, in time order, older stores included', async ($, on) => {
+  const old = Array.from({ length: 600 }, (_, i) => ({ at: 600 - i, kind: 'note', text: `예전 ${600 - i}` }))
+  const value = { decisions: [], plan: [], running: [], log: [...old, { at: 'x', kind: 'note' }], lastSeen: 0, nextDecision: 1 }
+  const { stored, clock } = engine(on, { [STORE_KEY]: { shape: 'desk-1', value } })
+  await start($)
+  await $.tool.call(desk({ action: 'note', text: '새 요약' }))
+  const log = stored().log as { at: number; text: string }[]
+  expect(log.length).toBe(500)
+  expect(log[0]?.text).toBe('예전 102')
+  expect(log.at(-2)?.text).toBe('예전 600')
+  expect(log.at(-1)?.text).toBe('새 요약')
+  for (let i = 1; i < log.length; i += 1) expect(log[i]!.at).toBeGreaterThanOrEqual(log[i - 1]!.at)
 })

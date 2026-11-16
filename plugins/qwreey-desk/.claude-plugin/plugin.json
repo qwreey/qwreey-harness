@@ -1,6 +1,6 @@
 {
   "name": "qwreey-desk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "책상: 답을 기다리는 결정, 지금 도는 일, 다음 순서, 자리 비운 사이를 채팅 밖 한곳에 모아 두는 패널 (/desk)",
   "types": "./types/index.d.ts"
 }

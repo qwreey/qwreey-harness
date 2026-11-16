@@ -1,6 +1,6 @@
 # qwreey-desk (plugin development)
 
-A Claude Code mod: a pane (`/desk`), a band above the prompt and a model tool `desk` that keep pending decisions, the plan, running work and an away log outside the chat. What users see: `README.md`.
+A Claude Code mod: a pane (`/desk`), a band above the prompt and a model tool `desk` that keep pending decisions, the plan, running work and a work log outside the chat. What users see: `README.md`.
 
 ## Where things are
 - `hooks/register.tsx`: hook wiring (session start and store load, the `desk` tool, prompt and task events, band and pane render, scroll, transcript row for the tool).

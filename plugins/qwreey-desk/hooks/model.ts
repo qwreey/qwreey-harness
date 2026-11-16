@@ -22,7 +22,8 @@ import type {
 // values valid as they are; a memo of the older layout is read into the thread.
 export const SHAPE = 'desk-1'
 
-const LOG_KEEP = 200
+// The work log keeps its newest entries; older ones drop off the store.
+export const LOG_KEEP = 500
 const RUN_KEEP = 30
 
 export const emptyData = (): DeskData => ({
@@ -38,6 +39,20 @@ const logged = (data: DeskData, at: number, kind: DeskLogKind, text: string): De
   ...data,
   log: [...data.log, { at, kind, text }].slice(-LOG_KEEP),
 })
+
+const LOG_KINDS: readonly DeskLogKind[] = ['done', 'agent', 'decision', 'note']
+
+/** A log as the feed reads it: well-formed entries in time order (ties as they were), the newest LOG_KEEP. */
+const tidyLog = (log: readonly unknown[]): DeskLogEntry[] =>
+  log
+    .filter(
+      (l): l is DeskLogEntry =>
+        !!l && typeof l === 'object' && typeof (l as DeskLogEntry).at === 'number' && typeof (l as DeskLogEntry).text === 'string' && LOG_KINDS.includes((l as DeskLogEntry).kind),
+    )
+    .map((l, i) => ({ l, i }))
+    .sort((a, b) => a.l.at - b.l.at || a.i - b.i)
+    .map(({ l }) => l)
+    .slice(-LOG_KEEP)
 
 const findDecision = (data: DeskData, id: string): DeskDecision | undefined =>
   data.decisions.find(d => d.id.toLowerCase() === id.trim().toLowerCase())
@@ -78,7 +93,12 @@ export const addDecision = (data: DeskData, at: number, input: NewDecision): Out
     status: 'open',
     createdAt: at,
   }
-  const next = { ...data, decisions: [...data.decisions, decision], nextDecision: data.nextDecision + 1 }
+  const next = logged(
+    { ...data, decisions: [...data.decisions, decision], nextDecision: data.nextDecision + 1 },
+    at,
+    'decision',
+    `${id} 올림: ${decision.question}`,
+  )
   return { data: next, text: `${id} 올림 (대기 ${openDecisions(next).length})` }
 }
 
@@ -345,21 +365,40 @@ export const updateStep = (data: DeskData, at: number, id: string, state: DeskSt
   return { data: out, text: `${found.id} ${STEP_WORD[state]}` }
 }
 
+// A note is the model's summary of finished work: kept whole, its line breaks too.
+const noteText = (text: string) =>
+  text
+    .split('\n')
+    .map(oneLine)
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+
 export const note = (data: DeskData, at: number, text: string): Outcome => ({
-  data: logged(data, at, 'note', oneLine(text)),
+  data: logged(data, at, 'note', noteText(text)),
   text: '기록함',
 })
 
-export const runStarted = (data: DeskData, run: DeskRun): DeskData => ({
-  ...data,
-  running: [...data.running.filter(r => r.id !== run.id), run].slice(-RUN_KEEP),
-})
+export const runStarted = (data: DeskData, run: DeskRun): DeskData => {
+  const next = { ...data, running: [...data.running.filter(r => r.id !== run.id), run].slice(-RUN_KEEP) }
+  // A shell is logged when it ends only: a test run starting is not news.
+  const isNew = run.kind === 'agent' && !data.running.some(r => r.id === run.id)
+  return isNew ? logged(next, run.startedAt, 'agent', `시작: ${run.label}`) : next
+}
+
+/** How long a run took: `40초`, `12분`, `1시간 5분`. */
+export const took = (ms: number): string => {
+  const s = Math.max(0, Math.round(ms / 1000))
+  if (s < 60) return `${s}초`
+  const m = Math.round(s / 60)
+  return m < 60 ? `${m}분` : `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ''}`
+}
 
 export const runEnded = (data: DeskData, at: number, id: string, status: DeskRunStatus): DeskData => {
   const run = data.running.find(r => r.id === id)
   if (!run || run.status !== 'running') return data
   const next = { ...data, running: data.running.map(r => (r.id === id ? { ...r, status, endedAt: at } : r)) }
-  return logged(next, at, 'agent', `${RUN_WORD[status]}: ${run.label}`)
+  return logged(next, at, 'agent', `${RUN_WORD[status]} (${took(at - run.startedAt)}): ${run.label}`)
 }
 
 /** What a new session finds: runs the last session left running cannot be watched any more. */
@@ -376,7 +415,7 @@ export const normalize = (value: Partial<DeskData>): DeskData =>
     decisions: Array.isArray(value.decisions) ? value.decisions : [],
     plan: Array.isArray(value.plan) ? value.plan : [],
     running: Array.isArray(value.running) ? value.running : [],
-    log: Array.isArray(value.log) ? value.log : [],
+    log: Array.isArray(value.log) ? tidyLog(value.log) : [],
   })
 
 /**
@@ -386,7 +425,7 @@ export const normalize = (value: Partial<DeskData>): DeskData =>
 export const mergeLoaded = (stored: DeskData, held: DeskData): DeskData => ({
   ...stored,
   running: [...stored.running, ...held.running.filter(r => !stored.running.some(s => s.id === r.id))].slice(-RUN_KEEP),
-  log: [...stored.log, ...held.log].slice(-LOG_KEEP),
+  log: tidyLog([...stored.log, ...held.log]),
 })
 
 export const openDecisions = (data: DeskData): DeskDecision[] => data.decisions.filter(d => d.status === 'open')

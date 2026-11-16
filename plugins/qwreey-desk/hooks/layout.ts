@@ -4,7 +4,7 @@
 // and no region grows or shrinks with what it holds.
 
 import type { DeskData, DeskDecision, DeskStep, DeskTab } from '../types'
-import { URGENCIES, ago, logSince, oneLine, runningNow, unsent, urgencyOf } from './model'
+import { URGENCIES, ago, oneLine, runningNow, unsent, urgencyOf } from './model'
 
 // Cells a code point takes, as terminals count East Asian widths: Hangul,
 // CJK and emoji two, combining marks none, the rest (ambiguous glyphs too)
@@ -169,7 +169,6 @@ export type Tone = 'plain' | 'dim' | 'strong' | 'accent' | 'ok' | 'code' | 'warn
 export type Act =
   | { kind: 'decision'; id: string }
   | { kind: 'step'; id: string }
-  | { kind: 'seen' }
   | { kind: 'outbox' }
   | { kind: 'scroll'; by: number }
 
@@ -209,6 +208,8 @@ export type List = {
    * ones above it, reached by scrolling up.
    */
   keepsAutoAtTop?: true
+  /** Items follow each other with no row between them: the work log's feed. */
+  tight?: true
   empty: string
 }
 
@@ -389,26 +390,67 @@ export const taskList = (d: DeskData, columns: number): List => {
   return { items, prefix, auto: Math.max(0, currentIndex(d.plan)), keepsAutoAtTop: true, empty: '계획 없음' }
 }
 
-export const LOG_MARK = { done: '✓', agent: '▸', decision: '?', note: '-' } as const
-const TIME = 6
-const ENTRY_LINES = 3
+export const LOG_MARK = { done: '✓', agent: '▸', decision: '?', note: ' ' } as const
+/** `14:02`, then a space and the kind's mark, then a space before the text. */
+const LOG_PREFIX = 8
+// The narrowest text cell a log entry is wrapped in: a 41-column terminal's
+// pane. The scroll keys count each entry at this width, never short of its rows.
+const LOG_NARROW = textWidth(39, LOG_PREFIX)
 
-export const awayList = (d: DeskData, since: number, now: number, columns: number): List => {
-  const prefix = TIME + 4
-  const width = textWidth(columns, prefix)
-  const entries = logSince(d, since)
-  const items: Item[] = entries.map(l => ({
-    rows: wrap(l.text, width, ENTRY_LINES).map(
-      (text, j): Line => ({ prefix: j === 0 ? `${padStart(ago(now, l.at), TIME)}  ${LOG_MARK[l.kind]}` : '', prefixTone: 'dim', text }),
-    ),
-    most: ENTRY_LINES,
-  }))
-  if (entries.length > 0) items.push(lineItem({ prefix: '', text: '다 봤음', tone: 'dim', act: { kind: 'seen' }, key: 'seen' }))
-  return { items, prefix, auto: Number.MAX_SAFE_INTEGER, empty: '새 소식 없음' }
+const two = (n: number) => String(n).padStart(2, '0')
+/** The entry's time of day, as the machine's clock reads it. */
+export const clockOf = (at: number) => {
+  const t = new Date(at)
+  return `${two(t.getHours())}:${two(t.getMinutes())}`
+}
+/** The day an entry falls on, the year only when it is not this year's. */
+export const dayOf = (at: number, now: number) => {
+  const t = new Date(at)
+  const year = t.getFullYear() === new Date(now).getFullYear() ? '' : `${t.getFullYear()}년 `
+  return `${year}${t.getMonth() + 1}월 ${t.getDate()}일`
+}
+const dayKey = (at: number) => new Date(at).toDateString()
+
+/** An entry's text as rows `width` wide, every line of it, nothing cut. */
+const entryRows = (text: string, width: number) => text.split('\n').flatMap(line => (line.trim() === '' ? [''] : wrap(line, width)))
+
+export const NEW_MARK = '여기부터 새로'
+
+/**
+ * The work log as a feed, oldest first and growing at the bottom: each entry
+ * whole under its time, a rule where the day changes and one where the
+ * entries the person has not seen begin. The model's notes, the summaries,
+ * are plain; what the desk logs on its own is dim. It opens where the unseen
+ * entries begin, or at its end.
+ */
+export const logList = (d: DeskData, since: number, now: number, columns: number): List => {
+  const width = textWidth(columns, LOG_PREFIX)
+  const items: Item[] = []
+  let day = ''
+  let auto = Number.MAX_SAFE_INTEGER
+  d.log.forEach((l, i) => {
+    const isNew = l.at > since
+    if (isNew && auto === Number.MAX_SAFE_INTEGER) {
+      auto = items.length
+      if (i > 0) items.push(lineItem(rule(NEW_MARK, columns)))
+    }
+    if (dayKey(l.at) !== day) {
+      day = dayKey(l.at)
+      items.push(lineItem(rule(dayOf(l.at, now), columns)))
+    }
+    const tone: Tone = l.kind === 'note' ? 'plain' : 'dim'
+    items.push({
+      rows: entryRows(l.text, width).map(
+        (text, j): Line => ({ prefix: j === 0 ? `${clockOf(l.at)} ${LOG_MARK[l.kind]}` : '', prefixTone: 'dim', text, tone }),
+      ),
+      most: entryRows(l.text, Math.min(width, LOG_NARROW)).length,
+    })
+  })
+  return { items, prefix: LOG_PREFIX, auto, tight: true, empty: '기록 없음' }
 }
 
 export const listFor = (tab: DeskTab, d: DeskData, since: number, now: number, columns: number): List =>
-  tab === 'tasks' ? taskList(d, columns) : tab === 'away' ? awayList(d, since, now, columns) : waitList(d, columns)
+  tab === 'tasks' ? taskList(d, columns) : tab === 'away' ? logList(d, since, now, columns) : waitList(d, columns)
 
 // ---- scrolling ---------------------------------------------------------------
 
@@ -426,7 +468,7 @@ export const lastOffset = (heights: readonly number[], rows: number, gap = 1): n
 }
 
 const furthest = (list: List, heights: readonly number[], rows: number) =>
-  Math.max(lastOffset(heights, rows), list.keepsAutoAtTop ? Math.min(list.auto, list.items.length - 1) : 0)
+  Math.max(lastOffset(heights, rows, list.tight ? 0 : 1), list.keepsAutoAtTop ? Math.min(list.auto, list.items.length - 1) : 0)
 
 /** The furthest offset the list scrolls to, as drawn at this width. */
 export const lastOffsetOf = (list: List, rows: number) =>
@@ -469,7 +511,7 @@ export const windowOf = (list: List, stored: number, rows: number, columns: numb
   for (let i = offset; i < list.items.length; i += 1) {
     const item = list.items[i]
     if (!item) break
-    const gap = shown > 0 ? 1 : 0
+    const gap = shown > 0 && !list.tight ? 1 : 0
     if (body.length + gap + item.rows.length > rows) {
       // An item taller than the whole window shows its head.
       if (shown === 0) {
@@ -487,7 +529,7 @@ export const windowOf = (list: List, stored: number, rows: number, columns: numb
 
   const above = offset
   const below = list.items.length - offset - shown
-  const total = list.items.reduce((sum, item) => sum + item.rows.length, 0) + Math.max(0, list.items.length - 1)
+  const total = list.items.reduce((sum, item) => sum + item.rows.length, 0) + (list.tight ? 0 : Math.max(0, list.items.length - 1))
   const bar = scrollBar(rows, total, offset, last, above > 0 || below > 0)
   const room = textWidth(columns, list.prefix)
   const top = above > 0 ? marker(-1, `위에 ${above}개`, room) : BLANK
@@ -581,10 +623,8 @@ export const TAB_KEY: Record<DeskTab, string> = { wait: '1', tasks: '2', away: '
 // every count at its widest is drawn, so the names change with the pane's
 // width only, never with what it counts.
 const TAB_NAMES: readonly Record<DeskTab, string>[] = [
-  { wait: '답을 기다림', tasks: '작업', away: '자리 비운 사이' },
-  { wait: '답을 기다림', tasks: '작업', away: '비운 사이' },
-  { wait: '기다림', tasks: '작업', away: '비운 사이' },
-  { wait: '기다림', tasks: '작업', away: '비운' },
+  { wait: '답을 기다림', tasks: '작업', away: '기록' },
+  { wait: '기다림', tasks: '작업', away: '기록' },
 ]
 const COUNTED: Record<DeskTab, boolean> = { wait: true, tasks: false, away: true }
 /** Drawn dim between two tabs; the bare bar only where the spaced one does not fit. */
@@ -617,6 +657,9 @@ export const tabRow = (columns: number, counts: Record<DeskTab, number>): TabRow
     }),
   }
 }
+
+/** The cells a run's age takes in the footer. */
+const TIME = 6
 
 /** The rows at the pane's foot under a rule: the step in hand, then what runs. */
 export const footer = (d: DeskData, now: number, columns: number): Line[] => {

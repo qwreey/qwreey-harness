@@ -92,6 +92,7 @@ export type DeskRun = {
 
 export type DeskLogKind = 'done' | 'agent' | 'decision' | 'note'
 
+/** One entry of the work log: a model's note (a summary of finished work) or what the desk logged itself. */
 export type DeskLogEntry = { at: number; kind: DeskLogKind; text: string }
 
 export type DeskData = {
@@ -99,7 +100,7 @@ export type DeskData = {
   plan: DeskStep[]
   running: DeskRun[]
   log: DeskLogEntry[]
-  /** When the person last opened the desk (or pressed 다 봤음). */
+  /** When the person last opened the 기록 tab; log entries after it are unseen. */
   lastSeen: number
   nextDecision: number
   /** The outbox's remark over all its decisions, sent with them. */
@@ -127,7 +128,7 @@ export type DeskView = {
  */
 export type DeskField = { rev: number; submitted?: true }
 
-/** The pane's tabs: decisions waiting, the plan as a timeline, news since the last look. */
+/** The pane's tabs: decisions waiting, the plan as a timeline, the work log (`away`, drawn as 기록). */
 export type DeskTab = 'wait' | 'tasks' | 'away'
 
 declare module 'claude-code' {
@@ -136,7 +137,7 @@ declare module 'claude-code' {
       data: Shaped<DeskData>
       /** The store key this session reads and writes (`project:<cwd>`). */
       storeKey: string
-      /** `lastSeen` as it stood when the desk was last opened. */
+      /** `lastSeen` as it stood when the 기록 tab was last opened: where its 여기부터 새로 rule stands. */
       seenFrom: number
       view: DeskView
       tab: DeskTab

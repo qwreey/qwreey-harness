@@ -125,19 +125,28 @@ const mutate = async ($: $, change: (d: DeskData, now: number) => Outcome | Desk
 
 const openDesk = async ($: $) => {
   await ensureLoaded($)
-  const d = await deskNow($)
-  await update($, seenFrom, () => d.lastSeen)
-  await mutate($, (cur, now) => ({ ...cur, lastSeen: now }))
   await update($, view, () => ({}))
   await update($, tab, () => 'wait' as DeskTab)
   for (const id of TABS) await setOffset($, id, () => -1)
   return $.ui.open({ id: PANE, title: '책상', focus: true, rows: PANE_ROWS, columns: 60 })
 }
 
+// Opening the 기록 tab is reading it: what was new until now stays marked
+// below its rule while the tab shows, and is no longer counted as unseen.
+const openTab = async ($: $, next: DeskTab) => {
+  if (next === 'away') {
+    const d = await deskNow($)
+    await update($, seenFrom, () => d.lastSeen)
+    await setOffset($, next, () => -1)
+    if (logSince(d, d.lastSeen).length > 0) await mutate($, (cur, now) => ({ ...cur, lastSeen: now }))
+  }
+  await update($, tab, () => next)
+}
+
 const TOOL_DESCRIPTION = [
   "The user's desk: a side pane they read on a phone-width terminal instead of scrolling the chat.",
   'Every question that needs their decision goes here (add_decision: one-line question, markdown context (prefer short lists over tables), options with why, recommended + reason, urgency blocking|soon|later with blocks: what waits on it; set_urgency changes it); in chat say only one line, e.g. "D3 on the desk".',
-  'Keep the plan here (set_plan, update_step) and log finished work (note); a step is a short title, its detail a line under it.',
+  'Keep the plan here (set_plan, update_step) and log finished work (note: a 1-3 sentence summary of what got done, in the user\'s language); a step is a short title, its detail a line under it.',
   'Chat lines like "D3: b" or "D3 코멘트: ..." are recorded automatically, and so are answers and comments the user sends from the desk; call answer_decision (their exact words) or memo only for answers or notes given another way.',
   'When the user comments on a decision, reply there with comment, and revise_decision if the discussion changed it.',
 ].join(' ')
@@ -552,7 +561,7 @@ const tabs = async ($: $, els: Els, d: DeskData, now: number, since: number, row
   const list = listFor(current, d, since, now, columns)
   const win = windowOf(list, await readOffset($, current), room.body, columns)
   const last = lastOffsetOf(list, room.body)
-  const head = tabRow(columns, { wait: openDecisions(d).length, tasks: 0, away: logSince(d, since).length })
+  const head = tabRow(columns, { wait: openDecisions(d).length, tasks: 0, away: logSince(d, d.lastSeen).length })
 
   const press = (a: Act) => {
     switch (a.kind) {
@@ -562,8 +571,6 @@ const tabs = async ($: $, els: Els, d: DeskData, now: number, since: number, row
         return void openView($, { step: a.id })
       case 'outbox':
         return void openView($, { outbox: true })
-      case 'seen':
-        return void markSeen($)
       case 'scroll':
         return void scrollList($, current, list, a.by, last)
     }
@@ -635,7 +642,7 @@ const tabs = async ($: $, els: Els, d: DeskData, now: number, since: number, row
                 ]
               : []),
             <Box width={t.width} flexShrink={0}>
-              <Button key={`tab-${t.tab}`} plain hotkey={TAB_KEY[t.tab]} onPress={() => void update($, tab, () => t.tab)}>
+              <Button key={`tab-${t.tab}`} plain hotkey={TAB_KEY[t.tab]} onPress={() => void openTab($, t.tab)}>
                 <Text bold={on} underline={on} color={on ? 'suggestion' : undefined} dimColor={!on}>
                   {t.name}
                 </Text>
@@ -652,12 +659,6 @@ const tabs = async ($: $, els: Els, d: DeskData, now: number, since: number, row
       {room.footer > 0 ? footer(d, now, columns).map(l => row(l, 2)) : null}
     </Box>
   )
-}
-
-const markSeen = async ($: $) => {
-  const now = await $.clock.now()
-  await update($, seenFrom, () => now)
-  await mutate($, d => ({ ...d, lastSeen: now }))
 }
 
 // A row the model reads before the prompt the button submits; the person
