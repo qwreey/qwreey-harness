@@ -110,6 +110,17 @@ check("doc symbols are not a doc category", "SKILL.md:7: non-keyboard symbol" no
 check("summary per category and per file", "findings:" in out and "history marker:" in out and "files with findings:" in out and "src/a.luau" in out.split("files with findings:")[1])
 check("summary shows the fixable estimate", "fixable by --fix:" in out and "needs judgment:" in out)
 
+rc, out, err = cli("scan", "--summary", "--exit-zero")
+check("--exit-zero: summary with findings exits 0", rc == 0 and "findings:" in out)
+rc, out, err = cli("scan", "--summary", "--exit-zero", "--nope")
+check("--exit-zero: a usage error still exits 0", rc == 0)
+rc, out, err = cli("scan", "--summary", "--exit-zero", "--budget", "0")
+check("--budget: stops early and says how to run the full scan", rc == 0 and "partial:" in out and "scan" in out.split("partial:")[1])
+skill = open(os.path.join(os.path.dirname(HERE), "skills", "comments-cleanup", "SKILL.md"), encoding="utf-8").read()
+pre = [l for l in skill.split("\n") if l.startswith("!`")]
+check("comments-cleanup preload never fails and is time-capped", len(pre) == 1 and "--exit-zero" in pre[0] and "--budget" in pre[0] and "--top" in pre[0])
+check("comments-cleanup description has no em dash", "\u2014" not in skill.split("---")[1])
+
 rc, out, err = cli("scan", "--json")
 data = json.loads(out)
 cats = {(f["path"], f["line"], f["category"]) for f in data["findings"]}

@@ -2,7 +2,7 @@
 """qwreey-conventions 검사를 파일 전체(모든 줄)에 돌리고, 판단이 필요 없는 문자만 주석과 모델용 문서 본문 안에서 기계적으로 고친다.
 
 쓰는 법(저장소 안에서, 모델을 부르지 않는다):
-  python3 -I conventions-scan.py scan [경로...] [--json] [--category C ...] [--summary] [--top N] [--root DIR]
+  python3 -I conventions-scan.py scan [경로...] [--json] [--category C ...] [--summary] [--top N] [--root DIR] [--budget S] [--exit-zero]
   python3 -I conventions-scan.py scan --fix [--dry-run] ...      (= fix [경로...] [--dry-run])
   python3 -I conventions-scan.py layout [경로...] [--json] [--summary] [--root DIR]
 layout: 함수마다 읽기 모양 지표(hooks/layout_metrics.py)와 훅의 layout 알림 범주를 모든 함수에 대해 낸다. 고치지 않는다.
@@ -10,6 +10,9 @@ layout: 함수마다 읽기 모양 지표(hooks/layout_metrics.py)와 훅의 lay
 경로를 안 주면 저장소 루트 전체. git 저장소면 git ls-files(추적 + 무시되지 않은 새 파일)만 본다.
 출력: 찾은 것마다 `경로:줄: 범주: 내용`, 끝에 범주별, 파일별 수. --json 은 기계용 한 덩어리.
 종료 코드: 0 = 남은 문제 없음, 1 = 남은 문제 있음(scan 은 찾은 것, fix 는 고친 뒤 남은 것), 2 = 사용법 오류.
+  --exit-zero 면 무엇이든(사용법 오류, 예외 포함) 0 이다. 스킬의 `!` 미리 실행은 0 이 아니면 스킬 전체를 멈추기 때문이다.
+--budget S: S 초가 지나면 파일 읽기를 멈추고 요약에 `partial:` 줄(본 파일 수, 전체 수, 전체 검사 명령)을 낸다. `!` 미리 실행의 2분 한도 안에
+  들게 하려는 것이다(6천 파일 저장소 전체가 1분 가까이 걸린다).
 
 검사는 훅(hooks/conventions-check.py)의 함수를 그대로 불러 쓴다: 같은 확장자 표, 제외(SKIP_PARTS, 생성 파일 표시, 설정의
 exclude), .claude/conventions.json. 다른 점은 "추가한 줄"이 아니라 모든 줄을 보는 것과, 주석 언어 기준이 파일 전체 다수라는 것.
@@ -41,6 +44,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 import unicodedata
 from collections import Counter
 from pathlib import Path
@@ -502,7 +506,13 @@ def run(args, out=sys.stdout):
     findings, remaining, skipped = [], [], Counter()
     replaced, changed, rejected, copies, scanned = Counter(), [], [], [], 0
     diffs = []
-    for rel in list_files(root, args.paths):
+    files = list_files(root, args.paths)
+    budget_end = time.monotonic() + args.budget if args.budget is not None else None
+    stopped = None
+    for i, rel in enumerate(files):
+        if budget_end is not None and time.monotonic() > budget_end:
+            stopped = i
+            break
         kind = file_kind(rel)
         path = os.path.join(root, rel)
         if not kind:
@@ -558,6 +568,7 @@ def run(args, out=sys.stdout):
     left_cat = Counter(f["category"] for f in remaining)
     summary = {
         "root": root, "files_scanned": scanned, "skipped": dict(skipped),
+        "partial": None if stopped is None else {"listed": len(files), "stopped_at": stopped, "budget_s": args.budget},
         "by_category": {c: by_cat[c] for c in CATEGORIES if by_cat[c]},
         "by_file": dict(by_file.most_common()),
         "fix": {
@@ -589,6 +600,10 @@ def run(args, out=sys.stdout):
         for f in (remaining if fixing else findings):
             w(f"{f['path']}:{f['line']}: {f['category']}: {f['detail']}\n")
     w(f"\nroot: {root}\nfiles scanned: {scanned}" + (f" (skipped: {', '.join(f'{k} {v}' for k, v in sorted(skipped.items()))})" if skipped else "") + "\n")
+    if stopped is not None:
+        again = " ".join(["python3 -I", os.path.abspath(__file__), "fix" if fixing else "scan", "--summary"] + list(args.paths))
+        w(f"partial: stopped after {args.budget:g} s at file {stopped} of {len(files)}; counts below cover only those. "
+          f"For the whole set run `{again}` with Bash (it can take minutes on a large repo; give it a long timeout).\n")
     w(f"findings: {len(findings)}" + "".join(f"\n  {c}: {n}" for c, n in summary["by_category"].items()) + "\n")
     if by_file:
         top = by_file.most_common(args.top)
@@ -626,6 +641,8 @@ def parse(argv):
         p.add_argument("--summary", action="store_true", help="print only the summary")
         p.add_argument("--top", type=int, default=20, help="files listed in the summary (default 20)")
         p.add_argument("--dry-run", action="store_true", help="with fix: print a unified diff, write nothing")
+        p.add_argument("--budget", type=float, metavar="S", help="stop reading files after S seconds and say the counts are partial")
+        p.add_argument("--exit-zero", action="store_true", help="always exit 0, even on findings or errors (for skill preloads)")
         if name == "scan":
             p.add_argument("--fix", action="store_true", help="replace unambiguous symbols and invisible characters in comments and doc prose")
     a = ap.parse_args(argv)
@@ -637,6 +654,18 @@ def parse(argv):
     return a
 
 
+def main(argv):
+    args = parse(argv)
+    return run_layout(args) if args.cmd == "layout" else run(args)
+
+
 if __name__ == "__main__":
-    ARGS = parse(sys.argv[1:])
-    sys.exit(run_layout(ARGS) if ARGS.cmd == "layout" else run(ARGS))
+    if "--exit-zero" not in sys.argv[1:]:
+        sys.exit(main(sys.argv[1:]))
+    try:
+        main(sys.argv[1:])
+    except SystemExit:
+        pass
+    except Exception as e:  # 미리 실행에서 스킬을 멈추지 않게 하고, 무엇이 실패했는지는 보인다
+        print(f"conventions-scan failed: {type(e).__name__}: {e}")
+    sys.exit(0)

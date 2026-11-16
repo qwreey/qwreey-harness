@@ -94,7 +94,7 @@ heredoc, `sed -i`, `python3 - <<`, `tee`, 리다이렉트로 쓰면 Edit·Write 
 ## 파일 전체 검사, 기계적 고치기 (`scripts/conventions-scan.py`)
 훅이 아니라 명령이다. 사용자 명령 `/qwreey-conventions:comments-cleanup` 이 이것을 부른다: 훅은 추가한 줄만 보고 남은 문제는 세기만 한다.
 ```bash
-python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py scan [경로...] [--json] [--category symbol ...] [--summary]
+python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py scan [경로...] [--json] [--category symbol ...] [--summary] [--top N] [--budget S] [--exit-zero]
 python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py fix [경로...] --dry-run   # unified diff 만, 쓰지 않는다
 python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py fix [경로...]
 ```
@@ -110,6 +110,7 @@ python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py fix [경로...
 
 ## 사본 검사 (`reuse-check.py`)
 - C1: `@copy-of: <경로>[#이름]` 사본이 원본과 같은가(파일은 바이트, 값은 문자열 묶음). 풀리지 않거나 다르면 알린다.
+- `--budget S`: S 초가 지나면 파일 읽기를 멈추고 요약에 `partial:` 줄(멈춘 자리, 전체 파일 수, 전체 검사 명령)을 낸다. `--exit-zero`: 찾은 것이 있어도, 사용법 오류나 예외여도 0 으로 끝난다. `comments-cleanup` 명령의 `!` 미리 실행이 `--summary --top 15 --budget 30 --exit-zero` 로 부른다: `!` 명령이 0 이 아니면 Claude Code 가 명령 전체를 멈추고, 2분 한도가 있기 때문이다(quad 전체 검사 56 s, 30초에서 6,194 중 3,575 번째 파일에서 멈춤, coderag 2.3 s). 요약이 `partial` 이면 모델이 그 줄의 명령을 Bash 로 다시 돌린다.
 - C2: 원본을 고치면 그것을 가리키는 사본 목록을 알린다.
 - H1: 추가한 문자열 묶음(따옴표 문자열 3개 이상의 목록이나 `"a" | "b"` 합집합)이 저장소의 다른 정의와 겹침. 기본은 그림자 모드라 알리지 않고 `${CLAUDE_PLUGIN_DATA}/reuse-shadow.jsonl`(없으면 `$TMPDIR/claude-qwreey-reuse/shadow.jsonl`)에 남긴다.
 - 모드: `REUSE_CHECK=off|shadow|on` 이 저장소 `.claude/conventions.json` 의 `reuse.mode` 를 이긴다. 기본 `shadow`. `CONVENTIONS_CHECK=off` 도 이 훅을 끈다.
