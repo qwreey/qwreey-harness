@@ -33,6 +33,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/records_read.py\" PreToolUse",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -50,7 +60,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/records_read.py\"",
+            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/records_read.py\" PostToolUse",
             "timeout": 10
           }
         ]

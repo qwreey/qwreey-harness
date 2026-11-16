@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 TAG_NAME = "session-log"
-# 긴급도 배정(HOOK-MESSAGES 규약): 요약 완료 info, pending info(commit 직전이나 임계 초과면 warn), home 없음 위치 제안 warn, PreCompact 상기 warn, 인계 info
+# 긴급도 배정(HOOK-MESSAGES 규약): 요약 완료 info, pending info(commit 직전이나 임계 초과면 warn), home 없음 위치 제안 warn, PreCompact 상기 warn, 인계 info, 큰 기록 통째 Read deny action
 
 
 LEVELS = ("info", "warn", "action")
@@ -124,9 +124,17 @@ def records_hint(store_records: str, home: str | None = None) -> str:
 # ---- 기록을 읽을 때(PostToolUse Read, Grep) ----
 RECORD_READ = ("You read or searched session records. Records are snapshots of what was discussed then and may be stale: "
                "verify any decision or fact against current files and the git log before acting on it.")
-RECORD_READ_LARGE = ("This session record is large ({kb} KB) and was read without offset/limit. Records are snapshots and may be stale. "
-                     "Use /qwreey-sessions:recall (subagents locate and summarize the needed sections), or search first (coderag global docs, or grep) "
-                     "and read only the needed section with offset/limit; verify what you rely on against current files and the git log.")
+
+
+# ---- 큰 기록을 통째로 읽기 전(PreToolUse Read, deny 사유) ----
+def record_read_gate(kb: int, gate_kb: int, path: str, coderag: bool) -> str:
+    """coderag: coderag 가 PATH 에 있고 파일이 저장소 .claude 기록일 때만 그 명령을 안내한다(외부 저장소 기록은 색인 밖)."""
+    ways = (f"`coderag get {path} --sections` (sections with line ranges), " if coderag else "") + \
+        "Grep this file for the section, or /qwreey-sessions:recall for an earlier discussion"
+    return (f"Read blocked: this record is {kb} KB ({gate_kb} KB or more) and the Read had no offset/limit. "
+            "It is a snapshot from its date and may be stale, and reading it whole fills the context. "
+            f"Find the part you need first: {ways}; then Read only those lines with offset/limit. "
+            "If you do need all of it, Read it in chunks with offset/limit.")
 
 
 def more(n: int) -> str:
