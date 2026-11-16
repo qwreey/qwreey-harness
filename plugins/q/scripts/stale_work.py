@@ -160,7 +160,7 @@ def evaluate(st, data, now):
             st["user"].append("백그라운드 작업 %s 이(가) 약 %d분째 출력 변화가 없습니다. 멈췄거나 대기 중일 수 있습니다."
                               % (label(t), minutes(idle)))
         else:
-            st["model"].append(("info", "Background %s has been running for about %d min%s.%s %s"
+            st["model"].append(("warn", "Background %s has been running for about %d min%s.%s %s"
                                 % (label(t), minutes(age), "" if sig is None else " and is still showing progress", out, LONG_HINT)))
             st["user"].append("백그라운드 작업 %s 이(가) %d분 넘게 실행 중입니다%s."
                               % (label(t), minutes(age), "" if sig is None else "(진척은 있음)"))

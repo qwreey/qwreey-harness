@@ -87,7 +87,7 @@ class ShellSignal(unittest.TestCase):
         msg = self.stop([{**self.SHELL, "id": "b3"}], env)
         self.assertIn("실행 중입니다(진척은 있음)", msg["systemMessage"])
         text = self.context()
-        self.assertIn('level="info"', text)
+        self.assertIn('level="warn"', text)
         self.assertIn("still showing progress", text)
         self.assertIn("TaskStop", text)
         self.assertIn("mention it to the user in one line", text)
@@ -98,7 +98,7 @@ class ShellSignal(unittest.TestCase):
         msg = self.stop([{**self.SHELL, "id": "nofile"}], env)
         self.assertNotIn("멈췄", msg["systemMessage"])
         text = self.context()
-        self.assertIn('level="info"', text)
+        self.assertIn('level="warn"', text)
         self.assertNotIn("Output file", text)
 
     def test_unknown_type_uses_output_file_too(self):
