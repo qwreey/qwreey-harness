@@ -21,7 +21,8 @@
 | PostToolUse(Write·Edit·MultiEdit) | `reuse-check.py` | 사본 검사 |
 | PostToolUse(Write·Edit·Bash) | `structure-reminder.py` | 파일 길이, 세션 성장, 폴더 과밀 |
 | PostToolUse(Write·Edit·MultiEdit) | `memory-placement.py` | auto memory 에 쓴 저장소 지식 |
-| PreToolUse(Bash) | `bash-bypass-reminder.py` | 셸·인터프리터로 파일을 바꾸면 Edit·Write 훅과 rules 를 비껴간다는 알림 |
+| PreToolUse(Bash) | `bash-bypass-reminder.py` | 셸·인터프리터로 파일을 바꾸면 Edit·Write 훅과 저장소 rules 를 비껴간다는 알림, 쓰기 신호가 있으면 Bash 검사용 스냅숏 |
+| PostToolUse(Bash) | `bash_writes.py` | 명령이 바꾼 파일의 추가 줄에 `conventions-check.py` 와 같은 검사, 사본 검사, 아직 안 보인 규칙 주입 |
 | UserPromptSubmit, Stop, PostToolBatch | `reply_language.py` | 답변 언어 이탈 |
 | PreCompact(manual·auto) | `compact_epoch.py qwreey-conventions` | 이 플러그인의 compact 회차를 올린다. 알림 dedup 이 회차 단위라 compact 뒤 다시 알린다 |
 
@@ -29,6 +30,7 @@
 
 ## 규칙 주입 (`rules_inject.py`)
 - 맞는 규칙 중 이 키로 아직 안 넣은 것을 `<rule plugin=… name=…>` 로 감싸 넣는다. Read 뒤에는 본문만, 그 키로 처음인 Edit·Write 뒤에는 본문과 "방금 쓴 것을 규칙에 대조하고 어긋나면 고쳐라" 한 문장.
+- Bash 로 쓴 파일은 `bash_writes.py` 가 이 파일의 함수와 같은 마커로 넣는다(아래 Bash 쓰기 검사). 이 파일의 동작은 그대로라 coderag 대조와 무관하다.
 - 키: (세션, 에이전트, compact 회차, 규칙). `O_EXCL` 마커라 병렬 호출에도 한 번만 들어간다.
 - 넣지 않는 곳: `node_modules`, `.git`, `dist`, `build`, `.venv`, `vendor`, `__pycache__` 아래, 그리고 프로젝트 밖 Read(설정 디렉터리의 `projects/*/memory/` 는 예외). 프로젝트 밖이라도 편집은 넣는다.
 - 저장소 설정 줄: `comments` 규칙을 넣을 때 편집하는 파일의 저장소(`conventions-check.py` 와 같은 `conv_edit.project_root`) `.claude/conventions.json`(없으면 `comments.json`)에 언어 코드 꼴의 `comment_language` 가 있으면 제목 아래에 `- This repo: comment_language = en. ...` 한 줄을 넣는다. 모델은 쓰기 전에 스킬을 열지 않아 스킬에만 있는 설정은 지켜지지 않기 때문이다. 키가 없거나 설정을 못 읽으면 본문 그대로이고, 다른 규칙과 팩 규칙에는 붙지 않는다.
@@ -38,10 +40,11 @@
 - coderag 는 팩 규칙의 `switch` 를 읽지 않는다. 팩 규칙에 `switch` 를 쓰려면 coderag 에 같은 변경이 먼저 필요하다(대조 시험은 키를 켜고 꺼도 팩 규칙 주입이 같은지만 본다).
 
 ## 주석·문서 검사 (`conventions-check.py`)
-이번에 추가한 줄만 본다(Edit 는 `new_string` 에서 `old_string` 에 없던 줄, Write 는 새 파일이면 전체, 덮어쓰기면 원본과의 차이). (세션, 에이전트, 파일, 범주)마다 한 번, level=info.
+이번에 추가한 줄만 본다(Edit 는 `new_string` 에서 `old_string` 에 없던 줄, Write 는 새 파일이면 전체, 덮어쓰기면 원본과의 차이, Bash 는 아래 Bash 쓰기 검사). (세션, 에이전트, 파일, 범주)마다 한 번, level=info. 주석 알림은 범주마다 줄 번호와 고치는 법(대체 문자, 코드포인트, 옮길 곳, 써야 할 언어)을 함께 주고 "그 줄을 고치고, 오탐은 두되 보고에 한 번 적으라" 로 끝난다. 스킬을 열라고 하지 않는다: 실제 기록에서 스킬 이름을 단 알림 42건 중 로드는 1건이었고 알림만 보고 고친 것이 약 32건이었다. 모델용 문서 알림은 아직 `agent-docs` 스킬을 가리킨다.
 
 코드 파일의 주석 줄(확장자별 간이 렉서라 문자열 안의 `--`, `//`, `#` 는 주석이 아니다):
-- history marker: 원장 번호, 날짜, 라운드, 작업 이력 경로, 결정 문구. 같은 주석 덩어리에 이유 문장이 있는 `Ref:` 꼬리는 통과.
+- history marker: 원장 번호, 날짜, 라운드, 작업 이력 경로, 결정 문구, 변경 서술. 같은 주석 덩어리에 이유 문장이 있는 `Ref:` 꼬리는 통과.
+  - 변경 서술은 정밀도 쪽으로 좁혔다: 문장 첫 `Previously`(대문자), 대명사 주어 뒤 `used to`(`it`, `this`, `we`, `they`, `nothing`), `예전에는`/`예전엔`/`이전에는`/`이전엔`, `기존에는`(`기존엔`) 뒤 같은 문장의 과거 시제(받침 ㅆ 음절). `the previously selected item`, `a key used to sign`, `이전에 없던 키` 처럼 코드가 하는 일을 말하는 꼴은 걸리지 않는다. 형제 저장소 7곳(주석 조각 약 6만)에서 걸린 약 100줄은 모두 변경 서술이었다(측정 스크립트는 남기지 않았다).
 - non-keyboard symbol: 키보드로 치지 않는 기호(가운뎃점 포함), 곡선 따옴표, 전각, 이모지. 모든 문자 체계의 글자와 숫자는 통과.
 - escaped character: 주석 안의 `\uXXXX` 류 이스케이프.
 - invisible character: 보이지 않는 문자와 방향 제어 문자. 코드 줄까지 본다.
@@ -65,8 +68,21 @@
 - dedup: (세션, 에이전트, compact 회차, 파일, 범주, 함수)마다 한 번. 함수는 이름으로 가리고, 같은 파일에 같은 이름이 또 있으면 두 번째부터 `이름#순번`이다. doc summary 를 알린 함수는 다음 편집(같은 파일) 뒤 한 번 더 보고, 그대로면 `(still so after your last edit)` 로 다시 알린다.
 - 주석 알림과 같은 level(info)이라 한 태그로 합친다. 범주당 함수 이름은 8개까지. Stop 보고에는 넣지 않는다.
 - 기준: `.claude/conventions.json` 의 `"layout": {"min_lines": 15, "max_run": 20, "doc_first_max": 100, "grow": 15, "mostly": 0.5}`.
-- Bash 로 고친 파일은 이 훅이 못 본다. `bash-bypass-reminder` 가 명령이 바꿀 것 같은 코드 파일마다 한 번 `conventions-scan.py layout <file>` 을 안내한다(키가 켜졌을 때만, level warn). 리다이렉트와 `tee` 는 그 대상만 보고 저장소 밖 대상(`git diff > /tmp/x`)은 빼며, 제자리 편집(`sed -i`, `patch`)과 쓰는 인터프리터 스크립트는 명령에 든 코드 경로를 댄다. 따옴표로 묶은 경로는 공백이 있어도 하나다.
+- Bash 로 고친 파일도 `bash_writes.py` 가 같은 함수로 본다(아래 Bash 쓰기 검사).
 - 비용: 1,520줄 Luau 파일에 25줄 함수를 더하는 Edit 에서 훅 전체 중앙값이 키 off 69.8 ms, on 71.6 ms(1,440줄 Python 49.7, 51.0 ms).
+
+## Bash 쓰기 검사 (`bash_writes.py`)
+heredoc, `sed -i`, `python3 - <<`, `tee`, 리다이렉트로 쓰면 Edit·Write 매처의 훅이 돌지 않는다. 실제 기록에서 규약이 걸린 쓰기 173번 중 69번이 이 경로라 알림도 규칙 주입도 없었다. 그래서 명령 전후를 비교해 Edit·Write 와 같은 검사를 돌린다.
+- 명령 전(PreToolUse, `bash-bypass-reminder.py` 가 `bash_writes.snapshot` 을 부름): 쓰기 신호(제자리 편집 `sed -i`·`perl -pi`·`patch`·`git apply`, 쓰는 인터프리터 스크립트, 저장소나 cwd 안으로의 리다이렉트·`tee`)가 있을 때만. 명령 첫 낱말이 `git`·`gh` 면 하지 않는다(리마인더와 같은 조건). 저장소는 명령 cwd 의 git 최상위(git 이 아니면 프로젝트 폴더)이고 그 밖의 경로는 보지 않는다. 적는 것: 명령에 든 경로의 지금 내용(없으면 null, 1 MB 까지), git 이면 HEAD, `git --no-optional-locks status --porcelain -z -uall` 의 파일별 (mtime, 크기), 그중 검사 대상 확장자 파일의 지금 내용(파일당 256 KiB, 모두 4 MiB, 400개까지). 저장 위치 `$TMPDIR/claude-conventions/bash/<세션>.<main|agent>.<tool_use_id>.json`, Post 가 지우고, 6시간 넘은 것은 다음 스냅숏 때 지운다.
+- 명령 뒤(PostToolUse, `bash_writes.py`): 스냅숏이 없으면 바로 끝난다. 바뀐 파일과 전 내용은 이렇게 정한다. 내용을 적어 둔 파일은 지금과 다르면 바뀜(없던 파일은 빈 글에서), 명령 전에 깨끗했는데 지금 porcelain 에 나온 파일은 명령 전 HEAD 의 blob(`git cat-file --batch` 한 번, 새 untracked 파일은 빈 글), 명령이 커밋까지 했으면 두 HEAD 사이(`git diff --name-only`)의 파일도 같다. 내용을 적지 못한 dirty 파일(크기, 개수 한도 밖)은 바뀌어도 검사하지 않고 규칙 주입에만 쓴다.
+- 추가 줄은 Write 덮어쓰기와 같은 셈(`conv_edit.added_set`: 지금 줄 중 전 내용에 없던 줄)이고, `conventions-check.py` 의 `file_notice` 를 그대로 부른다. 그래서 알림 글, 범주, layout 알림, 남은 문제 기록, 상태 파일과 중복 거르기가 Edit 경로와 같다(Bash 로 알린 범주는 뒤의 Edit 에서 다시 알리지 않고, 반대도 같다). 여러 파일을 한 태그에 담고 끝 문장은 종류마다 한 번 붙인다.
+- 코드 파일은 `reuse-check.py` 를 Write 꼴 입력(전 내용을 `originalFile` 로)으로 4개까지 나란히 돌려 사본 알림을 합친다.
+- 규칙: 바뀐 모든 파일(검사 확장자 밖 포함, 의존성 폴더 제외)에 맞는 이 플러그인의 규칙 중 이 맥락에 아직 안 넣은 것을 `rules_inject.py` 의 함수와 마커로 넣는다(Edit·Write 뒤와 같은 "대조하고 고쳐라" 문장). 출력 하나를 9,000자 안에 두려고 알림 다음 남은 자리에 드는 규칙만 마커를 잡고, 나머지는 다음 Read·Edit 에 맡긴다.
+- 같은 명령에 worktree 를 통째로 바꾸는 git 하위 명령(`checkout`, `switch`, `stash`, `reset`, `merge`, `rebase`, `pull`, `cherry-pick`, `revert`, `restore`, `am`)이 있으면 porcelain 비교를 하지 않고 명령에 든 경로만 본다. 되돌린 줄을 새로 쓴 줄로 오인하지 않으려는 것이다.
+- 한도: 알림을 낸 파일 10개 또는 분석 2.5초에서 끊고, 남은 파일은 `conventions-scan.py scan <파일...>` 을 안내한다.
+- 끄기: `CONVENTIONS_CHECK=off`(검사, 사본), `HARNESS_CONVENTIONS_RULES=off`(규칙). 둘 다 꺼지면 스냅숏도 만들지 않는다.
+- 못 보는 것: 명령에 경로가 없고 git 저장소도 아닌 곳의 쓰기, 크기·개수 한도 밖의 dirty 파일, 첫 낱말이 `git` 인 명령, 쓰기 신호가 없는 명령(예: 저장소 스크립트 실행 `python3 tools/gen.py`, `cp`, `mv`), 명령 중에 다른 세션이 같은 파일을 바꾼 경우(그 줄도 이 명령의 것으로 센다).
+- 비용(중앙값, 프로세스 기동 포함): 쓰기 신호가 없는 명령은 Post 25 ms(스냅숏 유무만 본다), Pre 는 원래 리마인더 30 ms 그대로. 쓰기 신호가 있으면 Pre 45~60 ms, Post 90~130 ms(규칙 주입 포함, 사본 색인이 데워진 뒤). 측정은 임시 저장소, coderag 사본(338 파일), quad 사본(6,193 파일, 15 GB 작업 트리)에서 했고 quad 의 첫 Post 는 사본 색인을 처음 만들어 400 ms 였다. 같은 이벤트의 훅은 나란히 돌므로 Post 의 25 ms 는 structure-reminder 와 겹친다. `tests/test-bash-writes.py` 의 `Timing`(`BIG_REPO=<사본>`)이 같은 숫자를 낸다.
 
 ## 남은 문제 보고
 - 같은 PostToolUse 에서 편집한 파일의 "이번에 추가하지 않은 줄" 문제를 범주별로 세어 `$TMPDIR/claude-conventions/<session>.left.<main|agent_id>.json` 에 조용히 쌓는다(파일마다 마지막 편집 기준, 고치면 사라진다).
@@ -133,5 +149,6 @@ python3 -I plugins/qwreey-conventions/tests/test-memory-placement.py
 python3 -I plugins/qwreey-conventions/tests/test-rules-inject.py
 python3 -I plugins/qwreey-conventions/tests/test-reply-language.py
 python3 -I plugins/qwreey-conventions/tests/test-bash-bypass-reminder.py
+python3 -I plugins/qwreey-conventions/tests/test-bash-writes.py
 ```
 모델을 부르지 않는다.

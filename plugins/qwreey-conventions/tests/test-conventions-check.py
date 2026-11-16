@@ -67,12 +67,25 @@ def uniq(name):
 # ---- 탐지 ----
 check("bare ledger id comment -> notice", "history marker" in write_new("a/x.luau", "local a = 1\n-- H-973\nlocal b = 2\n", sid="d1"))
 c = write_new("a/y.luau", "-- Q188\n", sid="d1")
-check("notice names file, line and skill", "a/y.luau" in c and "L1 history marker" in c and "qwreey-conventions:comments" in c and c.count("\n") == 0)
+check("notice names file, line and the fix, no skill to load", "a/y.luau" in c and "L1 history marker: keep the reason" in c and "Fix those lines" in c
+      and "skill" not in c and c.count("\n") == 0)
 check("date -> notice", "history marker" in write_new("a/d.luau", "x = 1 -- changed 2026-11-10 by session\n", sid="d2"))
 check("round / .claude path -> notice", "history marker" in write_new("a/r.luau", "-- found in round 15 audit\n", sid="d3")
       and "history marker" in write_new("a/p.luau", "-- see .claude/base/x.md for details\n", sid="d3"))
 check("decision phrase -> notice", "history marker" in write_new("a/u.luau", "-- 사용자 결정으로 이렇게 둔다\n", sid="d4")
       and "history marker" in write_new("a/u2.ts", "// per user request we skip this\n", sid="d4"))
+
+# ---- 변경 서술 ----
+for i, line in enumerate(["-- Previously this returned nil for missing keys.\n", "x = 1 -- Cache hit. Previously the loop ran twice.\n",
+                          "-- It used to block the frame here.\n", "-- We used to keep a second table for this.\n",
+                          "-- 예전에는 여기서 바로 던졌다.\n", "-- 예전엔 값이 늘 true 였다\n", "-- 이전에는 키를 따로 셌습니다.\n",
+                          "-- 기존에는 캐시를 두 번 읽었다\n", "-- 기존엔 여기서 잘랐습니다.\n"]):
+    check(f"narration -> history marker: {line.strip()}", "history marker" in write_new(f"n/p{i}.luau", line, sid="nar1"))
+for i, line in enumerate(["-- Restore the previously focused element.\n", "-- Skip keys previously seen in this pass.\n",
+                          "-- The key used to sign the token stays on the server.\n", "-- This flag is used to skip the slow path.\n",
+                          "-- Can be used to reset the counter.\n", "-- 이전에 없던 키는 새로 만든다.\n", "-- 기존에는 없는 칸이면 새로 만든다.\n",
+                          "-- 이전 값과 비교해 바뀐 칸만 다시 그린다.\n"]):
+    check(f"runtime wording -> silent: {line.strip()}", write_new(f"n/q{i}.luau", line, sid="nar2") == "")
 
 # ---- 허용 ----
 ok = "-- Clamp the index so the loop never reads past the end.\n-- Ref: 2026-11-10 H-973 typing-limits 8.43\nlocal i = 1\n"
@@ -255,7 +268,7 @@ check("no harness lib: one-line message and fallback dedup", a1.count("\n") == 0
       and write_new("z/y.luau", "-- H-33\n", sid="z1") != "" and write_new("z/x.luau", "-- H-44\n", sid="z1", agent="a1") != "")
 c2 = write_new("z/c.luau", "-- H-55 \u2192 x\n", sid="z2")
 check("message lists categories, history marker first, with chars and fixes",
-      "L1 history marker; L1 non-keyboard symbol: \u2192 (use \"->\")" in c2)
+      re.search(r"L1 history marker: [^;]+; L1 non-keyboard symbol: \u2192 \(use \"->\"\)", c2))
 
 check("F64 / I32 / X86 / C99 / TS2322 / E0308 are not ledger ids",
       write_new("z/ids.rs", "// Reads f32 data as F64 or I32 on X86 with C99 rules; TS2322 and E0308 are compiler codes.\n", sid="zid") == ""

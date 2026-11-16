@@ -254,16 +254,39 @@ class Cost(unittest.TestCase):
         conv = os.path.join(PROJ, ".claude", "conventions.json")
         with open(conv, "w") as f:
             json.dump({"comment_language": "abc-abcdefgh"}, f)
+        sizes = []
         try:
             for rel in paths:
                 text = ctx(run("PostToolUse", "Write", os.path.join(PROJ, rel), fresh(), env={"HARNESS_READABLE_CODE": "on"}))
+                sizes.append(len(text))
                 self.assertLessEqual(len(text), self.OUTPUT_BUDGET, rel)
                 if rel.endswith(".py"):
                     self.assertIn("comment_language = abc-abcdefgh.", text)
         finally:
             os.remove(conv)
+        print("largest rule injection: %d / %d chars" % (max(sizes), self.OUTPUT_BUDGET), file=sys.stderr)
         mem = os.path.join(CFG, "projects", "-x-y", "memory", "user.md")
         self.assertLessEqual(len(ctx(run("PostToolUse", "Write", mem, fresh()))), self.OUTPUT_BUDGET)
+
+
+class CommentsRule(unittest.TestCase):
+    """comments rule 본문: 스킬 없이 지킬 줄(어미, 문체, 알림 대응)을 담고 스킬을 열라고 하지 않는다."""
+
+    def body(self):
+        return dict((n, b) for n, _, b, _ in ri.load_rules())["comments"]
+
+    def test_lines(self):
+        b = self.body()
+        for line in ("- Korean comments keep the file's sentence ending (합니다체 or 한다체).",
+                     "- No banners, capitals or IMPORTANT for routine notes; skip ceremony words.",
+                     "- On a notice, fix the named lines; leave a deliberate exception and say so once in your report.",
+                     "- A repo's own rules win."):
+            self.assertIn(line + "\n", b + "\n")
+        self.assertTrue(b.rstrip().endswith("- A repo's own rules win."))
+
+    def test_no_skill_pointer(self):
+        self.assertNotIn("load the", self.body().lower())
+        self.assertNotIn("qwreey-conventions:comments", self.body())
 
 
 class Race(unittest.TestCase):

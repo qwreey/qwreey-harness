@@ -10,8 +10,8 @@ level: 쓰기 신호(sed -i, 코드 파일로의 리다이렉트, 쓰기 신호�
   - Edit|Write 매처에 걸린 PostToolUse 훅(포맷터, 검사기)이 돌지 않는다.
   - 스킬은 description 이 맞을 때만 로드되므로, 스크립트로 일괄 수정할 때는 규약을 놓치기 쉽다.
 
-readable-code(HARNESS_READABLE_CODE=on)가 켜져 있고 명령이 코드 파일을 바꿀 것 같으면(changed_files), 그 파일만
-`scripts/conventions-scan.py layout <file>` 로 확인하라는 한 줄을 더한다(conventions-check 의 layout 알림은 Edit|Write 만 본다). 파일마다 한 번.
+쓰기 신호가 있으면 bash_writes.snapshot() 으로 명령 전 상태를 적어 둔다. PostToolUse(Bash) 의 bash_writes.py 가 그것과 비교해 바뀐 파일의
+추가 줄에 conventions-check 와 같은 검사(readable-code layout 포함)를 돌리고 이 플러그인의 rules 를 넣는다.
 
 종류마다 세션당 한 번만 알린다. rules 파일 안내는 파일마다 세션당 한 번이다(프로젝트·사용자 rules 와 설치된 플러그인들의 rules/).
 상태 파일 위치: $TMPDIR/claude-bypass-reminder/<session_id>.c<compact 회차>[.a<agent_id>].json (compact_epoch.py. compact 뒤 다시 알린다)
@@ -20,22 +20,18 @@ import importlib.util
 import json
 import os
 import re
-import shlex
 import sys
 import tempfile
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
-import conv_env  # noqa: E402
 import harness_nonce  # noqa: E402
-import layout_metrics  # noqa: E402
 import rules_inject  # noqa: E402
 
 # 플러그인이 싣는 rules(이 플러그인과 web-security 등 설치된 모든 플러그인의 `rules/`): 공식 .claude/rules 가 아니라 rules_inject 훅이
 # 파일을 열 때 주입한다. 셸로 파일을 바꾸면 주입도 비껴가므로 이름을 짚는다
 PLUGIN_RULES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rules")
-LAYOUT_SCAN = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", "conventions-scan.py")
 
 
 def _read_json(path):
@@ -194,19 +190,6 @@ def _inside(path, root):
     return path.startswith(os.path.normpath(root).rstrip("/") + "/")
 
 
-def changed_files(cmd, cwd, proj, targets, abs_paths, interp_writes):
-    """이 명령이 바꿀 것 같은 코드 파일(절대 경로). 저장소 밖으로의 리다이렉트(`git diff > /tmp/x`)는 넣지 않는다.
-
-    리다이렉트와 tee 는 그 대상만, 제자리 편집(sed -i, patch)과 쓰는 인터프리터 스크립트는 어느 경로를 쓰는지 몰라
-    명령에 든 경로를 다 넣되 리다이렉트로 저장소 밖에 쓰는 경로는 뺀다.
-    """
-    redirected = {_abs(t, cwd) for t in targets}
-    out = {t for t in redirected if _inside(t, proj)}
-    if INPLACE.search(cmd) or interp_writes:
-        out |= {ap for ap in abs_paths if ap not in redirected or _inside(ap, proj)}
-    return out
-
-
 def main():
     try:
         data = json.load(sys.stdin)
@@ -234,13 +217,22 @@ def main():
     interp_writes = interp and bool(SCRIPT_WRITE.search(cmd))
     risky = writes or interp_writes  # 쓰기 신호가 없으면 규칙 안내와 인터프리터 안내는 info
 
+    # Snapshot for the after-command check
+    try:
+        import bash_writes
+        redirected = [_abs(_unquote(m.group(1) or m.group(2) or ""), cwd) for m in REDIRECT.finditer(cmd)]
+        signal = bool(INPLACE.search(cmd)) or interp_writes or any(_inside(t, proj) or _inside(t, cwd) for t in redirected)
+        bash_writes.snapshot(data, cmd, cwd, redirected + [_abs(p, cwd) for p in cmd_paths(cmd)], signal)
+    except Exception:  # 검사 준비가 실패해도 알림과 명령은 그대로 간다
+        pass
+
     if writes and "write" not in seen:
         seen.add("write")
         levels.append("warn")
         notes.append("This command changes files without the Edit/Write tools (sed -i, redirect, patch, ...), so "
-                     "PostToolUse hooks on Edit|Write (formatters, checkers) do not run and path-scoped .claude/rules "
-                     "and skill conventions for the file are not applied. If the file has such conventions, Read it after "
-                     "the change to check it against them, and run the formatter/checker yourself.")
+                     "PostToolUse hooks on Edit|Write (formatters, checkers) do not run and the repo's path-scoped .claude/rules "
+                     "are not loaded for the file; qwreey-conventions still checks the lines it adds and shows its own rules "
+                     "after the command. If the file has a formatter or checker, run it yourself.")
     elif interp and "interp" not in seen:
         seen.add("interp")
         levels.append("warn" if interp_writes else "info")
@@ -261,16 +253,6 @@ def main():
             levels.append("warn" if risky else "info")
             rel = [describe(h, plugin_dirs, proj) for h in hit]
             notes.append("Rules that apply to files this command touches: " + ", ".join(rel) + ". If this command writes these files, read the rules first if you have not; read-only commands need nothing.")
-
-        # Readable-code check for code files this command writes
-        changed = changed_files(cmd, cwd, proj, targets, abs_paths, interp_writes)
-        code = sorted(ap for ap in changed if os.path.splitext(ap)[1].lower() in layout_metrics.LANG_BY_EXT and "layout:" + ap not in seen)
-        if code and conv_env.is_on("HARNESS_READABLE_CODE"):
-            seen.update("layout:" + ap for ap in code)
-            levels.append("warn")
-            shown = " ".join(shlex.quote(os.path.relpath(ap, proj) if _inside(ap, proj) else ap) for ap in code[:4])
-            notes.append("The readable-code layout notice does not see Bash edits: if this command changes functions, run "
-                         f"`python3 -I {LAYOUT_SCAN} layout {shown}` afterwards and fix what it flags in the functions you changed.")
 
     if not notes:
         return 0

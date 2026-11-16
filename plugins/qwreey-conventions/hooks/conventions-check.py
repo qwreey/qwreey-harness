@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """PostToolUse(Write|Edit|MultiEdit) 알림: 이번에 추가한 줄이 주석, 모델용 문서 관례를 벗어난 것 같으면 한 줄로 알린다.
 
-막지 않는다(decision 없음). additionalContext(level=info) 한 줄만 주입하고, 고치는 법은 스킬(qwreey-conventions:comments, qwreey-conventions:agent-docs)이 가진다.
+막지 않는다(decision 없음). additionalContext(level=info) 한 줄만 주입한다. 주석 알림은 줄 번호와 고치는 법(대체 문자 등)을 함께 줘서
+알림만 보고 고칠 수 있다. 모델용 문서 알림은 qwreey-conventions:agent-docs 스킬을 가리킨다.
+Bash 로 바꾼 파일은 bash_writes.py 가 이 파일의 file_notice 로 같은 검사, 같은 중복 거르기를 한다.
 
 남은 기존 주석 보고: 같은 PostToolUse 에서 이번에 추가하지 않은 줄의 문제를 범주별(이력, 기호, 이스케이프, 보이지 않는 문자) 줄 수로 세어
   $TMPDIR/claude-conventions/<session_id>.left.<main|agent_id>.json 에 조용히 쌓는다(파일마다 마지막 편집 기준). Stop 에서 모든 호출한 쪽 기록을 합쳐
@@ -11,7 +13,8 @@
   tool_response.originalFile 과의 차이(없으면 structuredPatch 의 + 줄, 둘 다 없으면 보지 않는다. 옛 줄을 새로 오인하지 않으려고).
 
 코드 파일(주석 줄만; 파일 전체를 확장자별 간이 렉서로 읽어 문자열 리터럴 안의 `--`, `//`, `#` 는 주석이 아니다)
-  - history marker: 원장 번호, 날짜, 라운드, 작업 이력 경로, 결정 문구. `Ref:` 꼬리는 같은 주석 덩어리에 이유 문장이 있으면 통과
+  - history marker: 원장 번호, 날짜, 라운드, 작업 이력 경로, 결정 문구, 변경 서술(문장 첫 Previously, 대명사 뒤 used to,
+    예전에는, 이전에는, 기존에는 ...했다). `Ref:` 꼬리는 같은 주석 덩어리에 이유 문장이 있으면 통과
   - non-keyboard symbol: 사람이 키보드로 치지 않는 문자(기호, 가운뎃점, 곡선 따옴표, 전각, 이모지). ASCII 와 모든 문자 체계의 글자(한글, 키릴, 악센트 라틴 등)와 숫자는 통과
   - escaped character: 주석 안의 유니코드 이스케이프(백슬래시 u 와 16진수 넷 등). 금지 문자를 이스케이프로 적어 검사를 피한 것으로 본다
   - invisible character: 보이지 않는 문자, 방향 제어 문자. 주석이 아니라 추가된 줄 전체에서 본다
@@ -60,12 +63,18 @@ NAME = "qwreey-conventions"
 NS = "claude-conventions"  # 상태 경로는 이름 변경 전과 같게 둔다
 HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"))
 
+# 받침이 ㅆ 인 한글 음절(했, 였, 었, 썼, 됐 ...): 과거 시제 표지라 "기존에는 ... 했다" 꼴을 가린다
+PAST_SYLLABLES = "".join(chr(0xAC00 + i * 28 + 20) for i in range(19 * 21))
 PATTERNS = {
     "ledger": r"\b[A-Z]{1,2}-?\d{2,4}\b",
     "date": r"\b20\d\d-\d\d-\d\d\b",
     "round": r"\bround\s*\d+\b|라운드\s*\d+|감사\s*\d+\s*차",
     "path": r"\.claude/|(?<![\w-])session/|(?<![\w-])audit/",
     "decision": r"사용자\s*(?:결정|지시|요청|합의|말)|\bper (?:the )?user\b|\bas (?:the user )?(?:discussed|decided|agreed)\b|\bthe user (?:decided|asked|wanted|requested)\b",
+    # 변경 서술. "the previously selected item", "a key used to sign", "이전에 없던 키" 는 코드가 하는 일을 말하므로
+    # 문장 첫 "Previously", 대명사 주어 뒤 "used to", 한국어 화제 꼴(예전에는, 이전에는, 기존에는 ...했다)만 센다
+    "narration": r"(?:^|[.;:(]\s*)Previously\b|(?i:\b(?:it|this|we|they|nothing)\s+used\s+to\b)|(?:예전|이전)(?:에는|엔)"
+                 r"|기존(?:에는|엔)[^.\n]*?[" + PAST_SYLLABLES + "]",
 }
 # 내장 공개 식별자, 표준 번호: 줄에서 먼저 지운 뒤 검사한다. 저장소 public_ids 는 여기에 더한다.
 BUILTIN_PUBLIC = [r"error-code:\s*\S+", r"\bR(?:6|15)\b", r"\bES\d{4}\b", r"\bH26[45]\b", r"\bUTF-?\d+\b", r"\bSHA-?\d+\b", r"\bP\d{2,3}\b(?=\s*(?:p|fps|hz))",
@@ -671,6 +680,122 @@ def report_leftovers(data):
     return 0
 
 
+def target(path, data):
+    """검사하는 파일이면 (root, cfg, rel, kind, ext), 아니면 None. kind 는 "comment"(코드 파일)나 "doc"(모델용 문서)."""
+    ext = os.path.splitext(path)[1].lower()
+    root = project_root(path, data)
+    cfg = load_cfg(root)
+    rel = os.path.relpath(path, root)
+    kind = "comment" if FAMILY.get(ext) else ("doc" if doc_class(rel) else None)
+    if not kind or excluded(path, rel, cfg):
+        return None
+    return root, cfg, rel, kind, ext
+
+
+def generated(text):
+    return any(GEN_MARK.search(l) for l in text.split("\n", 6)[:6])
+
+
+# 범주별 고치는 법. 알림만 보고 고칠 수 있게 줄 번호와 함께 준다(스킬을 열라는 말은 실제로 따르지 않았다)
+FIX_HINT = {"history marker": "keep the reason as a sentence about the code now and move dates, ids, rounds, who decided and what "
+                              "it used to do to the commit message",
+            "Ref tail without a reason sentence": "write the reason sentence above the Ref: line"}
+SCRIPT_NAME = {"latin": "English", "hangul": "Korean", "cjk": "Japanese or Chinese", "cyrillic": "Russian"}
+
+
+COMMENT_TAIL = "Fix those lines; a false match (quoted text, a needed symbol) can stay, said once in your report."
+DOC_TAIL = f"If a hit is real, the {NAME}:agent-docs skill has the fix; false matches (quoted text, a needed symbol) can stay."
+
+
+def file_notice(data, path, rel, kind, ext, cfg, text, added, state, tail=True):
+    """한 파일에서 added(0 기반 줄 번호) 줄의 알림 문장. state 로 중복을 거르고 state 를 고친다.
+
+    (문장 목록, state 가 바뀌었나) 를 돌려준다(새로 알릴 것이 없으면 빈 목록). Stop 보고용 기존 문제도 쌓는다.
+    Edit/Write 경로와 Bash 경로(bash_writes.py)가 함께 쓴다. tail 이 거짓이면 끝의 대응 문장(COMMENT_TAIL, DOC_TAIL)을 빼서
+    여러 파일을 한 알림에 담는 쪽이 한 번만 붙이게 한다.
+    """
+    pats, pub = compile_patterns(cfg)
+    layout = kind == "comment" and layout_metrics.enabled(ext)
+    rows = lex(text, FAMILY[ext], keep_code=layout) if kind == "comment" else None
+    record_leftovers(data, path, rel, kind, text, added, rows, cfg, pats, pub)
+    if not added:
+        return [], False
+
+    # Added-line checks
+    exp = None
+    if kind == "comment":
+        problems = check_lines(rows, added, pats, pub, cfg)
+        labels = step_labels(rows, text.split("\n"), cfg)
+        exp = expected_script(rows, added, cfg, path, ext, labels)
+        if exp:
+            problems += [(ln, "language mismatch") for ln in language_lines(rows, added, exp, labels)]
+    else:
+        problems = doc_check(text, added, rel, cfg, pats, pub)
+    problems += [(ln, "invisible character") for ln in invisible_lines(text, added)]
+
+    # Layout of the functions this edit wrote or grew
+    key = os.path.abspath(path)
+    recheck, shapes = layout_step(state, key, text, rows, added, ext, cfg) if layout else ([], [])
+    if not problems and not shapes and not recheck:
+        return [], False
+
+    # One notice per (file, category); layout per (file, category, function)
+    seen = state["files"].get(key)
+    seen = seen if isinstance(seen, list) else []
+    fresh = [(ln, c) for ln, c in problems if c not in seen]
+    fresh_shapes = [(cat, name, desc, again) for cat, name, desc, again in shapes if again or "%s|%s" % (cat, name) not in seen]
+
+    # Remember notices and doc rechecks
+    state["files"][key] = seen + [c for c in dict.fromkeys(c for _, c in fresh)] + [
+        "%s|%s" % (cat, name) for cat, name, _, again in fresh_shapes if not again]
+    docs = [name for cat, name, _, again in fresh_shapes if cat == "doc summary" and not again]
+    state["doc_recheck"][key] = docs
+    if not state["doc_recheck"][key]:
+        del state["doc_recheck"][key]
+    dirty = bool(fresh or fresh_shapes or recheck)
+
+    # Comment notice text
+    allow = cfg.get("allow_chars") or []
+    parts = []
+    for cat in CATEGORY_ORDER:
+        lns = sorted({ln for ln, c in fresh if c == cat})
+        if not lns:
+            continue
+        if cat == "non-keyboard symbol":
+            det = symbol_detail(text, lns, allow)
+        elif cat == "invisible character":
+            det = invisible_detail(text, lns)
+        elif cat == "escaped character":
+            det = escape_detail(text, lns)
+        elif kind == "comment" and cat == "language mismatch" and exp in SCRIPT_NAME:
+            det = f"write it in {SCRIPT_NAME[exp]} like the file's other comments"
+        else:
+            det = FIX_HINT.get(cat, "") if kind == "comment" else ""
+        parts.append(f"{line_list(lns)} {cat}" + (f": {det}" if det else ""))
+
+    body = []
+    if parts:
+        what, end = ("comment", COMMENT_TAIL) if kind == "comment" else ("agent-doc", DOC_TAIL)
+        body.append(f'{rel} may not follow the {what} conventions. {"; ".join(parts)}.' + (" " + end if tail else ""))
+    if fresh_shapes:
+        order = {c: i for i, c in enumerate(layout_metrics.CATEGORIES)}
+        items = [(cat, desc, again) for cat, _, desc, again in sorted(fresh_shapes, key=lambda x: order[x[0]])]
+        body.append(f"{rel} layout (readable-code): " + layout_metrics.notice(items, layout_metrics.LANG_BY_EXT[ext]))
+    return body, dirty
+
+
+def save_state(path, state):
+    try:
+        json.dump(state, open(path, "w"))
+    except OSError:
+        pass
+
+
+def notice_tag(data, body):
+    """주석 알림과 layout 알림은 level 이 같아 한 태그에 담는다."""
+    return f'<harness-hook name="{NAME}" level="info"{harness_nonce.attr(data.get("session_id"))}>{" ".join(body)}</harness-hook>'
+
+
 def main():
     if os.environ.get("CONVENTIONS_CHECK", "").lower() == "off":
         return 0
@@ -687,19 +812,15 @@ def main():
     # Which file, and whether it is checked at all
     ti = data.get("tool_input") or {}
     path = ti.get("file_path") or ""
-    ext = os.path.splitext(path)[1].lower()
-    fam = FAMILY.get(ext)
     if not path:
         return 0
-    resp = data.get("tool_response") if isinstance(data.get("tool_response"), dict) else {}
-    root = project_root(path, data)
-    cfg = load_cfg(root)
-    rel = os.path.relpath(path, root)
-    kind = "comment" if fam else ("doc" if doc_class(rel) else None)
-    if not kind or excluded(path, rel, cfg):
+    found = target(path, data)
+    if not found:
         return 0
+    root, cfg, rel, kind, ext = found
 
     # Text and the lines this edit added
+    resp = data.get("tool_response") if isinstance(data.get("tool_response"), dict) else {}
     try:
         text = Path(path).read_text(encoding="utf-8") if os.path.getsize(path) <= MAX_BYTES else None
     except (OSError, UnicodeDecodeError):
@@ -708,85 +829,17 @@ def main():
     if not got:
         return 0
     text, added = got
-    if kind == "comment" and any(GEN_MARK.search(l) for l in text.split("\n", 6)[:6]):
+    if kind == "comment" and generated(text):
         return 0
 
-    pats, pub = compile_patterns(cfg)
-    layout = kind == "comment" and layout_metrics.enabled(ext)
-    rows = lex(text, fam, keep_code=layout) if kind == "comment" else None
-    record_leftovers(data, path, rel, kind, text, added, rows, cfg, pats, pub)
-    if not added:
-        return 0
-
-    # Added-line checks
-    if kind == "comment":
-        problems = check_lines(rows, added, pats, pub, cfg)
-        labels = step_labels(rows, text.split("\n"), cfg)
-        exp = expected_script(rows, added, cfg, path, ext, labels)
-        if exp:
-            problems += [(ln, "language mismatch") for ln in language_lines(rows, added, exp, labels)]
-    else:
-        problems = doc_check(text, added, rel, cfg, pats, pub)
-    problems += [(ln, "invisible character") for ln in invisible_lines(text, added)]
-
-    # Layout of the functions this edit wrote or grew
     state_path = state_file(data.get("session_id"), data.get("agent_id"))
     state = load_state(state_path)
-    key = os.path.abspath(path)
-    recheck, shapes = layout_step(state, key, text, rows, added, ext, cfg) if layout else ([], [])
-    if not problems and not shapes and not recheck:
-        return 0
-
-    # One notice per (file, category); layout per (file, category, function)
-    seen = state["files"].get(key)
-    seen = seen if isinstance(seen, list) else []
-    fresh = [(ln, c) for ln, c in problems if c not in seen]
-    fresh_shapes = [(cat, name, desc, again) for cat, name, desc, again in shapes if again or "%s|%s" % (cat, name) not in seen]
-
-    # Remember notices and doc rechecks
-    state["files"][key] = seen + [c for c in dict.fromkeys(c for _, c in fresh)] + [
-        "%s|%s" % (cat, name) for cat, name, _, again in fresh_shapes if not again]
-    docs = [name for cat, name, _, again in fresh_shapes if cat == "doc summary" and not again]
-    state["doc_recheck"][key] = docs
-    if not state["doc_recheck"][key]:
-        del state["doc_recheck"][key]
-    if fresh or fresh_shapes or recheck:
-        try:
-            json.dump(state, open(state_path, "w"))
-        except OSError:
-            pass
-    if not fresh and not fresh_shapes:
-        return 0
-
-    # Comment notice text
-    allow = cfg.get("allow_chars") or []
-    parts = []
-    for cat in CATEGORY_ORDER:
-        lns = sorted({ln for ln, c in fresh if c == cat})
-        if not lns:
-            continue
-        if cat == "non-keyboard symbol":
-            det = symbol_detail(text, lns, allow)
-        elif cat == "invisible character":
-            det = invisible_detail(text, lns)
-        elif cat == "escaped character":
-            det = escape_detail(text, lns)
-        else:
-            det = ""
-        parts.append(f"{line_list(lns)} {cat}" + (f": {det}" if det else ""))
-    what, skill = ("comment", "comments") if kind == "comment" else ("agent-doc", "agent-docs")
-
-    # One tag for both notices (same level)
-    body = []
-    if parts:
-        body.append(f'{rel} may not follow the {what} conventions. {"; ".join(parts)}. '
-                    f'If a hit is real, the {NAME}:{skill} skill has the fix; false matches (quoted text, a needed symbol) can stay.')
-    if fresh_shapes:
-        order = {c: i for i, c in enumerate(layout_metrics.CATEGORIES)}
-        items = [(cat, desc, again) for cat, _, desc, again in sorted(fresh_shapes, key=lambda x: order[x[0]])]
-        body.append(f"{rel} layout (readable-code): " + layout_metrics.notice(items, layout_metrics.LANG_BY_EXT[ext]))
-    msg = f'<harness-hook name="{NAME}" level="info"{harness_nonce.attr(data.get("session_id"))}>{" ".join(body)}</harness-hook>'
-    json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": msg}}, sys.stdout, ensure_ascii=False)
+    body, dirty = file_notice(data, path, rel, kind, ext, cfg, text, added, state)
+    if dirty:
+        save_state(state_path, state)
+    if body:
+        json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": notice_tag(data, body)}},
+                  sys.stdout, ensure_ascii=False)
     return 0
 
 
