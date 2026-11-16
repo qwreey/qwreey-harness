@@ -185,12 +185,12 @@ const TOOL_SCHEMA = {
           { type: 'string' },
           {
             type: 'object',
-            properties: { text: { type: 'string' }, detail: { type: 'string' } },
+            properties: { text: { type: 'string' }, detail: { type: 'string' }, state: { type: 'string', enum: ['todo', 'doing', 'done'] } },
             required: ['text'],
           },
         ],
       },
-      description: 'set_plan: ordered steps, each a short title or {text: title, detail: a line under it}',
+      description: 'set_plan: ordered steps, each a short title or {text, detail?, state?}',
     },
     state: { type: 'string', enum: ['todo', 'doing', 'done'] },
   },
@@ -202,9 +202,10 @@ const str = (v: unknown): string | undefined => (typeof v === 'string' && v.trim
 const stepInput = (s: unknown): NewStep[] => {
   if (typeof s === 'string') return str(s) ? [{ text: s }] : []
   if (!s || typeof s !== 'object') return []
-  const { text, detail } = s as { text?: unknown; detail?: unknown }
+  const { text, detail, state } = s as { text?: unknown; detail?: unknown; state?: unknown }
   const title = str(text)
-  return title ? [{ text: title, detail: str(detail) }] : []
+  const given = state === 'todo' || state === 'doing' || state === 'done' ? state : undefined
+  return title ? [{ text: title, detail: str(detail), ...(given ? { state: given } : {}) }] : []
 }
 
 const optionsOf = (v: unknown) =>
