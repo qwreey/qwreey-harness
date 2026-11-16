@@ -19,11 +19,6 @@ Point-in-time measurements, reviews and debates (snapshots: never edit content, 
 | [24. 스킬 감사: 공식 모범 사례와 공식 스킬 짜임 대비](24-skill-audit.md) | 작성일 2026-11-11. 읽기 전용 감사다. 스킬 파일은 고치지 않았고, 시안(§5)은 이 문서 안에만 있다. 표시: [확인] 문서·파일에서 직접 읽음, [측정] 이 감사에서 센 값, [추정] 공식 자료에 없어 추론함, [미확인] 자료가 없음. | no frontmatter |
 | [.claude/audit/28 claude-doctor 저장소 감사 1패스: 목록과 측정](28-repo-audit-pass1.md) | 범위: 읽기 전용 측정. 판단과 개선안은 2패스(다른 검토자)가 한다. 기준 시점은 작업 트리 HEAD 6ca93be + 다른 에이전트가 고치는 중인 변경(conventions 플러그인, home/.claude/rules/comments.md, PLAN.md, README.md)이다.… | no frontmatter |
 | [.claude/audit/32 플러그인이 상시 맥락을 실을 수 있는가](32-plugin-ambient-context.md) | 조사일 2026-11-11, Claude Code 2.1.316. 문서는 /tmp/ccdocs 와 code.claude.com(output-styles) 기준. 실험은 /tmp/ambient (플러그인 `--plugin-dir`, sonnet, `-p`). | no frontmatter |
-| [43-levels-measure/ — coderag 단계 공개(L0/L1/L2) 실측](43-levels-measure/README.md) | Snapshot 2026-11-12. coderag 38d7920(플러그인 0.3.3)의 `search --level` 실측. 설계는 `.claude/research/coderag-format-and-levels.md` §4-§5, 사용자 결정은 §6-3("자동 펼침의 경우 실측부터"… | no frontmatter |
-| [44-search-output-tokens/ — coderag search 출력 토큰 절감 실측](44-search-output-tokens/README.md) | Snapshot 2026-11-12. coderag 3fd0944(플러그인 0.4.0)의 `search` 출력 형식 변경 실측. 근거: quad 3질의 23결과에서 절대경로가 글자의 30%(추정 토큰 약 18%), 꼬리표 약 7%. 사용자 결정 "추천대로"(A+C 기본, B 옵션). | no frontmatter |
-| [45-search-descriptions/ — coderag search 결과의 설명 줄: 얼마나 차지하고, 무엇을 줄여도 고르는 데 지장 없나](45-search-descriptions/README.md) | Snapshot 2026-11-12. coderag 3fd0944 위에 `--desc-max` 추가(커밋 0b0c724, 푸시 없음)로 잰 실측. 근거: audit/44 에서 결과 한 줄 설명(한글 약 1.6토큰/자)이 출력의 주비용. 사용자: "설명은 영어여도 될 수도 있겠다는 생각… | no frontmatter |
-| [46-coderag-agent-surface/ — 46. coderag 가 모델에게 보이는 것 전부: 스킬·MCP 도구 관점 검토](46-coderag-agent-surface/README.md) | Snapshot 2026-11-12. coderag 234c6c1(플러그인 0.4.2, `target/release`) 읽기 전용 검토. 다른 세션이 고치던 `crates/coderag-core/src/docs/stale.rs`(코드 주석 참조 스캐너)와 coderag/.claude/… | no frontmatter |
-| [47-coderag-code-quality/ — 47. coderag 코드 품질: 하드코딩, 중복, 바퀴의 재발명, 단순화 실패, 그리고 관례·훅 설계 입력](47-coderag-code-quality/README.md) | Snapshot 2026-11-12. coderag 7861ce8 에서 읽기 시작했고 검토 중 a4b518e 와 작업 트리 수정(다른 세션이 문구·작은 결함 수정 중)이 들어왔다. 위치는 파일 + 함수 이름으로 적는다(줄 번호는 움직인다). 읽기 전용이고 coderag `target/… | no frontmatter |
 <!-- coderag:end -->
 
 Multi-file audits:
@@ -32,21 +27,13 @@ Multi-file audits:
 - [31-home-claude-md-debate/](31-home-claude-md-debate/) - user-level CLAUDE.md rewrite, probes
 - [35-global-text-review/](35-global-text-review/) - review of model-facing text changed that day
 - [36-structure-survey/](36-structure-survey/) - sibling `.claude/` patterns and this repo's top-level layout
-- [37-coderag-records/](37-coderag-records/) - can coderag back the records system
 - [38-records-convention/](38-records-convention/) - records convention debate and synthesis
 - [39-records-experiment/](39-records-experiment/) - this restructure: questions, measure script, move map, results
 - [40-pack-scope-probes/](40-pack-scope-probes/) - pack scope probes
 - [41-knowledge-packs-debate/](41-knowledge-packs-debate/) - knowledge pack container and coderag process model debate
-- [42-memory-systems-survey/](42-memory-systems-survey/) - static survey of 8 agent memory systems
-- [43-levels-measure/](43-levels-measure/) - coderag L0/L1/L2 levels measurement
-- [44-search-output-tokens/](44-search-output-tokens/) - search output token cut (legend paths, tags, handles)
-- [45-search-descriptions/](45-search-descriptions/) - search summary line length and language vs picking accuracy
-- [46-coderag-agent-surface/](46-coderag-agent-surface/) - review of every coderag string a model sees (skill/MCP view)
-- [47-coderag-code-quality/](47-coderag-code-quality/) - coderag hardcoding, duplicates, reinvented wheels; convention input with measured precision
-- [49-records-description/](49-records-description/) - who writes search summary lines: descriptions required on new records incl. snapshots, write-time lint, no backfill
 - [51-precompact-omit/](51-precompact-omit/) - PreCompact stdout steers the compaction summary; plugins that re-inject a block at compact tell it to omit that block
-- [53-compact-pointer-restore/](53-compact-pointer-restore/) - compact pointers are harmless but add little on CC 2.1.316 (it restores 5 newest-mtime files, the summary keeps paths); no skill-budget push-outs; `coderag get` reads are not ledgered
 - [54-record-scopes/](54-record-scopes/) - records go to the nearest scope that owns their subject (`.claude/scopes/<path>/` for shipped folders, `<component>/.claude/` for separately owned ones); misplaced snapshots move with path rewrites
+- [55-readable-code-probe/](55-readable-code-probe/) - readable-code rule probe: 5 rule lines cut long unbroken functions 54% to 9% (4% with a layout alert), correctness unchanged; fixes to the rule and alert listed
 
 Audits about one plugin, pack or `home/` part live in that part's scope, `../scopes/<repo path>/audit/`, with the same numbers:
 - [scopes/packs/luau-kb/audit/](../scopes/packs/luau-kb/audit/) - 05, 08, 09, 11, 13 (Luau knowledge map, mines, gaps, upstream), 52-luau-kb-skill-descriptions/ (descriptions can shrink to 57% without losing triggers), drafts/ (drafts written during audits)
@@ -58,4 +45,4 @@ Audits about one plugin, pack or `home/` part live in that part's scope, `../sco
 - [scopes/plugins/qwreey-operator/audit/](../scopes/plugins/qwreey-operator/audit/) - 50-main-delegate/ (main talks, big implementation goes to a background subagent)
 - [scopes/home/.claude/audit/](../scopes/home/.claude/audit/) - 17 (hook message format)
 
-Audits about coderag (37, 42-47, 49, 53) moved to coderag `.claude/audit/` with the same numbers; cite them there. The copies here stay until the user removes them (HUMAN_TODO).
+Audits about coderag (37, 42-47, 49, 53) live in coderag `.claude/audit/` with the same numbers.

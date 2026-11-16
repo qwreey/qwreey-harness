@@ -14,7 +14,7 @@
   - quad 세션이 쓰고 있었다(lock). 그 세션이 끝난 뒤 정리한다.
 - [ ] `/code/Projects/stl-luau-doctor` worktree
   - stl-luau 세션이 `doctor/diet` 를 반영하고 나면 지운다: `git -C /code/Projects/stl-luau worktree remove ../stl-luau-doctor`
-- [ ] coderag 로 옮긴 기록의 claude-doctor 사본(coderag `.claude/audit/` 같은 번호, `.claude/research/coderag-format-and-levels.md`)
+- [x] coderag 로 옮긴 기록의 claude-doctor 사본(2026-11-16 사용자 승인으로 지움)(coderag `.claude/audit/` 같은 번호, `.claude/research/coderag-format-and-levels.md`)
   - coderag 쪽 병합과 그 저장소의 `raw/`(gitignore) 를 확인한 뒤: `git rm -r .claude/audit/{37,42,43,44,45,46,47,49,53}-*/ .claude/research/coderag-format-and-levels.md`, 남는 미추적 `raw/` 폴더도 지운다
   - 함께 고칠 것: `.claude/audit/README.md` 의 해당 표·목록 줄과 "moved to coderag" 줄, `.claude/research/README.md` 의 그 줄(`coderag gen && coderag static-gen --dir .claude/audit --dir .claude/handoff`)
 
