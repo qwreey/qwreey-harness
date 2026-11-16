@@ -19,7 +19,7 @@
     {
       "name": "qwreey-conventions",
       "source": "./plugins/qwreey-conventions",
-      "description": "주석·모델용 문서 관례: qwreey-conventions:comments(코드 주석: 이유만, 이력은 커밋으로, 키보드로 치는 문자, 파일 언어), qwreey-conventions:agent-docs(CLAUDE.md·SKILL.md·rules: 지금의 지시만, 이력은 옮긴다). 추가한 줄이 벗어나면 한 줄로 알리는 훅 포함. 구조 한도·셸 우회 쓰기·auto memory 배치 알림 훅, 경로 한정 rules 주입 훅(comments·agent-docs·code-structure·code-reuse·memory, 켜면 readable-code 와 layout 알림), 답변 언어 이탈 감지 훅도 포함"
+      "description": "주석·모델용 문서 관례: comments rule(코드 주석: 이유만, 이력은 커밋으로, 키보드로 치는 문자, 파일 언어, 기존 주석 정리는 /qwreey-conventions:comments-cleanup), qwreey-conventions:agent-docs(CLAUDE.md·SKILL.md·rules: 지금의 지시만, 이력은 옮긴다). 추가한 줄(Bash 로 쓴 것 포함)이 벗어나면 한 줄로 알리는 훅 포함. 구조 한도·셸 우회 쓰기·auto memory 배치 알림 훅, 경로 한정 rules 주입 훅(comments·agent-docs·code-structure·code-reuse·memory, 켜면 readable-code 와 layout 알림), 답변 언어 이탈 감지 훅도 포함"
     },
     {
       "name": "web-security",

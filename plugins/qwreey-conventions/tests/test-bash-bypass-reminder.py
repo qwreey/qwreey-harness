@@ -131,33 +131,54 @@ class PluginRules(unittest.TestCase):
         self.assertIn("readable-code (qwreey-conventions rule:", run(cmd, {"HARNESS_READABLE_CODE": "on"}))
 
 
-class ReadableCode(unittest.TestCase):
-    def test_layout_line_only_when_on_and_writing_code(self):
-        write = "python3 - <<'EOF'\nopen('src/k.luau','w').write('x')\nEOF"
-        self.assertNotIn("conventions-scan.py", run(write))
-        c = run(write, {"HARNESS_READABLE_CODE": "on"})
-        self.assertIn("conventions-scan.py layout src/k.luau", c)
-        self.assertIn('level="warn"', c)
-        self.assertNotIn("conventions-scan.py", run("python3 -c \"print(open('src/r.luau').read())\"", {"HARNESS_READABLE_CODE": "on"}))
-        self.assertNotIn("conventions-scan.py", run("sed -i 's/a/b/' notes.md", {"HARNESS_READABLE_CODE": "on"}))
-        self.assertIn("conventions-scan.py layout src/s.py", run("sed -i 's/a/b/' src/s.py", {"HARNESS_READABLE_CODE": "on"}))
+class OddInput(unittest.TestCase):
+    """Valid JSON of an unexpected shape never fails the hook (Pre and Post)."""
 
-    def test_redirect_outside_the_repo_is_not_a_code_change(self):
-        on = {"HARNESS_READABLE_CODE": "on"}
-        for cmd in ("cd %s && git diff src/a.luau > /tmp/x.luau" % PROJ, "cat src/a.luau > /tmp/a.luau"):
-            c = run(cmd, on)
-            self.assertIn('level="warn"', c, cmd)
-            self.assertNotIn("conventions-scan.py", c, cmd)
+    def test_odd_payloads_exit_zero(self):
+        post = os.path.join(ROOT, "hooks", "bash_writes.py")
+        e = dict(os.environ, TMPDIR=T, CLAUDE_CONFIG_DIR=CFG, CLAUDE_PROJECT_DIR=PROJ)
+        for raw in ("[1,2]", "null", '"s"', "3", '{"tool_input": "echo x > a.py"}', '{"tool_input": {"command": ["echo", "x"]}}',
+                    '{"tool_input": {"command": "echo x > a.py"}, "cwd": 5}', '{"tool_input": {"command": "echo x > a.py"}, "session_id": {}}',
+                    '{"tool_name": "Bash", "tool_input": null, "cwd": []}'):
+            for script in (HOOK, post):
+                r = subprocess.run([sys.executable, "-I", script], input=raw, capture_output=True, text=True, env=e, timeout=20)
+                self.assertEqual(r.returncode, 0, (script, raw, r.stderr[-300:]))
 
-    def test_layout_line_names_only_changed_files(self):
-        on = {"HARNESS_READABLE_CODE": "on"}
-        self.assertIn("conventions-scan.py layout src/b.luau` afterwards", run("cat src/a.luau > src/b.luau", on))
-        self.assertIn("conventions-scan.py layout src/t.ts` afterwards", run("cat a.ts | tee -a src/t.ts", on))
 
-    def test_quoted_paths(self):
-        on = {"HARNESS_READABLE_CODE": "on"}
-        self.assertIn("conventions-scan.py layout 'src/my file.luau'` afterwards", run("sed -i 's/a/b/' \"src/my file.luau\"", on))
-        self.assertIn("conventions-scan.py layout 'src/q r.ts'` afterwards", run("echo x > 'src/q r.ts'", on))
+class Snapshot(unittest.TestCase):
+    """쓰기 신호가 있으면 bash_writes 스냅숏을 남기고(PostToolUse 검사용), 없으면 아무것도 쓰지 않는다."""
+
+    def snap(self, cmd, env=None):
+        d = os.path.join(T, "claude-conventions", "bash")
+        before = set(os.listdir(d)) if os.path.isdir(d) else set()
+        run(cmd, env)
+        new = sorted(set(os.listdir(d)) - before) if os.path.isdir(d) else []
+        if not new:
+            return None
+        with open(os.path.join(d, new[0])) as f:
+            return json.load(f)
+
+    def test_write_signal_leaves_snapshot(self):
+        os.makedirs(os.path.join(PROJ, "src"), exist_ok=True)
+        with open(os.path.join(PROJ, "src", "my file.luau"), "w") as f:
+            f.write("local a = 1\n")
+        s = self.snap("sed -i 's/a/b/' \"src/my file.luau\"")
+        self.assertEqual(s["texts"].get(os.path.join(PROJ, "src", "my file.luau")), "local a = 1\n")
+        s = self.snap("echo x > 'src/q r.ts'")
+        self.assertIn(os.path.join(PROJ, "src", "q r.ts"), s["texts"])
+        self.assertIsNone(s["texts"][os.path.join(PROJ, "src", "q r.ts")])
+        self.assertIsNotNone(self.snap("python3 - <<'EOF'\nopen('src/k.luau','w').write('x')\nEOF"))
+
+    def test_no_snapshot_without_write_signal(self):
+        for cmd in ("cat src/a.luau", "python3 -c \"print(open('src/r.luau').read())\"", "cat src/a.luau > /tmp/a.luau",
+                    "cd %s && git diff src/a.luau > /tmp/x.luau" % PROJ):
+            self.assertIsNone(self.snap(cmd), cmd)
+
+    def test_no_layout_scan_line(self):
+        # The after-command check runs the layout notice itself, so the scan pointer is gone.
+        c = run("python3 - <<'EOF'\nopen('src/k.luau','w').write('x')\nEOF", {"HARNESS_READABLE_CODE": "on"})
+        self.assertNotIn("conventions-scan.py", c)
+        self.assertIn("still checks the lines it adds", run("sed -i 's/a/b/' src/s.py"))
 
 
 if __name__ == "__main__":

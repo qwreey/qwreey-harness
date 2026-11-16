@@ -38,15 +38,15 @@ MANIFEST 대상 아님. 근거 실측: `.claude/scopes/home/.claude/audit/17-hoo
 | self-match-guard | (플러그인 `qwreey-proc-guard`) `pgrep -f`·`pkill -f` 패턴이 자기 셸의 명령줄에 걸리고 while/until 루프 안: deny(끝나지 않는 이유, `pgrep -x`, 대괄호 꼴, `-A`, run_in_background 완료 알림) | action |
 | | 루프 밖 `pkill -f`: 자기 셸을 죽일 수 있음 | warn |
 | | 루프 밖 `pgrep -f`: 자기 셸도 찾음 | info |
-| bash-bypass-reminder | (플러그인 `qwreey-conventions`) 셸로 파일 변경(sed -i, 리다이렉트 등) | warn |
+| bash-bypass-reminder | (플러그인 `qwreey-conventions`) 셸로 파일 변경(sed -i, 리다이렉트 등): Edit\|Write 훅과 저장소 rules 는 안 돌고 qwreey-conventions 의 검사와 rules 는 명령 뒤에 온다는 것, 포맷터·검사기는 직접 | warn |
 | | 해당 rules 파일 안내(설치된 모든 플러그인의 `rules/` 포함, 쓰는 명령이면 먼저 읽고 읽기만 하면 할 것 없음): 쓰기 신호가 있으면 | warn |
 | | 같은 안내와 인터프리터 안내: 읽기만 하는 명령(쓰기 신호 없음) | info |
 | | 인터프리터로 쓰기 신호가 있는 스크립트(스크래치·생성 출력이면 할 것 없음) | warn |
-| | `HARNESS_READABLE_CODE=on` 이고 쓰기 신호가 있는 명령이 코드 파일을 담음: layout 알림이 Bash 편집을 못 보니 바꾼 함수가 있으면 `conventions-scan.py layout <file>` 을 돌려 걸린 것을 고치라는 한 줄(파일마다 한 번) | warn |
 | structure-reminder | (플러그인 `qwreey-conventions`) 강제 한도(1,500) 초과 | action |
 | | 경고 한도(800) 초과, 세션 성장, 잘못된 예외 사유 | warn |
 | | 유효한 예외 사유 안내, 접두 묶음 제안, 폴더 파일 과다(관련 파일이 묶이면 폴더 제안 고려, 의도된 평면 구성이면 할 것 없음) | info |
 | rules-inject | (플러그인 `qwreey-conventions`, `web-security` 도 같은 훅) PostToolUse. Read 뒤 경로가 맞는 rule 본문을 `<rule>` 태그 안에 주입. 이 키로 처음인 Edit·Write 뒤에는 "방금 쓴 것을 대조하고 어긋나는 것만 고쳐라" 한 문장(`Check what you wrote against them and fix only what conflicts.`, coderag `rules/mod.rs` 와 같은 문장)을 더함. deny 는 없음 | info |
+| | (qwreey-conventions 의 `bash_writes.py`, PostToolUse·PostToolUseFailure:Bash) Bash 명령이 바꾼 파일에 맞는 rule 중 이 맥락에 아직 안 넣은 것을 같은 마커·같은 문장으로. 같은 출력의 주석 알림 태그 뒤에 9,000자 안에 드는 것만, 나머지는 다음 Read·Edit | info |
 | reply-language | (플러그인 `qwreey-conventions`) 답변 언어 미설정: 요청에 먼저 답하고 답 끝에서 어느 언어로 답할지 물어 저장 명령 실행(첫 요청을 막지 않는다) | info |
 | reply-language | (같은 훅) Stop 에서 마지막 답변이 사용자 언어가 아님: 다시 쓰라는 block(글자 비율 검사라 코드·인용 출력에 걸릴 수 있다고 밝힌다. 코드·인용을 둘러싼 사용자 언어 산문이거나 사용자가 이번 턴에 다른 언어를 명시했으면 그대로 두고, 아니면 다시 쓴 답만 내며 언어·알림 언급과 사과 금지). 마지막 사용자 프롬프트 자체가 사용자 언어가 아니면 block 하지 않는다 | action |
 | reply-language | (같은 훅) 도구 호출 사이 텍스트가 사용자 언어가 아닌 듯함(진행 메모는 포함, 인용 출력·식별자는 제외. 알림 자체는 사용자에게 언급하지 않는다) | info |
@@ -63,7 +63,8 @@ MANIFEST 대상 아님. 근거 실측: `.claude/scopes/home/.claude/audit/17-hoo
 | workspace-gate | (qwreey-workspace 플러그인 `scripts/workspace_gate.py`, .claude/audit/31) 이 세션의 저장소가 아닌 `HARNESS_WORKSPACE/<X>` 에 쓰기(Edit·Write·MultiEdit·NotebookEdit, 쓰기로 분류된 Bash)를 qwreey-workspace:workspace 스킬 로드 전에 시도 → deny(`Load the qwreey-workspace:workspace skill (Skill tool), then retry`; 로드 표시는 세션·agent_id·compact 회차 단위). 예외는 통과, `HARNESS_WORKSPACE_GATE=off` 로 끔 | action |
 | | 형제 저장소 읽기(Read·Grep·Glob, 그 밖의 Bash) → compact 회차마다 한 번: 읽기는 괜찮고 바꾸려면 사용자 승인과 스킬이 먼저 | info |
 | stale-worktrees | (qwreey-workspace 플러그인 `scripts/stale_worktrees.py`, SessionStart startup·resume·clear, 메인만, 세션마다 한 번) 이 저장소에 `HARNESS_WORKSPACE_STALE_WORKTREE_DAYS`(기본 14)일 넘게 손대지 않았고 잠기지 않았고 살아 있는 세션이 없는 worktree, 또는 폴더가 사라진 등록: 끝난 작업일 수 있으니 정리할 때면 스킬의 잠금·세션 확인 뒤 사용자에게 묻기(사용자가 두는 것이면 할 것 없음). 지우는 명령은 적지 않는다 | info |
-| qwreey-conventions | (플러그인 `qwreey-conventions`. 예전 user-level `comment-hygiene` 훅을 대체한다. 같은 마이그레이션 0005 apply 에서 옛 훅을 빼고 플러그인을 켠다) 추가한 코드 주석 줄에 작업 이력·키보드로 치지 않는 문자·이스케이프·보이지 않는 문자·언어 불일치가 있거나, 모델용 문서 줄에 이력 표지가 있음. 파일·범주별 줄 번호와 글자·대체를 한 줄로(파일마다 범주당 회차당 한 번). 맞으면 스킬에 고치는 법, 오탐(인용, 필요한 기호)은 둬도 됨 | info |
+| qwreey-conventions | (플러그인 `qwreey-conventions`. 예전 user-level `comment-hygiene` 훅을 대체한다. 같은 마이그레이션 0005 apply 에서 옛 훅을 빼고 플러그인을 켠다) 추가한 코드 주석 줄에 작업 이력·키보드로 치지 않는 문자·이스케이프·보이지 않는 문자·언어 불일치가 있거나, 모델용 문서 줄에 이력 표지가 있음. 파일·범주별 줄 번호와 고치는 법(대체 문자, 코드포인트, 옮길 곳, 써야 할 언어)을 한 줄로(파일마다 범주당 회차당 한 번). 그 줄을 고치고 오탐(인용, 필요한 기호)은 두되 보고에 한 번 적으라고 끝맺는다. 주석 알림은 스킬을 가리키지 않는다(알림만으로 고칠 수 있게). 모델용 문서 알림은 agent-docs 스킬을 가리킨다 | info |
+| | (같은 훅의 Bash 경로, `bash_writes.py`, PostToolUse:Bash) Bash 명령(heredoc, sed -i, 인터프리터, tee, 리다이렉트)이 바꾼 파일의 추가 줄에 같은 알림. 여러 파일을 한 태그에 담고 끝 문장은 종류마다 한 번. 상태를 Edit 경로와 함께 써서 중복이 없다. 0 아닌 종료(PostToolUseFailure:Bash)도 같다. 알린 파일 10개, 2.5초, 출력 9,000자를 넘으면 남은 파일에 `N more files: run ... conventions-scan.py scan <경로>` 한 문장 | info |
 | | (같은 훅, `HARNESS_READABLE_CODE=on` 일 때만) 이번 편집이 거의 새로 쓰거나 15줄 이상 키운 함수의 읽기 모양: layout(본문 15줄 이상인데 빈 줄 없음 또는 20줄 넘게 이어짐), interleaved comment(문장 사이 여러 줄 주석), doc summary(공개 함수에 호버 꼴 문서 없음, 첫 줄 100자 초과, 첫 문장이 첫 줄에서 안 끝남; 메타메서드 제외, 다음 편집 뒤 한 번 더). 함수별 숫자를 근거로 주고 한 단계짜리 함수면 그대로 두라고 함. 주석 알림과 한 태그, (파일, 범주, 함수)마다 회차당 한 번 | info |
 | qwreey-advisor | (플러그인 `qwreey-advisor`, 옛 이름 second-opinion) 임계 이상 커밋(같은 명령의 `git add` 범위 포함)·같은 실패 2회·high 등급 계획 검토 권고(qwreey-advisor 리뷰어와 inherit-advisor fork 만 추적함을 밝히고, 기계적·문서만·이미 검토·사용자 생략이면 한 줄로 건너뜀. 계획 deny 모드는 action). 이름이 바뀌어도 상태 경로(`claude-second-opinion`)는 기존 기록과 이어지게 그대로 둔다 | warn |
 | | (같은 훅, UserPromptSubmit·PostToolBatch, 메인만) 검토가 아닌 서브에이전트의 보고에 권고·선택지·열린 질문이 있음: 사용자에게 넘겨 결정하게 할 거라면 inherit-advisor·fresh-advisor 가 먼저 볼 수 있다(직접 확인한 사실이나 그대로 전하는 질문이면 건너뜀). 에이전트마다 한 번, 끄기 `HARNESS_REVIEW_HANDBACK=off` | info |
