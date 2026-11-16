@@ -18,3 +18,4 @@ quad	/code/Projects/quad	61000	timeout 300 mise exec -- pesde install	codex reco
 stl-luau	/code/Projects/stl-luau	61001	-
 table-sim	/code/Projects/table-sim	61002	-	vendor/ is gitignored and absent from the worktree; AGENTS.md states the read exception
 tbox	/code/Projects/tbox	61003	-	was 61000 (collided with quad); the user removes files the old tbox-agy left owned by 61000 before the first run
+claude-doctor	/code/Projects/claude-doctor	61004	-	registered 2026-11-16	codex=61005
