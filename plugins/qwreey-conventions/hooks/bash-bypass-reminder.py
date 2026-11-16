@@ -10,7 +10,7 @@ level: 쓰기 신호(sed -i, 코드 파일로의 리다이렉트, 쓰기 신호�
   - Edit|Write 매처에 걸린 PostToolUse 훅(포맷터, 검사기)이 돌지 않는다.
   - 스킬은 description 이 맞을 때만 로드되므로, 스크립트로 일괄 수정할 때는 규약을 놓치기 쉽다.
 
-readable-code(HARNESS_READABLE_CODE=on)가 켜져 있고 쓰기 신호가 있는 명령이 코드 파일 경로를 담으면, 그 파일을
+readable-code(HARNESS_READABLE_CODE=on)가 켜져 있고 명령이 코드 파일을 바꿀 것 같으면(changed_files), 그 파일만
 `scripts/conventions-scan.py layout <file>` 로 확인하라는 한 줄을 더한다(conventions-check 의 layout 알림은 Edit|Write 만 본다). 파일마다 한 번.
 
 종류마다 세션당 한 번만 알린다. rules 파일 안내는 파일마다 세션당 한 번이다(프로젝트·사용자 rules 와 설치된 플러그인들의 rules/).
@@ -20,6 +20,7 @@ import importlib.util
 import json
 import os
 import re
+import shlex
 import sys
 import tempfile
 from pathlib import Path
@@ -106,16 +107,45 @@ INTERP = {"python", "python3", "node", "deno", "bun", "perl", "ruby", "lua", "lu
 PREFIX = {"(", "{", "time", "nice", "env", "command", "exec", "nohup", "sudo", "choom", "prlimit", "timeout", "--"}
 INPLACE = re.compile(r"\bsed\s+(-\S*\s+)*-i|\bperl\s+(-\S*\s+)*-\S*p\S*i|\bawk\s+-i\s+inplace|\bpatch\b|\bgit\s+apply\b")
 CODE_EXT = r"\.(luau|lua|py|ts|tsx|js|jsx|mjs|cjs|astro|vue|svelte|css|rs|go|json|toml|md|mdx|ya?ml|sh)"
-REDIRECT = re.compile(r"(?<![0-9&])>>?\s*['\"]?([^\s;|&'\"]+" + CODE_EXT + r")\b|\btee\s+(-a\s+)?['\"]?([^\s;|&'\"]+" + CODE_EXT + r")")
+# 셸 낱말 하나: 따옴표로 묶은 것(공백 포함)이나 공백, 따옴표, 연산자가 없는 덩어리
+WORD = r"""'[^'\n]*'|"[^"\n]*"|[^\s;|&'"<>()]+"""
+REDIRECT = re.compile(r"(?<![0-9&=-])>>?\s*(" + WORD + r")|\btee\s+(?:-a\s+)?(" + WORD + r")")
 # 인터프리터 스크립트가 쓰기를 한다는 신호(qwreey-workspace 플러그인 scripts/wslib.py 의 SCRIPT_WRITE 와 같은 패턴. 서로 import 하지 않아 복사해 둔다).
 # 읽기만 하는 python3 heredoc 이나 테스트 실행에 warn 을 내면 무겁다
 SCRIPT_WRITE = re.compile(r"""['"][wa]\+?b?['"]|write|unlink|rmtree|rename|\.replace\(|copyfile|appendFile|\bmkdir""")
 PATHLIKE = re.compile(r"[\w./@-]+" + CODE_EXT + r"\b")
+CODE_FILE = re.compile(CODE_EXT + r"$", re.I)
+QUOTED = re.compile(r"""'([^'\n]*)'|"([^"\n]*)\"""")
 
 
 def dedup_path(namespace, session_id, agent_id=None):
     """State file keyed by (session_id, compact epoch): compact_epoch.py(이 플러그인 자기 회차)."""
     return compact_epoch.state_path("qwreey-conventions", namespace, session_id, agent_id)
+
+
+def _unquote(word):
+    return word[1:-1] if len(word) >= 2 and word[0] == word[-1] and word[0] in "'\"" else word
+
+
+def redirect_targets(cmd):
+    """`>`, `>>`, `tee` 가 쓰는 코드 파일 경로(따옴표를 벗긴 것)."""
+    out = []
+    for m in REDIRECT.finditer(cmd):
+        target = _unquote(m.group(1) or m.group(2) or "")
+        if CODE_FILE.search(target):
+            out.append(target)
+    return out
+
+
+def cmd_paths(cmd):
+    """명령에 든 코드 파일 경로. 따옴표로 묶은 것은 공백이 있어도 통째로 하나다."""
+    paths = []
+    for m in QUOTED.finditer(cmd):
+        inner = m.group(1) if m.group(1) is not None else m.group(2)
+        if CODE_FILE.search(inner) and " " in inner.strip():
+            paths.append(inner)
+    bare = QUOTED.sub(lambda m: m.group(0) if " " not in m.group(0).strip("'\"").strip() else " ", cmd)
+    return set(paths) | {m.group(0) for m in PATHLIKE.finditer(bare)}
 
 
 def heads(cmd):
@@ -156,6 +186,27 @@ def describe(path, plugin_dirs, proj):
     return os.path.relpath(path, proj) if path.startswith(proj) else path.replace(os.path.expanduser("~"), "~")
 
 
+def _abs(path, cwd):
+    return os.path.normpath(path if os.path.isabs(path) else os.path.join(cwd, path))
+
+
+def _inside(path, root):
+    return path.startswith(os.path.normpath(root).rstrip("/") + "/")
+
+
+def changed_files(cmd, cwd, proj, targets, abs_paths, interp_writes):
+    """이 명령이 바꿀 것 같은 코드 파일(절대 경로). 저장소 밖으로의 리다이렉트(`git diff > /tmp/x`)는 넣지 않는다.
+
+    리다이렉트와 tee 는 그 대상만, 제자리 편집(sed -i, patch)과 쓰는 인터프리터 스크립트는 어느 경로를 쓰는지 몰라
+    명령에 든 경로를 다 넣되 리다이렉트로 저장소 밖에 쓰는 경로는 뺀다.
+    """
+    redirected = {_abs(t, cwd) for t in targets}
+    out = {t for t in redirected if _inside(t, proj)}
+    if INPLACE.search(cmd) or interp_writes:
+        out |= {ap for ap in abs_paths if ap not in redirected or _inside(ap, proj)}
+    return out
+
+
 def main():
     try:
         data = json.load(sys.stdin)
@@ -177,7 +228,8 @@ def main():
 
     notes = []
     levels = []  # info < warn < action; the tag carries the highest
-    writes = bool(INPLACE.search(cmd) or REDIRECT.search(cmd))
+    targets = redirect_targets(cmd)
+    writes = bool(INPLACE.search(cmd) or targets)
     interp = any(h in INTERP for h in hs)
     interp_writes = interp and bool(SCRIPT_WRITE.search(cmd))
     risky = writes or interp_writes  # 쓰기 신호가 없으면 규칙 안내와 인터프리터 안내는 info
@@ -202,8 +254,7 @@ def main():
         rules = load_rules([os.path.join(proj, ".claude", "rules"),
                             os.path.join(os.path.expanduser("~"), ".claude", "rules"),
                             *plugin_dirs])
-        paths = {m.group(0) for m in PATHLIKE.finditer(cmd)}
-        abs_paths = [os.path.normpath(p if os.path.isabs(p) else os.path.join(cwd, p)) for p in paths]
+        abs_paths = [_abs(p, cwd) for p in cmd_paths(cmd)]
         hit = [r for r, rxs in rules if r not in seen and any(rules_inject.rule_matches(rxs, ap, proj) for ap in abs_paths)]
         if hit:
             seen.update(hit)
@@ -212,11 +263,12 @@ def main():
             notes.append("Rules that apply to files this command touches: " + ", ".join(rel) + ". If this command writes these files, read the rules first if you have not; read-only commands need nothing.")
 
         # Readable-code check for code files this command writes
-        code = sorted(ap for ap in abs_paths if os.path.splitext(ap)[1].lower() in layout_metrics.LANG_BY_EXT and "layout:" + ap not in seen)
-        if risky and code and conv_env.is_on("HARNESS_READABLE_CODE"):
+        changed = changed_files(cmd, cwd, proj, targets, abs_paths, interp_writes)
+        code = sorted(ap for ap in changed if os.path.splitext(ap)[1].lower() in layout_metrics.LANG_BY_EXT and "layout:" + ap not in seen)
+        if code and conv_env.is_on("HARNESS_READABLE_CODE"):
             seen.update("layout:" + ap for ap in code)
             levels.append("warn")
-            shown = " ".join(os.path.relpath(ap, proj) if ap.startswith(proj.rstrip("/") + "/") else ap for ap in code[:4])
+            shown = " ".join(shlex.quote(os.path.relpath(ap, proj) if _inside(ap, proj) else ap) for ap in code[:4])
             notes.append("The readable-code layout notice does not see Bash edits: if this command changes functions, run "
                          f"`python3 -I {LAYOUT_SCAN} layout {shown}` afterwards and fix what it flags in the functions you changed.")
 

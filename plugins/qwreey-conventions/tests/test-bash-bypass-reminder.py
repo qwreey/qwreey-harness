@@ -142,6 +142,23 @@ class ReadableCode(unittest.TestCase):
         self.assertNotIn("conventions-scan.py", run("sed -i 's/a/b/' notes.md", {"HARNESS_READABLE_CODE": "on"}))
         self.assertIn("conventions-scan.py layout src/s.py", run("sed -i 's/a/b/' src/s.py", {"HARNESS_READABLE_CODE": "on"}))
 
+    def test_redirect_outside_the_repo_is_not_a_code_change(self):
+        on = {"HARNESS_READABLE_CODE": "on"}
+        for cmd in ("cd %s && git diff src/a.luau > /tmp/x.luau" % PROJ, "cat src/a.luau > /tmp/a.luau"):
+            c = run(cmd, on)
+            self.assertIn('level="warn"', c, cmd)
+            self.assertNotIn("conventions-scan.py", c, cmd)
+
+    def test_layout_line_names_only_changed_files(self):
+        on = {"HARNESS_READABLE_CODE": "on"}
+        self.assertIn("conventions-scan.py layout src/b.luau` afterwards", run("cat src/a.luau > src/b.luau", on))
+        self.assertIn("conventions-scan.py layout src/t.ts` afterwards", run("cat a.ts | tee -a src/t.ts", on))
+
+    def test_quoted_paths(self):
+        on = {"HARNESS_READABLE_CODE": "on"}
+        self.assertIn("conventions-scan.py layout 'src/my file.luau'` afterwards", run("sed -i 's/a/b/' \"src/my file.luau\"", on))
+        self.assertIn("conventions-scan.py layout 'src/q r.ts'` afterwards", run("echo x > 'src/q r.ts'", on))
+
 
 if __name__ == "__main__":
     unittest.main()
