@@ -139,16 +139,18 @@ fail-closed 규칙: 알 수 없는 플랫폼·버전은 격리 없음(codex 는 
 
 | 항목 | 설계 |
 |---|---|
-| worktree 모드 | 지금과 같이 `git worktree add --detach <사본> <commit>`. uid 백엔드면 사본·admin dir·task_home 을 chown. 공유 clone 도 검토했으나 agy 파일 도구가 풀려 있으면 어느 쪽이든 메인에 쓸 수 있고, `git worktree list` 로 찾는 장점을 잃어 택하지 않음 |
+| worktree 모드 | 지금과 같이 `git worktree add --detach <사본> <commit>`. uid 백엔드면 사본·admin dir·task_home 을 그 에이전트의 uid 로 chown(fd 기반 `os.fwalk`, 링크는 따라가지 않음). registry 의 setup 줄은 작업 uid 로, 작업의 빈 환경 + mise(자기 폴더를 PATH 에, `MISE_DATA_DIR` = `HARNESS_TOOL_INSTALLS` 의 부모)로 돈다. 공유 clone 도 검토했으나 agy 파일 도구가 풀려 있으면 어느 쪽이든 메인에 쓸 수 있고, `git worktree list` 로 찾는 장점을 잃어 택하지 않음 |
 | empty 모드 | 빈 폴더(지금과 같음). `--files` 를 주면 `--ref` 커밋의 **추적 파일만** `git ls-tree`·`git cat-file --batch` 로 복사(추적 안 되는 `.env` 는 처음부터 안 들어감). 비밀 이름 거름: 기본 `.env*`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `id_rsa*`, `id_ed25519*`, `.npmrc`, `.pypirc`, `.netrc`, `.git-credentials`, `*credentials*.json`, `.claude/harness.local.env`, `.claude/settings.local.json` + `HARNESS_DELEGATE_SECRET_GLOBS` |
-| 수집 | `collect` 가 `runs/<YYYYMMDD-HHMM>-<name>/` 에 prompt, report, guard, meta, stdout, state, `acp.jsonl`/`events.jsonl`, worktree 면 `diff.patch`(새 파일 포함, 참고용), agy 의 `brain/*/scratch` 와 transcript. empty 는 diff 없음(변경은 버림) |
-| 정리 | `remove`(collect 전 거절, `--discard`), `gc`(미리보기 기본, 옛 꼴 인식 유지). "프로세스가 사본 안에서 도는지" 는 Linux `/proc/*/cwd` 만, 다른 OS 는 실행 잠금으로 판단 |
-| 실행 잠금 | `.delegate/run.lock` 을 실행 내내 잡는다(POSIX `fcntl.flock`, Windows `msvcrt.locking`). 잡을 수 없으면 running. pid 재사용과 남은 잠금 파일 문제가 없다(`O_EXCL` 대신) |
-| 동시 실행 | 상태 폴더 `slots/<agent>-<n>.lock` N 개 중 빈 것을 비차단으로 잡음(N = `HARNESS_DELEGATE_MAX_CONCURRENT`, 저장소 합계) |
+| 실행 기록 | `<작업 폴더>/.runs/<name>/`(root 소유, 폴더 0700·파일 0600): state.json, run.lock, prompt.md, meta.txt, stdout.txt, guard.txt, exit, 보고서 사본 report.md. 작업 uid 가 쓰는 곳은 `<name>/.delegate/`(report.md, codex `-o`)와 `<name>/REPORT.md` 뿐이고, root 는 chown 뒤 작업 쪽 폴더(`<name>/`, `.homes/<name>/`)에 쓰지 않는다. 거기서 읽을 때는 root 소유 작업 폴더에서 연 fd 로 한 단계씩 O_NOFOLLOW(링크·FIFO 거절, 크기 상한). 끝난 뒤 보고서를 기록으로 복사하고 `run` 은 그 사본 경로를 알린다 |
+| 수집 | `collect` 가 `runs/<YYYYMMDD-HHMM>-<name>/`(0700, 파일 0600)에 기록의 prompt, report, guard, meta, stdout, state, exit, worktree 면 `diff.patch`(새 파일 포함, 참고용. git 은 작업 uid 로, 새 객체는 작업 HOME 의 객체 폴더에, 메인 `.git/objects` 는 alternate 로 읽기만), agy 의 `brain/*/scratch` 와 transcript(fd 로 걸어 링크 제외, "이후" 기준은 기록의 시작 시각). empty 는 diff 없음(변경은 버림) |
+| 정리 | `remove`(실행 중·collect 전 거절, `--discard`): 사본을 `shutil.rmtree`(작업 쪽 트리 안에서 git 을 돌리지 않음), 기록의 admin 경로가 `<root>/.git/worktrees/` 아래면 지운 뒤 `git worktree prune`, HOME 과 기록 폴더 삭제. collect·remove 전과 실행이 끝난 직후에 그 uid 의 남은 프로세스를 `/proc` 로 찾아 끝낸다(그 uid 의 실행 잠금이 비어 있을 때만). `gc`(미리보기 기본, 옛 꼴 인식 유지, 작업 사본 없는 기록도 알림). "프로세스가 사본 안에서 도는지" 는 Linux `/proc/*/cwd` 만, 다른 OS 는 실행 잠금으로 판단 |
+| 실행 잠금 | 기록의 `run.lock` 을 실행 내내 잡는다(POSIX `fcntl.flock`, Windows `msvcrt.locking`). 잡을 수 없으면 running. pid 재사용과 남은 잠금 파일 문제가 없다(`O_EXCL` 대신) |
+| 동시 실행 | 상태 폴더 `slots/<agent>-<n>.lock` N 개 중 빈 것을 비차단으로 잡음(N = `HARNESS_DELEGATE_MAX_CONCURRENT`, 저장소 합계). 그와 별개로 `uids/<uid>.lock` 으로 uid 하나에 작업 하나 |
+| uid | uid 백엔드는 (저장소, 에이전트)마다 uid 하나. registry.tsv 여섯째 열 `codex=<uid>`(쉼표로 여럿)이 그 에이전트의 uid 이고, agy 와 여섯째 열에 없는 에이전트는 셋째 열. 그래서 같은 저장소의 agy·codex 가 서로의 사본·HOME·인증 사본에 닿지 않고 나란히 돈다. 여섯째 열이 없는 옛 줄은 둘이 셋째 열을 나눠 하나씩 돌고(`doctor` WARN), `register <root>` 가 빠진 uid 를 채운다. delegate.sh 는 넷째 열까지만 읽으므로 옛 동작 그대로 |
 | 프로세스 트리 | POSIX `start_new_session` + `killpg`, Windows Job Object(ctypes, 닫히면 종료) [추정, 미측] |
 | 상태 폴더 | Linux `$XDG_STATE_HOME/qwreey-delegate`(기본 `~/.local/state`), macOS `~/Library/Application Support/qwreey-delegate`, Windows `%LOCALAPPDATA%\qwreey-delegate`(동기화되지 않는 로컬 폴더). 슬롯 잠금, 미끼 파일을 둔다 |
 | 작업 폴더 위치 | uid 백엔드: 지금처럼 `<dirname(ROOT)>/<key>-<agent>/`(uid 소유 chown, 기존 runs). uid 없음: `<상태 폴더>/work/<key>-<ROOT 해시 8자>-<agent>/{<name>/, .homes/, .hooks/, runs/}`. 해시는 이름이 같은 두 저장소를 가른다. `runs/` 는 보존 기록이라 임시 폴더가 아니라 상태 폴더. `list`·`gc` 는 두 위치를 다 본다 |
-| state.json | 원자적 쓰기(임시 파일 + `os.replace`). 필드: agent, mode, isolation 백엔드, repo, commit, model, started/finished, rc, collected, token_refreshed |
+| state.json | 기록 폴더 안, 원자적 쓰기(임시 파일 + `os.replace`). 필드: agent, mode, isolation 백엔드, repo, root, uid, commit, ref, model, effort, pid, started/started_ts/finished, rc, admin, collected, token_refreshed. 기록이 있는 실행은 작업 쪽 `.delegate/` 의 pid·exit·collected 를 보지 않는다(작업이 무엇이든 쓸 수 있다). delegate.sh 의 옛 작업은 그 파일들을 fd 로 읽기만 하고 쓰지 않는다. 그래서 delegate.sh 는 이 드라이버의 실행을 `unknown` 으로 보고 동시 실행에 세지 않는다: M4 에서 한 번에 넘어간다 |
 
 ## 7. 설정
 
@@ -173,7 +175,7 @@ harness.env 층(`load_layers(ROOT)`) 하나로 읽는다. 옛 `DELEGATE_*` 이�
 - 새 키는 정본 `home/.claude/lib/harness_env.py` 의 `DEFAULTS`·`USER_ONLY` 에 넣고 `python3 -I tools/sync-copies.py --apply`, `tools/tests/test-harness-env.py` 에 USER_ONLY 검사 추가.
 - 설치된 `~/.claude/lib/harness_env.py` 가 옛 판이라 새 USER_ONLY 키를 모르면 저장소 층이 격리를 풀 수 있다. 드라이버는 `installed()` 모듈의 `USER_ONLY` 가 위 "예" 키를 모두 포함하는지 보고, 아니면 자기 옆 사본을 쓴다.
 - `DELEGATE_AGY_FULL_HOME` 은 없앤다(토큰 하나로 인증됨 [실측]). print 대체 경로에서만 M4 까지 유지.
-- `registry.tsv`: uid 백엔드 전용으로 남긴다(열·`register` 그대로). uid 가 없는 환경은 등록 없이 돈다: key = `basename(ROOT)`, setup 없음(registry 에 줄이 있으면 setup 을 쓰되 사용자 권한으로). setup 은 명령 실행이므로 저장소 층으로 옮기지 않는다.
+- `registry.tsv`: uid 백엔드 전용으로 남긴다. 에이전트별 uid 열(§6 uid 행)을 더했고 `register` 는 에이전트마다 uid 를 준다. uid 가 없는 환경은 등록 없이 돈다: key = `basename(ROOT)`, setup 없음(registry 에 줄이 있으면 setup 을 쓰되 사용자 권한으로). setup 은 명령 실행이므로 저장소 층으로 옮기지 않는다.
 
 ## 8. Python 제약
 

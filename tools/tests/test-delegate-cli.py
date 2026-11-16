@@ -113,10 +113,24 @@ class Arguments(Base):
         p = self.ok("register", new)
         line = f.registry.read_text().splitlines()[-1].split("\t")
         self.assertEqual(line[:2], ["second", str(new)])
+        self.assertEqual(line[3], "-")
+        codex = int(line[5].removeprefix("codex="))
         self.assertGreaterEqual(int(line[2]), 61000)
-        self.assertNotEqual(int(line[2]), f.uid)
-        self.assertIn(f"registered: second {new} uid={line[2]}", p.stdout)
+        self.assertEqual(len({int(line[2]), codex, f.uid, f.codex_uid}), 4, "uid 는 저장소와 에이전트마다 하나")
+        self.assertIn(f"registered: second {new} agy={line[2]} codex={codex}", p.stdout)
         self.assertIn("already registered", self.fails(2, "register", new).stderr)
+        # 옛 꼴(uid 하나) 줄은 register 가 codex uid 를 채운다. 다른 줄과 메모는 그대로.
+        old = f.add_repo("old", per_agent=False)
+        before = f.registry.read_text().splitlines()
+        p = self.ok("register", old)
+        after = f.registry.read_text().splitlines()
+        self.assertEqual(before[:-1], after[:-1])
+        cols = after[-1].split("\t")
+        self.assertEqual(cols[:4], before[-1].split("\t")[:4])
+        self.assertEqual(cols[4], "-")
+        self.assertRegex(cols[5], r"^codex=\d+$")
+        self.assertIn(f"registered: old {old} {cols[5]}", p.stdout)
+        self.assertIn("already registered", self.fails(2, "register", old).stderr)
         third = f.ws / "third"
         third.mkdir()
         git("init", "-q", cwd=third)
@@ -280,9 +294,31 @@ class LifecycleChecks:
         self.assertIn(f"HOME={f.base('agy') / '.homes' / 't1'}", (wt / "setup-env").read_text())
 
 
+    def check_setup_with_mise(self):
+        f = self.f
+        misebin, tools, data = f.fake_mise()
+        f.user_env((f.cfg / "harness.env").read_text() + f"HARNESS_TOOL_INSTALLS={data / 'installs'}\n")
+        f.registry.write_text(f.registry.read_text().replace("\t-\ttest", "\ttimeout 300 mise exec -- pesde install\ttest"))
+        env = f.env(PATH=f"{f.bin}:{misebin}:/usr/bin:/bin" + (":/usr/sbin:/sbin" if self.real else ""))
+        p = self.ok("run", "agy", "t1", f.prompt, env=env)
+        self.assertNotIn("setup failed", p.stderr)
+        wt = f.base("agy") / "t1"
+        self.assertTrue((wt / "pesde-installed").exists())
+        self.assertEqual((wt / "setup-path").read_text().strip(), f"{tools}:{misebin}:/usr/bin:/bin")
+        self.assertEqual((wt / "setup-mise-data").read_text().strip(), str(data))
+        if self.real:
+            self.assertEqual((wt / "setup-uid").read_text().strip(), str(f.uid))
+        agent_env = f.calls("agy")[0]["env"]
+        self.assertEqual(agent_env["PATH"], f"{tools}:/usr/bin:/bin", "에이전트 PATH 에는 mise 가 없다")
+        self.assertNotIn("MISE_DATA_DIR", agent_env)
+
+
 class Lifecycle(Base, LifecycleChecks):
     def test_setup_runs_as_the_task(self):
         self.check_setup_runs_as_the_task()
+
+    def test_setup_gets_mise(self):
+        self.check_setup_with_mise()
 
     def test_agy_worktree_run_collect_remove(self):
         self.check_agy_worktree()
@@ -406,7 +442,7 @@ class Lifecycle(Base, LifecycleChecks):
 class Concurrency(Base):
     def test_live_shell_run_counts(self):
         f = self.f
-        other = f.add_repo("proj2")
+        other = f.add_repo("proj2", per_agent=False)
         # delegate.sh 의 살아 있는 작업: pid 파일만 있고 기록 폴더가 없음. 이 시험 프로세스의 pid 로 흉내.
         live = f.ws / "proj2-agy" / "sh-run" / ".delegate"
         live.mkdir(parents=True)
@@ -417,7 +453,8 @@ class Concurrency(Base):
         self.assertRegex(self.ok("list", "--repo", "proj2").stdout, r"\n  sh-run +running ")
         self.ok("run", "codex", "x", f.prompt)  # 한도는 에이전트마다
         p = self.fails(5, "run", "codex", "y", f.prompt, cwd=other)
-        self.assertIn("another task of uid", p.stderr, "같은 저장소(같은 uid)의 delegate.sh 작업이 돌고 있다")
+        self.assertIn("another task of uid", p.stderr, "옛 꼴 줄: delegate.sh 의 agy 작업과 codex 가 uid 를 나눈다")
+        self.assertIn(f"register {other}' gives each agent its own uid", p.stderr)
 
     def test_running_driver_holds_a_slot_and_the_uid(self):
         f = self.f
@@ -428,8 +465,11 @@ class Concurrency(Base):
             self.assertTrue(f.wait_for(f.ctl / "started"), "가짜 agy 가 시작하지 않았다")
             p = self.fails(5, "run", "agy", "a2", f.prompt, "--repo", "proj2")
             self.assertIn("1 agy task(s) already running", p.stderr)
-            p = self.fails(5, "run", "codex", "c1", f.prompt)
-            self.assertIn(f"another task of uid {f.uid} (proj) is running", p.stderr, "agy 와 codex 가 uid 를 나눈다")
+            p = self.fails(5, "run", "agy", "a3", f.prompt, env=f.env(HARNESS_DELEGATE_MAX_CONCURRENT="2"))
+            self.assertIn(f"another task of uid {f.uid} (proj) is running; one task per uid at a time", p.stderr,
+                          "같은 저장소의 같은 에이전트는 한도가 남아도 uid 하나에 작업 하나")
+            self.ok("run", "codex", "c1", f.prompt)  # 같은 저장소의 codex 는 자기 uid 로 나란히 돈다
+            self.assertIn(f"--reuid={f.codex_uid} ", (f.ctl / "setpriv.log").read_text())
             self.assertRegex(self.ok("list").stdout, r"\n  a1 +running ")
             self.assertIn("still running: agy/a1", self.fails(2, "collect", "agy", "a1").stderr)
             self.assertIn("still running", self.fails(2, "remove", "agy", "a1", "--discard").stderr)
@@ -453,6 +493,21 @@ class Concurrency(Base):
         self.assertRegex(self.ok("list").stdout, r"\n  c1 +finished ")
         self.assertIn("not collected yet", self.fails(2, "remove", "codex", "c1").stderr)
         self.ok("run", "codex", "c2", f.prompt)
+
+
+    def test_old_row_shares_one_uid(self):
+        f = self.f
+        f.add_repo("shared", per_agent=False)
+        (f.ctl / "block").write_text("1")
+        a = f.start("run", "agy", "a1", f.prompt, "--repo", "shared")
+        try:
+            self.assertTrue(f.wait_for(f.ctl / "started"))
+            p = self.fails(5, "run", "codex", "c1", f.prompt, "--repo", "shared")
+            self.assertIn("agy and codex of shared share it", p.stderr)
+        finally:
+            (f.ctl / "release").write_text("1")
+            a.communicate(timeout=60)
+        self.assertIn("WARN agy and codex share uid", self.ok("doctor", "--repo", "shared").stdout)
 
 
 class Signals(Base):
@@ -523,9 +578,15 @@ class Doctor(Base):
 
     def test_duplicates_reported(self):
         f = self.f
+        other = f.add_repo("proj3")
+        f.registry.write_text(f.registry.read_text() + f"proj4\t{other}x\t62990\t-\t-\tcodex={f.codex_uid}\n")
+        p = self.ok("doctor", "--repo", "proj")
+        self.assertIn(f"  FAIL duplicate uid: {f.codex_uid}", p.stdout, "여섯째 열의 uid 도 센다")
+        self.assertIn(f"== proj  root={f.repo}  agy={f.uid}  codex={f.codex_uid}", p.stdout)
+        self.assertNotIn("WARN agy and codex share", p.stdout)
         f.registry.write_text(f.registry.read_text() + f"proj2\t{f.repo}\t{f.uid}\t-\n")
         p = self.ok("doctor", "--repo", "proj")
-        self.assertIn(f"  FAIL duplicate uid: {f.uid}", p.stdout)
+        self.assertRegex(p.stdout, rf"  FAIL duplicate uid: .*\b{f.uid}\b")
         self.assertIn(f"  FAIL duplicate root: {f.repo}", p.stdout)
 
 
@@ -548,9 +609,29 @@ class RealUid(Base, LifecycleChecks):
     def test_setup_runs_as_the_task(self):
         self.check_setup_runs_as_the_task()
 
-    def test_codex_empty(self):
+    def test_setup_gets_mise(self):
+        self.check_setup_with_mise()
+
+    def test_codex_empty_runs_as_its_own_uid(self):
         p = self.ok("run", "codex", "c1", self.f.prompt)
         self.assertIn("codex answer", (self.f.rec("codex", "c1") / "report.md").read_text(), p.stdout)
+        self.assertEqual(self.f.calls("codex")[0]["uid"], self.f.codex_uid)
+        self.assertEqual((self.f.base("codex") / "c1").lstat().st_uid, self.f.codex_uid)
+        self.ok("collect", "codex", "c1")
+        self.ok("remove", "codex", "c1")
+
+    def test_agy_and_codex_of_one_repo_in_parallel(self):
+        f = self.f
+        (f.ctl / "block").write_text("1")
+        a = f.start("run", "agy", "a1", f.prompt)
+        try:
+            self.assertTrue(f.wait_for(f.ctl / "started"))
+            self.ok("run", "codex", "c1", f.prompt)
+        finally:
+            (f.ctl / "release").write_text("1")
+            out, err = a.communicate(timeout=60)
+        self.assertEqual(a.returncode, 0, out + err)
+        self.assertEqual({c["uid"] for c in f.calls("agy") + f.calls("codex")}, {f.uid, f.codex_uid})
 
     def test_process_that_left_the_group_is_killed(self):
         f = self.f

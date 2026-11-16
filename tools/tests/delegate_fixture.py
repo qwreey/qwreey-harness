@@ -82,7 +82,14 @@ ctl = Path({ctl!r})
 prompt = sys.stdin.read()
 args = sys.argv
 (ctl / f"codex-{{os.getpid()}}.json").write_text(json.dumps({{"argv": args, "cwd": os.getcwd(), "env": dict(os.environ),
-    "stdin": prompt}}))
+    "stdin": prompt, "uid": os.getuid()}}))
+if (ctl / "block-codex").exists():
+    import time
+    (ctl / "codex-started").write_text("1")
+    for _ in range(600):
+        if (ctl / "release").exists():
+            break
+        time.sleep(0.05)
 out = args[args.index("-o") + 1]
 Path(out).write_text("codex answer\\n")
 print("codex log line")
@@ -118,6 +125,7 @@ class Fixture:
         self.repo = self.ws / "proj"
         self.registry = self.tmp / "registry.tsv"
         self.uid = free_uid()
+        self.codex_uid = free_uid(self.uid + 1)
         for p in (self.ctl, self.bin, self.cfg, self.repo):
             p.mkdir(parents=True)
         self._victims()
@@ -133,7 +141,7 @@ class Fixture:
         (self.repo / "AGENTS.md").write_text("# map\n")
         git("add", ".", cwd=self.repo)
         git("commit", "-q", "-m", "base", cwd=self.repo)
-        self.registry.write_text(f"# test registry\nproj\t{self.repo}\t{self.uid}\t-\ttest\n")
+        self.registry.write_text(f"# test registry\nproj\t{self.repo}\t{self.uid}\t-\ttest\tcodex={self.codex_uid}\n")
         self.user_env(f"HARNESS_DELEGATE_REGISTRY={self.registry}\nHARNESS_DELEGATE_AGY_BIN={self.bin / 'agy'}\n"
                       f"HARNESS_DELEGATE_CODEX_BIN={self.bin / 'codex'}\nHARNESS_HEAVY_WRAP=\n")
         self.prompt = self.tmp / "prompt.md"
@@ -183,8 +191,8 @@ class Fixture:
     def user_env(self, text):
         (self.cfg / "harness.env").write_text(text)
 
-    def add_repo(self, key):
-        """registry 에 저장소 하나를 더한다(다른 uid). 그 저장소 경로."""
+    def add_repo(self, key, per_agent=True):
+        """registry 에 저장소 하나를 더한다(다른 uid). per_agent=False 는 옛 꼴(agy, codex 가 uid 하나). 그 저장소 경로."""
         repo = self.ws / key
         repo.mkdir()
         if self.real:
@@ -193,10 +201,38 @@ class Fixture:
         (repo / "f.txt").write_text("x\n")
         git("add", ".", cwd=repo)
         git("commit", "-q", "-m", "base", cwd=repo)
-        uid = free_uid(self.uid + 1)
+        used = [int(u) for ln in self.registry.read_text().splitlines() if not ln.startswith("#")
+                for u in [ln.split("\t")[2]] + [x.split("=")[1] for x in (ln.split("\t") + [""] * 6)[5].split(",") if x]]
+        uid = free_uid(max(used) + 1)
+        extra = f"\t-\tcodex={free_uid(uid + 1)}" if per_agent else ""
         with open(self.registry, "a") as f:
-            f.write(f"{key}\t{repo}\t{uid}\t-\n")
+            f.write(f"{key}\t{repo}\t{uid}\t-{extra}\n")
         return repo
+
+    def fake_mise(self):
+        """가짜 mise(ls --current --json, bin-paths, exec)와 그것이 고정하는 가짜 pesde. (mise 폴더, 도구 폴더, 데이터 폴더)."""
+        misebin, tools, data = self.tmp / "misebin", self.tmp / "tools" / "pesde" / "bin", self.tmp / "misedata"
+        for p in (misebin, tools, data / "installs"):
+            p.mkdir(parents=True)
+        (misebin / "mise").write_text(f"""#!{sys.executable}
+import json, os, sys
+a = sys.argv[1:]
+if a[:3] == ["ls", "--current", "--json"]:
+    print(json.dumps({{"pesde": [{{"installed": True, "source": {{"path": os.path.join(os.getcwd(), "mise.toml")}}}}]}}))
+elif a[:1] == ["bin-paths"]:
+    print({str(tools)!r})
+elif a[:1] == ["exec"]:
+    i = a.index("--")
+    os.execvp(a[i + 1], a[i + 1:])
+""")
+        (tools / "pesde").write_text('#!/bin/sh\necho "$PATH" > setup-path\necho "$MISE_DATA_DIR" > setup-mise-data\n'
+                                     'id -u > setup-uid\ntouch pesde-installed\n')
+        for p in (misebin / "mise", tools / "pesde"):
+            p.chmod(0o755)
+        if self.real:
+            for p in (self.tmp / "tools", self.tmp / "tools" / "pesde", tools, misebin):
+                p.chmod(0o755)
+        return misebin, tools, data
 
     def env(self, **extra):
         env = {k: v for k, v in os.environ.items()

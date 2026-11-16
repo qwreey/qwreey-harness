@@ -131,9 +131,9 @@ def kill_uid(uid):
     return killed
 
 
-def select_backend(repo):
+def select_backend(repo, agent):
     """The isolation for a run. Detection of other backends and the fall back to `empty` belong here."""
-    backend = UidBackend(repo.uid)
+    backend = UidBackend(repo.uid_for(agent))
     why = backend.unavailable()
     if why:
         ws.die(f"{why}. Without isolation only a Claude subagent is available here", ws.EXIT_REFUSED)
@@ -182,6 +182,22 @@ def task_env(home, tools, hooks, keep_env, extra=None):
     })
     env.update(extra or {})
     return env
+
+
+def setup_env(env, installs):
+    """The task environment for the registry's setup line, plus mise: its own folder on PATH (setup lines such as
+    `mise exec -- pesde install` call it) and MISE_DATA_DIR at the installs HARNESS_TOOL_INSTALLS names. Without the
+    latter mise looks in the task's empty HOME, reports every pinned tool as missing and tries to download it."""
+    mise = shutil.which("mise")
+    if not mise:
+        return env
+    out = dict(env)
+    head = out["PATH"].removesuffix(BASE_PATH).rstrip(":")
+    out["PATH"] = ":".join(p for p in (head, os.path.dirname(mise), BASE_PATH) if p)
+    data = Path(installs).parent if installs and Path(installs).name == "installs" else None
+    if data and data.is_dir():
+        out["MISE_DATA_DIR"] = str(data)
+    return out
 
 
 class StopSignals:

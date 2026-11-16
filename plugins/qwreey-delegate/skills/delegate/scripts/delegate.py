@@ -187,7 +187,8 @@ def cmd_run(ctx, args):
     creds = adapter.credentials(cfg)
     if not creds.exists():
         die(f"{agent} credentials not found: {creds} ({adapter.home_key} sets the folder)", ws.EXIT_NO_AGENT)
-    backend = iso.select_backend(repo)
+    backend = iso.select_backend(repo, agent)
+    uid = repo.uid_for(agent)
     adapter.check_mode(mode, cfg, backend)
     preamble = (TEMPLATES / f"preamble-{mode}.md").read_text(encoding="utf-8")
     task = prompt_path.read_text(encoding="utf-8", errors="replace")
@@ -209,17 +210,19 @@ def cmd_run(ctx, args):
     try:
         if os.path.lexists(wt) or os.path.lexists(rec):
             die(f"{wt} already exists - use another name, or collect/remove it")
-        uid_lock = ws.take_lock(ws.uid_lock_path(state_dir, repo.uid))
-        if uid_lock is None or ws.live_legacy_runs([repo]):
-            die(f"another task of uid {repo.uid} ({repo.key}) is running; agy and codex of one repository share that "
-                f"uid, so they run one at a time", ws.EXIT_BUSY)
+        uid_lock = ws.take_lock(ws.uid_lock_path(state_dir, uid))
+        if uid_lock is None or legacy_runs_of_uid(repo, uid):
+            sharing = repo.shares_uid(agent)
+            hint = (f"; {' and '.join(sharing)} of {repo.key} share it - '{PROG} register {repo.root}' gives each "
+                    f"agent its own uid" if len(sharing) > 1 else "")
+            die(f"another task of uid {uid} ({repo.key}) is running; one task per uid at a time{hint}", ws.EXIT_BUSY)
         slot, live = ws.acquire_slot(state_dir, agent, limit, ws.live_legacy_runs(ws.all_repos(ctx.registry), [agent]))
         if slot is None:
             die(f"{live} {agent} task(s) already running (limit {limit}, HARNESS_DELEGATE_MAX_CONCURRENT adjusts it - "
                 f"the token limit is the user's)", ws.EXIT_BUSY)
         leftover = backend.end_task()
         if leftover:
-            note(f"killed {leftover} leftover process(es) of uid {repo.uid}")
+            note(f"killed {leftover} leftover process(es) of uid {uid}")
         ws.write_safe(hooks / "pre-push", PRE_PUSH, 0o755)
         commit = (ws.git_out("-C", repo.root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}") or "").strip()
         if not commit:
@@ -227,7 +230,7 @@ def cmd_run(ctx, args):
         os.mkdir(rec, 0o700)
         run_lock = ws.take_lock(rec / "run.lock")
         state = {"driver": PROG, "agent": agent, "mode": mode, "isolation": backend.name, "repo": repo.key,
-                 "root": repo.root, "uid": repo.uid, "model": model, "effort": effort, "ref": ref, "commit": commit,
+                 "root": repo.root, "uid": uid, "model": model, "effort": effort, "ref": ref, "commit": commit,
                  "pid": os.getpid(), "started": ws.now_iso(), "started_ts": time.time(), "admin": None,
                  "finished": None, "rc": None, "collected": None, "token_refreshed": None}
         ws.save_state(rec, state)
@@ -261,7 +264,7 @@ def cmd_run(ctx, args):
     prompt = preamble + task
     ws.write_safe(rec / "prompt.md", prompt)
     ws.write_safe(rec / "meta.txt", "".join(f"{k}: {v}\n" for k, v in (
-        ("backend", agent), ("mode", mode), ("repo", f"{repo.key} ({repo.root})"), ("uid", repo.uid), ("model", model),
+        ("backend", agent), ("mode", mode), ("repo", f"{repo.key} ({repo.root})"), ("uid", uid), ("model", model),
         ("effort", effort), ("ref", f"{ref} -> {commit}"), ("prompt-source", prompt_path), ("started", state["started"]),
         ("isolation", backend.name), ("driver", PROG))))
 
@@ -271,7 +274,8 @@ def cmd_run(ctx, args):
     with iso.StopSignals() as stop:
         if mode == "worktree" and repo.setup and repo.setup != "-":
             # The setup line comes from the registry; it runs with the task's rights and environment, not root's.
-            rc, _, err = backend.run(["bash", "-c", repo.setup], env, cwd=wt, timeout=SETUP_TIMEOUT_SECONDS)
+            rc, _, err = backend.run(["bash", "-c", repo.setup], iso.setup_env(env, cfg["HARNESS_TOOL_INSTALLS"]),
+                                     cwd=wt, timeout=SETUP_TIMEOUT_SECONDS)
             if rc != 0:
                 note(f"warning: setup failed ({'timeout' if rc is None else 'exit ' + str(rc)}): {repo.setup}"
                      f"{': ' + err.strip().splitlines()[-1] if err.strip() else ''}")
@@ -344,23 +348,29 @@ def locate(ctx, agent, name, repo_arg):
     return repo, base
 
 
-def end_leftovers(ctx, repo):
-    """Kill what still runs as the repository's uid before root reads or deletes its files, unless a live task of
-    that uid holds its lock (then those processes are that task's)."""
-    backend = iso.UidBackend(repo.uid)
+def legacy_runs_of_uid(repo, uid):
+    """Live delegate.sh runs that use uid: it runs every agent of a repository as the registry's third column."""
+    return ws.live_legacy_runs([repo]) if uid == repo.uid else 0
+
+
+def end_leftovers(ctx, repo, agent):
+    """Kill what still runs as the agent's uid before root reads or deletes its files, unless a live task of that uid
+    holds its lock (then those processes are that task's)."""
+    uid = repo.uid_for(agent)
+    backend = iso.UidBackend(uid)
     if backend.unavailable():
         return
     state_dir = Path(ctx.cfg["HARNESS_DELEGATE_STATE"] or ws.default_state_dir())
     if not state_dir.is_dir():
         return
-    fd = ws.take_lock(ws.uid_lock_path(state_dir, repo.uid))
+    fd = ws.take_lock(ws.uid_lock_path(state_dir, uid))
     if fd is None:
         return
     try:
-        if not ws.live_legacy_runs([repo]):
+        if not legacy_runs_of_uid(repo, uid):
             killed = backend.end_task()
             if killed:
-                note(f"killed {killed} leftover process(es) of uid {repo.uid}")
+                note(f"killed {killed} leftover process(es) of uid {uid}")
     finally:
         os.close(fd)
 
@@ -405,7 +415,7 @@ def cmd_collect(ctx, args):
     repo, base = locate(ctx, agent, name, opts.get("--repo"))
     if ws.is_running(base, name):
         die(f"still running: {agent}/{name}")
-    end_leftovers(ctx, repo)
+    end_leftovers(ctx, repo, agent)
     rec = ws.record_dir(base, name)
     st = ws.read_state(rec)
     legacy = not st
@@ -434,7 +444,7 @@ def cmd_collect(ctx, args):
     if ws.exists_under(base, name, ".git"):
         # The experiment diff, new files included, without .delegate/ and the report. It runs as the task uid (see
         # git_task); the HOME of the task is still there because remove deletes it later.
-        backend = iso.UidBackend(repo.uid)
+        backend = iso.UidBackend(repo.uid_for(agent))
         why = backend.unavailable()
         if why:
             note(f"warning: diff.patch not made: {why}")
@@ -475,7 +485,7 @@ def remove(ctx, repo, base, agent, name, discard=False, delete_branch=False):
     if not ws.is_collected(base, name) and not discard:
         # Workspaces from older scripts (.agy/ and AGY_REPORT.md) have a shape collect does not know; a person decides.
         die(f"not collected yet - run '{PROG} collect {agent} {name}' first, or pass --discard to throw it away")
-    end_leftovers(ctx, repo)
+    end_leftovers(ctx, repo, agent)
     wt, rec = base / name, ws.record_dir(base, name)
     registered, branch = ws.worktree_entry(repo.root, wt)
     admin = ws.read_state(rec).get("admin")
@@ -636,7 +646,10 @@ def doctor_global(ctx):
         print("  FAIL registry file missing")
         return
     rows = ws.registry_rows(ctx.registry)
-    for col, what in ((2, "uid"), (0, "key"), (1, "root")):
+    # A uid belongs to one repository; inside a row two agents may share it only through the third-column fallback.
+    d = dup(str(u) for r in rows for u in set(ws.row_uids(r)))
+    print("  ok   no duplicate uid" if not d else f"  FAIL duplicate uid: {d}")
+    for col, what in ((0, "key"), (1, "root")):
         d = dup(r[col] for r in rows)
         print(f"  ok   no duplicate {what}" if not d else f"  FAIL duplicate {what}: {d}")
     for agent, adapter in agents.ADAPTERS.items():
@@ -647,14 +660,20 @@ def doctor_global(ctx):
 
 def doctor_one(ctx, repo):
     root = Path(repo.root)
-    print(f"== {repo.key}  root={repo.root}  uid={repo.uid}")
+    print(f"== {repo.key}  root={repo.root}  " + "  ".join(f"{a}={repo.uid_for(a)}" for a in ws.AGENTS))
     print("  ok   git repository" if os.path.lexists(root / ".git") else "  FAIL not a git repository")
-    print(f"  FAIL uid {repo.uid} collides with a real user" if ws.uid_in_passwd(repo.uid) else "  ok   uid is not in /etc/passwd")
-    backend = iso.UidBackend(repo.uid)
-    why = backend.unavailable()
-    if why:
-        print(f"  FAIL {why}")
-    else:
+    shared = [a for a in ws.AGENTS if len(repo.shares_uid(a)) > 1]
+    if shared:
+        print(f"  WARN {' and '.join(shared)} share uid {repo.uid_for(shared[0])}, so they run one at a time and can "
+              f"reach each other's files; '{PROG} register {repo.root}' gives each agent its own uid")
+    for uid in sorted({repo.uid_for(a) for a in ws.AGENTS}):
+        print(f"  -- uid {uid}")
+        print(f"  FAIL uid {uid} collides with a real user" if ws.uid_in_passwd(uid) else "  ok   uid is not in /etc/passwd")
+        backend = iso.UidBackend(uid)
+        why = backend.unavailable()
+        if why:
+            print(f"  FAIL {why}")
+            continue
         print(f"  ok   setpriv {backend.setpriv} {' '.join(iso.SETPRIV_HARDENING)}")
         print("  FAIL uid can write the main working tree" if backend.can("w", root) else "  ok   uid cannot write the main working tree")
         for s in iso.secret_paths(Path.home(), own_he.config_dir()):
@@ -681,8 +700,8 @@ def cmd_doctor(ctx, args):
 
 def cmd_register(ctx, args):
     (path, *key), _ = parse(args, {}, 1, "register <repository path> [key]", max_pos=2)
-    key, root, uid = ws.register(ctx.registry, path, key[0] if key else None)
-    print(f"registered: {key} {root} uid={uid}")
+    key, root, added = ws.register(ctx.registry, path, key[0] if key else None)
+    print(f"registered: {key} {root} " + " ".join(f"{a}={u}" for a, u in added.items()))
     return 0
 
 

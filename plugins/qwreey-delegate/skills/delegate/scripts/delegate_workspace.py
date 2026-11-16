@@ -74,16 +74,30 @@ def now_iso():
 
 
 # ---------- registry ----------
+# registry.tsv columns: key, root, uid, setup, note, agent uids. The sixth column ("codex=61004", comma-separated
+# agent=uid) gives an agent its own uid so agy and codex of one repository can run side by side without reaching
+# each other's files. The first agent (agy), and any agent the sixth column does not name, uses the third column:
+# rows written before the sixth column existed keep one uid for both, exactly as delegate.sh reads them
+# (delegate.sh reads only the first four columns).
 class Repo:
-    def __init__(self, key, root, uid, setup):
+    def __init__(self, key, root, uid, setup, uids=None):
         self.key, self.root, self.uid, self.setup = key, root, uid, setup
+        self.uids = dict(uids or {})
+
+    def uid_for(self, agent):
+        return self.uids.get(agent, self.uid)
+
+    def shares_uid(self, agent):
+        """Agents of this repository whose tasks run as the same uid as agent's (agent itself included)."""
+        return [a for a in AGENTS if self.uid_for(a) == self.uid_for(agent)]
 
     def base(self, agent):
         return Path(os.path.dirname(self.root)) / f"{self.key}-{agent}"
 
 
 def registry_rows(registry):
-    """[(key, root, uid, setup, raw line)] of the registry; comments and blank lines skipped. A missing file is empty."""
+    """[(key, root, uid, setup, agent uids, raw line)] of the registry; comments and blank lines skipped.
+    A missing file is empty."""
     try:
         text = Path(registry).read_text(encoding="utf-8")
     except OSError:
@@ -92,16 +106,39 @@ def registry_rows(registry):
     for line in text.splitlines():
         if not line.strip() or line.lstrip().startswith("#"):
             continue
-        cols = line.split("\t") + ["", "", "", ""]
-        rows.append((cols[0], cols[1], cols[2], cols[3], line))
+        cols = line.split("\t") + [""] * 6
+        rows.append((cols[0], cols[1], cols[2], cols[3], cols[5], line))
     return rows
 
 
+def parse_agent_uids(text, line):
+    out = {}
+    for part in (p.strip() for p in text.split(",")):
+        if not part or part == "-":
+            continue
+        agent, sep, uid = part.partition("=")
+        if not sep or agent not in AGENTS or not uid.isdigit():
+            die(f"malformed agent uid {part!r} (want agent=uid): {line}")
+        out[agent] = int(uid)
+    return out
+
+
 def _repo_of(row):
-    key, root, uid, setup, line = row
+    key, root, uid, setup, agent_uids, line = row
     if not uid.isdigit():
         die(f"malformed uid: {line}")
-    return Repo(key, root, int(uid), setup)
+    return Repo(key, root, int(uid), setup, parse_agent_uids(agent_uids, line))
+
+
+def row_uids(row):
+    """Every uid a registry row names (third column and agent uids)."""
+    key, root, uid, setup, agent_uids, line = row
+    out = [int(uid)] if uid.isdigit() else []
+    try:
+        out += list(parse_agent_uids(agent_uids, line).values())
+    except DelegateError:
+        pass
+    return out
 
 
 def git_common_root(path):
@@ -140,26 +177,71 @@ def uid_in_passwd(uid):
         return False
 
 
+def _next_uid(used):
+    uid = FIRST_UID
+    while uid in used or uid_in_passwd(uid):
+        uid += 1
+    used.add(uid)
+    return uid
+
+
+def _rewrite_registry(reg, lines):
+    """Replace the registry file atomically (it is read by running scripts)."""
+    reg = Path(os.path.realpath(reg))
+    fd, tmp = tempfile.mkstemp(prefix=f".{reg.name}.", dir=reg.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write("".join(lines))
+        os.chmod(tmp, stat.S_IMODE(os.stat(reg).st_mode))
+        os.replace(tmp, reg)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
 def register(registry, path, key=None):
+    """Add a repository with a uid per agent, or give an already registered one the agent uids its row lacks.
+    Returns (key, root, {agent: uid} added)."""
     root = os.path.realpath(path)
-    key = key or os.path.basename(root)
     if git_common_root(root) is None:
         die(f"not a git repository: {root}")
     rows = registry_rows(registry)
-    if any(r[1] == root for r in rows):
-        die(f"already registered: {root}")
-    if any(r[0] == key for r in rows):
-        die(f"key already exists: {key}")
-    used = {r[2] for r in rows}
-    uid = FIRST_UID
-    while str(uid) in used or uid_in_passwd(uid):
-        uid += 1
+    used = {u for r in rows for u in row_uids(r)}
     reg = Path(registry)
     old = reg.read_text(encoding="utf-8") if reg.is_file() else ""
+    hit = [r for r in rows if r[1] == root]
+    if hit:
+        repo = _repo_of(hit[0])
+        missing = [a for a in AGENTS[1:] if a not in repo.uids]
+        if not missing:
+            die(f"already registered: {root}")
+        added = {a: _next_uid(used) for a in missing}
+        cols = hit[0][-1].split("\t")
+        cols += ["-"] * (5 - len(cols)) if len(cols) < 5 else []
+        cols[3] = cols[3] or "-"
+        cols[4] = cols[4] or "-"
+        merged = dict(repo.uids, **added)
+        cols[5:6] = [",".join(f"{a}={u}" for a, u in merged.items())]
+        lines = old.splitlines(keepends=True)
+        for i, ln in enumerate(lines):
+            if ln.rstrip("\n") == hit[0][-1]:
+                lines[i] = "\t".join(cols) + "\n"
+                break
+        _rewrite_registry(reg, lines)
+        return repo.key, root, added
+    key = key or os.path.basename(root)
+    if any(r[0] == key for r in rows):
+        die(f"key already exists: {key}")
+    added = {a: _next_uid(used) for a in AGENTS}
+    first, rest = AGENTS[0], AGENTS[1:]
     sep = "" if not old or old.endswith("\n") else "\n"
     with open(reg, "a", encoding="utf-8") as f:
-        f.write(f"{sep}{key}\t{root}\t{uid}\t-\tregistered {datetime.date.today().isoformat()}\n")
-    return key, root, uid
+        f.write(f"{sep}{key}\t{root}\t{added[first]}\t-\tregistered {datetime.date.today().isoformat()}\t"
+                f"{','.join(f'{a}={added[a]}' for a in rest)}\n")
+    return key, root, added
 
 
 def check_agent(agent):
@@ -430,7 +512,8 @@ def workspaces(base):
 
 
 def live_legacy_runs(repos, agents=AGENTS):
-    """delegate.sh runs alive now (pid file, no record) of the given repositories and agents."""
+    """delegate.sh runs alive now (pid file, no record) of the given repositories and agents. delegate.sh runs every
+    agent of a repository as the third-column uid."""
     n = 0
     for repo in repos:
         for agent in agents:
@@ -457,8 +540,7 @@ def acquire_slot(state_dir, agent, limit, busy_elsewhere):
 
 
 def uid_lock_path(state_dir, uid):
-    """One task per uid at a time: agy and codex of a repository share its uid, so concurrent tasks could reach each
-    other's worktree, HOME and credentials."""
+    """One task per uid at a time: two tasks of one uid could reach each other's worktree, HOME and credentials."""
     return root_dir(Path(state_dir) / "uids", 0o700) / f"{uid}.lock"
 
 
