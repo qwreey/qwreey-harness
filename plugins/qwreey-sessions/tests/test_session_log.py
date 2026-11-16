@@ -620,9 +620,8 @@ class TestRecordsRead(Env):
         self.assertIn('level="info"', out)
         self.assertEqual(self.run_hook("Read", {"file_path": str(small)}), "")            # 같은 (세션, 회차)엔 한 번
         self.assertIn("snapshots", self.run_hook("Grep", {"path": str(recdir), "pattern": "x"}, agent="sub1"))  # 에이전트는 따로
-        self.assertIn("/qwreey-sessions:recall", self.run_hook("Read", {"file_path": str(big)}))           # 큰 기록, 범위 없음
-        self.assertIn("/qwreey-sessions:recall", self.run_hook("Read", {"file_path": str(big)}))           # 반복되면 다시
-        self.assertEqual(self.run_hook("Read", {"file_path": str(big), "limit": 50}, sid="r2") .count("large"), 0)  # 범위가 있으면 일반 안내
+        self.assertEqual(self.run_hook("Read", {"file_path": str(big)}), "")   # 큰 기록 통째 읽기는 PreToolUse 가 막으므로 사후 안내가 따로 없다
+        self.assertIn("snapshots", self.run_hook("Read", {"file_path": str(big), "limit": 50}, sid="r2"))
         # 다른 파일은 조용
         other = self.proj / "x.md"; other.write_text("z")
         self.assertEqual(self.run_hook("Read", {"file_path": str(other)}), "")
@@ -641,6 +640,120 @@ class TestRecordsRead(Env):
         for _ in range(5):
             self.assertEqual(self.run_hook("Read", {"file_path": "/etc/hostname"}), "")
         self.assertLess((time.time() - t0) / 5, 0.3)
+
+    def test_post_arg_matches_default(self):
+        recdir = self.home / "key" / "records"
+        recdir.mkdir(parents=True)
+        f = recdir / "a.md"; f.write_text("x")
+        payload = {"session_id": "r9", "tool_name": "Read", "tool_input": {"file_path": str(f)}, "cwd": str(self.proj)}
+        p = subprocess.run([sys.executable, "-I", str(SCRIPTS / "records_read.py"), "PostToolUse"], input=json.dumps(payload),
+                           capture_output=True, text=True, env=dict(os.environ), timeout=30)
+        self.assertIn("snapshots", p.stdout)
+
+
+class TestRecordsGate(Env):
+    """PreToolUse(Read): 큰 기록 통째 Read 를 막는다."""
+    KB = 1024
+
+    def gate(self, path, extra=None, sid="g1", env=None, raw=None):
+        inp = {"file_path": str(path), **(extra or {})}
+        payload = raw if raw is not None else json.dumps({"session_id": sid, "tool_name": "Read", "tool_input": inp, "cwd": str(self.proj)})
+        p = subprocess.run([sys.executable, "-I", str(SCRIPTS / "records_read.py"), "PreToolUse"], input=payload,
+                           capture_output=True, text=True, env={**os.environ, **(env or {})}, timeout=30)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(p.stderr, "")
+        return json.loads(p.stdout)["hookSpecificOutput"] if p.stdout.strip() else None
+
+    def write(self, rel, size, base=None):
+        f = (base or self.proj) / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("y" * size)
+        return f
+
+    def test_big_snapshot_whole_read_denied(self):
+        f = self.write(".claude/audit/01-x/summary.md", 40 * self.KB)
+        out = self.gate(f)
+        self.assertEqual(out["hookEventName"], "PreToolUse")
+        self.assertEqual(out["permissionDecision"], "deny")
+        r = out["permissionDecisionReason"]
+        self.assertIn('level="action"', r)
+        self.assertIn(f'nonce="{nonce_of("g1")}"', r)
+        for s in ("40 KB", "32 KB", "snapshot", "offset/limit", "Grep", "/qwreey-sessions:recall", "in chunks"):
+            self.assertIn(s, r)
+
+    def test_partial_read_passes(self):
+        f = self.write(".claude/audit/01-x/summary.md", 40 * self.KB)
+        self.assertIsNone(self.gate(f, {"limit": 200}))
+        self.assertIsNone(self.gate(f, {"offset": 100}))
+        self.assertIsNone(self.gate(f, {"offset": 1, "limit": 100000}))   # 통째가 필요하면 범위를 주고 읽는다
+
+    def test_threshold_is_32_kib(self):
+        self.assertIsNone(self.gate(self.write(".claude/handoff/a.md", 32 * self.KB - 1)))
+        self.assertEqual(self.gate(self.write(".claude/handoff/b.md", 32 * self.KB))["permissionDecision"], "deny")
+
+    def test_which_paths_are_gated(self):
+        big = 40 * self.KB
+        for rel in (".claude/sessions/s.md", ".claude/session/s.md", ".claude/handoff/h.md",
+                    ".claude/scopes/plugins/q/audit/3-x/a.md", ".claude/scopes/home/.claude/audit/17/a.md",
+                    ".claude/packs/luau-kb/audit/a.md", "server/.claude/audit/2-y/a.md",
+                    ".claude/worktrees/w/.claude/audit/a.md", ".claude/audit/01/raw/out.txt"):
+            self.assertEqual((self.gate(self.write(rel, big)) or {}).get("permissionDecision"), "deny", rel)
+        for rel in (".claude/base/decisions/d.md", ".claude/plan/p.md", ".claude/research/drafts/r.md",
+                    ".claude/archive/research/drafts/r.md", ".claude/scopes/plugins/q/base/a.md",
+                    ".claude/scopes/plugins/q/archive/base/a.md", ".claude/README.md", "CLAUDE.md", "src/big.py",
+                    "docs/audit/a.md", ".claude/rules/r.md", ".claude/audit/01/shot.png", ".claude/audit/01/r.pdf"):
+            self.assertIsNone(self.gate(self.write(rel, big)), rel)
+
+    def test_store_and_records_home(self):
+        from sllib import records_home
+        f = self.write("b.md", 40 * self.KB, base=self.home / "key" / "records")
+        self.assertNotIn("coderag get", self.gate(f)["permissionDecisionReason"])   # 외부 저장소 기록은 coderag 색인 밖
+        records_home.save(self.proj, home="docs/sessions")
+        self.assertEqual(self.gate(self.write("docs/sessions/r.md", 40 * self.KB))["permissionDecision"], "deny")
+        self.assertIsNone(self.gate(self.write("docs/sessions/s.md", 100)))
+
+    def test_coderag_hint_only_when_on_path(self):
+        f = self.write(".claude/audit/a.md", 40 * self.KB)
+        bindir = Path(self.tmp.name) / "bin"
+        bindir.mkdir()
+        (bindir / "coderag").write_text("#!/bin/sh\n")
+        os.chmod(bindir / "coderag", 0o755)
+        self.assertIn(f"`coderag get {f} --sections`", self.gate(f, env={"PATH": str(bindir)})["permissionDecisionReason"])
+        self.assertNotIn("coderag", self.gate(f, env={"PATH": str(Path(self.tmp.name) / "none")})["permissionDecisionReason"])
+
+    def test_claude_config_dir_is_not_a_record_home(self):
+        cfg = Path(self.tmp.name) / "cfg" / ".claude"
+        f = self.write("sessions/x.json", 40 * self.KB, base=cfg)
+        self.assertIsNone(self.gate(f, env={"CLAUDE_CONFIG_DIR": str(cfg)}))
+        self.assertEqual(self.gate(f, env={"CLAUDE_CONFIG_DIR": str(Path(self.tmp.name) / "other")})["permissionDecision"], "deny")
+
+    def test_small_and_unrelated_pass(self):
+        self.assertIsNone(self.gate(self.write(".claude/audit/small.md", 100)))
+        self.assertIsNone(self.gate(self.write("big.md", 400 * self.KB)))
+        self.assertIsNone(self.gate(self.proj / ".claude/audit/missing.md"))
+
+    def test_off_switches_and_size_override(self):
+        f = self.write(".claude/audit/a.md", 40 * self.KB)
+        self.assertIsNone(self.gate(f, env={"SESSION_LOG_READ_GATE": "off"}))
+        self.assertIsNone(self.gate(f, env={"SESSION_LOG_DISABLE": "1"}))
+        self.assertIsNone(self.gate(f, env={"SESSION_LOG_READ_GATE_KB": "64"}))
+        small = self.write(".claude/audit/b.md", 10 * self.KB)
+        self.assertEqual(self.gate(small, env={"SESSION_LOG_READ_GATE_KB": "8"})["permissionDecision"], "deny")
+        self.assertEqual(self.gate(f, env={"SESSION_LOG_READ_GATE_KB": "junk"})["permissionDecision"], "deny")   # 숫자가 아니면 기본값
+        (self.proj / ".claude/harness.env").write_text("SESSION_LOG_READ_GATE_KB=64\n")                           # 저장소 층도 바꾼다
+        self.assertIsNone(self.gate(f))
+
+    def test_malformed_input_is_silent(self):
+        for raw in ("", "not json", "[]", "null", '{"tool_input": "x"}', '{"tool_input": {"file_path": 3}}',
+                    '{"tool_input": {"file_path": "relative/.claude/audit/a.md"}}'):
+            self.assertIsNone(self.gate(None, raw=raw), raw)
+
+    def test_kinds_match_q_records_check(self):
+        import ast
+        from sllib import records_home
+        src = (ROOT.parent / "q" / "scripts" / "records_check.py").read_text()
+        node = next(n for n in ast.parse(src).body if isinstance(n, ast.Assign) and getattr(n.targets[0], "id", "") == "BUILTIN_KINDS")
+        self.assertEqual(ast.literal_eval(node.value), records_home.BUILTIN_KINDS)
 
 
 if __name__ == "__main__":

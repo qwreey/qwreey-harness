@@ -34,7 +34,8 @@ DEFAULTS = {
     "SESSION_LOG_PENDING_STRONG_DAYS": "7",   # 가장 오래된 pending 이 이 일수 이상이면 강한 문구
     "SESSION_LOG_HOME_NUDGE_COUNT": "3",     # 보관 위치가 없고 pending 이 이 개수 이상이면 위치를 정하자고 제안한다(세션 하나가 기록 하나라 세 번 쌓였다면 우연이 아니다)
     "SESSION_LOG_HOME_NUDGE_DAYS": "3",      # 또는 가장 오래된 pending 이 이 일수 이상이면(주중 작업이 한 바퀴 돈 셈)
-    "SESSION_LOG_READ_WARN_KB": "16",        # 기록을 offset, limit 없이 읽을 때 이 크기 넘으면 먼저 검색하라고 안내한다(한글 기준 약 8k 토큰)
+    "SESSION_LOG_READ_GATE": "on",           # off 면 큰 기록 통째 Read 를 막지 않는다
+    "SESSION_LOG_READ_GATE_KB": "32",        # 기록(세션 기록, .claude 스냅숏 폴더)을 offset, limit 없이 Read 할 때 이 크기(KiB) 이상이면 막고 부분 읽기를 안내한다. 훨씬 낮추면 막힌 뒤 나눠 읽는 비용이 더 커진다
     "SESSION_LOG_RECORD_MAX_KB": "64",   # 기록 파일이 이보다 크면 -2, -3 으로 나눈다
 }
 # 저장소 층이 바꾸지 못하는 키: 기록을 쓸 곳과 실행할 claude. 클론한 저장소가 커밋한 파일로 기록을 빼돌리거나 다른 프로그램을 돌리면 안 된다.
@@ -80,6 +81,10 @@ def num(key: str) -> float:
 
 def disabled() -> bool:
     return get("SESSION_LOG_DISABLE").strip().lower() in ("1", "true", "yes", "on")
+
+
+def read_gate_off() -> bool:
+    return get("SESSION_LOG_READ_GATE").strip().lower() in ("off", "0", "false", "no")
 
 
 def skip_noninteractive() -> bool:

@@ -4,7 +4,7 @@
 
 ## 구성
 - 훅 `scripts/hook.py`: 판단만 한다(stat 몇 번, 작은 JSON 몇 개). 요약은 `setsid -f` 로 분리한 워커(`scripts/cli.py flush`)가 하고, 그 워커가 격리된 `claude -p --model haiku` 를 부른다. 항상 exit 0, 세션을 막지 않는다.
-- 훅 `scripts/records_read.py`: 세션 기록을 읽을 때 붙는 스냅숏 경고.
+- 훅 `scripts/records_read.py`: 큰 기록 통째 Read 를 막고(PreToolUse), 세션 기록을 읽으면 스냅숏 경고를 붙인다(PostToolUse).
 - 스킬: `checkpoint`, `import`, `recall`. 상시로 실리는 것은 이 셋의 설명뿐이고 플러그인 규약 주입(ambient)은 없다.
 - 명령 `bin/session-log`: 플러그인이 켜지면 PATH 에 오른다. 없으면 `"${CLAUDE_PLUGIN_ROOT}/bin/session-log"`.
 
@@ -14,8 +14,9 @@
 | SessionStart | 전부 | startup·clear: 직전 다른 세션의 인계(미해결 등), pending 수, 기록 찾는 법 한 줄. resume: 인계 없음(맥락이 복원됨). compact: 이 세션 기록 경로와 pending(새 회차라 다시). 전하지 못한 요약 완료 알림, 최근 요약 실패(warn)도 여기서 |
 | UserPromptSubmit | 전부 | 요약 완료 알림 전달, 쿨다운 트리거 검사. 프롬프트가 `/handover`·`/qwreey-sessions:checkpoint`·인계 낱말이면 pending |
 | PreToolUse | `Bash\|Skill` | `git … commit` 이면 pending(warn, 막지 않음). handover·checkpoint 스킬이면 pending |
+| PreToolUse | `Read` | `records_read.py PreToolUse`: 기록을 offset·limit 없이 Read 하는데 `SESSION_LOG_READ_GATE_KB`(32KiB) 이상이면 deny 하고 부분 읽기를 안내(대상과 문구는 session-log.md 알림 표) |
 | PostToolUse | 전부 | 요약 완료 알림 전달, 쿨다운 트리거 검사 |
-| PostToolUse | `Read\|Grep` | `records_read.py`: 기록을 읽으면 스냅숏 경고, 큰 기록 통째 읽기면 검색 먼저 안내 |
+| PostToolUse | `Read\|Grep` | `records_read.py PostToolUse`(인자 없어도 같다): 세션 기록을 읽으면 스냅숏 경고 |
 | PreCompact | `manual\|auto` | compact 회차를 올리고, 강제 요약을 띄우고, 요약기에게 남길 것·뺄 것 두 줄(태그 없는 일반 stdout, compact 마다, `SESSION_LOG_COMPACT_INSTRUCTIONS=off` 로 끔)과 회차당 한 번 상기(warn)를 낸다 |
 | PostCompact | 전부 | `compact_summary` 를 외부 저장소 `.state/<sid>.compact-<n>.md` 에 남긴다 |
 | SessionEnd | 전부 | 강제 요약을 띄운다 |
@@ -26,7 +27,7 @@
 
 ## 부하
 - 자주 도는 경로는 PostToolUse(모든 도구)와 PreToolUse(Bash·Skill)의 짧은 파이썬 실행이다. 모델 호출은 없다.
-- `records_read.py` 는 모든 Read·Grep 에서 불리지만 경로를 문자열로 먼저 걸러, 기록 폴더가 아니면 바로 끝난다.
+- `records_read.py` 는 모든 Read·Grep 에서 불리지만 경로를 문자열로 먼저 걸러, 기록 폴더가 아니면 바로 끝난다. 파일 크기(stat)는 기록 경로일 때만 본다. 오류가 나면 막지 않고 통과한다.
 - 요약 비용(haiku)은 세션 길이에 비례하고 세션별 누계는 `session-log status` 의 cost 로 본다. 동시 워커는 `SESSION_LOG_MAX_PARALLEL`(2).
 
 ## compact 처리

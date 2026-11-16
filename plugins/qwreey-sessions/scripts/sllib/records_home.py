@@ -78,6 +78,32 @@ def is_under(path: str, directory: str) -> bool:
     return p == d or p.startswith(d + os.sep)
 
 
+# ---- 저장소 .claude/ 아래 스냅숏 기록 폴더 ----
+# 폴더 이름 -> 기록 종류. coderag 규약(agent-records)의 고정 폴더다. 스냅숏은 그 날짜에 참이고 고치지 않는 기록이다.
+# @copy-of: plugins/q/scripts/records_check.py#BUILTIN_KINDS
+BUILTIN_KINDS = {"plan": "living", "base": "living", "research": "living",
+                 "audit": "snapshot", "handoff": "snapshot", "sessions": "snapshot", "session": "snapshot",
+                 "archive": "archive"}
+# .claude/scopes/<저장소 경로>/ 는 저장소 한 부분의 기록이고 packs/<pack>/ 은 그 옛 꼴이다. 범위 경로는 첫 기록 폴더 이름에서 끝난다.
+SCOPE_DIRS = ("scopes", "packs")
+
+
+def is_snapshot(path: str, skip_dirs=()) -> bool:
+    """경로가 어느 저장소의 `.claude/` 스냅숏 폴더(`audit`, `handoff`, `sessions`, `session`, 범위 안의 같은 폴더) 아래인가.
+    문자열만 본다. skip_dirs 의 `.claude`(Claude Code 설정 폴더: 그 안의 sessions/ 는 기록이 아니다)는 건너뛴다."""
+    parts = os.path.normpath(path).split(os.sep)
+    skip = {os.path.normpath(d) for d in skip_dirs}
+    for i, part in enumerate(parts[:-2]):
+        if part != ".claude" or os.sep.join(parts[:i + 1]) in skip:
+            continue
+        rest = parts[i + 1:-1]
+        if rest[0] in SCOPE_DIRS:
+            rest = [next((r for r in rest[1:] if r in BUILTIN_KINDS), "")]
+        if BUILTIN_KINDS.get(rest[0]) == "snapshot":
+            return True
+    return False
+
+
 # ---- import 사본의 머리말 ----
 FM_RX = re.compile(r"^---\n[\s\S]*?\n---\n")
 HEAD_RX = re.compile(r"^## (.+?) · ", re.M)

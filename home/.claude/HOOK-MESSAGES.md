@@ -75,7 +75,8 @@ MANIFEST 대상 아님. 근거 실측: `.claude/scopes/home/.claude/audit/17-hoo
 | | 요약 시작·완료 알림, 인계(SessionStart), SessionStart 기록 안내 | info |
 | | 요약 실패 | warn |
 | | PreCompact 상기 | warn |
-| records-read | (qwreey-sessions 플러그인 `scripts/records_read.py`) 세션 기록을 Read·Grep 하면 스냅숏 경고(회차마다 한 번), 큰 기록을 통째로 Read 하면 검색 먼저 안내(매번) | info |
+| records-read | (qwreey-sessions 플러그인 `scripts/records_read.py`) 세션 기록을 Read·Grep 하면 스냅숏 경고(회차마다 한 번) | info |
+| | (같은 훅, PreToolUse Read) 기록(외부 저장소 세션 기록, 저장소 보관 폴더, `.claude/` 스냅숏 폴더 `audit`·`handoff`·`sessions`)을 offset·limit 없이 Read 하는데 `SESSION_LOG_READ_GATE_KB`(32KiB) 이상: deny(크기, 스냅숏이라 낡았을 수 있음, 먼저 찾기 `coderag get <path> --sections`(PATH 에 있고 저장소 기록일 때)·Grep·`/qwreey-sessions:recall`, 그 줄만 offset/limit, 통째가 필요하면 나눠 읽기). 오류는 통과, 끄기 `SESSION_LOG_READ_GATE=off` | action |
 | delegate-nudge | (플러그인 `qwreey-operator`, `hooks/delegate-nudge.py`, PostToolUse `*` + UserPromptSubmit) 메인(agent_id 없음)이 한 턴에 코드 쓰기 12회 또는 파일 8개, Agent 호출 없이: 백그라운드 서브에이전트 위임 고려(턴당 한 번). 끄기 `HARNESS_OPERATOR_NUDGE=off` | info |
 | | 직전 턴이 문턱을 넘었고 Agent 호출이 없었음: 이어지는 작업이면 먼저 위임 지시문(다음 UserPromptSubmit 에 한 번) | info |
 | subagent-bg-tasks | (플러그인 `qwreey-operator`, `hooks/subagent-bg-tasks.py`, SubagentStop) 끝나려는 서브에이전트가 띄운 실행 중인 작업(셸, 자식 에이전트 등. monitor 제외. `background_tasks` 는 세션 전체 목록이라 서브에이전트 트랜스크립트의 tool_result 에 id 가 나온 것만)이 있음: 작업마다 type, id, 설명 한 줄. 결과를 거두거나 TaskStop 으로 멈추라(지시문이 두라고 했으면 둠), 그다음 최종 보고를 다시 온전히. additionalContext 라 그 서브에이전트가 한 턴 더 돈다. stop_hook_active, 빈 답, 오류 답이면 통과. (세션, agent_id, 회차)마다 한 번. 끄기 `HARNESS_OPERATOR_SUBAGENT_BG=off`(harness.env 층) | warn |
