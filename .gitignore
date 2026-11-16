@@ -19,3 +19,6 @@ usernotes/
 
 # 개인 harness 층(home/.claude/lib/harness_env.py). 저장소 공유 층 .claude/harness.env 는 커밋한다.
 .claude/harness.local.env
+
+# qwreey-desk: 엔진이 mod 를 실을 때 만드는 타입 폴더
+plugins/qwreey-desk/.claude-plugin/types/
