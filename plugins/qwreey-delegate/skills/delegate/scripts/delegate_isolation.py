@@ -172,11 +172,14 @@ def tool_path(root):
     return ":".join(ln for ln in p.stdout.splitlines() if ln.strip()) if p.returncode == 0 else ""
 
 
+TASK_TMP = ".tmp"  # the task's temp folder, inside its HOME: agy is denied the shared temp folders
+
+
 def task_env(home, tools, hooks, keep_env, extra=None):
     """The task starts from an empty environment so token-like variables of the main session do not leak."""
     env = dict(os.environ) if keep_env else {}
     env.update({
-        "HOME": str(home), "PATH": f"{tools}:{BASE_PATH}" if tools else BASE_PATH, "LANG": "C.UTF-8", "TERM": "dumb",
+        "HOME": str(home), "TMPDIR": str(Path(home) / TASK_TMP), "PATH": f"{tools}:{BASE_PATH}" if tools else BASE_PATH, "LANG": "C.UTF-8", "TERM": "dumb",
         # A pre-push hook that refuses: the second line after the uid owning nothing to push.
         "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.hooksPath", "GIT_CONFIG_VALUE_0": str(hooks),
     })
@@ -223,15 +226,20 @@ class StopSignals:
         return False
 
 
-def run_task(argv, cwd, env, out_path, timeout, stop, stdin_path=None):
-    """Run argv in its own process group with stdout/stderr into out_path. The group ends on timeout or when stop
-    records a signal. Returns the exit code (TIMEOUT_RC on timeout, 128+signal when stopped)."""
-    out_fd = os.open(out_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0), 0o600)
-    with os.fdopen(out_fd, "wb") as out, open(stdin_path or os.devnull, "rb") as inp:
+def _record_file(path):
+    return os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0), 0o600), "wb")
+
+
+def run_task(argv, cwd, env, out_path, timeout, stop, stdin_path=None, err_path=None):
+    """Run argv in its own process group with stdout into out_path and stderr into err_path (or out_path too). The
+    group ends on timeout or when stop records a signal. Returns the exit code (TIMEOUT_RC on timeout, 128+signal
+    when stopped)."""
+    with _record_file(out_path) as out, open(stdin_path or os.devnull, "rb") as inp, \
+            (_record_file(err_path) if err_path else open(os.devnull, "wb")) as err:
         try:
             # A signal during Popen only sets stop.signum, so the child exists in `proc` before anything reacts.
-            proc = subprocess.Popen(argv, cwd=cwd, env=env, stdin=inp, stdout=out, stderr=subprocess.STDOUT,
-                                    start_new_session=True)
+            proc = subprocess.Popen(argv, cwd=cwd, env=env, stdin=inp, stdout=out,
+                                    stderr=err if err_path else subprocess.STDOUT, start_new_session=True)
         except OSError as e:
             out.write(f"delegate: cannot start {argv[0]}: {e}\n".encode())
             return NOT_FOUND_RC

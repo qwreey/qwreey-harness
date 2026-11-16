@@ -25,6 +25,7 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, HERE)
 
 import datetime  # noqa: E402
+import json  # noqa: E402
 import time  # noqa: E402
 import shutil  # noqa: E402
 import subprocess  # noqa: E402
@@ -142,15 +143,14 @@ def git_task(backend, env, wt, *args):
     return backend.run(["git", "-c", f"safe.directory={wt}", "-C", str(wt), *args], env)
 
 
-def snapshot_report(base, name, rec, adapter, mode):
-    """Copy the task's answer into the record (root-owned) and return its path, or None when there is none."""
+def snapshot_report(base, name, rec, adapter, mode, outcome):
+    """Copy the task's answer into the record (root-owned) and return its path, or None when there is none.
+    Order: the report file the preamble names, the adapter's other file, the answer the agent printed."""
     data = ws.read_under(base, name, *adapter.report_rel(mode))
-    if not data:
-        src = adapter.fallback(mode)
-        if src and src[0] == "task":
-            data = ws.read_under(base, name, *src[1:])
-        elif src:
-            data = ws.read_under(rec, src[1])
+    if not data and adapter.fallback(mode):
+        data = ws.read_under(base, name, *adapter.fallback(mode))
+    if not data and outcome.get("response"):
+        data = outcome["response"].encode("utf-8")
     if not data:
         return None
     ws.write_safe(rec / "report.md", data)
@@ -256,7 +256,9 @@ def cmd_run(ctx, args):
     if os.path.lexists(home):
         shutil.rmtree(home)
     os.mkdir(home, 0o700)
+    os.mkdir(home / iso.TASK_TMP, 0o700)
     adapter.prepare_home(cfg, home)
+    settings, policy_notes = adapter.policy(mode, backend, wt)
 
     report_rel = adapter.report_rel(mode)
     for k, v in (("{{WT}}", wt), ("{{ROOT}}", repo.root), ("{{KEY}}", repo.key), ("{{REPORT}}", wt.joinpath(*report_rel))):
@@ -266,7 +268,11 @@ def cmd_run(ctx, args):
     ws.write_safe(rec / "meta.txt", "".join(f"{k}: {v}\n" for k, v in (
         ("backend", agent), ("mode", mode), ("repo", f"{repo.key} ({repo.root})"), ("uid", uid), ("model", model),
         ("effort", effort), ("ref", f"{ref} -> {commit}"), ("prompt-source", prompt_path), ("started", state["started"]),
-        ("isolation", backend.name), ("driver", PROG))))
+        ("isolation", backend.name), ("driver", PROG))
+        + ((("agy-settings", json.dumps(settings, separators=(",", ":"))),) if settings else ())
+        + tuple(("policy-note", n) for n in policy_notes)))
+    for n in policy_notes:
+        note(f"warning: {n}")
 
     backend.give(*(p for p in (wt, home, admin) if p))
     env = iso.task_env(home, iso.tool_path(repo.root), hooks, bool(cfg["HARNESS_DELEGATE_KEEP_ENV"]),
@@ -282,11 +288,13 @@ def cmd_run(ctx, args):
         before = ws.main_snapshot(repo.root)
         note(f"start {agent}/{name} ({model}, {mode}) {ws.now_iso()} - {wt}")
         argv = iso.heavy_prefix(own_he, cfg) + backend.wrap(
-            adapter.argv(bin_path, model, effort, timeout, prompt, wt, adapter.last_path(wt, mode), cfg))
+            adapter.argv(bin_path, model, effort, timeout, prompt, wt, adapter.last_path(wt, mode), cfg, settings))
         rc = iso.run_task(argv, wt, env, rec / "stdout.txt", timeout + agents.PRINT_TIMEOUT_MARGIN, stop,
-                          adapter.stdin(rec))
+                          adapter.stdin(rec), rec / "stderr.txt" if adapter.separate_stderr else None)
         killed = backend.end_task()
-        report = snapshot_report(base, name, rec, adapter, mode)
+        outcome = adapter.outcome(rec)
+        report = snapshot_report(base, name, rec, adapter, mode, outcome)
+        denied = outcome.get("denied") or []
 
         after = ws.main_snapshot(repo.root)
         guard = [f"exit: {rc}", f"finished: {ws.now_iso()}"]
@@ -297,6 +305,11 @@ def cmd_run(ctx, args):
                          f"check whether the main session or the user did it")
         if killed:
             guard.append(f"task processes left after the run: {killed} killed")
+        if denied:
+            guard.append(f"{agent} denied: {', '.join(denied)}")
+        if outcome and outcome.get("status") not in (None, "SUCCESS"):
+            guard.append(f"{agent} status: {outcome.get('status')}")
+        guard += [f"policy: {n}" for n in policy_notes]
         if mode == "worktree":
             hrc, head, herr = git_task(backend, env, wt, "rev-parse", "HEAD")
             src, status, serr = git_task(backend, env, wt, "status", "--porcelain=v1")
@@ -308,8 +321,11 @@ def cmd_run(ctx, args):
         guard_text = "\n".join(guard) + "\n"
         ws.write_safe(rec / "guard.txt", guard_text)
         ws.write_safe(rec / "exit", f"{rc}\n")
-        state.update(finished=ws.now_iso(), rc=rc)
+        state.update(finished=ws.now_iso(), rc=rc, denied=denied)
         ws.save_state(rec, state)
+        if denied:
+            meta = (ws.read_under(rec, "meta.txt") or b"").decode("utf-8", "replace")
+            ws.write_safe(rec / "meta.txt", meta + f"{agent}-denied: {', '.join(denied)}\n")
         os.close(run_lock)
         os.close(slot)
         os.close(uid_lock)
@@ -318,6 +334,10 @@ def cmd_run(ctx, args):
         sys.stdout.write(guard_text)
         if report:
             print(f"report: {report} ({os.lstat(report).st_size} bytes)")
+        elif denied:
+            print(f"report: MISSING - {agent} ended the turn with an empty answer after it was denied "
+                  f"{', '.join(denied)} (headless print mode refuses tools outside its allowed set); see "
+                  f"{rec / 'stderr.txt'}")
         else:
             print(f"report: MISSING - see {rec / 'stdout.txt'}")
         print(f"next: main reads and verifies -> {PROG} collect {agent} {name} --repo {repo.key} -> "
@@ -679,6 +699,12 @@ def doctor_one(ctx, repo):
         for s in iso.secret_paths(Path.home(), own_he.config_dir()):
             if os.path.exists(s):
                 print(f"  FAIL uid can read a secret: {s}" if backend.can("r", s) else f"  ok   cannot read: {s}")
+    settings, notes = agents.ADAPTERS["agy"].policy("worktree", iso.UidBackend(repo.uid_for("agy")),
+                                                    repo.base("agy") / "workspace")
+    temp = [r[len("read_file("):-1] for r in settings["permissions"]["deny"] if r.startswith("read_file(")]
+    print(f"  INFO agy file tools denied in temp folders: {' '.join(temp) or '(none)'}")
+    for n in notes:
+        print(f"  WARN agy {n}")
     print("  ok   AGENTS.md present" if (root / "AGENTS.md").is_file()
           else "  WARN no AGENTS.md (entry point for external models; see templates/AGENTS.md.template)")
     if (root / "GEMINI.md").is_file() and (root / "AGENTS.md").is_file():

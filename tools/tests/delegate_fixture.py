@@ -72,7 +72,16 @@ if (ctl / "plant-home").exists():
     os.symlink({secret!r}, cwd / ".delegate" / "report.md")
     shutil.rmtree(home / ".gemini")
     os.symlink({victim_gemini!r}, home / ".gemini")
-print("agy stdout answer")
+if (ctl / "agy-denied").exists():
+    # 실측한 headless 거절의 꼴: 빈 답, denied_actions, stderr 의 안내.
+    print("headless mode cannot prompt for tool confirmation; auto-denied", file=sys.stderr)
+    print(json.dumps({{"status": "SUCCESS", "response": "", "denied_actions": [
+        {{"action": "read_file", "display_name": "ReadFile"}}, {{"action": "command", "display_name": "Bash"}}]}}))
+elif "--output-format" in sys.argv and sys.argv[sys.argv.index("--output-format") + 1] == "json":
+    print("some log line", file=sys.stderr)
+    print(json.dumps({{"status": "SUCCESS", "response": "agy stdout answer", "num_turns": 1}}))
+else:
+    print("agy stdout answer")
 """
 
 FAKE_CODEX = """#!{py}

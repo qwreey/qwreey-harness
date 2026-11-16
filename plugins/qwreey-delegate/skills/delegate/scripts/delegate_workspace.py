@@ -35,7 +35,7 @@ RECORDS = ".runs"     # record folder under the base; a dot name, so delegate.sh
 TASK_OUT = ".delegate"  # inside the task copy: what the task writes for the driver
 FIRST_UID = 61000  # registry.tsv header: uids start here; register picks the next free one
 # Record files collect keeps.
-RUN_FILES = ("prompt.md", "meta.txt", "guard.txt", "stdout.txt", "report.md", "exit", STATE_FILE)
+RUN_FILES = ("prompt.md", "meta.txt", "guard.txt", "stdout.txt", "stderr.txt", "report.md", "exit", STATE_FILE)
 # delegate.sh's files inside <name>/.delegate/, read for its runs only.
 LEGACY_FILES = ("prompt.md", "meta.txt", "guard.txt", "stdout.txt", "report.md", "last-message.md", "exit")
 # Largest task-written file root reads back (report, probe, legacy record): a task can make a file of any size.

@@ -157,7 +157,12 @@ class LifecycleChecks:
         (call,) = f.calls("agy")
         argv = call["argv"]
         self.assertEqual(argv[1:3], ["--model", "gemini-3.8-flash-high"])
-        self.assertIn("--dangerously-skip-permissions", argv)
+        self.assertNotIn("--dangerously-skip-permissions", argv, "기본 프리셋의 headless 거절을 끄지 않는다")
+        self.assertEqual(argv[argv.index("--output-format") + 1], "json")
+        settings = json.loads(argv[argv.index("--settings") + 1])
+        self.assertEqual(settings["permissions"]["allow"], ["command(*)"], "uid 격리 아래 worktree 는 셸을 연다")
+        self.assertNotIn("command(*)", settings["permissions"]["deny"])
+        self.assertEqual(call["env"]["TMPDIR"], str(home / ".tmp"))
         self.assertEqual(argv[argv.index("--print-timeout") + 1], "3600s")
         prompt = argv[argv.index("-p") + 1]
         self.assertIn(f"git worktree `{wt}`", prompt, "머리말의 {{WT}} 를 채운다")
@@ -233,7 +238,8 @@ class LifecycleChecks:
         f = self.f
         (f.ctl / "plant").write_text("1")
         p = self.ok("run", "agy", "t1", f.prompt)
-        self.assertIn("report: MISSING", p.stdout, "링크인 REPORT.md 는 읽지 않는다")
+        self.assertEqual((f.rec("agy", "t1") / "report.md").read_text(), "agy stdout answer",
+                         "링크인 REPORT.md 는 읽지 않고 JSON 의 response 를 쓴다")
         self.ok("collect", "agy", "t1")
         self.assert_untouched()
         (out,) = list((f.base("agy") / "runs").iterdir())
@@ -247,7 +253,7 @@ class LifecycleChecks:
         p = self.ok("run", "agy", "e1", f.prompt, "--mode", "empty")
         rec = f.rec("agy", "e1")
         self.assertIn(f"report: {rec / 'report.md'}", p.stdout)
-        self.assertEqual((rec / "report.md").read_text(), "agy stdout answer\n", "링크인 report.md 대신 stdout")
+        self.assertEqual((rec / "report.md").read_text(), "agy stdout answer", "링크인 report.md 대신 JSON 의 response")
         self.ok("collect", "agy", "e1")
         (out,) = list((f.base("agy") / "runs").iterdir())
         self.assertFalse((out / "agy").exists(), "링크인 .gemini 를 따라가지 않는다")
@@ -382,9 +388,56 @@ class Lifecycle(Base, LifecycleChecks):
         f = self.f
         p = self.ok("run", "agy", "e1", f.prompt, "--mode", "empty", "--model", "m-x", "--timeout", "30")
         self.assertIn("agy empty mode is unverified", p.stderr)
-        self.assertEqual((f.rec("agy", "e1") / "report.md").read_text(), "agy stdout answer\n")
+        self.assertEqual((f.rec("agy", "e1") / "report.md").read_text(), "agy stdout answer")
+        self.assertIn("some log line", (f.rec("agy", "e1") / "stderr.txt").read_text(), "stderr 는 따로")
         argv = f.calls("agy")[0]["argv"]
         self.assertEqual((argv[2], argv[argv.index("--print-timeout") + 1]), ("m-x", "30s"))
+
+    def test_agy_settings_per_mode_and_temp_folders(self):
+        f = self.f
+        systmp = f.tmp / "systmp"  # 작업 폴더를 품지 않는 임시 폴더. /tmp 는 시험 작업 폴더를 품어 거르지 못한다.
+        systmp.mkdir()
+        env = f.env(TMPDIR=str(systmp))
+        p = self.ok("run", "agy", "e1", f.prompt, "--mode", "empty", env=env)
+        self.ok("run", "agy", "w1", f.prompt, env=env)
+        empty, wt = (json.loads(c["argv"][c["argv"].index("--settings") + 1])["permissions"] for c in f.calls("agy"))
+        tmp_rules = [f"read_file({systmp})", f"write_file({systmp})"]
+        self.assertEqual(empty, {"deny": tmp_rules + ["command(*)"]}, "empty 는 셸도 거절")
+        self.assertEqual(wt, {"deny": tmp_rules, "allow": ["command(*)"]})
+        for c in f.calls("agy"):
+            self.assertNotIn("--dangerously-skip-permissions", c["argv"])
+        self.assertIn("warning: temp folder /tmp holds the workspace, so it is not denied", p.stderr)
+        self.assertIn("policy: temp folder /tmp holds the workspace", (f.rec("agy", "e1") / "guard.txt").read_text())
+        meta = (f.rec("agy", "e1") / "meta.txt").read_text()
+        self.assertIn('agy-settings: {"permissions":{"deny":[', meta)
+        p = self.ok("doctor", env=env)
+        self.assertIn(f"  INFO agy file tools denied in temp folders: {systmp}", p.stdout)
+        self.assertIn("  WARN agy temp folder /tmp holds the workspace, so it is not denied", p.stdout)
+
+    def test_agy_denial_is_reported(self):
+        f = self.f
+        (f.ctl / "agy-denied").write_text("1")
+        p = self.ok("run", "agy", "d1", f.prompt, "--mode", "empty")
+        rec = f.rec("agy", "d1")
+        self.assertIn("report: MISSING - agy ended the turn with an empty answer after it was denied read_file, command",
+                      p.stdout)
+        self.assertIn("agy denied: read_file, command", (rec / "guard.txt").read_text())
+        self.assertIn("agy-denied: read_file, command", (rec / "meta.txt").read_text())
+        self.assertEqual(json.loads((rec / "state.json").read_text())["denied"], ["read_file", "command"])
+        self.assertIn("auto-denied", (rec / "stderr.txt").read_text())
+        self.ok("collect", "agy", "d1")
+        (out,) = list((f.base("agy") / "runs").iterdir())
+        self.assertTrue((out / "stderr.txt").is_file())
+
+    def test_codex_gets_task_tmpdir(self):
+        f = self.f
+        self.ok("run", "codex", "c1", f.prompt)
+        home = f.base("codex") / ".homes" / "c1"
+        self.assertEqual(f.calls("codex")[0]["env"]["TMPDIR"], str(home / ".tmp"))
+        self.assertTrue((home / ".tmp").is_dir())
+        if IS_ROOT:
+            self.assertEqual((home / ".tmp").lstat().st_uid, f.codex_uid)
+        self.assertNotIn("--settings", f.calls("codex")[0]["argv"])
 
     def test_existing_name_refused(self):
         f = self.f
