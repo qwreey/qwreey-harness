@@ -50,7 +50,9 @@ NS = review_record.NS
 MODEL = {"high": "opus", "mid": "sonnet", "low": "sonnet"}
 BENIGN = re.compile(r"^\s*(grep|rg|egrep|fgrep|test|\[|diff|cmp|pgrep|pidof|which|command)\b")
 COMMIT = re.compile(r"\bgit\b(\s+-C\s+\S+)?\s+commit\b")
-STOP_ERROR = re.compile(r"^\s*(API Error|Prompt is too long|Context limit|Request timed out|Credit balance)", re.I)
+# @start-replace: lib/harness_texts.py#STOP_ERROR value=string template="STOP_ERROR = re.compile({value}, re.I)"
+STOP_ERROR = re.compile("^\\s*(API Error|Prompt is too long|Context limit|Request timed out|Credit balance)", re.I)
+# @end-replace
 QUESTION_TAIL = 5  # 질문 뒤에 선택지 목록이 붙는 답을 위해 끝에서 몇 줄까지 본다
 
 
