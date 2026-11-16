@@ -4,6 +4,7 @@
 glob 변환(이 플러그인 rule 4개의 패턴 전부), 주입 dedup(에이전트·compact 회차·세션별), PreToolUse 출력 없음과 편집 뒤 대조 문장, 건너뛰는 경로, 병렬 호출 이중 주입 없음,
 끄기(환경 변수, harness.env, rules_exclude)와 `switch:` rule 의 켜기(환경 변수, 사용자·저장소 harness.env 층)를 본다. 상태는 TMPDIR 로 격리한다.
 """
+import glob
 import json
 import os
 import re
@@ -69,6 +70,15 @@ class Globs(unittest.TestCase):
         switches = {n: sw for n, _, _, sw in ri.load_rules()}
         self.assertEqual(switches.pop("readable-code"), "HARNESS_READABLE_CODE")
         self.assertEqual(set(switches.values()), {None})
+
+    def test_pack_rules_do_not_use_switch(self):
+        # 팩 rule 은 coderag 가 넣고 coderag 는 `switch:` 를 읽지 않아, 팩 rule 에 쓰면 늘 실린다
+        packs = os.path.join(ROOT, "..", "..", "packs")
+        found = [os.path.join(d, f) for d in glob.glob(os.path.join(packs, "*", "rules")) for f in os.listdir(d) if f.endswith(".md")]
+        self.assertTrue(found)
+        for path in found:
+            fm = re.match(r"---\n(.*?)\n---", open(path, encoding="utf-8").read(), re.S)
+            self.assertNotRegex(fm.group(1) if fm else "", r"(?m)^switch:", path)
 
     def test_readable_code_paths_match_code_reuse(self):
         rules = {n: rx for n, rx, *_ in ri.load_rules()}
