@@ -71,7 +71,7 @@ local function park()
 		return s
 	end)
 	coroutine.resume(th, sig)
-	waiting[sig] = { th } -- 값이 코루틴을 잡는다 → 코루틴 스택이 키를 잡는다
+	waiting[sig] = { th } -- 값이 코루틴을 잡는다 -> 코루틴 스택이 키를 잡는다
 end
 park()
 fullgc()

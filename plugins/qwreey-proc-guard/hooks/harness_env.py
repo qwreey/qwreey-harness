@@ -34,12 +34,12 @@ DEFAULTS = {
     "HARNESS_TOOL_INSTALLS": "~/.local/share/mise/installs",
     # 무거운 실행 래퍼. 키가 없으면 auto(choom 이 PATH 에 있으면 `choom -n 1000 --`), 빈 값이면 끔.
     "HARNESS_HEAVY_WRAP": "auto",
-    # 무거운 실행 판정에 더할 실행기·키워드(공백 구분). 툴킷 기본표(heavy-proc-guard)에 더해진다.
+    # 무거운 실행 판정에 더할 실행기, 키워드(공백 구분). 툴킷 기본표(heavy-proc-guard)에 더해진다.
     "HARNESS_HEAVY_EXECUTORS": "",
     "HARNESS_HEAVY_KEYWORDS": "",
     # 켤 툴킷(공백 구분). 비면 전부. /q:doctor 는 이 목록 안에서 저장소마다 자동 감지한다.
     "HARNESS_TOOLKITS": "",
-    # 위임(agy·codex) uid 표 위치. 비면 uid 충돌 검사는 저장소 안의 사본만 본다.
+    # 위임(agy, codex) uid 표 위치. 비면 uid 충돌 검사는 저장소 안의 사본만 본다.
     "HARNESS_DELEGATE_REGISTRY": "",
     # 위임 실행 파일. 비면 PATH 의 agy/codex(mise shim 은 빈 환경에서 돌지 않아 건너뜀), 없으면 HARNESS_TOOL_INSTALLS 아래.
     "HARNESS_DELEGATE_AGY_BIN": "",

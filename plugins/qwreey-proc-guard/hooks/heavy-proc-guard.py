@@ -153,7 +153,7 @@ def main():
     cmd = (data.get("tool_input") or {}).get("command") or ""
     env = load_env(data.get("cwd"))
     wrap = wrap_argv(env)
-    if not wrap:  # 래퍼를 끈 환경이거나 래퍼 프로그램이 없다(choom 없는 sandbox) — 막지 않는다
+    if not wrap:  # 래퍼를 끈 환경이거나 래퍼 프로그램이 없다(choom 없는 sandbox) - 막지 않는다
         return 0
     executors, heavy = rules(env)
     # The delegate driver (delegate.py, its delegate.sh wrapper, the old agy-delegate.sh) puts choom in front of its

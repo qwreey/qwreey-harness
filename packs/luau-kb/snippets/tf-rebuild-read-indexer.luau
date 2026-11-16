@@ -1,7 +1,7 @@
 --!strict
 -- 주장: type function 이 테이블을 '다시 조립'하면 읽기 전용 인덱서를 잃는다.
 --   - `setreadindexer` 는 런타임 에러다("luau does not yet support separate read/write types for indexers").
---   - `indexer()` → `setindexer` 로 옮기면 `read` 가 빠져 쓰기가 통과한다.
+--   - `indexer()` -> `setindexer` 로 옮기면 `read` 가 빠져 쓰기가 통과한다.
 --   - 패스스루(`return t`)는 원래 타입을 그대로 돌려주므로 `read` 가 남는다.
 --   - 읽기 전용 '프로퍼티'는 setreadproperty 로 옮길 수 있다.
 -- 근거: stl-luau/src/Trait/init.luau:~373-377, stl-luau/.claude/base/trait-system.md:105,

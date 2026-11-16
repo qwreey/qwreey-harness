@@ -4,7 +4,7 @@
 --     T 는 그대로 추론된다(hp 가 number). type function 없이 된다.
 --   - 순수 타입 주석 자리(`Store<{ hp: number, Get: number }>`): 교집합 별칭은 주석만으로는 진단을 내지 않는다(bug-present).
 --     quad CheckReservedKeys 처럼 `keyof<T>` 를 받아 print + never 로 띄우는 type function 이 필요하다.
--- 근거: quad/quad-types/src/init.luau:272-295 (CheckReservedKeys), quad/.claude/base/typing-limits.md §0
+-- 근거: quad/quad-types/src/init.luau:272-295 (CheckReservedKeys), quad/.claude/base/typing-limits.md 0
 local function store<T>(rec: T & { Get: never?, Set: never? }): T
 	return rec :: any
 end

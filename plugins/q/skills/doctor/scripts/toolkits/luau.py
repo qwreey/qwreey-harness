@@ -100,7 +100,7 @@ TOOL_REF = REFERENCE + "#툴체인"
 def check_toolchain(ctx):
     repo, projects = ctx.repo, ctx.projects
     if not any(f.endswith(".luau") for f in ctx.files):
-        return  # 표식만 있고 소스가 없으면(스캐폴딩 전) 툴체인 검사는 하지 않는다 — 재구성 전과 같은 조건
+        return  # 표식만 있고 소스가 없으면(스캐폴딩 전) 툴체인 검사는 하지 않는다 - 재구성 전과 같은 조건
     mise = repo / "mise.toml"
     tools = ctx.mise_tools(mise) if mise.is_file() else None
     if tools is None:

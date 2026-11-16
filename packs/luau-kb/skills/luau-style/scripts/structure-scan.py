@@ -25,7 +25,7 @@ EXT = {".luau", ".lua", ".ts", ".tsx", ".js", ".mjs", ".go", ".py", ".kt", ".rs"
 SKIP_DIRS = {"node_modules", ".git", "luau_packages", "roblox_packages", "lune_packages", "Packages", "vendor",
              "third_party", "build", "dist", "refs", ".gradle", ".pesde", "typedefs", "testdata", "worktrees",
              "parser-lua", "media", "fixtures", "__pycache__"}
-# 같은 종류 파일이 모이는 것이 정상인 폴더(테스트·스토리·생성 자산). 평평해도 경고하지 않는다.
+# 같은 종류 파일이 모이는 것이 정상인 폴더(테스트, 스토리, 생성 자산). 평평해도 경고하지 않는다.
 HOMOGENEOUS_DIRS = {"test", "tests", "spec", "specs", "stories", "spikes", "meshes", "assets", "examples", "gallery"}
 GEN_MARK = re.compile(r"generated|do not edit|auto-?generated|@generated|손으로 고치지 않는다|만든 것:|생성기", re.I)
 TEST_PATH = re.compile(r"(^|/)(tests?|specs?|spikes?|bench)(/|$)|\.(spec|test|story)\.|_test\.go$", re.I)
@@ -83,7 +83,7 @@ def analyze_file(path):
     marker = next((m.group(1) for m in map(EXEMPT_MARK.match, lines[:10]) if m), None)
     code = [l for l in lines if l.strip() and not COMMENT.match(l)]
     literal = sum(1 for l in code if LITERAL_LINE.match(l))
-    # 같은 변수를 문자열과 비교하는 if/elseif 사슬의 최대 길이(들여쓰기마다 따로 센다 — 갈래 안의 중첩 if 는 끊지 않는다)
+    # 같은 변수를 문자열과 비교하는 if/elseif 사슬의 최대 길이(들여쓰기마다 따로 센다 - 갈래 안의 중첩 if 는 끊지 않는다)
     chains, open_ = [], {}
     for l in lines:
         m = IFCHAIN.match(l)
@@ -100,10 +100,10 @@ def analyze_file(path):
             open_[ind] = (var, 1)
     chains += [(n, v) for v, n in open_.values()]
     longest = max(chains, default=(0, None))
-    # 같은 2줄 머리(정규화)의 반복 — 핸들러 머리 복붙 탐지
+    # 같은 2줄 머리(정규화)의 반복 - 핸들러 머리 복붙 탐지
     norm = [re.sub(r"\b\d+(\.\d+)?\b", "N", re.sub(r"\"[^\"]*\"", '"S"', l.strip())) for l in code]
     norm = [l for l in norm if not TRIVIAL.match(l)]
-    # 머리 줄이 분기·바인딩일 때만 센다(UI 선언 속 `Name = "S",` 같은 리터럴 나열은 데이터라 뺀다)
+    # 머리 줄이 분기, 바인딩일 때만 센다(UI 선언 속 `Name = "S",` 같은 리터럴 나열은 데이터라 뺀다)
     pairs = collections.Counter(norm[i] + " ⏎ " + norm[i + 1] for i in range(len(norm) - 1)
                                 if HEAD_LINE.match(norm[i]))
     top_pair = pairs.most_common(1)[0] if pairs else ("", 0)
@@ -199,7 +199,7 @@ def scan(root, args):
                 a["exempt_bad"] = ex[0] if ex and not reason_ok(ex[0]) else None
                 a["exempt_from"] = ex[1] if ex else None
                 files.append(a)
-    # 파일 사이 중복(정규화 6줄 창) — 복사된 모듈 찾기
+    # 파일 사이 중복(정규화 6줄 창) - 복사된 모듈 찾기
     W = 6
     win = collections.defaultdict(set)
     for a in files:

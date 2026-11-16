@@ -2,8 +2,8 @@
 --   (1) 정체성을 약한 키 레지스트리(reg[obj] = true)로 매기면 작은 객체를 만드는 경로가 문자열 태그 필드보다 느리다. 조회만 보면 싸다.
 --   (2) 살아 있는 객체가 많을 때 약한 표가 있으면 전체 GC 가 더 든다.
 --   (3) 뜨거운 경로에서 약한 표 조회 앞에 type(v) == "table" 을 두면 원시값은 조회를 건너뛴다.
--- 원 수치: stl perf 18절(0.734 -O1): Arr.Of ×100만 태그 100.6~107.8 vs 레지스트리 199.6~208.6ms(~1.9x), Clone 1.66x, 20만 생존 시 풀 GC 2~3.7배.
---   quad brand-plan: "포인터 해싱 한 번, 무시할 만"(조회 관점). quad round14 expensive-checks(-O2, 9회 최소): Set 0.107 → 0.069us.
+-- 원 수치: stl perf 18절(0.734 -O1): Arr.Of x100만 태그 100.6~107.8 vs 레지스트리 199.6~208.6ms(~1.9x), Clone 1.66x, 20만 생존 시 풀 GC 2~3.7배.
+--   quad brand-plan: "포인터 해싱 한 번, 무시할 만"(조회 관점). quad round14 expensive-checks(-O2, 9회 최소): Set 0.107 -> 0.069us.
 local Bench = require("./lib/bench")
 
 local N = 200_000

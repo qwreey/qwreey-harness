@@ -2,7 +2,7 @@
 --   s ..= c 누적은 O(n^2) 이다(길이를 두 배로 하면 시간이 약 네 배). 표에 모아 table.concat 한 번이면 선형이다.
 --   숫자 목록 파싱은 string.gmatch + tonumber 가 Luau 로 글자마다 도는 파서보다 몇 십 배 빠르다(C 로 내려가는 쪽이 이긴다).
 --   .-.-.- 같은 패턴은 역추적이 다항 시간이다(길이 조금에 시간이 급증).
--- 원 수치: mrow REVIEW(0.734): ..= 10만자 0.80s, 20만 3.07s, 40만 12.76s; concat 0.035→0.150s. gmatch+tonumber 약 125ns/항목, 글자 파서 약 40배.
+-- 원 수치: mrow REVIEW(0.734): ..= 10만자 0.80s, 20만 3.07s, 40만 12.76s; concat 0.035->0.150s. gmatch+tonumber 약 125ns/항목, 글자 파서 약 40배.
 --   devplorer(0.734): .-.-.-.-.-.-b 12자 0.3ms, 18자 3ms, 24자 15ms, 60자 100초 초과.
 local Bench = require("./lib/bench")
 
@@ -20,7 +20,7 @@ local function concatTable(n: number)
 		return #table.concat(parts)
 	end
 end
--- 같은 그룹 안에서 n 을 두 배씩: 기준은 ..= 1만자. 2만·4만의 비율이 약 4·16 이면 O(n^2)
+-- 같은 그룹 안에서 n 을 두 배씩: 기준은 ..= 1만자. 2만, 4만의 비율이 약 4, 16 이면 O(n^2)
 Bench.run("str-build/concat", {
 	{ name = "..= 1만자", fn = concatGrow(10_000) },
 	{ name = "..= 2만자", fn = concatGrow(20_000) },

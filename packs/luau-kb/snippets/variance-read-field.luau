@@ -1,5 +1,5 @@
 --!strict
--- 주장: read 필드는 T 에 공변이고, 읽기·쓰기 필드는 불변이다. (옛 솔버는 read 키워드 자체를 거부한다)
+-- 주장: read 필드는 T 에 공변이고, 읽기, 쓰기 필드는 불변이다. (옛 솔버는 read 키워드 자체를 거부한다)
 -- 근거: quad/.claude/base/typing-limits.md 8.11 (luau-test/done/34)
 type RO<T> = { read v: T }
 type RW<T> = { v: T }

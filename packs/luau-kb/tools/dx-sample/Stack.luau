@@ -1,5 +1,5 @@
 --!strict
--- DX 프로브 샘플 라이브러리: 공개 API 의 hover·자동완성·추론 타입이 소비자에게 어떻게 보이는지 본다.
+-- DX 프로브 샘플 라이브러리: 공개 API 의 hover, 자동완성, 추론 타입이 소비자에게 어떻게 보이는지 본다.
 
 export type Stack<T> = {
 	items: { T },

@@ -48,7 +48,7 @@ def detect(ctx):
     return marks
 
 
-# 도입 추천(.claude/audit/16 §8). (플러그인, 한 줄 설정 안내)
+# 도입 추천(.claude/audit/16 8). (플러그인, 한 줄 설정 안내)
 PLUGINS = [
     ("security-guidance", "env ENABLE_COMMIT_REVIEW=0 로 시작(공유 worktree 면 ENABLE_STOP_REVIEW=0 도)"),
     ("frontend-design", "자동 발동 0/2 라 프로젝트 CLAUDE.md 에 \"새 화면·리디자인은 /frontend-design:frontend-design 부터\" 한 줄"),

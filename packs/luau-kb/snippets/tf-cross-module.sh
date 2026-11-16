@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# tf-cross-module.sh — check_snippets.py 는 파일 하나만 다루므로, 모듈 둘 이상이나 무한 루프가 필요한 type function
+# tf-cross-module.sh - check_snippets.py 는 파일 하나만 다루므로, 모듈 둘 이상이나 무한 루프가 필요한 type function
 # 주장을 여기서 잰다. 기대와 어긋나면 rc=1. 사용: bash snippets/tf-cross-module.sh
 #
 # 주장:
-#  M1 luau-analyze 0.734·0.742: 정의 모듈이 한 번도 인스턴스화하지 않은 `export type function` 도 소비자에서 평가된다.
+#  M1 luau-analyze 0.734, 0.742: 정의 모듈이 한 번도 인스턴스화하지 않은 `export type function` 도 소비자에서 평가된다.
 #  M2 luau-lsp 1.69.0 analyze(옵션 없음 = 모든 FFlag 켬): 프라이밍 안 한 함수는 소비자에서 진단 0건이다(조용히 무효).
 #     `type _Prime = F<…>` 를 둔 함수는 평가된다. `--flag:LuauDoNotExportBrokenTypeFunction=false` 나 `--no-flags-enabled` 면 둘 다 평가된다.
 #  M3 luau-lsp 1.70.1: 그 FFlag 가 없어졌다("Unknown FFlag", 분석은 계속). 프라이밍 없이도 평가된다.

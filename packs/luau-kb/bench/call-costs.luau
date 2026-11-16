@@ -1,4 +1,4 @@
--- 주장(S-P30, Q-087): 호출 한 번의 바닥값 — 평범한 호출 < pcall < coroutine 생성+resume.
+-- 주장(S-P30, Q-087): 호출 한 번의 바닥값 - 평범한 호출 < pcall < coroutine 생성+resume.
 --   인자를 매 호출 새 표로 넘기면 위치 인자보다 비싸고, 재사용 표에 매번 table.clear 하는 것은 새 표보다도 느리다.
 -- 원 수치: stl perf 13절(0.734 -O1): 호출 0.012us, pcall 0.037us, coroutine 0.174us.
 --   quad updatefn-ctx-table-bench(0.734, 200만, 중앙값 5회) ns: 위치 25.1/16.8/8.7(-O1/-O2/-O2 codegen), 새 표 76.0/68.3/55.4,

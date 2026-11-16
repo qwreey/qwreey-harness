@@ -158,7 +158,7 @@ def main() -> None:
     elif event == "PreCompact":
         trig = data.get("trigger") or "auto"
         first = once(hs, sid, "precompact")  # 올리기 전 회차로 판단한다
-        # 기록이나 요약이 실패해도 회차는 올라가야 하므로(ambient·workspace_gate 가 읽는다) 다른 일보다 먼저 올린다.
+        # 기록이나 요약이 실패해도 회차는 올라가야 하므로(ambient, workspace_gate 가 읽는다) 다른 일보다 먼저 올린다.
         compact_epoch.bump("qwreey-sessions", sid)
         if transcript:
             store.ensure()

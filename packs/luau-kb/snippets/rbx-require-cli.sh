@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# rbx-require-cli.sh — luau CLI 의 require-by-string 규칙과, 잘못된 경로를 정적 검사가 잡는 조건을 잰다.
+# rbx-require-cli.sh - luau CLI 의 require-by-string 규칙과, 잘못된 경로를 정적 검사가 잡는 조건을 잰다.
 # check_snippets.py 는 파일 하나만 다루므로 여러 파일이 필요한 주장을 여기서 잰다. 기대와 어긋나면 rc=1.
 # 사용: bash snippets/rbx-require-cli.sh
 #
-# 주장 (luau 0.734·0.742, luau-lsp 1.70.1):
+# 주장 (luau 0.734, 0.742, luau-lsp 1.70.1):
 #  Q1 `Foo/init.luau` 는 폴더 자신이다. 그 안의 `./Bar` 는 폴더의 형제, `@self/Bar` 는 폴더 안 파일이다.
 #  Q2 일반 파일(`main.luau`)의 `./x` 는 같은 디렉터리다. 일반 파일의 `@self/x` 는 실패한다.
 #  Q3 `require("./Foo")` 는 `Foo/init.luau` 를 싣는다. `X.luau` 를 `X/init.luau` 로 바꿔도 바깥 경로는 그대로다.
@@ -14,13 +14,13 @@
 #  Q6 `.luaurc` 의 일반 alias(`"lib": "./lib"`)는 CLI 런타임 require 에서 동작한다.
 #  Q7 require 는 심볼릭 링크를 따라가지 않는다(런타임 "could not resolve child component").
 #  Q8 풀리지 않는 require(잘못된 경로, symlink)를 luau-analyze 는 strict 에서 "Unknown require: unsupported path" 로 잡는다(rc=1).
-#     nonstrict(지시어·.luaurc 없음)에서는 진단 0건, rc=0 이다. luau-lsp analyze 도 없는 파일에는 strict 에서 "Unknown require" 를 낸다(symlink 는 따라가 푼다, Q11).
+#     nonstrict(지시어, .luaurc 없음)에서는 진단 0건, rc=0 이다. luau-lsp analyze 도 없는 파일에는 strict 에서 "Unknown require" 를 낸다(symlink 는 따라가 푼다, Q11).
 #  Q9 경로가 틀렸는데 우연히 다른 모듈로 풀리면 strict 에서도 진단이 없다(다른 모듈을 조용히 싣는다).
 #  Q10 Studio 실측(rbvm engine-behavior:68-83)과 같은 관대함: 끝 슬래시 "./Sib/", 빈 세그먼트 ".//Sib" 는 성공, "./" 단독은 실패,
 #      alias 는 대소문자를 가리지 않는다("@Self", "@SELF"). 값을 돌려주지 않는 모듈은 "module must return a single value".
 #  Q11 alias 값에 ./ 접두가 없으면("lib": "lib") luau 런타임은 'could not jump to alias' 로, luau-analyze 는 "Unknown require" 로 실패하고
 #      luau-lsp 만 푼다. Q6 과 합치면 "alias 는 편집기 전용" 이라는 관측의 조건이 이것이다. luau-lsp 는 symlink 도 따라가 푼다(런타임은 실패).
-#  같은 주제를 luau-verify 쪽 snippets/verify-require.sh 도 잰다(R3·R4).
+#  같은 주제를 luau-verify 쪽 snippets/verify-require.sh 도 잰다(R3, R4).
 # 근거: stl-luau-doctor/.claude/base/architecture.md:37-57,305-330; quad/.claude/base/project-setup-plan.md:112-176;
 #       quad/scripts/relink.sh:4-6; mrow/review/REVIEW.md:1159-1187; tbox/CLAUDE.md:141-145; claude-doctor .claude/audit/08 Q-101~Q-104, claude-doctor .claude/audit/09 S-123~S-125, X-02, X-04
 set -u

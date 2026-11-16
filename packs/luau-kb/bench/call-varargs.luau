@@ -1,6 +1,6 @@
 -- 주장(S-P08, S-P09): 가변 인자는 호출마다 값이 든다. 원소마다 select("#", ...) 헬퍼를 부르면 루프가 크게 느려진다(한 번만 센다).
 --   인자를 표로 모을 때 {...} 와 table.pack 의 차이, select(i, ...) 루프가 인자 수에 대해 O(n^2) 인 점.
--- 원 수치: stl perf 7절(0.734 -O1, 500만×3): (self, first, ...) +8.2%, (self, ...) +12.6%; "select 루프 vs table.pack 1.6~2.3배 빠름"(방향 모호).
+-- 원 수치: stl perf 7절(0.734 -O1, 500만x3): (self, first, ...) +8.2%, (self, ...) +12.6%; "select 루프 vs table.pack 1.6~2.3배 빠름"(방향 모호).
 --   19절(-O2): 원소마다 countReturns 2.1x. 57절(0.742 -O2): {...} 는 32 인자까지 table.pack 보다 0.80~0.99x, 1024 인자 1.12x.
 local Bench = require("./lib/bench")
 local Mod = require("./lib/vfuncs")

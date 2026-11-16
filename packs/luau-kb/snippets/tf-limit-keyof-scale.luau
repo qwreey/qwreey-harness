@@ -5,7 +5,7 @@
 --   - 400 키: 0.734 에서는 맞는 호출도 too complex 다. 0.742 에서는 맞는 호출이 통과한다.
 --   - 틀린 이름은 여전히 "does not exist" 로 잡힌다.
 --   quad 실측(Roblox 맵, luau-lsp 1.70.1 Studio 한도)은 130 통과, 140 부터 too complex 였다. 값 타입이 클수록 문턱이 낮다.
--- 근거: quad/.claude/base/typing-limits.md 8.7 ②③, quad/.claude/audit/decl-typefn-probe-2026-10-16/REPORT.md:329-339
+-- 근거: quad/.claude/base/typing-limits.md 8.7 2) 3), quad/.claude/audit/decl-typefn-probe-2026-10-16/REPORT.md:329-339
 type M150 = {
 	k0: string, k1: number, k2: string, k3: number, k4: string, k5: number, k6: string, k7: number, k8: string, k9: number, k10: string, k11: number, k12: string, k13: number, k14: string, k15: number, k16: string, k17: number, k18: string, k19: number, k20: string, k21: number, k22: string, k23: number, k24: string,
 	k25: number, k26: string, k27: number, k28: string, k29: number, k30: string, k31: number, k32: string, k33: number, k34: string, k35: number, k36: string, k37: number, k38: string, k39: number, k40: string, k41: number, k42: string, k43: number, k44: string, k45: number, k46: string, k47: number, k48: string, k49: number,

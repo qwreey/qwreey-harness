@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# style-stylua-pitfalls.sh — stylua 가 조용히(또는 시끄럽게) 코드를 바꾸는 조건 둘. check_snippets.py 는 .luau 만 다루므로 여기서 잰다.
+# style-stylua-pitfalls.sh - stylua 가 조용히(또는 시끄럽게) 코드를 바꾸는 조건 둘. check_snippets.py 는 .luau 만 다루므로 여기서 잰다.
 # 주장 (stylua 2.5.2, syntax = "Luau" 설정이 적용된 상태에서도):
-#  P1 `const` 선언 다음 줄의 `;(f :: T)(1)` 에서 stylua 가 `;` 를 지운다 → luau 가 "Ambiguous syntax" 로 실행을 거부한다.
+#  P1 `const` 선언 다음 줄의 `;(f :: T)(1)` 에서 stylua 가 `;` 를 지운다 -> luau 가 "Ambiguous syntax" 로 실행을 거부한다.
 #     같은 코드가 `local` 다음이면 `;` 를 앞 줄 끝으로 옮겨 안전하다. 처방: 지역으로 받아 부른다(`const g = f :: T; g(1)`).
 #  P2 `-- stylua: ignore` 는 주석 전체가 정확히 그 글자일 때만 먹는다. 뒤에 설명을 붙이면 무시되고 포맷된다.
 # `f<<T>>` 가 하위 폴더 실행에서 시프트로 바뀌는 건은 tools/repro-stylua-typeargs.sh 가 다룬다.
-# 근거: decisions D-01 §2, stl-luau/.claude/conventions.md:94-95, stl-luau/.claude/archive/question-resolved.md:1764-1768. 후보 S-130, S-131
-# 기대와 어긋나면 rc=1(= stylua 동작이 바뀜 → luau-style references/quality.md §3 갱신). 사용: bash snippets/style-stylua-pitfalls.sh [stylua] [luau]
+# 근거: decisions D-01 2, stl-luau/.claude/conventions.md:94-95, stl-luau/.claude/archive/question-resolved.md:1764-1768. 후보 S-130, S-131
+# 기대와 어긋나면 rc=1(= stylua 동작이 바뀜 -> luau-style references/quality.md 3 갱신). 사용: bash snippets/style-stylua-pitfalls.sh [stylua] [luau]
 set -u
 MISE=${MISE_DATA_DIR:-/code/.local/share/mise}
 S=${1:-$MISE/installs/stylua/2.5.2/stylua}

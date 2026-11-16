@@ -159,7 +159,7 @@ def op_hook_upsert(d, o, ctx):
         if g.get("matcher", "") == matcher and not placed:
             g["hooks"][hi] = hook; placed = True
         else:
-            g["hooks"][hi] = None  # 다른 그룹·중복은 제거 표시
+            g["hooks"][hi] = None  # 다른 그룹, 중복은 제거 표시
     for g in lst:
         if isinstance(g, dict) and isinstance(g.get("hooks"), list):
             g["hooks"] = [h for h in g["hooks"] if h is not None]

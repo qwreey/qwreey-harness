@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# style-require-paths.sh — require-by-string 경로 규칙(luau CLI). 파일이 여럿 필요해서 check_snippets.py 대신 여기서 잰다.
-# 주장 (luau 0.734·0.742):
+# style-require-paths.sh - require-by-string 경로 규칙(luau CLI). 파일이 여럿 필요해서 check_snippets.py 대신 여기서 잰다.
+# 주장 (luau 0.734, 0.742):
 #  R1 `init.luau` 는 자기가 든 폴더 자체를 뜻한다. 그 안의 `./x` 는 폴더의 **형제**(pkg/x.luau), `@self/x` 는 폴더 안(pkg/src/x.luau)이다.
 #     형제 자리에 같은 이름 파일이 있으면 에러 없이 그 파일을 읽는다(조용한 오배선).
-#  R2 테스트 엔트리를 `tests/init.luau` 로 지으면 그 안의 `./helper` 는 tests/ 가 아니라 저장소 루트를 찾는다 → "could not resolve child component".
+#  R2 테스트 엔트리를 `tests/init.luau` 로 지으면 그 안의 `./helper` 는 tests/ 가 아니라 저장소 루트를 찾는다 -> "could not resolve child component".
 #     "(ambiguous)" 는 `X.luau` 와 `X/` 가 형제로 같이 있을 때 난다(X-04 의 두 설명 중 mrow 쪽이 맞음).
 #  R3 --!strict 의 luau-analyze 는 **없는** 경로와 동적 경로를 "Unknown require: unsupported path" 로 잡는다. nonstrict 는 0건이다.
 #     R1 의 오배선처럼 **있는 다른 파일로 풀리는** 경로는 어느 모드에서도 못 잡는다. 그래서 새 모듈은 실제로 require 하는 테스트가 필요하다.

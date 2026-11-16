@@ -47,7 +47,7 @@ ALLOWED_SUFFIX = {".md", ".yaml", ".yml", ".json"}
 MAX_FILE = 4 * 1024 * 1024
 MAX_TOTAL = 300 * 1024 * 1024
 MAX_DOWNLOAD = 200 * 1024 * 1024
-SECTION_THRESHOLD = 8000  # coderag §21.3: 이보다 큰 문서는 get 이 목차를 낸다
+SECTION_THRESHOLD = 8000  # coderag 21.3: 이보다 큰 문서는 get 이 목차를 낸다
 INDEX_VERSION = 2
 MEMBER_KEYS = ("properties", "methods", "events", "callbacks", "functions", "constructors",
                "constants", "math_operations", "items")
@@ -259,8 +259,8 @@ def cmd_status(a):
 
 
 # ---------------------------------------------------------------- YAML 부분 집합 파서
-# creator-docs 의 참조 YAML 은 생성기가 쓴 규칙적인 꼴이다: 블록 매핑·시퀀스, `|` 블록 스칼라,
-# 평문·작은따옴표·큰따옴표 스칼라, 빈 `[]`/`{}`. 앵커·흐름 컬렉션(비지 않은 것)·태그는 없다(2026-11 확인).
+# creator-docs 의 참조 YAML 은 생성기가 쓴 규칙적인 꼴이다: 블록 매핑, 시퀀스, `|` 블록 스칼라,
+# 평문, 작은따옴표, 큰따옴표 스칼라, 빈 `[]`/`{}`. 앵커, 흐름 컬렉션(비지 않은 것), 태그는 없다(2026-11 확인).
 
 class Node(dict):
     __slots__ = ("start", "end")
@@ -269,7 +269,7 @@ class Node(dict):
 class _Y:
     def __init__(self, text):
         self.raw = text.split("\n")
-        self.lines = []  # (indent, content, lineno 1-based) — 빈 줄·주석 줄은 None 표시
+        self.lines = []  # (indent, content, lineno 1-based) - 빈 줄, 주석 줄은 None 표시
         for i, l in enumerate(self.raw, 1):
             s = l.lstrip(" ")
             if not s.strip() or s.startswith("#"):
@@ -660,7 +660,7 @@ def cmd_search(a):
         lines = text.split("\n")
         for s in f["sections"]:
             body = "\n".join(lines[s["a"] - 1:s["o"]])
-            # 정확한 낱말은 1, 앞부분만 맞으면(optimize → optimization) 0.5
+            # 정확한 낱말은 1, 앞부분만 맞으면(optimize -> optimization) 0.5
             tf = []
             for k in range(len(terms)):
                 e = len(exact[k].findall(body))

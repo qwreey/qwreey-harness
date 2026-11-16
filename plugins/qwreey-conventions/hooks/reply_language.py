@@ -153,7 +153,7 @@ def resolve_language(data):
     return settings_language(project_root(data)) or stored_language()
 
 
-# ---- 상태·로그 ----
+# ---- 상태, 로그 ----
 
 def _sid(v):
     return re.sub(r"[^\w-]", "", str(v or "nosession"))

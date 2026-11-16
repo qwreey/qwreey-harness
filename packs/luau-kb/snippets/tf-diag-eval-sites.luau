@@ -6,7 +6,7 @@
 --   - 제네릭 함수 몸통 안의 지역 별칭(`type _C = Check<T>`)은 호출마다 다시 평가되지 않아 진단이 0건이다.
 --   - 반환 타입 자리에 두면 호출부마다 평가된다.
 --   - 같은 인스턴스(Checked<string>)의 print 메시지는 처음 평가한 자리에 한 번만 뜬다. 다음 자리는 "unreachable" 만 남는다.
--- 근거: quad/.claude/base/typing-limits.md §6 "그래서 우리가 하는 것" ②, quad/.claude/base/quad-types-plan.md:253-278,
+-- 근거: quad/.claude/base/typing-limits.md 6 "그래서 우리가 하는 것" 2), quad/.claude/base/quad-types-plan.md:253-278,
 --       quad/.claude/audit/type-recursive-issue-try-callback/REPORT.md:192-196(지연 평가)
 type function MustLit(t: type): type
 	if t.tag == "singleton" then

@@ -1,5 +1,5 @@
 --!strict
--- 주장: 교집합 안에서 T 가 불변·반공변 자리에 서면 같은 별칭의 값에서도 T 를 뽑지 못한다("No valid instantiation").
+-- 주장: 교집합 안에서 T 가 불변, 반공변 자리에 서면 같은 별칭의 값에서도 T 를 뽑지 못한다("No valid instantiation").
 --       같은 멤버를 한 테이블에 두거나, 교집합이어도 T 가 공변 자리뿐이면 된다.
 -- 0.746: W3 만 풀림(한계 일부 해제). W1(반공변 f)은 여전히 실패.
 -- 근거: quad/.claude/audit/consumer-type-surface-2026-10-06/probes/pure/repro_a1_pure.luau, quad 8.36 A1

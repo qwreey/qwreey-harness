@@ -1,6 +1,6 @@
 -- 주장(S-P48): 결과 크기를 알면 table.create(n) 으로 미리 잡는다(작은 n 에서 효과가 크고 큰 n 에서는 작다).
 --   크기 필드를 원소마다 올리기보다 지역 변수로 세고 끝에 한 번 쓰는 쪽이 빠르다.
--- 원 수치: stl perf 28절(-O2): N=10 에서 0.45→0.33us(0.73x), 크면 차이 없음. 33절: size 필드 매번 갱신 1.16~1.18x.
+-- 원 수치: stl perf 28절(-O2): N=10 에서 0.45->0.33us(0.73x), 크면 차이 없음. 33절: size 필드 매번 갱신 1.16~1.18x.
 local Bench = require("./lib/bench")
 
 local function fill(make: (number) -> { number }, n: number, reps: number)

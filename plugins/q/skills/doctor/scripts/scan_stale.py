@@ -8,7 +8,7 @@ import re
 C = None
 
 
-# ------------------------------------------------------ 4 낡음·모순
+# ------------------------------------------------------ 4 낡음, 모순
 DATED_RX = re.compile(r"(20\d\d-\d\d-\d\d)[^\]\n*—]{0,6}?(?:기준|현재)|(?:as of|기준:?)\s*(20\d\d-\d\d-\d\d)")
 SUPERSEDE_RX = re.compile(r"뒤집|폐기|철회|무효|전환 중|바뀌었|superseded|reverted|no longer")
 FIRM_RX = re.compile(r"확정|정해진|예외 없음|반드시|decided|always")

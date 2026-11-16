@@ -9,7 +9,7 @@
 #
 # settings.json 은 복사하지 않는다(MANIFEST 에 없음). 정본은 home/settings-migrations/NNNN-<slug>.json 이고,
 #   apply 가 아직 적용하지 않은 것만 순서대로 한 번씩 적용한다(tools/settings-migrate.py). 적용한 id 는 $DST/.home-sync-migrations.
-#   마이그레이션에 없는 값(사용자 플러그인·권한·/config 값)은 건드리지 않고, 적용 뒤 사용자가 바꾼 값도 되돌리지 않는다.
+#   마이그레이션에 없는 값(사용자 플러그인, 권한, /config 값)은 건드리지 않고, 적용 뒤 사용자가 바꾼 값도 되돌리지 않는다.
 #   실패하면 그 마이그레이션만 되돌린다. 연산 종류는 settings-migrate.py 머리 주석.
 #   (status 는 고아도 보고한다: 이전에 관리했지만 MANIFEST 에서 빠진 항목, 관리 디렉터리의 끊어진 링크. 지우지는 않고 제거 명령만 제안한다)
 #   tools/home-sync.sh env      harness.env 를 푼 값(MANIFEST 링크 대상에 쓰이는 변수)을 보여준다
@@ -37,11 +37,11 @@ mapfile -t LINKS < <(grep '^link ' "$ROOT/home/MANIFEST" | cut -d' ' -f2-)
 declare -A HENV=([HARNESS_DOCTOR_ROOT]="$ROOT" [HARNESS_WORKSPACE]="$(dirname "$ROOT")")
 ENVFILE=${HARNESS_ENV:-$SRC/harness.env}
 MISSING=""
-henv_get() { # $1 이름 → 값(harness.env 키, 없으면 환경 변수, 둘 다 없으면 빈 값)
+henv_get() { # $1 이름 -> 값(harness.env 키, 없으면 환경 변수, 둘 다 없으면 빈 값)
   if [[ -v "HENV[$1]" ]]; then printf '%s' "${HENV[$1]}"
   elif [[ -n "${!1+x}" ]]; then printf '%s' "${!1}"; fi
 }
-henv_expand() { # $1 문자열 → EXPANDED. ${NAME}·$NAME·맨 앞 ~
+henv_expand() { # $1 문자열 -> EXPANDED. ${NAME}, $NAME, 맨 앞 ~
   local s=$1 out="" name
   [[ $s == "~"* ]] && s="$HOME${s:1}"
   while [[ $s =~ ^([^\$]*)\$(\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))(.*)$ ]]; do

@@ -62,7 +62,7 @@ CFG_DEFAULTS = {
     "HARNESS_AWAY_OVER_SLOTS": "1",  # 예산을 넘긴 뒤 슬롯(직렬화)
     "HARNESS_AWAY_BUDGET_PCT": "30",  # 구독제: /q:away 에 예산을 안 주면 그 창의 몇 %p 를 더 쓸 때까지
     "HARNESS_AWAY_PLAN": "auto",  # auto(statusline 이 한도 값을 보내면 pct, 아니면 usd) | usd | pct
-    "HARNESS_AWAY_STAGE2_MULT": "2",  # 2단계 = 예산의 이 배수(새 서브에이전트·Workflow 거절)
+    "HARNESS_AWAY_STAGE2_MULT": "2",  # 2단계 = 예산의 이 배수(새 서브에이전트, Workflow 거절)
     "HARNESS_AWAY_LIMITS_STALE_MIN": "10",  # statusline 이 한도 값을 이만큼 못 갱신하면 오래된 것으로 보고 USD 가드로
     "HARNESS_AWAY_WORKFLOW": "idle",  # away 중 Workflow: idle(실행 중 0 일 때만) | deny | allow
     "HARNESS_SLOTS_STALE_MIN": "30",  # 트랜스크립트가 이만큼 조용한 실행 중 항목은 죽은 것으로 본다
@@ -98,7 +98,7 @@ def epoch(sid):
     return compact_epoch.epoch("q", sid)
 
 
-# ---------- 모델·가격 ----------
+# ---------- 모델, 가격 ----------
 def family(model):
     m = str(model or "").lower()
     for f in ORDER:
@@ -355,7 +355,7 @@ def sweep(st, now=None, window=600):
             account_agent(st, aid, a["path"])
 
 
-# ---------- 한도 % (statusline 입력의 rate_limits → 세션별 파일) ----------
+# ---------- 한도 % (statusline 입력의 rate_limits -> 세션별 파일) ----------
 WINDOWS = {"5h": "five_hour", "w": "seven_day"}
 WLABEL = {"five_hour": "5h", "seven_day": "week"}
 

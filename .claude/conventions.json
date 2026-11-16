@@ -1,4 +1,15 @@
 {
-  "exclude": [".claude/research/drafts/**", ".claude/archive/research/drafts/**", ".claude/audit/drafts/**"],
-  "load_budget": {"total": 5000, "file": 2500, "rule": 2500, "skill_body": 5000}
+  "exclude": [
+    ".claude/research/drafts/**",
+    ".claude/archive/research/drafts/**",
+    ".claude/audit/**",
+    ".claude/sessions/**",
+    ".claude/handoff/**"
+  ],
+  "load_budget": {
+    "total": 5000,
+    "file": 2500,
+    "rule": 2500,
+    "skill_body": 5000
+  }
 }

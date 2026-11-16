@@ -135,7 +135,7 @@ def diagnostics(text):
             last = int(m["l"])
             got.setdefault(last, []).append(m["m"])
         elif LOC_ANY.match(l):
-            last = None  # 린트 등 다른 종류의 줄 — 이어 붙이기 중단
+            last = None  # 린트 등 다른 종류의 줄 - 이어 붙이기 중단
         elif last is not None and l.strip():
             got[last][-1] += " " + l.strip()
     return got

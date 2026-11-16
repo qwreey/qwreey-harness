@@ -51,7 +51,7 @@ assert(count(right) == 1, "real probe: the back-reference keeps the entry")
 local distinct = setmetatable({}, { __mode = "k" })
 local cached = {}
 for i = 1, 5 do
-	local f = function() end -- 업밸류 없음 → 같은 객체
+	local f = function() end -- 업밸류 없음 -> 같은 객체
 	distinct[f] = true
 	cached[i] = f
 end

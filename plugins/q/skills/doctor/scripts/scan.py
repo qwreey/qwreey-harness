@@ -31,7 +31,7 @@ from pathlib import Path
 VERSION = "2"
 HERE = Path(__file__).resolve()
 USER_HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
-# 이 파일은 <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py 다. 플러그인 캐시(~/.claude/plugins/…)로 설치되면
+# 이 파일은 <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py 다. 플러그인 캐시(~/.claude/plugins/...)로 설치되면
 # claude-doctor 위치를 모르므로 HARNESS_DOCTOR_ROOT 환경 변수나 harness.env 로 알려야 정본 관련 검사가 켜진다.
 _PATH_ROOT = HERE.parents[5] if (HERE.parents[4].name == "plugins" and (HERE.parents[5] / "home" / "MANIFEST").is_file()) else None
 
@@ -56,7 +56,7 @@ _root = os.environ.get("HARNESS_DOCTOR_ROOT") or (str(_PATH_ROOT) if _PATH_ROOT 
 DOCTOR_ROOT = Path(_root) if _root else None
 CANON_HOME = DOCTOR_ROOT / "home" / ".claude" if DOCTOR_ROOT else USER_HOME
 WORKSPACE = Path(ENV.get("HARNESS_WORKSPACE") or (DOCTOR_ROOT.parent if DOCTOR_ROOT else Path.cwd()))
-# 위임 작업공간·초안 사본 접미(<repo>-<접미>). 형제 비교와 `all` 에서 뺀다.
+# 위임 작업공간, 초안 사본 접미(<repo>-<접미>). 형제 비교와 `all` 에서 뺀다.
 COPY_SUFFIXES = ("-agy", "-scratch", "-codex", "-proto", "-doctor")
 DESC_LIMIT = 1536
 SKILL_MAX_LINES = 500
@@ -606,7 +606,7 @@ def main():
         for n, fn in steps:
             if n in only:
                 fn()
-        if only & {5, 6, 8}:  # 툴킷 검사는 감지된 툴킷만, 항목 5(공유 지식)·6(사본)·8(툴체인)에 낸다
+        if only & {5, 6, 8}:  # 툴킷 검사는 감지된 툴킷만, 항목 5(공유 지식), 6(사본), 8(툴체인)에 낸다
             run_toolkits(target, files, projects, only, kb, active)
     if a.json:
         print(json.dumps({"target": str(target), "today": str(today), "findings": findings, **extra},

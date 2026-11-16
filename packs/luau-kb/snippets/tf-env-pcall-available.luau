@@ -1,5 +1,5 @@
 --!strict
--- 주장: luau-analyze 0.734·0.742 와 luau-lsp 1.70.1 에서는 type function 안의 pcall 이 동작한다.
+-- 주장: luau-analyze 0.734, 0.742 와 luau-lsp 1.70.1 에서는 type function 안의 pcall 이 동작한다.
 --       `types` API 가 던지는 에러(`t:parameters()` 를 함수 아닌 타입에 부름)도 pcall 이 잡는다(ok=false).
 --       luau-lsp 1.69.0 은 같은 파일에 "Unknown global 'pcall'" 과 "this function is not supported in type functions" 를 낸다.
 --       quad 8.18 의 관측이 그 판이다.

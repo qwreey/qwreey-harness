@@ -17,7 +17,7 @@ H = os.path.join(Q, "scripts")
 HOME = os.path.join(os.path.dirname(os.path.dirname(Q)), "home", ".claude")  # 정본 사용자 설정(statusline, harness.env)
 LEDGER = os.path.join(H, "subagent_ledger.py")
 T = tempfile.mkdtemp(prefix="slots-")
-# 사용자 설정 디렉터리 흉내: 설치된 q(이 저장소의 사본)를 가리키는 installed_plugins.json + 정본 harness.env·lib
+# 사용자 설정 디렉터리 흉내: 설치된 q(이 저장소의 사본)를 가리키는 installed_plugins.json + 정본 harness.env, lib
 CFG = os.path.join(T, "cfg")
 os.makedirs(os.path.join(CFG, "plugins"))
 os.symlink(os.path.join(HOME, "lib"), os.path.join(CFG, "lib"))
@@ -192,7 +192,7 @@ big = [usage_line(f"x{i}", "claude-opus-5-5", out=1_000_000) for i in range(6)] 
 w.stop_agent(idb, big)
 st = w.state()
 check("budget: subagent spend accounted from its transcript", abs(L.total_usd(st) - 120) < 1e-6)
-we, ide = w.launch()  # running: idd 하나, 초과 → 슬롯 1 → 거절
+we, ide = w.launch()  # running: idd 하나, 초과 -> 슬롯 1 -> 거절
 check("budget over: serialized to 1 slot (1 running -> queued)", denied(we) and "budget" in reason(we))
 w.stop_agent(idd)
 wf1, idf = w.launch()
@@ -262,7 +262,7 @@ out = cli("reset", "recover")
 check("recover: manual reset clears counters", "비웠다" in out and c.state()["running"] == {} and c.state()["reserved"] == {})
 check("recover: log records why", any(e["k"] == "recovered" and e.get("why") == "not-in-background_tasks" for e in c.state()["log"]))
 
-# ---- 포그라운드 흐름: Start → Stop → Post(completed) ----
+# ---- 포그라운드 흐름: Start -> Stop -> Post(completed) ----
 f = S("fg")
 tid, _ = f.pre(bg=False)
 hook(f.base(hook_event_name="SubagentStart", agent_id="afg1", agent_type="general-purpose"))
@@ -299,7 +299,7 @@ hook(dict(session_id="main", transcript_path=sub_tp, cwd=PROJ, agent_id="z", hoo
           tool_use_id="nested", tool_input={"model": "sonnet"}))
 check("nested spawn inside a subagent does not move the main offset", m.state()["main"]["off"] == os.path.getsize(m.tp))
 
-# ---- 한도 % 예산 + 2단계 (사용자 결정 2026-11-10, .claude/audit/21 §5) ----
+# ---- 한도 % 예산 + 2단계 (사용자 결정 2026-11-10, .claude/audit/21 5) ----
 SL = os.path.join(HOME, "statusline", "harness-status.py")
 
 
@@ -394,7 +394,7 @@ cli("away", "rs", "30%5h", "2")
 rs = S("rs")
 sline("rs", rl(45, 50, r5=1000))  # +25
 rs.launch()
-sline("rs", rl(3, 51, r5=19000))  # 리셋 → 25 + 3 = 28
+sline("rs", rl(3, 51, r5=19000))  # 리셋 -> 25 + 3 = 28
 ro = rs.pre()[1]
 check("reset: 25 before + 3 after = 28 < 30 -> not over", not denied(ro) and rs.state()["away"]["pct"]["five_hour"]["acc"] == 25)
 sline("rs", rl(6, 51, r5=19000))  # 31
@@ -462,7 +462,7 @@ check("main still gets its own fan-out warn after the subagent consumed one", "S
 _, main_pre2 = nn.pre()
 check("main dedup within the burst is unchanged (silent)", ctx(main_pre2) == "")
 
-# ---- away 중 메인 단독 작업: 모든 도구의 PostToolUse 에서 1·2단계 안내 ----
+# ---- away 중 메인 단독 작업: 모든 도구의 PostToolUse 에서 1, 2단계 안내 ----
 def post_read(sx, agent=None, env=None):
     d = sx.base(hook_event_name="PostToolUse", tool_name="Read", tool_use_id=f"r{time.time()}", tool_input={"file_path": "/x"}, tool_response={})
     if agent:
@@ -531,7 +531,7 @@ away_ms = timeit(S("lat-away"))
 print(f"latency per PostToolUse call: not-away {base_ms:.1f} ms, away {away_ms:.1f} ms (bare python -I startup {py_ms:.1f} ms)")
 check("main-solo: not-away path costs < 10 ms over bare python startup", base_ms - py_ms < 10)
 
-# ---- 끄기·잘못된 입력 ----
+# ---- 끄기, 잘못된 입력 ----
 check("off switch -> no output", hook({"session_id": "off", "hook_event_name": "PreToolUse", "tool_name": "Agent", "tool_input": {}},
                                       dict(ENV, HARNESS_SUBAGENT_SLOTS="off")) is None)
 bad = subprocess.run([sys.executable, "-I", os.path.join(H, "subagent-slots.py")], input="{no", capture_output=True, text=True, env=ENV)

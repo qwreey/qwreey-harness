@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # session-log e2e: 임시 git 프로젝트에서 claude -p --plugin-dir 로 실제 훅을 돌린다(실제 haiku 호출, 수 센트).
-# 확인: SessionStart 주입 / SessionEnd 분리 실행 → 요약 / /compact 유도 → PreCompact 주입·PostCompact 보관·SessionStart(compact) 재알림
+# 확인: SessionStart 주입 / SessionEnd 분리 실행 -> 요약 / /compact 유도 -> PreCompact 주입, PostCompact 보관, SessionStart(compact) 재알림
 #       / 다음 턴 요약 완료 알림(UserPromptSubmit) / git commit 직전 pending 알림(PreToolUse) / (선택) auto compact
 # 사용: tests/e2e.sh [--auto-compact]   결과: $T/report.json, 모델이 본 문자열은 트랜스크립트에서 뽑는다.
 set -u
@@ -12,7 +12,7 @@ CLEAN=(env -u CLAUDECODE -u CLAUDE_PROJECT_DIR -u CLAUDE_CODE_SESSION_ID -u CLAU
 CL=("${CLEAN[@]}" claude -p --plugin-dir "$PLUG" --model haiku --output-format json)
 log() { echo "[e2e] $*" >&2; }
 
-# 0. 앞선 세션 기록 하나를 심는다(가짜 요약기, 비용 0) → pending 1, 인계 원천
+# 0. 앞선 세션 기록 하나를 심는다(가짜 요약기, 비용 0) -> pending 1, 인계 원천
 python3 -I - "$T" "$P" <<'EOF'
 import json, sys
 T, P = sys.argv[1:3]

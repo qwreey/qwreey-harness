@@ -1,31 +1,31 @@
 #!/usr/bin/env bash
-# style-split-types.sh — 타입 하나(네임스페이스 모듈·메타테이블 객체)를 여러 파일로 나눌 때 새 솔버 타입 검사가 어디까지 따라오나.
+# style-split-types.sh - 타입 하나(네임스페이스 모듈, 메타테이블 객체)를 여러 파일로 나눌 때 새 솔버 타입 검사가 어디까지 따라오나.
 # 파일이 여럿 필요해서 check_snippets.py 대신 여기서 잰다. 질문의 출발: stl `Arr.luau`(3,030줄, 함수 145) 같은 단일 타입 모듈을 나눌 수 있나.
-# 주장 (luau 0.734·0.742·0.746, --!strict, luau-analyze + luau CLI):
-#  S1 재수출은 타입 손실이 없다. 묶음 파일(`Arr/Sort.luau`, `Arr/Ctor.luau`)이 공개·내부 타입을 `Arr/Types.luau` 에서 가져와
+# 주장 (luau 0.734, 0.742, 0.746, --!strict, luau-analyze + luau CLI):
+#  S1 재수출은 타입 손실이 없다. 묶음 파일(`Arr/Sort.luau`, `Arr/Ctor.luau`)이 공개, 내부 타입을 `Arr/Types.luau` 에서 가져와
 #     제네릭 함수를 정의하고, `Arr/init.luau` 가 표 생성자 필드(`{ Sort = Sort.Sort }`)나 대입(`Arr.Sort = Sort.Sort`)으로 다시 내보내면
-#     소비자에서 제네릭이 살아 있다(원소 타입 어긋남·콜백 인자 어긋남·`Arr<string>` 대입을 잡는다). 명시 타입 인자 `Arr.Sized<<number?>>(…)` 도 된다.
+#     소비자에서 제네릭이 살아 있다(원소 타입 어긋남, 콜백 인자 어긋남,`Arr<string>` 대입을 잡는다). 명시 타입 인자 `Arr.Sized<<number?>>(…)` 도 된다.
 #  S2 "다른 모듈이 같은 표에 붙이기"는 타입에서 안 된다(런타임은 된다).
-#     a) 설치자 `require("@self/Sort")(Arr)` → 소비자 `Arr.Sort` 에 "Key 'Sort' not found in table 'Arr'".
-#     b) 메타테이블 객체: 타입·생성자 파일의 `Methods` 에 다른 모듈이 `function Core.Methods.Sum(self: Core.Obj)` →
+#     a) 설치자 `require("@self/Sort")(Arr)` -> 소비자 `Arr.Sort` 에 "Key 'Sort' not found in table 'Arr'".
+#     b) 메타테이블 객체: 타입, 생성자 파일의 `Methods` 에 다른 모듈이 `function Core.Methods.Sum(self: Core.Obj)` ->
 #        그 줄에 "Cannot add property 'Sum' to table 'Methods'", 소비자 `o:Sum()` 에 "Type 'Obj' does not have key 'Sum'".
-#     c) 우회 — init 이 묶음 모듈의 함수로 메서드 표를 **조립**하면 된다: `local Methods = { Push = Mut.Push, Sum = Query.Sum }`,
+#     c) 우회 - init 이 묶음 모듈의 함수로 메서드 표를 **조립**하면 된다: `local Methods = { Push = Mut.Push, Sum = Query.Sum }`,
 #        `type Bag = typeof(setmetatable({} :: Types.Data, mt))`(제네릭이면 `setmetatable<Types.Data<T>, typeof(mt)>`).
-#        묶음 함수의 self 는 **데이터 타입**(`Types.Data<T>`)으로 받는다. 소비자의 인자 어긋남·없는 메서드를 잡는다. 순환 없음(묶음 → Types 한 방향).
-#     d) 그 대가 — 묶음 안에서 다른 묶음의 메서드를 `self:Push(v)` 로 부르면 "Key 'Push' not found in table 'Data<T>'". 다른 묶음 모듈을 직접 require 해서
+#        묶음 함수의 self 는 **데이터 타입**(`Types.Data<T>`)으로 받는다. 소비자의 인자 어긋남, 없는 메서드를 잡는다. 순환 없음(묶음 -> Types 한 방향).
+#     d) 그 대가 - 묶음 안에서 다른 묶음의 메서드를 `self:Push(v)` 로 부르면 "Key 'Push' not found in table 'Data<T>'". 다른 묶음 모듈을 직접 require 해서
 #        `Mut.Push(self, v)` 로 부른다.
-#     e) 제네릭 객체의 `local o: Bag<number> = Bag.New()` 가 `Data<unknown>` 으로 어긋나는 것은 **나눈 탓이 아니다** — 한 파일 기준선에서도 같다
-#        (인자 없는 제네릭 생성자, luau-types generics §1). `Bag.New<<number>>()` 로 쓴다.
-#  S3 묶음이 생성자를 쓰려고 init 을 require 하면 순환이다. 0.734 "Cyclic module dependency", 0.742·0.746 "Cyclic dependencies are only supported
+#     e) 제네릭 객체의 `local o: Bag<number> = Bag.New()` 가 `Data<unknown>` 으로 어긋나는 것은 **나눈 탓이 아니다** - 한 파일 기준선에서도 같다
+#        (인자 없는 제네릭 생성자, luau-types generics 1). `Bag.New<<number>>()` 로 쓴다.
+#  S3 묶음이 생성자를 쓰려고 init 을 require 하면 순환이다. 0.734 "Cyclic module dependency", 0.742, 0.746 "Cyclic dependencies are only supported
 #     if all modules in the cycle use 'export' syntax". 런타임도 "error while running module" 로 죽는다. 생성자를 `Arr/Ctor.luau` 로 빼고 묶음과 init 이
-#     둘 다 Ctor 를 require 하면 타입·실행 모두 깨끗하다.
+#     둘 다 Ctor 를 require 하면 타입, 실행 모두 깨끗하다.
 #  S4 늦은 조회 표(quad Slot 의 `S`)로 상호 재귀를 파일 경계 너머로 끊을 수 있다. `S.luau` 가 `export type S = { isEven: …, isOdd: … }` 와
 #     `local S: S = {} :: any` 를 내고, 묶음 파일이 `function S.isEven(…)` 로 채우고 `S.isOdd(n - 1)` 로 부를 때 읽는다. 시그니처 어긋남과
 #     표에 없는 이름("Cannot add property 'isNope' to table 'S'")을 잡고, 제네릭 필드(`<T>({ T }) -> T?`)도 된다.
-#     등록을 빠뜨리면 타입은 0건이고 런타임에 "attempt to call a nil value" — init 이 모든 묶음을 require 하는지 테스트로 지킨다.
-# 성능 메모(측정은 luau-perf): 소비자 → Arr 호출은 원래 다른 모듈이라 나눠도 같다. 다만 `-O2` 는 **같은 파일의** 지역 함수만 인라인하므로,
-#   Arr 안의 작은 내부 헬퍼(구간 정규화 등)를 공용 모듈로 옮기면 인라인이 사라진다(luau-perf calls-and-closures §3, `opt-inline-rules.luau`).
-# 근거: stl-luau src/Collections/Arr.luau(머리 주석: 메타테이블 없는 네임스페이스 함수), quad 4ddb9c5a(Slot 의 `S`), claude-doctor .claude/audit/12 §3 원인 5.
+#     등록을 빠뜨리면 타입은 0건이고 런타임에 "attempt to call a nil value" - init 이 모든 묶음을 require 하는지 테스트로 지킨다.
+# 성능 메모(측정은 luau-perf): 소비자 -> Arr 호출은 원래 다른 모듈이라 나눠도 같다. 다만 `-O2` 는 **같은 파일의** 지역 함수만 인라인하므로,
+#   Arr 안의 작은 내부 헬퍼(구간 정규화 등)를 공용 모듈로 옮기면 인라인이 사라진다(luau-perf calls-and-closures 3, `opt-inline-rules.luau`).
+# 근거: stl-luau src/Collections/Arr.luau(머리 주석: 메타테이블 없는 네임스페이스 함수), quad 4ddb9c5a(Slot 의 `S`), claude-doctor .claude/audit/12 3 원인 5.
 # 기대와 어긋나면 rc=1. 사용: bash snippets/style-split-types.sh [버전...]   (기본 0.734 0.742 0.746)
 set -u
 MISE=${MISE_DATA_DIR:-/code/.local/share/mise}

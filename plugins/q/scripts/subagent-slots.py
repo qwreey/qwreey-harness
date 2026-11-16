@@ -20,7 +20,7 @@ import os
 import sys
 
 MAIN_EVAL_SEC = 15  # away 중 메인 단독 안내: 트랜스크립트 증분 읽기 간격
-# json·re·importlib·pathlib·time 은 느려서(실측 합 약 15 ms) 모든 도구의 PostToolUse 가 지나가는 길에서는 적재하지 않는다. 필요한 길에서 _late() 가 적재한다.
+# json, re, importlib, pathlib, time 은 느려서(실측 합 약 15 ms) 모든 도구의 PostToolUse 가 지나가는 길에서는 적재하지 않는다. 필요한 길에서 _late() 가 적재한다.
 json = re = importlib = time = Path = HOME = None
 
 
@@ -339,7 +339,7 @@ def reconcile(L, st, data, cfg, now):
         st["running"].update(grace)
     else:
         L.live(st, cfg, now)
-    L.away_check(st, cfg, L.read_limits(data.get("session_id")), now)  # 1·2단계 도달 시각을 정확히 남긴다
+    L.away_check(st, cfg, L.read_limits(data.get("session_id")), now)  # 1, 2단계 도달 시각을 정확히 남긴다
 
 
 HANDLERS = {

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # luau-perf 벤치 실행기.
 # 사용: bench/run.sh [-p 프로세스수] [-o 출력.tsv] [-m "버전|플래그;버전|플래그"] [벤치.luau ...]
-#   기본: 프로세스 3회 × 모드 4개(0.734 -O1, 0.742 -O1, 0.742 -O2, 0.742 -O2 --codegen), 벤치 = bench/*.luau 전부.
+#   기본: 프로세스 3회 x 모드 4개(0.734 -O1, 0.742 -O1, 0.742 -O2, 0.742 -O2 --codegen), 벤치 = bench/*.luau 전부.
 #   결과 줄은 "버전 모드 프로세스번호 파일 RESULT|MEM ..." 탭 구분으로 출력 파일에 덧붙는다.
 #   요약: python3 -I bench/summarize.py <출력.tsv> > 표.md
 # 모든 실행은 choom(OOM 희생 1순위) + prlimit(데이터 3GiB 상한) 안에서 돈다. 공유 기계 규칙이다.

@@ -5,7 +5,7 @@
 --           Completed 콜백 인자 타입(Enum.PlaybackState), TweenInfo 의 enum 자리에 다른 enum.
 --           GetPropertyChangedSignal 의 없는 속성 이름(리터럴일 때만. luau-lsp Roblox 플랫폼 기능).
 --   못 잡는다(bug-present):
---           TweenService:Create 의 목표 표(타입은 { [any]: any }라 보간 불가 속성·없는 속성도 통과, 런타임은 Create 가 던진다, Q-032·Q-036),
+--           TweenService:Create 의 목표 표(타입은 { [any]: any }라 보간 불가 속성, 없는 속성도 통과, 런타임은 Create 가 던진다, Q-032, Q-036),
 --           TweenInfo.new 의 enum 자리에 명시적 nil(타입은 선택 인자로 받지만 런타임은 거부, Q-036).
 -- 근거: typedefs/globalTypes.d.luau (RBXScriptSignal, task, TweenService, TweenInfo); quad .claude/audit/round8-studio-2026-09-08.md:13,
 --       quad .claude/base/tween-plan.md:211-215,497-528, quad .claude/audit/tween-premises-2026-10-22/REPORT.md:9-19

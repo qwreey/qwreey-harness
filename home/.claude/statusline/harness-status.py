@@ -196,7 +196,7 @@ def build(d, cfg, rl, items, away, paint):
         # 프로젝트 맥락은 이름과 브랜치를 한 덩어리로 붙인다(name:branch).
         add(1, [("bold", (ic("dir") + " " if nerd else "") + name)] + ([("magenta", f":{branch}{dirty}")] if branch else []), joiner="")
 
-    # 2. 모델·effort·컨텍스트
+    # 2. 모델, effort, 컨텍스트
     model = (d.get("model") or {}).get("display_name") or ""
     effort = (d.get("effort") or {}).get("level") or ""
     pct = (d.get("context_window") or {}).get("used_percentage")
@@ -310,7 +310,7 @@ def main():
         cols = 0
     cols = cols if cols > 20 else 10**6
     segs = build(d, cfg, rl, items, away, paint)
-    sep = " │ " if cfg["STYLE"] == "nerd" else " · "  # 맥락(프로젝트·모델·한도·비용·에이전트·away) 사이 구분
+    sep = " │ " if cfg["STYLE"] == "nerd" else " · "  # 맥락(프로젝트, 모델, 한도, 비용, 에이전트, away) 사이 구분
     for line in (1, 2):
         row = fit(segs, line, cols)
         if row:

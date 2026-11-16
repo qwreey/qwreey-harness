@@ -201,5 +201,5 @@ Rules
 </transcript>
 """
 
-# 출력이 프롬프트를 되풀이하면(훅 차단·CLI 메시지 등) 버린다.
+# 출력이 프롬프트를 되풀이하면(훅 차단, CLI 메시지 등) 버린다.
 ECHO_MARKERS = ["You are a recorder of Claude Code sessions", "<transcript>", "Output exactly this format"]

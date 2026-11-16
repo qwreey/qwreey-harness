@@ -1,6 +1,6 @@
 --!strict
 --@run
--- 주장: table.move 는 원본·대상의 메타메서드(__index, __newindex)를 부르지 않고 raw 로 복사한다.
+-- 주장: table.move 는 원본, 대상의 메타메서드(__index, __newindex)를 부르지 않고 raw 로 복사한다.
 --       그래서 MT 가 붙은 표의 정수 칸 세금(bench/mt-index.luau)을 내지 않는다. 손으로 쓴 복사 루프는 메타메서드를 부른다(대조군).
 -- 근거: luau VM/src/ltablib.cpp tmove/moveelements(array 직접 복사 또는 lua_rawgeti/lua_rawseti), 후보 S-P03,
 --       stl-luau-doctor/.claude/base/perf-measurements.md 2절. 시간 비교는 bench/tbl-move.luau

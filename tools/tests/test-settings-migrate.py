@@ -101,7 +101,7 @@ class T(unittest.TestCase):
                               {"op": "set", "path": ["enabledPlugins", "p@claude-doctor-market"], "value": True, "keep_existing": True})])
         e.run()
         out = e.get()
-        self.assertEqual(out["hooks"], {"PostToolUse": [{"matcher": "Agent|Workflow", "hooks": [mine]}]})  # 같은 command 는 모든 그룹에서 빠지고 남의 훅·빈 그룹 정리
+        self.assertEqual(out["hooks"], {"PostToolUse": [{"matcher": "Agent|Workflow", "hooks": [mine]}]})  # 같은 command 는 모든 그룹에서 빠지고 남의 훅, 빈 그룹 정리
         self.assertEqual(out["statusLine"], s["statusLine"])
         self.assertTrue(out["enabledPlugins"]["p@claude-doctor-market"])
 

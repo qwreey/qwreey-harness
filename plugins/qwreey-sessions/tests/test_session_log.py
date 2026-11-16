@@ -226,7 +226,7 @@ class TestFlush(Env):
         self.assertEqual(st.wstate(self.sid)["failures"], 1)
         os.environ["FAKE_MODE"] = "fail"
         worker.flush(st, self.sid, str(self.tp), "x", force=True)
-        r = worker.flush(st, self.sid, str(self.tp), "x", force=True)  # 3회째 → 자리표시 절
+        r = worker.flush(st, self.sid, str(self.tp), "x", force=True)  # 3회째 -> 자리표시 절
         self.assertEqual(r["sections"], 1)
         self.assertIn("요약 실패", st.record_path(r["rids"][0]).read_text())
         self.assertGreater(st.wstate(self.sid)["offset"], 0)
@@ -366,7 +366,7 @@ class TestHooks(Env):
         c1 = self.ctx(self.hook("PreToolUse", self.payload(tool_name="Bash", tool_input={"command": "git add -A && git commit -m x"})))
         self.assertIn("about to commit", c1)
         self.assertEqual(self.hook("PreToolUse", self.payload(tool_name="Bash", tool_input={"command": "git commit -m y"})), "")
-        # compact: PreCompact → SessionStart(compact) → PostCompact
+        # compact: PreCompact -> SessionStart(compact) -> PostCompact
         pre = self.hook("PreCompact", self.payload(trigger="manual", custom_instructions=""), {"SESSION_LOG_CLAUDE": "/bin/false"})
         self.assertIn('level="warn"', pre)
         from sllib import messages

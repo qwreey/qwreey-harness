@@ -105,7 +105,7 @@ class Detection(unittest.TestCase):
         self.assertFalse(rl.is_drift("Short English.", "hangul")[0])  # 라틴 20자 미만
         self.assertFalse(rl.is_drift("No response requested.", "hangul")[0])
         mixed = "커밋했습니다. 변경은 `src/very/long/path/file_name.luau` 와 https://example.com/a/b/c 와 " + "```\nlocal function helperThatIsLong() end\n```"
-        self.assertFalse(rl.is_drift(mixed, "hangul")[0])  # 코드·경로·URL 은 뗀다
+        self.assertFalse(rl.is_drift(mixed, "hangul")[0])  # 코드, 경로, URL 은 뗀다
         terms = "이번 변경은 cache invalidation 과 retry policy 를 손봤고 대부분의 로직은 그대로입니다. 나머지는 그대로 두었습니다."
         self.assertFalse(rl.is_drift(terms, "hangul")[0])
         self.assertTrue(rl.is_drift("완료. " + EN * 3, "hangul")[0])

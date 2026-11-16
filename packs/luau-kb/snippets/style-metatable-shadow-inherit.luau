@@ -1,8 +1,8 @@
 --!strict
 --@run
--- 주장: ① __index 는 rawget 이 실패할 때만 불린다. 인스턴스에 메서드와 같은 이름의 데이터 필드가 있으면 메서드가 가려진다.
---       ② 메타메서드(__tostring 등)는 __index 체인으로 상속되지 않는다. 파생 메타테이블마다 직접 단다.
---       ③ table.clone 은 얕은 복사이고 메타테이블은 같은 참조를 공유한다.
+-- 주장: 1) __index 는 rawget 이 실패할 때만 불린다. 인스턴스에 메서드와 같은 이름의 데이터 필드가 있으면 메서드가 가려진다.
+--       2) 메타메서드(__tostring 등)는 __index 체인으로 상속되지 않는다. 파생 메타테이블마다 직접 단다.
+--       3) table.clone 은 얕은 복사이고 메타테이블은 같은 참조를 공유한다.
 -- 근거: quad .claude/base/architecture.md:507-510, .claude/base/modifier-plan.md:341-353, tbox packages/tbox/CLAUDE.md:113. 후보 Q-077, Q-078
 local methods = {
 	format = function(_self: any): string

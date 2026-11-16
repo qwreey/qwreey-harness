@@ -5,7 +5,7 @@
 #     (버전 미지정 디렉터리에서 'No version is set' 으로 실패한다).
 #  2. 플랫폼 고르기: 프로젝트 루트에 *.project.json 이나 sourcemap.json 이 있으면 roblox(정의 파일 + sourcemap),
 #     아니면 standard. $LUAU_KB_LSP_PLATFORM=standard|roblox 로 강제한다.
-#  3. 기본 설정을 --settings 로 넘긴다(tools/lsp/settings-*.json, 새 솔버, sourcemap 자동 생성 끔 — rojo 를 띄우지 않는다).
+#  3. 기본 설정을 --settings 로 넘긴다(tools/lsp/settings-*.json, 새 솔버, sourcemap 자동 생성 끔 - rojo 를 띄우지 않는다).
 #  $LUAU_KB_LSP_DEFS 로 정의 파일을 바꾸고, $LUAU_KB_LSP_LOG=<파일> 이면 클라이언트가 보낸 메시지를 그 파일에 남긴다.
 set -eu
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)

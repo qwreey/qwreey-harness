@@ -3,7 +3,7 @@
 --   - `keyof<T>` 에 테이블이 아닌 타입을 넣으면 "does not have keys" 로 죽는다. 조건부 타입이 없어 가릴 수 없다.
 --   - `keyof<{}>` 는 빈 유니온(never)이다. 에러가 아니다.
 --   - `K & keyof<Map>` 로 이름 오타를, `index<Map, K>` 로 콜백 타입 불일치를 잡는다(호출 자리).
--- 근거: quad/.claude/base/typing-limits.md 8.15, 8.7 ③, quad/.claude/base/store-plan.md:358-362
+-- 근거: quad/.claude/base/typing-limits.md 8.15, 8.7 3), quad/.claude/base/store-plan.md:358-362
 type Map = { Size: number, Name: string }
 type K1 = keyof<string> -- expect-error: does not have keys
 type Empty = keyof<{}>

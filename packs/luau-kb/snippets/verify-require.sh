@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# verify-require.sh — check_snippets.py 는 파일 하나만 다루므로, 모듈 여럿·symlink·.luaurc alias 가 필요한 require 주장을 여기서 잰다.
+# verify-require.sh - check_snippets.py 는 파일 하나만 다루므로, 모듈 여럿, symlink, .luaurc alias 가 필요한 require 주장을 여기서 잰다.
 # 기대와 어긋나면 rc=1. 사용: bash snippets/verify-require.sh [luau 버전...]   (기본 0.734 0.742)
 #
 # 주장 (luau CLI = luau, luau-analyze. lsp = luau-lsp 1.70.1 analyze --platform=standard 새 솔버):
 #  R1 풀리지 않는 require: --!strict 면 luau-analyze 가 그 줄에 "Unknown require" 를 낸다. 모듈 값은 any 라 이후 오용은 안 잡힌다.
-#  R2 같은 파일이 nonstrict(지시어 없음)면 진단 0건, rc=0 — "거짓 클린". 런타임에서만 터진다.
+#  R2 같은 파일이 nonstrict(지시어 없음)면 진단 0건, rc=0 - "거짓 클린". 런타임에서만 터진다.
 #  R3 symlink 디렉터리를 거친 require: luau 런타임은 "could not resolve child component" 로 실패하고, luau-analyze(strict)는
 #     "Unknown require" 를 낸다. luau-lsp 는 symlink 를 따라가 모듈을 풀고 진짜 타입 에러까지 잡는다(에디터는 깨끗한데 실행은 실패).
-#  R4 .luaurc alias 값의 모양: "./lib" 나 절대 경로는 luau 런타임·luau-analyze·luau-lsp 모두 푼다. 접두 없는 "lib" 는 luau 런타임이
+#  R4 .luaurc alias 값의 모양: "./lib" 나 절대 경로는 luau 런타임, luau-analyze, luau-lsp 모두 푼다. 접두 없는 "lib" 는 luau 런타임이
 #     'could not jump to alias' 로 실패하고 luau-analyze 는 "Unknown require", luau-lsp 만 푼다(편집기 전용처럼 보이는 원인).
 #  R5 Foo/init.luau 안의 "./Bar" 는 Foo 의 형제(폴더 밖)를 가리킨다. 폴더 안 Foo/Bar.luau 는 "@self/Bar" 로 부른다.
 #     일반 파일에서 "@self/x" 는 실패한다.

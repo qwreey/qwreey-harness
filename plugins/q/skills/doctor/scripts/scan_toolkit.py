@@ -9,7 +9,7 @@ from types import SimpleNamespace
 C = None
 
 
-# ------------------------------------------- 5·6·8 툴킷 (공용 도우미)
+# ------------------------------------------- 5, 6, 8 툴킷 (공용 도우미)
 def mise_tools(p):
     try:
         data = tomllib.loads(C.read(p) or "")

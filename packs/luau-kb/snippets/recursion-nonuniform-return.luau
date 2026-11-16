@@ -3,7 +3,7 @@
 --       인라인으로 선언한 메소드의 반환이 조용히 에러 타입이 되어 그 뒤 검사가 사라진다.
 --       같은 메소드를 이름 붙은 함수로 선언하고 typeof(그 함수)로 필드 타입을 주면 다운스트림이 정확해진다.
 --       같은 인자로만 재귀(-> Foo<T>)하면 문제없다.
--- 근거: quad/.claude/base/typing-limits.md §1(①③, H-24), RFC relax-recursive-type-restriction, luau-lang/luau#2380
+-- 근거: quad/.claude/base/typing-limits.md 1(1) 3), H-24), RFC relax-recursive-type-restriction, luau-lang/luau#2380
 type Tween<T> = { Value: T, Mapped: <U>(self: Tween<T>, fn: (T) -> U) -> Tween<U> }
 local t = (nil :: any) :: Tween<number>
 local mapped = t:Mapped(function(x: number) return tostring(x) end)

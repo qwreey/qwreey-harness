@@ -188,7 +188,7 @@ hts = os.path.join(REPO, "src/plan/huge.ts")
 open(hts, "w").write("const x = 1;\n" * 1700)
 case("강제 기준 .ts → 계획기 안내 없음", run("Edit", hts, sid="p2", ti_extra=edit(1)), "hard limit", not_sub="split-plan.py")
 
-# --- 툴킷 무관 (TS·Python·Rust, 표 덮어쓰기) ---
+# --- 툴킷 무관 (TS, Python, Rust, 표 덮어쓰기) ---
 def mkt(rel, n, head, line="x = 1\n"):
     p = os.path.join(REPO, rel)
     os.makedirs(os.path.dirname(p), exist_ok=True)

@@ -1,8 +1,8 @@
 --!strict
 -- 주장: 함수 모양 필드로 변성을 고를 수 있다(read 일 때만):
 --       read p: () -> T  공변 / read p: (T) -> ()  반공변 / read p: (T) -> T  불변.
---       read 없는 함수 필드 p: () -> T 는 읽기·쓰기라 불변 비교된다.
--- 근거: stl-luau/.claude/base/typing-limits.md "팬텀·표식의 모양", quad 8.42
+--       read 없는 함수 필드 p: () -> T 는 읽기, 쓰기라 불변 비교된다.
+-- 근거: stl-luau/.claude/base/typing-limits.md "팬텀, 표식의 모양", quad 8.42
 type FCo<T> = { read p: () -> T }
 type FContra<T> = { read p: (T) -> () }
 type FInv<T> = { read p: (T) -> T }

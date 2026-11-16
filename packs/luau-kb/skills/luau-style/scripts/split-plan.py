@@ -27,7 +27,7 @@ import sys
 KEYWORDS = {"and", "break", "do", "else", "elseif", "end", "false", "for", "function", "if", "in", "local", "nil",
             "not", "or", "repeat", "return", "then", "true", "until", "while", "continue", "const"}
 OPS = ["...", "..=", "//=", "::", "->", "==", "~=", "<=", ">=", "+=", "-=", "*=", "/=", "%=", "^=", "..", "//"]
-# 이 토큰 뒤의 `if` 는 식(if-then-else 식, end 없음)이다. `<` `>` 는 넣지 않는다 — 반환 타입 `Arr<T>` 의 `>` 바로 뒤에
+# 이 토큰 뒤의 `if` 는 식(if-then-else 식, end 없음)이다. `<` `>` 는 넣지 않는다 - 반환 타입 `Arr<T>` 의 `>` 바로 뒤에
 # 문장 `if` 가 온다
 EXPR_BEFORE_IF = {"=", "(", ",", "{", "[", "return", "and", "or", "not", "==", "~=", "..", "+", "-", "*", "/", "%",
                   "^", "<=", ">=", "//", "+=", "-=", "*=", "/=", "%=", "^=", "..=", "in", "elseif", "if",
@@ -219,10 +219,10 @@ class Unit:
         self.doc0 = line0         # 바로 위 주석까지 포함한 시작 줄
         self.public = False
         self.section = None
-        self.refs = collections.Counter()   # 범위 이름 → 참조 수
+        self.refs = collections.Counter()   # 범위 이름 -> 참조 수
         self.writes = set()                 # 범위 지역 중 다시 대입하거나 내용을 바꾼 것
         self.inner_funcs = 0
-        self.fields = collections.Counter()  # 매개변수·지역을 거쳐 읽는 필드(`session.bundles`) — 같은 자료를 만지는 신호
+        self.fields = collections.Counter()  # 매개변수, 지역을 거쳐 읽는 필드(`session.bundles`) - 같은 자료를 만지는 신호
         self.init_kind = None               # local 의 초기값 모양: func require service literal table call nil none
         self.in_table = False               # 표 생성자 안의 메서드 필드
         self.alias = None                   # `f = g` 대입 정의의 g
@@ -335,7 +335,7 @@ def classify(toks, s, e, match, module_names):
         if get(s + 1) == "function":
             name = get(s + 2)
             return Unit("func", name, s, e, ln, end_line)
-        # local a, b: T = …
+        # local a, b: T = ...
         names, j = [], s + 1
         while j <= e and toks[j][0] == "name":
             names.append(toks[j][1])
@@ -411,7 +411,7 @@ def classify(toks, s, e, match, module_names):
     if v == "return":
         return Unit("return", None, s, e, ln, end_line)
     if k == "name":
-        # M.f = function / M.x = … / f = function
+        # M.f = function / M.x = ... / f = function
         j, path = s, []
         while j <= e and toks[j][0] == "name":
             path.append(toks[j][1])
@@ -430,7 +430,7 @@ def classify(toks, s, e, match, module_names):
                 u.init_kind = "define"
                 return u
             if len(path) == 1 and j + 2 <= e and toks[j + 2][0] == "name" and j + 2 == e:
-                # `linkLater = linkNow` — 전방 선언한 지역에 다른 함수를 대입하는 정의
+                # `linkLater = linkNow` - 전방 선언한 지역에 다른 함수를 대입하는 정의
                 u = Unit("assign", path[0], s, e, ln, end_line)
                 u.alias = toks[j + 2][1]
                 return u
@@ -522,7 +522,7 @@ def collect_refs(u, toks, scope_names, module_names, skip_own_params=True, opaqu
                 u.fields[v] += 1
             i += 1
             continue
-        # 타입 주석 안의 이름(`: Record`)은 넘긴다 — 타입 이름은 scope_names 에 없으니 대체로 안전
+        # 타입 주석 안의 이름(`: Record`)은 넘긴다 - 타입 이름은 scope_names 에 없으니 대체로 안전
         if v in inner or v not in scope_names:
             i += 1
             continue
@@ -704,7 +704,7 @@ def modularity_cluster(nodes, edges, gamma=1.0):
     e = {n: {o: w / m2 for o, w in adj[n].items()} for n in nodes}  # e_ij (양방향 각각)
     while True:
         best, pair = 0.0, None
-        for i in sorted(e):                     # 정렬해서 돈다 — 같은 값이면 늘 같은 쌍을 고른다(결과가 실행마다 같게)
+        for i in sorted(e):                     # 정렬해서 돈다 - 같은 값이면 늘 같은 쌍을 고른다(결과가 실행마다 같게)
             for j in sorted(e[i]):
                 eij = e[i][j]
                 if i < j:
@@ -772,7 +772,7 @@ def repeated_blocks(lines, line0, line1, W=3, min_count=3):
 
 # ─────────────────────────────── 계획 ───────────────────────────────
 
-# 구획 제목의 흔한 한국어 낱말 → 파일 이름 후보. 없으면 낱말·중심 함수로 짓는다(사람이 고칠 후보일 뿐이다)
+# 구획 제목의 흔한 한국어 낱말 -> 파일 이름 후보. 없으면 낱말, 중심 함수로 짓는다(사람이 고칠 후보일 뿐이다)
 KO_NAMES = [("내부 헬퍼", "Internal"), ("헬퍼", "Util"), ("계약", "Impl"), ("조회", "Query"), ("unchecked", "Unchecked"),
             ("구멍", "Holes"), ("추가", "Insert"), ("꺼내기", "Remove"), ("복제", "Clone"), ("구간", "Range"),
             ("순서", "Order"), ("정렬", "Sort"), ("스트림", "Stream"), ("묶기", "Group"), ("접기", "Fold"),
@@ -831,7 +831,7 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
     fwd = {}
     for u in units:
         if u.kind == "func":
-            # 같은 이름이면 실제 정의(`function f`·`local function f`)가 자리표시보다 앞선다
+            # 같은 이름이면 실제 정의(`function f`-`local function f`)가 자리표시보다 앞선다
             if u.init_kind == "define":
                 func_by_name.setdefault(u.name, u)
             else:
@@ -845,7 +845,7 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
     for u in units:
         if u.kind == "func" and u.init_kind == "define" and u.name in locals_:
             fwd[u.name] = {"declared": locals_[u.name].line0, "defined": u.line0}
-    # local f: T = function() end 뒤 f = function … 처럼 자리표시자를 둔 경우도 전방 선언이다
+    # local f: T = function() end 뒤 f = function ... 처럼 자리표시자를 둔 경우도 전방 선언이다
     for u in units:
         if u.kind == "func" and u.init_kind == "func":
             later = [x for x in units if x is not u and x.kind == "func" and x.init_kind == "define" and x.name == u.name]
@@ -853,7 +853,7 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
                 fwd[u.name] = {"declared": u.line0, "defined": later[0].line0}
                 u.kind = "fwd"
 
-    # `local f: T = function() end` … `f = g` 처럼 다른 함수를 대입해 정의하는 전방 선언
+    # `local f: T = function() end` ... `f = g` 처럼 다른 함수를 대입해 정의하는 전방 선언
     alias_of = {}
     for u in units:
         if u.kind == "assign" and (u.name in locals_ or any(x.kind in ("func", "fwd") and x.name == u.name for x in units)):
@@ -902,7 +902,7 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
         users = state_users.get(n, set())
         if n in written or lu.init_kind in ("none", "nil"):
             state[n] = {"line": lu.line0, "users": sorted(users), "writers": sorted(written.get(n, ())),
-                        "scalar": lu.init_kind in ("literal", "nil", "none")}  # 숫자·불리언: 다른 모듈로 가면 값 복사
+                        "scalar": lu.init_kind in ("literal", "nil", "none")}  # 숫자, 불리언: 다른 모듈로 가면 값 복사
         else:
             consts[n] = {"line": lu.line0, "users": sorted(users)}
 
@@ -958,11 +958,11 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
             us = [x for x in v["users"] if x in mem and x not in helpers]  # users 는 정렬된 목록
             for x in us:
                 E[(x, "$" + s) if x < "$" + s else ("$" + s, x)] += 1.0
-        # 구획·가족은 가상 노드로 약하게 묶는다
+        # 구획, 가족은 가상 노드로 약하게 묶는다
         for u in funcs:
             if u.name in mem and u.name not in helpers and u.section:
                 E[(u.name, "§" + u.section)] += sec_w
-        # 이름 낱말 가족(bagOpen·bagTake·spawnBag → "bag"): 공개 진입점은 서로 부르지 않아서 이것이 주된 신호다
+        # 이름 낱말 가족(bagOpen, bagTake, spawnBag -> "bag"): 공개 진입점은 서로 부르지 않아서 이것이 주된 신호다
         for w, ms in sorted(word_fam.items()):
             ms = [x for x in ms if x in mem and x not in helpers]
             if len(ms) >= 3:
@@ -1045,7 +1045,7 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
 
     # ── 공용 헬퍼 다시 보기 ──
     # 군집을 정한 뒤, 셋 이상의 다른 군집이 부르는 작은 무상태 함수는 공용(Util)으로 올린다.
-    # 공용 헬퍼가 군집 함수를 부르면 Util → 군집 → Util 순환이 되므로, 그 피호출이 작고 무상태면 같이 올리고 아니면 내린다.
+    # 공용 헬퍼가 군집 함수를 부르면 Util -> 군집 -> Util 순환이 되므로, 그 피호출이 작고 무상태면 같이 올리고 아니면 내린다.
     cid0 = {x: k for k, c in enumerate(clusters) for x in c}
     for n in fnames:
         if n in helpers or n not in cid0:
@@ -1155,7 +1155,7 @@ def plan(path, target=400, maxlines=800, modname=None, scope=None):
             continue
         cross[(ca, cb)] += 1
         cross_syms[(ca, cb)].add(b)
-    # 강하게 이어진 성분(순환)과, 끊을 간선(되먹임 간선 집합 — Eades 순서에서 거꾸로 가는 간선)
+    # 강하게 이어진 성분(순환)과, 끊을 간선(되먹임 간선 집합 - Eades 순서에서 거꾸로 가는 간선)
     def eades(nodes):
         """위층(부르는 쪽) → 아래층(불리는 쪽) 순서. 거꾸로 가는 간선이 적게 되도록 고른다(Eades–Lin–Smyth)."""
         rest = set(nodes)

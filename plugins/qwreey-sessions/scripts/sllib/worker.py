@@ -95,7 +95,7 @@ def _one_round(store, sid, transcript, trigger, force, model, budget_left, until
         st["offset"], st["line"] = start_at
     offset, line = st.get("offset", 0), st.get("line", 0)
     try:
-        if os.path.getsize(transcript) < offset:  # 트랜스크립트가 바뀌었다(드묾) → 처음부터
+        if os.path.getsize(transcript) < offset:  # 트랜스크립트가 바뀌었다(드묾) -> 처음부터
             offset, line = 0, 0
     except OSError:
         return True

@@ -32,7 +32,7 @@ def project_root(start: str | os.PathLike) -> Path:
                 if not gitdir.is_absolute():
                     gitdir = (d / gitdir).resolve()
                 cd = _read(gitdir / "commondir")
-                if cd:  # worktree → 본 저장소의 .git
+                if cd:  # worktree -> 본 저장소의 .git
                     common = Path(cd) if os.path.isabs(cd) else (gitdir / cd).resolve()
                     return common.parent if common.name == ".git" else common
             return d  # 서브모듈 등: .git 파일이 있는 곳
