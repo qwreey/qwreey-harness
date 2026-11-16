@@ -42,6 +42,7 @@ status: active
 4. `--gemini-dir` 분리 상태의 인증.
 
 ## 실측: agy 1.5.7 ACP (이 호스트, OS 샌드박스 없음)
+summary: agy ACP 는 셸만 권한을 묻고 파일 도구는 워크스페이스 밖도 묻지 않으며, settings permissions·plan 모드도 막지 못한다. print 모드는 기본 프리셋과 --settings deny 가 막지만 /tmp 는 열려 있다
 - 줄 단위 JSON(NDJSON), 응답 id 는 문자열. 메서드: `initialize`, `session/new`(modes·configOptions·models), `session/set_model`, `session/prompt`, `session/update`, `session/request_permission`.
 - `request_permission` 은 셸(`run_command`, kind `execute`, locations 없음)에만 온다. 옵션 `allow`(allow_once)·`deny`(reject_once). 거절한 셸 명령은 실행되지 않았다.
 - 파일 도구(`read_file`, `write_file`)는 default 모드에서도 권한 요청 없이 돈다. 워크스페이스 밖 `../outside/secret.txt` 읽기와 줄 추가가 요청 없이 성공했다(`--add-dir wt` 를 줘도, 서버 로그 `workspaceDirs=[]`).
