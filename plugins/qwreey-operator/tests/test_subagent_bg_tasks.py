@@ -71,7 +71,7 @@ class SubagentBgTasks(unittest.TestCase):
         self.assertTrue(text.startswith('<harness-hook name="subagent-bg-tasks" level="warn" nonce="%s">' % NONCE), text)
         self.assertIn('- shell b7x9k2: "until ! pgrep -f build; do sleep 5; done"', text)
         self.assertIn("TaskStop", text)
-        self.assertIn("unless your brief says to leave them running", text)
+        self.assertIn("unless your brief explicitly says to leave them running", text)
         self.assertIn("final report again", text)
         self.assertEqual(self.stop([task("b7x9k2")]), "", "second SubagentStop of the same agent")
 

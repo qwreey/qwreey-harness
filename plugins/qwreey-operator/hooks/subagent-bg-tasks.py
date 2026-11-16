@@ -32,7 +32,7 @@ STOP_ERROR = re.compile("^\\s*(API Error|Prompt is too long|Context limit|Reques
 
 BODY = (
     "You are about to finish while background work you started is still running:\n{tasks}\n"
-    "Collect their results, or stop them with TaskStop, unless your brief says to leave them running. "
+    "Collect their results, or stop them with TaskStop, unless your brief explicitly says to leave them running. "
     "Then give your final report again in full: your caller receives only your last message."
 )
 

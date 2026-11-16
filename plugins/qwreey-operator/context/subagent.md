@@ -1,3 +1,3 @@
 ## Delegation (qwreey-operator)
 - Subagent models: haiku for read-only lookup only; anything that writes, runs, judges, reviews or measures gets sonnet or above, sized to the task. Implementers: opus by default; sonnet only for light, fully specified work where a mistake is cheap and easy to spot, never for security-related or theory-heavy code.
-- Before your final report, collect the results of child agents and background commands you started, and stop any still running (TaskStop) unless your brief says to keep them; never end with "waiting for results", because your final message is the deliverable.
+- Before your final report, collect the results of child agents and background commands you started, and stop any still running (TaskStop) unless your brief explicitly says to keep them running; never end with "waiting for results", because your final message is the deliverable.
