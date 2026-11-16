@@ -34,6 +34,7 @@ Multi-file audits:
 - [51-precompact-omit/](51-precompact-omit/) - PreCompact stdout steers the compaction summary; plugins that re-inject a block at compact tell it to omit that block
 - [54-record-scopes/](54-record-scopes/) - records go to the nearest scope that owns their subject (`.claude/scopes/<path>/` for shipped folders, `<component>/.claude/` for separately owned ones); misplaced snapshots move with path rewrites
 - [55-readable-code-probe/](55-readable-code-probe/) - readable-code rule probe: 5 rule lines cut long unbroken functions 54% to 9% (4% with a layout alert), correctness unchanged; fixes to the rule and alert listed
+- [56-readable-code-wording/](56-readable-code-wording/) - always-loaded readable-code rule wording debate: about 2.4k chars, language-neutral, skill pointers are not read so moved items vanish
 
 Audits about one plugin, pack or `home/` part live in that part's scope, `../scopes/<repo path>/audit/`, with the same numbers:
 - [scopes/packs/luau-kb/audit/](../scopes/packs/luau-kb/audit/) - 05, 08, 09, 11, 13 (Luau knowledge map, mines, gaps, upstream), 52-luau-kb-skill-descriptions/ (descriptions can shrink to 57% without losing triggers), drafts/ (drafts written during audits)
