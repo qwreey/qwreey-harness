@@ -1,7 +1,7 @@
 {
   "name": "qwreey-workspace",
-  "version": "0.1.8",
-  "description": "같은 작업공간(HARNESS_WORKSPACE)의 다른 저장소를 읽기 전용으로 지키는 게이트와 지도. 형제 저장소에 쓰기는 스킬 qwreey-workspace:workspace 를 로드하기 전까지 거절하고, 읽기는 compact 회차마다 한 번 알린다. 저장소 목록, 살아 있는 세션 확인, worktree 잠금 확인 절차를 스킬이 갖는다. 규약 세 줄을 세션·서브에이전트 시작에 주입한다.",
+  "version": "0.1.9",
+  "description": "같은 작업공간(HARNESS_WORKSPACE)의 다른 저장소를 읽기 전용으로 지키는 게이트와 지도. 형제 저장소에 쓰기는 스킬 qwreey-workspace:workspace 를 로드하기 전까지 거절하고, 읽기는 compact 회차마다 한 번 알린다. 저장소 목록, 살아 있는 세션 확인, worktree 잠금 확인 절차를 스킬이 갖는다. 규약 세 줄을 세션·서브에이전트 시작에 주입한다. 세션 시작에 이 저장소의 오래 손대지 않은 worktree 를 한 줄로 알린다(읽기만, 끄기 HARNESS_WORKSPACE_STALE_WORKTREE_DAYS=off).",
   "author": { "name": "qwreey", "email": "me@qwreey.moe" },
   "license": "MIT",
   "keywords": ["workspace", "sibling-repo", "gate", "worktree", "hooks"]

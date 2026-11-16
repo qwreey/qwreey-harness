@@ -68,6 +68,8 @@ DEFAULTS = {
     "HARNESS_DELEGATE_SECRET_GLOBS": "",
     # 에이전트 git push 정책: normal(에이전트 push 가 정상 흐름) | deny | 빈 값(모름).
     "HARNESS_AGENT_PUSH": "",
+    # qwreey-workspace 가 세션 시작에 알리는 오래된 worktree 의 문턱(일, 손대지 않은 기간). off 나 0 이면 끈다. 저장소 층도 정할 수 있다.
+    "HARNESS_WORKSPACE_STALE_WORKTREE_DAYS": "14",
 }
 
 _KEY = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$")

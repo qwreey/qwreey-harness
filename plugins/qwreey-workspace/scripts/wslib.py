@@ -30,7 +30,10 @@ def load_env(cwd: str | None = None) -> dict:
     try:
         import harness_env
         he = harness_env.installed()
-        return he.load_layers(he.project_dir(cwd))
+        # 설치된 정본이 이 플러그인보다 옛 판이면 새 키의 기본값이 없다. 옆 사본의 DEFAULTS 로 없는 키만 채운다.
+        known = getattr(he, "DEFAULTS", {})
+        fill = {k: harness_env.expand(v, {}) for k, v in harness_env.DEFAULTS.items() if k not in known}
+        return he.load_layers(he.project_dir(cwd), defaults=fill)
     except Exception:
         return {}
 
