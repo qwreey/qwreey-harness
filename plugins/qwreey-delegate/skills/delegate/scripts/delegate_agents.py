@@ -89,6 +89,10 @@ class AgyPrint:
                 notes.append(f"temp folder {d} holds the workspace, so it is not denied")
                 continue
             deny += [f"read_file({d})", f"write_file({d})"]
+        # Passing a permissions object drops the preset's "allowed in workspace" for file writes (a write to a new file
+        # inside the worktree was soft-denied), so the workspace is allowed explicitly; Deny still wins over it.
+        for w in dict.fromkeys((str(workspace), os.path.realpath(workspace))):
+            allow += [f"read_file({w})", f"write_file({w})"]
         if mode == "worktree" and backend.name == "uid":
             allow.append("command(*)")  # tests and checks in its own worktree, as the task uid
         else:

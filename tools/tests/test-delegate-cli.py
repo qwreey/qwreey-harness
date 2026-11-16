@@ -160,7 +160,9 @@ class LifecycleChecks:
         self.assertNotIn("--dangerously-skip-permissions", argv, "기본 프리셋의 headless 거절을 끄지 않는다")
         self.assertEqual(argv[argv.index("--output-format") + 1], "json")
         settings = json.loads(argv[argv.index("--settings") + 1])
-        self.assertEqual(settings["permissions"]["allow"], ["command(*)"], "uid 격리 아래 worktree 는 셸을 연다")
+        self.assertIn("command(*)", settings["permissions"]["allow"], "uid 격리 아래 worktree 는 셸을 연다")
+        self.assertTrue(any(r.startswith("write_file(") and r.rstrip(")").endswith("/t1") for r in settings["permissions"]["allow"]),
+                        "permissions 를 넘기면 프리셋의 작업 폴더 쓰기 허용이 빠지므로 작업 폴더를 명시로 연다")
         self.assertNotIn("command(*)", settings["permissions"]["deny"])
         self.assertEqual(call["env"]["TMPDIR"], str(home / ".tmp"))
         self.assertEqual(argv[argv.index("--print-timeout") + 1], "3600s")
@@ -402,8 +404,14 @@ class Lifecycle(Base, LifecycleChecks):
         self.ok("run", "agy", "w1", f.prompt, env=env)
         empty, wt = (json.loads(c["argv"][c["argv"].index("--settings") + 1])["permissions"] for c in f.calls("agy"))
         tmp_rules = [f"read_file({systmp})", f"write_file({systmp})"]
-        self.assertEqual(empty, {"deny": tmp_rules + ["command(*)"]}, "empty 는 셸도 거절")
-        self.assertEqual(wt, {"deny": tmp_rules, "allow": ["command(*)"]})
+        self.assertEqual(empty["deny"], tmp_rules + ["command(*)"], "empty 는 셸도 거절")
+        self.assertEqual(wt["deny"], tmp_rules)
+        def ws_rules(allow, name):
+            return {r.split("(")[0] for r in allow if r.rstrip(")").endswith("/" + name)}
+        self.assertEqual(ws_rules(empty["allow"], "e1"), {"read_file", "write_file"}, "empty 도 작업 폴더에 보고서를 쓴다")
+        self.assertNotIn("command(*)", empty["allow"])
+        self.assertEqual(ws_rules(wt["allow"], "w1"), {"read_file", "write_file"})
+        self.assertIn("command(*)", wt["allow"])
         for c in f.calls("agy"):
             self.assertNotIn("--dangerously-skip-permissions", c["argv"])
         self.assertIn("warning: temp folder /tmp holds the workspace, so it is not denied", p.stderr)
