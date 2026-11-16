@@ -243,6 +243,19 @@ class Cost(unittest.TestCase):
         self.assertTrue(run("PostToolUse", "Read", PROJ + "/c.py", fresh(), env=e, cwd=PROJ))
         self.assertIsNone(run("PostToolUse", "Read", T + "/sibling/c.py", fresh(), env=e, cwd=PROJ))
 
+    # Claude Code passes hook output verbatim only up to 10,000 characters and swaps
+    # a longer one for a short preview while still reporting success; keep headroom.
+    OUTPUT_BUDGET = 9000
+
+    def test_output_stays_under_hook_limit(self):
+        paths = ["src/a." + ext for ext in ("luau", "lua", "ts", "tsx", "js", "py", "rs", "go", "kt", "sh", "html", "astro")]
+        paths += ["CLAUDE.md", "skills/x/SKILL.md", ".claude/rules/r.md", "plugins/p/rules/r.md"]
+        for rel in paths:
+            text = ctx(run("PostToolUse", "Write", os.path.join(PROJ, rel), fresh(), env={"HARNESS_READABLE_CODE": "on"}))
+            self.assertLessEqual(len(text), self.OUTPUT_BUDGET, rel)
+        mem = os.path.join(CFG, "projects", "-x-y", "memory", "user.md")
+        self.assertLessEqual(len(ctx(run("PostToolUse", "Write", mem, fresh()))), self.OUTPUT_BUDGET)
+
 
 class Race(unittest.TestCase):
     def test_parallel_claims_inject_once(self):
