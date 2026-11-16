@@ -33,7 +33,7 @@
   - `git add -A`·`git add .`(현재 폴더 기준)·`git commit -a`: `git diff HEAD` 전체(+ `-A`·`.` 는 추적 안 된 파일). `git add -u` 는 추적 파일만.
   - `git commit <경로>`: 그 경로의 `git diff HEAD`. `cd <폴더> &&`, `git -C <폴더>`, `;`·`&&`·`|`·줄바꿈, `2>&1` 같은 리다이렉트, `-m "$(cat <<EOF ...)"` 를 읽는다. 다른 저장소에 커밋하면 그 저장소의 등급을 쓴다.
   - 읽지 못하는 명령(따옴표 오류, 경로에 `$VAR`·명령 치환, `add -p`·`-i`·`-e`, `--pathspec-from-file`)은 예전처럼 `--cached`(커밋에 `-a` 면 `HEAD`)로 잰다. `--dry-run` 커밋은 건너뛴다. git 호출은 rev-parse 1회와 diff·ls-files 최대 3회.
-- 턴 끝(Stop, 기본 꺼짐): `HARNESS_REVIEW_STOP=1` 이면 커밋 안 된 diff 가 임계 이상일 때 같은 알림.
+- 턴 끝(Stop, 기본 꺼짐): `HARNESS_REVIEW_STOP=1` 이면 커밋 안 된 diff 가 임계 이상일 때 같은 알림. Stop 의 additionalContext 는 턴을 이어 가게 하므로 `home/.claude/HOOK-MESSAGES.md` 의 Stop 규칙을 따른다: `stop_hook_active` 재진입, 빈 답, 오류·한도 알림(`API Error`, `Prompt is too long` 등), 끝 다섯 줄 안에 `?` 로 끝나는 줄이 있는 답(사용자에게 묻는 중)이면 내지 않는다.
 - 계획 종료(ExitPlanMode, 기본 꺼짐): high 등급에서 `HARNESS_REVIEW_PLAN=deny` 면 계획에 `qwreey-advisor: reviewed`(또는 `skip <사유>`) 줄이 없을 때 거절하고, `warn` 이면 권하기만 한다.
 - 다시 울리지 않는 조건: 메인이 부른 검토(리뷰어 또는 inherit-advisor fork)가 `HARNESS_REVIEW_FRESH_MIN` 분 안에 끝났을 때, 같은 diff 해시를 이번 회차에 이미 알렸을 때, done 알림 뒤 같은 시간 동안.
 - 알림이 권하는 리뷰어 모델: high 는 opus, mid·low 는 sonnet.

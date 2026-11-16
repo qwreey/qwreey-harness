@@ -79,6 +79,19 @@ MANIFEST 대상 아님. 근거 실측: `.claude/scopes/home/.claude/audit/17-hoo
 
 훅 코드 예: `plugins/qwreey-conventions/hooks/structure-reminder.py` 의 `Note`·`top_level`. 새 훅의 level 은 위 표에 행을 더해 정한다.
 
+## Stop·SubagentStop 에서 이어 가게 하는 출력
+- `decision: "block"`, exit 2, `hookSpecificOutput.additionalContext` 는 셋 다 턴을 끝내지 않고 이어 가게 한다. additionalContext 도 막는 것과 같다.
+- SubagentStop 의 이 출력은 끝나던 서브에이전트에게 `<system-reminder>SubagentStop hook additional context: …` 로 다시 들어가 그 서브에이전트가 한 턴 더 돈다. 메인에게는 가지 않고, 메인은 그 에이전트의 마지막 답을 받는다. 메인에게 알릴 것은 SubagentStop 에서 상태에 남겼다가 메인의 UserPromptSubmit·PostToolBatch 로 낸다(`plugins/qwreey-advisor/hooks/handback_notice.py`).
+- 사용자에게 보이기만 하면 될 때는 `systemMessage` 를 쓴다(턴을 늘리지 않는다).
+
+이어 가게 하는 출력을 내는 훅은 다음을 지킨다.
+1. 사용자 중단, API 오류, 맥락 한도로 멈춘 턴은 막지 않는다. Claude Code 는 사용자 중단에는 Stop 을 부르지 않고 API 오류에는 StopFailure 를 대신 부르지만, `last_assistant_message` 가 비었거나 오류·한도 알림(`API Error`, `Prompt is too long` 등)으로 보이면 그래도 통과한다. 이어 가도 성공할 수 없는 턴이라 막으면 compact 와 맞물려 멈출 수 있다.
+2. `stop_hook_active` 가 참이면(이미 훅 때문에 이어 가는 중) 다시 막지 않는다.
+3. 훅마다 횟수 상한을 둔다(같은 사유는 회차당 한 번, 쿨다운 등). Claude Code 의 상한(연속 8회, `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`)은 도구 호출마다 다시 세므로 훅의 상한을 대신하지 못한다.
+4. 마지막 답이 사용자에게 묻고 있으면 일을 더 시키지 않는다. 사용자의 답을 기다리는 턴을 이어 가면 모델이 혼자 정한다. 같은 답을 고쳐 쓰게 하는 것(reply-language)은 질문이 남으므로 괜찮다.
+
+지금 이어 가게 하는 출력을 내는 훅: reply-language(qwreey-conventions, 언어 이탈 다시 쓰기 block), qwreey-advisor(Stop, 기본 꺼짐, `HARNESS_REVIEW_STOP=1`). q 의 stale-work, qwreey-conventions 의 conventions-check 는 Stop 에서 `systemMessage` 만 낸다.
+
 ## dedup 단위 = session_id + 호출한 쪽(agent_id 또는 main) + compact 회차
 "세션당 한 번" 알림은 session_id 만 키로 쓰면 안 된다. `/compact` 는 session_id 를 유지하는데 요약 과정에서 이전 알림이 맥락에서 사라진다(실측).
 - 공용 모듈: `compact_epoch.py`. 플러그인마다 바이트 같은 사본을 두고(정본 `lib/compact_epoch.py`, `tools/sync-copies.py` 가 옮긴다) 각자 자기 회차를 갖는다: `$TMPDIR/claude-<플러그인>-epoch/<sid>`. 다른 플러그인·사용자 설정의 훅과 회차를 공유하지 않는다.
