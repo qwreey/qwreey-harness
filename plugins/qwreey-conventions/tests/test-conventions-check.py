@@ -79,12 +79,15 @@ check("decision phrase -> notice", "history marker" in write_new("a/u.luau", "--
 for i, line in enumerate(["-- Previously this returned nil for missing keys.\n", "x = 1 -- Cache hit. Previously the loop ran twice.\n",
                           "-- It used to block the frame here.\n", "-- We used to keep a second table for this.\n",
                           "-- 예전에는 여기서 바로 던졌다.\n", "-- 예전엔 값이 늘 true 였다\n", "-- 이전에는 키를 따로 셌습니다.\n",
-                          "-- 기존에는 캐시를 두 번 읽었다\n", "-- 기존엔 여기서 잘랐습니다.\n"]):
+                          "-- 기존에는 캐시를 두 번 읽었다\n", "-- 기존엔 여기서 잘랐습니다.\n",
+                          "-- Retry once (it used to fail on the first call).\n", "-- 정리했다. 이전엔 두 번 돌았다.\n"]):
     check(f"narration -> history marker: {line.strip()}", "history marker" in write_new(f"n/p{i}.luau", line, sid="nar1"))
 for i, line in enumerate(["-- Restore the previously focused element.\n", "-- Skip keys previously seen in this pass.\n",
                           "-- The key used to sign the token stays on the server.\n", "-- This flag is used to skip the slow path.\n",
                           "-- Can be used to reset the counter.\n", "-- 이전에 없던 키는 새로 만든다.\n", "-- 기존에는 없는 칸이면 새로 만든다.\n",
-                          "-- 이전 값과 비교해 바뀐 칸만 다시 그린다.\n"]):
+                          "-- 이전 값과 비교해 바뀐 칸만 다시 그린다.\n", "-- Keep the nonce we used to sign the request.\n",
+                          "-- Free the buffer it used to hold before returning.\n", "-- Previously-seen ids are skipped.\n",
+                          "-- 초기화 이전에는 이 함수를 부르면 안 된다.\n", "-- Start() 이전엔 nil 이다.\n", "-- 기존엔 키가 있을 수 있다.\n"]):
     check(f"runtime wording -> silent: {line.strip()}", write_new(f"n/q{i}.luau", line, sid="nar2") == "")
 
 # ---- 허용 ----

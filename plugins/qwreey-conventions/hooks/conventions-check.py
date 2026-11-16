@@ -13,8 +13,8 @@ Bash 로 바꾼 파일은 bash_writes.py 가 이 파일의 file_notice 로 같�
   tool_response.originalFile 과의 차이(없으면 structuredPatch 의 + 줄, 둘 다 없으면 보지 않는다. 옛 줄을 새로 오인하지 않으려고).
 
 코드 파일(주석 줄만; 파일 전체를 확장자별 간이 렉서로 읽어 문자열 리터럴 안의 `--`, `//`, `#` 는 주석이 아니다)
-  - history marker: 원장 번호, 날짜, 라운드, 작업 이력 경로, 결정 문구, 변경 서술(문장 첫 Previously, 대명사 뒤 used to,
-    예전에는, 이전에는, 기존에는 ...했다). `Ref:` 꼬리는 같은 주석 덩어리에 이유 문장이 있으면 통과
+  - history marker: 원장 번호, 날짜, 라운드, 작업 이력 경로, 결정 문구, 변경 서술(절 머리의 Previously 와 It/This/We/They used to,
+    예전에는, 절 머리의 이전에는, 기존에는 ...했다). `Ref:` 꼬리는 같은 주석 덩어리에 이유 문장이 있으면 통과
   - non-keyboard symbol: 사람이 키보드로 치지 않는 문자(기호, 가운뎃점, 곡선 따옴표, 전각, 이모지). ASCII 와 모든 문자 체계의 글자(한글, 키릴, 악센트 라틴 등)와 숫자는 통과
   - escaped character: 주석 안의 유니코드 이스케이프(백슬래시 u 와 16진수 넷 등). 금지 문자를 이스케이프로 적어 검사를 피한 것으로 본다
   - invisible character: 보이지 않는 문자, 방향 제어 문자. 주석이 아니라 추가된 줄 전체에서 본다
@@ -63,18 +63,22 @@ NAME = "qwreey-conventions"
 NS = "claude-conventions"  # 상태 경로는 이름 변경 전과 같게 둔다
 HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"))
 
-# 받침이 ㅆ 인 한글 음절(했, 였, 었, 썼, 됐 ...): 과거 시제 표지라 "기존에는 ... 했다" 꼴을 가린다
-PAST_SYLLABLES = "".join(chr(0xAC00 + i * 28 + 20) for i in range(19 * 21))
+# 과거 시제 음절: 받침이 ㅆ 인 한글 음절(했, 였, 었, 랐, 됐 ...)에서 현재를 말하는 있, 겠을 뺀 것. 뒤에 종결이나 관형 어미가 와야 센다
+PAST_SYLLABLES = "".join(c for c in (chr(0xAC00 + i * 28 + 20) for i in range(19 * 21)) if c not in "있겠")
+# 절 머리: 주석 시작, 문장 부호 뒤, 여는 괄호 뒤. "the buffer it used to hold" 처럼 명사 뒤에 오는 꼴은 코드가 하는 일이다
+CLAUSE_START = r"(?:^|[.;:!?]\s+|\(\s*)"
 PATTERNS = {
     "ledger": r"\b[A-Z]{1,2}-?\d{2,4}\b",
     "date": r"\b20\d\d-\d\d-\d\d\b",
     "round": r"\bround\s*\d+\b|라운드\s*\d+|감사\s*\d+\s*차",
     "path": r"\.claude/|(?<![\w-])session/|(?<![\w-])audit/",
     "decision": r"사용자\s*(?:결정|지시|요청|합의|말)|\bper (?:the )?user\b|\bas (?:the user )?(?:discussed|decided|agreed)\b|\bthe user (?:decided|asked|wanted|requested)\b",
-    # 변경 서술. "the previously selected item", "a key used to sign", "이전에 없던 키" 는 코드가 하는 일을 말하므로
-    # 문장 첫 "Previously", 대명사 주어 뒤 "used to", 한국어 화제 꼴(예전에는, 이전에는, 기존에는 ...했다)만 센다
-    "narration": r"(?:^|[.;:(]\s*)Previously\b|(?i:\b(?:it|this|we|they|nothing)\s+used\s+to\b)|(?:예전|이전)(?:에는|엔)"
-                 r"|기존(?:에는|엔)[^.\n]*?[" + PAST_SYLLABLES + "]",
+    # 변경 서술. "the previously selected item", "a key used to sign", "초기화 이전에는", "기존엔 키가 있을 수 있다" 는 코드가 하는 일을
+    # 말하므로 절 머리의 "Previously"(쉼표나 낱말이 뒤따름, "Previously-seen" 은 아님)와 "It/This/We/They used to", 예전에는,
+    # 절 머리의 이전에는, 기존에는 ... 과거 어미만 센다
+    "narration": CLAUSE_START + r"(?:Previously(?=,|\s+\w)|(?:[Ii]t|[Tt]his|[Ww]e|[Tt]hey)\s+used\s+to\b)|예전(?:에는|엔)"
+                 r"|(?:^|[.;:!?,(]\s*)이전(?:에는|엔)"
+                 r"|기존(?:에는|엔)[^.\n]*?[" + PAST_SYLLABLES + r"](?:다|습니다|어요|죠|던|지만|는데)",
 }
 # 내장 공개 식별자, 표준 번호: 줄에서 먼저 지운 뒤 검사한다. 저장소 public_ids 는 여기에 더한다.
 BUILTIN_PUBLIC = [r"error-code:\s*\S+", r"\bR(?:6|15)\b", r"\bES\d{4}\b", r"\bH26[45]\b", r"\bUTF-?\d+\b", r"\bSHA-?\d+\b", r"\bP\d{2,3}\b(?=\s*(?:p|fps|hz))",
