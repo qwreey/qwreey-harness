@@ -2,8 +2,11 @@
 """subagent-bg-tasks: 서브에이전트가 자기 백그라운드 작업(셸, 자식 에이전트)을 돌려 둔 채 끝내려 하면 한 번 알린다(warn).
 
 등록: SubagentStop. 메시지 규약: home/.claude/HOOK-MESSAGES.md("Stop·SubagentStop 에서 이어 가게 하는 출력").
-- 입력의 background_tasks 는 끝나려는 서브에이전트 자신의 작업이다(실측 필드는 docs/how-it-works.md). status 가 running 이고
-  type 이 monitor 가 아닌 것을 센다. monitor 는 끝나기를 기다리는 작업이 아니라서 뺀다(q 의 stale_work.py 와 같다).
+- 입력의 background_tasks 는 세션 전체의 작업이라 메인의 셸도 들어 있고 주인을 밝히는 필드가 없다(실측은 docs/how-it-works.md).
+  그래서 서브에이전트 트랜스크립트(agent_transcript_path)의 tool_result 글에 id 가 나온 작업만 그 서브에이전트의 것으로 본다
+  (Bash 백그라운드 결과는 "Command running in background with ID: <id>" 꼴이다). 트랜스크립트를 못 읽으면 누구 것인지 모르니
+  알리지 않는다. 그 가운데 status 가 running 이고 type 이 monitor 가 아닌 것을 센다. monitor 는 끝나기를 기다리는 작업이 아니라서
+  뺀다(q 의 stale_work.py 와 같다).
 - 내는 것: hookSpecificOutput.additionalContext. 메인에게는 가지 않고 그 서브에이전트에게 새 턴으로 들어가, 작업을 거두거나
   TaskStop 으로 멈춘 뒤 최종 보고를 다시 내게 한다. 메인은 그 에이전트의 마지막 답을 받으므로 다시 낸 보고가 전달된다.
 - 통과(아무것도 내지 않음): stop_hook_active, 남은 작업 없음, 빈 답이나 오류, 한도 알림으로 끝난 턴, agent_id 없음, 이미 알린
@@ -56,7 +59,38 @@ def running_tasks(data):
         return []
     me = data.get("agent_id")
     return [t for t in bg if isinstance(t, dict) and t.get("status") == "running" and t.get("type") != "monitor"
-            and t.get("id") and t.get("id") != me]
+            and isinstance(t.get("id"), str) and t.get("id") and t.get("id") != me]
+
+
+def tool_result_text(path):
+    """서브에이전트 트랜스크립트의 tool_result 글을 모두 이은 것. 읽지 못하면 None."""
+    if not isinstance(path, str) or not path:
+        return None
+    parts = []
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if '"tool_result"' not in line:
+                    continue  # 대부분의 줄은 파싱하지 않고 넘긴다
+                try:
+                    content = (json.loads(line).get("message") or {}).get("content")
+                except ValueError:
+                    continue
+                for block in content if isinstance(content, list) else []:
+                    if isinstance(block, dict) and block.get("type") == "tool_result":
+                        inner = block.get("content")
+                        parts.append(inner if isinstance(inner, str) else json.dumps(inner, ensure_ascii=False))
+    except OSError:
+        return None
+    return "\n".join(parts)
+
+
+def own_tasks(data, tasks):
+    """tasks 가운데 이 서브에이전트가 띄운 것: 자기 tool_result 에 id 가 나온 작업."""
+    text = tool_result_text(data.get("agent_transcript_path"))
+    if not text:
+        return []
+    return [t for t in tasks if re.search(r"(?<![\w-])%s(?![\w-])" % re.escape(t["id"]), text)]
 
 
 def one_line(value):
@@ -91,6 +125,8 @@ def handle(data):
     if isinstance(msg, str) and (not msg.strip() or STOP_ERROR.match(msg)):
         return ""
     tasks = running_tasks(data)
+    if tasks:
+        tasks = own_tasks(data, tasks)
     if not tasks or is_off(data.get("cwd")) or not claim(sid, aid):
         return ""
     here()

@@ -41,11 +41,17 @@ Claude Code 의 기본 지침이 이미 다루는 것은 반복하지 않는다:
 ## 끝맺음 훅 `subagent-bg-tasks`
 - 등록: `SubagentStop` → `hooks/subagent-bg-tasks.py`. 모델을 부르지 않는다. 메인의 Stop 에는 등록하지 않는다.
 - 왜: 끝맺음 줄(`context/subagent.md`)이 있어도 서브에이전트가 자기 백그라운드 셸이나 자식 에이전트를 돌려 둔 채 보고를 마친 일이 있었다(`until ! pgrep -f …` 대기 루프가 3시간 넘게 남음). 보고 뒤에는 그 작업을 거둘 쪽이 없다.
-- 대상: 입력의 `background_tasks` 가운데 `status` 가 `running` 이고 `type` 이 `monitor` 가 아니며 `id` 가 자기 `agent_id` 가 아닌 것. monitor 는 q 의 stale-work 와 같은 이유로 뺀다.
+- 대상: 입력의 `background_tasks` 가운데 `status` 가 `running` 이고 `type` 이 `monitor` 가 아니며 `id` 가 자기 `agent_id` 가 아니고, 그 `id` 가 서브에이전트 트랜스크립트(`agent_transcript_path`)의 tool_result 글에 나오는 것. 이 목록은 세션 전체의 것이라 메인이 띄운 셸과 그 서브에이전트 자신도 들어 있고 주인을 밝히는 필드가 없어서다. 서브에이전트가 띄운 셸의 id 는 Bash 결과 `Command running in background with ID: <id>` 에 나온다. 트랜스크립트를 못 읽으면 알리지 않는다. monitor 는 q 의 stale-work 와 같은 이유로 뺀다.
+- 쓸모가 있는 곳: 백그라운드(`run_in_background`) 서브에이전트. 포그라운드 서브에이전트의 백그라운드 셸은 Claude Code 가 최종 답에서 끝낸다(Bash 결과에 `it is terminated when you give your final response` 라고 적힌다). 백그라운드 서브에이전트의 셸은 결과가 `You will be notified when it completes` 이고, 서브에이전트가 끝난 뒤에도 메인의 Stop `background_tasks` 에 running 으로 남는다. 포그라운드에서는 알림이 결과를 거둘 기회를 준다.
 - 내는 것: `hookSpecificOutput.additionalContext` 에 `<harness-hook name="subagent-bg-tasks" level="warn" nonce="…">`. 작업마다 `- <type> <id>: "<설명 80자까지>"` 한 줄, 그리고 결과를 거두거나 TaskStop 으로 멈추라(지시문이 두라고 했으면 둠), 그다음 최종 보고를 다시 온전히 내라(호출한 쪽은 마지막 메시지만 받는다). 이 출력은 끝나던 서브에이전트에게 새 턴으로 들어가고 메인에게는 가지 않는다. 메인은 다시 낸 보고를 받는다.
 - 통과(`home/.claude/HOOK-MESSAGES.md` 의 Stop 규칙): `stop_hook_active`, 마지막 답이 비었거나 오류·한도 알림(`lib/harness_texts.py` 의 `STOP_ERROR` 영역 사본), `agent_id`·`session_id` 없음, 남은 작업 없음, 끄기 스위치, 어떤 실패든(fail-open, exit 0). 마지막 답이 질문이어도 낸다: 서브에이전트의 질문은 보고에 실려 호출한 쪽에 가고 다시 쓰는 보고에도 남는다.
 - 한 번: `compact_epoch.state_path("qwreey-operator", "claude-qwreey-operator-subagent-bg", session_id, agent_id)` 파일을 O_EXCL 로 만든 호출만 낸다. 이 플러그인은 자기 회차를 올리지 않으므로 사실상 (세션, 서브에이전트)마다 한 번이다.
 - 끄기: `HARNESS_OPERATOR_SUBAGENT_BG=off`(`0`, `no` 도 같음). 환경 변수가 이기고, 없으면 harness.env 층(사용자 < 저장소 < 저장소 local)을 본다. 저장소가 꺼도 되는 스위치라 사용자 전용 키가 아니다.
+- 실측(Claude Code 2.1.316, sonnet, `claude -p` 세 번, 합계 약 $0.23):
+  - SubagentStop 입력 키: `agent_id`, `agent_transcript_path`, `agent_type`, `background_tasks`, `cwd`, `effort`, `hook_event_name`, `last_assistant_message`, `permission_mode`, `prompt_id`, `session_crons`, `session_id`, `stop_hook_active`, `transcript_path`. 메인 Stop 은 `agent_*` 세 키가 없다.
+  - `background_tasks` 항목: 셸은 `{id, type: "shell", status, description, command}`, 서브에이전트는 `{id, type: "subagent", status, description, agent_type}`. 시작 시각, 주인, pid 는 없다.
+  - 메인 셸 하나와 서브에이전트 셸 하나가 돌 때 SubagentStop 목록에 둘 다 있었다. 백그라운드 서브에이전트일 때는 그 서브에이전트 자신(`type: "subagent"`)도 있었다.
+  - 알림을 받은 서브에이전트는 한 턴 더 돌아 보고를 다시 냈고, 두 번째 SubagentStop 은 `stop_hook_active: true` 로 와서 훅이 통과했다(세 번 모두 정확히 한 번). 지시문이 "시작만 하라" 였을 때는 셸을 멈추지 않고 그 이유를 보고에 적었다.
 
 ## 수치의 근거
 출처: 저장소의 `.claude/scopes/plugins/qwreey-operator/research/drafts/main-delegate-evidence.md`(메인 세션 5개, 서브에이전트 1,379개 트랜스크립트 실측).

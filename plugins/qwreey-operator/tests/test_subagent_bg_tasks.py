@@ -29,6 +29,20 @@ class SubagentBgTasks(unittest.TestCase):
         # 사용자, 저장소 harness.env 층을 이 임시 폴더로 돌려 실제 설정을 읽지 않는다
         self.env.update(TMPDIR=self.tmp.name, QWREEY_HARNESS_SALT_FILE=salt, CLAUDE_CONFIG_DIR=self.cfg,
                         CLAUDE_PROJECT_DIR=self.proj, HOME=self.tmp.name)
+        self.transcript = self.write_transcript(["b7x9k2", "b1", "b2", "m1", "a5"])
+
+    def write_transcript(self, own_ids, name="agent-a1.jsonl"):
+        """서브에이전트 트랜스크립트 흉내: 실측한 Bash 백그라운드 결과 꼴(문자열)과 블록 목록 꼴의 tool_result."""
+        path = os.path.join(self.tmp.name, name)
+        lines = [{"type": "user", "message": {"role": "user", "content": "Run the build."}},
+                 {"type": "assistant", "message": {"content": [{"type": "text", "text": "main task bmain0001 is not mine"}]}}]
+        for i, tid in enumerate(own_ids):
+            text = "Command running in background with ID: %s. Output is being written to: /tmp/x/%s.output." % (tid, tid)
+            content = text if i % 2 == 0 else [{"type": "text", "text": text}]
+            lines.append({"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t%d" % i, "content": content}]}})
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("".join(json.dumps(l) + "\n" for l in lines) + "{broken json line \"tool_result\"\n")
+        return path
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -41,7 +55,8 @@ class SubagentBgTasks(unittest.TestCase):
 
     def stop(self, tasks, env=None, **kw):
         payload = dict(hook_event_name="SubagentStop", session_id="s1", agent_id="a1", cwd=self.proj,
-                       last_assistant_message="Done. Report follows.", stop_hook_active=False, background_tasks=tasks)
+                       last_assistant_message="Done. Report follows.", stop_hook_active=False, background_tasks=tasks,
+                       agent_transcript_path=self.transcript)
         payload.update(kw)
         return self.run_raw(json.dumps(payload), env)
 
@@ -105,12 +120,29 @@ class SubagentBgTasks(unittest.TestCase):
         self.assertEqual(self.stop([task("b1")], agent_id=None), "")
         self.assertEqual(self.stop([task("b1")], session_id=None), "")
 
+    def test_only_main_tasks_silent(self):
+        # 실측: SubagentStop 의 background_tasks 에는 메인이 띄운 셸도 들어 있다
+        main_task = task("bmain0001", desc="Sleep in background")
+        self.assertEqual(self.stop([main_task]), "", "id only in assistant text, not in a tool_result")
+        self.assertEqual(self.stop([task("b10")]), "", "b1 in the transcript must not claim b10")
+        text = self.context(self.stop([main_task, task("b1")]))
+        self.assertIn("- shell b1:", text)
+        self.assertNotIn("bmain0001", text)
+
+    def test_unknown_owner_silent(self):
+        self.assertEqual(self.stop([task("b1")], agent_transcript_path=None), "")
+        self.assertEqual(self.stop([task("b1")], agent_transcript_path=os.path.join(self.tmp.name, "missing.jsonl")), "")
+        self.assertEqual(self.stop([task("b1")], agent_transcript_path=self.write_transcript([], "empty.jsonl")), "")
+        self.assertTrue(self.stop([task("b1")]), "silent passes must not use up the one notice")
+
     def test_malformed_input_silent(self):
-        for raw in ("", "not json", "[1, 2]", "null", '{"hook_event_name": "SubagentStop", "session_id": "s1", "agent_id": "a1", '
-                    '"background_tasks": [1, "x", {"status": "running"}, {"id": "b1", "status": "running", "type": "shell", '
-                    '"description": {"nested": true}}]}'):
+        odd = json.dumps({"hook_event_name": "SubagentStop", "session_id": "s1", "agent_id": "a1",
+                          "agent_transcript_path": self.transcript,
+                          "background_tasks": [1, "x", {"status": "running"}, {"id": 7, "status": "running"},
+                                               {"id": "b1", "status": "running", "type": "shell", "description": {"nested": True}}]})
+        for raw in ("", "not json", "[1, 2]", "null", odd):
             out = self.run_raw(raw)
-            if raw.startswith('{"hook'):
+            if raw is odd:
                 self.assertIn("- shell b1:", self.context(out), "a bad description is printed, not fatal")
             else:
                 self.assertEqual(out, "", raw)
