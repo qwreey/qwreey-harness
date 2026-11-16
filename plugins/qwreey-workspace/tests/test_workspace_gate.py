@@ -203,7 +203,7 @@ class Gate(Env):
         # 게이트 스위치와 작업공간 루트는 USER_ONLY: 저장소가 커밋한 파일로 끌 수 없다. 설치된 lib 가 막지 않는 옛 판이어도 같다.
         (self.t / "cfg" / "lib").mkdir()
         (self.t / "cfg" / "lib" / "harness_env.py").write_text((ROOT.parent.parent / "home/.claude/lib/harness_env.py").read_text()
-                                                              + "\nUSER_ONLY = frozenset()\n")
+                                                              + "\nUSER_ONLY = frozenset()\nLEGACY_USER_ONLY = frozenset()\n")
         claude = Path(self.proj) / ".claude"
         claude.mkdir(parents=True, exist_ok=True)
         (claude / "harness.env").write_text("HARNESS_WORKSPACE_GATE=off\n")

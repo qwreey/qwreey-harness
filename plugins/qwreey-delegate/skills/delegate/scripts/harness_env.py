@@ -19,7 +19,7 @@
   3. 저장소 공유: <project>/.claude/harness.env (커밋한다)
   4. 저장소 개인: <project>/.claude/harness.local.env (커밋하지 않는다. 저장소 .gitignore 에 넣는다)
   5. 프로세스 환경 변수
-3, 4 층은 USER_ONLY 와 호출자 user_only 의 키(실행 경로, 기기 고유값, 보안 게이트)를 바꾸지 못한다.
+3, 4 층은 USER_ONLY, LEGACY_USER_ONLY 와 호출자 user_only 의 키(실행 경로, 기기 고유값, 보안 게이트)를 바꾸지 못한다.
 <project> 는 호출자가 주거나, 안 주면 $CLAUDE_PROJECT_DIR(project_dir() 은 그것이 없을 때 훅 stdin 의 cwd). 없으면 3, 4 층이 없다.
 HARNESS_ENV 는 사용자 층 파일 하나만 바꾼다. 저장소 층은 그대로 위에 얹힌다.
 load(candidates) 는 사용자 층 하나만 읽는 옛 호출용이다.
@@ -86,6 +86,14 @@ USER_ONLY = frozenset({
     "HARNESS_WORKSPACE", "HARNESS_DOCTOR_ROOT", "HARNESS_TOOL_INSTALLS", "HARNESS_HEAVY_WRAP", "HARNESS_DELEGATE_REGISTRY",
     "HARNESS_CODERAG",
 })
+# 이 판보다 옛 플러그인은 installed() 로 이 설치본을 읽고 user_only 를 넘기지 않아, 예전 로더가 막던 키를 여기서 대신 막는다. 설치된 플러그인 가운데 이 판보다 옛것이 없으면 지운다.
+LEGACY_USER_ONLY = frozenset({
+    "HARNESS_AGENT_PUSH", "HARNESS_LUAU_KB", "HARNESS_ROBLOX_DOCS_CACHE", "HARNESS_WORKSPACE_GATE",
+    "SESSION_LOG_HOME", "SESSION_LOG_CLAUDE",
+    "HARNESS_DELEGATE_AGY_BIN", "HARNESS_DELEGATE_CODEX_BIN", "HARNESS_DELEGATE_AGY_HOME", "HARNESS_DELEGATE_CODEX_HOME",
+    "HARNESS_DELEGATE_AGY_WORKTREE", "HARNESS_DELEGATE_AGY_UNISOLATED", "HARNESS_DELEGATE_CODEX_SANDBOX", "HARNESS_DELEGATE_KEEP_ENV", "HARNESS_DELEGATE_STATE",
+    "HARNESS_DELEGATE_MAX_CONCURRENT", "HARNESS_DELEGATE_RUNS_DAYS",
+})
 
 
 def config_dir():
@@ -151,7 +159,7 @@ def load_layers(project=None, candidates=None, defaults=None, user_only=()):
     vals = _base(defaults)
     user, repo = layer_files(project, candidates)
     user = user if user and _read(vals, user) else None
-    skip = USER_ONLY | frozenset(user_only)
+    skip = USER_ONLY | LEGACY_USER_ONLY | frozenset(user_only)
     read = ([user] if user else []) + [f for f in repo if _read(vals, f, skip)]
     vals["_file"] = str(user) if user else ""
     vals["_files"] = " ".join(str(f) for f in read)
