@@ -45,7 +45,7 @@ index.json                         rid → pending | imported(위치, 커밋) | 
 | 요약을 시작함(쿨다운 트리거) | PostToolUse·UserPromptSubmit | info | 구간과 "끝나면 알린다" |
 | 요약이 끝남 | 다음 PostToolUse·UserPromptSubmit 1회 | info | 새 절 수, 기록 경로, 대조 실패 수, pending 수 |
 | 세션 시작 | SessionStart | info / warn·action (level 마다 태그 하나) | 인계(startup·clear 만, 직전 다른 세션의 미해결, ≤800자; resume 은 맥락이 복원되므로 없음. 기록이 트랜스크립트보다 `SESSION_LOG_HANDOVER_LAG_LINES` 넘게 뒤처졌으면 항목 대신 "뒤처짐" 한 줄, 트랜스크립트가 `SESSION_LOG_HANDOVER_LIVE_MIN` 분 안에 바뀐 세션은 아직 일하는 중이라 생략) + pending + 찾는 법 한 줄 |
-| compact 뒤 | SessionStart(compact) | info / warn | 이 세션 기록 경로 + pending(새 회차라 다시) |
+| compact 뒤 | SessionStart(compact) | info / warn | 이 세션 기록 경로, 방금 요약된 구간의 닻(사용자 원문, 바뀐 파일, 커밋, 도구 오류, id, 트랜스크립트 검색 요령 한 줄. 출력 전체 `SESSION_LOG_COMPACT_ANCHORS_CHARS`(8000)자, 최대 9,000자. 자세히는 how-it-works.md 의 compact 처리), pending(새 회차라 다시) |
 | commit 직전 | PreToolUse(Bash, `git … commit`) | warn | pending 과 정확한 명령 `session-log import`(막지 않음) |
 | 인계·정리 | UserPromptSubmit(`/handover`·`/qwreey-sessions:checkpoint`·인계 낱말), PreToolUse(Skill handover) | info·warn | pending |
 | 큰 기록을 통째로 읽으려 함 | PreToolUse(Read, `records_read.py PreToolUse`) | action(deny) | 기록을 offset·limit 없이 Read 하는데 `SESSION_LOG_READ_GATE_KB`(32KiB) 이상이면 막는다. 사유: 크기, 스냅숏이라 낡았을 수 있음, 먼저 찾는 길(coderag 가 PATH 에 있고 저장소 기록이면 `coderag get <path> --sections`, 그 파일 Grep, `/qwreey-sessions:recall`), 그 줄만 offset/limit 로, 통째가 필요하면 offset/limit 로 나눠 읽기. 그 호출만 막으므로 범위를 준 Read 는 통과한다. 대상: 외부 저장소 기록, 저장소 보관 폴더, 어느 저장소든 `.claude/` 의 스냅숏 폴더(`audit`·`handoff`·`sessions`·`session`, `scopes/`·`packs/` 안의 같은 폴더). 살아 있는 기록(`plan`·`base`·`research`·`archive`), Claude Code 설정 폴더(`~/.claude`, `$CLAUDE_CONFIG_DIR`), 그림·PDF·노트북은 막지 않는다. 끄기 `SESSION_LOG_READ_GATE=off` |
@@ -63,6 +63,7 @@ index.json                         rid → pending | imported(위치, 커밋) | 
 - 주입 안전
   - 인계와 상기에는 구조화된 항목만 넣는다: 개수, 경로, ⚠ 없는 미해결·결정 제목(110자), 대조를 통과한 사용자 인용.
   - 자유 텍스트 요약(`### 요약`)은 넣지 않는다.
+  - compact 뒤 닻은 예외로 트랜스크립트의 사용자 원문을 그대로 넣는다. 지난 대화라 새 요청이 아니라고 머리 줄에 밝히고, 마스킹·nonce 지우기·`<`·`>` 무력화를 거친다.
   - `<`·`>` 는 `‹`·`›` 로 바꾼다.
 - 한 출력에 알림이 여럿이면 태그 하나에 가장 높은 level 을 단다(규약 `HOOK-MESSAGES.md`).
 - 메시지 문자열은 모두 `scripts/sllib/messages.py` 에 있다.
@@ -88,7 +89,7 @@ session-log backfill --plan plan.json [--budget 4] [--dry-run]
 
 ## 설정
 우선순위는 환경 변수 > 저장소 `.claude/harness.local.env` > 저장소 `.claude/harness.env`(저장소는 `$CLAUDE_PROJECT_DIR`) > 사용자 `harness.env`(`$HARNESS_ENV`, 없으면 `$CLAUDE_CONFIG_DIR/harness.env` 또는 `~/.claude/harness.env`) > 기본값이다. `SESSION_LOG_*` 키만 읽고, `SESSION_LOG_HOME`·`SESSION_LOG_CLAUDE` 는 저장소 층이 바꾸지 못한다. 읽기는 `scripts/harness_env.py`(하네스 로더의 사본). 목록과 기본값은 `scripts/sllib/config.py` 의 `DEFAULTS`, 저장소 층이 바꾸지 못하는 키는 같은 파일의 `USER_ONLY` 에 있다.
-- 주요 키: `SESSION_LOG_HOME`, `SESSION_LOG_MODEL`(haiku), `SESSION_LOG_DISABLE`, `SESSION_LOG_RECORD_NONINTERACTIVE`(기본 꺼짐: `CLAUDE_CODE_ENTRYPOINT` 가 `sdk` 로 시작하는 `claude -p`·SDK 세션은 기록하지 않는다), `SESSION_LOG_COOLDOWN_MIN`(20), `SESSION_LOG_GROW_KB`(512), `SESSION_LOG_HANDOVER_CHARS`(800), `SESSION_LOG_HANDOVER_LAG_LINES`(400), `SESSION_LOG_HANDOVER_LIVE_MIN`(10), `SESSION_LOG_PRECOMPACT_CHARS`(3000), `SESSION_LOG_COMPACT_INSTRUCTIONS`(on), `SESSION_LOG_PENDING_STRONG_COUNT`(5), `SESSION_LOG_PENDING_STRONG_DAYS`(7), `SESSION_LOG_HOME_NUDGE_COUNT`(3), `SESSION_LOG_HOME_NUDGE_DAYS`(3), `SESSION_LOG_READ_GATE`(on), `SESSION_LOG_READ_GATE_KB`(32), `SESSION_LOG_MAX_PARALLEL`(2).
+- 주요 키: `SESSION_LOG_HOME`, `SESSION_LOG_MODEL`(haiku), `SESSION_LOG_DISABLE`, `SESSION_LOG_RECORD_NONINTERACTIVE`(기본 꺼짐: `CLAUDE_CODE_ENTRYPOINT` 가 `sdk` 로 시작하는 `claude -p`·SDK 세션은 기록하지 않는다), `SESSION_LOG_COOLDOWN_MIN`(20), `SESSION_LOG_GROW_KB`(512), `SESSION_LOG_HANDOVER_CHARS`(800), `SESSION_LOG_HANDOVER_LAG_LINES`(400), `SESSION_LOG_HANDOVER_LIVE_MIN`(10), `SESSION_LOG_PRECOMPACT_CHARS`(3000), `SESSION_LOG_COMPACT_INSTRUCTIONS`(on), `SESSION_LOG_COMPACT_ANCHORS`(on), `SESSION_LOG_COMPACT_ANCHORS_CHARS`(8000, 최대 9000), `SESSION_LOG_PENDING_STRONG_COUNT`(5), `SESSION_LOG_PENDING_STRONG_DAYS`(7), `SESSION_LOG_HOME_NUDGE_COUNT`(3), `SESSION_LOG_HOME_NUDGE_DAYS`(3), `SESSION_LOG_READ_GATE`(on), `SESSION_LOG_READ_GATE_KB`(32), `SESSION_LOG_MAX_PARALLEL`(2).
 - harness.env 제안(하네스 담당이 정본에 넣을 때): `SESSION_LOG_HOME=${XDG_DATA_HOME:-~/.local/share}/session-log` 를 명시하고, 필요하면 `SESSION_LOG_MODEL=haiku` 를 둔다. 다른 sandbox 로 옮길 때는 이 두 키만 본다.
 
 ## coderag 연결 (메모)
@@ -104,4 +105,5 @@ session-log backfill --plan plan.json [--budget 4] [--dry-run]
 
 ## 테스트
 - `python3 -I plugins/qwreey-sessions/tests/test_session_log.py`: 단위 테스트. 가짜 `claude`(`plugins/qwreey-sessions/tests/fixtures/fake_claude.py`)를 쓰고 비용은 0이다.
+- `python3 -I plugins/qwreey-sessions/tests/test_anchors.py`: compact 뒤 닻(구간 찾기, 제외, 예산, 식별자, 마스킹, 끄기, 깨진 트랜스크립트). 합성 트랜스크립트, 비용 0.
 - `plugins/qwreey-sessions/tests/e2e.sh [--auto-compact]`: 임시 git 프로젝트에서 `claude -p --plugin-dir` 로 실제 훅과 haiku 를 돌린다. 결과는 `$T/report.json` 에 남는다. 모델이 실제로 본 문자열은 e2e 세션 트랜스크립트에서 뽑는다.

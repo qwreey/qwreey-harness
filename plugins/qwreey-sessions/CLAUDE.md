@@ -4,11 +4,12 @@ Automatic session log: hooks decide when to summarize, a detached worker summari
 
 ## Where things are
 - `scripts/hook.py`: every hook event except `records_read.py` (PreToolUse deny of whole-file Reads of large records, PostToolUse snapshot warning on record reads). Keep it to decisions; summarizing belongs to the worker (`scripts/cli.py flush`).
-- `scripts/sllib/`: the library (`config.py` settings, `messages.py` every model-facing string, `redact.py` nonce redaction, `verify.py` quote check against the transcript, `store.py`, `worker.py`, `summarize.py`).
+- `scripts/sllib/`: the library (`config.py` settings, `messages.py` every model-facing string, `redact.py` nonce redaction, `anchors.py` the post-compact anchors (user messages and identifiers of the span just compacted, read from the transcript), `verify.py` quote check against the transcript, `store.py`, `worker.py`, `summarize.py`).
 - `bin/session-log`: the CLI on PATH when the plugin is enabled.
 
 ## Tests
 - `python3 -I tests/test_session_log.py`: unit tests with a fake `claude`, no cost.
+- `python3 -I tests/test_anchors.py`: post-compact anchors on synthetic transcripts, no cost.
 - `tests/e2e.sh [--auto-compact]` calls the real `claude -p` and haiku and costs money; run it only when the user agrees.
 
 ## Rules for this plugin

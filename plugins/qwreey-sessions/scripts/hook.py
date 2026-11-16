@@ -24,7 +24,7 @@ sys.path.insert(0, HERE)
 
 import compact_epoch  # noqa: E402
 import harness_nonce  # noqa: E402
-from sllib import brief, config, messages, records_home  # noqa: E402
+from sllib import anchors, brief, config, messages, records_home  # noqa: E402
 from sllib.paths import project_root, short_home  # noqa: E402
 from sllib.redact import redact  # noqa: E402
 from sllib.store import Store  # noqa: E402
@@ -34,15 +34,52 @@ COMMIT_RX = re.compile(r"(^|[;&|(\s])git(\s+-[Cc]\s+\S+)*\s+commit\b")
 HANDOVER_RX = re.compile(r"^\s*/(?:qwreey-sessions:)?(handover|checkpoint)\b|\b(handover|핸드오버|인계)\b", re.I)
 
 
-def emit_context(event: str, parts: list[tuple[str, str]], data: dict) -> None:
+def compose(parts: list[tuple[str, str]], sid, rule: str) -> str:
+    parts = [(lv, t) for lv, t in parts if t and t.strip()]
+    if parts and rule:
+        parts[0] = (parts[0][0], rule + "\n" + parts[0][1])
+    return messages.wrap_parts(parts, sid)
+
+
+def emit_context(event: str, parts: list[tuple[str, str]], data: dict, fill=None) -> None:
+    """fill: (index, level, build, target). build(budget) 의 글을 parts[index] 에 끼운다. budget 은 출력 전체가 target 자를
+    넘지 않게 정한다. 규칙 줄은 실제로 낼 때만 맡아야 하므로(claim) 길이는 가장 긴 규칙 줄로 어림한다."""
+    sid = data.get("session_id")
+    base = parts
+    if fill:
+        idx, level, build, target = fill
+        probe = parts[:idx] + [(level, "x")] + parts[idx:]
+        worst = compose(probe, sid, harness_nonce.RULE.format(nonce="0" * 12))
+        parts = parts[:idx] + [(level, build(target - (len(worst) - 1)))] + parts[idx:]
     parts = [(lv, t) for lv, t in parts if t and t.strip()]
     if parts:
         rule = harness_nonce.rule_for(event, data)  # SessionStart 에서만 줄이 나온다. 다른 플러그인이 맡았으면 ""
-        if rule:
-            parts[0] = (parts[0][0], rule + "\n" + parts[0][1])
-    text = messages.wrap_parts(parts, data.get("session_id"))
-    if text:
-        json.dump({"hookSpecificOutput": {"hookEventName": event, "additionalContext": text}}, sys.stdout)
+        text = compose(parts, sid, rule)
+        if len(text) > anchors.CEILING:  # 어림이 틀렸을 때의 마지막 안전판: 미리보기로 바뀌느니 닻을 뺀다
+            text = compose(base, sid, rule)
+        if text:
+            json.dump({"hookSpecificOutput": {"hookEventName": event, "additionalContext": text}}, sys.stdout)
+
+
+def log_error(e: Exception) -> None:
+    try:
+        d = config.home()
+        d.mkdir(parents=True, exist_ok=True)
+        with open(d / "hook-errors.log", "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')} {sys.argv[1:]} {type(e).__name__}: {e}\n")
+    except Exception:
+        pass
+
+
+def compact_anchors(transcript: str, cwd: str, sid: str):
+    """SessionStart(compact) 에 끼울 닻을 만드는 함수. 실패하면 빈 글(포인터와 pending 은 그대로 나간다)."""
+    def build(budget: int) -> str:
+        try:
+            return anchors.anchors(transcript, budget, cwd, sid)
+        except Exception as e:
+            log_error(e)
+            return ""
+    return build
 
 
 def spawn_flush(store: Store, sid: str, transcript: str, trigger: str, force: bool) -> None:
@@ -116,11 +153,13 @@ def main() -> None:
 
     if event == "SessionStart":
         source = data.get("source", "startup")
-        parts = []
+        parts, fill = [], None
         if source == "compact":
             rids = [r for r, e in store.index().items() if e.get("session_id") == sid] if store.exists() else []
             if rids:
                 parts.append(("info", messages.after_compact(short_home(store.record_path(sorted(rids)[-1])), short_home(store.records))))
+            if transcript and not config.anchors_off():
+                fill = (len(parts), "info", compact_anchors(transcript, start, sid), anchors.target_chars())
         elif store.exists():
             h = brief.handover(store, sid, source, transcript)
             if h:
@@ -136,8 +175,10 @@ def main() -> None:
             seq = store.notice_seq()
             if seq > hs.get("notice_seq", 0):  # 아직 전하지 않은 요약 완료 알림
                 parts.insert(0, ("info", brief.saved_line(store, store.notices_after(hs.get("notice_seq", 0)))))
+                if fill:
+                    fill = (fill[0] + 1,) + fill[1:]  # 닻은 기록 가리킴 바로 뒤에 둔다
             hs["notice_seq"] = seq
-        emit_context(event, parts, data)
+        emit_context(event, parts, data, fill)
 
     elif event in ("PostToolUse", "UserPromptSubmit"):
         parts = tick(store, sid, transcript, hs)
@@ -193,11 +234,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:  # 훅은 절대 세션을 막지 않는다
-        try:
-            d = config.home()
-            d.mkdir(parents=True, exist_ok=True)
-            with open(d / "hook-errors.log", "a", encoding="utf-8") as f:
-                f.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')} {sys.argv[1:]} {type(e).__name__}: {e}\n")
-        except Exception:
-            pass
+        log_error(e)
     sys.exit(0)
