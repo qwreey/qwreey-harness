@@ -32,4 +32,4 @@ paths:
 
 ## Scope
 - Apply this to code you add. Do not refactor existing code for it unprompted; old duplicates in edited files are reported to the user at turn end.
-- Markers, repo settings and hook notices: load the `qwreey-conventions:code-reuse` skill. A repo's own rules win.
+- Before you add a `@copy-of` or `@start-replace` marker, or act on a reuse notice, load the `qwreey-conventions:code-reuse` skill. A repo's own rules win.
