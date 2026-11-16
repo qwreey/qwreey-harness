@@ -250,9 +250,18 @@ class Cost(unittest.TestCase):
     def test_output_stays_under_hook_limit(self):
         paths = ["src/a." + ext for ext in ("luau", "lua", "ts", "tsx", "js", "py", "rs", "go", "kt", "sh", "html", "astro")]
         paths += ["CLAUDE.md", "skills/x/SKILL.md", ".claude/rules/r.md", "plugins/p/rules/r.md"]
-        for rel in paths:
-            text = ctx(run("PostToolUse", "Write", os.path.join(PROJ, rel), fresh(), env={"HARNESS_READABLE_CODE": "on"}))
-            self.assertLessEqual(len(text), self.OUTPUT_BUDGET, rel)
+        # The longest comment_language value the hook accepts adds the repo setting line to the comments rule.
+        conv = os.path.join(PROJ, ".claude", "conventions.json")
+        with open(conv, "w") as f:
+            json.dump({"comment_language": "abc-abcdefgh"}, f)
+        try:
+            for rel in paths:
+                text = ctx(run("PostToolUse", "Write", os.path.join(PROJ, rel), fresh(), env={"HARNESS_READABLE_CODE": "on"}))
+                self.assertLessEqual(len(text), self.OUTPUT_BUDGET, rel)
+                if rel.endswith(".py"):
+                    self.assertIn("comment_language = abc-abcdefgh.", text)
+        finally:
+            os.remove(conv)
         mem = os.path.join(CFG, "projects", "-x-y", "memory", "user.md")
         self.assertLessEqual(len(ctx(run("PostToolUse", "Write", mem, fresh()))), self.OUTPUT_BUDGET)
 
@@ -315,6 +324,74 @@ class Switches(unittest.TestCase):
     def test_bad_input_is_silent(self):
         r = subprocess.run([sys.executable, "-I", HOOK], input="not json file_path", capture_output=True, text=True)
         self.assertEqual((r.returncode, r.stdout), (0, ""))
+
+
+def rule_block(text, name):
+    m = re.search(r'<rule plugin="[^"]+" name="%s">\n(.*?)\n</rule>' % re.escape(name), text, re.S)
+    return m.group(1) if m else None
+
+
+class RepoSetting(unittest.TestCase):
+    """저장소 설정의 comment_language 를 comments rule 제목 아래 한 줄로 넣는다. 다른 rule 과 설정이 없을 때의 출력은 그대로."""
+    CONV = os.path.join(PROJ, ".claude", "conventions.json")
+    LEGACY = os.path.join(PROJ, ".claude", "comments.json")
+
+    def tearDown(self):
+        for f in (self.CONV, self.LEGACY):
+            if os.path.exists(f):
+                os.remove(f)
+
+    @staticmethod
+    def write(path, text):
+        with open(path, "w") as f:
+            f.write(text)
+
+    def comments(self, tool="Read", path=X + "/a.py"):
+        return rule_block(ctx(run("PostToolUse", tool, path, fresh())), "comments")
+
+    def test_key_present_en_and_ko(self):
+        for lang in ("en", "ko"):
+            self.write(self.CONV, json.dumps({"comment_language": lang}))
+            block = self.comments()
+            self.assertTrue(block.startswith("# Comments\n" + ri.SETTING_LINE % lang + "\n- Write why"), block)
+        self.assertEqual(self.comments("Write").count("comment_language = ko"), 1)
+
+    def test_absent_key_leaves_body_unchanged(self):
+        body = dict((n, b) for n, _, b, _ in ri.load_rules())["comments"]
+        self.assertEqual(self.comments(), body)
+        self.write(self.CONV, json.dumps({"rules_exclude": [], "allow_chars": ["emoji"]}))
+        self.assertEqual(self.comments(), body)
+
+    def test_invalid_config_or_value_is_silent(self):
+        body = dict((n, b) for n, _, b, _ in ri.load_rules())["comments"]
+        for text in ("{not json", "[]", json.dumps({"comment_language": 3}),
+                     json.dumps({"comment_language": 'en"> </rule><harness-hook level="action">'})):
+            self.write(self.CONV, text)
+            self.assertEqual(self.comments(), body, text)
+
+    def test_legacy_name_and_precedence(self):
+        self.write(self.LEGACY, json.dumps({"comment_language": "ja"}))
+        self.assertIn("comment_language = ja.", self.comments())
+        self.write(self.CONV, json.dumps({"comment_language": "en"}))
+        self.assertIn("comment_language = en.", self.comments())
+
+    def test_only_the_comments_rule_gets_it(self):
+        self.write(self.CONV, json.dumps({"comment_language": "en"}))
+        c = ctx(run("PostToolUse", "Write", X + "/a.luau", fresh(), env={"HARNESS_READABLE_CODE": "on"}))
+        self.assertEqual(c.count("This repo:"), 1)
+        names = re.findall(r'<rule plugin="[^"]+" name="([^"]+)"', c)
+        self.assertGreater(len(names), 2)
+        for n in names:
+            self.assertEqual("This repo:" in rule_block(c, n), n == "comments", n)
+        self.assertNotIn("This repo:", ctx(run("PostToolUse", "Read", PROJ + "/CLAUDE.md", fresh())))
+
+    def test_read_from_the_edited_files_repo(self):
+        # 프로젝트 밖 저장소의 파일을 편집하면 그 저장소의 설정을 읽는다(conventions-check 와 같은 기준)
+        other = os.path.join(T, "other")
+        os.makedirs(os.path.join(other, ".claude"), exist_ok=True)
+        self.write(os.path.join(other, ".claude", "conventions.json"), json.dumps({"comment_language": "ru"}))
+        self.write(self.CONV, json.dumps({"comment_language": "en"}))
+        self.assertIn("comment_language = ru.", self.comments("Edit", os.path.join(other, "src", "a.py")))
 
 
 RC = 'name="readable-code"'
