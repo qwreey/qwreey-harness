@@ -1,6 +1,6 @@
 {
   "name": "q",
-  "version": "0.9.10",
+  "version": "0.9.11",
   "description": "사람이 직접 치는 하네스 명령과 개인 안전장치 모음. /q:start(온보딩), /q:doctor(하네스 진단), /q:away·/q:back(자리 비움 예산). 서브에이전트 고지·슬롯 훅과 statusline 이 읽는 원장, 설치 어긋남·방치 작업 알림, 상시 규약 주입(ambient)을 포함한다. 세션 기록은 qwreey-sessions, 다른 저장소 게이트는 qwreey-workspace 로 나뉘었다. 이름 q 는 사용자명 qwreey 에서 왔다.",
   "author": {
     "name": "qwreey",
