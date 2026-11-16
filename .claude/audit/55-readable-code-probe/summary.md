@@ -7,7 +7,7 @@ description: rule 5줄(+세부 파일)만으로 15줄 이상 함수의 "빈 줄 
 
 > Snapshot 2026-11-16. May differ from now; check current files and git log before relying on it.
 
-규칙 초안 `.claude/research/drafts/readable-code-wording.md` 의 5줄 rule 과 지표 알림이 에이전트 출력을 바꾸는지 본 실측. 서브에이전트(opus)가 측정하고 메인이 이 요약을 썼다. 원자료 `/tmp/rcprobe/`(커밋 안 함). 합계 USD 17.46(작성 12.29, 판정 5.17).
+규칙 초안 `.claude/archive/research/drafts/readable-code-wording.md` 의 5줄 rule 과 지표 알림이 에이전트 출력을 바꾸는지 본 실측. 서브에이전트(opus)가 측정하고 메인이 이 요약을 썼다. 원자료 `/tmp/rcprobe/`(커밋 안 함). 합계 USD 17.46(작성 12.29, 판정 5.17).
 
 ## 방법
 - claude -p 2.1.316, 작성·판정 모두 opus, 임시 `CLAUDE_CONFIG_DIR`, `--setting-sources project`. 프롬프트는 과제만 말하고 스타일은 말하지 않는다.

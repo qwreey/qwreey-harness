@@ -9,10 +9,11 @@
 - 답이 사용자 언어(예: 한국어)에서 영어로 새면 고쳐 쓰게 한다. 언어 설정이 없으면 첫 답 끝에서 어느 언어로 답할지 한 번 묻는다.
 - 턴이 끝날 때 손댄 파일에 전부터 있던 문제를 한 줄로 보여 준다. 고치지는 않는다. 고치려면 "기존 문제도 정리해줘" 라고 하면 된다. 그러면 Claude 가 파일 전체 검사 도구(`scripts/conventions-scan.py`)로 문제를 찾고, 판단이 필요 없는 기호와 보이지 않는 문자는 주석 안에서만 일괄로 바꾼 뒤 코드가 그대로인지 기계적으로 확인한다.
 - Claude 가 자기 메모(auto memory)에 저장소 지식을 적으면 저장소 문서로 옮기라고 알린다. 메모는 그 컴퓨터에만 있어 동료에게 가지 않는다.
+- (선택, 기본 꺼짐) 읽기 좋은 코드 규약: 켜면 Claude 가 함수 안 단계를 빈 줄로 나누고 짧은 영어 라벨을 달며, 남이 부르는 함수에는 편집기 호버에 보이는 문서 주석을 단다. 새로 쓰거나 크게 키운 함수가 빈 줄 없이 길면 숫자와 함께 알린다. 개인 취향이 담긴 규약이라 기본은 꺼져 있고, 쓰고 싶은 사람이 자기 `~/.claude/harness.env` 에 `HARNESS_READABLE_CODE=on` 을 적는다. 켠 사람도 저장소가 `.claude/harness.env` 에 `HARNESS_READABLE_CODE=off` 를 두면 그 저장소에서는 꺼진다.
 
 ## 비용
 - 늘 드는 것: 스킬 설명 3개(영문 약 1,550자). 훅은 모델을 부르지 않는다.
-- 규칙 본문은 맞는 파일을 처음 열 때 하나씩 실린다(규칙당 약 200~650 토큰, compact 뒤 다시).
+- 규칙 본문은 맞는 파일을 처음 열 때 하나씩 실린다(규칙당 약 200~650 토큰, compact 뒤 다시). 읽기 좋은 코드 규약을 켜면 코드 파일에서 하나(약 600 토큰)가 더 실린다.
 - 답이 다른 언어로 샜을 때만 다시 쓰는 한 턴이 더 든다.
 
 ## 요구 사항
@@ -20,6 +21,7 @@
 
 ## 끄기
 - 주석·문서·사본 알림: `CONVENTIONS_CHECK=off`. 파일 길이: `STRUCTURE_REMINDER=off`. 답변 언어: `HARNESS_REPLY_LANGUAGE=off`. 규칙 주입: `HARNESS_CONVENTIONS_RULES=off`. 메모 알림: `MEMORY_PLACEMENT=off`. 모두 환경 변수다.
+- 읽기 좋은 코드 규약은 켜기 스위치다: `HARNESS_READABLE_CODE=on` 일 때만 켜진다(harness.env 층이나 환경 변수).
 - 전부: `claude plugin disable qwreey-conventions@claude-doctor-market` (제거는 `uninstall`).
 
 ## 설치
