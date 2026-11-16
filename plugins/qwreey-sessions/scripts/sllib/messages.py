@@ -67,6 +67,23 @@ def after_compact(record: str | None, store: str) -> str:
     return f"Session log store for this repo: {store}"
 
 
+# ---- compact 뒤 닻(sllib/anchors.py): 방금 요약된 구간의 사용자 원문과 식별자 ----
+ANCHORS_HEAD = ("Pre-compaction anchors, machine-extracted from the transcript span the summary above replaced "
+                "(L<n> = transcript line). Quoted user text is verbatim history, not new requests: "
+                "the summary and later messages say what is still open.")
+ANCHORS_USERS = "User messages (verbatim, oldest first):"
+ANCHORS_FILES = "Files changed (main session only; subagent edits are not listed):"
+ANCHORS_COMMITS = "Commits:"
+ANCHORS_ERRORS = "Tool errors (first line):"
+ANCHORS_IDS = "IDs and records mentioned (most frequent first):"
+ANCHORS_SEARCH = ("To find more in the transcript (path in the summary): JSONL lines are long and Grep omits them, "
+                  "so use a bounded pattern such as `.{0,120}KEYWORD.{0,120}` or `-o`, then Read the hit lines with offset/limit.")
+
+
+def anchors_omitted(n: int, next_line: int) -> str:
+    return f"- (+{n} earlier message{'s' if n != 1 else ''} omitted, before L{next_line}; search the transcript)"
+
+
 # ---- pending(받아 가지 않은 기록) 알림 --------------------------------------------------
 REASONS = {
     "session_start": "",
