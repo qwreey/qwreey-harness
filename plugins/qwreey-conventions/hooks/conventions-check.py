@@ -16,7 +16,13 @@
   - escaped character: 주석 안의 유니코드 이스케이프(백슬래시 u 와 16진수 넷 등). 금지 문자를 이스케이프로 적어 검사를 피한 것으로 본다
   - invisible character: 보이지 않는 문자, 방향 제어 문자. 주석이 아니라 추가된 줄 전체에서 본다
   - language mismatch: 파일 주석의 90% 이상이 한 문자 체계(기존 10줄 이상)인데 추가된 줄이 다른 체계 단어를 3개 이상 쓴다.
-    새 파일은 저장소 comment_language, 없으면 같은 폴더 형제 파일의 다수, 그것도 없으면 검사하지 않는다. 지시자 줄(--!strict, eslint-disable 등)은 뺀다
+    새 파일은 저장소 comment_language, 없으면 같은 폴더 형제 파일의 다수, 그것도 없으면 검사하지 않는다. 지시자 줄(--!strict, eslint-disable 등)은 뺀다.
+    단계 라벨(본문 안 들여쓴 한 줄 주석, 위는 주석 줄이 아니고 아래는 코드, label_language 글자만 1-10낱말, 72자 이하, 마침표와 이유 접속어 없음)은
+    언어 판정과 다수 계산에서 뺀다. 한국어 주석 파일에 영어 라벨을 쓰는 것이 readable-code 규약이라서다(키와 무관하게 늘)
+  - layout (HARNESS_READABLE_CODE=on 일 때만, hooks/layout_metrics.py): 이번 편집이 새로 쓰거나(함수 줄의 절반 이상) 15줄 이상 키운 함수의
+    빈 줄 없는 긴 본문(layout), 문장 사이에 끼운 여러 줄 주석(interleaved comment), 호출하는 쪽이 못 보는 문서 주석(doc summary: 공개 함수에
+    호버 꼴 문서가 없음, 첫 줄이 길거나 첫 문장이 첫 줄에서 안 끝남. 메타메서드 제외). (파일, 범주, 함수)마다 한 번이고, doc summary 를 알린 함수는
+    다음 편집 뒤 한 번 더 본다
 모델용 문서(CLAUDE.md, SKILL.md, agents/*.md, .claude/rules/*.md, skills/**/*.md; 추가된 줄만, frontmatter, 코드 펜스, 인라인 코드, URL, 경로 토큰 안은 통과)
   - 입구 문서: 날짜, audit/session/handoff 경로와 .claude/ 아래 기록 폴더 경로, 라운드, 결정 문구, 실측 표지, 변경 서술, 같은 줄에 .md 경로가 없는 원장 id
   - skills/**/references/*.md: 결정 문구, 라운드, audit/N 근거, 실측 표지, 정정 배너만(날짜, id, "previously" 는 통과)
@@ -25,10 +31,12 @@
 
 저장소 설정: <프로젝트>/.claude/conventions.json (없으면 예전 이름 .claude/comments.json)
   {"allow_ref_tail": true, "comment_language": "en", "allow_chars": ["emoji", "x"], "public_ids": ["Quad\\\\d{4}"],
-   "exclude": ["docs/**", "*.md"], "patterns": {"ledger": "<정규식>", "date": null}, "min_reason_words": 3}
+   "exclude": ["docs/**", "*.md"], "patterns": {"ledger": "<정규식>", "date": null}, "min_reason_words": 3,
+   "label_language": "en", "layout": {"min_lines": 15, "max_run": 20, "doc_first_max": 100, "grow": 15}}
+  label_language: 단계 라벨의 언어(기본 en), null 이면 라벨 예외를 끈다. layout: layout 알림 기준(layout_metrics.DEFAULT_LAYOUT).
   allow_chars: "emoji" 는 이모지를 끄고, 그 밖의 항목은 허용할 글자들이다. public_ids: 줄에서 먼저 지우고 검사하는 공개 식별자 정규식.
   patterns: 이름별로 덮어쓰기, null 이면 끈다.
-끄기: 환경 변수 CONVENTIONS_CHECK=off
+끄기: 환경 변수 CONVENTIONS_CHECK=off. layout 알림은 harness.env 층의 HARNESS_READABLE_CODE=on 일 때만 켜진다(conv_env.py).
 알림 중복: (session_id, 호출한 쪽, 파일, 범주)마다 한 번(이미 알린 범주는 다시 알리지 않고, 새 범주는 알린다). compact 회차도 구분한다(compact_epoch.py, PreCompact 훅이 올린다).
 상태 파일: $TMPDIR/claude-conventions/<session_id>.c<회차>[.a<agent_id>].json
 """
@@ -46,6 +54,7 @@ import compact_epoch  # noqa: E402
 import harness_nonce  # noqa: E402
 from conv_edit import GEN_MARK, MAX_BYTES, SKIP_PARTS, SKIP_SUFFIX, collect, project_root  # noqa: E402
 from conv_lex import FAMILY, comment_body, lex  # noqa: E402
+import layout_metrics  # noqa: E402
 
 NAME = "qwreey-conventions"
 NS = "claude-conventions"  # 상태 경로는 이름 변경 전과 같게 둔다
@@ -76,7 +85,7 @@ SYMBOL_FIX = {"\u2014": "-", "\u2013": "-", "\u2015": "-", "\u2212": "-", "\u00b
 REF_LINE = re.compile(r"^\s*Ref\s*:", re.I)
 WORD = re.compile(r"[A-Za-z\u00c0-\u024f]{2,}|[가-힣]{2,}")
 DEFAULTS = {"allow_ref_tail": True, "public_ids": [], "exclude": [], "patterns": {}, "min_reason_words": 3,
-            "comment_language": None, "allow_chars": []}
+            "comment_language": None, "allow_chars": [], "label_language": "en", "layout": {}}
 
 # 모델용 문서 패턴. 날짜, round, 결정 문구는 위 PATTERNS 와 설정 덮어쓰기를 공유한다.
 DOC_PATTERNS = {
@@ -111,6 +120,11 @@ CODE_LIKE = re.compile(r"::|=|[{};]|^\s*`{3}")
 LANG_MIN_LINES = 10
 LANG_SHARE = 0.9
 LANG_MIN_WORDS = 3
+# 단계 라벨: 이유 접속어가 있으면 라벨이 아니라 이유 문장이라 언어 판정에 남긴다
+LABEL_REASON = re.compile(r"\b(?:because|since|so|otherwise|unless|must|never|in order to|to avoid)\b", re.I)
+LABEL_WORDS = {"latin": re.compile(r"[A-Za-z\u00c0-\u024f]+")}
+LABEL_MAX_WORDS = 10
+LABEL_MAX_CHARS = 72
 
 
 # ---------- 설정, 경로 ----------
@@ -211,6 +225,38 @@ def line_script(counts):
     return best[0] if len(best) == 1 else None
 
 
+def step_labels(rows, lines, cfg):
+    """언어 판정에서 뺄 단계 라벨 줄 번호(0 기반). label_language 가 null 이면 빈 집합이다.
+
+    라벨: 본문 안에 들여쓴 한 줄 주석, 위 줄은 주석만 있는 줄이 아니고 아래 줄은 코드, label_language 글자의 낱말 1-10개,
+    72자 이하, 마침표와 이유 접속어가 없다.
+    """
+    lang = cfg.get("label_language", "en")
+    script = LANG_SCRIPT.get(lang.lower()[:2]) if isinstance(lang, str) else None
+    if not script:
+        return frozenset()
+
+    words_rx = LABEL_WORDS.get(script, SCRIPT_WORDS[script])
+    out = set()
+    for i in range(1, len(rows) - 1):
+        # Shape: one indented comment line heading code
+        r = rows[i]
+        if r["code"] or len(r["c"]) != 1 or lines[i][:1] not in (" ", "\t"):
+            continue
+        if (rows[i - 1]["c"] and not rows[i - 1]["code"]) or not rows[i + 1]["code"]:
+            continue
+
+        # Text: a short phrase in the label language
+        body = comment_body(r["c"][0])
+        if not body or len(body) > LABEL_MAX_CHARS or body.endswith(".") or LABEL_REASON.search(body):
+            continue
+        if any(v for k, v in word_counts(body).items() if k != script):
+            continue
+        if 1 <= len(words_rx.findall(body)) <= LABEL_MAX_WORDS:
+            out.add(i)
+    return frozenset(out)
+
+
 def comment_stats(rows, skip=frozenset()):
     """주석 줄(지시자 제외, skip 줄 제외)의 문자 체계 분포."""
     cnt = Counter()
@@ -231,7 +277,7 @@ def majority(cnt):
     return script if n / total >= LANG_SHARE else None
 
 
-def sibling_majority(path, fam_ext):
+def sibling_majority(path, fam_ext, cfg=None):
     d = os.path.dirname(path)
     cnt = Counter()
     try:
@@ -244,28 +290,30 @@ def sibling_majority(path, fam_ext):
             p = os.path.join(d, n)
             if os.path.getsize(p) > 200_000:
                 continue
-            cnt += comment_stats(lex(Path(p).read_text(encoding="utf-8"), fam))
+            sib = Path(p).read_text(encoding="utf-8")
+            rows = lex(sib, fam)
+            cnt += comment_stats(rows, step_labels(rows, sib.split("\n"), cfg or DEFAULTS))
         except (OSError, UnicodeDecodeError):
             continue
     return majority(cnt)
 
 
-def expected_script(rows, added, cfg, path, ext):
-    """이 파일 주석이 따를 문자 체계. 파일 다수 -> 저장소 comment_language -> 형제 파일 다수 -> None(검사 안 함)."""
-    own = majority(comment_stats(rows, skip=added))
+def expected_script(rows, added, cfg, path, ext, labels=frozenset()):
+    """이 파일 주석이 따를 문자 체계. 파일 다수 -> 저장소 comment_language -> 형제 파일 다수 -> None(검사 안 함). labels 줄은 세지 않는다."""
+    own = majority(comment_stats(rows, skip=set(added) | labels))
     if own:
         return own
     lang = cfg.get("comment_language")
     if isinstance(lang, str) and lang.lower()[:2] in LANG_SCRIPT:
         return LANG_SCRIPT[lang.lower()[:2]]
-    return sibling_majority(path, ext)
+    return sibling_majority(path, ext, cfg)
 
 
-def language_lines(rows, added, expected):
-    """추가된 줄 중 다른 문자 체계가 우세한 줄들의 단어가 LANG_MIN_WORDS 개 이상이면 그 줄 번호(1 기반)."""
+def language_lines(rows, added, expected, labels=frozenset()):
+    """추가된 줄 중 다른 문자 체계가 우세한 줄들의 단어가 LANG_MIN_WORDS 개 이상이면 그 줄 번호(1 기반). labels 줄(단계 라벨)은 뺀다."""
     hits, words = [], 0
     for i in sorted(added):
-        if i >= len(rows) or not rows[i]["c"] or any(DIRECTIVE.match(c) for c in rows[i]["c"]):
+        if i in labels or i >= len(rows) or not rows[i]["c"] or any(DIRECTIVE.match(c) for c in rows[i]["c"]):
             continue
         joined = " ".join(rows[i]["c"])
         if CODE_LIKE.search(joined):
@@ -612,6 +660,8 @@ def main():
     tool = data.get("tool_name") or ""
     if tool not in ("Write", "Edit", "MultiEdit"):
         return 0
+
+    # Which file, and whether it is checked at all
     ti = data.get("tool_input") or {}
     path = ti.get("file_path") or ""
     ext = os.path.splitext(path)[1].lower()
@@ -625,6 +675,8 @@ def main():
     kind = "comment" if fam else ("doc" if doc_class(rel) else None)
     if not kind or excluded(path, rel, cfg):
         return 0
+
+    # Text and the lines this edit added
     try:
         text = Path(path).read_text(encoding="utf-8") if os.path.getsize(path) <= MAX_BYTES else None
     except (OSError, UnicodeDecodeError):
@@ -635,40 +687,59 @@ def main():
     text, added = got
     if kind == "comment" and any(GEN_MARK.search(l) for l in text.split("\n", 6)[:6]):
         return 0
+
     pats, pub = compile_patterns(cfg)
-    rows = lex(text, fam) if kind == "comment" else None
+    layout = kind == "comment" and layout_metrics.enabled(ext)
+    rows = lex(text, fam, keep_code=layout) if kind == "comment" else None
     record_leftovers(data, path, rel, kind, text, added, rows, cfg, pats, pub)
     if not added:
         return 0
+
+    # Added-line checks
     if kind == "comment":
         problems = check_lines(rows, added, pats, pub, cfg)
-        exp = expected_script(rows, added, cfg, path, ext)
+        labels = step_labels(rows, text.split("\n"), cfg)
+        exp = expected_script(rows, added, cfg, path, ext, labels)
         if exp:
-            problems += [(ln, "language mismatch") for ln in language_lines(rows, added, exp)]
+            problems += [(ln, "language mismatch") for ln in language_lines(rows, added, exp, labels)]
     else:
         problems = doc_check(text, added, rel, cfg, pats, pub)
     problems += [(ln, "invisible character") for ln in invisible_lines(text, added)]
-    if not problems:
-        return 0
 
+    # Layout of the functions this edit wrote or grew
     state_path = state_file(data.get("session_id"), data.get("agent_id"))
     try:
         state = json.load(open(state_path))
     except Exception:
         state = {}
     key = os.path.abspath(path)
-    # 알림 단위는 (파일, 범주): 이미 알린 범주는 다시 알리지 않고, 새 범주만 알린다
+    recheck = state.get("doc_recheck", {}).get(key) or []
+    shapes = layout_metrics.edit_findings(text, rows, added, layout_metrics.LANG_BY_EXT[ext], cfg.get("layout"), recheck) if layout else []
+    if not problems and not shapes and not recheck:
+        return 0
+
+    # One notice per (file, category); layout per (file, category, function)
     seen = state.setdefault("files", {}).get(key)
     seen = seen if isinstance(seen, list) else []
     fresh = [(ln, c) for ln, c in problems if c not in seen]
-    if not fresh:
-        return 0
-    state["files"][key] = seen + [c for c in dict.fromkeys(c for _, c in fresh)]
-    try:
-        json.dump(state, open(state_path, "w"))
-    except OSError:
-        pass
+    fresh_shapes = [(cat, name, desc, again) for cat, name, desc, again in shapes if again or "%s|%s" % (cat, name) not in seen]
 
+    # Remember notices and doc rechecks
+    state["files"][key] = seen + [c for c in dict.fromkeys(c for _, c in fresh)] + [
+        "%s|%s" % (cat, name) for cat, name, _, again in fresh_shapes if not again]
+    docs = [name for cat, name, _, again in fresh_shapes if cat == "doc summary" and not again]
+    state.setdefault("doc_recheck", {})[key] = docs
+    if not state["doc_recheck"][key]:
+        del state["doc_recheck"][key]
+    if fresh or fresh_shapes or recheck:
+        try:
+            json.dump(state, open(state_path, "w"))
+        except OSError:
+            pass
+    if not fresh and not fresh_shapes:
+        return 0
+
+    # Comment notice text
     allow = cfg.get("allow_chars") or []
     parts = []
     for cat in CATEGORY_ORDER:
@@ -685,8 +756,17 @@ def main():
             det = ""
         parts.append(f"{line_list(lns)} {cat}" + (f": {det}" if det else ""))
     what, skill = ("comment", "comments") if kind == "comment" else ("agent-doc", "agent-docs")
-    msg = (f'<harness-hook name="{NAME}" level="info"{harness_nonce.attr(data.get("session_id"))}>{rel} may not follow the {what} conventions. {"; ".join(parts)}. '
-           f'If a hit is real, the {NAME}:{skill} skill has the fix; false matches (quoted text, a needed symbol) can stay.</harness-hook>')
+
+    # One tag for both notices (same level)
+    body = []
+    if parts:
+        body.append(f'{rel} may not follow the {what} conventions. {"; ".join(parts)}. '
+                    f'If a hit is real, the {NAME}:{skill} skill has the fix; false matches (quoted text, a needed symbol) can stay.')
+    if fresh_shapes:
+        order = {c: i for i, c in enumerate(layout_metrics.CATEGORIES)}
+        items = [(cat, desc, again) for cat, _, desc, again in sorted(fresh_shapes, key=lambda x: order[x[0]])]
+        body.append(f"{rel} layout (readable-code): " + layout_metrics.notice(items, layout_metrics.LANG_BY_EXT[ext]))
+    msg = f'<harness-hook name="{NAME}" level="info"{harness_nonce.attr(data.get("session_id"))}>{" ".join(body)}</harness-hook>'
     json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": msg}}, sys.stdout, ensure_ascii=False)
     return 0
 

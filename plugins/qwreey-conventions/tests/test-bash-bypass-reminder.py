@@ -131,5 +131,17 @@ class PluginRules(unittest.TestCase):
         self.assertIn("readable-code (qwreey-conventions rule:", run(cmd, {"HARNESS_READABLE_CODE": "on"}))
 
 
+class ReadableCode(unittest.TestCase):
+    def test_layout_line_only_when_on_and_writing_code(self):
+        write = "python3 - <<'EOF'\nopen('src/k.luau','w').write('x')\nEOF"
+        self.assertNotIn("conventions-scan.py", run(write))
+        c = run(write, {"HARNESS_READABLE_CODE": "on"})
+        self.assertIn("conventions-scan.py layout src/k.luau", c)
+        self.assertIn('level="warn"', c)
+        self.assertNotIn("conventions-scan.py", run("python3 -c \"print(open('src/r.luau').read())\"", {"HARNESS_READABLE_CODE": "on"}))
+        self.assertNotIn("conventions-scan.py", run("sed -i 's/a/b/' notes.md", {"HARNESS_READABLE_CODE": "on"}))
+        self.assertIn("conventions-scan.py layout src/s.py", run("sed -i 's/a/b/' src/s.py", {"HARNESS_READABLE_CODE": "on"}))
+
+
 if __name__ == "__main__":
     unittest.main()

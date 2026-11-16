@@ -251,6 +251,45 @@ check("region copy lines are left, lines outside the region are fixed",
       read("plug/region.py") == "# keep -> here\n# @start-replace: lib/canon.py#R\n# c \u2192 d\n# @end-replace\n")
 check("copies are reported with the sync hint", "copies left unfixed: plug/copy.py, plug/region.py" in out and "sync-copies.py --apply" in out)
 
+# ---- 단계 라벨: 한국어 주석 파일의 영어 라벨은 language 가 아니다 ----
+ko = "".join(f"-- 이 값은 플레이어가 들어올 때만 갱신한다 {i}\n" for i in range(12))
+put("lbl/a.luau", ko + "local function f()\n\tlocal parent = 1\n\t-- Detach previous parent first\n\tparent = nil\nend\n")
+put("lbl/b.luau", ko + "local function f()\n\tlocal parent = 1\n\t-- Clamp the index so reads stay in range\n\tparent = nil\nend\n")
+git("add", "-A")
+rc, out, _ = cli("scan", os.path.join(REPO, "lbl", "a.luau"))
+check("scan: English step label in a Korean file is not a language finding", rc == 0 and "language mismatch" not in out)
+rc, out, _ = cli("scan", os.path.join(REPO, "lbl", "b.luau"))
+check("scan: an English reason sentence still is", rc == 1 and "lbl/b.luau:15: language mismatch" in out)
+
+# ---- layout 하위 명령 ----
+flat = "--!strict\nlocal M = {}\n\n-- Hidden.\nfunction M.flat(x)\n" + "".join(f"\tlocal v{i} = x + {i}\n" for i in range(20)) + "end\n"
+pair = ("--- Reads a pair.\nfunction M.pair(x)\n\tlocal ok, err = pcall(x)\n\tlocal a, b = 1, 2\n\n"
+        "\t-- Return the result\n\treturn ok, err, a, b\nend\n\nfunction M.__tostring()\n\treturn \"M\"\nend\n\nreturn M\n")
+put("lay/m.luau", flat + "\n" + pair)
+put("lay/ok.luau", "--- Adds one.\nlocal function inc(x)\n\treturn x + 1\nend\n\nreturn inc\n")
+put("lay/notes.md", "# not code\n")
+git("add", "-A")
+before = digest()
+rc, out, _ = cli("layout", os.path.join(REPO, "lay"))
+check("layout: per-function line with numbers and categories",
+      "lay/m.luau:5-26: M.flat (public): 20 lines, 0 blank, 1 paragraphs, longest run 20" in out and "[layout, doc summary]" in out)
+check("layout: multi-return is not a multi-declaration, a, b = 1, 2 is",
+      "M.pair (public): 4 lines, 1 blank, 2 paragraphs, longest run 2, labels 1, interleaved 0, multi-decl 1" in out)
+check("layout: metamethod has no doc summary", "M.__tostring" in out and "__tostring (public): 1 lines, 0 blank, 1 paragraphs, longest run 1, labels 0, interleaved 0, multi-decl 0, one-letter 0, doc none\n" in out)
+check("layout: summary and exit code 1 with findings", rc == 1 and "functions with 15+ lines: 1, read as one block: 1" in out
+      and "public functions with a doc comment callers can see: 1/2" in out and "notes.md" not in out)
+check("layout: writes nothing", digest() == before)
+rc, out, _ = cli("layout", os.path.join(REPO, "lay", "ok.luau"))
+check("layout: clean file exits 0", rc == 0 and "findings: none" in out)
+rc, out, _ = cli("layout", os.path.join(REPO, "lay"), "--json")
+data = json.loads(out)
+check("layout: --json has functions and summary", rc == 1 and data["summary"]["functions"] == 4
+      and any(f["name"] == "M.flat" and "layout" in f["findings"] for f in data["functions"]))
+put(".claude/conventions.json", '{"layout": {"min_lines": 30}}')
+rc, out, _ = cli("layout", os.path.join(REPO, "lay", "m.luau"), "--summary")
+check("layout: conventions.json layout limits apply", "read as one block: 0" in out and "M.flat" not in out)
+os.remove(os.path.join(REPO, ".claude", "conventions.json"))
+
 for name, ok in res:
     print(("PASS " if ok else "FAIL ") + name)
 fails = [r for r in res if not r[1]]

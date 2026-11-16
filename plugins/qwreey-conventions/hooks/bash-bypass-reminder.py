@@ -10,6 +10,9 @@ level: 쓰기 신호(sed -i, 코드 파일로의 리다이렉트, 쓰기 신호�
   - Edit|Write 매처에 걸린 PostToolUse 훅(포맷터, 검사기)이 돌지 않는다.
   - 스킬은 description 이 맞을 때만 로드되므로, 스크립트로 일괄 수정할 때는 규약을 놓치기 쉽다.
 
+readable-code(HARNESS_READABLE_CODE=on)가 켜져 있고 쓰기 신호가 있는 명령이 코드 파일 경로를 담으면, 그 파일을
+`scripts/conventions-scan.py layout <file>` 로 확인하라는 한 줄을 더한다(conventions-check 의 layout 알림은 Edit|Write 만 본다). 파일마다 한 번.
+
 종류마다 세션당 한 번만 알린다. rules 파일 안내는 파일마다 세션당 한 번이다(프로젝트·사용자 rules 와 설치된 플러그인들의 rules/).
 상태 파일 위치: $TMPDIR/claude-bypass-reminder/<session_id>.c<compact 회차>[.a<agent_id>].json (compact_epoch.py. compact 뒤 다시 알린다)
 """
@@ -23,12 +26,15 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
+import conv_env  # noqa: E402
 import harness_nonce  # noqa: E402
+import layout_metrics  # noqa: E402
 import rules_inject  # noqa: E402
 
 # 플러그인이 싣는 rules(이 플러그인과 web-security 등 설치된 모든 플러그인의 `rules/`): 공식 .claude/rules 가 아니라 rules_inject 훅이
 # 파일을 열 때 주입한다. 셸로 파일을 바꾸면 주입도 비껴가므로 이름을 짚는다
 PLUGIN_RULES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rules")
+LAYOUT_SCAN = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", "conventions-scan.py")
 
 
 def _read_json(path):
@@ -204,6 +210,15 @@ def main():
             levels.append("warn" if risky else "info")
             rel = [describe(h, plugin_dirs, proj) for h in hit]
             notes.append("Rules that apply to files this command touches: " + ", ".join(rel) + ". If this command writes these files, read the rules first if you have not; read-only commands need nothing.")
+
+        # Readable-code check for code files this command writes
+        code = sorted(ap for ap in abs_paths if os.path.splitext(ap)[1].lower() in layout_metrics.LANG_BY_EXT and "layout:" + ap not in seen)
+        if risky and code and conv_env.is_on("HARNESS_READABLE_CODE"):
+            seen.update("layout:" + ap for ap in code)
+            levels.append("warn")
+            shown = " ".join(os.path.relpath(ap, proj) if ap.startswith(proj.rstrip("/") + "/") else ap for ap in code[:4])
+            notes.append("The readable-code layout notice does not see Bash edits: if this command changes functions, run "
+                         f"`python3 -I {LAYOUT_SCAN} layout {shown}` afterwards and fix what it flags in the functions you changed.")
 
     if not notes:
         return 0
