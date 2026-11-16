@@ -1,6 +1,6 @@
 # 48. code-reuse 문구 토론 1회차, P 입장(짧고 정확하게)
 
-> Snapshot 2026-11-12. claude-doctor 5ce4031 의 `.claude/scopes/plugins/qwreey-conventions/archive/research/drafts/code-quality-conventions/`(README, rules/code-reuse.md, skills/code-reuse/SKILL.md, hook-design.md, fp-strategy.md)와 audit/47 을 읽고 쓴 1회차 의견. 읽기 전용, Q 입장 문서는 읽지 않았다. 사용자 결정(이름, 사본 줄 옮김, 패키지 경계 사본 안내, 타입-목록은 어긋날 때만, 켜는 관문, `@copy-of: <path>[#NAME]` 통일)은 다시 열지 않는다. 토큰은 `0.4×ASCII + 1.6×한글 + 1.5×그 밖` 어림, rule 은 frontmatter 를 뺀 본문만 센다(`rules_inject.py` 가 본문만 싣는다).
+> Snapshot 2026-11-12. claude-doctor 5ce4031 의 `.claude/scopes/plugins/qwreey-conventions/archive/research/drafts/code-quality-conventions/`(README, rules/code-reuse.md, skills/code-reuse/SKILL.md, hook-design.md, fp-strategy.md)와 coderag .claude/audit/47-coderag-code-quality 을 읽고 쓴 1회차 의견. 읽기 전용, Q 입장 문서는 읽지 않았다. 사용자 결정(이름, 사본 줄 옮김, 패키지 경계 사본 안내, 타입-목록은 어긋날 때만, 켜는 관문, `@copy-of: <path>[#NAME]` 통일)은 다시 열지 않는다. 토큰은 `0.4×ASCII + 1.6×한글 + 1.5×그 밖` 어림, rule 은 frontmatter 를 뺀 본문만 센다(`rules_inject.py` 가 본문만 싣는다).
 
 ## 결론
 - rule 본문을 **약 1,130 → 약 620 토큰(30줄 17항목 → 17줄 8항목)** 으로 줄이자. 늘 실리는 rule 에는 "새로 쓸 때 할 일" 과 "하지 말 것" 만 두고, 판별 표·라이브러리 기준·단순화 요령·생태계 팩 규칙은 스킬로 옮긴다.

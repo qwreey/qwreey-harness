@@ -6,7 +6,7 @@ status: landed in plugins/qwreey-conventions/rules/code-reuse.md
 ---
 # 코드 품질 규약 초안
 
-`plugins/qwreey-conventions` 에 설치했다(rule `code-reuse`, 스킬 `code-reuse`, 훅 `reuse-check`, 문구 토론은 `.claude/scopes/plugins/qwreey-conventions/audit/48-code-reuse-debate/`). 설치된 모양과 다른 부분(rule 본문, 알림 문구, H2·H6 제외, 훅 파일 배치)은 설치본이 맞고, 이 폴더는 근거와 이력이다. 고치지 않는다. 근거는 `.claude/audit/47-coderag-code-quality/README.md`(coderag 의 하드코딩·중복·재발명·단순화, 기계 검사 7종의 정밀도)와 이 폴더의 `probe/`(5개 저장소에서 다시 잰 H1).
+`plugins/qwreey-conventions` 에 설치했다(rule `code-reuse`, 스킬 `code-reuse`, 훅 `reuse-check`, 문구 토론은 `.claude/scopes/plugins/qwreey-conventions/audit/48-code-reuse-debate/`). 설치된 모양과 다른 부분(rule 본문, 알림 문구, H2·H6 제외, 훅 파일 배치)은 설치본이 맞고, 이 폴더는 근거와 이력이다. 고치지 않는다. 근거는 coderag `.claude/audit/47-coderag-code-quality/README.md`(coderag 의 하드코딩·중복·재발명·단순화, 기계 검사 7종의 정밀도)와 이 폴더의 `probe/`(5개 저장소에서 다시 잰 H1).
 
 사용자: "const ... 로써 하드코딩을 하는 부분이 꽤나 있는데 … 이런 하드코딩도 사실 좋은건 아니라서, 컨벤션 상 훅이나 룰로 무언가 도움이 되는게 생겨야하나 싶은 부분", "바퀴의 재발명, 단순화 실패, 중복성, 하드코딩 이런것에 대한 컨벤션도 생각해볼 부분인것 같아. 이런걸 잡는다 하면 거짓 긍정 같은 상황도 어떻게 줄일 수 있냐 전략이 필요하기도 하고", "규약에 대한 초안을 짜둬도 좋고".
 
@@ -30,11 +30,11 @@ status: landed in plugins/qwreey-conventions/rules/code-reuse.md
   +- Copies, of files or of values, and how they are marked: see code-reuse.
   ```
   문자열 분기 8갈래는 code-structure 에 두고 code-reuse 가 가리키기만 한다. 긴 함수는 지금 어느 규칙에도 없어 code-reuse `## Simplification` 에 한 줄 둔다.
-- **훅은 H1(문자열 묶음 중복) 하나와 사본 검사 둘.** audit/47 에서 쓸 만한 정밀도는 H1(약 90%)과 H2(약 75%)뿐이었고, 함수 길이·문자열 분기·재발명은 규칙과 검토의 몫이다. 사본 검사(C1 표시 대조, C2 정본 편집 시 사본 목록)는 사람이 단 표시만 보므로 처음부터 켠다.
+- **훅은 H1(문자열 묶음 중복) 하나와 사본 검사 둘.** coderag .claude/audit/47-coderag-code-quality 에서 쓸 만한 정밀도는 H1(약 90%)과 H2(약 75%)뿐이었고, 함수 길이·문자열 분기·재발명은 규칙과 검토의 몫이다. 사본 검사(C1 표시 대조, C2 정본 편집 시 사본 목록)는 사람이 단 표시만 보므로 처음부터 켠다.
 - **그림자 먼저.** 5개 저장소 묶음 30개에 이 초안이 표지를 붙여 보니 정밀도 77%(경계를 오탐으로 치면 70%)로 관문 80% 근처다. 남는 오탐의 대부분은 바깥 API 의 고정 어휘(Claude Code 도구 이름, CDP 이벤트, TweenInfo 필드)다. 걸러내기 전과 비교하면 묶음 수가 74개에서 32개로 줄었다(`fp-strategy.md` §3).
-- **라이브러리 이유는 표시가 아닌 한 줄 문장 `why not <library>: <reason>`.** H7 은 기계로 잡을 수 없으므로(audit/47: 후보 10개 중 바꿀 것 0) 훅 대상이 아니다. 접두를 고정해 둬서 나중에 존재 검사를 붙일 수 있다.
+- **라이브러리 이유는 표시가 아닌 한 줄 문장 `why not <library>: <reason>`.** H7 은 기계로 잡을 수 없으므로(coderag .claude/audit/47-coderag-code-quality: 후보 10개 중 바꿀 것 0) 훅 대상이 아니다. 접두를 고정해 둬서 나중에 존재 검사를 붙일 수 있다.
 - **status 는 `active; draft, not installed`.** 기록 규약의 상태 어휘에 `draft` 가 없어서, 같은 폴더의 다른 초안(`drafts/agents/`)처럼 썼다.
-- **정책 값 판별 문장은 audit/47 §2.2 의 것을 그대로**(두 프로젝트가 다른 값을 원할 수 있고, 대상 저장소 내용에 대한 판단인가). 생태계 이름이 든 목록은 팩으로, `DEFAULT_` 접두는 덮어쓰기가 있을 때만(coderag 의 `DEFAULT_` const 5개가 모두 실제로 덮어쓰기가 있다).
+- **정책 값 판별 문장은 coderag .claude/audit/47-coderag-code-quality §2.2 의 것을 그대로**(두 프로젝트가 다른 값을 원할 수 있고, 대상 저장소 내용에 대한 판단인가). 생태계 이름이 든 목록은 팩으로, `DEFAULT_` 접두는 덮어쓰기가 있을 때만(coderag 의 `DEFAULT_` const 5개가 모두 실제로 덮어쓰기가 있다).
 
 ## 시험 계획
 
@@ -76,4 +76,4 @@ status: landed in plugins/qwreey-conventions/rules/code-reuse.md
 ## 이 초안 밖에 남긴 것
 
 - `.claude/research/README.md` 색인에 이 폴더 줄을 더하는 일(이 폴더 밖이라 건드리지 않았다).
-- coderag 쪽 고칠 순서는 audit/47 §3 에 있고 이 초안과 별개다. 규약과 coderag 는 잇지 않는다(PLAN 의 사용자 결정)는 전제라 훅은 coderag 를 부르지 않는다.
+- coderag 쪽 고칠 순서는 coderag .claude/audit/47-coderag-code-quality §3 에 있고 이 초안과 별개다. 규약과 coderag 는 잇지 않는다(PLAN 의 사용자 결정)는 전제라 훅은 coderag 를 부르지 않는다.

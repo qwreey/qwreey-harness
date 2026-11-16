@@ -6,7 +6,7 @@ status: landed in plugins/qwreey-conventions/rules/code-reuse.md
 ---
 # 거짓 긍정 전략
 
-근거: `.claude/audit/47-coderag-code-quality/README.md` §4.2·§4.3(coderag 표본), 그리고 이 초안의 `probe/sets_probe.py` 를 coderag 329c07a, claude-doctor 3f30892, table-sim d39499c, quad 0c2eef35, VideoSync b963897 에 돌린 결과(`raw/<저장소>[.raw|.mirror].txt`, gitignore. 다시 만들기: `python3 -I probe/sets_probe.py /code/Projects/<저장소> [--raw|--mirror] > raw/<저장소>.txt`).
+근거: coderag `.claude/audit/47-coderag-code-quality/README.md` §4.2·§4.3(coderag 표본), 그리고 이 초안의 `probe/sets_probe.py` 를 coderag 329c07a, claude-doctor 3f30892, table-sim d39499c, quad 0c2eef35, VideoSync b963897 에 돌린 결과(`raw/<저장소>[.raw|.mirror].txt`, gitignore. 다시 만들기: `python3 -I probe/sets_probe.py /code/Projects/<저장소> [--raw|--mirror] > raw/<저장소>.txt`).
 
 ## 1. 원칙
 - **새로 생긴 것만 알린다.** 추가한 줄의 새 묶음이 기존 정의와 겹칠 때만. 기존 중복은 Stop 에서 사용자에게 수만. 저장소 전체 훑기 결과(아래 표의 수)는 알림 수의 상한이지 실제 알림 수가 아니다.
@@ -19,7 +19,7 @@ status: landed in plugins/qwreey-conventions/rules/code-reuse.md
 
 | 검사 | 신호 | 기준 | 알려진 거짓 긍정 부류(어디서) | 줄이는 법 |
 |---|---|---|---|---|
-| H1 문자열 묶음 중복 | 리터럴 묶음의 원소 겹침 | 공유 3개 이상, 또는 2개 + Jaccard 0.5 | 구두점·연산자 묶음 `['-', '.', ':']`(coderag 2묶음) | 원소마다 글자 1개 이상·길이 2 이상. 대가: audit/47 이 맞다고 본 비교 연산자 묶음도 빠진다 |
+| H1 문자열 묶음 중복 | 리터럴 묶음의 원소 겹침 | 공유 3개 이상, 또는 2개 + Jaccard 0.5 | 구두점·연산자 묶음 `['-', '.', ':']`(coderag 2묶음) | 원소마다 글자 1개 이상·길이 2 이상. 대가: coderag .claude/audit/47-coderag-code-quality 이 맞다고 본 비교 연산자 묶음도 빠진다 |
 | | | | argv 목록 `["git", "rev-parse", ...]`(claude-doctor 3쌍) | `-` 로 시작하는 원소가 있고 8개 이하면 제외. 원소가 9개 이상인 argv(`scan_settings.py` 의 git status) 는 남는다 |
 | | | | 인라인 검사끼리 `if tool in ("Edit", "Write", ...)`(claude-doctor) | 한쪽은 정의여야 함 |
 | | | | 같은 파일의 정의와 그 부분집합 인라인(`split-plan.py` STOP, `conventions-check.py` DOC_ENTRY) | 같은 파일은 둘 다 정의, 50줄 이상 |
@@ -27,19 +27,19 @@ status: landed in plugins/qwreey-conventions/rules/code-reuse.md
 | | | | 흔한 낱말 `and`·`of`·`the`, `Bottom`·`Left`·`Right` | 처음 판에는 없음. 그림자에서 많으면 저장소 전체에서 여러 묶음에 나오는 원소(문서 빈도)를 가중치에서 낮춘다 |
 | | | | Luau 타입 합집합 ↔ 런타임 목록(table-sim 13쌍, 모두 원소 일치) | Luau 는 알리지 않음(끌어낼 수단이 없다). TS 는 N6 로 "끌어내라" |
 | | | | 컴포넌트마다 다른 변형 타입(quad `Filled`·`Tonal`, 19쌍이 원소 다름) | 타입끼리는 원소가 같을 때만 |
-| | | | 블록 주석·doc 주석 안의 목록(audit/47 `version.rs` 머리 2쌍, quad `FAB.luau` 머리) | 렉서로 주석 제거(probe 는 줄 단위라 못 거름) |
+| | | | 블록 주석·doc 주석 안의 목록(coderag .claude/audit/47-coderag-code-quality `version.rs` 머리 2쌍, quad `FAB.luau` 머리) | 렉서로 주석 제거(probe 는 줄 단위라 못 거름) |
 | | | | 시험·스토리·갤러리·벤더 사본(VideoSync `refs/` 1,300쌍, quad `gallery/` 195쌍) | 경로 제외 |
 | | | | 이미 표시한 사본(claude-doctor `memory_signals.py` 두 벌) | `Canonical copy:`·`@copy-of` 짝 제외 |
 | | | | 코드 옮기기: B 에 붙인 뒤 A 에서 지움 | 막지 않음. 그림자에서 "상대가 같은 턴에 사라짐" 을 세어 크면 Stop 직전 재확인 |
 | C1 `@copy-of` 대조 | 표시, 정본 경로·이름, 두 묶음 | 풀리지 않음, 또는 원소가 다름 | 정본이 다른 저장소인데 그 기계에 없음 | 못 풀면 알리지 않고 기록만 |
 | | | | 사본이 정본의 의도된 부분집합 | 표시 문법에 `#NAME` 외 선택지를 두지 않는다. 부분집합이면 사본이 아니라 `@dup-ok` |
 | C2 정본 편집 | 색인의 역참조 | 바꾼 정의를 가리키는 사본 1개 이상 | 없음에 가깝다(사람이 단 표시만 본다) | - |
-| H2 마법 수 중복 | 5자리 이상 정수, 6자리 이상 16진, `\u{..}` | 2개 파일 이상 | 우연히 같은 수 `2000`(audit/47, 4자리 기준일 때) | 5자리 이상으로, 시험 제외. 그림자만 |
+| H2 마법 수 중복 | 5자리 이상 정수, 6자리 이상 16진, `\u{..}` | 2개 파일 이상 | 우연히 같은 수 `2000`(coderag .claude/audit/47-coderag-code-quality, 4자리 기준일 때) | 5자리 이상으로, 시험 제외. 그림자만 |
 | H3 비슷한 함수 | 식별자 정규화 6-토큰 shingle Jaccard | 0.4 이상 | 0.22 에서 약 70% 가 오탐, 짝 열거형 변환 `kind_str`·`as_str` | 훅 아님. 요청 시 감사 스크립트로, 0.4 이상만 |
 | H4 정책 냄새 const | `const NAME: &[&str]` 3개 이상 | - | 21개 중 15-17개가 형식·명세 불변식 | 훅 아님. `DEFAULT_` 규약과 H1 이 같은 것을 더 정확히 잡는다. 이름 필터(`DIRS\|EXCLUDE\|SKIP\|EXTS\|IGNORE`)를 그림자로만 재 볼 수 있다 |
 | H5 문자열 분기 > 8 | `match` 문자열 갈래 수 | 8 초과 | 필드마다 다른 대입(`Meta::from_pairs`), 정규식 탐지의 들여쓰기 오산 | 훅 아님. code-structure 규칙 문장 |
 | H6 긴 함수 | 비시험 함수 줄 수 | 이번 편집으로 100줄을 넘음 | 렉서·상태 기계·AST 방문(`comments::extract`, `extract_file`), 하위 명령 분기 | 넘는 순간만, 그림자만. 켜면 structure-reminder 에 |
-| H7 바퀴 재발명 | 이름·모양(`parse_*`, `walk`, `glob`, `fnv`) | - | 후보 약 10개, 크레이트로 바꿀 것 0(audit/47) | 훅 금지. 규칙(`why not <library>:` 한 줄)과 검토. 나중에 기계로 할 수 있는 것은 "그 줄이 있나" 존재 검사까지 |
+| H7 바퀴 재발명 | 이름·모양(`parse_*`, `walk`, `glob`, `fnv`) | - | 후보 약 10개, 크레이트로 바꿀 것 0(coderag .claude/audit/47-coderag-code-quality) | 훅 금지. 규칙(`why not <library>:` 한 줄)과 검토. 나중에 기계로 할 수 있는 것은 "그 줄이 있나" 존재 검사까지 |
 
 ## 3. 첫 표지 집합(묶음 단위)
 
@@ -81,4 +81,4 @@ status: landed in plugins/qwreey-conventions/rules/code-reuse.md
 
 합계(제외 2개 빼고 30개): TP 23(경계 2 포함), OK 4, FP 3. 정밀도 77%, 경계를 FP 로 치면 70%. 언어별: Rust 3/4, Python 8/12, Luau 2/2(table-sim)·7/8(quad, Python 스크립트 포함), TS 3/4. 걸러내기 전(`--raw`) 묶음 수는 coderag 7, claude-doctor 22, table-sim 10, quad 28, VideoSync 7 이고 걸러낸 뒤 4, 13, 2, 9, 4.
 
-audit/47 은 coderag 7861ce8 에서 쌍 단위 약 90% 를 쟀다. 그 뒤 coderag 가 C6 의 상태·근거 어휘를 mdfm const 참조로 바꿔(`meta.rs:16-17`) 그 쌍이 사라졌고, 묶음 단위로 세면 이번 값이 된다. 어느 쪽이든 80% 관문 근처라 그림자 먼저가 맞다. TP 가 아닌 7개 중 4개가 바깥 API 어휘다.
+coderag .claude/audit/47-coderag-code-quality 은 coderag 7861ce8 에서 쌍 단위 약 90% 를 쟀다. 그 뒤 coderag 가 C6 의 상태·근거 어휘를 mdfm const 참조로 바꿔(`meta.rs:16-17`) 그 쌍이 사라졌고, 묶음 단위로 세면 이번 값이 된다. 어느 쪽이든 80% 관문 근처라 그림자 먼저가 맞다. TP 가 아닌 7개 중 4개가 바깥 API 어휘다.

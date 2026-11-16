@@ -5,7 +5,7 @@
 
 ## 0. 이번에 새로 잰 것 (/tmp/q38 사본, coderag 0.1.0 debug, CODERAG_CACHE=/tmp)
 - **조용한 오분류**: `status: superseded by plan/a.md` 는 lint 를 통과한다(lint 가 첫 낱말만 본다, lib.rs:931). 그런데 색인에는 `active` 로 들어간다(core docs/mod.rs:164 는 값 전체를 정확히 비교한다). 그래서 기본 검색에 계속 나오고, static-gen 표에는 `base · active` 로 찍힌다. lint 를 통과한 문서가 엉뚱하게 처리되는 셈이다. 사용자가 말한 `superseded by X` 꼴을 지금 쓰면 바로 이렇게 된다.
-- `landed in …`, `rejected by …; note` 는 lint 오류이고 색인에는 `active` 로 들어간다(.claude/audit/37 과 같은 결과).
+- `landed in …`, `rejected by …; note` 는 lint 오류이고 색인에는 `active` 로 들어간다(coderag .claude/audit/37-coderag-records 과 같은 결과).
 - `.gitignore` 에 든 `.claude/sessions/` 도 색인된다. frontmatter 가 없는 기록은 `[unknown]` 이 된다(폴더로 kind 를 추론하지 않는다).
 - `static-gen --dir .claude/base` 는 `.claude/.claude/base/README.md` 를 만든다. `--dir` 이 모듈 루트 기준이라서다. `--dry-run` 은 "바뀔 예정"이어도 rc=0 이라 검사기로 쓸 수 없다.
 - claude-doctor 의 기록은 이미 반쯤 coderag 꼴이다. `.claude/sessions/*.md` 는 import 때 `title/description/keywords/kind: session/status: active/last_verified` frontmatter 를 받는다. frontmatter 가 있는 것은 drafts 51개 중 16개, audit 75개 중 4개다. decisions·handoff 에는 없다.

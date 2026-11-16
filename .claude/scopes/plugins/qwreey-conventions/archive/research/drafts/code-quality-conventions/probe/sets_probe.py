@@ -2,7 +2,7 @@
 """H1(문자열 묶음 중복) 초안 검사를 저장소 전체에 돌려 묶음(cluster)과 걸린 시간을 보인다. 읽기만 한다.
 
 실행: python3 -I sets_probe.py <저장소> [--raw] [--mirror]
-  --raw     걸러내기(낱말 모양, argv, 정의 쪽, 경로) 없이 audit/47 litsets.py 와 같은 기준으로 센다
+  --raw     걸러내기(낱말 모양, argv, 정의 쪽, 경로) 없이 coderag .claude/audit/47-coderag-code-quality litsets.py 와 같은 기준으로 센다
   --mirror  타입 합집합과 런타임 목록이 짝인 경우(SAME/DIFF)만 보인다
 훅 초안과 다른 점: 주석 제거가 줄 단위 간이판이라 블록 주석(--[[ ]], /* */) 안의 묶음을 못 거른다. 훅은 conventions-check 의 렉서를 쓴다.
 """

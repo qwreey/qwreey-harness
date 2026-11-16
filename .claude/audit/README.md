@@ -57,3 +57,5 @@ Audits about one plugin, pack or `home/` part live in that part's scope, `../sco
 - [scopes/plugins/qwreey-workspace/audit/](../scopes/plugins/qwreey-workspace/audit/) - 30 (workspace skill gate probe)
 - [scopes/plugins/qwreey-operator/audit/](../scopes/plugins/qwreey-operator/audit/) - 50-main-delegate/ (main talks, big implementation goes to a background subagent)
 - [scopes/home/.claude/audit/](../scopes/home/.claude/audit/) - 17 (hook message format)
+
+Audits about coderag (37, 42-47, 49, 53) moved to coderag `.claude/audit/` with the same numbers; cite them there. The copies here stay until the user removes them (HUMAN_TODO).
