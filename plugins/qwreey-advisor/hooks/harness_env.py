@@ -57,6 +57,8 @@ DEFAULTS = {
     "HARNESS_DELEGATE_KEEP_ENV": "",
     # 저장소를 넘는 위임 상태(동시 실행 슬롯) 폴더. 비면 플랫폼 상태 폴더(Linux ~/.local/state/qwreey-delegate).
     "HARNESS_DELEGATE_STATE": "",
+    # gc 가 지우는 위임 결과(<상태 폴더>/runs/)의 나이(일). 모든 저장소의 결과를 지우므로 사용자만 정한다.
+    "HARNESS_DELEGATE_RUNS_DAYS": "14",
     # 에이전트마다 동시에 도는 위임 수, 모든 저장소 합계. 토큰 한도가 사용자 구독 단위라서.
     "HARNESS_DELEGATE_MAX_CONCURRENT": "1",
     # 위임 기본 모델(run --model 이 이긴다). 저장소 층이 정해도 격리와 무관하다.
@@ -111,7 +113,7 @@ USER_ONLY = frozenset({
     "SESSION_LOG_HOME", "SESSION_LOG_CLAUDE",
     "HARNESS_DELEGATE_AGY_BIN", "HARNESS_DELEGATE_CODEX_BIN", "HARNESS_DELEGATE_AGY_HOME", "HARNESS_DELEGATE_CODEX_HOME",
     "HARNESS_DELEGATE_AGY_WORKTREE", "HARNESS_DELEGATE_AGY_UNISOLATED", "HARNESS_DELEGATE_CODEX_SANDBOX", "HARNESS_DELEGATE_KEEP_ENV", "HARNESS_DELEGATE_STATE",
-    "HARNESS_DELEGATE_MAX_CONCURRENT",
+    "HARNESS_DELEGATE_MAX_CONCURRENT", "HARNESS_DELEGATE_RUNS_DAYS",
 })
 
 

@@ -26,7 +26,7 @@ USER_ONLY_YES = {
     "HARNESS_DELEGATE_REGISTRY", "HARNESS_TOOL_INSTALLS", "HARNESS_HEAVY_WRAP", "HARNESS_DELEGATE_AGY_BIN",
     "HARNESS_DELEGATE_CODEX_BIN", "HARNESS_DELEGATE_AGY_HOME", "HARNESS_DELEGATE_CODEX_HOME",
     "HARNESS_DELEGATE_AGY_WORKTREE", "HARNESS_DELEGATE_AGY_UNISOLATED", "HARNESS_DELEGATE_CODEX_SANDBOX", "HARNESS_DELEGATE_KEEP_ENV",
-    "HARNESS_DELEGATE_STATE", "HARNESS_DELEGATE_MAX_CONCURRENT",
+    "HARNESS_DELEGATE_STATE", "HARNESS_DELEGATE_MAX_CONCURRENT", "HARNESS_DELEGATE_RUNS_DAYS",
 }
 USER_ONLY_NO = {"HARNESS_DELEGATE_AGY_MODEL", "HARNESS_DELEGATE_CODEX_MODEL", "HARNESS_DELEGATE_SECRET_GLOBS"}
 
@@ -116,7 +116,7 @@ class Layers(Env):
         self.repo_layer("HARNESS_DELEGATE_AGY_BIN=/evil/agy\nHARNESS_DELEGATE_AGY_MODEL=repo-model\n")
         p = self.f.drive("run", "agy", "t1", self.f.prompt, "--mode", "empty")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertIn("model: repo-model", (self.f.rec("agy", "t1") / "meta.txt").read_text())
+        self.assertIn("model: repo-model", (self.f.out("t1") / "meta.txt").read_text())
 
 
 class InstalledModule(Env):

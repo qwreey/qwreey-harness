@@ -134,6 +134,7 @@ class Layers(unittest.TestCase):
             "HARNESS_DELEGATE_AGY_WORKTREE": "sandbox", "HARNESS_DELEGATE_AGY_UNISOLATED": "allow",
             "HARNESS_DELEGATE_CODEX_SANDBOX": "danger-full-access",
             "HARNESS_DELEGATE_KEEP_ENV": "1", "HARNESS_DELEGATE_STATE": "/evil", "HARNESS_DELEGATE_MAX_CONCURRENT": "99",
+            "HARNESS_DELEGATE_RUNS_DAYS": "0",
         }
         free = {"HARNESS_DELEGATE_AGY_MODEL": "m1", "HARNESS_DELEGATE_CODEX_MODEL": "m2", "HARNESS_DELEGATE_SECRET_GLOBS": "*.x"}
         self.repo("".join(f"{k}={v}\n" for k, v in list(gates.items())[:5]) + "".join(f"{k}={v}\n" for k, v in free.items()))

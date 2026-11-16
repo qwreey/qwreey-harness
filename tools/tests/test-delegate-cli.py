@@ -9,8 +9,10 @@ import json
 import os
 import signal
 import stat
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import unittest
 from pathlib import Path
@@ -100,7 +102,7 @@ class Arguments(Base):
             self.skipTest("chown 이 필요하다")
         f = self.f
         base = f.base("agy")
-        base.mkdir()
+        base.mkdir(parents=True)
         os.chown(base, f.uid, f.uid)
         p = self.fails(4, "run", "agy", "x", f.prompt)
         self.assertIn("must be a folder owned by uid 0", p.stderr)
@@ -143,7 +145,7 @@ class LifecycleChecks:
 
     def check_agy_worktree(self):
         f = self.f
-        p = self.ok("run", "agy", "t1", f.prompt, env=f.env(SOME_TOKEN="secret"))
+        p = self.ok("run", "agy", "t1", f.prompt, "--keep", env=f.env(SOME_TOKEN="secret"))
         base = f.base("agy")
         wt, home, rec = base / "t1", base / ".homes" / "t1", f.rec("agy", "t1")
         self.assertIn("main repo: unchanged", p.stdout)
@@ -207,8 +209,7 @@ class LifecycleChecks:
         self.assertIn("not collected yet", self.fails(2, "remove", "agy", "t1").stderr)
 
         p = self.ok("collect", "agy", "t1")
-        (out,) = list((base / "runs").iterdir())
-        self.assertTrue(out.name.endswith("-t1"))
+        out = f.out("t1")
         self.assertEqual((out / "report.md").read_text(), "agy worktree report\n")
         for name in ("prompt.md", "meta.txt", "guard.txt", "stdout.txt", "exit", "state.json"):
             self.assertTrue((out / name).is_file(), name)
@@ -226,7 +227,8 @@ class LifecycleChecks:
 
         listing = self.ok("list").stdout
         self.assertRegex(listing, r"\n  t1 +collected ")
-        self.assertIn("runs/: 1", listing)
+        self.assertIn(f"== {f.runs} (", listing)
+        self.assertIn(f"  {out.name}", listing)
 
         self.ok("remove", "agy", "t1")
         self.assertFalse(wt.exists())
@@ -239,28 +241,22 @@ class LifecycleChecks:
     def check_planted_links_worktree(self):
         f = self.f
         (f.ctl / "plant").write_text("1")
-        p = self.ok("run", "agy", "t1", f.prompt)
-        self.assertEqual((f.rec("agy", "t1") / "report.md").read_text(), "agy stdout answer",
+        self.ok("run", "agy", "t1", f.prompt)  # 자동 수집과 정리까지
+        out = f.out("t1")
+        self.assertEqual((out / "report.md").read_text(), "agy stdout answer",
                          "링크인 REPORT.md 는 읽지 않고 JSON 의 response 를 쓴다")
-        self.ok("collect", "agy", "t1")
-        self.assert_untouched()
-        (out,) = list((f.base("agy") / "runs").iterdir())
         self.assertFalse((out / "agy").exists(), "링크인 brain 을 따라가지 않는다")
-        self.ok("remove", "agy", "t1")
+        self.assertFalse((f.base("agy") / "t1").exists())
         self.assert_untouched()
 
     def check_planted_links_home(self):
         f = self.f
         (f.ctl / "plant-home").write_text("1")
         p = self.ok("run", "agy", "e1", f.prompt, "--mode", "empty")
-        rec = f.rec("agy", "e1")
-        self.assertIn(f"report: {rec / 'report.md'}", p.stdout)
-        self.assertEqual((rec / "report.md").read_text(), "agy stdout answer", "링크인 report.md 대신 JSON 의 response")
-        self.ok("collect", "agy", "e1")
-        (out,) = list((f.base("agy") / "runs").iterdir())
+        out = f.out("e1")
+        self.assertIn(f"report: {out / 'report.md'}", p.stdout)
+        self.assertEqual((out / "report.md").read_text(), "agy stdout answer", "링크인 report.md 대신 JSON 의 response")
         self.assertFalse((out / "agy").exists(), "링크인 .gemini 를 따라가지 않는다")
-        self.assert_untouched()
-        self.ok("remove", "agy", "e1")
         self.assert_untouched()
 
     def assert_untouched(self):
@@ -271,10 +267,9 @@ class LifecycleChecks:
         if IS_ROOT:
             for p in (f.secret, f.victim, f.victim_brain, f.victim_gemini):
                 self.assertEqual(p.lstat().st_uid, 0, f"{p} 의 소유자가 바뀌었다")
+        if f.runs.is_dir():
+            self.assertEqual(f.leaked(f.runs), [], "비밀 내용이 runs/ 에 복사됐다")
         for agent in ("agy", "codex"):
-            runs = f.base(agent) / "runs"
-            if runs.is_dir():
-                self.assertEqual(f.leaked(runs), [], "비밀 내용이 runs/ 에 복사됐다")
             if f.base(agent).joinpath(".runs").is_dir():
                 self.assertEqual(f.leaked(f.base(agent) / ".runs"), [])
 
@@ -283,7 +278,7 @@ class LifecycleChecks:
         os.symlink(f.secret, f.repo / "link-to-secret")
         git("add", "link-to-secret", cwd=f.repo)
         git("commit", "-q", "-m", "link", cwd=f.repo)
-        self.ok("run", "agy", "t1", f.prompt)
+        self.ok("run", "agy", "t1", f.prompt, "--keep")
         self.assertEqual(f.secret.lstat().st_uid, 0, "저장소가 커밋한 링크의 대상을 작업 uid 에 넘기지 않는다")
         if IS_ROOT:
             self.assertEqual((f.base("agy") / "t1" / "link-to-secret").lstat().st_uid, f.uid)
@@ -293,7 +288,7 @@ class LifecycleChecks:
         f = self.f
         f.registry.write_text(f.registry.read_text().replace(
             "\t-\ttest", '\tid -u > setup-uid; env > setup-env; echo "$SECRET_SETUP" > setup-secret\ttest'))
-        p = self.ok("run", "agy", "t1", f.prompt, env=f.env(SECRET_SETUP="leak"))
+        p = self.ok("run", "agy", "t1", f.prompt, "--keep", env=f.env(SECRET_SETUP="leak"))
         self.assertNotIn("setup failed", p.stderr)
         wt = f.base("agy") / "t1"
         if self.real:
@@ -308,7 +303,7 @@ class LifecycleChecks:
         f.user_env((f.cfg / "harness.env").read_text() + f"HARNESS_TOOL_INSTALLS={data / 'installs'}\n")
         f.registry.write_text(f.registry.read_text().replace("\t-\ttest", "\ttimeout 300 mise exec -- pesde install\ttest"))
         env = f.env(PATH=f"{f.bin}:{misebin}:/usr/bin:/bin" + (":/usr/sbin:/sbin" if self.real else ""))
-        p = self.ok("run", "agy", "t1", f.prompt, env=env)
+        p = self.ok("run", "agy", "t1", f.prompt, "--keep", env=env)
         self.assertNotIn("setup failed", p.stderr)
         wt = f.base("agy") / "t1"
         self.assertTrue((wt / "pesde-installed").exists())
@@ -347,10 +342,10 @@ class Lifecycle(Base, LifecycleChecks):
 
     def test_codex_empty_run_and_gc(self):
         f = self.f
-        p = self.ok("run", "codex", "c1", f.prompt)
+        p = self.ok("run", "codex", "c1", f.prompt, "--keep")
         base = f.base("codex")
         wt, home, rec = base / "c1", base / ".homes" / "c1", f.rec("codex", "c1")
-        self.assertIn(f"report: {rec / 'report.md'}", p.stdout)
+        self.assertIn(f"report: {rec / 'report.md'}", p.stdout, "--keep 이면 기록 안의 사본을 알린다")
         self.assertNotIn("worktree changes", p.stdout)
         self.assertEqual((rec / "report.md").read_text(), "codex answer\n")
         (call,) = f.calls("codex")
@@ -370,42 +365,87 @@ class Lifecycle(Base, LifecycleChecks):
         self.assertEqual(list(wt.iterdir()), [wt / ".delegate"], "empty 모드는 빈 폴더")
 
         (base / ".homes" / "orphan").mkdir()
-        p = self.ok("gc", "--days", "0")
-        self.assertIn("(preview", p.stdout)
-        self.assertIn("check      proj-codex/c1 (finished but not collected, 0d)", p.stdout)
-        self.assertIn("delete     proj-codex/.homes/orphan", p.stdout)
-        self.assertNotIn("check      proj-codex/c1", self.ok("gc").stdout, "기본 14일 전에는 알리지 않는다")
-
-        self.ok("collect", "codex", "c1")
+        f.runs.mkdir(parents=True, exist_ok=True)
+        old = f.runs / "20200101-0000-old"
+        old.mkdir()
+        month_ago = time.time() - 30 * 86400
+        os.utime(old, (month_ago, month_ago))
         p = self.ok("gc")
-        self.assertIn("delete     proj-codex/c1 (collected", p.stdout)
-        self.assertTrue(wt.exists(), "미리보기는 지우지 않는다")
-        self.ok("gc", "--apply")
+        self.assertIn("(preview", p.stdout)
+        self.assertIn("delete     work/proj-codex/c1 (finished, collected first)", p.stdout)
+        self.assertIn("delete     work/proj-codex/.homes/orphan", p.stdout)
+        self.assertIn("delete     runs/proj/20200101-0000-old (results, 30d old; older than 14d)", p.stdout)
+        self.assertTrue(wt.exists() and old.exists(), "미리보기는 지우지 않는다")
+        self.assertNotIn("20200101-0000-old", self.ok("gc", "--days", "60").stdout)
+        f.user_env((f.cfg / "harness.env").read_text() + "HARNESS_DELEGATE_RUNS_DAYS=60\n")
+        self.assertNotIn("20200101-0000-old", self.ok("gc").stdout, "HARNESS_DELEGATE_RUNS_DAYS 가 기본 14일을 바꾼다")
+        p = self.ok("gc", "--apply", "--days", "14")
+        self.assertIn("collected  work/proj-codex/c1 -> ", p.stdout)
         self.assertFalse(wt.exists())
         self.assertFalse(rec.exists())
         self.assertFalse((base / ".homes" / "orphan").exists())
-        self.assertEqual(len(list((base / "runs").iterdir())), 1)
+        self.assertFalse(old.exists())
+        self.assertEqual((f.out("c1") / "report.md").read_text(), "codex answer\n", "지우기 전에 결과를 모았다")
+
+    def test_run_collects_and_cleans_up(self):
+        f = self.f
+        p = self.ok("run", "agy", "t1", f.prompt)
+        out = f.out("t1")
+        self.assertIn(f"collected: {out} (workspace removed)", p.stdout)
+        self.assertIn(f"report: {out / 'report.md'}", p.stdout)
+        self.assertNotIn("next: main reads and verifies ->", p.stdout)
+        self.assertEqual((out / "report.md").read_text(), "agy worktree report\n")
+        self.assertIn("+changed by agy", (out / "diff.patch").read_text())
+        self.assertTrue((out / "agy" / "conv-task" / "scratch" / "probe.txt").is_file())
+        for name in ("prompt.md", "meta.txt", "guard.txt", "stdout.txt", "stderr.txt", "exit", "state.json"):
+            self.assertTrue((out / name).is_file(), name)
+        base = f.base("agy")
+        for gone in (base / "t1", base / ".homes" / "t1", f.rec("agy", "t1"), f.repo / ".git" / "worktrees" / "t1"):
+            self.assertFalse(gone.exists(), gone)
+        self.assertEqual(git("worktree", "list", "--porcelain", cwd=f.repo).count("worktree "), 1)
+        self.assertEqual(sorted(p.name for p in f.ws.iterdir()), ["proj"], "저장소 옆에 아무것도 만들지 않는다")
+        if IS_ROOT:
+            for d, mode in ((f.state, 0o711), (f.state / "work", 0o711), (base, 0o711), (f.state / "runs", 0o700),
+                            (f.runs, 0o700), (out, 0o700)):
+                self.assertEqual(stat.S_IMODE(d.stat().st_mode), mode, d)
+
+    def test_failed_collect_keeps_the_workspace(self):
+        f = self.f
+        (f.ctl / "fail-git").write_text("1")
+        p = self.ok("run", "agy", "t1", f.prompt)
+        wt = f.base("agy") / "t1"
+        self.assertIn(f"kept: {wt} - automatic collect failed, so nothing was deleted: diff.patch not made", p.stdout)
+        self.assertIn(f"report: {f.rec('agy', 't1') / 'report.md'}", p.stdout)
+        self.assertIn("next: main reads and verifies -> delegate.py collect agy t1", p.stdout)
+        self.assertTrue(wt.is_dir() and (f.base("agy") / ".homes" / "t1").is_dir())
+        self.assertIsNone(json.loads((f.rec("agy", "t1") / "state.json").read_text())["collected"])
+        (f.ctl / "fail-git").unlink()
+        self.ok("collect", "agy", "t1")
+        self.ok("remove", "agy", "t1")
+        self.assertFalse(wt.exists())
 
     def test_agy_empty_falls_back_to_stdout(self):
         f = self.f
         p = self.ok("run", "agy", "e1", f.prompt, "--mode", "empty", "--model", "m-x", "--timeout", "30")
         self.assertIn("agy empty mode is unverified", p.stderr)
-        self.assertEqual((f.rec("agy", "e1") / "report.md").read_text(), "agy stdout answer")
-        self.assertIn("some log line", (f.rec("agy", "e1") / "stderr.txt").read_text(), "stderr 는 따로")
+        out = f.out("e1")
+        self.assertEqual((out / "report.md").read_text(), "agy stdout answer")
+        self.assertIn("some log line", (out / "stderr.txt").read_text(), "stderr 는 따로")
         argv = f.calls("agy")[0]["argv"]
         self.assertEqual((argv[2], argv[argv.index("--print-timeout") + 1]), ("m-x", "30s"))
 
     def test_agy_settings_per_mode_and_temp_folders(self):
         f = self.f
-        systmp = f.tmp / "systmp"  # 작업 폴더를 품지 않는 임시 폴더. /tmp 는 시험 작업 폴더를 품어 거르지 못한다.
+        systmp = f.tmp / "systmp"
         systmp.mkdir()
         env = f.env(TMPDIR=str(systmp))
-        p = self.ok("run", "agy", "e1", f.prompt, "--mode", "empty", env=env)
+        self.ok("run", "agy", "e1", f.prompt, "--mode", "empty", env=env)
         self.ok("run", "agy", "w1", f.prompt, env=env)
         empty, wt = (json.loads(c["argv"][c["argv"].index("--settings") + 1])["permissions"] for c in f.calls("agy"))
-        tmp_rules = [f"read_file({systmp})", f"write_file({systmp})"]
+        tmp_rules = ["read_file(/tmp)", "write_file(/tmp)", f"read_file({systmp})", f"write_file({systmp})"]
         self.assertEqual(empty["deny"], tmp_rules + ["command(*)"], "empty 는 셸도 거절")
         self.assertEqual(wt["deny"], tmp_rules)
+
         def ws_rules(allow, name):
             return {r.split("(")[0] for r in allow if r.rstrip(")").endswith("/" + name)}
         self.assertEqual(ws_rules(empty["allow"], "e1"), {"read_file", "write_file"}, "empty 도 작업 폴더에 보고서를 쓴다")
@@ -414,32 +454,41 @@ class Lifecycle(Base, LifecycleChecks):
         self.assertIn("command(*)", wt["allow"])
         for c in f.calls("agy"):
             self.assertNotIn("--dangerously-skip-permissions", c["argv"])
-        self.assertIn("warning: temp folder /tmp holds the workspace, so it is not denied", p.stderr)
-        self.assertIn("policy: temp folder /tmp holds the workspace", (f.rec("agy", "e1") / "guard.txt").read_text())
-        meta = (f.rec("agy", "e1") / "meta.txt").read_text()
-        self.assertIn('agy-settings: {"permissions":{"deny":[', meta)
+        self.assertIn('agy-settings: {"permissions":{"deny":["read_file(/tmp)"', (f.out("e1") / "meta.txt").read_text())
         p = self.ok("doctor", env=env)
-        self.assertIn(f"  INFO agy file tools denied in temp folders: {systmp}", p.stdout)
-        self.assertIn("  WARN agy temp folder /tmp holds the workspace, so it is not denied", p.stdout)
+        self.assertIn(f"  INFO agy file tools denied in temp folders: /tmp {systmp}", p.stdout)
+        self.assertIn(f"  INFO work folders {f.state / 'work' / 'proj-<agent>'}, results {f.runs}", p.stdout)
+
+    def test_work_folder_under_a_denied_temp_folder_is_refused(self):
+        f = self.f
+        under_tmp = Path(tempfile.mkdtemp(prefix="delegate-state-", dir="/tmp"))
+        try:
+            env = f.env(HARNESS_DELEGATE_STATE=str(under_tmp / "state"))
+            p = self.fails(4, "run", "agy", "x", f.prompt, env=env)
+            self.assertIn("temp folder /tmp holds the workspace", p.stderr)
+            self.assertIn("HARNESS_DELEGATE_STATE", p.stderr)
+            self.assertFalse((under_tmp / "state").exists(), "거절 전에는 아무것도 만들지 않는다")
+            self.ok("run", "codex", "c1", f.prompt, env=env)  # codex 에는 임시 폴더 거절 정책이 없다
+            p = self.ok("doctor", env=env)
+            self.assertIn("  FAIL agy temp folder /tmp holds the workspace", p.stdout)
+        finally:
+            shutil.rmtree(under_tmp, ignore_errors=True)
 
     def test_agy_denial_is_reported(self):
         f = self.f
         (f.ctl / "agy-denied").write_text("1")
         p = self.ok("run", "agy", "d1", f.prompt, "--mode", "empty")
-        rec = f.rec("agy", "d1")
+        out = f.out("d1")
         self.assertIn("report: MISSING - agy ended the turn with an empty answer after it was denied read_file, command",
                       p.stdout)
-        self.assertIn("agy denied: read_file, command", (rec / "guard.txt").read_text())
-        self.assertIn("agy-denied: read_file, command", (rec / "meta.txt").read_text())
-        self.assertEqual(json.loads((rec / "state.json").read_text())["denied"], ["read_file", "command"])
-        self.assertIn("auto-denied", (rec / "stderr.txt").read_text())
-        self.ok("collect", "agy", "d1")
-        (out,) = list((f.base("agy") / "runs").iterdir())
-        self.assertTrue((out / "stderr.txt").is_file())
+        self.assertIn("agy denied: read_file, command", (out / "guard.txt").read_text())
+        self.assertIn("agy-denied: read_file, command", (out / "meta.txt").read_text())
+        self.assertEqual(json.loads((out / "state.json").read_text())["denied"], ["read_file", "command"])
+        self.assertIn("auto-denied", (out / "stderr.txt").read_text())
 
     def test_codex_gets_task_tmpdir(self):
         f = self.f
-        self.ok("run", "codex", "c1", f.prompt)
+        self.ok("run", "codex", "c1", f.prompt, "--keep")
         home = f.base("codex") / ".homes" / "c1"
         self.assertEqual(f.calls("codex")[0]["env"]["TMPDIR"], str(home / ".tmp"))
         self.assertTrue((home / ".tmp").is_dir())
@@ -449,7 +498,7 @@ class Lifecycle(Base, LifecycleChecks):
 
     def test_existing_name_refused(self):
         f = self.f
-        self.ok("run", "codex", "c1", f.prompt)
+        self.ok("run", "codex", "c1", f.prompt, "--keep")
         self.assertIn("already exists", self.fails(2, "run", "codex", "c1", f.prompt).stderr)
 
     def test_heavy_wrap_goes_in_front_of_setpriv(self):
@@ -457,47 +506,63 @@ class Lifecycle(Base, LifecycleChecks):
         wrap = f.bin / "wrap"
         wrap.write_text(f'#!/bin/sh\nprintf "%s " "$@" > "{f.ctl}/wrap.log"\nwhile [ "$1" != -- ]; do shift; done\nshift\nexec "$@"\n')
         wrap.chmod(0o755)
-        f.user_env((f.cfg / "harness.env").read_text() + f"HARNESS_HEAVY_WRAP=wrap -n 7 --\n")
+        f.user_env((f.cfg / "harness.env").read_text() + "HARNESS_HEAVY_WRAP=wrap -n 7 --\n")
         self.ok("run", "agy", "w1", f.prompt, "--mode", "empty")
         want = (f"-n 7 -- {f.bin / 'setpriv'} --no-new-privs --inh-caps=-all --bounding-set=-all --reuid={f.uid} "
                 f"--regid={f.uid} --clear-groups {f.bin / 'agy'} --model gemini-3.8-flash-high")
         self.assertTrue((f.ctl / "wrap.log").read_text().startswith(want), (f.ctl / "wrap.log").read_text())
 
-    def test_list_across_runs_and_shell_shaped_workspaces(self):
+    def make_legacy(self):
+        """저장소 옆 옛 자리의 작업들: delegate.sh 꼴(기록이 .delegate/ 안)과 링크로 된 .delegate."""
         f = self.f
-        self.ok("run", "agy", "a1", f.prompt)
-        self.ok("run", "codex", "c1", f.prompt)
-        self.ok("collect", "codex", "c1")
-        # delegate.sh 가 만든 꼴: 기록이 작업 사본 안의 .delegate/ 에 pid/exit/collected 로만.
-        old = f.base("agy") / "old-done" / ".delegate"
+        old = f.legacy_base("agy") / "old-done" / ".delegate"
         old.mkdir(parents=True)
         (old / "exit").write_text("0\n")
         (old / "collected").write_text("/somewhere\n")
-        fin = f.base("agy") / "old-fin" / ".delegate"
+        fin = f.legacy_base("agy") / "old-fin" / ".delegate"
         fin.mkdir(parents=True)
         (fin / "exit").write_text("1\n")
         (fin / "report.md").write_text("old report\n")
-        # 링크로 된 .delegate 는 읽지 않는다: collected 가 링크 너머에 있어도 unknown.
-        (f.base("agy") / "old-link").mkdir()
-        os.symlink(old, f.base("agy") / "old-link" / ".delegate")
-        rec = f.base("codex") / "old-record"
-        rec.mkdir()
+        (f.legacy_base("agy") / "old-link").mkdir()
+        os.symlink(old, f.legacy_base("agy") / "old-link" / ".delegate")
+        rec = f.legacy_base("codex") / "old-record"
+        rec.mkdir(parents=True)
         (rec / "answer.md").write_text("x")
+        return old, fin
+
+    def test_list_across_runs_and_shell_shaped_workspaces(self):
+        f = self.f
+        self.ok("run", "agy", "a1", f.prompt, "--keep")
+        self.ok("run", "codex", "c1", f.prompt, "--keep")
+        self.ok("collect", "codex", "c1")
+        old, fin = self.make_legacy()
         p = self.ok("list", "--all")
         for name, state in (("a1", "finished"), ("old-done", "collected"), ("old-fin", "finished"), ("c1", "collected"),
                             ("old-record", "legacy-record"), ("old-link", "unknown")):
             self.assertRegex(p.stdout, rf"\n  {name} +{state} ")
-        self.assertIn(f"== {f.base('agy')} (", p.stdout)
-        self.assertIn(f"== {f.base('codex')} (", p.stdout)
+        for base in (f.legacy_base("agy"), f.legacy_base("codex"), f.base("agy"), f.base("codex"), f.runs):
+            self.assertIn(f"== {base} (", p.stdout)
+        self.assertLess(p.stdout.index(f"== {f.legacy_base('agy')}"), p.stdout.index(f"== {f.base('agy')}"),
+                        "옛 자리 부분은 delegate.sh 의 list 와 같은 꼴로 먼저")
         self.assertIn("not collected yet", self.fails(2, "remove", "agy", "old-fin").stderr)
         self.ok("collect", "agy", "old-fin")
-        out = [r for r in (f.base("agy") / "runs").iterdir() if r.name.endswith("-old-fin")][0]
-        self.assertEqual((out / "report.md").read_text(), "old report\n")
+        self.assertEqual((f.out("old-fin") / "report.md").read_text(), "old report\n")
         self.assertEqual(sorted(os.listdir(fin)), ["exit", "report.md"], "옛 작업 사본에 쓰지 않는다")
         self.ok("remove", "agy", "old-fin")
         self.ok("remove", "agy", "old-done")
-        self.assertTrue(old.parent.parent.joinpath("old-link").exists())
-        self.assertIn("old record proj-codex/old-record", self.ok("gc").stdout)
+        self.assertTrue(f.legacy_base("agy").joinpath("old-link").exists())
+
+    def test_gc_never_deletes_the_legacy_location(self):
+        f = self.f
+        old, fin = self.make_legacy()
+        (f.legacy_base("agy") / ".homes" / "gone").mkdir(parents=True)
+        p = self.ok("gc", "--apply", "--days", "0")
+        self.assertIn(f"legacy     {f.legacy_base('agy')} (older location; gc lists it but never deletes there", p.stdout)
+        self.assertIn("  stale    proj-agy/old-done (0d, ", p.stdout)
+        self.assertIn("collected - remove it", p.stdout)
+        self.assertIn("  stale    proj-agy/.homes/gone (HOME without an owner", p.stdout)
+        for kept in (old, fin, f.legacy_base("agy") / ".homes" / "gone", f.legacy_base("codex") / "old-record"):
+            self.assertTrue(kept.exists(), kept)
 
 
 class Concurrency(Base):
@@ -543,11 +608,12 @@ class Concurrency(Base):
             (f.ctl / "release").write_text("1")
             out, err = a.communicate(timeout=60)
         self.assertEqual(a.returncode, 0, out + err)
-        self.assertRegex(self.ok("list").stdout, r"\n  a1 +finished ")
+        self.assertTrue((f.out("a1") / "report.md").is_file(), "끝난 뒤 스스로 모으고 정리했다")
+        self.assertNotRegex(self.ok("list").stdout, r"\n  a1 +")
 
     def test_task_written_pid_does_not_fake_running(self):
         f = self.f
-        self.ok("run", "codex", "c1", f.prompt)
+        self.ok("run", "codex", "c1", f.prompt, "--keep")
         # 작업 uid 는 자기 .delegate/ 에 무엇이든 쓴다. 기록 폴더가 있으면 그것만 본다.
         (f.base("codex") / "c1" / ".delegate" / "pid").write_text(f"{os.getpid()}\n")
         (f.base("codex") / "c1" / ".delegate" / "collected").write_text("x\n")
@@ -588,7 +654,7 @@ class Signals(Base):
         self.assertEqual(a.returncode, 0, out + err)
         self.assertIn("exit: 143", out)
         self.assertTrue((f.ctl / "trapped").exists(), "작업은 SIGTERM 을 받고 끝났다")
-        state = json.loads((f.rec("agy", "s1") / "state.json").read_text())
+        state = json.loads((f.out("s1") / "state.json").read_text())
         self.assertEqual(state["rc"], 143)
         self.assertTrue(state["finished"])
 
@@ -674,7 +740,7 @@ class RealUid(Base, LifecycleChecks):
         self.check_setup_with_mise()
 
     def test_codex_empty_runs_as_its_own_uid(self):
-        p = self.ok("run", "codex", "c1", self.f.prompt)
+        p = self.ok("run", "codex", "c1", self.f.prompt, "--keep")
         self.assertIn("codex answer", (self.f.rec("codex", "c1") / "report.md").read_text(), p.stdout)
         self.assertEqual(self.f.calls("codex")[0]["uid"], self.f.codex_uid)
         self.assertEqual((self.f.base("codex") / "c1").lstat().st_uid, self.f.codex_uid)

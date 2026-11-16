@@ -24,7 +24,6 @@ if sys.version_info < (3, 11):
 HERE = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, HERE)
 
-import datetime  # noqa: E402
 import json  # noqa: E402
 import time  # noqa: E402
 import shutil  # noqa: E402
@@ -33,19 +32,21 @@ from pathlib import Path  # noqa: E402
 
 import delegate_agents as agents  # noqa: E402
 import delegate_isolation as iso  # noqa: E402
+import delegate_results as results  # noqa: E402
 import delegate_workspace as ws  # noqa: E402
 import harness_env as own_he  # noqa: E402
 
-PROG = "delegate.py"
+PROG = ws.PROG
 SKILL_DIR = Path(HERE).parent
 TEMPLATES = SKILL_DIR / "templates"
 DEFAULT_EFFORT = "medium"
 DEFAULT_TIMEOUT_SECONDS = 3600
-DEFAULT_GC_DAYS = 14
+# gc deletes results in <state>/runs/ older than this. Results are read right after the run, and a report worth
+# keeping is moved into the repository (.claude/audit/), so two weeks covers a missed read or a weekend.
+DEFAULT_RUNS_DAYS = 14
 START_LOCK_SECONDS = 120     # wait for another start of the same agent (seconds of git and copying) before giving up
 LEGACY_LOCK_SECONDS = 30
 SETUP_TIMEOUT_SECONDS = 900  # the registry's setup line, run once in a new worktree
-OLD_RUN_DAYS = 180  # gc only reports runs/ records older than this; a person decides whether to delete them
 # delegate.sh serializes its start (existence check, live count, pid file) on this lock; taking it too keeps a
 # run of either script from slipping past the other's count.
 LEGACY_LOCK = "/tmp/delegate-{agent}.lock"
@@ -59,7 +60,7 @@ KEYS = (
     "HARNESS_DELEGATE_AGY_WORKTREE", "HARNESS_DELEGATE_AGY_UNISOLATED", "HARNESS_DELEGATE_CODEX_SANDBOX",
     "HARNESS_DELEGATE_KEEP_ENV",
     "HARNESS_DELEGATE_STATE", "HARNESS_DELEGATE_MAX_CONCURRENT", "HARNESS_DELEGATE_AGY_MODEL",
-    "HARNESS_DELEGATE_CODEX_MODEL", "HARNESS_DELEGATE_SECRET_GLOBS",
+    "HARNESS_DELEGATE_CODEX_MODEL", "HARNESS_DELEGATE_SECRET_GLOBS", "HARNESS_DELEGATE_RUNS_DAYS",
 )
 die = ws.die
 note = ws.note
@@ -85,6 +86,8 @@ class Ctx:
         self.he, self.he_desc = harness_loader()
         self.cfg = self.layers("")
         self.registry = self.cfg["HARNESS_DELEGATE_REGISTRY"] or str(SKILL_DIR / "registry.tsv")
+        # USER_ONLY, so the user layer decides for every repository.
+        self.state_dir = Path(self.cfg["HARNESS_DELEGATE_STATE"] or ws.default_state_dir())
 
     def layers(self, project):
         """Config of the user layer and environment (project ''), or with that repository's layers on top."""
@@ -136,13 +139,6 @@ def selection(opts):
 
 
 # ---------- run ----------
-def git_task(backend, env, wt, *args):
-    """git inside the task's worktree, as the task uid. Its .git file and admin dir belong to that uid, so git run as
-    root there would read config (core.fsmonitor and the like) the task could have written.
-    Returns (returncode or None on timeout, stdout, stderr)."""
-    return backend.run(["git", "-c", f"safe.directory={wt}", "-C", str(wt), *args], env)
-
-
 def snapshot_report(base, name, rec, adapter, mode, outcome):
     """Copy the task's answer into the record (root-owned) and return its path, or None when there is none.
     Order: the report file the preamble names, the adapter's other file, the answer the agent printed."""
@@ -160,7 +156,7 @@ def snapshot_report(base, name, rec, adapter, mode, outcome):
 def cmd_run(ctx, args):
     usage = "run <agy|codex> <name> <prompt file> [options]"
     (agent, name, prompt_file), opts = parse(
-        args, {"--repo": 1, "--mode": 1, "--ref": 1, "--model": 1, "--effort": 1, "--timeout": 1}, 3, usage)
+        args, {"--repo": 1, "--mode": 1, "--ref": 1, "--model": 1, "--effort": 1, "--timeout": 1, "--keep": 0}, 3, usage)
     ws.check_agent(agent)
     ws.check_name(name)
     prompt_path = Path(prompt_file)
@@ -193,14 +189,17 @@ def cmd_run(ctx, args):
     preamble = (TEMPLATES / f"preamble-{mode}.md").read_text(encoding="utf-8")
     task = prompt_path.read_text(encoding="utf-8", errors="replace")
 
-    base = ws.root_dir(repo.base(agent), 0o755)
-    homes, hooks = ws.root_dir(base / ".homes", 0o755), ws.root_dir(base / ".hooks", 0o755)
-    ws.root_dir(base / "runs", 0o755)
-    ws.root_dir(base / ws.RECORDS, 0o700)
+    state_dir = ctx.state_dir
+    wt_planned = ws.work_base(state_dir, repo, agent) / name
+    settings, policy_notes = adapter.policy(mode, backend, wt_planned)
+    if policy_notes:
+        die(f"{'; '.join(policy_notes)}. The work folder must not sit under a temp folder the agent is denied; "
+            f"HARNESS_DELEGATE_STATE (user layer) moves it", ws.EXIT_REFUSED)
+    state_dir.parent.mkdir(parents=True, exist_ok=True)
+    base = ws.make_work_base(state_dir, repo, agent)
+    homes, hooks = ws.root_dir(base / ".homes", ws.PASS_MODE), ws.root_dir(base / ".hooks", ws.PASS_MODE)
+    ws.root_dir(base / ws.RECORDS, ws.PRIVATE_MODE)
     wt, home, rec = base / name, homes / name, ws.record_dir(base, name)
-    state_dir = Path(cfg["HARNESS_DELEGATE_STATE"] or ws.default_state_dir())
-    state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
-    ws.root_dir(state_dir, 0o700)
 
     start = ws.take_lock(state_dir / f"start-{agent}.lock", START_LOCK_SECONDS)
     if start is None:
@@ -211,7 +210,7 @@ def cmd_run(ctx, args):
         if os.path.lexists(wt) or os.path.lexists(rec):
             die(f"{wt} already exists - use another name, or collect/remove it")
         uid_lock = ws.take_lock(ws.uid_lock_path(state_dir, uid))
-        if uid_lock is None or legacy_runs_of_uid(repo, uid):
+        if uid_lock is None or results.legacy_runs_of_uid(repo, uid):
             sharing = repo.shares_uid(agent)
             hint = (f"; {' and '.join(sharing)} of {repo.key} share it - '{PROG} register {repo.root}' gives each "
                     f"agent its own uid" if len(sharing) > 1 else "")
@@ -258,7 +257,6 @@ def cmd_run(ctx, args):
     os.mkdir(home, 0o700)
     os.mkdir(home / iso.TASK_TMP, 0o700)
     adapter.prepare_home(cfg, home)
-    settings, policy_notes = adapter.policy(mode, backend, wt)
 
     report_rel = adapter.report_rel(mode)
     for k, v in (("{{WT}}", wt), ("{{ROOT}}", repo.root), ("{{KEY}}", repo.key), ("{{REPORT}}", wt.joinpath(*report_rel))):
@@ -269,10 +267,7 @@ def cmd_run(ctx, args):
         ("backend", agent), ("mode", mode), ("repo", f"{repo.key} ({repo.root})"), ("uid", uid), ("model", model),
         ("effort", effort), ("ref", f"{ref} -> {commit}"), ("prompt-source", prompt_path), ("started", state["started"]),
         ("isolation", backend.name), ("driver", PROG))
-        + ((("agy-settings", json.dumps(settings, separators=(",", ":"))),) if settings else ())
-        + tuple(("policy-note", n) for n in policy_notes)))
-    for n in policy_notes:
-        note(f"warning: {n}")
+        + ((("agy-settings", json.dumps(settings, separators=(",", ":"))),) if settings else ())))
 
     backend.give(*(p for p in (wt, home, admin) if p))
     env = iso.task_env(home, iso.tool_path(repo.root), hooks, bool(cfg["HARNESS_DELEGATE_KEEP_ENV"]),
@@ -309,10 +304,9 @@ def cmd_run(ctx, args):
             guard.append(f"{agent} denied: {', '.join(denied)}")
         if outcome and outcome.get("status") not in (None, "SUCCESS"):
             guard.append(f"{agent} status: {outcome.get('status')}")
-        guard += [f"policy: {n}" for n in policy_notes]
         if mode == "worktree":
-            hrc, head, herr = git_task(backend, env, wt, "rev-parse", "HEAD")
-            src, status, serr = git_task(backend, env, wt, "status", "--porcelain=v1")
+            hrc, head, herr = iso.git_as_task(backend, env, wt, "rev-parse", "HEAD")
+            src, status, serr = iso.git_as_task(backend, env, wt, "status", "--porcelain=v1")
             backend.end_task()
             guard.append(f"worktree HEAD: {head.strip()} (base {commit})" if hrc == 0
                          else f"worktree HEAD: unknown (git: {herr.strip() or hrc})")
@@ -326,23 +320,34 @@ def cmd_run(ctx, args):
         if denied:
             meta = (ws.read_under(rec, "meta.txt") or b"").decode("utf-8", "replace")
             ws.write_safe(rec / "meta.txt", meta + f"{agent}-denied: {', '.join(denied)}\n")
+        note(f"done {agent}/{name} - exit {rc}")
+        sys.stdout.write(guard_text)
+        out, problems = (None, None) if opts.get("--keep") else results.auto_cleanup(
+            state_dir, results.Place(repo, agent, name, base, False))
         os.close(run_lock)
         os.close(slot)
         os.close(uid_lock)
-
-        note(f"done {agent}/{name} - exit {rc}")
-        sys.stdout.write(guard_text)
-        if report:
-            print(f"report: {report} ({os.lstat(report).st_size} bytes)")
-        elif denied:
-            print(f"report: MISSING - {agent} ended the turn with an empty answer after it was denied "
-                  f"{', '.join(denied)} (headless print mode refuses tools outside its allowed set); see "
-                  f"{rec / 'stderr.txt'}")
-        else:
-            print(f"report: MISSING - see {rec / 'stdout.txt'}")
+        if out and not problems:
+            print(f"collected: {out} (workspace removed)")
+            print_report(out / "report.md" if report else None, agent, denied, out)
+            print("next: main reads the report there and verifies it")
+            return 0
+        if problems:
+            print(f"kept: {wt} - automatic collect failed, so nothing was deleted: {'; '.join(problems)}")
+        print_report(report, agent, denied, rec)
         print(f"next: main reads and verifies -> {PROG} collect {agent} {name} --repo {repo.key} -> "
               f"{PROG} remove {agent} {name} --repo {repo.key}")
     return 0
+
+
+def print_report(report, agent, denied, folder):
+    if report:
+        print(f"report: {report} ({os.lstat(report).st_size} bytes)")
+    elif denied:
+        print(f"report: MISSING - {agent} ended the turn with an empty answer after it was denied {', '.join(denied)} "
+              f"(headless print mode refuses tools outside its allowed set); see {folder / 'stderr.txt'}")
+    else:
+        print(f"report: MISSING - see {folder / 'stdout.txt'}")
 
 
 def legacy_lock(agent):
@@ -357,141 +362,29 @@ def legacy_lock(agent):
     return fd
 
 
-# ---------- collect / remove ----------
-def locate(ctx, agent, name, repo_arg):
+# ---------- collect / remove / list / gc ----------
+def located(ctx, agent, name, repo_arg):
     ws.check_agent(agent)
     ws.check_name(name)
     repo = ctx.repo(repo_arg)
-    base = repo.base(agent)
-    if not (base / name).is_dir() and not ws.record_dir(base, name).is_dir():
-        die(f"not found: {base / name}")
-    return repo, base
-
-
-def legacy_runs_of_uid(repo, uid):
-    """Live delegate.sh runs that use uid: it runs every agent of a repository as the registry's third column."""
-    return ws.live_legacy_runs([repo]) if uid == repo.uid else 0
-
-
-def end_leftovers(ctx, repo, agent):
-    """Kill what still runs as the agent's uid before root reads or deletes its files, unless a live task of that uid
-    holds its lock (then those processes are that task's)."""
-    uid = repo.uid_for(agent)
-    backend = iso.UidBackend(uid)
-    if backend.unavailable():
-        return
-    state_dir = Path(ctx.cfg["HARNESS_DELEGATE_STATE"] or ws.default_state_dir())
-    if not state_dir.is_dir():
-        return
-    fd = ws.take_lock(ws.uid_lock_path(state_dir, uid))
-    if fd is None:
-        return
-    try:
-        if not legacy_runs_of_uid(repo, uid):
-            killed = backend.end_task()
-            if killed:
-                note(f"killed {killed} leftover process(es) of uid {uid}")
-    finally:
-        os.close(fd)
-
-
-def copy_probes(base, name, since, out):
-    """agy writes its probes to brain/<conversation>/scratch under HOME, outside the guard's worktree change list,
-    and remove deletes HOME; keep this task's scratch and transcript. HOME is the task's: walked from fds, no links."""
-    brain = ws.open_dir_under(base, ".homes", name, ".gemini", "antigravity-cli", "brain")
-    if brain is None:
-        return
-    try:
-        for conv in sorted(os.listdir(brain)):
-            cfd = ws.open_dir_under(brain, conv)
-            if cfd is None:
-                continue
-            try:
-                newer = os.fstat(cfd).st_mtime > since or any(
-                    os.stat(n, dir_fd=tfd, follow_symlinks=False).st_mtime > since
-                    for _t, ds, fs, tfd in os.fwalk(".", dir_fd=cfd, follow_symlinks=False) for n in ds + fs)
-                if not newer:
-                    continue
-                dst = out / "agy" / conv
-                for d in (out / "agy", dst):
-                    os.makedirs(d, mode=0o700, exist_ok=True)
-                sfd = ws.open_dir_under(cfd, "scratch")
-                if sfd is not None:
-                    try:
-                        ws.copy_tree_at(sfd, dst / "scratch")
-                    finally:
-                        os.close(sfd)
-                data = ws.read_under(cfd, ".system_generated", "logs", "transcript.jsonl")
-                if data is not None:
-                    ws.write_new(dst / "transcript.jsonl", data)
-            finally:
-                os.close(cfd)
-    finally:
-        os.close(brain)
+    place = results.find(ctx.state_dir, repo, agent, name)
+    if place is None:
+        die(f"not found: {agent}/{name} in {ws.work_base(ctx.state_dir, repo, agent)} or {repo.legacy_base(agent)}")
+    return place
 
 
 def cmd_collect(ctx, args):
     (agent, name), opts = parse(args, {"--repo": 1}, 2, "collect <agy|codex> <name> [--repo R]")
-    repo, base = locate(ctx, agent, name, opts.get("--repo"))
-    if ws.is_running(base, name):
+    place = located(ctx, agent, name, opts.get("--repo"))
+    if ws.is_running(place.base, name):
         die(f"still running: {agent}/{name}")
-    end_leftovers(ctx, repo, agent)
-    rec = ws.record_dir(base, name)
-    st = ws.read_state(rec)
-    legacy = not st
-    if not st.get("finished") and not ws.exists_under(base, name, ws.TASK_OUT, "exit", kind="file"):
+    results.end_leftovers(ctx.state_dir, place.repo, agent)
+    st = ws.read_state(place.rec)
+    if not st.get("finished") and not ws.exists_under(place.base, name, ws.TASK_OUT, "exit", kind="file"):
         note("warning: no exit record (abnormal end, or a workspace from an older script); collecting what exists")
-    runs = ws.root_dir(base / "runs", 0o755)
-    out = runs / f"{datetime.datetime.now().strftime('%Y%m%d-%H%M')}-{name}"
-    os.makedirs(out, mode=0o700, exist_ok=True)
-    os.chmod(out, 0o700)
-    if legacy:
-        # delegate.sh kept its record inside the task copy; read it without following links.
-        for f in ws.LEGACY_FILES:
-            data = ws.read_under(base, name, ws.TASK_OUT, f)
-            if data is not None:
-                ws.write_new(out / f, data)
-        data = ws.read_under(base, name, "REPORT.md")
-        if data is not None:
-            ws.write_new(out / "report.md", data)
-    else:
-        for f in ws.RUN_FILES:
-            data = ws.read_under(rec, f)
-            if data is not None:
-                ws.write_new(out / f, data)
-    if agent == "agy":
-        copy_probes(base, name, float("-inf") if legacy else st.get("started_ts", float("-inf")), out)
-    if ws.exists_under(base, name, ".git"):
-        # The experiment diff, new files included, without .delegate/ and the report. It runs as the task uid (see
-        # git_task); the HOME of the task is still there because remove deletes it later.
-        backend = iso.UidBackend(repo.uid_for(agent))
-        why = backend.unavailable()
-        if why:
-            note(f"warning: diff.patch not made: {why}")
-        else:
-            wt = base / name
-            home = base / ".homes" / name
-            common = (ws.git_out("-C", repo.root, "rev-parse", "--path-format=absolute", "--git-common-dir") or "").strip()
-            # `add -N` writes the empty blob, and the task uid cannot write the main .git/objects (by design): new
-            # objects go to a folder in the task's HOME, the main store is read as an alternate.
-            odb = home / ".delegate-objects"
-            env = iso.task_env(home, "", base / ".hooks", False, {
-                "GIT_OBJECT_DIRECTORY": str(odb), "GIT_ALTERNATE_OBJECT_DIRECTORIES": os.path.join(common, "objects")})
-            backend.run(["mkdir", "-p", str(odb)], env)
-            spec = ["--", ".", f":!{ws.TASK_OUT}", ":!REPORT.md"]
-            arc, _, aerr = git_task(backend, env, wt, "add", "-N", "--all", *spec)
-            drc, diff, derr = git_task(backend, env, wt, "diff", "--binary", "--no-ext-diff", "--no-textconv", *spec)
-            backend.end_task()
-            if arc != 0 or drc != 0:
-                note(f"warning: diff.patch not made: git add -N -> {arc} {aerr.strip()}; git diff -> {drc} {derr.strip()}")
-            elif diff:
-                ws.write_new(out / "diff.patch", diff.encode("utf-8", "surrogateescape"))
-    ws.root_dir(base / ws.RECORDS, 0o700)
-    if legacy:
-        os.makedirs(rec, mode=0o700, exist_ok=True)
-        ws.save_state(rec, {"driver": PROG, "agent": agent, "legacy": True, "collected": str(out)})
-    else:
-        ws.update_state(rec, collected=str(out))
+    out, problems = results.collect_into(ctx.state_dir, place)
+    for p in problems:
+        note(f"warning: {p}")
     print(f"collected: {out}")
     for p in sorted(out.rglob("*")):
         if p.is_file():
@@ -499,152 +392,37 @@ def cmd_collect(ctx, args):
     return 0
 
 
-def remove(ctx, repo, base, agent, name, discard=False, delete_branch=False):
-    if ws.is_running(base, name):
-        die(f"still running: {agent}/{name}")
-    if not ws.is_collected(base, name) and not discard:
-        # Workspaces from older scripts (.agy/ and AGY_REPORT.md) have a shape collect does not know; a person decides.
-        die(f"not collected yet - run '{PROG} collect {agent} {name}' first, or pass --discard to throw it away")
-    end_leftovers(ctx, repo, agent)
-    wt, rec = base / name, ws.record_dir(base, name)
-    registered, branch = ws.worktree_entry(repo.root, wt)
-    admin = ws.read_state(rec).get("admin")
-    # Removed by root without running git inside the task's tree; shutil.rmtree does not follow links.
-    if os.path.lexists(wt):
-        shutil.rmtree(wt)
-    worktrees = os.path.join(repo.root, ".git", "worktrees") + os.sep
-    if admin and admin.startswith(worktrees) and os.path.lexists(admin):
-        shutil.rmtree(admin)
-    if registered or admin:
-        subprocess.run(["git", "-C", repo.root, "worktree", "prune"], check=False)
-    home = base / ".homes" / name
-    if os.path.lexists(home):
-        shutil.rmtree(home)
-    if os.path.lexists(rec):
-        shutil.rmtree(rec)
-    if branch:
-        if delete_branch:
-            subprocess.run(["git", "-C", repo.root, "branch", "-D", branch], check=False)
-        else:
-            note(f"branch '{branch}' (old style) left in place; --delete-branch removes it, after the user confirms")
-    print(f"removed: {wt}")
-
-
 def cmd_remove(ctx, args):
     (agent, name), opts = parse(args, {"--repo": 1, "--discard": 0, "--delete-branch": 0}, 2,
                                 "remove <agy|codex> <name> [--repo R] [--discard] [--delete-branch]")
-    repo, base = locate(ctx, agent, name, opts.get("--repo"))
-    remove(ctx, repo, base, agent, name, bool(opts.get("--discard")), bool(opts.get("--delete-branch")))
+    place = located(ctx, agent, name, opts.get("--repo"))
+    if ws.is_running(place.base, name):
+        die(f"still running: {agent}/{name}")
+    results.end_leftovers(ctx.state_dir, place.repo, agent)
+    results.remove_workspace(place, bool(opts.get("--discard")), bool(opts.get("--delete-branch")))
+    print(f"removed: {place.wt}")
     return 0
-
-
-# ---------- list / gc ----------
-def prune_preview(root):
-    p = subprocess.run(["git", "-C", root, "worktree", "prune", "--dry-run", "-v"], capture_output=True, text=True)
-    return (p.stdout + p.stderr).strip()
-
-
-def list_one(ctx, repo):
-    for agent in ws.AGENTS:
-        base = repo.base(agent)
-        if not base.is_dir():
-            continue
-        print(f"== {base} ({ws.du_h(base)})")
-        for w in ws.workspaces(base):
-            print(f"  {w.name:<28} {ws.state_of(base, w.name):<10} {ws.du_h(w):>6}  {ws.mtime_str(w)}")
-        runs = base / "runs"
-        if runs.is_dir():
-            print(f"  runs/: {sum(1 for p in runs.iterdir() if p.is_dir())} ({ws.du_h(runs)})")
-        if (base / ".home").is_dir():
-            print(f"  .home (old shared HOME): {ws.du_h(base / '.home')}")
-    for line in prune_preview(repo.root).splitlines():
-        print(f"  prune? {line}")
 
 
 def cmd_list(ctx, args):
     _, opts = parse(args, {"--repo": 1, "--all": 0}, 0, "list [--repo R|--all]")
     for repo in ctx.repos(selection(opts)):
-        list_one(ctx, repo)
+        results.list_repo(ctx.state_dir, repo)
     return 0
-
-
-def gc_one(ctx, repo, days, apply):
-    for agent in ws.AGENTS:
-        base = repo.base(agent)
-        if not base.is_dir():
-            continue
-        tag = f"{repo.key}-{agent}"
-        # Run locks cover this driver's tasks only; a process whose cwd is inside the workspace is checked directly.
-        if ws.busy_inside(base):
-            print(f"held       {tag} (a process is running inside this workspace - retry after it ends)")
-            continue
-        for w in ws.workspaces(base):
-            st, age, n = ws.state_of(base, w.name), ws.age_days(w), w.name
-            if st == "collected":
-                print(f"delete     {tag}/{n} (collected, {age}d, {ws.du_h(w)})")
-                if apply:
-                    try:
-                        remove(ctx, repo, base, agent, n)
-                    except ws.DelegateError as e:
-                        note(str(e))
-            elif st == "finished":
-                if age >= days:
-                    print(f"check      {tag}/{n} (finished but not collected, {age}d) - collect it or remove --discard")
-            elif st == "aborted":
-                print(f"check      {tag}/{n} (run ended without a result, {age}d) - read {ws.RECORDS}/{n}/, then remove --discard")
-            elif st == "legacy-record":
-                print(f"old record {tag}/{n} (prompt/answer - candidate to move into runs/; --apply leaves it alone)")
-            elif st == "legacy":
-                print(f"check      {tag}/{n} (workspace of an older script, {age}d, {ws.du_h(w)}) - decide whether to "
-                      f"keep AGY_REPORT.md, then remove --discard")
-            elif st == "running":
-                print(f"running    {tag}/{n}")
-            else:
-                print(f"check      {tag}/{n} (unknown shape - inspect by hand)")
-        for r in sorted((base / ws.RECORDS).iterdir()) if (base / ws.RECORDS).is_dir() else ():
-            if (base / r.name).is_dir() or ws.is_running(base, r.name):
-                continue
-            if ws.read_state(r).get("collected"):
-                print(f"delete     {tag}/{ws.RECORDS}/{r.name} (collected record without a workspace)")
-                if apply:
-                    shutil.rmtree(r)
-            else:
-                print(f"check      {tag}/{ws.RECORDS}/{r.name} (record without a workspace) - read it, then "
-                      f"remove {agent} {r.name} --discard")
-        homes = base / ".homes"
-        for h in sorted(homes.iterdir()) if homes.is_dir() else ():
-            if not h.is_dir() or (base / h.name).is_dir():
-                continue
-            print(f"delete     {tag}/.homes/{h.name} (HOME without an owner, {ws.du_h(h)})")
-            if apply:
-                shutil.rmtree(h)
-        if (base / ".home").is_dir():
-            print(f"delete     {tag}/.home (old shared HOME - accumulates conversation history, {ws.du_h(base / '.home')})")
-            if apply:
-                shutil.rmtree(base / ".home")
-        runs = base / "runs"
-        for r in sorted(runs.iterdir()) if runs.is_dir() else ():
-            if r.is_dir() and ws.age_days(r) > OLD_RUN_DAYS:
-                print(f"old        {r} ({OLD_RUN_DAYS}d+, kept record - a person decides whether to delete)")
-    p = prune_preview(repo.root)
-    if p:
-        print(f"prune      {repo.key}: {p}")
-        if apply:
-            subprocess.run(["git", "-C", repo.root, "worktree", "prune", "-v"], check=False)
 
 
 def cmd_gc(ctx, args):
     _, opts = parse(args, {"--repo": 1, "--all": 0, "--days": 1, "--apply": 0}, 0,
                     "gc [--repo R|--all] [--days N] [--apply]")
-    days = DEFAULT_GC_DAYS
-    if "--days" in opts:
-        if not opts["--days"].isdigit():
-            die(f"--days must be a number: {opts['--days']}")
-        days = int(opts["--days"])
+    what = "--days" if "--days" in opts else "HARNESS_DELEGATE_RUNS_DAYS"
+    days = str(opts.get("--days") or ctx.cfg["HARNESS_DELEGATE_RUNS_DAYS"] or DEFAULT_RUNS_DAYS)
+    if not days.isdigit():
+        die(f"{what} must be a number: {days}")
+    days = int(days)
     if not opts.get("--apply"):
         print("(preview - pass --apply to delete)")
     for repo in ctx.repos(selection(opts)):
-        gc_one(ctx, repo, days, bool(opts.get("--apply")))
+        results.gc_repo(ctx.state_dir, repo, days, bool(opts.get("--apply")))
     return 0
 
 
@@ -699,12 +477,19 @@ def doctor_one(ctx, repo):
         for s in iso.secret_paths(Path.home(), own_he.config_dir()):
             if os.path.exists(s):
                 print(f"  FAIL uid can read a secret: {s}" if backend.can("r", s) else f"  ok   cannot read: {s}")
-    settings, notes = agents.ADAPTERS["agy"].policy("worktree", iso.UidBackend(repo.uid_for("agy")),
-                                                    repo.base("agy") / "workspace")
+        # The work folder sits in the state folder (0711, set by run); everything above it must let the uid pass.
+        above = ctx.state_dir.parent
+        while not above.exists():
+            above = above.parent
+        print(f"  ok   uid can pass through {above}" if backend.can("x", above)
+              else f"  FAIL uid cannot pass through {above}, so it cannot reach its work folder under {ctx.state_dir}")
+    work = ws.work_base(ctx.state_dir, repo, "agy")
+    settings, notes = agents.ADAPTERS["agy"].policy("worktree", iso.UidBackend(repo.uid_for("agy")), work / "workspace")
     temp = [r[len("read_file("):-1] for r in settings["permissions"]["deny"] if r.startswith("read_file(")]
+    print(f"  INFO work folders {ctx.state_dir / 'work' / (repo.key + '-<agent>')}, results {ws.runs_dir(ctx.state_dir, repo)}")
     print(f"  INFO agy file tools denied in temp folders: {' '.join(temp) or '(none)'}")
     for n in notes:
-        print(f"  WARN agy {n}")
+        print(f"  FAIL agy {n}; agy runs are refused until HARNESS_DELEGATE_STATE (user layer) points elsewhere")
     print("  ok   AGENTS.md present" if (root / "AGENTS.md").is_file()
           else "  WARN no AGENTS.md (entry point for external models; see templates/AGENTS.md.template)")
     if (root / "GEMINI.md").is_file() and (root / "AGENTS.md").is_file():

@@ -21,6 +21,7 @@ if [ "$1" = --help ]; then echo "--no-new-privs --inh-caps --bounding-set --reui
 echo "$@" >> "{ctl}/setpriv.log"
 while [ $# -gt 0 ]; do case "$1" in --*) shift ;; *) break ;; esac; done
 if [ -e "{ctl}/deny" ] && [ "$1" = sh ]; then exit 1; fi
+if [ -e "{ctl}/fail-git" ] && [ "$1" = git ]; then echo "git refused (test)" >&2; exit 1; fi
 exec "$@"
 """
 
@@ -125,7 +126,9 @@ class Fixture:
 
     def __init__(self, real_setpriv=False):
         self.real = real_setpriv
-        self.tmp = Path(tempfile.mkdtemp(prefix="delegate-test-"))
+        # /tmp 밖에 둔다: agy 는 /tmp 를 거절당하므로 그 아래의 작업 폴더(이 HOME 의 상태 폴더 안)는 드라이버가 거절한다.
+        # /var/tmp 는 정책이 거절하는 폴더가 아니다.
+        self.tmp = Path(tempfile.mkdtemp(prefix="delegate-test-", dir="/var/tmp" if os.path.isdir("/var/tmp") else None))
         self.ctl = self.tmp / "ctl"
         self.bin = self.tmp / "bin"
         self.home = self.tmp / "home"
@@ -290,8 +293,26 @@ sys.exit(delegate.main(sys.argv[1:]))
     def calls(self, agent):
         return [json.loads(p.read_text()) for p in sorted(self.ctl.glob(f"{agent}-*.json"))]
 
+    @property
+    def state(self):
+        return self.home / ".local" / "state" / "qwreey-delegate"
+
+    @property
+    def runs(self):
+        return self.state / "runs" / "proj"
+
     def base(self, agent):
+        """새 실행의 작업 폴더(상태 폴더 아래)."""
+        return self.state / "work" / f"proj-{agent}"
+
+    def legacy_base(self, agent):
+        """delegate.sh 와 예전 실행이 쓰던 저장소 옆 자리."""
         return self.ws / f"proj-{agent}"
+
+    def out(self, name):
+        """runs/ 에 모인 그 이름의 결과 폴더(하나여야 한다)."""
+        (out,) = [p for p in self.runs.iterdir() if p.name.endswith(f"-{name}")]
+        return out
 
     def rec(self, agent, name):
         return self.base(agent) / ".runs" / name

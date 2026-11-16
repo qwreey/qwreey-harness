@@ -28,6 +28,7 @@ if os.name == "posix":
     import fcntl
     import pwd
 
+PROG = "delegate.py"  # the name messages tell the user to run
 AGENTS = ("agy", "codex")
 NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 STATE_FILE = "state.json"
@@ -91,7 +92,8 @@ class Repo:
         """Agents of this repository whose tasks run as the same uid as agent's (agent itself included)."""
         return [a for a in AGENTS if self.uid_for(a) == self.uid_for(agent)]
 
-    def base(self, agent):
+    def legacy_base(self, agent):
+        """Where delegate.sh and the first driver runs kept workspaces: beside the repository."""
         return Path(os.path.dirname(self.root)) / f"{self.key}-{agent}"
 
 
@@ -256,19 +258,47 @@ def check_name(name):
 
 # ---------- root-owned folders ----------
 def root_dir(path, mode):
-    """Create path with mode if missing; refuse a folder the task side could swap (a link, another owner, writable by
-    group or others). Root writes only into folders that pass this."""
+    """Create path if missing and set mode; refuse a folder the task side could swap (a link, another owner, writable
+    by group or others). Root writes only into folders that pass this."""
     path = Path(path)
     try:
         os.mkdir(path, mode)
-        os.chmod(path, mode)
     except FileExistsError:
         pass
     st = os.lstat(path)
     if not stat.S_ISDIR(st.st_mode) or st.st_uid != os.geteuid() or st.st_mode & 0o022:
         die(f"{path} must be a folder owned by uid {os.geteuid()} that only it can write (found mode "
             f"{stat.filemode(st.st_mode)}, owner {st.st_uid}); fix it by hand", EXIT_REFUSED)
+    if stat.S_IMODE(st.st_mode) != mode:
+        os.chmod(path, mode)
     return path
+
+
+# Folders on the way to a task's copy: the task uid passes through but cannot list them.
+PASS_MODE = 0o711
+PRIVATE_MODE = 0o700
+
+
+def work_base(state_dir, repo, agent):
+    """Where new runs keep their workspaces: <state>/work/<key>-<agent>/ (nothing under the repository's parent)."""
+    return Path(state_dir) / "work" / f"{repo.key}-{agent}"
+
+
+def runs_dir(state_dir, repo):
+    """Where collected results go: <state>/runs/<key>/<date>-<name>/."""
+    return Path(state_dir) / "runs" / repo.key
+
+
+def make_work_base(state_dir, repo, agent):
+    root_dir(state_dir, PASS_MODE)
+    root_dir(Path(state_dir) / "work", PASS_MODE)
+    return root_dir(work_base(state_dir, repo, agent), PASS_MODE)
+
+
+def make_runs_dir(state_dir, repo):
+    root_dir(state_dir, PASS_MODE)
+    root_dir(Path(state_dir) / "runs", PRIVATE_MODE)
+    return root_dir(runs_dir(state_dir, repo), PRIVATE_MODE)
 
 
 def record_dir(base, name):
@@ -363,14 +393,28 @@ def exists_under(base, *parts, kind=None):
     return True
 
 
-def write_new(path, data):
-    """A new file in a root-owned folder, 0600."""
+def write_new(path, data, manifest=None):
+    """A new file in a root-owned folder, 0600. manifest collects (path, sha256) so the copy can be checked later."""
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | _NOFOLLOW, 0o600)
     with os.fdopen(fd, "wb") as f:
         f.write(data)
+    if manifest is not None:
+        manifest.append((Path(path), hashlib.sha256(data).hexdigest()))
 
 
-def copy_tree_at(dir_fd, dst):
+def verify_manifest(manifest):
+    """Paths whose bytes on disk differ from what was written (missing ones included)."""
+    bad = []
+    for path, digest in manifest:
+        try:
+            if hashlib.sha256(Path(path).read_bytes()).hexdigest() != digest:
+                bad.append(path)
+        except OSError:
+            bad.append(path)
+    return bad
+
+
+def copy_tree_at(dir_fd, dst, manifest=None):
     """Copy regular files and folders under dir_fd into dst (root-owned), without links; folders 0700, files 0600."""
     os.makedirs(dst, mode=0o700, exist_ok=True)
     for top, dirs, files, top_fd in os.fwalk(".", dir_fd=dir_fd, follow_symlinks=False):
@@ -382,7 +426,7 @@ def copy_tree_at(dir_fd, dst):
         for f in files:
             data = read_at(top_fd, f)
             if data is not None:
-                write_new(out / f, data)
+                write_new(out / f, data, manifest)
 
 
 def chown_tree(path, uid, gid):
@@ -517,7 +561,7 @@ def live_legacy_runs(repos, agents=AGENTS):
     n = 0
     for repo in repos:
         for agent in agents:
-            base = repo.base(agent)
+            base = repo.legacy_base(agent)
             for w in workspaces(base):
                 if not record_dir(base, w.name).is_dir() and legacy_pid_alive(base, w.name):
                     n += 1

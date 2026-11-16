@@ -91,6 +91,13 @@ class UidBackend:
         return kill_uid(self.uid)
 
 
+def git_as_task(backend, env, wt, *args):
+    """git inside the task's worktree, as the task uid. Its .git file and admin dir belong to that uid, so git run as
+    root there would read config (core.fsmonitor and the like) the task could have written.
+    Returns (returncode or None on timeout, stdout, stderr)."""
+    return backend.run(["git", "-c", f"safe.directory={wt}", "-C", str(wt), *args], env)
+
+
 def uid_processes(uid):
     """Live (not zombie) pids whose real, effective or saved uid is uid. Linux /proc."""
     out = []
