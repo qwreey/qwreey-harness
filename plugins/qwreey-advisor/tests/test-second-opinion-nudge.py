@@ -86,11 +86,16 @@ check("같은 서명(숫자만 다름) 2회 → stuck 알림, mid 는 sonnet", "
 check("3회째 → 조용", fail_ev("s5", "Exit code 1\nsrc/a.luau(15,9): TypeError: x") == "")
 check("grep 의 exit 1 은 무시", fail_ev("s6", "Exit code 1", "grep foo x") == "" and fail_ev("s6", "Exit code 1", "grep foo x") == "")
 
-stop = lambda sid, env=None, **kw: run({"hook_event_name": "Stop", "session_id": sid, "cwd": HI, "stop_hook_active": False, **kw}, env)
+stop = lambda sid, env=None, **kw: run({"hook_event_name": "Stop", "session_id": sid, "cwd": HI, "stop_hook_active": False,
+                                         "last_assistant_message": "Done: changed the parser.", **kw}, env)
 check("Stop 기본 꺼짐", stop("s7") == "")
 env_on = dict(ENV, HARNESS_REVIEW_STOP="1")
 check("Stop 켜면 알림", "Turn ending" in stop("s8", env_on))
 check("stop_hook_active 면 조용", stop("s9", env_on, stop_hook_active=True) == "")
+check("빈 답이면 조용", stop("s9b", env_on, last_assistant_message="") == "")
+check("오류·한도 알림이면 조용", stop("s9c", env_on, last_assistant_message="Prompt is too long") == "")
+check("사용자에게 묻는 답이면 조용", stop("s9d", env_on, last_assistant_message="Which one do you want?\n1. A\n2. B") == "")
+check("굵은 질문 끝도 질문", stop("s9e", env_on, last_assistant_message="**어느 쪽으로 할까요?**") == "")
 
 plan = lambda sid, text, mode: run({"hook_event_name": "PreToolUse", "session_id": sid, "cwd": HI, "tool_name": "ExitPlanMode",
                                      "tool_input": {"plan": text}}, dict(ENV, HARNESS_REVIEW_PLAN=mode))

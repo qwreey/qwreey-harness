@@ -1,13 +1,13 @@
 # qwreey-operator 동작 상세
 
-플러그인은 두 가지로 이루어진다: 메인 세션에 넣는 규약(`context/ambient.md`, 서브에이전트에는 모델 줄만 담은 `context/subagent.md`)과 알림 훅 `delegate-nudge`. 스킬과 에이전트 정의는 없다. 무엇도 막지 않는다.
+플러그인은 두 가지로 이루어진다: 메인 세션에 넣는 규약(`context/ambient.md`, 서브에이전트에는 모델 줄과 끝맺음 줄을 담은 `context/subagent.md`)과 알림 훅 `delegate-nudge`. 스킬과 에이전트 정의는 없다. 무엇도 막지 않는다.
 
 ## 규약 주입
 - 훅: `SessionStart`, matcher `startup|resume|clear|compact` → `hooks/ambient.py`. `SubagentStart` → `hooks/ambient.py SubagentStart`.
 - `context/ambient.md` 를 `<plugin name="qwreey-operator">…</plugin>` 로 감싸 `additionalContext` 로 낸다. compact 요약 과정에서 규약이 빠질 수 있어 compact 뒤에도 다시 넣는다.
 - 태그 끝에 이 세션의 `nonce="…"` 속성을 달고, 같은 이벤트의 규칙 줄을 이 훅이 먼저 맡으면 블록 맨 앞에 싣는다(`hooks/harness_nonce.py`, 규약은 `home/.claude/HOOK-MESSAGES.md` 2번).
 - `PreCompact`(manual·auto) → `hooks/ambient.py PreCompact`: 요약기에게 `Omit the <plugin name="qwreey-operator"> block from the summary; it is re-injected after compaction.` 한 줄을 일반 stdout 으로 낸다. compact 뒤에 다시 넣으므로 요약에 남은 사본은 중복이다. 서브에이전트의 compact(`agent_id` 있음)와 규약 파일이 없을 때는 내지 않는다.
-- `SessionStart` 는 메인 세션에만 불린다. `SubagentStart` 는 `context/subagent.md`(모델 줄 하나)만 싣는다. 서브에이전트도 다른 서브에이전트를 띄우므로 모델 규칙은 같이 가야 하고, 넘길 경계·병렬·확인 줄은 메인의 일이라 싣지 않는다. fork 는 부모 맥락을 물려받으므로 건너뛴다.
+- `SessionStart` 는 메인 세션에만 불린다. `SubagentStart` 는 `context/subagent.md`(모델 줄과 끝맺음 줄)만 싣는다. 서브에이전트도 다른 서브에이전트를 띄우므로 모델 규칙은 같이 가야 하고, 넘길 경계·병렬·확인 줄은 메인의 일이라 싣지 않는다. 끝맺음 줄은 자식 에이전트·백그라운드 명령의 결과를 모으고 남은 것을 멈춘 뒤 보고하라는 것이다. 서브에이전트가 "기다리는 중" 으로 끝내면 그 결과를 받을 쪽이 없고, 보고 뒤에 남은 백그라운드 작업은 그 서브에이전트 작업을 끝나지 않은 채로 둔다. 기본 지침(Agent·Bash 도구 설명, 서브에이전트 시스템 프롬프트, SubagentHandback 의 "do everything else first")은 자식과 백그라운드 작업을 거두라고 하지 않는다. fork 는 부모 맥락을 물려받으므로 건너뛴다.
 - 파일이 없거나 읽기에 실패하면 아무것도 내지 않는다. 크기는 약 2KB(약 550 토큰).
 - `hooks/ambient.py` 은 저장소 `lib/ambient.py` 의 바이트 사본이다(고치지 말고 정본을 고친 뒤 `python3 -I tools/sync-copies.py --apply`). 플러그인마다 다른 것은 `context/ambient.json`(`plugin`, `events`)에 둔다. 끄기 스위치는 없다. SessionStart 훅은 인자 없이 불리므로 이벤트는 입력의 `hook_event_name` 으로 정해진다.
 
