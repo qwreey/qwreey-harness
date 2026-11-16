@@ -43,6 +43,13 @@ The prefix `DEFAULT_` promises an override. A value nothing overrides is a plain
 | `@dup-ok: <reason>` | line comment on one of the 3 lines above the list | the overlap is not one fact; the reason must be a reason ("later", "TODO", "-" are not) |
 | `why not <library>: <reason>` | first 10 lines of a hand-written module | the library was considered and rejected; not checked |
 
+The two copy markers write a sibling repo differently; a mix such as `../statuslib:src/statuses.py` resolves under neither and is reported as not resolving.
+
+| Marker | Same repo | Sibling repo |
+|---|---|---|
+| `@copy-of` | `# @copy-of: src/statuses.py#STATUSES` | `# @copy-of: statuslib:src/statuses.py#STATUSES` (repo name, colon, path in that repo; found under `HARNESS_WORKSPACE`, not checked when it is unset) |
+| `@start-replace` | `# @start-replace: lib/harness_texts.py#OMIT_LINE` | `// @start-replace: ../claude-doctor/lib/harness_texts.py#OMIT_LINE` (a plain path from this repo's root; no colon form) |
+
 Check behavior: `@copy-of` and `@start-replace` must resolve; a file copy must be byte-identical to its source, a value copy must hold the same strings as `NAME` there, a region copy must equal what the canon region renders to. Editing a source (or the lines inside a canon region) lists its copies. `#NAME` is the name as written at the definition (a Luau table key, a module field, a `const`). A copy that is meant to hold fewer strings is not a copy: use `@dup-ok`.
 
 Syntax per language:
