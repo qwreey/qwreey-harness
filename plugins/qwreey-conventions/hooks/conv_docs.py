@@ -110,9 +110,9 @@ DOC_KO_SHARE = 0.1  # 기존 줄 중 한국어 줄이 이보다 많으면(3줄 �
 MD_PATH = re.compile(r"[^\s`'\"()<>\[\]]+\.md\b")
 DOC_HINT = {"history marker": "keep the current fact or instruction and move dates, ids, rounds, who decided and change narration to "
                               "the commit message or an existing ledger",
-            "language mismatch": "write it in English, since a model reads this file; wording shown to the user as is can stay "
-                                 "Korean inside quotes",
-            "ledger id path": "the .md file named on the line does not ship with this document; name a ledger file inside %s, "
+            "language mismatch": "write it in English, since a model reads this file (wording shown to the user as is can stay "
+                                 "Korean inside quotes)",
+            "ledger id path": "the .md file named next to the id does not ship with this document, so name a ledger file inside %s "
                               "or drop the id"}
 
 
@@ -185,9 +185,9 @@ def doc_shape(text, added, path, rel, pub):
             probs = description_problems(d[2])
             if probs:
                 out.append((d[0] + 1, "skill description"))
-                det["skill description"] = ("; ".join(probs) + ". Write what it does, then when to use it (\"Use when ...\"), in English "
-                                            "and third person, with any Korean trigger phrases at the end; a skill with "
-                                            "`disable-model-invocation: true` takes a one-line menu description instead")
+                det["skill description"] = (", ".join(probs) + ". Write what it does, then when to use it (\"Use when ...\"), in English "
+                                            "and third person, with any Korean trigger phrases at the end (a skill with "
+                                            "`disable-model-invocation: true` takes a one-line menu description instead)")
     rows = doc_lines(text)
     old = [korean_line(l) for i, l in rows if i not in added and l.strip()]
     if not (sum(old) >= 3 and sum(old) > DOC_KO_SHARE * len(old)):
