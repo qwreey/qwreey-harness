@@ -150,7 +150,7 @@ class Stale(unittest.TestCase):
         self.assertIn("실행 중입니다", out["systemMessage"])
         self.assertNotIn("멈췄", out["systemMessage"])
         ctx = run(STALE, {"hook_event_name": "UserPromptSubmit", "session_id": "s1"}, self.env)
-        self.assertIn('level="info"', ctx["hookSpecificOutput"]["additionalContext"])
+        self.assertIn('level="warn"', ctx["hookSpecificOutput"]["additionalContext"])
 
     def test_progress_resets_and_exclusions(self):
         env = {**self.env, "HARNESS_Q_STALE_IDLE_MIN": "5", "HARNESS_Q_STALE_AGE_MIN": "0", "HARNESS_Q_STALE_LONG_MIN": "999"}
