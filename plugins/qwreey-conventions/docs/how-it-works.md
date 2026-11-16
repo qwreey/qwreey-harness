@@ -54,6 +54,22 @@
 - Stop 이 모든 호출자 기록과 reuse-check 의 기록(`<session>.reuse.<who>.json`)을 합쳐 사용자에게 한 줄을 `systemMessage` 로 보인다. 직전 보고와 같으면 보이지 않는다. 파일은 5개까지. 사본이 원본과 다르면 둘째 줄이 붙는다.
 - `systemMessage` 를 쓰는 이유: 모델을 거치지 않아 비용이 없고 빠지지 않는다. Stop 의 `additionalContext` 나 `decision` 은 턴을 이어 가게 해 매번 모델 호출과 보고 재작성 비용이 든다.
 
+## 파일 전체 검사, 기계적 고치기 (`scripts/conventions-scan.py`)
+훅이 아니라 사람이나 모델이 부르는 명령이다. "기존 문제도 정리해줘" 를 실제로 하려고 있다: 훅은 추가한 줄만 보고 남은 문제는 세기만 한다.
+```bash
+python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py scan [경로...] [--json] [--category symbol ...] [--summary]
+python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py fix [경로...] --dry-run   # unified diff 만, 쓰지 않는다
+python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py fix [경로...]
+```
+- 검사: `conventions-check.py` 의 함수를 불러 모든 줄에 돌린다. 확장자 표, 제외, 생성 파일 표시, `.claude/conventions.json` 이 훅과 같다. 경로를 안 주면 저장소 전체, git 이면 `git ls-files -co --exclude-standard` 라 무시 파일은 보지 않는다. 주석 언어 기준은 파일 전체 다수(없으면 `comment_language`, 형제 파일).
+- 출력: `경로:줄: 범주: 내용`, 범주별, 파일별 수, `--fix` 로 고칠 수 있는 추정. `--json` 은 `findings`, `needs_judgment`, `diffs`, `summary`. 종료 코드 0 = 남은 문제 없음, 1 = 있음, 2 = 사용법 오류.
+- 고치는 것: 코드 파일 주석 안의 non-keyboard symbol 과 invisible character, 모델용 문서 본문의 invisible character(훅이 문서의 기호는 보지 않으므로 고치지도 않는다). 주석 안의 인라인 코드와 URL, 따옴표로 감싼 한 글자, 지시자 줄, 문서의 frontmatter, 코드 펜스, 인라인 코드, URL, 경로 토큰은 그대로 둔다.
+- 대체: 대시는 ` - `(숫자 사이 en dash, minus 는 `-`), 가운뎃점은 `, `(조각 맨 앞이면 `-`; `/` 는 곱을 나눗셈으로 바꿀 수 있어 쓰지 않는다), `…` 는 `...`, 화살표는 `->` `<-` `<->` `=>`, 곡선 따옴표는 곧은 따옴표, `§` 는 지운다, 동그라미 숫자는 `1)`, 전각은 ASCII, NBSP 는 공백, 그 밖의 보이지 않는 문자는 지운다(이모지 옆 ZWJ 와 파일 맨 앞 BOM 은 둔다). 규칙 전체는 스크립트 머리 주석.
+- 사본(머리의 `@copy-of:` 로 다른 파일을 가리키는 파일, 정본이 아닌 `@start-replace` 영역)은 고치지 않고 `copies left unfixed` 로 알린다. 정본을 고치고 `tools/sync-copies.py --apply` 로 옮긴다. 사본을 따로 고치면 `--check` 가 깨진다.
+- 판단이 필요한 것(이력, Ref 꼬리, 이스케이프, 언어, 이모지, 상자 그림, 표에 없는 기호, 코드 줄의 보이지 않는 문자)은 고치지 않고 "needs judgment" 로 남긴다.
+- 토큰 가드: 고친 뒤 렉서로 다시 읽어 주석 밖 글자와 줄마다 주석 조각 수가 원본과 같아야 쓴다. 문서는 frontmatter, 펜스 줄, 보호 토큰이 같아야 한다. 다르면 쓰지 않고, 쓴 뒤 다시 읽어 어긋나면 원본 바이트로 되돌린다(`rejected`). 예: HTML 주석의 `-→` 를 `->` 로 바꾸면 `-->` 가 되어 주석이 일찍 닫히므로 거절된다.
+- 렉서(`hooks/conv_lex.py`)는 주석 조각마다 열 위치(`s`)도 돌려준다. 고치기와 가드가 이것으로 주석 안만 바꾼다.
+
 ## 사본 검사 (`reuse-check.py`)
 - C1: `@copy-of: <경로>[#이름]` 사본이 원본과 같은가(파일은 바이트, 값은 문자열 묶음). 풀리지 않거나 다르면 알린다.
 - C2: 원본을 고치면 그것을 가리키는 사본 목록을 알린다.
@@ -90,6 +106,7 @@ auto memory 디렉터리(`<config>/projects/*/memory/` 또는 `autoMemoryDirecto
 ## 테스트
 ```bash
 python3 -I plugins/qwreey-conventions/tests/test-conventions-check.py
+python3 -I plugins/qwreey-conventions/tests/test-conventions-scan.py
 python3 -I plugins/qwreey-conventions/tests/test-structure-reminder.py
 python3 -I plugins/qwreey-conventions/tests/test-reuse-check.py
 python3 -I plugins/qwreey-conventions/tests/test-memory-placement.py

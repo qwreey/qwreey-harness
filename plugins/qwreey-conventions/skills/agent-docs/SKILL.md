@@ -18,6 +18,8 @@ The notice names a file and the line numbers you added, with the category. Fix t
 2. A sentence that only records how the rule came about moves out (below).
 3. Do not touch lines you did not add, and do not start a cleanup of the whole file unprompted. Bulk cleanup is for when the user signals there is room for it. Old problems in the files you edited are counted quietly and shown to the user once at turn end as one Korean line; the hook shows it, you do not repeat it.
 
+For a cleanup the user asked for, `python3 -I "${CLAUDE_SKILL_DIR}/../../scripts/conventions-scan.py" scan [paths]` lists every flagged line in whole documents, so you need not read each file to find them; its `fix` only removes invisible characters from prose, and the history lines are yours to rewrite.
+
 If the flagged text is a deliberate exception (for example a trigger phrase that must be quoted), leave it and mention it once in your final report.
 
 Example. Before: `Since 2026-11-10 (audit/18) the hook only reads added lines; previously it scanned whole files.` After: `The hook reads only the lines added by the current edit.` The dates, the audit path and the old behavior go to the commit message.

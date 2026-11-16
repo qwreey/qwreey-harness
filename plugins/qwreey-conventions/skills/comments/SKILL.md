@@ -117,4 +117,6 @@ Write for a person reading in a diff or a terminal.
 
 Fix only lines you touch anyway. Do not rewrite old comments in bulk or start a cleanup pass unprompted, because a diff full of unrelated comment edits hides the real change. A bulk cleanup is for when the user signals there is room for it.
 
+For such a cleanup, run `python3 -I "${CLAUDE_SKILL_DIR}/../../scripts/conventions-scan.py" scan [paths]` (the hook's checks on every line of every file, so you need not read files to find problems), then `fix --dry-run` and `fix`, which replace only unambiguous symbols and invisible characters inside comments and verify that no code changed; rewrite what it lists as needs judgment yourself.
+
 Old comment problems in the files you edited are counted quietly and shown to the user once at the end of the turn, as one Korean line (`손댄 파일에 기존 주석 문제가 남아 있음: a.luau(이력 3, 기호 12) ...`). The hook shows it itself; you do not need to repeat it. A subagent adds nothing, since the main session's line already includes subagent edits.

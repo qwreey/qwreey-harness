@@ -7,21 +7,24 @@ FAMILY = {".luau": "lua", ".lua": "lua", ".ts": "c", ".tsx": "c", ".js": "c", ".
 
 
 def lex(text, fam):
-    """줄마다 {"c": [주석 조각 문자열...], "code": 코드나 문자열이 있는가} 를 돌려준다. 주석은 줄 전체나 일부일 수 있다."""
+    """줄마다 {"c": [주석 조각 문자열...], "s": [조각의 (시작, 끝) 열 위치...], "code": 코드나 문자열이 있는가} 를 돌려준다.
+    주석은 줄 전체나 일부일 수 있다. 조각은 여닫는 표식을 뺀 본문이고, s 는 고치는 도구(scripts/conventions-scan.py)가 주석 안만 바꾸려고 쓴다."""
     lines = text.split("\n")
     out = []
     state = None  # None | ("block", close) | ("str", close)
     for s in lines:
-        row = {"c": [], "code": False}
+        row = {"c": [], "s": [], "code": False}
         pos, n = 0, len(s)
         while pos < n:
             if state and state[0] == "block":
                 j = s.find(state[1], pos)
                 if j < 0:
                     row["c"].append(s[pos:])
+                    row["s"].append((pos, n))
                     pos = n
                 else:
                     row["c"].append(s[pos:j])
+                    row["s"].append((pos, j))
                     pos = j + len(state[1])
                     state = None
                 continue
@@ -46,6 +49,7 @@ def lex(text, fam):
             kind, a, b = r  # kind: line|block|str|strline, a: 닫는 표식(또는 None), b: 여는 표식 길이
             if kind == "line":
                 row["c"].append(s[pos + b:])
+                row["s"].append((pos + b, n))
                 pos = n
             elif kind == "block":
                 state = ("block", a)

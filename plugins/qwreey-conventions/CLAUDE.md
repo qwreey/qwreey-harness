@@ -3,7 +3,8 @@
 Comment, model-doc, copy and structure conventions: skills (`skills/`), path-scoped rules (`rules/`), and notice hooks (`hooks/`). How it fits together: `docs/how-it-works.md`.
 
 ## Where things are
-- `hooks/hooks.json`: every hook registration. Main scripts: `conventions-check.py` (added-line checks, Stop report), `reuse-check.py` + `reuse_sets.py`, `structure-reminder.py`, `rules_inject.py`, `reply_language.py`, `memory-placement.py`, `bash-bypass-reminder.py`. Shared helpers: `conv_env.py` (off switches, config dir), `conv_lex.py` (comment lexer), `conv_edit.py`.
+- `hooks/hooks.json`: every hook registration. Main scripts: `conventions-check.py` (added-line checks, Stop report), `reuse-check.py` + `reuse_sets.py`, `structure-reminder.py`, `rules_inject.py`, `reply_language.py`, `memory-placement.py`, `bash-bypass-reminder.py`. Shared helpers: `conv_env.py` (off switches, config dir), `conv_lex.py` (comment lexer, also returns comment column spans), `conv_edit.py`.
+- `scripts/conventions-scan.py`: whole-file `scan` and mechanical `fix` for existing problems (not a hook). It imports the check functions from `hooks/conventions-check.py`, so a check change there changes the scan too; `tests/test-conventions-scan.py` covers it, including the token guard that refuses a fix touching anything outside comments.
 - A rule (`rules/*.md`) is a few lines that point to its skill; the skill holds the full convention. Change both together.
 - `README.md` is for people deciding whether to install; technical detail goes in `docs/how-it-works.md`.
 
