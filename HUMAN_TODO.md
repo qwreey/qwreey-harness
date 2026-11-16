@@ -51,7 +51,7 @@
   - auto 분류기가 외부 코드 실행을 거부했다. 허용 규칙을 추가하거나 사용자가 직접 실행해야 한다.
 - [ ] codex worktree 모드 사용 여부 결정
   - 이 호스트에서 codex 샌드박스가 bwrap 네임스페이스를 만들지 못해 셸 실행이 안 된다.
-  - 열려면 `DELEGATE_CODEX_SANDBOX=danger-full-access` 를 써야 한다. 그대로 두면 empty 모드만 쓴다.
+  - 열려면 `~/.claude/harness.env` 에 `HARNESS_DELEGATE_CODEX_SANDBOX=danger-full-access` 를 써야 한다. 그대로 두면 empty 모드만 쓴다.
 - [ ] stl-luau, tbox: `.claude/worktrees` 를 `.git/info/exclude` 로만 무시 중이다. `.gitignore` 로 옮길지 결정한다(각 세션 몫).
 - [ ] .claude/audit/34 프로브가 남긴 `~/.claude/plugins/data/probe-inline/`(빈 폴더)와 `~/.claude/projects/-tmp-probe-conv-*` 정리
 - [ ] 세션 기록 실측이 남긴 `~/.claude/projects/-tmp-sl-hookproj-omyV*` 디렉터리 2개 정리
@@ -71,6 +71,12 @@
   3. `tools/home-sync.sh diff` 로 검토한 뒤 `apply` (0009 가 세 플러그인을 켠다. `HARNESS_DELEGATE_REGISTRY` 경로도 바뀐다)
   4. `/reload-plugins` 또는 새 세션. 확인: `/qwreey-sessions:checkpoint` 가 보이고, 다른 저장소 파일을 고치려 할 때 workspace 게이트가 뜬다
   - 첫 정본 delegate 실행 전에 `tbox-agy` 에 61000 소유로 남은 파일을 지운다(tbox uid 는 61003)
+- [ ] qwreey-delegate 0.2.0(Python 드라이버로 전환: SKILL 이 `delegate.py` 를 부르고, 작업 폴더·결과가 `~/.local/state/qwreey-delegate` 로)과 qwreey-proc-guard 0.1.6(`delegate.py` 명령도 통과) 갱신. 설치본은 플러그인 캐시 사본이라 갱신 전까지 세션은 옛 `delegate.sh` 본문을 쓴다. 순서:
+  1. `claude plugin marketplace update claude-doctor-market`
+  2. qwreey-proc-guard 를 먼저, 그다음 qwreey-delegate 를 갱신한다(거꾸로 하면 그 사이 무거운 낱말이 든 `delegate.py` 명령을 옛 proc-guard 가 막을 수 있다)
+  3. 돌고 있는 위임이 없을 때 `/reload-plugins` 또는 새 세션. 확인: `python3 -I <스킬>/scripts/delegate.py doctor --all` 에 FAIL 이 없다
+  4. `tools/home-sync.sh diff` 로 harness.env 의 위임 주석 예시를 보고 `apply`(값은 바뀌지 않는다)
+  - 저장소 옆 옛 작업공간(`/code/Projects/*-agy`, `*-codex`)은 새 드라이버의 `gc` 가 목록만 보이고 지우지 않는다. 위 `.home` 정리 항목과 함께 읽고 지운다
 - [ ] 전역 CLAUDE.md 지우기: 정본에서 빠졌고 내용은 플러그인 주입으로 옮겼다(q·qwreey-operator·qwreey-advisor 의 `context/`, qwreey-sessions PreCompact). 플러그인을 갱신하고 `tools/home-sync.sh diff`·`apply` 한 뒤 `rm ~/.claude/CLAUDE.md`. home-sync 는 MANIFEST 에서 빠진 파일을 지우지 않고 `status` 에 고아로 보인다
 - 새 정본 변경(rules, settings 마이그레이션 등)이 생기면 다시 `tools/home-sync.sh diff` 로 검토하고 `apply` 한다. 이때도 같은 백업이 생긴다.
 

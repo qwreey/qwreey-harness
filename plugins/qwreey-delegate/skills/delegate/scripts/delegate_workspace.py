@@ -1,16 +1,19 @@
 """Registry, work folders, run records and locks of the delegate driver (delegate.py).
 
-Layout, the one delegate.sh uses plus a record folder:
-  <dirname(root)>/<key>-<agent>/            root-owned base
+Layout:
+  <state>/work/<key>-<agent>/               root-owned base (work_base)
     <name>/                                 the task's copy (worktree or empty folder), owned by the task uid
     <name>/.delegate/                       where the task writes report.md / last-message.md
     .homes/<name>/                          the task's HOME, owned by the task uid
-    .hooks/pre-push, runs/<date>-<name>/    root-owned
-    .runs/<name>/                           this driver's record, root-owned 0700: state.json, run.lock, prompt.md,
-                                            meta.txt, stdout.txt, report.md (snapshot), guard.txt, exit
-Everything below <name>/ and .homes/<name>/ is the task's, so root never writes there after the chown and reads there
-only fd-relative with O_NOFOLLOW from a directory fd it opened on the root-owned base (read_under, copy_tree_at).
-delegate.sh runs keep their records in <name>/.delegate/{pid,exit,collected}; they are read that way, never written.
+    .hooks/pre-push                         root-owned
+    .runs/<name>/                           the run's record, root-owned 0700: state.json, run.lock, prompt.md,
+                                            meta.txt, stdout.txt, stderr.txt, report.md (snapshot), guard.txt, exit
+  <state>/runs/<key>/<date>-<name>/         collected results (runs_dir), root-owned 0700
+The old location beside the repository, <dirname(root)>/<key>-<agent>/ with its own runs/, has the same base shape
+(Repo.legacy_base). Everything below <name>/ and .homes/<name>/ is the task's, so root never writes there after the
+chown and reads there only fd-relative with O_NOFOLLOW from a directory fd it opened on the root-owned base
+(read_under, copy_tree_at). Runs of the old shell script keep their records in <name>/.delegate/{pid,exit,collected};
+they are read that way, never written.
 """
 import datetime
 import hashlib

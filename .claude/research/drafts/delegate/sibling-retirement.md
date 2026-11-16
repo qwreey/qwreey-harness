@@ -7,7 +7,7 @@ status: active
 
 # 형제 저장소 위임 사본 걷어내기
 
-정본: `plugins/qwreey-delegate/skills/delegate/`(SKILL.md, scripts/delegate.sh, registry.tsv, templates/). 각 저장소 세션이 자기 저장소에서 대조하고 지운다. 이 문서는 읽기 전용 대조(2026-11-13)의 결과다.
+정본: `plugins/qwreey-delegate/skills/delegate/`(SKILL.md, scripts/delegate.py 와 그것을 부르는 scripts/delegate.sh, registry.tsv, templates/). 각 저장소 세션이 자기 저장소에서 대조하고 지운다. 이 문서는 읽기 전용 대조(2026-11-13)의 결과다.
 
 ## 공통
 
@@ -43,7 +43,7 @@ status: active
   - 좁은 버그 사냥 범위의 예(nil 구멍과 `n` 불변식, 별칭 연산)와 "여덟 라운드 리뷰" 사례는 사본 SKILL 에만 있다. 필요하면 저장소 conventions 의 "리뷰" 절로.
 - 확인할 차이
   - 사본에는 `choom` 이 없었다(정본은 모두에 적용). `--ref`, 과제별 HOME 은 정본에 있다.
-  - 사본 SKILL 의 "한 번에 하나"는 정본의 `DELEGATE_MAX_CONCURRENT=1` 로 강제된다.
+  - 사본 SKILL 의 "한 번에 하나"는 정본의 `HARNESS_DELEGATE_MAX_CONCURRENT=1` 로 강제된다.
   - 사본 SKILL 의 "돌고 있는 동안 스크립트를 고치지 말 것"은 정본이 자기 사본으로 다시 실행해서 필요 없다.
   - stl-luau 의 `.claude/audit/agy/*` 보관 관례는 정본 SKILL 5단계와 같다.
   - `-scratch` 를 근거로 인용한 문서가 있으면 저장소 안으로 옮긴다(정본 SKILL "Workspaces").

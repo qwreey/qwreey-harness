@@ -36,6 +36,7 @@ TOOLKIT_EXECUTORS = {
 }
 PREFIX_WORDS = {"(", "{", "time", "nice", "env", "command", "exec", "nohup"}
 EXEMPT_HEADS = {"git", "gh"}
+DELEGATE_SCRIPTS = ("delegate.py", "delegate.sh")  # file names of qwreey-delegate's driver; see main()
 
 
 HEREDOC = re.compile(r"<<(?!<)-?\s*(?:'([A-Za-z_]\w*)'|\"([A-Za-z_]\w*)\"|\\?([A-Za-z_]\w*))")
@@ -155,9 +156,10 @@ def main():
     if not wrap:  # 래퍼를 끈 환경이거나 래퍼 프로그램이 없다(choom 없는 sandbox) — 막지 않는다
         return 0
     executors, heavy = rules(env)
-    # delegate.sh / agy-delegate.sh puts choom in front of its own setpriv launch, so the whole agy tree
-    # is already the preferred victim; its prompt text may mention bench/perf freely.
-    if wrap[0] in cmd or "delegate.sh" in cmd or not (heavy.search(cmd) or TIMING.search(cmd)):
+    # The delegate driver (delegate.py, its delegate.sh wrapper, the old agy-delegate.sh) puts choom in front of its
+    # own setpriv launch, so the whole agent tree is already the preferred victim; its prompt text may mention
+    # bench/perf freely.
+    if wrap[0] in cmd or any(d in cmd for d in DELEGATE_SCRIPTS) or not (heavy.search(cmd) or TIMING.search(cmd)):
         return 0
     segs = list(segments(cmd))
     if segs and segs[0][0] in EXEMPT_HEADS:

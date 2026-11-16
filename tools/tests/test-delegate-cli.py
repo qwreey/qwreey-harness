@@ -427,7 +427,7 @@ class Lifecycle(Base, LifecycleChecks):
     def test_agy_empty_falls_back_to_stdout(self):
         f = self.f
         p = self.ok("run", "agy", "e1", f.prompt, "--mode", "empty", "--model", "m-x", "--timeout", "30")
-        self.assertIn("agy empty mode is unverified", p.stderr)
+        self.assertNotIn("warning", p.stderr)
         out = f.out("e1")
         self.assertEqual((out / "report.md").read_text(), "agy stdout answer")
         self.assertIn("some log line", (out / "stderr.txt").read_text(), "stderr 는 따로")

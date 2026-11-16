@@ -55,7 +55,7 @@ DEFAULTS = {
     "HARNESS_DELEGATE_CODEX_SANDBOX": "",
     # 비어 있지 않으면 위임 작업에 빈 환경 대신 지금 환경을 넘긴다(토큰 같은 변수가 샐 수 있다).
     "HARNESS_DELEGATE_KEEP_ENV": "",
-    # 저장소를 넘는 위임 상태(동시 실행 슬롯) 폴더. 비면 플랫폼 상태 폴더(Linux ~/.local/state/qwreey-delegate).
+    # 위임 상태 폴더(작업 폴더 work/, 결과 runs/, 동시 실행 슬롯과 잠금). 비면 플랫폼 상태 폴더(Linux ~/.local/state/qwreey-delegate).
     "HARNESS_DELEGATE_STATE": "",
     # gc 가 지우는 위임 결과(<상태 폴더>/runs/)의 나이(일). 모든 저장소의 결과를 지우므로 사용자만 정한다.
     "HARNESS_DELEGATE_RUNS_DAYS": "14",

@@ -2,7 +2,10 @@
 
 <!-- This file holds no knowledge; it only points at the canonical sources. Restating decisions or structure here makes
      it stale. Keep it under 6KB. Role and reporting rules (measured vs estimated, suggestions are not decisions) are
-     added by the delegate skill's preamble on every run, so do not write them here. -->
+     added by the delegate skill's preamble on every run, so do not write them here.
+     Paths outside the worktree (the read exceptions below): agy's file tools refuse them, so the preamble has the
+     model read them with a shell command, which only worktree mode allows. In empty mode nothing outside is readable;
+     the main session pastes what is needed into the task. -->
 
 <One line: what this repository is>. The main worker is a Claude session; you were called to give a different view on a narrow question.
 

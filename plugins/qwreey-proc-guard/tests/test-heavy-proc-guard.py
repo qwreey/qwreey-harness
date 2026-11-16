@@ -83,6 +83,11 @@ for c in ["mkdir -p a/audit && cat > a/s.md <<'EOF'\nbench results\npython3 x\nE
           "cd bench && python3 run.py", "cd luau-kb/bench && python3 -I summarize.py results/a", "cd fuzz; sed -n 1p a.md; ls","A=x/fuzz; cat > $A/f.luau <<'EOF'\nx\nEOF\npython3 ok.py",
           "cat <<EOF > f\nbench\nEOF\npython3 ok.py"]:
     check("false positive passes: " + c, run(c) is None)
+# The delegate driver wraps its own launch in choom; a task name or prompt path may carry a heavy keyword.
+for c in ["python3 -I /p/skills/delegate/scripts/delegate.py run agy bench-hunt /tmp/perf-task.md",
+          "bash /p/skills/delegate/scripts/delegate.sh run codex fuzz-names /tmp/t.md --mode empty",
+          "python3 -I $D/delegate.py gc --all --apply  # after the perf run"]:
+    check("delegate driver passes: " + c, run(c) is None)
 check("timed heredoc then toolkit run denied", denied(run("cat > k.luau <<'EOF'\nlocal t = os.clock()\nEOF\nluau k.luau")))
 check("timed heredoc in an edit script passes", run("python3 - <<'EOF'\ns = s.replace('os.clock()', 'x')\nEOF") is None)
 check("command after heredoc still checked",denied(run("cat <<EOF\nx\nEOF\npython3 fuzz.py")))

@@ -38,7 +38,7 @@ git -C "$R" status --porcelain -- .claude CLAUDE.md GEMINI.md AGENTS.md | grep -
    - 도구 PATH(luau 0.734, stylua 2.5.2)로 `tests/run.luau`가 exit 0인가
    - guard가 `unchanged`인가
    - collect, remove가 되는가
-   - 안 되면 `DELEGATE_KEEP_ENV=1`로 다시 돌리고, 원인을 스크립트에 반영한다.
+   - 안 되면 `HARNESS_DELEGATE_KEEP_ENV=1`(사용자 층)로 다시 돌리고, 원인을 스크립트에 반영한다.
 3. codex empty 모드로 이름 검토 하나를 돌린다. 옛 수동 꼴과 같은 결과 파일이 나오는지 본다.
 4. table-sim의 `.claude/tools/agy-delegate.sh`를 지우고, conventions의 위임 포인터 한 줄을 "다른 모델 계열은 사용자 스킬 `delegate`"로 바꾼다. table-sim에는 프로젝트 스킬 사본이 없다. 커밋은 사용자 확인 뒤에 한다.
 
@@ -47,7 +47,7 @@ git -C "$R" status --porcelain -- .claude CLAUDE.md GEMINI.md AGENTS.md | grep -
 | 대상 | 크기 | 처리 |
 |---|---|---|
 | `quad-agy/naming-1021e`(worktree, 브랜치 `agy/naming-1021e`) | 83M | `AGY_REPORT.md`가 이미 `quad/.claude/audit/naming-devui-*`에 반영됐는지 확인 → `quad-agy/runs/legacy-naming-1021e/`로 복사 → `delegate.sh remove agy naming-1021e --repo quad --discard`. 브랜치 삭제(`--delete-branch`)는 사용자 확인 |
-| `quad-agy/.home`, `stl-luau-agy/.home`, `tbox-agy/.home`, `quad-codex/.home` | 117M + 260M + 228M + 31M | `delegate.sh gc --all --apply`. 그 작업공간 안에 프로세스가 있으면 gc가 스스로 건너뛴다. **옛 스크립트(quad, tbox)는 공유 `.home`을 쓰므로, 그 저장소 세션이 옛 스크립트로 위임 중이면 안 된다** |
+| `quad-agy/.home`, `stl-luau-agy/.home`, `tbox-agy/.home`, `quad-codex/.home` | 117M + 260M + 228M + 31M | Python 드라이버의 gc 는 저장소 옆 옛 자리를 목록으로만 보인다(`delegate.sh gc --all` 의 `stale … .home`). 사용자가 확인한 뒤 손으로 지운다(`HUMAN_TODO.md`). **옛 스크립트(quad, tbox)는 공유 `.home`을 쓰므로, 그 저장소 세션이 옛 스크립트로 위임 중이면 안 된다** |
 | `quad-codex/naming-*`, `run-marker-helper` | 수십 KB | `quad-codex/runs/<날짜>-<이름>/`으로 `mv`(날짜는 mtime이나 디렉터리 이름). gc는 건드리지 않는다 |
 | `stl-luau-scratch/no-self-return/wt`(worktree `proto/no-self-return`) | — | 규약상 `-proto`. stl-luau 세션이 쓰는 중일 수 있으니 4단계 stl-luau 시점에 `git worktree move`(사용자 확인) |
 
@@ -79,7 +79,7 @@ git -C "$R" status --porcelain -- .claude CLAUDE.md GEMINI.md AGENTS.md | grep -
 ### 6. 마무리
 
 - `delegate.sh doctor --all`에서 INFO "옛 사본 남음"이 0개인지 확인한다.
-- `delegate.sh gc --all`에 남은 것이 `runs/`뿐인지 확인한다.
+- `delegate.sh gc --all`에 저장소 옆 옛 자리(`legacy …`)가 남지 않았는지 확인한다.
 - 사용자 레벨 CLAUDE.md에 접미 디렉터리 세 줄(`conventions.md` §1)을 넣는다.
 
 ## 되돌리기

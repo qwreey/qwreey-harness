@@ -44,7 +44,7 @@
     {
       "name": "qwreey-delegate",
       "source": "./plugins/qwreey-delegate",
-      "description": "다른 모델 계열(Gemini agy, OpenAI codex)에게 좁은 질문(근본 원인, 틀 밖 시선, 작명 객관성)을 격리 worktree 에서 맡기는 스킬 qwreey-delegate:delegate. Linux 전용(setpriv, uid 격리, choom)이며 agy·codex CLI 와 각자 구독이 필요하다"
+      "description": "다른 모델 계열(Gemini agy, OpenAI codex)에게 좁은 질문(근본 원인, 틀 밖 시선, 작명 객관성)을 격리 worktree 나 빈 폴더에서 맡기는 스킬 qwreey-delegate:delegate. Linux root 전용(setpriv, 저장소·모델별 uid 격리, choom)이며 agy·codex CLI 와 각자 구독이 필요하다"
     },
     {
       "name": "qwreey-debate",

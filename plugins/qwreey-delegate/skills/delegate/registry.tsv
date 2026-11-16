@@ -1,18 +1,17 @@
-# delegate registry: one delegation uid per repository (backends agy and codex share it).
+# delegate registry: delegation uids per repository, one per agent (agy, codex).
 # Columns: key<TAB>root<TAB>uid<TAB>setup<TAB>note[<TAB>agent uids]
-#   key   : prefix of the workspace name. The workspace is <dirname(root)>/<key>-<backend>/ (e.g. /code/Projects/quad-agy)
+#   key   : repository name in the driver's folders: <state>/work/<key>-<agent>/ and <state>/runs/<key>/
 #   root  : main repository path (working tree root)
 #   uid   : from 61000 upward. No two repositories share a uid, so a task in one cannot modify the other's worktree.
 #           It must not collide with a real user in /etc/passwd (`doctor` checks). agy runs as this uid, and so does
 #           every agent the last column does not name.
-#   setup : command run once inside the new worktree right after it is created (`-` for none). Failure only warns.
-#           delegate.sh runs it as root; delegate.py runs it as the task uid with the task's environment plus mise.
+#   setup : command run once inside the new worktree right after it is created (`-` for none), as the task uid with the
+#           task's environment plus mise. Failure only warns.
 #   note  : free text for humans (`-` when the last column follows)
-#   agent uids : optional, read by delegate.py only, e.g. `codex=61004`: that agent's own uid, so agy and codex of one
-#           repository run side by side without reaching each other's files. Rows without it share the uid column.
+#   agent uids : optional, e.g. `codex=61004`: that agent's own uid, so agy and codex of one repository run side by
+#           side without reaching each other's files. Rows without it share the uid column and run one at a time.
 # A new repository gets the next free uids from `delegate.py register <root>`; on a row without the last column the same
-# command adds it. `delegate.sh register` counts only the uid column and may hand out a uid the last column already
-# uses, so register with delegate.py once that column exists. Edit by hand only while no delegation is running.
+# command adds it. Edit by hand only while no delegation is running.
 # This file is edited in place, so HARNESS_DELEGATE_REGISTRY must point at the git clone copy, not a plugin cache copy.
 quad	/code/Projects/quad	61000	timeout 300 mise exec -- pesde install	codex records for quad also use 61000
 stl-luau	/code/Projects/stl-luau	61001	-

@@ -1,6 +1,6 @@
 # Task prompt templates
 
-The script prepends the preamble (working environment rules). The templates here are the body that goes under `# Task`. Pick one, copy it to scratch and fill it in. Write paths relative to the worktree.
+The driver prepends the preamble (working environment rules). The templates here are the body that goes under `# Task`. Pick one, copy it to scratch and fill it in. Write paths relative to the worktree.
 
 ---
 
@@ -50,7 +50,7 @@ You are reviewing public API names. Judge them from the point of view of the lib
    For each: your pick, a ranked shortlist (you may add one of your own), one or two reasons; flag a name that would mislead.
 ```
 
-- Give the same body to codex (`--mode empty`), agy (`--mode empty`, or worktree while empty mode is unverified) and a sonnet subagent.
+- Give the same body to codex (`--mode empty`), agy (`--mode empty`) and a sonnet subagent.
 - Compare in one table (converge / diverge, with the reasons). The user decides.
 
 ## D. Outside opinion on a design decision (agy, worktree)

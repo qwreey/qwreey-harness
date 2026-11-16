@@ -11,8 +11,8 @@
 
 | 접미 | 정의 | 누가 만들고 지우나 | 안의 꼴 | 수명 |
 |---|---|---|---|---|
-| `-agy` | Gemini(agy) 위임 작업공간 | `delegate.sh`만. 손으로 만들거나 고치지 않는다 | `<이름>/`(detached worktree, 그 저장소 uid 소유), `.homes/<이름>/`, `.hooks/pre-push`, `runs/<YYYYMMDD-HHMM>-<이름>/` | `<이름>/`과 `.homes/<이름>/`은 과제 동안(remove가 지움). `runs/`는 보존 |
-| `-codex` | OpenAI codex 위임 작업공간 | 같음 | 같은 꼴. empty 모드면 `<이름>/`이 worktree가 아니라 빈 디렉터리 | 같음 |
+| `-agy`, `-codex` | 옛 위임 작업공간(Python 드라이버 전의 `delegate.sh` 와 첫 드라이버 실행이 저장소 옆에 만든 것) | 새로 만들지 않는다. 드라이버의 `list`·`collect`·`remove` 가 찾고 `gc` 는 목록만 보인다. 지우는 것은 사용자 | `<이름>/`, `.homes/`, `.home`(옛 공유 HOME), `.hooks/`, `runs/<YYYYMMDD-HHMM>-<이름>/` | 읽고 정리할 때까지 |
+| (상태 폴더) `~/.local/state/qwreey-delegate/` | 위임 작업 폴더와 결과. 저장소 밖이며 `HARNESS_DELEGATE_STATE` 로 옮긴다 | 드라이버만. 손으로 만들거나 고치지 않는다 | `work/<key>-<agent>/{<이름>/, .homes/<이름>/, .hooks/, .runs/<이름>/}`, `runs/<key>/<YYYYMMDD-HHMM>-<이름>/` | 작업 폴더는 `run` 이 결과를 모아 확인한 뒤 지운다(`--keep` 이면 `remove` 가). `runs/` 는 `gc` 가 `HARNESS_DELEGATE_RUNS_DAYS`(14일) 뒤 지운다 |
 | `-scratch` | 사람과 메인 세션의 일회성 실험(프로브 `.luau`, 측정 로그, 참고 저장소 클론) | 메인 세션 또는 사용자 | `<YYYY-MM-DD>-<slug>/`, 참고 클론은 `refs/<이름>/` | 버려도 되는 것만. 남길 가치가 생기면 저장소 안으로 옮긴다 |
 | `-proto` | 메인 세션이 직접 고치는 **시제품 가지의 worktree** | 메인 세션(`git worktree add ../<repo>-proto/<slug> -b proto/<slug>`) | `<slug>/` ↔ 브랜치 `proto/<slug>` | 가지가 합쳐지거나 버려지면 `git worktree remove` |
 | (저장소 안) `.claude/worktrees/` | Claude Code 하네스(`claude --worktree`, `isolation: worktree`)의 몫 | 하네스 | — | 하네스가 정리. `.gitignore`에 `/.claude/worktrees/` 필수(`.claude/audit/04` §5.1) |
@@ -21,13 +21,13 @@
 - `stl-luau-scratch/no-self-return/wt`는 실제 worktree(`proto/no-self-return`)라 규약상 `stl-luau-proto/no-self-return`이 맞다. 빈 `stl-luau-proto/`는 원래 이 용도로 만든 자리로 보인다.
 - `quad-codex/naming-*`는 옛 수동 기록이다. 규약상 `quad-codex/runs/<날짜>-<이름>/`이 맞다.
 - `quad-scratch/quad`(quad 저장소 사본 158MB)는 `-scratch`의 정의(버려도 되는 실험) 밖이다. 같은 저장소의 다른 시점이 필요하면 `-proto` worktree를 쓴다.
-- `-scratch` 안에 worktree를 두지 않는다. `git worktree list`로 찾을 수 있게, worktree는 `-agy`, `-codex`, `-proto`, `.claude/worktrees/` 넷에만 둔다.
+- `-scratch` 안에 worktree를 두지 않는다. `git worktree list`로 찾을 수 있게, worktree는 위임 상태 폴더, `-proto`, `.claude/worktrees/` 셋에만 둔다(옛 `-agy`·`-codex` 에 남은 것은 정리 대상).
 
 이 표는 사용자 레벨 `~/.claude/CLAUDE.md`에 세 줄로 들어간다(PLAN ①). 예:
 
 ```
-- 형제 디렉터리: <repo>-agy / -codex = delegate 스킬 작업공간(손대지 않음), <repo>-scratch = 일회성 실험(근거로 인용 금지 — 남길 것은 저장소 안으로),
-  <repo>-proto/<slug> = 브랜치 proto/<slug> 의 worktree. worktree 는 이 넷과 .claude/worktrees/ 에만 둔다.
+- 형제 디렉터리: <repo>-scratch = 일회성 실험(근거로 인용 금지 — 남길 것은 저장소 안으로), <repo>-proto/<slug> = 브랜치 proto/<slug> 의 worktree.
+  delegate 작업 폴더는 상태 폴더(~/.local/state/qwreey-delegate)에 있다(손대지 않음). worktree 는 이것들과 .claude/worktrees/ 에만 둔다.
 ```
 
 ## 2. GEMINI.md와 AGENTS.md

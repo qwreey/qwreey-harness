@@ -19,7 +19,7 @@ status: active; canonical skill, script and registry moved to plugins/qwreey-del
 | `conventions.md` | `-agy / -codex / -scratch / -proto` 명명 규약, GEMINI.md·AGENTS.md 배치 |
 | `migration.md` | 4벌 걷어내기 순서와 시점 |
 | `portable-isolation.md` | root 없이 macOS·Windows·Linux 에서 돌리는 방안(codex 권한 프로필, agy ACP) |
-| `driver-design.md` | delegate.sh 를 대신할 크로스플랫폼 Python 드라이버 설계(격리 판정, 모드 선택, agy ACP·codex 어댑터, 설정 키, 이전 단계). 사용자 검토용 |
+| `driver-design.md` | delegate.sh 를 대신한 Python 드라이버 설계(격리 판정, 모드 선택, agy print 모드·codex 어댑터, 상태 폴더 작업 위치, 설정 키, 이전 단계 M0-M6) |
 
 ## 1. 핵심 결정
 

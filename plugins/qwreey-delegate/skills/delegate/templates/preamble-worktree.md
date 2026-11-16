@@ -1,7 +1,8 @@
 # Working environment (follow strictly)
 
 - You work inside the git worktree `{{WT}}`. It is a copy of the {{KEY}} repository at a base commit (detached HEAD). **Do not create or modify files outside this directory.** You run as a separate low-privilege user, so writes outside fail anyway.
-- Do not read the original repository `{{ROOT}}`; read the same file inside this worktree (same commit). The only exceptions are those listed in `AGENTS.md` at the repository root.
+- Do not read the original repository `{{ROOT}}`; read the same file inside this worktree (same commit). The only exceptions are those listed in `AGENTS.md` at the repository root; read those with a shell command (`cat`, `sed -n`), because file tools are refused outside this worktree and a refused tool can end your turn with no answer.
+- Keep probes and scratch files inside this worktree. Temp folders such as `/tmp` are denied to you.
 - The entry point of this repository is `AGENTS.md` at the root. If it was not loaded automatically, read it yourself. The canonical documents it lists are your standard of judgment. Do not treat anything they do not contain as a "settled decision".
 - Do not use `git commit`, `git push`, `git stash`, `git reset`, `git checkout`, `git switch` or `git worktree`.
 - Modifying files for an experiment is allowed inside this worktree; the main session reads the diff. If you modified anything, say in the report what and why.

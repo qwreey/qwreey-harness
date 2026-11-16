@@ -156,7 +156,7 @@ ACP 는 쓰지 않는다(사용자 "acp 없이 하는게 맞겠다"). ACP 에서
 | 프로세스 트리 | POSIX `start_new_session` + `killpg`, Windows Job Object(ctypes, 닫히면 종료) [추정, 미측] |
 | 상태 폴더 | `HARNESS_DELEGATE_STATE`, 없으면 Linux `$XDG_STATE_HOME/qwreey-delegate`(기본 `~/.local/state`), macOS `~/Library/Application Support/qwreey-delegate`, Windows `%LOCALAPPDATA%\qwreey-delegate`(동기화되지 않는 로컬 폴더). 슬롯·uid·시작 잠금, 미끼 파일, `work/`, `runs/` 를 둔다 |
 | 작업 폴더 위치 | 모든 백엔드: `<상태>/work/<key>-<agent>/{<name>/, .homes/, .hooks/, .runs/}`, 결과 `<상태>/runs/<key>/`. 모두 root 소유. 작업 uid 가 지나가야 하는 폴더(상태 폴더, `work/`, `<key>-<agent>/`, `.homes/`, `.hooks/`)는 0711(지나가되 목록은 못 봄), 기록·`runs/`·잠금 폴더는 0700, 파일 0600. 상태 폴더의 부모들은 작업 uid 가 지나갈 수 있어야 한다(`doctor` 확인). `/tmp` 가 아닌 까닭: agy 정책이 `/tmp` 를 deny 하므로 그 아래 작업 폴더는 deny 를 빼야 한다(§5.1). 저장소 키가 같은 두 저장소는 registry 가 키 중복을 막으므로 해시를 붙이지 않는다(registry 없는 비uid 환경은 M3 에서 `<key>-<ROOT 해시 8자>` 를 다시 본다). 저장소 옆 옛 자리는 `list`·`collect`·`remove` 가 계속 찾는다 |
-| state.json | 기록 폴더 안, 원자적 쓰기(임시 파일 + `os.replace`). 필드: agent, mode, isolation 백엔드, repo, root, uid, commit, ref, model, effort, pid, started/started_ts/finished, rc, admin, collected, token_refreshed. 기록이 있는 실행은 작업 쪽 `.delegate/` 의 pid·exit·collected 를 보지 않는다(작업이 무엇이든 쓸 수 있다). delegate.sh 의 옛 작업은 그 파일들을 fd 로 읽기만 하고 쓰지 않는다. delegate.sh 는 새 자리를 모르므로 이 드라이버의 실행을 보지 못하고 동시 실행에 세지 않는다: M4 에서 한 번에 넘어간다 |
+| state.json | 기록 폴더 안, 원자적 쓰기(임시 파일 + `os.replace`). 필드: agent, mode, isolation 백엔드, repo, root, uid, commit, ref, model, effort, pid, started/started_ts/finished, rc, admin, collected, token_refreshed. 기록이 있는 실행은 작업 쪽 `.delegate/` 의 pid·exit·collected 를 보지 않는다(작업이 무엇이든 쓸 수 있다). delegate.sh 의 옛 작업은 그 파일들을 fd 로 읽기만 하고 쓰지 않는다. `delegate.sh` 는 이제 `delegate.py` 를 부르는 셈이다. 플러그인 캐시에 남은 옛 본문(갱신 전 설치본)은 새 자리를 모르므로 이 드라이버의 실행을 세지 않는다. 드라이버는 옛 본문의 시작 잠금과 살아 있는 pid 를 세므로 한쪽 방향은 막힌다 |
 
 ## 7. 설정
 
@@ -221,9 +221,9 @@ harness.env 층(`load_layers(ROOT)`) 하나로 읽는다. 옛 `DELEGATE_*` 이�
 | M1 | `delegate.py` 동등 이식(uid 백엔드, agy print, codex 지금 꼴). `delegate.sh` 손대지 않음 | 가짜 에이전트 시험 통과, 같은 runs/ 꼴 |
 | M2 | agy print 모드 정책(ACP 대신): skip 플래그 없음, `--settings` deny·allow, JSON 답과 `denied_actions`, 작업 폴더를 상태 폴더로, run 끝 자동 수집·정리 | uid 아래 실제 agy worktree·empty, codex empty(끝남, `portable-isolation.md`) |
 | M3 | 격리 판정·모드 선택, 비root empty, codex 프로필·자가 시험, 남은 harness.env 키(정본+sync) | 비root 흉내 시험, `doctor --json`. 동료 배포 전 관문: 토큰 회전 실측(§5.3) |
-| M4 | `delegate.sh` 를 셈으로, SKILL·README·how-it-works·plugin.json 요구 사항 갱신(격리 없으면 agy 꺼짐과 `UNISOLATED` 키, agy empty 는 "제한된 사본, 강제 아님", 비uid 작업 위치는 `conventions.md` §1 표에도), 버전 올림 | 세션 재시작 뒤 SKILL 이 새 경로 사용 |
+| M4 | `delegate.sh` 를 셈으로, SKILL·README·how-it-works·plugin.json 요구 사항 갱신(agy empty 는 "제한된 사본, 강제 아님", 상태 폴더 작업 위치는 `conventions.md` §1 표에도), 버전 올림(qwreey-delegate 0.2.0) | 끝(문서·셈·proc-guard 0.1.6). 남은 끝 조건: 사용자가 두 플러그인을 갱신하고 세션을 다시 연 뒤 SKILL 이 `delegate.py` 사용(`HUMAN_TODO.md`). 격리 없을 때 agy 꺼짐과 `UNISOLATED` 키, 비uid 작업 위치의 문서화는 M3 구현과 함께 |
 | M5 | macOS·Win11 실측, §3 표의 [추정] 갱신, agy 기본 재검토 질문 | 실측 기록 추가 |
-| M6 | proc-guard 패턴 갱신 뒤 SKILL 이 `delegate.py` 직접 호출. 셈은 남김(값쌈) | - |
+| M6 | proc-guard 패턴 갱신 뒤 SKILL 이 `delegate.py` 직접 호출. 셈은 남김(값쌈) | M4 와 함께 끝(proc-guard 가 `delegate.py`·`delegate.sh` 둘 다 통과) |
 
 ## 10. 사용자 결정
 
@@ -257,9 +257,8 @@ Q1-Q6 은 권고대로 정했다(사용자 "전부 동의"). Q3 은 그 뒤 "측
 ## 11. 지금 문서·스크립트와 어긋나는 점
 
 - `empty` 의 뜻: 정책(`portable-isolation.md`)은 "필요한 파일만 비밀 없이 복사한 사본", 스크립트·`preamble-empty.md`·`conventions.md` 는 "빈 폴더, 파일을 읽지 말 것"(Q1).
-- `delegate.sh` 의 agy 는 모든 모드에서 `--dangerously-skip-permissions` 라 셸·파일이 다 열린다(uid 아래). 드라이버는 print 정책(§5.1)으로 empty 셸 거절, 임시 폴더 deny.
-- `delegate.sh` 의 작업 폴더는 저장소 옆, 드라이버는 상태 폴더(§6). 옛 자리는 드라이버 gc 가 지우지 않는다.
-- "`agy --sandbox`·codex `-s read-only` 가 cwd 밖을 못 막는다"는 서술이 `delegate.sh` 머리, SKILL "Isolation", how-it-works 에 일반 사실로 있으나 이 호스트(userns 꺼짐) 한정이다.
+- 옛 `delegate.sh` 본문(갱신 전 플러그인 캐시)의 agy 는 모든 모드에서 `--dangerously-skip-permissions` 라 셸·파일이 다 열리고(uid 아래) 작업 폴더가 저장소 옆이다. 저장소의 `delegate.sh` 는 M4 에서 드라이버를 부르는 셈이 됐고, 옛 자리는 드라이버 gc 가 목록만 보인다.
+- "`agy --sandbox`·codex `-s read-only` 가 cwd 밖을 못 막는다"는 이 호스트(userns 꺼짐) 한정이다. SKILL "Isolation"·how-it-works 는 M4 에서 "이 호스트" 로 좁혔다.
 - 경로 고정: `GEMINI_SRC=/code/.gemini`, `CODEX_AUTH=/code/.codex/auth.json`, `SECRETS_PROBE=/code/…`, 설치 기본 `/code/.local/share/mise/installs`(harness_env 기본은 `~/.local/share/mise/installs`).
 - `portable-isolation.md` "드라이버 기본 정책" 의 agy 판정("ACP 서버 시작 로그에 `Terminal sandbox unavailable` 줄이 없다")은 시작 직후에 보면 이 호스트에서도 거짓 양성이다. 줄은 `session/new` 뒤에 찍히고 안 찍힌 로그도 있다. 이 설계 §4.1 이 고친 판정이다. print 모드는 시작 때 그 줄을 찍으므로 [실측], ACP 를 쓰지 않는 드라이버의 판정을 print 모드 시작 로그로 옮길지는 M3 에서 정한다.
 - `portable-isolation.md` 의 "권장 설계" agy 항목(deny 규칙, worktree 안 편집만 허가)은 같은 문서의 뒤 실측으로 성립하지 않는다(문서 스스로 적음). 드라이버 항목의 `O_EXCL` 잠금은 이 설계에서 OS 파일 잠금으로 바꿈.

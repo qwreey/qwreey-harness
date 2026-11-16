@@ -1,7 +1,7 @@
 """Agent adapters of the delegate driver: agy (Gemini, print mode) and codex (OpenAI, `codex exec`).
 
 Each adapter knows its executable, how to fill a task HOME with credentials, the argv of one run and where its
-answer lands. An agy ACP adapter is planned next to AgyPrint; print mode then stays as the uid backend's fallback.
+answer lands. agy runs in print mode only: its ACP server ignores the settings permissions that print mode obeys.
 """
 import json
 import os
@@ -65,8 +65,7 @@ class AgyPrint:
         return Path(cfg[self.home_key])
 
     def check_mode(self, mode, cfg, backend):
-        if mode == "empty":
-            ws.note("warning: agy empty mode is unverified (only worktree mode has been exercised)")
+        pass
 
     def prepare_home(self, cfg, home):
         src = self.credentials(cfg)

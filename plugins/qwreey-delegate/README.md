@@ -4,22 +4,23 @@
 
 ## 무엇이 달라지나
 - 맡기기 전에 무엇을 물을지 한 줄로 알린다. 답은 백그라운드로 돌고 끝나면 알림이 온다.
-- 다른 모델은 저장소의 격리된 사본(worktree)에서 권한 없는 별도 사용자로 돈다. 원래 저장소를 고치거나 커밋할 수 없다.
+- 다른 모델은 저장소의 격리된 사본(worktree)이나 빈 폴더에서, 저장소·모델마다 따로 둔 권한 없는 사용자로 돈다. 원래 저장소를 고치거나 커밋할 수 없다.
+- 작업 폴더와 결과는 저장소 옆이 아니라 상태 폴더(기본 `~/.local/state/qwreey-delegate`)에 생긴다. 끝나면 보고서·변경분·로그를 결과 폴더(`runs/<저장소>/<날짜>-<이름>/`)에 모아 확인한 뒤 작업 폴더를 지운다. 결과는 14일 뒤 정리 명령(`gc`)이 지우므로, 남길 보고서는 Claude 가 검증을 붙여 저장소 `.claude/audit/` 로 옮긴다.
 - Claude 의 보고는 "다른 모델의 주장 / Claude 가 확인한 것 / 사용자가 정할 것" 으로 나눠 온다. 결함 주장은 재현 테스트부터 쓰고, 재현되지 않으면 그렇게 적는다.
-- 같은 모델에는 동시에 한 건만 맡긴다(각 구독의 사용 한도를 아끼려고).
+- 같은 모델에는 동시에 한 건만 맡긴다(각 구독의 사용 한도를 아끼려고). agy 와 codex 는 동시에 돌 수 있다.
 
 ## 비용
 - 늘 드는 것: 스킬 설명 한 줄(영문 약 800자). 훅 없음.
 - 실행: Claude 쪽은 지시문 작성과 검증 정도. 본 비용은 각 벤더 구독 한도에서 나간다(agy 는 flash 만, codex 는 Plus 한도가 작아 사용자가 사용량을 확인).
 
 ## 요구 사항
-- Linux, root(`setpriv`, 저장소별 uid, `choom`). Windows·macOS 불가. 지금 스크립트는 empty 모드도 같은 uid 격리로 돌려서 모드와 상관없이 root 가 있어야 한다.
-- OS 격리(root 의 uid 분리, 동작하는 OS 샌드박스)가 없는 곳에서는 empty 모드(읽기 전용 의견: 비밀을 뺀 버릴 사본만 보여 주고 보고만 남김)만 쓴다. root 없이 macOS·Windows·Linux 에서 도는 드라이버를 계획 중이다(`.claude/research/drafts/delegate/portable-isolation.md`).
-- `agy` 또는 `codex` CLI 설치와 각자 구독. 저장소 루트에 `AGENTS.md`, uid 표 등록(`delegate.sh register`).
+- Linux, root(`setpriv`, 저장소·모델별 uid, `choom`), Python 3.11 이상. Windows·macOS 와 root 가 없는 Linux 에서는 실행을 거절한다(모드와 상관없이). root 없이 도는 판은 계획 중이다(`.claude/research/drafts/delegate/driver-design.md` M3).
+- `agy` 또는 `codex` CLI 설치와 각자 구독. 저장소 루트에 `AGENTS.md`, uid 표 등록(`python3 -I <스킬>/scripts/delegate.py register <저장소>`, 처음에는 Claude 가 알리고 한다).
 - uid 표 `registry.tsv` 는 고쳐 쓰므로 `HARNESS_DELEGATE_REGISTRY`(`~/.claude/harness.env`)가 이 클론의 `skills/delegate/registry.tsv` 를 가리켜야 한다.
+- 바꿀 만한 설정(`~/.claude/harness.env`, 저장소 파일로는 바꾸지 못함): 동시 실행 수 `HARNESS_DELEGATE_MAX_CONCURRENT`(1), 결과 보존 일수 `HARNESS_DELEGATE_RUNS_DAYS`(14), 상태 폴더 `HARNESS_DELEGATE_STATE`. 전체 목록은 [docs/how-it-works.md](docs/how-it-works.md).
 
 ## 끄기
-- `claude plugin disable qwreey-delegate@claude-doctor-market` (제거는 `uninstall`). 훅이 없어 끄면 바로 멈춘다.
+- `claude plugin disable qwreey-delegate@claude-doctor-market` (제거는 `uninstall`). 훅이 없어 끄면 바로 멈춘다. 상태 폴더에 남은 결과는 지우지 않으니 필요 없으면 손으로 지운다.
 
 ## 설치
 ```bash
