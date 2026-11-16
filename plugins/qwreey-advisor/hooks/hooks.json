@@ -36,6 +36,11 @@
             "type": "command",
             "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/ambient.py\" UserPromptSubmit",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/second-opinion-nudge.py\"",
+            "timeout": 5
           }
         ]
       }
@@ -88,9 +93,19 @@
         ]
       }
     ],
+    "PostToolBatch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/second-opinion-nudge.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "SubagentStop": [
       {
-        "matcher": "^qwreey-advisor:reviewer$",
         "hooks": [
           {
             "type": "command",

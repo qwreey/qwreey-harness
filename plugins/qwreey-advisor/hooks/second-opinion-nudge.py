@@ -4,10 +4,12 @@
 advisor 는 언제 불릴지 모델이 정해서 예측이 안 됐다(.claude/audit/18). 이 훅은 잴 수 있는 시점만 맡는다.
   1. PostToolUseFailure   같은 실패 서명이 이번 회차에 2번째 → stuck 검토 권고 (서명마다 한 번)
   2. PreToolUse(Bash)     `git commit` 이고 커밋될 diff 가 등급 임계 이상, 최근 검토 없음 → done 검토 권고
+     같은 명령이 `git add <경로>|-A|.|-u` 나 `git commit -a|<경로>` 로 스테이징하면 그 범위까지 잰다(commit_scope.py).
   3. Stop                 (기본 꺼짐, HARNESS_REVIEW_STOP=1) 커밋 안 된 diff 가 임계 이상, 최근 검토 없음 → done 검토 권고
   4. PreToolUse(ExitPlanMode) (기본 꺼짐, HARNESS_REVIEW_PLAN=deny|warn) high 등급에서 계획 검토 요구
-  5. SubagentStop(qwreey-advisor:reviewer)  메인이 부른 리뷰어일 때만 검토 완료 시각을 기록 → 2·3 이 다시 울리지 않게
-     (호출자는 track-reviewer.py 가 prompt 끝에 붙인 run 줄을 리뷰어 transcript 에서 읽는다. 줄이 없으면 main 으로 친다)
+  5. SubagentStop(모든 에이전트)  검토(qwreey-advisor:reviewer, inherit-advisor fork)면 메인이 부른 것만 최근 검토 시각을 기록하고
+     ledger 에 자동 행을 남긴다(review_record.py). 검토가 아니면 보고에 권고·질문이 있는지 기록한다(handback_notice.py).
+  6. UserPromptSubmit, PostToolBatch (메인)  5 에서 권고·질문이 있던 보고가 메인에 들어오면 info 한 줄(에이전트마다 한 번)
 '접근 확정 전'은 잴 수 없어서 메인 판단(CLAUDE.md, 스킬)에 맡긴다. 이 저장소들에서 ExitPlanMode 사용은 0회였다(.claude/audit/18 §1.4).
 
 설치: qwreey-advisor 플러그인의 hooks/hooks.json 이 등록한다. 설정은 harness.env 층(옆의 harness_env.py 사본, 설치된 정본이
@@ -15,13 +17,14 @@ advisor 는 언제 불릴지 모델이 정해서 예측이 안 됐다(.claude/au
 파일이 하나도 없으면 내장 기본값으로 돈다(등급 mid, 상태는 $TMPDIR).
 
 규칙
-  - 서브에이전트 안(agent_id 있음)에서는 아무것도 하지 않는다. 일꾼이 리뷰어를 또 띄우는 연쇄를 막는다($589 사고, .claude/audit/10 §2.2).
+  - 서브에이전트 안(agent_id 있음)에서는 SubagentStop 기록 말고는 아무것도 하지 않는다. 일꾼이 리뷰어를 또 띄우는 연쇄를 막는다($589 사고, .claude/audit/10 §2.2).
   - 등급: harness.env HARNESS_REVIEW_TIERS="quad=high stl-luau=high …" (저장소 이름 = git common dir 의 부모 이름). 없으면 HARNESS_REVIEW_DEFAULT(기본 mid).
     off 등급은 아무것도 하지 않는다.
   - 임계: HARNESS_REVIEW_LINES="high=40 mid=200 low=0" (추가+삭제 줄. 0 = 끔)
-  - 최근 검토: HARNESS_REVIEW_FRESH_MIN(기본 90분) 안에 리뷰어가 끝났으면 2·3 을 건너뛴다.
+  - 최근 검토: HARNESS_REVIEW_FRESH_MIN(기본 90분) 안에 메인이 부른 검토가 끝났으면 2·3 을 건너뛴다.
   - 같은 diff(내용 해시)로는 회차당 한 번만, done 알림 뒤 FRESH_MIN 동안은 쉰다(사양해도 커밋마다 조르지 않게). dedup 단위는 session_id + compact 회차(compact_epoch.py).
-  - 출력 규약: HOOK-MESSAGES.md (<harness-hook name="qwreey-advisor" level="warn">, 영어).
+  - 6 은 HARNESS_REVIEW_HANDBACK=off 로 끈다.
+  - 출력 규약: HOOK-MESSAGES.md (<harness-hook name="qwreey-advisor" level="warn|info">, 영어).
 """
 from __future__ import annotations
 
@@ -31,19 +34,20 @@ import os
 import re
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import commit_scope  # noqa: E402
 import compact_epoch  # noqa: E402
+import handback_notice  # noqa: E402
 import harness_nonce  # noqa: E402
+import review_record  # noqa: E402
 
-NS = "claude-second-opinion"
-RUN_LINE = re.compile(r"\[qwreey-advisor run: ([0-9a-f-]{36}) caller=(main|subagent) scratch=[^\]\n]*\]")
-REVIEWERS = {"qwreey-advisor:reviewer", "qwreey-advisor-reviewer"}  # 플러그인 이름공간 + 예전 이름
+NS = review_record.NS
 MODEL = {"high": "opus", "mid": "sonnet", "low": "sonnet"}
 BENIGN = re.compile(r"^\s*(grep|rg|egrep|fgrep|test|\[|diff|cmp|pgrep|pidof|which|command)\b")
+COMMIT = re.compile(r"\bgit\b(\s+-C\s+\S+)?\s+commit\b")
 
 
 def env_vals(cwd=None) -> dict:
@@ -55,7 +59,7 @@ def env_vals(cwd=None) -> dict:
     except Exception:
         vals = {}
     for k in ("HARNESS_REVIEW_TIERS", "HARNESS_REVIEW_DEFAULT", "HARNESS_REVIEW_LINES", "HARNESS_REVIEW_FRESH_MIN",
-              "HARNESS_REVIEW_STOP", "HARNESS_REVIEW_PLAN"):
+              "HARNESS_REVIEW_STOP", "HARNESS_REVIEW_PLAN", "HARNESS_REVIEW_HANDBACK"):
         if k in os.environ:
             vals[k] = os.environ[k]
     return vals
@@ -84,6 +88,11 @@ def tier_of(cwd: str, vals: dict) -> tuple[str | None, str]:
     return repo, kv(vals.get("HARNESS_REVIEW_TIERS", "")).get(repo, vals.get("HARNESS_REVIEW_DEFAULT") or "mid")
 
 
+def limit_of(tier: str, vals: dict) -> int:
+    lines = {**{"high": "40", "mid": "200", "low": "0"}, **kv(vals.get("HARNESS_REVIEW_LINES", ""))}
+    return int(lines.get(tier, "0") or 0)
+
+
 def diff_stat(cwd: str, *args) -> tuple[int, str]:
     out = git(cwd, "diff", "--numstat", *args)
     n = 0
@@ -95,31 +104,6 @@ def diff_stat(cwd: str, *args) -> tuple[int, str]:
 
 def state_file(sid: str) -> str:
     return compact_epoch.state_path("qwreey-advisor", NS, sid)
-
-
-def last_review_path(sid: str) -> str:
-    """검토 완료 시각은 compact 를 넘어 유지한다(회차와 무관)."""
-    d = os.path.join(tempfile.gettempdir(), NS)
-    os.makedirs(d, exist_ok=True)
-    return os.path.join(d, re.sub(r"[^\w-]", "", sid or "nosession") + ".last-review")
-
-
-def caller_of(data: dict) -> str:
-    """리뷰어 transcript 의 첫 user 메시지에서 track-reviewer.py 가 붙인 run 줄을 읽어 호출자(main|subagent)를 얻는다. 줄이 없거나 못 읽으면 main."""
-    try:
-        with open(data.get("agent_transcript_path") or "", encoding="utf-8") as f:
-            for line in f:
-                rec = json.loads(line)
-                if rec.get("type") != "user":
-                    continue
-                c = (rec.get("message") or {}).get("content")
-                if isinstance(c, list):
-                    c = "\n".join(x.get("text", "") for x in c if isinstance(x, dict))
-                m = RUN_LINE.findall(c if isinstance(c, str) else "")
-                return m[-1][1] if m else "main"
-    except (OSError, ValueError, AttributeError):
-        pass
-    return "main"
 
 
 def read_json(p: str) -> dict:
@@ -142,11 +126,8 @@ def emit(event: str, text: str, **extra) -> None:
 
 
 def fresh_review(sid: str, vals: dict) -> bool:
-    try:
-        t = float(open(last_review_path(sid)).read().strip())
-    except (OSError, ValueError):
-        return False
-    return time.time() - t < float(vals.get("HARNESS_REVIEW_FRESH_MIN") or 90) * 60
+    t = review_record.last_review_time(sid)
+    return bool(t) and time.time() - t < float(vals.get("HARNESS_REVIEW_FRESH_MIN") or 90) * 60
 
 
 def cooling(st: dict, vals: dict) -> bool:
@@ -155,11 +136,54 @@ def cooling(st: dict, vals: dict) -> bool:
 
 
 def done_advice(repo, tier, n, where) -> str:
-    return (f"{where}: {n} changed lines in `{repo}` (review tier: {tier}) and no qwreey-advisor reviewer has finished in this session recently "
-            f"(only qwreey-advisor reviewers are tracked; other reviews are not).\n"
+    return (f"{where}: {n} changed lines in `{repo}` (review tier: {tier}) and no qwreey-advisor review has finished in this session recently "
+            f"(only qwreey-advisor reviewers and inherit-advisor forks are tracked; other reviews are not).\n"
             f"Before declaring this done, consider the `qwreey-advisor:fresh-advisor` skill with kind=done "
             f"(Agent subagent_type=qwreey-advisor:reviewer, model={MODEL.get(tier, 'sonnet')}) and handle its findings as the skill says. "
             f"Skip it if the change is mechanical or docs only, was already reviewed, or the user said so, and say so in one line.")
+
+
+def commit_size(cmd: str, cwd: str) -> tuple[str, int, str] | None:
+    """(커밋 디렉터리, 줄 수, 해시). dry-run 이면 None."""
+    pl = commit_scope.plan(cmd, cwd)
+    if pl and pl["commit"]["dry"]:
+        return None
+    if pl and pl["stages"]:
+        got = commit_scope.measure(pl)
+        if got:
+            return pl["dir"], got[0], got[1]
+    if pl:  # 같은 명령에 스테이징이 없음: 지금 index(-a 면 HEAD 대비 작업 트리)가 커밋된다
+        gcwd, all_ = pl["dir"], pl["commit"]["all"]
+    else:  # 명령을 읽지 못함: 예전 방식
+        m = re.search(r"\bgit\s+-C\s+(\S+)", cmd)
+        gcwd = os.path.join(cwd, m.group(1).strip("'\"")) if m else cwd
+        all_ = bool(re.search(r"\scommit\b.*\s(-a|--all|-\w*a\w*)\b", cmd))
+    n, h = diff_stat(gcwd, "HEAD") if all_ else diff_stat(gcwd, "--cached")
+    return gcwd, n, h
+
+
+def handback(ev: str, data: dict, sid: str) -> int:
+    """메인의 UserPromptSubmit·PostToolBatch: 권고·질문이 든 서브에이전트 보고에 info 한 줄."""
+    if ev == "PostToolBatch":
+        if not handback_notice.has_state(sid):
+            return 0
+        labels = handback_notice.on_batch(data, review_record.last_review_time(sid))
+    else:
+        prompt = str(data.get("prompt") or "")
+        if "<task-notification>" not in prompt and "[Subagent hand-back]" not in prompt:
+            return 0
+        labels = handback_notice.on_prompt(data, review_record.last_review_time(sid))
+    if not labels:
+        return 0
+    cwd = data.get("cwd") or os.getcwd()
+    vals = env_vals(cwd)
+    if (vals.get("HARNESS_REVIEW_HANDBACK") or "").lower() == "off":
+        return 0
+    repo, tier = tier_of(cwd, vals)
+    if repo and tier == "off":
+        return 0
+    emit(ev, wrap(handback_notice.message(labels), "info"))
+    return 0
 
 
 def main() -> int:
@@ -171,20 +195,23 @@ def main() -> int:
     ev = data.get("hook_event_name") or ""
     sid = SID = data.get("session_id") or ""
     if ev == "SubagentStop":
-        # 호출자는 리뷰어 transcript 의 run 줄에서 읽는다. 메인이 부른 리뷰어만 '최근 검토'로 센다(일꾼이 띄운 것은 메인의 검토가 아니다).
-        if data.get("agent_type") in REVIEWERS and caller_of(data) != "subagent":
-            open(last_review_path(sid), "w").write(str(time.time()))
+        info = review_record.on_stop(data)
+        try:
+            handback_notice.on_stop(data, info["meta"], info["review"], review_record.nested(info["meta"]))
+        except OSError:
+            pass
         return 0
     if data.get("agent_id"):  # 서브에이전트 안: 아무것도 하지 않는다
         return 0
+    if ev in ("UserPromptSubmit", "PostToolBatch"):
+        return handback(ev, data, sid)
     cwd = data.get("cwd") or os.getcwd()
     vals = env_vals(cwd)
 
     repo, tier = tier_of(cwd, vals)
     if tier == "off" or not repo:
         return 0
-    lines = {**{"high": "40", "mid": "200", "low": "0"}, **kv(vals.get("HARNESS_REVIEW_LINES", ""))}
-    limit = int(lines.get(tier, "0") or 0)
+    limit = limit_of(tier, vals)
     sp = state_file(sid)
     st = read_json(sp)
 
@@ -213,12 +240,18 @@ def main() -> int:
 
     if ev == "PreToolUse" and data.get("tool_name") == "Bash":
         cmd = str((data.get("tool_input") or {}).get("command", ""))
-        if not re.search(r"\bgit\b(\s+-C\s+\S+)?\s+commit\b", cmd) or limit <= 0 or fresh_review(sid, vals):
+        if not COMMIT.search(cmd) or fresh_review(sid, vals):
             return 0
-        m = re.search(r"\bgit\s+-C\s+(\S+)", cmd)
-        gcwd = os.path.join(cwd, m.group(1).strip("'\"")) if m else cwd
-        n, h = diff_stat(gcwd, "HEAD") if re.search(r"\scommit\b.*\s(-a|--all|-\w*a\w*)\b", cmd) else diff_stat(gcwd, "--cached")
-        if n < limit or h in st.setdefault("nudged", []) or cooling(st, vals):
+        got = commit_size(cmd, cwd)
+        if not got:
+            return 0
+        gcwd, n, h = got
+        if os.path.normpath(gcwd) != os.path.normpath(cwd):  # 다른 저장소에 커밋: 그 저장소의 등급으로
+            repo, tier = tier_of(gcwd, vals)
+            if tier == "off" or not repo:
+                return 0
+            limit = limit_of(tier, vals)
+        if limit <= 0 or n < limit or h in st.setdefault("nudged", []) or cooling(st, vals):
             return 0
         st["nudged"].append(h)
         st["last_nudge"] = time.time()

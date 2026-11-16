@@ -39,7 +39,7 @@ The fork knows how you reached your conclusion, so its objections are made with 
 2. You called it yourself: act on it, and tell the user in 1-3 lines what you accepted and rejected. The full report stays in the transcript.
    If you are a subagent, put what you accepted and rejected in your report to your caller instead of telling the user.
    The user asked for it: show the report in full, in Korean, headed "inherit-advisor 검토(fork)", then mark each finding accepted / rejected / needs check.
-3. Record it, so the user can see which triggers pay off (`--verdict` is one of 진행 | 고친뒤진행 | 다시생각 | 발견없음 | 실패; `--reviewer` is `fork` here):
+3. Record it, so the user can see which triggers pay off (`--verdict` is one of 진행 | 고친뒤진행 | 다시생각 | 발견없음 | 실패; `--reviewer` is `fork` here). A hook already logged the run with verdict `미기록`; your row replaces it, so the count stays one:
 
 ```bash
 python3 -I "${CLAUDE_PLUGIN_ROOT}/skills/fresh-advisor/scripts/review-ledger.py" add --kind inherit --reviewer fork --caller <main|subagent> --verdict <verdict> --found <N> --adopted <N>

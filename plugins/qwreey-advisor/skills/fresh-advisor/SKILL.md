@@ -55,7 +55,7 @@ The reviewer sees without your assumptions, but it does not know how you reached
 2. You called it yourself (including on a hook notice): act on it and tell the user in 1-3 lines what you accepted and rejected. The full report stays in the transcript.
    If you are a subagent, put what you accepted and rejected in your report to your caller instead of telling the user.
    The user asked for it: show the report in full, in Korean, then your judgment below it, separately. Quote the user's own words in their original language.
-3. Record it, so the user can see which triggers and reviewers pay off. `--trigger` is `hook:<commit|stop|failure|plan>` for a hook notice, `self` if you decided, `user` if the user asked. `--reviewer` is one of `opus-sub | sonnet-sub | fork | codex | agy | advisor-opus | advisor-fable`. `--caller` is `main` if you are the main agent, `subagent` if you are a subagent. Verdicts: 진행 | 고친뒤진행 | 다시생각 | 발견없음 | 실패.
+3. Record it, so the user can see which triggers and reviewers pay off. `--trigger` is `hook:<commit|stop|failure|plan>` for a hook notice, `self` if you decided, `user` if the user asked. `--reviewer` is one of `opus-sub | sonnet-sub | fork | codex | agy | advisor-opus | advisor-fable`. `--caller` is `main` if you are the main agent, `subagent` if you are a subagent. Verdicts: 진행 | 고친뒤진행 | 다시생각 | 발견없음 | 실패. A hook already logged the run with verdict `미기록`; your row replaces it, so the count stays one.
 
 ```bash
 python3 -I "${CLAUDE_PLUGIN_ROOT}/skills/fresh-advisor/scripts/review-ledger.py" add --kind <plan|stuck|done> --reviewer <opus-sub|sonnet-sub> \

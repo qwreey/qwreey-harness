@@ -109,6 +109,56 @@ os.makedirs(os.path.join(LOC, ".claude"))
 open(os.path.join(LOC, ".claude", "harness.local.env"), "w").write("HARNESS_REVIEW_TIERS=loc=high\n")
 check("층: harness.local.env 가 high 로 -> 알림(opus)", "model=opus" in loc_commit("s13"))
 
+# 같은 명령의 git add: PreToolUse 때 index 는 비어 있으므로 명령이 스테이징할 범위로 잰다 (hi 등급 임계 10)
+def fresh_repo(name):
+    d = repo(name)
+    open(os.path.join(d, ".gitignore"), "w").write("ign/\n")
+    subprocess.run(["git", "-C", d, "add", ".gitignore"], check=True, env=ENV)
+    subprocess.run(["git", "-C", d, "commit", "-qm", "ig"], check=True, env=ENV)
+    return d
+
+
+def bash(d, cmd, sid, env=None):
+    return run({"hook_event_name": "PreToolUse", "session_id": sid, "cwd": d, "tool_name": "Bash", "tool_input": {"command": cmd}}, env)
+
+
+env_hi = dict(ENV, HARNESS_REVIEW_TIERS="add1=high add2=high add3=high add4=high add5=high add6=high add7=high")
+A1 = fresh_repo("add1")
+open(os.path.join(A1, "a.txt"), "a").write("m\n" * 12)
+check("add <tracked path> && commit → 알림(예전에는 0줄)", "12 changed lines" in bash(A1, "git add a.txt && git commit -qm x", "c1", env_hi))
+A2 = fresh_repo("add2")
+os.makedirs(os.path.join(A2, "sub"))
+open(os.path.join(A2, "sub", "new.py"), "w").write("n\n" * 15)
+os.makedirs(os.path.join(A2, "ign"))
+open(os.path.join(A2, "ign", "big.txt"), "w").write("i\n" * 500)
+out = bash(A2, 'git add -A && git commit -m "$(cat <<EOF\nmsg\nEOF\n)" 2>&1 | tail -3', "c2", env_hi)
+check("add -A: 추적 안 된 파일 줄 수, .gitignore 는 제외", "15 changed lines" in out)
+check("add <다른 경로> 만 → 그 경로만 잼(sub 밖 0줄 → 조용)", bash(A2, "git add a.txt && git commit -m x", "c3", env_hi) == "")
+check("cd sub && git add . && commit → sub 의 새 파일", "15 changed lines" in bash(A2, "cd sub && git add . && git commit -m x", "c4", env_hi))
+check("다른 저장소에서 git -C <repo> add && commit → 그 저장소를 잰다", "`add2`" in bash(MID, f"git -C {A2} add sub && git -C {A2} commit -m x", "c5", env_hi))
+A3 = fresh_repo("add3")
+open(os.path.join(A3, "a.txt"), "a").write("q\n" * 11)
+check("git commit -am → HEAD 대비(예전과 같음)", "11 changed lines" in bash(A3, "git commit -am x", "c6", env_hi))
+check("git commit <경로> → 그 경로", "11 changed lines" in bash(A3, "git commit -m x -- a.txt", "c7", env_hi))
+check("git add -u && commit → 추적 파일", "11 changed lines" in bash(A3, "git add -u; git commit -m x", "c8", env_hi))
+check("읽을 수 없는 명령(add $VAR)은 예전 방식(--cached, 0줄 → 조용)", bash(A3, "git add $F && git commit -m x", "c9", env_hi) == "")
+check("add -p 는 예전 방식", bash(A3, "git add -p && git commit -m x", "c10", env_hi) == "")
+check("commit --dry-run 은 조용", bash(A3, "git add a.txt && git commit --dry-run -m x", "c11", env_hi) == "")
+A4 = fresh_repo("add4")
+open(os.path.join(A4, "a.txt"), "a").write("s\n" * 6)
+subprocess.run(["git", "-C", A4, "add", "a.txt"], check=True, env=ENV)
+open(os.path.join(A4, "c.txt"), "w").write("t\n" * 6)
+check("이미 스테이징된 것 + 같은 명령의 add 를 합침(6+6)", "12 changed lines" in bash(A4, "git add c.txt && git commit -m x", "c12", env_hi))
+
+# inherit-advisor fork 가 끝났으면 최근 검토로 친다
+ftp = os.path.join(T, "fork.jsonl")
+with open(ftp, "w") as f:
+    f.write(json.dumps({"type": "fork-context-ref"}) + "\n")
+    f.write(json.dumps({"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Agent",
+                                                                       "input": {"prompt": "[qwreey-advisor:inherit] Review only.\nnext: x"}}]}}) + "\n")
+run({"hook_event_name": "SubagentStop", "session_id": "c13", "cwd": A1, "agent_id": "fk", "agent_type": "fork", "agent_transcript_path": ftp})
+check("inherit fork 검토 뒤 → 커밋 알림 없음", bash(A1, "git add a.txt && git commit -qm x", "c13", env_hi) == "")
+
 # 하네스 없는 환경: lib, harness.env 가 없어도 기본값(mid, 200줄)으로 돈다
 bare = dict(ENV, HOME=os.path.join(T, "bare"))
 os.makedirs(os.path.join(T, "bare"))

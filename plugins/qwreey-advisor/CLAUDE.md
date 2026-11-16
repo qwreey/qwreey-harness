@@ -3,7 +3,7 @@
 Self-review plugin: skills `inherit-advisor` (fork) and `fresh-advisor` (fresh reviewer), agent `qwreey-advisor:reviewer`, hooks that suggest review points. How it fits together: `docs/how-it-works.md`. Design rationale and cost measurements: `docs/rationale-*.md`.
 
 ## Where things are
-- `hooks/hooks.json`: every hook registration. `second-opinion-nudge.py` (review-point notices), `track-reviewer.py` (run line and scratch per reviewer call), `readonly-for-reviewers.py` + `auditor-readonly-guard.py` (reviewer read-only guard), `expand-inherit-prompt.py` (fork marker to `skills/inherit-advisor/templates/fork-prompt.md`), `ambient.py` (injects `context/ambient.md`).
+- `hooks/hooks.json`: every hook registration. `second-opinion-nudge.py` (review-point notices; dispatches to `commit_scope.py` for the size of a commit that stages in the same command, `review_record.py` for review detection, last-review time and ledger auto rows, `handback_notice.py` for the notice on subagent reports that carry recommendations), `track-reviewer.py` (run line and scratch per reviewer call), `readonly-for-reviewers.py` + `auditor-readonly-guard.py` (reviewer read-only guard), `expand-inherit-prompt.py` (fork marker to `skills/inherit-advisor/templates/fork-prompt.md`), `ambient.py` (injects `context/ambient.md`).
 - `skills/fresh-advisor/scripts/`: `review-ledger.py`, `advisor-stats.py`, `user-asks.py`.
 - `README.md` is for people deciding whether to install; technical detail goes in `docs/how-it-works.md`.
 

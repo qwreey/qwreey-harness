@@ -94,9 +94,55 @@ quoted = "[qwreey-advisor run: " + "0" * 8 + "-0000-0000-0000-" + "0" * 12 + " c
 stop("S8", transcript("quoted", quoted))
 check("여러 줄이면 마지막 줄 기준", not last("S8"))
 
+# SubagentStop 이 남긴 ledger 자동 행: 리뷰어 종료마다 한 행, 판정 미기록, 호출자는 run 줄 기준
+LEDGER_FILE = os.path.join(ENV["XDG_STATE_HOME"], "claude-second-opinion", "ledger.jsonl")
+autos = [json.loads(l) for l in open(LEDGER_FILE)]
+check("자동 행: 리뷰어 종료 6번 → 6행", len(autos) == 6 and all(r.get("auto") and r["verdict"] == "미기록" for r in autos))
+check("자동 행: 호출자(subagent 3, main 3)", sorted(r["caller"] for r in autos) == ["main"] * 3 + ["subagent"] * 3)
+check("자동 행: ref 는 agent-<id>", all(r["ref"] == "agent-r" for r in autos))
+os.remove(LEDGER_FILE)
+
+# fork(inherit-advisor) 도 검토로 센다. 호출자는 transcript 옆 meta.json 의 parentAgentId/spawnDepth
+def fork_transcript(name, marker=True, meta=None):
+    p = os.path.join(T, name + ".jsonl")
+    with open(p, "w") as f:
+        f.write(json.dumps({"type": "fork-context-ref"}) + "\n")
+        prompt = "[qwreey-advisor:inherit] Review only.\nnext: x" if marker else "Write the docs."
+        f.write(json.dumps({"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Agent", "input": {"prompt": prompt}}]}}) + "\n")
+    if meta is not None:
+        json.dump(meta, open(p[:-6] + ".meta.json", "w"))
+    return p
+
+
+def fork_stop(sid, tpath, aid="f1"):
+    hook("second-opinion-nudge.py", {"hook_event_name": "SubagentStop", "session_id": sid, "agent_id": aid, "agent_type": "fork",
+                                     "agent_transcript_path": tpath, "cwd": T, "last_assistant_message": "1. Hidden premises: n/a"})
+
+
+fork_stop("F1", fork_transcript("f-main", meta={"agentType": "fork", "description": "second opinion: inherit-advisor", "spawnDepth": 1}))
+check("fork + 표지 + 메인 → 최근 검토 기록", last("F1"))
+fork_stop("F2", fork_transcript("f-nested", meta={"agentType": "fork", "spawnDepth": 2, "parentAgentId": "w1"}))
+check("fork + 표지 + 일꾼이 띄움 → 기록 안 함", not last("F2"))
+fork_stop("F3", fork_transcript("f-plain", marker=False, meta={"agentType": "fork", "description": "Write docs", "spawnDepth": 1}))
+check("표지 없는 fork 는 검토가 아님", not last("F3"))
+fork_stop("F4", fork_transcript("f-nometa"))
+check("meta 가 없어도 표지가 있으면 main 으로 침", last("F4"))
+autos = [json.loads(l) for l in open(LEDGER_FILE)]
+check("fork 자동 행: kind inherit, reviewer fork, 표지 없는 fork 는 행 없음",
+      len(autos) == 3 and all(r["kind"] == "inherit" and r["reviewer"] == "fork" for r in autos)
+      and [r["caller"] for r in autos] == ["main", "subagent", "main"])
+# 리뷰어 meta 의 description, model 로 kind, reviewer 를 채운다
+rp = transcript("rv-meta", "Review the diff.")
+json.dump({"agentType": R, "description": "second opinion: done", "model": "opus", "spawnDepth": 1}, open(rp[:-6] + ".meta.json", "w"))
+hook("second-opinion-nudge.py", {"hook_event_name": "SubagentStop", "session_id": "F5", "agent_id": "rv5", "agent_type": R,
+                                 "agent_transcript_path": rp, "cwd": T})
+r5 = [json.loads(l) for l in open(LEDGER_FILE)][-1]
+check("리뷰어 자동 행: kind done, reviewer opus-sub", r5["kind"] == "done" and r5["reviewer"] == "opus-sub" and r5["session"] == "F5")
+os.remove(LEDGER_FILE)
+
 # ledger --caller
-def led(*a):
-    return subprocess.run([sys.executable, "-I", LEDGER, *a], capture_output=True, text=True, env=ENV)
+def led(*a, env=None):
+    return subprocess.run([sys.executable, "-I", LEDGER, *a], capture_output=True, text=True, env=env or ENV)
 
 base = ["add", "--kind", "done", "--reviewer", "opus-sub", "--verdict", "진행"]
 check("ledger add --caller subagent", led(*base, "--caller", "subagent").returncode == 0)
@@ -108,6 +154,26 @@ with open(os.path.join(ENV["XDG_STATE_HOME"], "claude-second-opinion", "ledger.j
     f.write(json.dumps({"ts": "2025", "repo": "r", "kind": "done", "reviewer": "opus-sub", "verdict": "진행"}) + "\n")
 s = led("stats")
 check("stats 가 옛 기록도 읽음", s.returncode == 0 and "3건" in s.stdout and "caller / subagent" in s.stdout)
+
+# 자동 행과 사람이 쓴 행 짝짓기: 같은 세션, 같은 계열이면 add 가 supersedes 를 적고 stats 는 자동 행을 세지 않는다
+os.remove(LEDGER_FILE)
+hook("second-opinion-nudge.py", {"hook_event_name": "SubagentStop", "session_id": "L1", "agent_id": "fa", "agent_type": "fork",
+                                 "agent_transcript_path": fork_transcript("l-fork"), "cwd": T})
+hook("second-opinion-nudge.py", {"hook_event_name": "SubagentStop", "session_id": "L1", "agent_id": "rb", "agent_type": R,
+                                 "agent_transcript_path": transcript("l-rev", "Review."), "cwd": T})
+s = led("stats")
+check("stats: 자동 행 2건이 미기록으로 보임", "2건" in s.stdout and "| inherit / fork | 1 | 0 | 0 | - | 0 | 0 | 1 |" in s.stdout)
+envL = dict(ENV, CLAUDE_CODE_SESSION_ID="L1")
+a1 = led("add", "--kind", "inherit", "--reviewer", "fork", "--verdict", "고친뒤진행", "--found", "3", "--adopted", "2", env=envL)
+check("add 가 같은 세션의 fork 자동 행을 대신함", a1.returncode == 0 and "agent-fa" in a1.stdout)
+a2 = led("add", "--kind", "done", "--reviewer", "sonnet-sub", "--verdict", "진행", "--ref", "agent-rb", env=dict(ENV, CLAUDE_CODE_SESSION_ID="other"))
+check("--ref 가 맞으면 세션이 달라도 짝지음", "agent-rb" in a2.stdout)
+a3 = led("add", "--kind", "inherit", "--reviewer", "fork", "--verdict", "진행", env=envL)
+check("이미 짝지은 자동 행은 다시 쓰지 않음", "대신함" not in a3.stdout)
+rows = [json.loads(l) for l in open(LEDGER_FILE)]
+check("supersedes 기록", [r.get("supersedes") for r in rows[2:]] == ["agent-fa", "agent-rb", None])
+s = led("stats")
+check("stats: 짝지은 자동 행은 빼고 3건", "3건" in s.stdout and "| inherit / fork | 2 | 3 | 2 | 67% | 0 | 0 | 0 |" in s.stdout)
 
 shutil.rmtree(T, ignore_errors=True)
 print(f"{ok}/{ok + fail}")
