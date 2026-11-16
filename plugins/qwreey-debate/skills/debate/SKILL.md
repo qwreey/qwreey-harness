@@ -26,6 +26,7 @@ Fill `${CLAUDE_PLUGIN_ROOT}/skills/debate/templates/brief.md`. Both debaters get
 - The user's words verbatim, and decisions already made under "do not reopen".
 - Language: prose in the user's language; proposed wording in the language it will be written in (English for a skill or rule, the records language for a record).
 - opus for wording and design; sonnet is enough for one narrow name. Launch both at once; in round 1 neither sees the other.
+- Start each debater's Agent `description` with `debate:` (e.g. `debate: P round 1`): review hooks treat its paper as debate material, not as a recommendation to check.
 
 ## Rounds
 - One round is the default: from two independent papers you can usually pick a side per issue.

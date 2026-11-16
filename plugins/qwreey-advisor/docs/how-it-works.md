@@ -41,7 +41,7 @@
 - 검토로 치는 것(`review_record.py`, SubagentStop): `qwreey-advisor:reviewer`, 그리고 `agent_type` 이 `fork` 이고 transcript 앞부분에 표지(`[qwreey-advisor:inherit]` 또는 펼친 뒤의 `[second opinion: inherit]`)가 있는 것. fork transcript 는 부모 대화를 복사하지 않아 앞 64KB 만 읽는다. 호출자는 transcript 옆 `agent-<id>.meta.json` 의 `parentAgentId`(또는 `spawnDepth` > 1)가 있으면 subagent, 리뷰어는 run 줄도 본다.
 
 ### 서브에이전트 보고 알림 (`handback_notice.py`)
-검토가 아닌 서브에이전트가 돌려준 보고에 권고·선택지·열린 질문이 있으면 메인에게 `info` 한 줄을 낸다: 사용자에게 넘겨 결정하게 할 거라면 그 안은 그 에이전트 혼자 확인한 것이고, inherit-advisor(추론)나 fresh-advisor(틀)가 먼저 볼 수 있다. 직접 확인한 사실이나 그대로 전하는 질문이면 건너뛰어도 된다고 적는다. 에이전트마다 한 번(이어 받아 다시 보고해도 한 번).
+검토가 아닌 서브에이전트가 돌려준 보고에 권고·선택지·열린 질문이 있으면 메인에게 `info` 한 줄을 낸다: 사용자에게 넘겨 결정하게 할 거라면 그 안은 그 에이전트 혼자 확인한 것이고, inherit-advisor(추론)나 fresh-advisor(틀)가 먼저 볼 수 있다. 직접 확인한 사실이나 그대로 전하는 질문이면 건너뛰어도 된다고 적는다. 보고마다 한 번(이어 받은 에이전트가 다른 보고를 내면 다시 본다, 내용 해시로 구분). 토론 입장문(설명이 `debate` 나 `토론` 으로 시작, qwreey-debate 스킬이 `debate:` 로 붙인다)은 메인이 종합할 재료라 내지 않는다. 토큰 간격 리마인더는 두지 않았다: 이 사건 알림으로 먼저 써 보고 빈틈이 보이면 다시 본다.
 - 전달 경로(실측, claude 2.1.316, haiku 탐침): SubagentStop 이 보고가 메인에 들어가기 전에 돈다. 입력의 `last_assistant_message` 와, SubagentHandback 으로 끝낸 에이전트는 transcript 끝 512KB 의 마지막 SubagentHandback 입력을 분류해 `<session>.handbacks.json` 에 남긴다. 메인이 띄운 것(meta 의 `spawnDepth` 1, `parentAgentId` 없음)만 대기로 둔다.
   - 메인이 쉬고 있으면 보고가 새 턴으로 들어오고 UserPromptSubmit 의 `prompt` 에 그 글(`<task-notification>` 의 `<result>`, 또는 `<agent-message from="<id>">` 의 `[Subagent hand-back]`)이 실린다. 이 경로는 prompt 를 직접 분류하므로 SubagentStop 기록이 없어도 된다. SubagentHandback 을 쓴 에이전트의 task-notification 은 본문 대신 안내만 실어 그때는 상태를 쓴다.
   - 메인이 일하는 중이면 보고가 다음 도구 결과와 함께 붙고 UserPromptSubmit 이 돌지 않는다. 메인의 PostToolBatch 가 대기 중인 것을 한 줄로 묶어 낸다.

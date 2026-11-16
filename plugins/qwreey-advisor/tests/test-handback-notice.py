@@ -172,6 +172,17 @@ check("off 등급 저장소 → 조용", run({"hook_event_name": "UserPromptSubm
 sstop("s9", "e3", last=DESIGN)
 check("git 저장소가 아니어도 기본 등급으로 냄", ctx(ups("s9", hb_prompt("e3", DESIGN))) != "")
 
+# 이어 받은 에이전트의 새 보고는 다시 본다, 토론 입장문은 내지 않는다
+sstop("s10", "f1", handback=DESIGN)
+check("첫 보고 → 냄", '"Design f1"' in ctx(ups("s10", hb_prompt("f1", DESIGN))))
+sstop("s10", "f1", handback=DESIGN_KO)
+check("이어 받아 다른 보고 → 다시 냄", '"Design f1"' in ctx(ups("s10", hb_prompt("f1", DESIGN_KO))))
+sstop("s10", "f1", handback=DESIGN_KO)
+check("같은 보고가 또 오면 → 조용", ups("s10", hb_prompt("f1", DESIGN_KO)) == "" and batch("s10") == "")
+sstop("s11", "g1", handback=DESIGN, meta={"agentType": "general-purpose", "description": "debate: P round 1", "spawnDepth": 1})
+check("토론 입장문(설명 debate:) → 조용", ups("s11", hb_prompt("g1", DESIGN)) == "" and batch("s11") == "")
+check("SubagentStop 없이 온 토론 보고(task-notification 설명 토론) → 조용", ups("s11", tn_prompt("g2", "토론 Q 2라운드", DESIGN)) == "")
+
 shutil.rmtree(T, ignore_errors=True)
 print(f"{ok}/{ok + fail}")
 sys.exit(1 if fail else 0)

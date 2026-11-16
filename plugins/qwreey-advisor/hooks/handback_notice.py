@@ -1,4 +1,4 @@
-"""handback_notice: 검토가 아닌 서브에이전트의 보고에 권고, 선택지, 열린 질문이 있으면 메인에게 info 한 줄을 낸다(에이전트마다 한 번).
+"""handback_notice: 검토가 아닌 서브에이전트의 보고에 권고, 선택지, 열린 질문이 있으면 메인에게 info 한 줄을 낸다(보고마다 한 번).
 
 메인이 서브에이전트의 추천안을 확인 없이 사용자에게 넘기면 그 안은 그 에이전트 혼자 본 것이다. 이 알림은 넘기기 전에
 inherit-advisor 나 fresh-advisor 가 볼 수 있다는 것만 알린다.
@@ -13,9 +13,11 @@ inherit-advisor 나 fresh-advisor 가 볼 수 있다는 것만 알린다.
     대기 중인 것을 낸다. 같은 묶음에서 메인이 리뷰어나 inherit-advisor fork 를 띄웠으면 이미 검토하는 중이라 내지 않는다.
 분류는 기계적 휴리스틱이다: 제목 줄(마크다운 제목, 줄 전체 굵게, 콜론으로 끝나는 짧은 줄)의 권고, 제안, 열린 질문 같은 말이
 하나라도 있거나, 본문 문구 신호가 둘 이상이면 낸다. 코드 블록은 보지 않는다.
+토론 입장문(설명이 debate 나 토론으로 시작)은 메인이 종합할 재료라 내지 않는다. 이어 받은 에이전트는 보고 내용이 바뀌면 다시 본다.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -50,6 +52,7 @@ TASK = re.compile(r"<task-notification>\s*<task-id>([^<]+)</task-id>")
 SUMMARY = re.compile(r'<summary>Agent "(.*?)" ')
 STUB = "report was delivered to you as a message"  # SubagentHandback 을 쓴 에이전트의 task-notification 은 본문 대신 이 안내만 싣는다
 REVIEW_TEXT = re.compile(r"\[qwreey-advisor run: |\[second opinion: |\[qwreey-advisor:inherit\]")
+DEBATE = re.compile(r"(?i)^\s*(debate|토론)")  # qwreey-debate 스킬이 토론자 설명을 `debate:` 로 시작하게 한다
 
 
 def signals(text: str) -> set[str]:
@@ -136,6 +139,10 @@ def handback_message(tpath: str) -> str:
     return ""
 
 
+def digest(text: str) -> str:
+    return hashlib.sha1((text or "").strip().encode("utf-8", "replace")).hexdigest()[:12]
+
+
 def label_of(meta: dict, data: dict) -> str:
     raw = meta.get("description") or data.get("agent_type") or "subagent"
     return re.sub(r"[`<>\"\n\r]", "", str(raw))[:60]
@@ -145,16 +152,21 @@ def on_stop(data: dict, meta: dict, review: bool, is_nested: bool | None) -> Non
     aid = str(data.get("agent_id") or "")
     if not aid:
         return
+    text = "\n".join(x for x in (data.get("last_assistant_message") or "", handback_message(data.get("agent_transcript_path") or "")) if x)
+    h = digest(text)
     with State(data.get("session_id") or "") as st:
-        if st.agents.get(aid, {}).get("done"):  # 다시 이어 받은 에이전트도 한 번만
+        old = st.agents.get(aid, {})
+        if old.get("done") and (old.get("review") or old.get("h") == h):  # 같은 보고는 한 번만, 이어 받아 새 보고면 다시 본다
             return
         if review:
             st.put(aid, t=time.time(), review=True, done=True)
             return
         if is_nested is not False:  # 일꾼이 띄운 것이거나 알 수 없음: 대기로 두지 않는다(메인의 UserPromptSubmit 경로는 그대로)
             return
-        text = "\n".join(x for x in (data.get("last_assistant_message") or "", handback_message(data.get("agent_transcript_path") or "")) if x)
-        st.put(aid, t=time.time(), label=label_of(meta, data), hit=carries_decisions(text), pending=True)
+        label = label_of(meta, data)
+        st.agents[aid] = {"t": time.time(), "label": label, "h": h, "pending": True,
+                          "hit": carries_decisions(text) and not DEBATE.search(label)}
+        st.dirty = True
 
 
 def parse_prompt(prompt: str) -> tuple[str, str, str] | None:
@@ -184,11 +196,17 @@ def on_prompt(data: dict, reviewed_at: float) -> list[str]:
     aid, body, desc = got
     with State(data.get("session_id") or "") as st:
         e = st.agents.get(aid)
+        hb = digest(body) if body else ""
+        if e is not None and body and e.get("done") and not e.get("review") and e.get("hb") and e["hb"] != hb:
+            e = None  # 이어 받은 에이전트의 새 보고(SubagentStop 이 다시 보지 못한 경우)
         if e is None:
             if not body:
                 return []
-            e = {"t": time.time(), "label": re.sub(r"[`<>\"\n\r]", "", desc)[:60] or "subagent",
-                 "hit": carries_decisions(body) and not REVIEW_TEXT.search(body)}
+            label = re.sub(r"[`<>\"\n\r]", "", desc)[:60] or "subagent"
+            e = {"t": time.time(), "label": label,
+                 "hit": carries_decisions(body) and not REVIEW_TEXT.search(body) and not DEBATE.search(label)}
+        if hb:
+            e = {**e, "hb": hb}
         if not due(e, reviewed_at):
             if not e.get("done") and (body or e.get("review")):
                 st.put(aid, **{**e, "done": True})
