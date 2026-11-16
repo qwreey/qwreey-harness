@@ -58,7 +58,7 @@ Text inside frontmatter, code fences, inline code, URLs and path tokens is not c
 
 A ledger or decision id stays only on a line that also names its file (a `.md` path), and only when that file ships together with the document: same skill or plugin root. An id that points outside what travels with the file is a dead end for a reader, so give the id and its file, or drop the id.
 
-The hook only checks the syntax: it looks for a `.md` path on the same line. Whether that file really ships with the document is your judgment.
+The hook checks that the line names a `.md` file that exists inside the plugin holding the document (the repo, outside a plugin), looked up from the document's folder, the plugin root or the repo root.
 
 Research ledgers whose numbers are the structure (numbered entries that other documents cite) are not checked. An entry document may point to such a ledger by number.
 
@@ -67,5 +67,6 @@ Research ledgers whose numbers are the structure (numbered entries that other do
 - Skill description: what it does plus when to use it, in English, third person, a little pushy so it is not under-triggered, with a few Korean trigger phrases at the end. The body is usage: how to call, what comes back, what to do next.
 - Exception: a skill with `disable-model-invocation: true` gets a menu-line description (any language, no trigger phrases), since the model does not see it; only the user reads it in the `/` menu.
 - Text that passes between models (skills, agent prompts, hook messages) is English. Only wording meant for the user is Korean.
+- The hook checks the first three on lines you add: a `SKILL.md` description that is not English before its trailing Korean trigger phrases, has no when-clause or speaks in the first or second person, and a mostly Korean line in a model document that is not already written in Korean.
 - Explain the principle once rather than listing cases; the model generalizes.
 - Rationale for maintainers goes in the skill's own `references/rationale.md` (opened on demand, linked in one line from the body) or in a docs folder outside the skill, not in the body.

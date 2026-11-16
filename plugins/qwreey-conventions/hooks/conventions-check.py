@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """PostToolUse(Write|Edit|MultiEdit) 알림: 이번에 추가한 줄이 주석, 모델용 문서 관례를 벗어난 것 같으면 한 줄로 알린다.
 
-막지 않는다(decision 없음). additionalContext(level=info) 한 줄만 주입한다. 주석 알림은 줄 번호와 고치는 법(대체 문자 등)을 함께 줘서
-알림만 보고 고칠 수 있다. 모델용 문서 알림은 qwreey-conventions:agent-docs 스킬을 가리킨다.
+막지 않는다(decision 없음). additionalContext(level=info) 한 줄만 주입한다. 주석 알림과 모델용 문서 알림 모두 줄 번호와 고치는 법(대체 문자,
+옮길 곳, 써야 할 꼴)을 함께 줘서 알림만 보고 고칠 수 있다. 스킬을 열라고 하지 않는다.
 Bash 로 바꾼 파일은 bash_writes.py 가 이 파일의 file_notice 로 같은 검사, 같은 중복 거르기를 한다.
 
 남은 기존 주석 보고: 같은 PostToolUse 에서 이번에 추가하지 않은 줄의 문제를 범주별(이력, 기호, 이스케이프, 보이지 않는 문자) 줄 수로 세어
@@ -30,6 +30,8 @@ Bash 로 바꾼 파일은 bash_writes.py 가 이 파일의 file_notice 로 같�
   - 입구 문서: 날짜, audit/session/handoff 경로와 .claude/ 아래 기록 폴더 경로, 라운드, 결정 문구, 실측 표지, 변경 서술, 같은 줄에 .md 경로가 없는 원장 id
   - skills/**/references/*.md: 결정 문구, 라운드, audit/N 근거, 실측 표지, 정정 배너만(날짜, id, "previously" 는 통과)
   - `status:` 줄은 통과
+  - 꼴(conv_docs.doc_shape): SKILL.md 의 description(영어, 언제 쓰는지, 3인칭, 한국어 계기는 끝; disable-model-invocation 은 제외),
+    한국어가 대부분인 줄(이미 한국어로 쓴 문서는 제외), 입구 문서에서 원장 id 옆 .md 경로가 플러그인(밖이면 저장소) 안의 있는 파일이 아님
 제외: 확장자 표 밖, 생성 파일(머리 6줄 표시), 픽스처, testdata, node_modules 등, 설정의 exclude.
 
 저장소 설정: <프로젝트>/.claude/conventions.json (없으면 예전 이름 .claude/comments.json)
@@ -58,7 +60,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
 import harness_nonce  # noqa: E402
 from conv_edit import GEN_MARK, MAX_BYTES, SKIP_PARTS, SKIP_SUFFIX, collect, project_root  # noqa: E402
-from conv_docs import INLINE_CODE, PATH_TOKEN, URL, doc_check, doc_class, doc_lines  # noqa: E402,F401 (scan 이 cc. 로 쓴다)
+from conv_docs import DOC_HINT, INLINE_CODE, PATH_TOKEN, URL, doc_check, doc_class, doc_lines, doc_shape  # noqa: E402,F401 (scan 이 cc. 로 쓴다)
 from conv_lex import FAMILY, comment_body, lex  # noqa: E402
 import layout_metrics  # noqa: E402
 
@@ -91,8 +93,8 @@ BUILTIN_PUBLIC = [r"error-code:\s*\S+", r"\bR(?:6|15)\b", r"\bES\d{4}\b", r"\bH2
 # 주석 안의 유니코드 이스케이프(\\uXXXX, \\u{...}, \\UXXXXXXXX): 금지 문자를 이스케이프로 적어 검사를 피한 것
 ESCAPE = re.compile(r"\\u[0-9A-Fa-f]{4}|\\u\{[0-9A-Fa-f]+\}|\\U[0-9A-Fa-f]{8}")
 # 알림 범주 순서(알림 문장에서 앞일수록 먼저 고친다)
-CATEGORY_ORDER = ("history marker", "Ref tail without a reason sentence", "non-keyboard symbol", "escaped character",
-                  "invisible character", "language mismatch")
+CATEGORY_ORDER = ("history marker", "Ref tail without a reason sentence", "skill description", "ledger id path", "non-keyboard symbol",
+                  "escaped character", "invisible character", "language mismatch")
 # 흔한 기호의 대체. 키가 없으면 ASCII 나 평범한 단어로 풀어 쓴다.
 SYMBOL_FIX = {"\u2014": "-", "\u2013": "-", "\u2015": "-", "\u2212": "-", "\u00b7": ",", "\u2022": "-", "\u2026": "...",
               "\u2192": "->", "\u2190": "<-", "\u2194": "<->", "\u21d2": "=>", "\u00a7": "(omit)", "\u00d7": "x",
@@ -657,7 +659,7 @@ SCRIPT_NAME = {"latin": "English", "hangul": "Korean", "cjk": "Japanese or Chine
 
 
 COMMENT_TAIL = "Fix those lines; a false match (quoted text, a needed symbol) can stay, said once in your report."
-DOC_TAIL = f"If a hit is real, the {NAME}:agent-docs skill has the fix; false matches (quoted text, a needed symbol) can stay."
+DOC_TAIL = "Fix those lines; a false match (quoted text, a needed symbol) can stay, said once in your report."
 
 
 def file_notice(data, path, rel, kind, ext, cfg, text, added, state, tail=True):
@@ -675,7 +677,7 @@ def file_notice(data, path, rel, kind, ext, cfg, text, added, state, tail=True):
         return [], False
 
     # Added-line checks
-    exp = None
+    exp, doc_det = None, {}
     if kind == "comment":
         problems = check_lines(rows, added, pats, pub, cfg)
         labels = step_labels(rows, text.split("\n"), cfg)
@@ -684,6 +686,8 @@ def file_notice(data, path, rel, kind, ext, cfg, text, added, state, tail=True):
             problems += [(ln, "language mismatch") for ln in language_lines(rows, added, exp, labels)]
     else:
         problems = doc_check(text, added, rel, cfg, pats, pub)
+        shape, doc_det = doc_shape(text, added, path, rel, pub)
+        problems += shape
     problems += [(ln, "invisible character") for ln in invisible_lines(text, added)]
 
     # Layout of the functions this edit wrote or grew
@@ -723,7 +727,7 @@ def file_notice(data, path, rel, kind, ext, cfg, text, added, state, tail=True):
         elif kind == "comment" and cat == "language mismatch" and exp in SCRIPT_NAME:
             det = f"write it in {SCRIPT_NAME[exp]} like the file's other comments"
         else:
-            det = FIX_HINT.get(cat, "") if kind == "comment" else ""
+            det = FIX_HINT.get(cat, "") if kind == "comment" else doc_det.get(cat) or DOC_HINT.get(cat, "")
         parts.append(f"{line_list(lns)} {cat}" + (f": {det}" if det else ""))
 
     body = []

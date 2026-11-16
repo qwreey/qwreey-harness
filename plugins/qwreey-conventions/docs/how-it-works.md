@@ -42,7 +42,7 @@
 - coderag 는 팩 규칙의 `switch` 를 읽지 않는다. 팩 규칙에 `switch` 를 쓰려면 coderag 에 같은 변경이 먼저 필요하다(대조 시험은 키를 켜고 꺼도 팩 규칙 주입이 같은지만 본다).
 
 ## 주석·문서 검사 (`conventions-check.py`)
-이번에 추가한 줄만 본다(Edit 는 `new_string` 에서 `old_string` 에 없던 줄, Write 는 새 파일이면 전체, 덮어쓰기면 원본과의 차이, Bash 는 아래 Bash 쓰기 검사). (세션, 에이전트, 파일, 범주)마다 한 번, level=info. 주석 알림은 범주마다 줄 번호와 고치는 법(대체 문자, 코드포인트, 옮길 곳, 써야 할 언어)을 함께 주고 "그 줄을 고치고, 오탐은 두되 보고에 한 번 적으라" 로 끝난다. 스킬을 열라고 하지 않는다: 실제 기록에서 스킬 이름을 단 알림 42건 중 로드는 1건이었고 알림만 보고 고친 것이 약 32건이었다. 모델용 문서 알림은 아직 `agent-docs` 스킬을 가리킨다.
+이번에 추가한 줄만 본다(Edit 는 `new_string` 에서 `old_string` 에 없던 줄, Write 는 새 파일이면 전체, 덮어쓰기면 원본과의 차이, Bash 는 아래 Bash 쓰기 검사). (세션, 에이전트, 파일, 범주)마다 한 번, level=info. 주석 알림은 범주마다 줄 번호와 고치는 법(대체 문자, 코드포인트, 옮길 곳, 써야 할 언어)을 함께 주고 "그 줄을 고치고, 오탐은 두되 보고에 한 번 적으라" 로 끝난다. 스킬을 열라고 하지 않는다: 실제 기록에서 스킬 이름을 단 알림 42건 중 로드는 1건이었고 알림만 보고 고친 것이 약 32건이었다. 모델용 문서 알림도 같은 꼴로 범주마다 고치는 법을 주고 같은 문장으로 끝난다.
 
 코드 파일의 주석 줄(확장자별 간이 렉서라 문자열 안의 `--`, `//`, `#` 는 주석이 아니다):
 - history marker: 원장 번호, 날짜, 라운드, 작업 이력 경로, 결정 문구, 변경 서술. 같은 주석 덩어리에 이유 문장이 있는 `Ref:` 꼬리는 통과.
@@ -56,6 +56,11 @@
 - 입구 문서: 날짜, audit·session·handoff 경로, 라운드, 결정 문구, 실측 표지, 변경 서술, `.md` 경로 없는 원장 id.
 - `skills/**/references/*.md`: 결정 문구, 라운드, audit 근거, 실측 표지, 정정 배너만.
 - frontmatter, 코드 펜스, 인라인 코드, URL, 경로 토큰, `status:` 줄은 보지 않는다.
+- 꼴(`hooks/conv_docs.py` 의 `doc_shape`, 추가한 줄만. 남은 문제 보고와 `conventions-scan.py` 에는 넣지 않는다: 한국어로 쓴 기존 문서가 통째로 걸린다):
+  - skill description: `SKILL.md` frontmatter 의 `description` 이 끝의 한국어 계기 문구(한국어가 라틴 낱말보다 많거나 `트리거` 로 시작하는 끝 문장들, 따옴표 안은 세지 않음)를 빼고도 한국어 낱말이 3개 이상, 언제 쓰는지(`when`, `before`, `Use for` 등)가 없음, 1·2인칭(`I can`, `you can`). `disable-model-invocation: true` 면 메뉴 줄이라 보지 않는다. description 줄을 고친 편집에서만 본다.
+  - language mismatch: 본문 줄(따옴표, 인라인 코드, URL 제외)의 한국어 낱말이 3개 이상이고 라틴 낱말 이상. 고치지 않은 줄 중 한국어 줄이 3개 이상이고 10% 를 넘는 문서는 이미 한국어로 쓴 것으로 보고 따른다(luau-kb 스킬, q 의 사용자 안내 문서).
+  - ledger id path: 입구 문서에서 원장 id 와 `.md` 경로가 같은 줄에 있는데, 그 경로가 문서 폴더, 플러그인 루트(`.claude-plugin` 이 있는 가장 가까운 폴더, 없으면 저장소), 저장소 루트 어디에서 풀어도 플러그인 안의 있는 파일이 아님.
+  - 이 저장소와 coderag 의 추적 파일 전체를 한 줄씩 추가한 것으로 놓고 돌린 결과: claude-doctor 는 description 5(모두 `.claude/` 초안), 언어 8줄(4파일; 살아 있는 파일은 `q` doctor 의 사용자용 표 머리 1줄), 원장 경로 0. coderag 는 description 10(모두 `experiments/team-audit/corpus/` 시험 자료), 언어 0, 원장 경로 0.
 
 제외: 확장자 표 밖, 생성 파일(머리 6줄 표시), 픽스처, testdata, `node_modules`, 설정의 `exclude`.
 
@@ -122,6 +127,14 @@ python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py fix [경로...
 ## 사본 검사 (`reuse-check.py`)
 - C1: `@copy-of: <경로>[#이름]` 사본이 원본과 같은가(파일은 바이트, 값은 문자열 묶음). 풀리지 않거나 다르면 알린다.
 - C2: 원본을 고치면 그것을 가리키는 사본 목록을 알린다.
+- M1: 추가한 줄의 표시(`@copy-of`, `@start-replace`, `@end-replace`, 주석 본문의 맨 앞에 온 것만; 설명 글 중간이나 문서 블록 안에 인용한 `// @copy-of` 예는 아니다)가 놓인 자리와 꼴. 줄마다 회차당 한 번, 고친 꼴을 함께 준다.
+  - 문서 주석: Rust `///`·`/** */`·`/*! */`, JS·TS·Kotlin `/** */`, Luau `---`·`--[=[ ]=]`. 문서 도구가 표시를 싣거나 태그로 읽는다. `//!`, `////`, `/* */`, `--[[ ]]` 는 통과.
+  - Astro 의 `<!-- -->` 안 `@copy-of`(빌드된 페이지에 남을 수 있다): 템플릿은 `{/* */}`, frontmatter 는 `//`.
+  - 영역 표시가 `copy_regions.MARK` 꼴(혼자 있는 줄 주석)이 아님: 읽히지 않는다.
+  - 파이썬 머리 10줄 밖 독스트링의 `@copy-of`: 읽히지 않는다.
+  - 형제 저장소 꼴이 섞임: `@copy-of: ../repo:path`(→ `repo:path`), `@start-replace: repo:path` 나 `../repo:path`(→ `../repo/path`). `HARNESS_WORKSPACE` 와 무관하게 알리고, 같은 줄의 "does not resolve" 알림은 내지 않는다.
+  - `.json`, `.jsonc` 의 추가 줄에 경로 꼴 표시가 있음: JSON 은 표시를 둘 주석이 없고 아무도 읽지 않는다(파일당 한 번). Edit·Write 만 본다(Bash 경로는 코드 파일만 reuse-check 에 넘긴다).
+  - 이 저장소와 coderag 의 추적 파일 전체를 한 줄씩 추가한 것으로 놓고 돌린 결과: 둘 다 0(검사 대상 코드 파일에서 표시 낱말이 든 줄 claude-doctor 114, coderag 4).
 - H1: 추가한 문자열 묶음(따옴표 문자열 3개 이상의 목록이나 `"a" | "b"` 합집합)이 저장소의 다른 정의와 겹침. 기본은 그림자 모드라 알리지 않고 `${CLAUDE_PLUGIN_DATA}/reuse-shadow.jsonl`(없으면 `$TMPDIR/claude-qwreey-reuse/shadow.jsonl`)에 남긴다.
 - 모드: `REUSE_CHECK=off|shadow|on` 이 저장소 `.claude/conventions.json` 의 `reuse.mode` 를 이긴다. 기본 `shadow`. `CONVENTIONS_CHECK=off` 도 이 훅을 끈다.
 - 색인: `$TMPDIR/claude-qwreey-reuse/<저장소 해시>.json`, 바뀐 파일만 다시 읽는다. 첫 색인은 300ms 에서 끊고 다음 편집에서 이어 만든다.
