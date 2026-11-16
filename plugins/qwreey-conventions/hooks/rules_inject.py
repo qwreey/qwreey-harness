@@ -22,6 +22,8 @@ glob: 공식 paths 와 같게 `**`, `*`, `?`, `{a,b}`, `[..]`. 절대 경로에 
 켜기 스위치: 프론트매터에 `switch: <KEY>` 가 있는 rule 은 harness.env 층(conv_env.env_value)에서 KEY 가 `on` 일 때만 넣는다. 개인 취향인 rule 을
   사용자가 자기 ~/.claude/harness.env 로 켜고 저장소가 .claude/harness.env 로 끌 수 있게 하려는 것이다. 마커를 잡기 전에 거르므로 세션 중간에
   켜도 다음 맞는 파일에서 실린다. `switch` 없는 rule 은 그대로다(팩 rule 은 `switch` 를 쓰지 않아 coderag 와의 대조가 같다).
+저장소 설정 줄: comments rule 을 넣을 때 편집하는 파일의 저장소 설정에 comment_language 가 있으면 제목 아래에 그 값을 한 줄로 넣는다
+  (setting_line). 이름이 `comments` 인 rule 에만 붙으므로 팩 rule 출력은 그대로다.
 고칠 때 주의: 이 파일은 파일 열기마다 돈다. 표준 라이브러리만, 맞는 rule 이 없으면 바로 끝낸다.
 """
 import json
@@ -173,17 +175,51 @@ def rule_matches(regexes, abs_path, root):
     return any(rx.match(p.lstrip("/")) or rx.match(rel) or rx.match(p) for rx in regexes)
 
 
-def excluded(root):
+def repo_config(root):
+    """저장소 `.claude/conventions.json`(없으면 예전 이름 comments.json)의 dict. 먼저 있는 파일 하나만 보고, 못 읽거나 dict 가 아니면 {}."""
     for name in ("conventions.json", "comments.json"):
         fp = os.path.join(root, ".claude", name)
         if os.path.exists(fp):
             try:
                 with open(fp, encoding="utf-8") as f:
-                    v = json.load(f).get("rules_exclude")
-                return set(v) if isinstance(v, list) else set()
+                    v = json.load(f)
+                return v if isinstance(v, dict) else {}
             except Exception:
-                return set()
-    return set()
+                return {}
+    return {}
+
+
+def excluded(root):
+    v = repo_config(root).get("rules_exclude")
+    return set(v) if isinstance(v, list) else set()
+
+
+# 쓰는 글을 바꾸는 저장소 설정 값을 그 rule 본문에 한 줄로 넣는다. 스킬에만 두면 모델이 쓰기 전에 스킬을 열지 않아 지켜지지 않는다.
+# 값은 모델에게 가는 태그 안에 들어가므로 언어 코드 꼴만 받는다(태그 흉내 글이 설정 파일에서 들어오지 않게).
+LANG_CODE = re.compile(r"[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})?\Z")
+SETTING_LINE = ("- This repo: comment_language = %s. Comments in a new file are written in it, whatever its sibling files use;"
+                " an existing file keeps the language its comments already use.")
+
+
+def setting_line(name, abs_path, data):
+    """comments rule 에 붙일 저장소 설정 줄, 없으면 None. 설정은 conventions-check 가 comment_language 를 읽는 곳(편집하는 파일의 저장소)에서 읽는다."""
+    if name != "comments":
+        return None
+    try:
+        import conv_edit
+        lang = repo_config(conv_edit.project_root(os.path.normpath(abs_path), data)).get("comment_language")
+    except Exception:
+        return None
+    return SETTING_LINE % lang if isinstance(lang, str) and LANG_CODE.match(lang) else None
+
+
+def with_setting(name, body, abs_path, data):
+    """rule 본문의 제목 줄 바로 아래에 설정 줄을 넣는다. 설정이 없으면 본문 그대로."""
+    line = setting_line(name, abs_path, data)
+    if not line:
+        return body
+    head, sep, rest = body.partition("\n")
+    return head + "\n" + line + sep + rest if head.startswith("#") else line + "\n" + body
 
 
 def claim(base, name):
@@ -265,6 +301,7 @@ def main():
             return 0
         if data.get("hook_event_name") != "PostToolUse":
             return 0
+        picked = [(n, with_setting(n, b, abs_path, data)) for n, b in picked]
         label = os.path.basename(abs_path)
         out = {"hookSpecificOutput": {"hookEventName": "PostToolUse",
                                       "additionalContext": injection(label, picked, data.get("tool_name") != "Read", data.get("session_id"))}}

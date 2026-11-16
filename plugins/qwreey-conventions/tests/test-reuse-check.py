@@ -104,6 +104,8 @@ nores2 = '-- @copy-of: a/src.luau#MISSING\nlocal FORMS = { "coin", "stick", "bac
 check("C1 unresolved name -> notice", "does not resolve" in run("b/c3.luau", nores2, "", nores2))
 check("C1 sibling-repo mark without workspace -> silent, logged", run("b/c4.luau", '-- @copy-of: other:src/x.luau#FORMS\n' + LIST, "", "x") == ""
       and any(s.get("status") == "sibling" for s in shadow()))
+mixed = '-- @copy-of: ../other:src/x.luau#FORMS\nlocal FORMS = { "coin", "stick", "back", "card" }\n'
+check("C1 region path mixed with repo: form -> does not resolve", "does not resolve" in run("b/c5.luau", mixed, "", mixed))
 
 # 파일 사본: 바이트 비교, 자기 경로를 적은 파일이 원본
 put("p/src.py", '"""mod.\n@copy-of: p/src.py\nbody\n"""\nX = 1\n')

@@ -31,6 +31,7 @@
 - 맞는 규칙 중 이 키로 아직 안 넣은 것을 `<rule plugin=… name=…>` 로 감싸 넣는다. Read 뒤에는 본문만, 그 키로 처음인 Edit·Write 뒤에는 본문과 "방금 쓴 것을 규칙에 대조하고 어긋나면 고쳐라" 한 문장.
 - 키: (세션, 에이전트, compact 회차, 규칙). `O_EXCL` 마커라 병렬 호출에도 한 번만 들어간다.
 - 넣지 않는 곳: `node_modules`, `.git`, `dist`, `build`, `.venv`, `vendor`, `__pycache__` 아래, 그리고 프로젝트 밖 Read(설정 디렉터리의 `projects/*/memory/` 는 예외). 프로젝트 밖이라도 편집은 넣는다.
+- 저장소 설정 줄: `comments` 규칙을 넣을 때 편집하는 파일의 저장소(`conventions-check.py` 와 같은 `conv_edit.project_root`) `.claude/conventions.json`(없으면 `comments.json`)에 언어 코드 꼴의 `comment_language` 가 있으면 제목 아래에 `- This repo: comment_language = en. ...` 한 줄을 넣는다. 모델은 쓰기 전에 스킬을 열지 않아 스킬에만 있는 설정은 지켜지지 않기 때문이다. 키가 없거나 설정을 못 읽으면 본문 그대로이고, 다른 규칙과 팩 규칙에는 붙지 않는다.
 - 도메인 팩(`packs/*`)의 규칙은 이 훅이 아니라 coderag 플러그인이 넣고, 이 파일이 그 대조 기준이다(`tools/tests/test-coderag-rules-parity.py`).
 - 끄기: `HARNESS_CONVENTIONS_RULES=off`(환경 변수 또는 harness.env 층: 사용자 < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`, `hooks/conv_env.py` 가 옆의 `hooks/harness_env.py` 사본으로 읽는다), 규칙별로는 저장소 `.claude/conventions.json` 의 `rules_exclude`.
 - 켜기 스위치: 프론트매터에 `switch: <KEY>` 가 있는 규칙은 같은 harness.env 층에서 KEY 가 `on` 일 때만 넣는다(마커를 잡기 전에 거르므로 세션 중간에 켜도 다음 맞는 파일에서 실린다). 지금은 `readable-code` 의 `HARNESS_READABLE_CODE` 하나이고 기본값은 `off`(`conv_env.py` 의 `ENV_DEFAULTS`). 개인 취향이 동료 배포로 퍼지지 않게 사용자가 자기 `~/.claude/harness.env` 에서 켜고, 저장소는 `.claude/harness.env`(공유)나 `harness.local.env`(개인)에 `off` 를 두어 끈다. 사용자 전용 키가 아니라서 저장소 층이 이긴다. `bash-bypass-reminder` 도 꺼진 규칙은 이름을 대지 않는다.

@@ -123,7 +123,7 @@ The numbers in the notice: lines are non-blank body lines, blank are blank lines
  "label_language": "en", "layout": {"min_lines": 15, "max_run": 20, "doc_first_max": 100, "grow": 15}}
 ```
 
-- `comment_language`: `en`, `ko`, `ja`, `zh`, `ru`. Used for new files.
+- `comment_language`: `en`, `ko`, `ja`, `zh`, `ru`. Used for new files. The rules hook also prints it in the comments rule (`This repo: comment_language = ...`), so a model sees it without loading this skill.
 - `allow_chars`: `"emoji"` allows emoji; any other entry is a string of characters to allow.
 - `public_ids`: regexes for identifiers that are not history.
 - `exclude`: path globs the hook skips. `patterns` can override or disable a detector (`null` disables), `allow_ref_tail` turns the `Ref:` allowance off, `min_reason_words` (default 3) is how many words a reason sentence needs before a `Ref:` tail counts as backed.
