@@ -39,6 +39,7 @@ Multi-file audits:
 - [58-external-skills-survey/](58-external-skills-survey/) - alirezarezvani/claude-skills: description rewrites left silent skills, a UserPromptSubmit router hook lifted sonnet loads 2/84 to 24/84; worth borrowing the router and trigger-eval design
 - [59-external-plugins-survey/](59-external-plugins-survey/) - seven external plugins/harnesses: borrow only measured ideas (compact recovery anchors, 10,000-char hook output cliff, read gate, router false-fire guards); skip always-on "must invoke skills" bootstraps and first-edit denies
 - [60-skill-hint-probe/](60-skill-hint-probe/) - prompt-time skill hint on our skills: small gain (sonnet 27/32 to 32/32, loads earlier), 0 false fires; worth a small hook for luau-kb pack skills, not for advisor
+- [61-compact-recovery-probe/](61-compact-recovery-probe/) - after CC compact, re-injecting the user's verbatim messages and machine-extracted identifiers lifted long-span recall 63% to 96% (n=1 per cell); 158k spans need nothing
 
 Audits about one plugin, pack or `home/` part live in that part's scope, `../scopes/<repo path>/audit/`, with the same numbers:
 - [scopes/packs/luau-kb/audit/](../scopes/packs/luau-kb/audit/) - 05, 08, 09, 11, 13 (Luau knowledge map, mines, gaps, upstream), 52-luau-kb-skill-descriptions/ (descriptions can shrink to 57% without losing triggers), drafts/ (drafts written during audits)
