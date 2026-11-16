@@ -4,6 +4,9 @@
 쓰는 법(저장소 안에서, 모델을 부르지 않는다):
   python3 -I conventions-scan.py scan [경로...] [--json] [--category C ...] [--summary] [--top N] [--root DIR]
   python3 -I conventions-scan.py scan --fix [--dry-run] ...      (= fix [경로...] [--dry-run])
+  python3 -I conventions-scan.py layout [경로...] [--json] [--summary] [--root DIR]
+layout: 함수마다 읽기 모양 지표(hooks/layout_metrics.py)와 훅의 layout 알림 범주를 모든 함수에 대해 낸다. 고치지 않는다.
+  HARNESS_READABLE_CODE 와 무관하게 돈다. Bash 로 고친 파일처럼 훅이 못 본 편집을 확인하고, 쓰기 실측의 채점에도 쓴다.
 경로를 안 주면 저장소 루트 전체. git 저장소면 git ls-files(추적 + 무시되지 않은 새 파일)만 본다.
 출력: 찾은 것마다 `경로:줄: 범주: 내용`, 끝에 범주별, 파일별 수. --json 은 기계용 한 덩어리.
 종료 코드: 0 = 남은 문제 없음, 1 = 남은 문제 있음(scan 은 찾은 것, fix 는 고친 뒤 남은 것), 2 = 사용법 오류.
@@ -58,6 +61,7 @@ cc = _load_check()
 from conv_edit import GEN_MARK, MAX_BYTES, SKIP_PARTS  # noqa: E402
 from conv_lex import FAMILY, lex  # noqa: E402
 import copy_regions  # noqa: E402
+import layout_metrics  # noqa: E402
 
 CATEGORIES = cc.CATEGORY_ORDER
 ALIASES = {"history": "history marker", "ref": "Ref tail without a reason sentence", "symbol": "non-keyboard symbol",
@@ -173,9 +177,10 @@ def scan_text(text, rel, path, cfg, pats, pub):
         ext = os.path.splitext(rel)[1].lower()
         rows = lex(text, FAMILY[ext])
         probs = cc.check_lines(rows, every, pats, pub, cfg)
-        exp = cc.expected_script(rows, set(), cfg, path, ext)
+        labels = cc.step_labels(rows, text.split("\n"), cfg)
+        exp = cc.expected_script(rows, set(), cfg, path, ext, labels)
         if exp:
-            probs += [(ln, "language mismatch") for ln in cc.language_lines(rows, every, exp)]
+            probs += [(ln, "language mismatch") for ln in cc.language_lines(rows, every, exp, labels)]
     else:
         rows = None
         probs = cc.doc_check(text, every, rel, cfg, pats, pub)
@@ -404,6 +409,79 @@ def show_diff(rel, old, new):
     return "".join(cc.INVISIBLE.sub(lambda m: f"<U+{ord(m.group(0)):04X}>", l) + ("" if l.endswith("\n") else "\n") for l in lines)
 
 
+# ---------- 읽기 모양 ----------
+
+def layout_file(text, rel, limits):
+    """(함수 지표 목록, 함수마다 걸린 범주 dict 목록). 지원하지 않는 확장자나 생성 파일이면 None."""
+    ext = os.path.splitext(rel)[1].lower()
+    lang = layout_metrics.LANG_BY_EXT.get(ext)
+    if lang is None or any(GEN_MARK.search(l) for l in text.split("\n", 6)[:6]):
+        return None
+    rows = lex(text, FAMILY[ext], keep_code=True)
+    lines = text.split("\n")
+    measured = [layout_metrics.measure(rows, lines, fn, lang) for fn in layout_metrics.functions(rows, lines, lang)]
+    return measured, [layout_metrics.findings(m, lang, limits) for m in measured]
+
+
+def layout_line(rel, m, found):
+    doc = m["doc"]
+    if doc == "ok":
+        doc = "ok, first line %d chars%s" % (m["doc_first_len"], "" if m["doc_sentence"] else ", sentence runs on")
+    inter = ", ".join("L%d(%d)" % pair for pair in m["interleaved"]) or "0"
+    return (f"{rel}:{m['start']}-{m['end']}: {m['name']}{' (public)' if m['public'] else ''}: {m['nonblank']} lines, "
+            f"{m['blank']} blank, {m['paragraphs']} paragraphs, longest run {m['max_run']}, labels {m['labels']}, "
+            f"interleaved {inter}, multi-decl {m['multi_decl']}, one-letter {m['one_letter']}, doc {doc}"
+            + (f"  [{', '.join(found)}]" if found else ""))
+
+
+def run_layout(args, out=sys.stdout):
+    """layout 하위 명령. 종료 코드 0 = 걸린 함수 없음, 1 = 있음."""
+    start = os.path.abspath(args.paths[0]) if args.paths else os.getcwd()
+    root = os.path.abspath(args.root) if args.root else repo_root(start if os.path.isdir(start) else os.path.dirname(start))
+    cfg = cc.load_cfg(root)
+    limits = layout_metrics.limits(cfg.get("layout"))
+
+    files = []
+    for rel in list_files(root, args.paths):
+        if os.path.splitext(rel)[1].lower() not in layout_metrics.LANG_BY_EXT or cc.excluded(os.path.join(root, rel), rel, cfg):
+            continue
+        text, _ = read_text(os.path.join(root, rel))
+        got = layout_file(text, rel, limits) if text is not None else None
+        if got:
+            files.append((rel, got[0], got[1]))
+
+    # Summary over every measured function
+    fns = [(rel, m, f) for rel, ms, fs in files for m, f in zip(ms, fs)]
+    long_fns = [m for _, m, _ in fns if m["nonblank"] >= limits["min_lines"]]
+    public = [m for _, m, _ in fns if m["public"] and not m["metamethod"]]
+    body = sum(m["nonblank"] for _, m, _ in fns)
+    cats = Counter(c for _, _, f in fns for c in f)
+    summary = {
+        "root": root, "files": len(files), "functions": len(fns), "limits": limits,
+        "long_functions": len(long_fns), "long_one_block": cats["layout"],
+        "interleaved_per_100_lines": round(100 * sum(len(m["interleaved"]) for _, m, _ in fns) / body, 2) if body else 0,
+        "public_with_doc": sum(1 for m in public if m["doc"] == "ok"), "public": len(public),
+        "multi_decl": sum(m["multi_decl"] for _, m, _ in fns), "by_category": {c: cats[c] for c in layout_metrics.CATEGORIES if cats[c]},
+    }
+    status = 1 if cats else 0
+    if args.json:
+        json.dump({"functions": [dict(m, path=rel, findings=f) for rel, m, f in fns], "summary": summary}, out, ensure_ascii=False, indent=1)
+        out.write("\n")
+        return status
+
+    w = out.write
+    if not args.summary:
+        for rel, m, f in fns:
+            w(layout_line(rel, m, f) + "\n")
+    w(f"\nroot: {root}\nfiles: {len(files)}, functions: {len(fns)}\n")
+    w(f"functions with {limits['min_lines']}+ lines: {len(long_fns)}, read as one block: {cats['layout']}\n")
+    w(f"interleaved multi-line comments per 100 body lines: {summary['interleaved_per_100_lines']}\n")
+    w(f"public functions with a doc comment callers can see: {summary['public_with_doc']}/{len(public)}\n")
+    w(f"multi-name declarations: {summary['multi_decl']}\n")
+    w("findings: " + (", ".join(f"{c} {n}" for c, n in summary["by_category"].items()) or "none") + "\n")
+    return status
+
+
 # ---------- 실행 ----------
 
 def run(args, out=sys.stdout):
@@ -533,6 +611,11 @@ def run(args, out=sys.stdout):
 def parse(argv):
     ap = argparse.ArgumentParser(prog="conventions-scan.py", description="Whole-file qwreey-conventions scan and mechanical fixer (no model calls).")
     sub = ap.add_subparsers(dest="cmd", required=True)
+    lay = sub.add_parser("layout", help="per-function layout numbers and the readable-code notice categories (no fixes)")
+    lay.add_argument("paths", nargs="*", help="files or folders (default: repo root)")
+    lay.add_argument("--root", help="repo root (default: git toplevel of the first path or cwd)")
+    lay.add_argument("--json", action="store_true", help="machine-readable output")
+    lay.add_argument("--summary", action="store_true", help="print only the summary")
     for name, hlp in (("scan", "report findings on every line of the files"), ("fix", "same as scan --fix")):
         p = sub.add_parser(name, help=hlp)
         p.add_argument("paths", nargs="*", help="files or folders (default: repo root)")
@@ -546,6 +629,8 @@ def parse(argv):
         if name == "scan":
             p.add_argument("--fix", action="store_true", help="replace unambiguous symbols and invisible characters in comments and doc prose")
     a = ap.parse_args(argv)
+    if a.cmd == "layout":
+        return a
     a.fix = a.cmd == "fix" or getattr(a, "fix", False)
     if a.dry_run and not a.fix:
         ap.error("--dry-run needs --fix")
@@ -553,4 +638,5 @@ def parse(argv):
 
 
 if __name__ == "__main__":
-    sys.exit(run(parse(sys.argv[1:])))
+    ARGS = parse(sys.argv[1:])
+    sys.exit(run_layout(ARGS) if ARGS.cmd == "layout" else run(ARGS))

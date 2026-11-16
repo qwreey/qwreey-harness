@@ -1,0 +1,43 @@
+---
+description: Layout of code for a human reader (paragraphs, step labels, doc comments, where reasons go, declarations, names). All toolkits; on only when HARNESS_READABLE_CODE=on, pairs with the layout notice of conventions-check
+paths:
+  - "**/*.luau"
+  - "**/*.lua"
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "**/*.js"
+  - "**/*.jsx"
+  - "**/*.mjs"
+  - "**/*.astro"
+  - "**/*.rs"
+  - "**/*.py"
+  - "**/*.go"
+  - "**/*.kt"
+switch: HARNESS_READABLE_CODE
+---
+# Readable code
+A reader scans code by shape before reading it: blank lines end a step, short comment lines name what each step is for, the doc comment above a function says what it gives a caller.
+
+- In a function over about 10 lines, separate its steps (guards, each unit of work, checks after it, the return) with single blank lines; a short function has none.
+- Head a step whose intent is not obvious with a label: English, 2-10 words, no period, numbering or reason. The labels alone should read as the function's flow. Restating one line (`-- Increment the counter`) is noise; skip a label the code already says.
+- In a ladder of 4 or more cases, label each case and keep a case that deliberately does nothing.
+- Put what a function gives its caller in a doc comment above it, in the form your editor shows on hover and completion (the toolkit's style rule names it). Public functions in code others call always get one. Its first sentence ends on the first line, about 80 characters.
+- A design reason is a plain comment above the declaration, apart from the doc comment. Inside a body a reason is one line at the trap, below the step label; never a multi-line block between statements.
+- Declare a local at first use in the narrowest block (handles every step uses at the top, loop state right before the loop). One name per declaration except receiving multiple returns. One role keeps one name; paired operations get symmetric names; no one-letter locals except loop indices.
+- The second time the same few-line loop is needed, extract a helper.
+
+      local function reparent(proxy, newParent)
+          local data = proxyData[proxy]
+          if data.parent == newParent then return end
+
+          -- Detach from the previous parent
+          removeValue(childrenOf(data.parent), proxy)
+
+          -- Attach under the new parent
+          table.insert(childrenOf(newParent), proxy)
+          data.parent = newParent
+      end
+
+- Applies to functions you write or grow; a function you grew should read this way as a whole. Leave untouched functions alone.
+- After an edit through Bash (heredoc, sed), re-read the changed functions against this rule; the layout notice does not see Bash edits.
+- A layout notice gives per-function numbers as evidence, not a verdict. A repo's own rules win.

@@ -28,6 +28,7 @@ def run(cmd, env=None):
     _n[0] += 1
     payload = {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": cmd}, "session_id": "b%d" % _n[0], "cwd": PROJ}
     e = dict(os.environ, TMPDIR=T, CLAUDE_CONFIG_DIR=CFG, CLAUDE_PROJECT_DIR=PROJ)
+    e.pop("HARNESS_READABLE_CODE", None)
     e.update(env or {})
     r = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(payload), capture_output=True, text=True, env=e)
     return json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"] if r.stdout.strip() else ""
@@ -123,6 +124,40 @@ class PluginRules(unittest.TestCase):
         c = run("python3 -c \"print(open('src/a.py').read())\"")
         self.assertIn("comments (qwreey-conventions rule:", c)
         self.assertNotIn("comments (qwreey-conventions rule:", run("python3 -c \"print(open('src/a.md').read())\""))
+
+    def test_switched_rule_listed_only_when_on(self):
+        cmd = "python3 -c \"print(open('src/a.luau').read())\""
+        self.assertNotIn("readable-code (qwreey-conventions rule:", run(cmd))
+        self.assertIn("readable-code (qwreey-conventions rule:", run(cmd, {"HARNESS_READABLE_CODE": "on"}))
+
+
+class ReadableCode(unittest.TestCase):
+    def test_layout_line_only_when_on_and_writing_code(self):
+        write = "python3 - <<'EOF'\nopen('src/k.luau','w').write('x')\nEOF"
+        self.assertNotIn("conventions-scan.py", run(write))
+        c = run(write, {"HARNESS_READABLE_CODE": "on"})
+        self.assertIn("conventions-scan.py layout src/k.luau", c)
+        self.assertIn('level="warn"', c)
+        self.assertNotIn("conventions-scan.py", run("python3 -c \"print(open('src/r.luau').read())\"", {"HARNESS_READABLE_CODE": "on"}))
+        self.assertNotIn("conventions-scan.py", run("sed -i 's/a/b/' notes.md", {"HARNESS_READABLE_CODE": "on"}))
+        self.assertIn("conventions-scan.py layout src/s.py", run("sed -i 's/a/b/' src/s.py", {"HARNESS_READABLE_CODE": "on"}))
+
+    def test_redirect_outside_the_repo_is_not_a_code_change(self):
+        on = {"HARNESS_READABLE_CODE": "on"}
+        for cmd in ("cd %s && git diff src/a.luau > /tmp/x.luau" % PROJ, "cat src/a.luau > /tmp/a.luau"):
+            c = run(cmd, on)
+            self.assertIn('level="warn"', c, cmd)
+            self.assertNotIn("conventions-scan.py", c, cmd)
+
+    def test_layout_line_names_only_changed_files(self):
+        on = {"HARNESS_READABLE_CODE": "on"}
+        self.assertIn("conventions-scan.py layout src/b.luau` afterwards", run("cat src/a.luau > src/b.luau", on))
+        self.assertIn("conventions-scan.py layout src/t.ts` afterwards", run("cat a.ts | tee -a src/t.ts", on))
+
+    def test_quoted_paths(self):
+        on = {"HARNESS_READABLE_CODE": "on"}
+        self.assertIn("conventions-scan.py layout 'src/my file.luau'` afterwards", run("sed -i 's/a/b/' \"src/my file.luau\"", on))
+        self.assertIn("conventions-scan.py layout 'src/q r.ts'` afterwards", run("echo x > 'src/q r.ts'", on))
 
 
 if __name__ == "__main__":

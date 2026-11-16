@@ -40,6 +40,7 @@ def call(tool, rel, ti, resp=None, sid="s1", agent=None, disk=None, env_extra=No
         d["agent_id"] = agent
     env = dict(os.environ, TMPDIR=T, CLAUDE_PROJECT_DIR=REPO, CLAUDE_CONFIG_DIR=LIBHOME)
     env.pop("CONVENTIONS_CHECK", None)
+    env.pop("HARNESS_READABLE_CODE", None)
     env.update(env_extra or {})
     p = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(d), capture_output=True, text=True, env=env, timeout=10)
     assert p.returncode == 0, p.stderr
@@ -280,6 +281,157 @@ os.remove(os.path.join(REPO, ".claude", "conventions.json"))
 check("comments.json is the fallback", write_new("z/k.luau", "-- x \u2014 y\n", sid="z10") == "")
 os.remove(os.path.join(REPO, ".claude", "comments.json"))
 
+# ---- 단계 라벨은 언어 판정에서 뺀다 ----
+KO = "".join(f"-- 이 값은 플레이어가 들어올 때만 갱신한다 {i}\n" for i in range(12))
+
+
+def label_case(rel, added_block, sid, cfg=None, base=KO):
+    """한국어 주석 파일의 함수 본문에 added_block 을 더하는 Edit."""
+    if cfg is not None:
+        cfg_write(cfg)
+    head = base + "local function f()\n\tlocal parent = 1\n"
+    whole = head + added_block + "\tparent = nil\nend\n"
+    try:
+        return edit(rel, "\tlocal parent = 1\n", "\tlocal parent = 1\n" + added_block, whole, sid=uniq(sid))
+    finally:
+        if cfg is not None:
+            cfg_clear()
+
+
+check("label: English step label in a Korean file -> silent", label_case("lb/a.luau", "\t-- Detach previous parent first\n", "lb") == "")
+check("label: two 2-word labels -> silent",
+      label_case("lb/b.luau", "\t-- Clear vChildren\n\tlocal x = 1\n\t-- Already same\n", "lb") == "")
+check("label: reason connective stays flagged", "language mismatch" in label_case("lb/c.luau", "\t-- Clamp the index so reads stay in range\n", "lb"))
+check("label: period, 11 words, two-line block, unindented -> flagged",
+      all("language mismatch" in label_case(f"lb/d{i}.luau", blk, "lb") for i, blk in enumerate([
+          "\t-- Detach the previous parent first here.\n",
+          "\t-- Detach the previous parent and then attach the new parent right here now\n",
+          "\t-- Detach the previous parent\n\t-- Attach the new parent after\n",
+          "-- Detach the previous parent first\n"])))
+ten_ko = "".join(f"-- 이 값은 플레이어가 들어올 때만 갱신한다 {i}\n" for i in range(10))
+labelled = ten_ko + "".join(f"local function g{i}()\n\tlocal a = 1\n\t-- Detach parent step {i}\n\ta = 2\nend\n" for i in range(3))
+check("label: labels do not dilute the majority, a reason sentence is still flagged",
+      "language mismatch" in label_case("lb/e.luau", "\tparent = 2 -- Clamp the index so reads stay in range\n", "lb", base=labelled))
+check("label: label_language null turns the exemption off",
+      "language mismatch" in label_case("lb/f.luau", "\t-- Detach previous parent first\n", "lb", cfg='{"label_language": null}'))
+
+# ---- layout 알림 (HARNESS_READABLE_CODE) ----
+ON = {"HARNESS_READABLE_CODE": "on"}
+
+
+def lua_fn(name, n, blank_every=0, doc="--- Does the thing for callers.\n", public=True):
+    head = f"function M.{name}(x)\n" if public else f"local function {name}(x)\n"
+    body = ""
+    for i in range(n):
+        if blank_every and i and i % blank_every == 0:
+            body += "\n\t-- Next step here\n"
+        body += f"\tlocal v{i} = x + {i}\n"
+    return doc + head + body + "end\n"
+
+
+def module(*fns):
+    return "--!strict\nlocal M = {}\n\n" + "\n".join(fns) + "\nreturn M\n"
+
+
+c = write_new("ly/a.luau", module(lua_fn("flat", 20)), sid=uniq("ly"), env_extra=ON)
+check("layout: 20-line function without blank lines -> layout", "layout (readable-code)" in c and "M.flat L5-26 (20 lines, 0 blank, longest run 20)" in c)
+check("layout: key off -> silent", write_new("ly/b.luau", module(lua_fn("flat", 20)), sid=uniq("ly")) == "")
+check("layout: same function in 4 paragraphs -> silent", write_new("ly/c.luau", module(lua_fn("para", 20, blank_every=5)), sid=uniq("ly"), env_extra=ON) == "")
+check("layout: 9-line function -> silent", write_new("ly/d.luau", module(lua_fn("short", 9)), sid=uniq("ly"), env_extra=ON) == "")
+inter = "--- Wraps x.\nfunction M.wrap(x)\n\tlocal a = x\n\t-- The cache holds stale entries until\n\t-- the next frame, so read it twice\n\t-- before trusting the value\n\treturn a\nend\n"
+c = write_new("ly/e.luau", module(inter), sid=uniq("ly"), env_extra=ON)
+check("layout: 3-line comment between statements -> interleaved", "Multi-line comments between statements: M.wrap L7 (3 lines)" in c)
+c = write_new("ly/f.luau", module(lua_fn("hidden", 3, doc="-- Hidden from hover.\n")), sid=uniq("ly"), env_extra=ON)
+check("layout: `--` above a public function -> doc summary naming `---`",
+      "M.hidden L5 has a comment that hover does not show" in c and "a `---` doc comment (luau-lsp shows only" in c)
+c = write_new("ly/g.luau", module("function M.__tostring(self)\n\treturn \"x\"\nend\n", lua_fn("nodoc", 3, doc="")), sid=uniq("ly"), env_extra=ON)
+check("layout: metamethod without a doc is skipped, public function is not", "M.nodoc L8 has no doc comment" in c and "__tostring" not in c)
+c = write_new("ly/h.luau", module(lua_fn("private", 3, doc="", public=False)), sid=uniq("ly"), env_extra=ON)
+check("layout: private function without a doc -> silent", c == "")
+long_doc = "--- Moves the proxy under the new parent and then fires the parent changed signal for\n--- every listener that is attached.\n"
+c = write_new("ly/i.luau", module(lua_fn("runon", 3, doc=long_doc)), sid=uniq("ly"), env_extra=ON)
+check("layout: first doc sentence running past the first line -> doc summary", "first doc sentence runs past the first line" in c)
+c = write_new("ly/i2.luau", module(lua_fn("wide", 3, doc="--- " + "word " * 25 + "end.\n")), sid=uniq("ly"), env_extra=ON)
+check("layout: first doc line over 100 characters -> doc summary", "first doc line is 129 characters" in c)
+
+# 키운 함수: 기존 함수에 15줄 이상 더하면 함수 전체를 본다. 5줄은 보지 않는다
+grow_old = module(lua_fn("grow", 40, blank_every=4))
+add16 = "\tlocal v39 = x + 39\n" + "".join(f"\tlocal w{i} = x * {i}\n" for i in range(16))
+c = edit("ly/j.luau", "\tlocal v39 = x + 39\n", add16, grow_old.replace("\tlocal v39 = x + 39\n", add16), sid=uniq("ly"), env_extra=ON)
+check("layout: function grown by 16 lines -> layout with [grown by 16 lines]", "M.grow" in c and "[grown by 16 lines]" in c)
+big = module(lua_fn("big", 40))
+c = edit("ly/k.luau", "\tlocal v39 = x + 39\n", "\tlocal v39 = x + 39\n" + "".join(f"\tlocal w{i} = x * {i}\n" for i in range(5)),
+         big.replace("\tlocal v39 = x + 39\n", "\tlocal v39 = x + 39\n" + "".join(f"\tlocal w{i} = x * {i}\n" for i in range(5))),
+         sid=uniq("ly"), env_extra=ON)
+check("layout: 5 lines added to a long existing function -> silent", c == "")
+
+# doc summary 는 다음 편집 뒤 한 번 더 본다
+sid = uniq("ly")
+two = module(lua_fn("nodoc", 3, doc=""), lua_fn("other", 3))
+c1 = write_new("ly/l.luau", two, sid=sid, env_extra=ON)
+two2 = two.replace("\tlocal v2 = x + 2\nend\n\nreturn M", "\tlocal v2 = x + 2\n\tlocal z = 1\nend\n\nreturn M")
+c2 = edit("ly/l.luau", "\tlocal v2 = x + 2\nend\n\nreturn M", "\tlocal v2 = x + 2\n\tlocal z = 1\nend\n\nreturn M", two2, sid=sid, env_extra=ON)
+two3 = two2.replace("\tlocal z = 1\n", "\tlocal z = 1\n\tlocal y = 2\n")
+c3 = edit("ly/l.luau", "\tlocal z = 1\n", "\tlocal z = 1\n\tlocal y = 2\n", two3, sid=sid, env_extra=ON)
+check("layout: missing doc is re-checked once after the next edit",
+      "M.nodoc L4 has no doc comment" in c1 and "M.nodoc L4 has no doc comment (still so after your last edit)" in c2 and c3 == "")
+sid = uniq("ly")
+write_new("ly/m.luau", two, sid=sid, env_extra=ON)
+fixed = two.replace("function M.nodoc", "--- Does nothing useful.\nfunction M.nodoc")
+check("layout: a fixed doc is not re-reported",
+      edit("ly/m.luau", "function M.nodoc", "--- Does nothing useful.\nfunction M.nodoc", fixed, sid=sid, env_extra=ON) == "")
+
+# 같은 (파일, 범주, 함수)는 한 번, 다른 함수는 따로
+sid = uniq("ly")
+one = module(lua_fn("flat", 20))
+write_new("ly/n.luau", one, sid=sid, env_extra=ON)
+both = one.replace("\nreturn M", "\n" + lua_fn("flat2", 20) + "\nreturn M")
+c = edit("ly/n.luau", "\nreturn M", "\n" + lua_fn("flat2", 20) + "\nreturn M", both, sid=sid, env_extra=ON)
+check("layout: dedup per function, a new function is reported", "M.flat2" in c and "M.flat L" not in c)
+
+# 설정과 층
+cfg_write('{"layout": {"min_lines": 30}}')
+check("layout: conventions.json layout.min_lines raises the bar", write_new("ly/o.luau", module(lua_fn("flat", 20)), sid=uniq("ly"), env_extra=ON) == "")
+cfg_clear()
+user_env = os.path.join(T, "user-harness.env")
+open(user_env, "w").write("HARNESS_READABLE_CODE=on\n")
+check("layout: user harness.env on -> notice", "layout (readable-code)" in write_new("ly/p.luau", module(lua_fn("flat", 20)), sid=uniq("ly"), env_extra={"HARNESS_ENV": user_env}))
+open(os.path.join(REPO, ".claude", "harness.env"), "w").write("HARNESS_READABLE_CODE=off\n")
+check("layout: repo .claude/harness.env off wins over the user layer",
+      write_new("ly/q.luau", module(lua_fn("flat", 20)), sid=uniq("ly"), env_extra={"HARNESS_ENV": user_env}) == "")
+os.remove(os.path.join(REPO, ".claude", "harness.env"))
+
+# 다른 언어
+py_fn = "def handle(x):\n" + "".join(f"    v{i} = x + {i}\n" for i in range(18)) + "    return x\n"
+c = write_new("ly/r.py", '"""Module."""\n\n\n' + py_fn, sid=uniq("ly"), env_extra=ON)
+check("layout: python function -> layout and docstring wording", "handle L4-23 (19 lines, 0 blank" in c and "a docstring (`#` comments" in c)
+c = write_new("ly/s.py", py_fn + '\n\nif __name__ == "__main__":\n    handle(1)\n', sid=uniq("ly"), env_extra=ON)
+check("layout: python script functions are not public (no doc summary)", "layout (readable-code)" in c and "Doc comments" not in c)
+ts = "export function run(x: number): number {\n" + "".join(f"  const v{i} = x + {i};\n" for i in range(18)) + "  return x;\n}\n"
+c = write_new("ly/t.ts", ts, sid=uniq("ly"), env_extra=ON)
+check("layout: ts exported function -> layout and JSDoc wording", "run L1-21" in c and "`/** */` JSDoc" in c)
+check("layout: .sh is not measured", write_new("ly/u.sh", "f() {\n" + "  echo 1\n" * 20 + "}\n", sid=uniq("ly"), env_extra=ON) == "")
+c = write_new("ly/v.luau", module(lua_fn("flat", 20)) + "-- see H-973\n", sid=uniq("ly"), env_extra=ON)
+check("layout: comment notice and layout notice share one tag", c.count("<harness-hook") == 1 and "history marker" in c and "layout (readable-code)" in c)
+
+# 지표: 여러 반환 받기는 한 줄 여러 선언이 아니다
+import importlib.util as _ilu2
+sys.path.insert(0, os.path.dirname(HOOK))
+import conv_lex as _lex  # noqa: E402
+import layout_metrics as _lm  # noqa: E402
+
+
+def lua_metrics(src):
+    rows = _lex.lex(src, "lua", keep_code=True)
+    lines = src.split("\n")
+    return [_lm.measure(rows, lines, fn, "lua") for fn in _lm.functions(rows, lines, "lua")]
+
+
+m = lua_metrics("local function f()\n\tlocal ok, err = pcall(g)\n\tlocal a, b = 1, 2\n\tlocal c, d\n\tlocal e: number, h = g(), 1\n\treturn ok\nend\n")[0]
+check("metrics: receiving multiple returns is not a multi-declaration", m["multi_decl"] == 3)
+m = lua_metrics("local function f(x)\n\tlocal y = if x then 1 else 2\n\tif x then\n\t\treturn y\n\tend\n\treturn 0\nend\nlocal function g() end\n")
+check("metrics: Luau if-expression does not open a block", [x["name"] for x in m] == ["f", "g"] and m[0]["end"] == 7)
+
 # ---- 남은 기존 주석 보고(Stop) ----
 def stop(sid, env_extra=None):
     d = {"session_id": sid, "cwd": REPO, "hook_event_name": "Stop", "stop_hook_active": False}
@@ -342,6 +494,134 @@ check("line_list: capped at 40 numbers, rest counted", _cc.line_list(range(1, 20
 check("line_list: a long run costs two numbers", _cc.line_list(list(range(1, 501)) + [600]) == "L1-500, L600")
 c = write_new("ll/many.luau", "".join(f"-- see Q{100 + i} for more\nlocal a{i} = 1\n" for i in range(8)), sid=uniq("ll"))
 check("notice lists every flagged line (no 5-line cut)", all(f"L{2 * i + 1}" in c for i in range(8)) and "more)" not in c)
+
+# ---- layout 지표 회귀(리뷰 재현) ----
+def spans(src, lang, fam):
+    rows = _lex.lex(src, fam, keep_code=True)
+    return [(f["name"], f["start"] + 1, f["header_end"] + 1, f["last"] + 1) for f in _lm.functions(rows, src.split("\n"), lang)]
+
+
+def docs(src, lang, fam):
+    rows = _lex.lex(src, fam, keep_code=True)
+    lines = src.split("\n")
+    return {f["name"]: _lm.measure(rows, lines, f, lang)["doc"] for f in _lm.functions(rows, lines, lang)}
+
+
+# 문서 주석 위의 이유 주석이나 접기 표지는 문서를 가리지 않는다. 가장 가까운 주석이 정한다
+reason_above = ("local M = {}\n\n-- Kept iterative: deep trees overflow the C stack\n--- Returns the depth of the deepest leaf.\n"
+                "function M.depth(node)\n\treturn 1\nend\n\n--#region Helpers\n--- Returns the node count.\nfunction M.count(node)\n"
+                "\treturn 1\nend\n\n--- Returns two.\n-- Kept for old callers\nfunction M.two()\n\treturn 2\nend\n--#endregion\n\nreturn M\n")
+check("doc: `--` reason or `--#region` above `---` -> ok, `--` nearest -> hidden",
+      docs(reason_above, "lua", "lua") == {"M.depth": "ok", "M.count": "ok", "M.two": "hidden"})
+ts_doc = ("// Kept sync: callers run in a worker\n/** Returns one. */\nexport function one() {\n  return 1;\n}\n"
+          "// #region api\n// Reason here\n/**\n * Returns two.\n */\nexport function two() {\n  return 2;\n}\n"
+          "/** Returns three. */\n// reason\nexport function three() {\n  return 3;\n}\n")
+check("doc: TS `//` above `/** */` -> ok, multi-line JSDoc -> ok, `//` nearest -> hidden",
+      docs(ts_doc, "ts", "c") == {"one": "ok", "two": "ok", "three": "hidden"})
+check("doc: Rust `//` above `///` -> ok", docs("// Reason\n/// Returns one.\npub fn one() -> u8 {\n    1\n}\n", "rust", "rust") == {"one": "ok"})
+c = write_new("ly/rsn.luau", reason_above.replace("--- Returns two.\n-- Kept for old callers\n", "--- Returns two.\n"), sid=uniq("ly"), env_extra=ON)
+check("doc: hook does not report a doc under a reason comment", "Doc comments" not in c)
+
+# 줄 끝의 제네릭 타입이나 캐스트 때문에 다음 줄의 `if` 를 식으로 보지 않는다
+optional_of = ("const function Of<T>(value: T?): Optional<T>\n\tif value == nil then\n\t\treturn Absent\n\tend\n"
+               "\treturn { isPresent = true, value = value :: T }\nend\n\nlocal function g(x)\n\tlocal v = x :: Optional<T>\n"
+               "\tif v then\n\t\treturn 1\n\tend\n\tlocal w = x < if v then 1 else 2\n\treturn w\nend\n")
+check("lua: `if` after a line ending in `>` is a statement, `< if` on one line is an expression",
+      spans(optional_of, "lua", "lua") == [("Of", 1, 1, 6), ("g", 8, 8, 15)])
+
+# 매개변수, 반환 타입, 제네릭 안의 중괄호는 본문이 아니다
+c_cases = [
+    ("export function originalUrl(id: string, opts: { download?: boolean } = {}): string {\n  return id;\n}\n", "ts",
+     [("originalUrl", 1, 1, 3)]),
+    ("export async function uploadFile(\n  file: File,\n): Promise<{ duplicate: boolean; retry?: number }> {\n  const t = 1;\n"
+     "  return { duplicate: false };\n}\n", "ts", [("uploadFile", 1, 3, 6)]),
+    ("export function Login({ onDone }: { onDone: () => void }) {\n  const a = 1;\n  return a;\n}\n", "ts", [("Login", 1, 1, 4)]),
+    ("function h<T extends { a: number }>(x: T): T {\n  return x;\n}\n", "ts", [("h", 1, 1, 3)]),
+    ("export function k(): {\n  a: number;\n} {\n  return { a: 1 };\n}\n", "ts", [("k", 1, 3, 5)]),
+    ("class A {\n  constructor(el: X, id = 'h', opts: O = {}) {\n    this.el = el;\n  }\n}\n", "ts", [("constructor", 2, 2, 4)]),
+    ("useEffect(() => {\n  run();\n}, []);\n", "ts", [("useEffect", 1, 1, 3)]),
+    ("pub fn r<T: Into<Vec<u8>>>(x: T) -> Result<Vec<u8>, E> where T: Clone {\n    Ok(x.into())\n}\n", "rust", [("r", 1, 1, 3)]),
+    ("fun <T> f(x: Map<String, T> = mapOf()): List<T> {\n    return listOf()\n}\n", "kt", [("f", 1, 1, 3)]),
+    ("func start(g *rig, peer string) <-chan int {\n\treturn nil\n}\nfunc (s *S) Watch(stop <-chan struct{}) {\n\treturn\n}\n", "go",
+     [("start", 1, 1, 3), ("Watch", 4, 4, 6)]),
+]
+check("c spans: braces inside the signature are not the body",
+      all(spans(src, lang, "rust" if lang == "rust" else "c") == want for src, lang, want in c_cases))
+
+# 파이썬 머리: 한 줄 def, 닫히지 않은 괄호가 파일 끝까지 훑지 않는다
+check("py: one-line def ends on its own line",
+      spans("def f(): return 1\ndef g(a: int = (1),\n      b: dict = {}) -> list[int]:\n    return [a]\n", "py", "py")
+      == [("f", 1, 1, 1), ("g", 2, 3, 4)])
+check("py: header scan stops after PY_HEADER_SCAN lines",
+      spans("def broken(\n" + "    x,\n" * 60 + "):\n    pass\n", "py", "py")[0][:3] == ("broken", 1, 1))
+
+# 단계 라벨은 rule 대로 2-10 낱말이고 `due to`, `workaround` 는 이유 말이다
+check("label: is_label takes 2-10 words", not _lm.is_label("-- Cleanup") and _lm.is_label("-- Detach previous parent")
+      and not _lm.is_label("-- " + " ".join(["word"] * 11)))
+lab_src = "local function f()\n\tlocal a = 1\n\n\t-- Cleanup\n\ta = 2\n\n\t-- Detach parent\n\ta = 3\nend\n"
+check("label: step_labels skips a one-word comment", _cc.step_labels(_lex.lex(lab_src, "lua"), lab_src.split("\n"), _cc.DEFAULTS) == {6})
+check("label: `due to` and `workaround` keep a line in the language check",
+      all("language mismatch" in label_case(f"lb/r{i}.luau", blk, "lb") for i, blk in enumerate([
+          "\t-- Retry twice due to the flaky network\n", "\t-- Workaround for the engine resize bug\n"])))
+
+# 중복 제거와 다시 보기 키는 같은 이름의 함수를 가른다
+sid = uniq("ly")
+cls_a = '"""Module."""\n\n\nclass A:\n    def run(self):\n        return 1\n'
+cls_b = '\n\nclass B:\n    def run(self):\n        return 2\n'
+c1 = write_new("ly/same.py", cls_a, sid=sid, env_extra=ON)
+c2 = call("Edit", "ly/same.py", {"old_string": "        return 1\n", "new_string": "        return 1\n" + cls_b},
+          disk=cls_a + cls_b, sid=sid, env_extra=ON)
+check("layout: same-named function in another class is reported as new, the first is rechecked",
+      "run L5 has no doc comment" in c1 and "run L5 has no doc comment (still so after your last edit)" in c2
+      and "run L10 has no doc comment" in c2 and "run L10 has no doc comment (still" not in c2)
+check("layout: fn_keys numbers repeats", _lm.fn_keys([{"name": "a"}, {"name": "b"}, {"name": "a"}]) == ["a", "b", "a#2"])
+
+# layout 이 터져도 주석 알림은 나가고, 깨진 상태 파일은 무시한다
+import io as _io
+import tempfile as _tempfile
+import compact_epoch as _ce  # noqa: E402
+
+
+def in_process(rel, content, sid, env):
+    path = os.path.join(REPO, rel)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    open(path, "w").write(content)
+    d = {"session_id": sid, "cwd": REPO, "hook_event_name": "PostToolUse", "tool_name": "Write",
+         "tool_input": {"file_path": path, "content": content}, "tool_response": {"type": "create"}}
+    saved = (sys.stdin, sys.stdout, dict(os.environ), _tempfile.tempdir)
+    sys.stdin, sys.stdout = _io.StringIO(json.dumps(d)), _io.StringIO()
+    os.environ.update(env, TMPDIR=T, CLAUDE_PROJECT_DIR=REPO, CLAUDE_CONFIG_DIR=LIBHOME)
+    _tempfile.tempdir = T
+    try:
+        _cc.main()
+        return sys.stdout.getvalue()
+    finally:
+        sys.stdin, sys.stdout, _tempfile.tempdir = saved[0], saved[1], saved[3]
+        os.environ.clear()
+        os.environ.update(saved[2])
+
+
+def boom(*a, **k):
+    raise RuntimeError("metrics bug")
+
+
+real = _cc.layout_metrics.edit_findings
+_cc.layout_metrics.edit_findings = boom
+try:
+    out = in_process("ly/boom.luau", module(lua_fn("flat", 20)) + "-- see H-973\n", uniq("ly"), ON)
+except Exception:
+    out = ""
+finally:
+    _cc.layout_metrics.edit_findings = real
+check("layout: an exception in the metrics drops only the layout part", "history marker" in out and "layout (readable-code)" not in out)
+sid = uniq("ly")
+_tempfile.tempdir = T
+bad_state = _ce.state_path(_cc.NAME, _cc.NS, sid)
+_tempfile.tempdir = None
+for junk in ("[1, 2]", '{"files": [], "doc_recheck": "x"}'):
+    open(bad_state, "w").write(junk)
+    c = write_new("ly/badstate.luau", module(lua_fn("flat", 20)) + "-- see H-973\n", sid=sid, env_extra=ON)
+    check("layout: non-dict state file %s is ignored" % junk, "history marker" in c and "layout (readable-code)" in c)
 
 # ---- quad 표본(읽기 전용; 없으면 건너뜀) ----
 QUAD = "/code/Projects/quad"

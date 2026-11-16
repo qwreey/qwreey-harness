@@ -42,6 +42,7 @@ MANIFEST 대상 아님. 근거 실측: `.claude/scopes/home/.claude/audit/17-hoo
 | | 해당 rules 파일 안내(설치된 모든 플러그인의 `rules/` 포함, 쓰는 명령이면 먼저 읽고 읽기만 하면 할 것 없음): 쓰기 신호가 있으면 | warn |
 | | 같은 안내와 인터프리터 안내: 읽기만 하는 명령(쓰기 신호 없음) | info |
 | | 인터프리터로 쓰기 신호가 있는 스크립트(스크래치·생성 출력이면 할 것 없음) | warn |
+| | `HARNESS_READABLE_CODE=on` 이고 쓰기 신호가 있는 명령이 코드 파일을 담음: layout 알림이 Bash 편집을 못 보니 바꾼 함수가 있으면 `conventions-scan.py layout <file>` 을 돌려 걸린 것을 고치라는 한 줄(파일마다 한 번) | warn |
 | structure-reminder | (플러그인 `qwreey-conventions`) 강제 한도(1,500) 초과 | action |
 | | 경고 한도(800) 초과, 세션 성장, 잘못된 예외 사유 | warn |
 | | 유효한 예외 사유 안내, 접두 묶음 제안, 폴더 파일 과다(관련 파일이 묶이면 폴더 제안 고려, 의도된 평면 구성이면 할 것 없음) | info |
@@ -63,6 +64,7 @@ MANIFEST 대상 아님. 근거 실측: `.claude/scopes/home/.claude/audit/17-hoo
 | | 형제 저장소 읽기(Read·Grep·Glob, 그 밖의 Bash) → compact 회차마다 한 번: 읽기는 괜찮고 바꾸려면 사용자 승인과 스킬이 먼저 | info |
 | stale-worktrees | (qwreey-workspace 플러그인 `scripts/stale_worktrees.py`, SessionStart startup·resume·clear, 메인만, 세션마다 한 번) 이 저장소에 `HARNESS_WORKSPACE_STALE_WORKTREE_DAYS`(기본 14)일 넘게 손대지 않았고 잠기지 않았고 살아 있는 세션이 없는 worktree, 또는 폴더가 사라진 등록: 끝난 작업일 수 있으니 정리할 때면 스킬의 잠금·세션 확인 뒤 사용자에게 묻기(사용자가 두는 것이면 할 것 없음). 지우는 명령은 적지 않는다 | info |
 | qwreey-conventions | (플러그인 `qwreey-conventions`. 예전 user-level `comment-hygiene` 훅을 대체한다. 같은 마이그레이션 0005 apply 에서 옛 훅을 빼고 플러그인을 켠다) 추가한 코드 주석 줄에 작업 이력·키보드로 치지 않는 문자·이스케이프·보이지 않는 문자·언어 불일치가 있거나, 모델용 문서 줄에 이력 표지가 있음. 파일·범주별 줄 번호와 글자·대체를 한 줄로(파일마다 범주당 회차당 한 번). 맞으면 스킬에 고치는 법, 오탐(인용, 필요한 기호)은 둬도 됨 | info |
+| | (같은 훅, `HARNESS_READABLE_CODE=on` 일 때만) 이번 편집이 거의 새로 쓰거나 15줄 이상 키운 함수의 읽기 모양: layout(본문 15줄 이상인데 빈 줄 없음 또는 20줄 넘게 이어짐), interleaved comment(문장 사이 여러 줄 주석), doc summary(공개 함수에 호버 꼴 문서 없음, 첫 줄 100자 초과, 첫 문장이 첫 줄에서 안 끝남; 메타메서드 제외, 다음 편집 뒤 한 번 더). 함수별 숫자를 근거로 주고 한 단계짜리 함수면 그대로 두라고 함. 주석 알림과 한 태그, (파일, 범주, 함수)마다 회차당 한 번 | info |
 | qwreey-advisor | (플러그인 `qwreey-advisor`, 옛 이름 second-opinion) 임계 이상 커밋(같은 명령의 `git add` 범위 포함)·같은 실패 2회·high 등급 계획 검토 권고(qwreey-advisor 리뷰어와 inherit-advisor fork 만 추적함을 밝히고, 기계적·문서만·이미 검토·사용자 생략이면 한 줄로 건너뜀. 계획 deny 모드는 action). 이름이 바뀌어도 상태 경로(`claude-second-opinion`)는 기존 기록과 이어지게 그대로 둔다 | warn |
 | | (같은 훅, UserPromptSubmit·PostToolBatch, 메인만) 검토가 아닌 서브에이전트의 보고에 권고·선택지·열린 질문이 있음: 사용자에게 넘겨 결정하게 할 거라면 inherit-advisor·fresh-advisor 가 먼저 볼 수 있다(직접 확인한 사실이나 그대로 전하는 질문이면 건너뜀). 에이전트마다 한 번, 끄기 `HARNESS_REVIEW_HANDBACK=off` | info |
 | auditor-readonly-guard | (플러그인 `qwreey-advisor`, 리뷰어 에이전트에만) 스크래치 밖 쓰기·금지 명령 거절(exit 2, stderr 사유) | action |

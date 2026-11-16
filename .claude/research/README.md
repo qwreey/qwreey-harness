@@ -6,7 +6,6 @@ Open investigations and drafts before a decision (living; each folder's README c
 - [scopes/plugins/qwreey-delegate/research/drafts/delegate/](../scopes/plugins/qwreey-delegate/research/drafts/delegate/) - delegation to agy/codex: design drafts; the canonical skill and the registry in use are `plugins/qwreey-delegate/skills/delegate/` (`HARNESS_DELEGATE_REGISTRY` points there)
 - [drafts/split-plans/](drafts/split-plans/) - per-file split plans for quad, stl-luau, table-sim
 - [drafts/readable-code.md](drafts/readable-code.md) - human-readable code conventions from the user's own rbvm/tbox code: blank-line paragraphs, English flow labels as a reading index, declaration placement
-- [drafts/readable-code-wording.md](drafts/readable-code-wording.md) - wording draft for readable-code: baseline check, 5-line rule with an on/off key, layout metrics, hook changes, probe design
 
 <!-- coderag:begin -->
 | Document | Description | Status |

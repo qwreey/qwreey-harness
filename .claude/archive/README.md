@@ -10,3 +10,4 @@ Living records that left active (no longer a current source) at their original s
 - [research/drafts/records-in-coderag/](research/drafts/records-in-coderag/) - merged records convention draft, landed in coderag skills/agent-records (0.3.0)
 - [scopes/plugins/qwreey-conventions/archive/research/drafts/code-quality-conventions/](../scopes/plugins/qwreey-conventions/archive/research/drafts/code-quality-conventions/) - code-reuse rule, skill and reuse-check hook draft with probes, landed in plugins/qwreey-conventions
 - [scopes/plugins/qwreey-debate/archive/research/drafts/debate/](../scopes/plugins/qwreey-debate/archive/research/drafts/debate/) - debate skill draft (P/Q one round, conditional rebuttal, synthesis template), landed in plugins/qwreey-debate
+- [research/drafts/readable-code-wording.md](research/drafts/readable-code-wording.md) - readable-code wording, metrics and hook design, landed in plugins/qwreey-conventions (rule readable-code, layout notice)

@@ -6,16 +6,23 @@ FAMILY = {".luau": "lua", ".lua": "lua", ".ts": "c", ".tsx": "c", ".js": "c", ".
           ".astro": "astro", ".py": "py", ".sh": "py", ".html": "html", ".htm": "html"}
 
 
-def lex(text, fam):
+def lex(text, fam, keep_code=False):
     """줄마다 {"c": [주석 조각 문자열...], "s": [조각의 (시작, 끝) 열 위치...], "code": 코드나 문자열이 있는가} 를 돌려준다.
-    주석은 줄 전체나 일부일 수 있다. 조각은 여닫는 표식을 뺀 본문이고, s 는 고치는 도구(scripts/conventions-scan.py)가 주석 안만 바꾸려고 쓴다."""
+    주석은 줄 전체나 일부일 수 있다. 조각은 여닫는 표식을 뺀 본문이고, s 는 고치는 도구(scripts/conventions-scan.py)가 주석 안만 바꾸려고 쓴다.
+    keep_code 면 줄마다 "k"(주석을 지우고 문자열을 `""` 하나로 줄인 코드 글)와 "in"(여러 줄 주석이나 문자열 안에서 시작하는 줄인가)도 넣는다.
+    함수 범위를 키워드와 괄호로 찾는 hooks/layout_metrics.py 가 쓴다."""
     lines = text.split("\n")
     out = []
     state = None  # None | ("block", close) | ("str", close)
     for s in lines:
         row = {"c": [], "s": [], "code": False}
+        code = [] if keep_code else None
+        if keep_code:
+            row["in"] = state is not None
         pos, n = 0, len(s)
+
         while pos < n:
+            # Inside a block comment
             if state and state[0] == "block":
                 j = s.find(state[1], pos)
                 if j < 0:
@@ -28,6 +35,8 @@ def lex(text, fam):
                     pos = j + len(state[1])
                     state = None
                 continue
+
+            # Inside a multi-line string
             if state and state[0] == "str":
                 row["code"] = True
                 j = find_close(s, pos, state[1])
@@ -37,16 +46,23 @@ def lex(text, fam):
                     pos = j + len(state[1])
                     state = None
                 continue
+
+            # Whitespace and plain code
             ch = s[pos]
-            if ch in " \t\r":
-                pos += 1
-                continue
-            r = open_comment_or_string(s, pos, fam)
+            r = None if ch in " \t\r" else open_comment_or_string(s, pos, fam)
             if r is None:
-                row["code"] = True
+                row["code"] = row["code"] or ch not in " \t\r"
+                if code is not None:
+                    code.append(" " if ch in " \t\r" else ch)
                 pos += 1
                 continue
+
+            # A comment or string opens here
             kind, a, b = r  # kind: line|block|str|strline, a: 닫는 표식(또는 None), b: 여는 표식 길이
+            if code is not None and kind in ("str", "strline"):
+                code.append('""')
+
+            # What it opened decides the rest of the line
             if kind == "line":
                 row["c"].append(s[pos + b:])
                 row["s"].append((pos + b, n))
@@ -64,6 +80,9 @@ def lex(text, fam):
                 while j < n and s[j] != a:
                     j += 2 if s[j] == "\\" else 1
                 pos = min(j + 1, n)
+
+        if code is not None:
+            row["k"] = "".join(code)
         out.append(row)
     return out
 

@@ -2,11 +2,11 @@
 format: 1
 title: 사람이 읽기 좋은 코드 규약 문구 초안 (기본 지시 대조, 문구, 지표, 훅, 쓰기 실측 설계)
 description: 기본 지시엔 코드 모양 규칙이 없어 전부 하네스 몫. 상시 rule readable-code 5줄을 HARNESS_READABLE_CODE 로 켜고, 15줄 넘는 함수의 빈 줄 없음/20줄 이어짐(사용자 3/26, 에이전트 68/75)을 info 알림 기준으로
-status: active
+status: landed in plugins/qwreey-conventions/rules/readable-code.md
 ---
 # 사람이 읽기 좋은 코드 규약 문구 초안
 
-근거와 사용자 설명은 `readable-code.md`(같은 폴더). 이 문서는 그 진행 순서 1~3단계(기본 지시 대조, 문구, 쓰기 실측 설계)와 사용자 추가 요청(응집도 지표, lint, 문서 주석 유지)을 담는다. 설치나 플러그인 파일 수정은 하지 않았다.
+근거와 사용자 설명은 `.claude/research/drafts/readable-code.md`. 이 문서는 그 진행 순서 1~3단계(기본 지시 대조, 문구, 쓰기 실측 설계)와 사용자 추가 요청(응집도 지표, lint, 문서 주석 유지)을 담는다. 설치나 플러그인 파일 수정은 하지 않았다.
 
 ## 1. 기본 지시 대조
 
