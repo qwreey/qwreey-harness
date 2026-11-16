@@ -3,12 +3,8 @@
 에이전트가 하지 않기로 한 일만 모았다. 삭제, 권한, 다른 세션 소관이 여기 해당한다. 처리했으면 줄을 지운다.
 
 ## 삭제와 정리 (사용자 승인 사항, 에이전트는 하지 않음)
-- [ ] 옛 agy 대화 기록 `.home` 4개, 약 640MB
-  - 위치: `/code/Projects/{quad,stl-luau,table-sim,tbox}-agy/.home`
-  - 크기: 117M, 260M, 228M, 31M
-  - 근거: `.claude/research/drafts/delegate/migration.md`
-- [ ] quad-agy 의 옛 worktree `naming-1021e` 와 브랜치 `agy/naming-1021e`
-  - quad 에 세션이 없을 때 처리한다: `git -C /code/Projects/quad worktree remove ...`
+- [ ] quad 에 남은 옛 위임 worktree 기록과 브랜치 `agy/naming-1021e`(폴더 `/code/Projects/quad-agy` 는 지웠고 worktree 는 prunable)
+  - quad 에 세션이 없을 때: `git -C /code/Projects/quad worktree prune` 뒤 `git -C /code/Projects/quad branch -D agy/naming-1021e`
 - [ ] devplorer 에 남은 `worktree-agent-*` 브랜치 21개
   - worktree 는 정리했고 브랜치만 남았다. 병합 안 된 커밋이 있는 것은 3개다(a57ad6177, a7fc852ac, af9044628).
 - [ ] 백업 `/code/backups/claude-doctor-2026-11-10/` (248MB)
@@ -57,7 +53,7 @@
 - [ ] 세션 기록 실측이 남긴 `~/.claude/projects/-tmp-sl-hookproj-omyV*` 디렉터리 2개 정리
 - [ ] 훅 형식 실측이 남긴 `~/.claude/projects/-tmp-hookfmt`, `-tmp-cmp`, `-tmp-effect-*` (6개) 정리
 - [ ] 실측용 임시 프로젝트 기록 `~/.claude/projects/-tmp-*` 정리 (2026-11-10 기준 307개; 이번 작업의 claude -p 실측분이 대부분. `ls -d ~/.claude/projects/-tmp-*` 로 확인 후 삭제)
-- [ ] 위임 시범의 임시 산출물 `/tmp/dtrial/` 과 `/code/Projects/table-sim-agy/runs/` 정리
+- [ ] 위임 시범의 임시 산출물 `/tmp/dtrial/` 정리
 
 ## ~/.claude 반영 (정본 → 실제)
 - 2026-11-11 17:58 기준 apply 를 마쳤다. `tools/home-sync.sh status` 가 모든 파일을 "같음", settings 를 "4/4 적용"(0001, 0002, 0004, 0005)으로 보인다. 고아도 없다. 켜 둔 플러그인은 q, qwreey-advisor, qwreey-conventions 이고 모두 설치돼 있다.
@@ -70,13 +66,11 @@
   2. q 를 최신으로 갱신하고 켠다(꺼 두었다면). qwreey-sessions, qwreey-workspace, qwreey-operator, qwreey-debate 를 설치한다. qwreey-delegate 는 agy·codex 위임을 쓸 때만 설치한다
   3. `tools/home-sync.sh diff` 로 검토한 뒤 `apply` (0009 가 세 플러그인을 켠다. `HARNESS_DELEGATE_REGISTRY` 경로도 바뀐다)
   4. `/reload-plugins` 또는 새 세션. 확인: `/qwreey-sessions:checkpoint` 가 보이고, 다른 저장소 파일을 고치려 할 때 workspace 게이트가 뜬다
-  - 첫 정본 delegate 실행 전에 `tbox-agy` 에 61000 소유로 남은 파일을 지운다(tbox uid 는 61003)
-- [ ] qwreey-delegate 0.2.0(Python 드라이버로 전환: SKILL 이 `delegate.py` 를 부르고, 작업 폴더·결과가 `~/.local/state/qwreey-delegate` 로)과 qwreey-proc-guard 0.1.6(`delegate.py` 명령도 통과) 갱신. 설치본은 플러그인 캐시 사본이라 갱신 전까지 세션은 옛 `delegate.sh` 본문을 쓴다. 순서:
+- [ ] qwreey-delegate 0.2.0(Python 드라이버로 전환: SKILL 이 `delegate.py` 를 부르고, 작업 폴더·결과가 `~/.local/state/qwreey-delegate` 로)과 qwreey-proc-guard 0.1.6(`delegate.py` 명령도 통과) 갱신. 갱신 전 세션은 옛 버전의 스킬 문구를 들고 있을 수 있다. 순서:
   1. `claude plugin marketplace update claude-doctor-market`
   2. qwreey-proc-guard 를 먼저, 그다음 qwreey-delegate 를 갱신한다(거꾸로 하면 그 사이 무거운 낱말이 든 `delegate.py` 명령을 옛 proc-guard 가 막을 수 있다)
   3. 돌고 있는 위임이 없을 때 `/reload-plugins` 또는 새 세션. 확인: `python3 -I <스킬>/scripts/delegate.py doctor --all` 에 FAIL 이 없다
   4. `tools/home-sync.sh diff` 로 harness.env 의 위임 주석 예시를 보고 `apply`(값은 바뀌지 않는다)
-  - 저장소 옆 옛 작업공간(`/code/Projects/*-agy`, `*-codex`)은 새 드라이버의 `gc` 가 목록만 보이고 지우지 않는다. 위 `.home` 정리 항목과 함께 읽고 지운다
 - [ ] 전역 CLAUDE.md 지우기: 정본에서 빠졌고 내용은 플러그인 주입으로 옮겼다(q·qwreey-operator·qwreey-advisor 의 `context/`, qwreey-sessions PreCompact). 플러그인을 갱신하고 `tools/home-sync.sh diff`·`apply` 한 뒤 `rm ~/.claude/CLAUDE.md`. home-sync 는 MANIFEST 에서 빠진 파일을 지우지 않고 `status` 에 고아로 보인다
 - 새 정본 변경(rules, settings 마이그레이션 등)이 생기면 다시 `tools/home-sync.sh diff` 로 검토하고 `apply` 한다. 이때도 같은 백업이 생긴다.
 
