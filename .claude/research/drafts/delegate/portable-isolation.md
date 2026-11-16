@@ -68,6 +68,15 @@ status: active
 - 결론: settings `permissions` 는 print 모드에서는 듣고 ACP 에서는 듣지 않는다(ACP 는 CLI settings 의 permissions 를 읽지 않는 것으로 보인다[추정]). 격리가 없는 기계에서 agy 파일 도구를 막을 손잡이 후보는 print 모드 + deny 규칙이다. 재지 않은 것: 넓은 deny(`/`, HOME)와 작업 폴더 allow 의 우선순위, print 모드에서 셸(`command()`)과 `read_url()` 이 어떻게 되는지, 기호 링크·`..` 경로, 버전 차이.
 - 로그: `/tmp/acpprobe-3/`(`logA.jsonl`, `outB.json`, `homeB/.gemini/antigravity-cli/log/`).
 
+### print 모드 기본 프리셋, 규칙 없음, `--dangerously-skip-permissions` 없음 (agy 1.5.8)
+- 규칙 우선순위는 문서상 Deny > Ask > Allow 로 고정이라 "넓게 deny + 작업 폴더 allow" 는 성립하지 않는다(deny 가 이김). 대신 기본 프리셋(문서: 파일은 작업 폴더와 임시 폴더 허용, 그 밖은 Ask; 셸은 샌드박스 안 허용, 아니면 Ask)이 print 모드에서 어떻게 되는지 쟀다. 바깥 비임시 경로는 `/code/.cache/acpprobe-out/`.
+- C. 바깥(비임시) 읽기: `Print mode: soft-denying tool confirmation "ReadFile"`, JSON `denied_actions: [read_file]`, stderr "headless mode cannot prompt … auto-denied". 거절되면 그 턴이 빈 답으로 끝나 뒤 단계는 시도되지 않는다. 8.9k 토큰.
+- D. 임시 폴더: 작업 폴더 안 생성, `/tmp/acpprobe-3/outside/secretD.txt` 읽기·줄 추가가 모두 묻지 않고 실행(sha256 `106cead2…` → `59fdf180…`). 기본 프리셋은 `/tmp` 전체를 연다. 15.6k 토큰.
+- E. 작업 폴더 안 기호 링크(→ 바깥 비임시 파일) 읽기: 거절(`denied_actions: [read_file]`), 파일 그대로. 링크는 대상 경로로 판정된다. 8.8k 토큰.
+- F. 셸(`cat` 바깥 파일): 거절(`denied_actions: [command]`). 이 호스트는 셸 샌드박스가 없어 Ask 가 되고 headless 가 거절한다. 로그에 시작 직후 `Terminal sandbox unavailable …` 와 "auto mode is unavailable because the terminal sandbox is unavailable" 가 찍힌다(print 모드는 시작 때 찍힘, ACP 는 session/new 뒤). 8.9k 토큰.
+- 결론: print 모드에서 `--dangerously-skip-permissions` 를 빼면 기본 프리셋이 작업 폴더 밖 파일·셸을 거절한다. 구멍은 임시 폴더(`/tmp` 전체 허용)이고, B 처럼 명시 deny(`read_file(/tmp)`, `write_file(/tmp)`, 플랫폼 `$TMPDIR`)로 막을 수 있을 것으로 본다(조합은 재지 않음; 작업 폴더가 그 아래면 deny 가 이겨 작업도 막힌다). 지금 `delegate.sh` 는 agy 를 `--dangerously-skip-permissions` 로 돌려 이 보호를 모두 끈다. 재지 않은 것: `read_url`, 임시 폴더 deny 와 작업 폴더의 조합, OS 샌드박스가 있는 호스트에서 셸이 샌드박스 안에서 허용될 때의 범위.
+- 로그: `/tmp/acpprobe-3/out{C,D,E,F}.json`, `home{C,D,E,F}/.gemini/antigravity-cli/log/`.
+
 ## 드라이버 기본 정책
 OS 격리가 없는 곳(uid 격리도, 동작하는 OS 샌드박스도 없음, 비개발자 동료의 기본 환경)의 기본은 "읽기 전용 의견"이다. 위 실측 결과와 상관없이 사용자가 정했다.
 - 격리 판정(모델 호출 없이 `doctor` 와 `run` 시작 때):
