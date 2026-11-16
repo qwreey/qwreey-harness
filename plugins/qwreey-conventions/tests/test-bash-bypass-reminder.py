@@ -131,6 +131,20 @@ class PluginRules(unittest.TestCase):
         self.assertIn("readable-code (qwreey-conventions rule:", run(cmd, {"HARNESS_READABLE_CODE": "on"}))
 
 
+class OddInput(unittest.TestCase):
+    """Valid JSON of an unexpected shape never fails the hook (Pre and Post)."""
+
+    def test_odd_payloads_exit_zero(self):
+        post = os.path.join(ROOT, "hooks", "bash_writes.py")
+        e = dict(os.environ, TMPDIR=T, CLAUDE_CONFIG_DIR=CFG, CLAUDE_PROJECT_DIR=PROJ)
+        for raw in ("[1,2]", "null", '"s"', "3", '{"tool_input": "echo x > a.py"}', '{"tool_input": {"command": ["echo", "x"]}}',
+                    '{"tool_input": {"command": "echo x > a.py"}, "cwd": 5}', '{"tool_input": {"command": "echo x > a.py"}, "session_id": {}}',
+                    '{"tool_name": "Bash", "tool_input": null, "cwd": []}'):
+            for script in (HOOK, post):
+                r = subprocess.run([sys.executable, "-I", script], input=raw, capture_output=True, text=True, env=e, timeout=20)
+                self.assertEqual(r.returncode, 0, (script, raw, r.stderr[-300:]))
+
+
 class Snapshot(unittest.TestCase):
     """쓰기 신호가 있으면 bash_writes 스냅숏을 남기고(PostToolUse 검사용), 없으면 아무것도 쓰지 않는다."""
 

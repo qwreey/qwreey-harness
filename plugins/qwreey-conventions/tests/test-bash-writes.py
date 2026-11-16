@@ -53,13 +53,18 @@ def init_repo(path):
     sh("git init -q . && git add -A && git commit -qm init --allow-empty", cwd=path)
 
 
-def hook(script, event, cmd, sid, tid, env=None, cwd=REPO, agent=None):
+def hook_raw(script, event, cmd, sid, tid, env=None, cwd=REPO, agent=None, extra=None):
     d = {"session_id": sid, "cwd": cwd, "hook_event_name": event, "tool_name": "Bash", "tool_input": {"command": cmd}, "tool_use_id": tid}
     if agent:
         d["agent_id"] = agent
+    d.update(extra or {})
     p = subprocess.run([sys.executable, "-I", script], input=json.dumps(d), capture_output=True, text=True, env=env_for(env, proj=cwd), timeout=20)
     assert p.returncode == 0, p.stderr
-    return json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"] if p.stdout.strip() else ""
+    return json.loads(p.stdout) if p.stdout.strip() else {}
+
+
+def hook(script, event, cmd, sid, tid, env=None, cwd=REPO, agent=None, extra=None):
+    return hook_raw(script, event, cmd, sid, tid, env, cwd, agent, extra).get("hookSpecificOutput", {}).get("additionalContext", "")
 
 
 def bash(cmd, sid=None, env=None, cwd=REPO, agent=None):
@@ -87,9 +92,19 @@ def notice(ctx):
     return m.group(1) if m else ""
 
 
+SNAP_DIR = os.path.join(T, "claude-conventions", "bash")
+
+
 def snaps():
-    d = os.path.join(T, "claude-conventions", "bash")
-    return os.listdir(d) if os.path.isdir(d) else []
+    return os.listdir(SNAP_DIR) if os.path.isdir(SNAP_DIR) else []
+
+
+sys.path.insert(0, os.path.join(ROOT, "hooks"))
+import bash_writes  # noqa: E402  (in-process checks of the helpers)
+
+
+def commit(msg="c", repo=REPO):
+    sh("git add -A && git commit -qm %s" % msg, cwd=repo)
 
 
 MID = "·"
@@ -214,6 +229,201 @@ class Rules(unittest.TestCase):
         self.assertLessEqual(len(c), 9000)
         self.assertIn("conventions-scan.py scan", c)
         sh("rm -f src/m*.py CLAUDE.md")
+
+
+class Overflow(unittest.TestCase):
+    """More dirty entries than the snapshot records: unrecorded ones are never treated as changed."""
+
+    def test_unrecorded_entries_are_not_changes(self):
+        repo = os.path.join(T, "ov")
+        put("b.py", "x = 1\n", repo)
+        init_repo(repo)
+        for i in range(450):
+            put("scratch/s%d.py" % i, "# 2023-05-05 legacy (D-%d)\nv = %d\n" % (i, i), repo)
+        c = bash("echo 'w = 1' >> b.py", cwd=repo)
+        self.assertNotIn("scratch/", c)
+        n = notice(bash("echo '# a %s b' >> b.py" % MID, cwd=repo))
+        self.assertIn("b.py may not follow", n)
+        self.assertNotIn("scratch/", n)
+
+    def test_reads_are_capped_by_bytes_and_time(self):
+        repo = os.path.join(T, "cap")
+        put("a.py", "x = 1\n", repo)
+        init_repo(repo)
+        root, head = bash_writes.repo(repo)
+        snap = {"root": root, "head": head, "wide": True, "dirty": {}, "texts": {}, "named": [], "overflow": False}
+        for i in range(120):
+            put("gen/g%d.py" % i, ("# line %d\n" % i) * 6000, repo)  # about 60 KB each, 7 MB in all
+        got = []
+        real = bash_writes._read
+
+        def counting(path, cap):
+            t = real(path, cap)
+            got.append(len(t) if isinstance(t, str) else 0)
+            return t
+        bash_writes._read = counting
+        try:
+            bash_writes.changes(snap, deadline=time.monotonic() + 60)
+            self.assertLessEqual(sum(got), bash_writes.TOTAL_MAX + bash_writes.CANDIDATE_MAX)
+            got.clear()
+            items, touched, unread = bash_writes.changes(snap, deadline=time.monotonic() - 1)
+            self.assertEqual(sum(got), 0)
+            self.assertEqual(items, [])
+            self.assertEqual(len(unread), 120)  # handed to the "N more files" scan line, not dropped
+        finally:
+            bash_writes._read = real
+
+
+class Failure(unittest.TestCase):
+    def test_failed_command_is_checked(self):
+        _n[0] += 1
+        sid, tid = "pf%d" % _n[0], "toolu_pf%d" % _n[0]
+        cmd = "cat > src/fail.py <<'EOF'\n# a %s b\nEOF\nfalse" % MID
+        hook(PRE, "PreToolUse", cmd, sid, tid)
+        subprocess.run(["bash", "-c", cmd], cwd=REPO, capture_output=True, env=env_for())
+        out = hook_raw(POST, "PostToolUseFailure", cmd, sid, tid, extra={"error": "Exit code 1", "is_interrupt": False})
+        self.assertEqual(out["hookSpecificOutput"]["hookEventName"], "PostToolUseFailure")
+        self.assertIn("src/fail.py may not follow", out["hookSpecificOutput"]["additionalContext"])
+        self.assertFalse([x for x in snaps() if tid in x])
+        os.remove(os.path.join(REPO, "src", "fail.py"))
+
+    def test_registered_on_failure(self):
+        hooks = json.load(open(os.path.join(ROOT, "hooks", "hooks.json")))["hooks"]
+        regs = [h["command"] for m in hooks.get("PostToolUseFailure", []) if m.get("matcher") == "Bash" for h in m["hooks"]]
+        self.assertTrue(any("bash_writes.py" in c for c in regs))
+
+
+class SnapshotFile(unittest.TestCase):
+    def pre(self, cmd, cwd=REPO, sid="sf"):
+        _n[0] += 1
+        tid = "toolu_sf%d" % _n[0]
+        hook(PRE, "PreToolUse", cmd, sid, tid, cwd=cwd)
+        name = [x for x in snaps() if tid in x]
+        return os.path.join(SNAP_DIR, name[0]) if name else None
+
+    def test_named_files_bounded_and_private(self):
+        repo = os.path.join(T, "bigf")
+        for i in range(6):
+            put("f%d.py" % i, "x = 1\n" * 150000, repo)  # 900 KB each
+        init_repo(repo)
+        fp = self.pre("sed -i 's/^x/y/' " + " ".join("f%d.py" % i for i in range(6)), cwd=repo)
+        snap = json.load(open(fp))
+        self.assertLessEqual(sum(len(t) for t in snap["texts"].values() if isinstance(t, str)), bash_writes.TOTAL_MAX)
+        self.assertEqual(os.stat(fp).st_mode & 0o777, 0o600)
+        os.remove(fp)
+
+    def test_per_user_dir_without_tmpdir(self):
+        e = env_for()
+        e.pop("TMPDIR")
+        code = "import sys; sys.path.insert(0, %r); import bash_writes; print(bash_writes.snap_dir())" % os.path.join(ROOT, "hooks")
+        out = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True, env=e).stdout.strip()
+        self.assertTrue(out.endswith(os.path.join("claude-conventions-%d" % os.getuid(), "bash")), out)
+
+    def test_stale_snapshots_swept_on_pre(self):
+        os.makedirs(SNAP_DIR, exist_ok=True)
+        old, new = os.path.join(SNAP_DIR, "x.main.old.json"), os.path.join(SNAP_DIR, "x.main.new.json")
+        for p in (old, new):
+            open(p, "w").write("{}")
+        os.utime(old, (time.time() - 7200, time.time() - 7200))
+        os.utime(new, (time.time() - 1800, time.time() - 1800))
+        hook(PRE, "PreToolUse", "cat src/a.py", "sw", "toolu_sw")
+        self.assertFalse(os.path.exists(old))
+        self.assertTrue(os.path.exists(new))
+        os.remove(new)
+
+    def test_fifo_named_in_command(self):
+        fifo = os.path.join(REPO, "src", "pipe.py")
+        os.mkfifo(fifo)
+        try:
+            self.pre("sed -i 's/a/b/' src/pipe.py")  # hook() times out if the snapshot opens the FIFO
+        finally:
+            os.remove(fifo)
+
+
+class GitAware(unittest.TestCase):
+    def test_git_restore_of_named_path(self):
+        put("src/g.py", "x = 1\n# 2023-05-05 legacy (D-12)\ny = 2\n")
+        commit("g")
+        sh("sed -i 2d src/g.py")
+        c = bash("cd . && git checkout -- src/g.py && echo hi > notes.md")
+        self.assertNotIn("src/g.py", notice(c))
+        os.remove(os.path.join(REPO, "notes.md"))
+
+    def test_git_rewrite_forms(self):
+        for cmd in ("git -c core.x=y checkout -- a.py", "git --no-pager stash pop", "git -C sub reset --hard", "gh pr checkout 12",
+                    "git -c a=b -C d restore x.py"):
+            self.assertTrue(bash_writes.GIT_REWRITE.search(cmd), cmd)
+        for cmd in ("git status", "git diff --stat", "echo checkout"):
+            self.assertFalse(bash_writes.GIT_REWRITE.search(cmd), cmd)
+
+    def test_moved_file_keeps_old_lines(self):
+        put("src/mv1.py", "# 2023-05-05 legacy (D-12)\nx = 1\n")
+        commit("mv")
+        c = bash("mv src/mv1.py src/mv2.py && sed -i 's/x = 1/x = 2/' src/mv2.py")
+        self.assertNotIn("history marker", notice(c))
+        sh("rm -f src/mv2.py && git checkout -q -- src/mv1.py")
+
+    def test_copied_file_only_new_lines(self):
+        put("src/cp0.py", "# 2023-05-05 legacy (D-12)\nx = 1\n")
+        commit("cp")
+        n = notice(bash("cp src/cp0.py src/cp1.py; echo '# new %s line' >> src/cp1.py" % MID))
+        self.assertIn("L3 non-keyboard symbol", n)
+        self.assertNotIn("history marker", n)
+        os.remove(os.path.join(REPO, "src", "cp1.py"))
+
+    def test_blobs_skip_newline_paths(self):
+        root, head = bash_writes.repo(REPO)
+        got = bash_writes.blobs(root, head, ["x\ny.py", "src/a.py"])
+        self.assertEqual(got["src/a.py"], open(os.path.join(REPO, "src", "a.py")).read())
+
+
+class Concurrent(unittest.TestCase):
+    def test_pending_snapshot_limits_to_named_paths(self):
+        # Another Bash of this session is in flight: a file this command does not name is not attributed to it.
+        os.makedirs(SNAP_DIR, exist_ok=True)
+        other = os.path.join(SNAP_DIR, "cc1.main.toolu_other.json")
+        open(other, "w").write("{}")
+        try:
+            c = bash("python3 - <<'EOF'\nimport pathlib\np = pathlib.Path('src') / ('cc' + '.luau')\np.write_text('-- used ' + chr(0x2192) + ' later\\n')\nEOF", sid="cc1")
+            self.assertNotIn("src/cc.luau", notice(c))
+        finally:
+            os.remove(other)
+            os.remove(os.path.join(REPO, "src", "cc.luau"))
+
+    def test_parallel_posts_notice_once(self):
+        for r in range(3):
+            sid = "par%d" % r
+            cmds = ["echo '# p%d %s q' >> src/par%d.py" % (k, MID, r) for k in range(2)]
+            tids = ["toolu_par%d_%d" % (r, k) for k in range(2)]
+            for cmd, tid in zip(cmds, tids):
+                hook(PRE, "PreToolUse", cmd, sid, tid)
+            for cmd in cmds:
+                sh(cmd)
+            procs = []
+            for cmd, tid in zip(cmds, tids):
+                d = {"session_id": sid, "cwd": REPO, "hook_event_name": "PostToolUse", "tool_name": "Bash", "tool_input": {"command": cmd}, "tool_use_id": tid}
+                p = subprocess.Popen([sys.executable, "-I", POST], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, env=env_for())
+                p.stdin.write(json.dumps(d))
+                p.stdin.close()
+                procs.append(p)
+            outs = [p.stdout.read() for p in procs]
+            for p in procs:
+                p.wait()
+            self.assertEqual(sum("non-keyboard symbol" in o for o in outs), 1, outs)
+            os.remove(os.path.join(REPO, "src", "par%d.py" % r))
+
+
+class Budget(unittest.TestCase):
+    def test_whole_output_under_budget(self):
+        body = "".join("    v%d = %d  # step %d %s note (round %d) \\u00b7\n" % (i, i, i, MID, i) for i in range(30))
+        files = []
+        for i in range(12):
+            files.append("src/bud%d.py" % i)
+            put("gen_bud/bud%d.txt" % i, "def build_%d():\n%s    return v0\n\n\ndef other_%d():\n%s    return v1\n" % (i, body, i, body))
+        c = bash("for i in $(seq 0 11); do cat gen_bud/bud$i.txt > src/bud$i.py; done", env={"HARNESS_READABLE_CODE": "on"})
+        self.assertLessEqual(len(c), 9000)
+        self.assertRegex(c, r"\d+ more files: run `python3 -I \S+conventions-scan.py scan [^`]*src/bud")
+        sh("rm -rf gen_bud src/bud*.py")
 
 
 def timed(fn, n=7):

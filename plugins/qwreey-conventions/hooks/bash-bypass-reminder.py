@@ -195,10 +195,17 @@ def main():
         data = json.load(sys.stdin)
     except Exception:
         return 0
-    cmd = (data.get("tool_input") or {}).get("command") or ""
-    sid = re.sub(r"[^\w-]", "", str(data.get("session_id") or "nosession"))
-    cwd = data.get("cwd") or os.getcwd()
+    if not isinstance(data, dict):
+        return 0
+    ti = data.get("tool_input") if isinstance(data.get("tool_input"), dict) else {}
+    cmd = ti.get("command") if isinstance(ti.get("command"), str) else ""
+    cwd = data.get("cwd") if isinstance(data.get("cwd"), str) and data.get("cwd") else os.getcwd()
     proj = os.environ.get("CLAUDE_PROJECT_DIR") or cwd
+    try:
+        import bash_writes
+        bash_writes.sweep()  # 거절, 중단된 명령이 남긴 스냅숏
+    except Exception:
+        pass
     hs = list(heads(cmd))
     if hs and hs[0] in ("git", "gh") and not INPLACE.search(cmd):
         return 0
@@ -267,4 +274,7 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception:  # 알림 훅이라 어떤 입력에도 명령을 막지 않는다
+        sys.exit(0)

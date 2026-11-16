@@ -24,7 +24,7 @@
 | PostToolUse(Write·Edit·Bash) | `structure-reminder.py` | 파일 길이, 세션 성장, 폴더 과밀 |
 | PostToolUse(Write·Edit·MultiEdit) | `memory-placement.py` | auto memory 에 쓴 저장소 지식 |
 | PreToolUse(Bash) | `bash-bypass-reminder.py` | 셸·인터프리터로 파일을 바꾸면 Edit·Write 훅과 저장소 rules 를 비껴간다는 알림, 쓰기 신호가 있으면 Bash 검사용 스냅숏 |
-| PostToolUse(Bash) | `bash_writes.py` | 명령이 바꾼 파일의 추가 줄에 `conventions-check.py` 와 같은 검사, 사본 검사, 아직 안 보인 규칙 주입 |
+| PostToolUse(Bash), PostToolUseFailure(Bash) | `bash_writes.py` | 명령이 바꾼 파일의 추가 줄에 `conventions-check.py` 와 같은 검사, 사본 검사, 아직 안 보인 규칙 주입 |
 | UserPromptSubmit, Stop, PostToolBatch | `reply_language.py` | 답변 언어 이탈 |
 | PreCompact(manual·auto) | `compact_epoch.py qwreey-conventions` | 이 플러그인의 compact 회차를 올린다. 알림 dedup 이 회차 단위라 compact 뒤 다시 알린다 |
 
@@ -75,16 +75,26 @@
 
 ## Bash 쓰기 검사 (`bash_writes.py`)
 heredoc, `sed -i`, `python3 - <<`, `tee`, 리다이렉트로 쓰면 Edit·Write 매처의 훅이 돌지 않는다. 실제 기록에서 규약이 걸린 쓰기 173번 중 69번이 이 경로라 알림도 규칙 주입도 없었다. 그래서 명령 전후를 비교해 Edit·Write 와 같은 검사를 돌린다.
-- 명령 전(PreToolUse, `bash-bypass-reminder.py` 가 `bash_writes.snapshot` 을 부름): 쓰기 신호(제자리 편집 `sed -i`·`perl -pi`·`patch`·`git apply`, 쓰는 인터프리터 스크립트, 저장소나 cwd 안으로의 리다이렉트·`tee`)가 있을 때만. 명령 첫 낱말이 `git`·`gh` 면 하지 않는다(리마인더와 같은 조건). 저장소는 명령 cwd 의 git 최상위(git 이 아니면 프로젝트 폴더)이고 그 밖의 경로는 보지 않는다. 적는 것: 명령에 든 경로의 지금 내용(없으면 null, 1 MB 까지), git 이면 HEAD, `git --no-optional-locks status --porcelain -z -uall` 의 파일별 (mtime, 크기), 그중 검사 대상 확장자 파일의 지금 내용(파일당 256 KiB, 모두 4 MiB, 400개까지). 저장 위치 `$TMPDIR/claude-conventions/bash/<세션>.<main|agent>.<tool_use_id>.json`, Post 가 지우고, 6시간 넘은 것은 다음 스냅숏 때 지운다.
-- 명령 뒤(PostToolUse, `bash_writes.py`): 스냅숏이 없으면 바로 끝난다. 바뀐 파일과 전 내용은 이렇게 정한다. 내용을 적어 둔 파일은 지금과 다르면 바뀜(없던 파일은 빈 글에서), 명령 전에 깨끗했는데 지금 porcelain 에 나온 파일은 명령 전 HEAD 의 blob(`git cat-file --batch` 한 번, 새 untracked 파일은 빈 글), 명령이 커밋까지 했으면 두 HEAD 사이(`git diff --name-only`)의 파일도 같다. 내용을 적지 못한 dirty 파일(크기, 개수 한도 밖)은 바뀌어도 검사하지 않고 규칙 주입에만 쓴다.
-- 추가 줄은 Write 덮어쓰기와 같은 셈(`conv_edit.added_set`: 지금 줄 중 전 내용에 없던 줄)이고, `conventions-check.py` 의 `file_notice` 를 그대로 부른다. 그래서 알림 글, 범주, layout 알림, 남은 문제 기록, 상태 파일과 중복 거르기가 Edit 경로와 같다(Bash 로 알린 범주는 뒤의 Edit 에서 다시 알리지 않고, 반대도 같다). 여러 파일을 한 태그에 담고 끝 문장은 종류마다 한 번 붙인다.
+- 명령 전(PreToolUse, `bash-bypass-reminder.py` 가 `bash_writes.snapshot` 을 부름): 쓰기 신호(제자리 편집 `sed -i`·`perl -pi`·`patch`·`git apply`, 쓰는 인터프리터 스크립트, 저장소나 cwd 안으로의 리다이렉트·`tee`)가 있을 때만. 명령 첫 낱말이 `git`·`gh` 면 하지 않는다(리마인더와 같은 조건). 저장소는 명령 cwd 의 git 최상위(git 이 아니면 프로젝트 폴더)이고 그 밖의 경로, 줄바꿈이 든 경로는 보지 않는다. 적는 것: 명령에 든 경로(named)의 지금 내용(없으면 null, 파일당 1 MB)과 (mtime, 크기), git 이면 HEAD, `git --no-optional-locks status --porcelain -z -uall` 의 파일별 (mtime, 크기)(400개까지), 그중 검사 대상 확장자 파일의 지금 내용(파일당 256 KiB). 내용은 named 를 포함해 모두 4 MiB 까지다. 일반 파일만 읽는다(O_NONBLOCK 으로 열어 fstat 로 확인하므로 FIFO 에 멈추지 않는다).
+- 저장 위치: `$TMPDIR/claude-conventions/bash/<세션>.<main|agent>.<tool_use_id>.json`, TMPDIR(TEMP, TMP)가 없으면 공유 `/tmp` 대신 `/tmp/claude-conventions-<uid>/bash/`. 폴더는 0700 으로 만들고 이 사용자 것이 아니거나 심볼릭 링크면 스냅숏을 쓰지 않는다. 파일은 0600. Post 가 지우고, 1시간 넘은 것은 모든 PreToolUse(Bash) 가 지운다(폴더 하나 읽기).
+- 명령 뒤(PostToolUse, 0 아닌 종료면 PostToolUseFailure, 둘 다 `bash_writes.py`. 입력의 `tool_name`, `tool_input`, `tool_use_id` 가 같고 출력 `hookEventName` 은 받은 이벤트 이름): 스냅숏이 없으면 바로 끝난다. 바뀐 파일과 전 내용은 이렇게 정한다. 내용을 적어 둔 파일은 지금과 다르면 바뀜, 명령 전에 깨끗했는데 지금 porcelain 에 나온 파일은 명령 전 HEAD 의 blob(`git cat-file --batch` 한 번), 명령이 커밋까지 했으면 두 HEAD 사이(`git diff --name-only`)의 파일도 같다. 내용을 적지 못한 파일(크기 한도 밖)은 바뀌어도 검사하지 않고 규칙 주입에만 쓴다.
+- porcelain 이 400개를 넘으면(overflow) 명령 전 상태를 모르는 항목은 바뀐 것으로 보지 않는다. named 와 (mtime, 크기)를 적어 둔 400개만 보고, 두 HEAD 사이 비교도 하지 않는다. untracked 가 많은 저장소에서 남의 파일 전체를 새로 쓴 것으로 알리지 않으려는 것이다.
+- Post 의 읽기는 1.5초, 4 MiB, 200개 파일에서 끊는다. 한도로 못 읽은 검사 대상 파일은 아래 `N more files` 줄로 넘기고, 적어 둔 파일은 (mtime, 크기)가 바뀌었으면 규칙 주입에만 쓴다. 바뀐 경로는 규칙 맞춤에 500개까지 넘긴다. 측정(coderag 사본): untracked `.js` 6만 개가 있는 저장소에서 `echo 'w = 1' >> b.py` 의 Post 가 1.8~1.9 s(그 파일들을 새로 쓴 것으로 알림)에서 0.33 s(알림 없음)로, 명령이 `.js` 2만 개를 만들 때 Post 0.6 s(알림 10개, 규칙 주입, scan 줄).
+- 명령 전에 없던 파일(새 파일, untracked, HEAD 에 없는 경로)의 전 내용은 named 의 적어 둔 내용과 그 경로들의 HEAD blob 을 합친 것이다. `mv a.py c.py && sed ...`, `cp a.py b.py; echo ... >> b.py` 에서 옮기거나 베낀 옛 줄을 새로 쓴 줄로 세지 않는다.
+- 추가 줄은 Write 덮어쓰기와 같은 셈(`conv_edit.added_set`: 지금 줄 중 전 내용에 없던 줄)이고, `conventions-check.py` 의 `file_notice` 를 그대로 부른다. 그래서 알림 글, 범주, layout 알림, 남은 문제 기록, 상태 파일과 중복 거르기가 Edit 경로와 같다(Bash 로 알린 범주는 뒤의 Edit 에서 다시 알리지 않고, 반대도 같다). 상태 파일의 읽기, 알림, 쓰기는 `fcntl` 잠금(`<상태>.lock`, 3초 기다림, 없거나 못 잡으면 잠그지 않음) 안에서 해서 나란히 끝난 Bash 둘이 같은 알림을 두 번 내지 않는다. Edit 경로도 같은 잠금을 쓴다.
 - 코드 파일은 `reuse-check.py` 를 Write 꼴 입력(전 내용을 `originalFile` 로)으로 4개까지 나란히 돌려 사본 알림을 합친다.
-- 규칙: 바뀐 모든 파일(검사 확장자 밖 포함, 의존성 폴더 제외)에 맞는 이 플러그인의 규칙 중 이 맥락에 아직 안 넣은 것을 `rules_inject.py` 의 함수와 마커로 넣는다(Edit·Write 뒤와 같은 "대조하고 고쳐라" 문장). 출력 하나를 9,000자 안에 두려고 알림 다음 남은 자리에 드는 규칙만 마커를 잡고, 나머지는 다음 Read·Edit 에 맡긴다.
-- 같은 명령에 worktree 를 통째로 바꾸는 git 하위 명령(`checkout`, `switch`, `stash`, `reset`, `merge`, `rebase`, `pull`, `cherry-pick`, `revert`, `restore`, `am`)이 있으면 porcelain 비교를 하지 않고 명령에 든 경로만 본다. 되돌린 줄을 새로 쓴 줄로 오인하지 않으려는 것이다.
-- 한도: 알림을 낸 파일 10개 또는 분석 2.5초에서 끊고, 남은 파일은 `conventions-scan.py scan <파일...>` 을 안내한다.
+- 규칙: 바뀐 모든 파일(검사 확장자 밖 포함, 의존성 폴더 제외)에 맞는 이 플러그인의 규칙 중 이 맥락에 아직 안 넣은 것을 `rules_inject.py` 의 함수와 마커로 넣는다(Edit·Write 뒤와 같은 "대조하고 고쳐라" 문장).
+- 출력 하나(`additionalContext`)를 9,000자 안에 둔다. 알림을 파일 순서로 넣다가 안 드는 파일에서 멈추고 ``N more files: run `python3 -I <scan> scan <경로...>` `` 한 줄로 넘긴다(담지 못한 파일의 알림은 알린 것으로 적지 않는다). 사본 알림은 남은 자리에 드는 것만, 규칙은 그 뒤 남은 자리에 드는 것만 마커를 잡고 나머지는 다음 Read·Edit 에 맡긴다.
+- 같은 명령에 worktree 를 다시 쓰는 git 하위 명령(`checkout`, `switch`, `stash`, `reset`, `merge`, `rebase`, `pull`, `cherry-pick`, `revert`, `restore`, `am`; `git -c k=v`, `git -C dir`, `git --no-pager` 같은 전역 옵션 뒤도, 그리고 `gh pr checkout`)이 있으면 porcelain 비교를 하지 않고 named 만 본다. 그중 지금 내용이 이미 git 객체로 있는 파일(`git hash-object --stdin-paths` 와 `cat-file --batch-check`, 객체를 쓰지 않음)은 git 이 되돌리거나 꺼낸 것으로 보고 건너뛰고, 나머지는 명령 전 HEAD 와 지금 HEAD 의 blob 줄도 전 내용으로 친다. 되돌린 줄을 새로 쓴 줄로 오인하지 않으려는 것이다.
+- 같은 세션(서브에이전트 포함)의 다른 스냅숏이 10분 안에 만들어져 아직 남아 있으면(다른 Bash 가 도는 중) Pre 와 Post 어느 쪽에서 보든 named 만 본다. 그 Bash 가 바꾼 파일을 이 명령의 것으로 세지 않으려는 것이다.
+- 한도: 알림을 낸 파일 10개, 분석 2.5초, 출력 9,000자에서 끊고, 남은 파일은 `conventions-scan.py scan <파일...>` 을 안내한다.
 - 끄기: `CONVENTIONS_CHECK=off`(검사, 사본), `HARNESS_CONVENTIONS_RULES=off`(규칙). 둘 다 꺼지면 스냅숏도 만들지 않는다.
-- 못 보는 것: 명령에 경로가 없고 git 저장소도 아닌 곳의 쓰기, 크기·개수 한도 밖의 dirty 파일, 첫 낱말이 `git` 인 명령, 쓰기 신호가 없는 명령(예: 저장소 스크립트 실행 `python3 tools/gen.py`, `cp`, `mv`), 명령 중에 다른 세션이 같은 파일을 바꾼 경우(그 줄도 이 명령의 것으로 센다).
-- 비용(중앙값, 프로세스 기동 포함): 쓰기 신호가 없는 명령은 Post 25 ms(스냅숏 유무만 본다), Pre 는 원래 리마인더 30 ms 그대로. 쓰기 신호가 있으면 Pre 45~60 ms, Post 90~130 ms(규칙 주입 포함, 사본 색인이 데워진 뒤). 측정은 임시 저장소, coderag 사본(338 파일), quad 사본(6,193 파일, 15 GB 작업 트리)에서 했고 quad 의 첫 Post 는 사본 색인을 처음 만들어 400 ms 였다. 같은 이벤트의 훅은 나란히 돌므로 Post 의 25 ms 는 structure-reminder 와 겹친다. `tests/test-bash-writes.py` 의 `Timing`(`BIG_REPO=<사본>`)이 같은 숫자를 낸다.
+- 못 보는 것:
+  - 거절되거나 사용자가 취소한 명령(Post 가 오지 않는다. 스냅숏은 1시간 뒤 지워지고, 그 전 10분 동안은 같은 세션의 다음 Bash 가 named 만 본다), `run_in_background` 명령(Post 가 명령을 띄운 직후에 와서 그 뒤의 쓰기를 못 본다), 첫 낱말이 `git`·`gh` 인 명령, 쓰기 신호가 없는 명령(예: 저장소 스크립트 실행 `python3 tools/gen.py`, `cp`, `mv` 만 있는 명령).
+  - 명령에 경로가 없고 git 저장소도 아닌 곳의 쓰기, 크기 한도 밖의 파일, porcelain 이 400개를 넘는 저장소에서 named 가 아닌 파일과 적지 못한 항목.
+  - git rewrite 가 든 명령에서 HEAD 가 아닌 곳(다른 브랜치, `stash pop`, `restore --source`)에서 꺼낸 줄을 다시 고친 named 파일: 그 줄도 추가로 셀 수 있다.
+  - 다른 프로세스의 쓰기: 명령이 도는 동안 포매터, 파일 감시 도구, 다른 세션이 바꾼 파일은 이 명령의 것으로 센다. 같은 세션의 나란한 Bash 는 위처럼 named 로 줄이지만, named 파일을 둘이 함께 바꾸면 둘 다 그 줄을 본다(같은 범주 알림은 잠금으로 한 번).
+- 비용(중앙값, 프로세스 기동 포함): 쓰기 신호가 없는 명령은 Post 25~29 ms(스냅숏 유무만 본다), Pre 는 원래 리마인더 30 ms 그대로(스냅숏 폴더 읽기 포함). 쓰기 신호가 있으면 Pre 45~62 ms, Post 90~130 ms(규칙 주입 포함, 사본 색인이 데워진 뒤). 실제 quad, coderag 에서 쓰지 않고 잰 값(Pre 쓰기 신호, 바뀐 것 없는 Post)은 quad 60, 48 ms, coderag 51, 41 ms 이고, 쓰기는 `git clone --shared` 사본에서 quad Post 129 ms, coderag 114 ms 다. 측정은 임시 저장소, coderag 사본(338 파일), quad 사본(6,193 파일, 15 GB 작업 트리)에서 했고 quad 의 첫 Post 는 사본 색인을 처음 만들어 400 ms 였다. 같은 이벤트의 훅은 나란히 돌므로 Post 의 25 ms 는 structure-reminder 와 겹친다. `tests/test-bash-writes.py` 의 `Timing`(`BIG_REPO=<사본>`)이 같은 숫자를 낸다.
 
 ## 남은 문제 보고
 - 같은 PostToolUse 에서 편집한 파일의 "이번에 추가하지 않은 줄" 문제를 범주별로 세어 `$TMPDIR/claude-conventions/<session>.left.<main|agent_id>.json` 에 조용히 쌓는다(파일마다 마지막 편집 기준, 고치면 사라진다).
@@ -100,6 +110,7 @@ python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py fix [경로...
 ```
 - 검사: `conventions-check.py` 의 함수를 불러 모든 줄에 돌린다. 확장자 표, 제외, 생성 파일 표시, `.claude/conventions.json` 이 훅과 같다. 경로를 안 주면 저장소 전체, git 이면 `git ls-files -co --exclude-standard` 라 무시 파일은 보지 않는다. 주석 언어 기준은 파일 전체 다수(없으면 `comment_language`, 형제 파일).
 - 출력: `경로:줄: 범주: 내용`, 범주별, 파일별 수, `--fix` 로 고칠 수 있는 추정. `--json` 은 `findings`, `needs_judgment`, `diffs`, `summary`. 종료 코드 0 = 남은 문제 없음, 1 = 있음, 2 = 사용법 오류.
+- `--budget S`: S 초가 지나면 파일 읽기를 멈추고 요약에 `partial:` 줄(멈춘 자리, 전체 파일 수, 전체 검사 명령)을 낸다. `--exit-zero`: 찾은 것이 있어도, 사용법 오류나 예외여도 0 으로 끝난다. `comments-cleanup` 명령의 `!` 미리 실행이 `--summary --top 15 --budget 30 --exit-zero` 로 부른다: `!` 명령이 0 이 아니면 Claude Code 가 명령 전체를 멈추고, 2분 한도가 있기 때문이다(quad 전체 검사 56 s, 30초에서 6,194 중 3,575 번째 파일에서 멈춤, coderag 2.3 s). 요약이 `partial` 이면 모델이 그 줄의 명령을 Bash 로 다시 돌린다.
 - 고치는 것: 코드 파일 주석 안의 non-keyboard symbol 과 invisible character, 모델용 문서 본문의 invisible character(훅이 문서의 기호는 보지 않으므로 고치지도 않는다). 주석 안의 인라인 코드와 URL, 따옴표로 감싼 한 글자, 지시자 줄, 문서의 frontmatter, 코드 펜스, 인라인 코드, URL, 경로 토큰은 그대로 둔다.
 - 대체: 대시는 ` - `(숫자 사이 en dash, minus 는 `-`), 가운뎃점은 `, `(조각 맨 앞이면 `-`; `/` 는 곱을 나눗셈으로 바꿀 수 있어 쓰지 않는다), `…` 는 `...`, 화살표는 `->` `<-` `<->` `=>`, 곡선 따옴표는 곧은 따옴표, `§` 는 지운다, 동그라미 숫자는 `1)`, 전각은 ASCII, NBSP 는 공백, 그 밖의 보이지 않는 문자는 지운다(이모지 옆 ZWJ 와 파일 맨 앞 BOM 은 둔다). 규칙 전체는 스크립트 머리 주석.
 - 사본(머리의 `@copy-of:` 로 다른 파일을 가리키는 파일, 정본이 아닌 `@start-replace` 영역)은 고치지 않고 `copies left unfixed` 로 알린다. 정본을 고치고 `tools/sync-copies.py --apply` 로 옮긴다. 사본을 따로 고치면 `--check` 가 깨진다.
@@ -110,7 +121,6 @@ python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py fix [경로...
 
 ## 사본 검사 (`reuse-check.py`)
 - C1: `@copy-of: <경로>[#이름]` 사본이 원본과 같은가(파일은 바이트, 값은 문자열 묶음). 풀리지 않거나 다르면 알린다.
-- `--budget S`: S 초가 지나면 파일 읽기를 멈추고 요약에 `partial:` 줄(멈춘 자리, 전체 파일 수, 전체 검사 명령)을 낸다. `--exit-zero`: 찾은 것이 있어도, 사용법 오류나 예외여도 0 으로 끝난다. `comments-cleanup` 명령의 `!` 미리 실행이 `--summary --top 15 --budget 30 --exit-zero` 로 부른다: `!` 명령이 0 이 아니면 Claude Code 가 명령 전체를 멈추고, 2분 한도가 있기 때문이다(quad 전체 검사 56 s, 30초에서 6,194 중 3,575 번째 파일에서 멈춤, coderag 2.3 s). 요약이 `partial` 이면 모델이 그 줄의 명령을 Bash 로 다시 돌린다.
 - C2: 원본을 고치면 그것을 가리키는 사본 목록을 알린다.
 - H1: 추가한 문자열 묶음(따옴표 문자열 3개 이상의 목록이나 `"a" | "b"` 합집합)이 저장소의 다른 정의와 겹침. 기본은 그림자 모드라 알리지 않고 `${CLAUDE_PLUGIN_DATA}/reuse-shadow.jsonl`(없으면 `$TMPDIR/claude-qwreey-reuse/shadow.jsonl`)에 남긴다.
 - 모드: `REUSE_CHECK=off|shadow|on` 이 저장소 `.claude/conventions.json` 의 `reuse.mode` 를 이긴다. 기본 `shadow`. `CONVENTIONS_CHECK=off` 도 이 훅을 끈다.

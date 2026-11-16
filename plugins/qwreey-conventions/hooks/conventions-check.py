@@ -43,11 +43,13 @@ Bash 로 바꾼 파일은 bash_writes.py 가 이 파일의 file_notice 로 같�
 알림 중복: (session_id, 호출한 쪽, 파일, 범주)마다 한 번(이미 알린 범주는 다시 알리지 않고, 새 범주는 알린다). compact 회차도 구분한다(compact_epoch.py, PreCompact 훅이 올린다).
 상태 파일: $TMPDIR/claude-conventions/<session_id>.c<회차>[.a<agent_id>].json
 """
+import contextlib
 import fnmatch
 import json
 import os
 import re
 import sys
+import time
 import unicodedata
 from collections import Counter
 from pathlib import Path
@@ -477,6 +479,37 @@ def state_file(sid, agent_id):
     return compact_epoch.state_path("qwreey-conventions", NS, sid, agent_id)
 
 
+STATE_LOCK_WAIT_S = 3.0
+
+
+@contextlib.contextmanager
+def state_lock(path):
+    """상태 파일의 읽기, 알림, 쓰기를 한 프로세스씩. 나란히 도는 Bash 와 Edit 훅이 같은 알림을 두 번 내지 않게 한다.
+
+    fcntl 이 없거나(Windows) 잠금 파일을 못 열거나 STATE_LOCK_WAIT_S 안에 못 잡으면 잠그지 않고 간다(알림이 한 번 겹칠 뿐이다).
+    """
+    fd = None
+    try:
+        import fcntl
+        fd = os.open(path + ".lock", os.O_RDWR | os.O_CREAT, 0o600)
+        end = time.monotonic() + STATE_LOCK_WAIT_S
+        while True:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() > end:
+                    break
+                time.sleep(0.01)
+    except (ImportError, OSError):
+        pass
+    try:
+        yield
+    finally:
+        if fd is not None:
+            os.close(fd)
+
+
 def load_state(path):
     """세션 상태 {"files": {경로: [알린 키]}, "doc_recheck": {경로: [함수 키]}}. 깨졌거나 꼴이 다르면 빈 상태로 시작한다."""
     try:
@@ -843,10 +876,11 @@ def main():
         return 0
 
     state_path = state_file(data.get("session_id"), data.get("agent_id"))
-    state = load_state(state_path)
-    body, dirty = file_notice(data, path, rel, kind, ext, cfg, text, added, state)
-    if dirty:
-        save_state(state_path, state)
+    with state_lock(state_path):
+        state = load_state(state_path)
+        body, dirty = file_notice(data, path, rel, kind, ext, cfg, text, added, state)
+        if dirty:
+            save_state(state_path, state)
     if body:
         json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": notice_tag(data, body)}},
                   sys.stdout, ensure_ascii=False)
