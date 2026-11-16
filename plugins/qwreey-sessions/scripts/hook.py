@@ -58,7 +58,11 @@ def emit_context(event: str, parts: list[tuple[str, str]], data: dict, fill=None
         if len(text) > anchors.CEILING:  # 어림이 틀렸을 때의 마지막 안전판: 미리보기로 바뀌느니 닻을 뺀다
             text = compose(base, sid, rule)
         if text:
-            json.dump({"hookSpecificOutput": {"hookEventName": event, "additionalContext": text}}, sys.stdout)
+            # 이스케이프 없이 UTF-8 로 쓴다. 기본 json 출력은 한국어를 여섯 배로 늘려서, 훅 출력 1만 자
+            # 한도가 stdout 기준이면 닻이 미리보기로 바뀐다.
+            payload = json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": text}}, ensure_ascii=False)
+            sys.stdout.buffer.write(payload.encode("utf-8"))
+            sys.stdout.flush()
 
 
 def log_error(e: Exception) -> None:
