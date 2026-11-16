@@ -1,6 +1,7 @@
 # 11. Agent records (REC-*)
 
 Check: `python3 -I ${CLAUDE_SKILL_DIR}/../../scripts/records_check.py --root <path> [--json]` (read-only, skip for intake). `REC-` codes follow the `coderag:agent-records` skill.
+It checks every records home and scope as coderag classifies them: the top `.claude/`, `<dir>/.claude/` with a README.md, and `scopes/<path>/` or `packs/<pack>/` inside a home. A finding path names the scope; report it as is.
 
 - Report counts per code in item 11.
 - `REC-CLOSED-OUTSIDE-ARCHIVE` (status already not active): list the files as one "move to archive" fix item.

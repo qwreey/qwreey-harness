@@ -1,5 +1,7 @@
 """records_check 테스트. 실행: timeout 120 python3 -I tests/test_records_check.py </dev/null"""
+import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -12,6 +14,55 @@ sys.path.insert(0, str(HERE.parent / "scripts"))
 import records_check as rc  # noqa: E402
 
 FIX = HERE / "records-fixtures"
+
+
+def coderag_src():
+    """The coderag checkout: $CODERAG_SRC, else a `coderag` sibling of an ancestor (works from worktrees too)."""
+    env = os.environ.get("CODERAG_SRC")
+    if env:
+        return Path(env) if (Path(env) / "crates").is_dir() else None
+    return next((a.parent / "coderag" for a in HERE.parents if (a.parent / "coderag" / "crates" / "coderag-core").is_dir()), None)
+
+
+def coderag_bin():
+    src = coderag_src()
+    cands = [os.environ.get("CODERAG_BIN", "")] + ([str(src / "target" / k / "coderag") for k in ("release", "debug")] if src else [])
+    return next((c for c in cands if c and os.access(c, os.X_OK)), None)
+
+
+def put(root, rel, body="# t\n"):
+    p = Path(root, rel)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(body)
+
+
+# Records homes and scopes, with the cases that must not be homes. Expected scope per record (None = not a record).
+SCOPED = {
+    ".claude/README.md": "", ".claude/plan/a.md": "", ".claude/packs/luau-kb/research/x.md": "packs/luau-kb",
+    ".claude/packs/luau-kb/evals/e.md": "packs/luau-kb", ".claude/scopes/plugins/q/audit/3-x/a.md": "plugins/q",
+    ".claude/scopes/plugins/q/evals/e.md": "plugins/q", ".claude/scopes/plugins/q/skills/doctor/plan/p.md": "plugins/q/skills/doctor",
+    ".claude/scopes/plugins/q/archive/base/old.md": "plugins/q", ".claude/scopes/home/.claude/statusline/research/r.md": "home/.claude/statusline",
+    ".claude/scopes/home/.claude/statusline/note.md": "home/.claude/statusline", ".claude/scopes/.github/plan/p.md": ".github",
+    ".claude/.hidden/plan/h.md": None, ".claude/skills/s.md": None, ".claude/plan/raw/r.md": None, ".claude/scopes/plugins/q/plan/CLAUDE.md": None,
+    "backend/.claude/README.md": "backend", "backend/.claude/base/b.md": "backend", "backend/.claude/scopes/api/plan/p.md": "backend/api",
+    "frontend/.claude/base/f.md": None, "plugins/q/.claude/README.md": None, "plugins/q/.claude/plan/s.md": None,
+    "vendor/x/.claude/README.md": None, "vendor/x/.claude/base/v.md": None, "gen/.claude/README.md": None, "gen/.claude/base/g.md": None,
+    "ign/.claude/README.md": None, "ign/.claude/base/i.md": None, "a-fixtures/.claude/README.md": None, "a-fixtures/.claude/plan/f.md": None,
+}
+
+
+def build_scoped(root, git=True):
+    for rel in SCOPED:
+        put(root, rel)
+    for rel in ["plugins/q/skills/doctor/SKILL.md", "home/.claude/statusline/x.sh", ".github/workflows/x.yml", "packs/luau-kb/README.md",
+                "backend/api/x.txt"]:
+        put(root, rel, "")
+    put(root, "plugins/q/.claude-plugin/plugin.json", "{}")
+    put(root, ".gitattributes", "gen/** linguist-generated\n")
+    put(root, ".gitignore", "ign/\n")
+    if git:
+        subprocess.run(["git", "init", "-q", str(root)], check=True)
+        subprocess.run(["git", "-C", str(root), "add", "-A"], check=True)
 
 
 def codes(findings):
@@ -133,6 +184,146 @@ class Fixture(unittest.TestCase):
 
     def test_no_claude_dir(self):
         self.assertEqual(rc.check(self.tmp), [])
+
+
+class Scopes(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.root = os.path.join(self.tmp, "repo")
+        build_scoped(self.root)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def rels(self):
+        return {os.path.relpath(p, self.root).replace(os.sep, "/"): s for p, s, _k, _h in rc.records(self.root)}
+
+    def test_homes_and_scopes(self):
+        self.assertEqual(self.rels(), {k: v for k, v in SCOPED.items() if v is not None})
+
+    def test_without_git(self):
+        shutil.rmtree(os.path.join(self.root, ".git"))
+        put(self.root, "coderag.toml", "[records]\n")  # project boundary for co-located homes, as coderag nearest_root
+        got = self.rels()
+        self.assertEqual(got.get("backend/.claude/base/b.md"), "backend")
+        self.assertNotIn("vendor/x/.claude/base/v.md", got)
+        self.assertNotIn("plugins/q/.claude/plan/s.md", got)
+
+    def test_nested_project_is_not_a_home(self):
+        put(self.root, "sub/.claude/README.md")
+        put(self.root, "sub/.claude/plan/n.md")
+        put(self.root, "sub/coderag.toml", "")
+        self.assertNotIn("sub/.claude/plan/n.md", self.rels())
+
+    def test_declared_folder_ends_the_scope(self):
+        put(self.root, ".claude/scopes/plugins/q/backlog/x.md", "status: paused\n")
+        put(self.root, ".claude/scopes/plugins/q/wip/backlog/y.md", "status: paused\n")
+        # undeclared: the scope ends at the longest existing repo path, and the folder after it is of unknown kind
+        self.assertEqual(self.rels()[".claude/scopes/plugins/q/backlog/x.md"], "plugins/q")
+        self.assertEqual(self.rels()[".claude/scopes/plugins/q/wip/backlog/y.md"], "plugins/q")
+        self.assertNotIn("scopes/plugins/q/backlog/x.md", {q for _c, q in codes(rc.check(self.root))})
+        put(self.root, "coderag.toml", '[records.folders]\nbacklog = "living"\n')
+        self.assertEqual(self.rels()[".claude/scopes/plugins/q/backlog/x.md"], "plugins/q")
+        self.assertEqual(self.rels()[".claude/scopes/plugins/q/wip/backlog/y.md"], "plugins/q/wip")
+        self.assertIn(("REC-STATUS-BAD", "scopes/plugins/q/backlog/x.md"), codes(rc.check(self.root)))
+
+    def test_checks_run_in_scopes_and_co_located_homes(self):
+        bad = "status: paused\n# x\n"
+        for rel in [".claude/scopes/plugins/q/plan/bad.md", ".claude/packs/luau-kb/research/bad.md",
+                    ".claude/scopes/home/.claude/statusline/research/bad.md", "backend/.claude/base/bad.md",
+                    "frontend/.claude/base/bad.md", "plugins/q/.claude/plan/bad.md", ".claude/scopes/plugins/q/audit/3-x/bad.md"]:
+            put(self.root, rel, bad)
+        put(self.root, ".claude/scopes/plugins/q/plan/landed.md", "status: landed in plugins/q/skills/doctor/SKILL.md\n")
+        put(self.root, ".claude/scopes/plugins/q/archive/plan/gone.md", "status: archived\n")
+        got = {(c, p) for c, p in ((f["code"], f["path"].replace(os.sep, "/")) for f in rc.check(self.root))}
+        for p in [".claude/scopes/plugins/q/plan/bad.md", ".claude/packs/luau-kb/research/bad.md",
+                  ".claude/scopes/home/.claude/statusline/research/bad.md", "backend/.claude/base/bad.md"]:
+            self.assertIn(("REC-STATUS-BAD", p), got)
+        flagged = {p for _c, p in got}
+        for p in ["frontend/.claude/base/bad.md", "plugins/q/.claude/plan/bad.md", ".claude/scopes/plugins/q/audit/3-x/bad.md",
+                  ".claude/scopes/plugins/q/archive/plan/gone.md"]:
+            self.assertNotIn(p, flagged)
+        self.assertIn(("REC-CLOSED-OUTSIDE-ARCHIVE", ".claude/scopes/plugins/q/plan/landed.md"), got)
+        self.assertNotIn(("REC-TARGET-MISSING", ".claude/scopes/plugins/q/plan/landed.md"), got)
+
+    def test_folder_status_stops_at_the_scoped_record_folder(self):
+        put(self.root, ".claude/scopes/plugins/q/plan/README.md", "status: active\n- a\n")
+        put(self.root, ".claude/scopes/plugins/q/plan/x.md", "# no status\n")
+        put(self.root, ".claude/scopes/plugins/q/plan/sub/README.md", "status: active\n- y.md\n")
+        put(self.root, ".claude/scopes/plugins/q/plan/sub/y.md", "# no status\n")
+        missing = {p for c, p in codes(rc.check(self.root)) if c == "REC-STATUS-MISSING"}
+        self.assertIn("scopes/plugins/q/plan/x.md", missing)
+        self.assertNotIn("scopes/plugins/q/plan/sub/y.md", missing)
+
+    def test_sizes_per_scope(self):
+        shutil.rmtree(os.path.join(self.root, ".claude/plan/raw"))
+        Path(self.root, ".claude/scopes/plugins/q/audit/3-x/big.bin").write_bytes(b"x" * (rc.DIR_LIMIT + 1))
+        Path(self.root, ".claude/scopes/plugins/q/skills").mkdir(parents=True, exist_ok=True)
+        dirs = {f["path"].replace(os.sep, "/") for f in rc.check(self.root) if f["code"] == "REC-SIZE-DIR"}
+        self.assertEqual(dirs, {".claude/scopes/plugins/q/audit"})
+        Path(self.root, ".claude/skills/huge.bin").write_bytes(b"x" * (rc.DIR_LIMIT + 1))
+        Path(self.root, ".claude/scopes/plugins/q/audit/3-x/raw").mkdir()
+        Path(self.root, ".claude/scopes/plugins/q/audit/3-x/raw/r.txt").write_text("x")
+        got = {(f["code"], f["path"].replace(os.sep, "/")) for f in rc.check(self.root)}
+        self.assertNotIn(("REC-SIZE-DIR", ".claude/skills"), got)
+        self.assertIn(("REC-RAW-NOT-IGNORED", ".claude/scopes/plugins/q/audit/3-x/raw"), got)
+
+
+def rust_strings(src, name):
+    """Strings of the Rust `const <name>` list or string in src, or None when there is no such const."""
+    m = re.search(r"const %s: &(?:\[&str\]|str) =\s*&?\[?(.*?)\]?;" % re.escape(name), src, re.S)
+    return re.findall(r'"([^"]*)"', m.group(1)) if m else None
+
+
+@unittest.skipUnless(coderag_src(), "no coderag checkout (set CODERAG_SRC)")
+class CopiesMatchCoderag(unittest.TestCase):
+    """The @copy-of lists in records_check.py hold the same strings as their coderag source."""
+
+    def src(self, rel):
+        return (coderag_src() / rel).read_text(encoding="utf-8")
+
+    def test_marked_copies(self):
+        text = Path(rc.__file__).read_text(encoding="utf-8")
+        marks = re.findall(r"# @copy-of: coderag:(\S+)#(\w+)\n(\w+) =", text)
+        self.assertEqual(len(marks), 6)
+        for rel, name, local in marks:
+            self.assertEqual(name, local)
+            want = rust_strings(self.src(rel), name)
+            self.assertIsNotNone(want, "%s#%s" % (rel, name))
+            self.assertEqual(sorted(getattr(rc, local)), sorted(want), name)
+
+    def test_folder_kinds_and_scope_dirs(self):
+        records = self.src("crates/coderag-core/src/records.rs")
+        body = re.search(r"fn folder_kind\(.*?\n    \}\n", records, re.S).group(0)
+        kinds = {}
+        for names, kind in re.findall(r'((?:"[\w-]+"\s*\|?\s*)+)=>\s*RecordKind::(\w+)', body):
+            for n in re.findall(r'"([\w-]+)"', names):
+                kinds[n] = kind.lower()
+        self.assertEqual(kinds, rc.BUILTIN_KINDS)
+        walk = self.src("crates/coderag-mdfm/src/walk.rs")
+        self.assertEqual(rust_strings(walk, "SCOPES_DIR"), [rc.SCOPES_DIR])
+        self.assertEqual(rust_strings(walk, "PACKS_DIR"), [rc.PACKS_DIR])
+
+
+@unittest.skipUnless(coderag_bin(), "no coderag binary (set CODERAG_BIN)")
+class ParityWithCoderag(unittest.TestCase):
+    """records() finds the same records with the same scopes as `coderag list` on one tree."""
+
+    def test_same_records_and_scopes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "repo")
+            build_scoped(root)
+            env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": os.path.join(tmp, "home"),
+                   "CODERAG_CACHE": os.path.join(tmp, "cache"), "CODERAG_HOME": os.path.join(tmp, "chome")}
+            run = lambda *a: subprocess.run([coderag_bin(), *a], cwd=root, env=env, capture_output=True, text=True, timeout=120)
+            self.assertEqual(run("gen").returncode, 0)
+            got = {}
+            for module in (".claude", "backend/.claude"):
+                p = run("list", module, "--json", "--all", "--layer", "project")
+                self.assertEqual(p.returncode, 0, p.stderr)
+                got.update({d["path"]: d["scope"] for d in json.loads(p.stdout)})
+            mine = {os.path.relpath(p, root).replace(os.sep, "/"): s for p, s, _k, _h in rc.records(root)}
+            self.assertEqual(mine, got)
 
 
 if __name__ == "__main__":
