@@ -1,11 +1,16 @@
-"""Registry, work folders, run state and locks of the delegate driver (delegate.py).
+"""Registry, work folders, run records and locks of the delegate driver (delegate.py).
 
-The on-disk shape is the one delegate.sh uses, so either script sees the other's runs:
-  <dirname(root)>/<key>-<agent>/{<name>/, .homes/<name>/, .hooks/, runs/}
-  <name>/.delegate/: prompt.md meta.txt guard.txt stdout.txt report.md last-message.md, plus
-    state.json (this driver) and the legacy pid / exit / collected files (delegate.sh reads only those).
-Files under <name>/ belong to the task uid, so the root side never follows a link it finds there: reads use
-O_NOFOLLOW and writes replace the entry through a fresh temp file.
+Layout, the one delegate.sh uses plus a record folder:
+  <dirname(root)>/<key>-<agent>/            root-owned base
+    <name>/                                 the task's copy (worktree or empty folder), owned by the task uid
+    <name>/.delegate/                       where the task writes report.md / last-message.md
+    .homes/<name>/                          the task's HOME, owned by the task uid
+    .hooks/pre-push, runs/<date>-<name>/    root-owned
+    .runs/<name>/                           this driver's record, root-owned 0700: state.json, run.lock, prompt.md,
+                                            meta.txt, stdout.txt, report.md (snapshot), guard.txt, exit
+Everything below <name>/ and .homes/<name>/ is the task's, so root never writes there after the chown and reads there
+only fd-relative with O_NOFOLLOW from a directory fd it opened on the root-owned base (read_under, copy_tree_at).
+delegate.sh runs keep their records in <name>/.delegate/{pid,exit,collected}; they are read that way, never written.
 """
 import datetime
 import hashlib
@@ -26,16 +31,25 @@ if os.name == "posix":
 AGENTS = ("agy", "codex")
 NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 STATE_FILE = "state.json"
+RECORDS = ".runs"     # record folder under the base; a dot name, so delegate.sh's `*/` globs skip it
+TASK_OUT = ".delegate"  # inside the task copy: what the task writes for the driver
 FIRST_UID = 61000  # registry.tsv header: uids start here; register picks the next free one
-# Run files collect keeps, in the order delegate.sh copied them.
-RUN_FILES = ("prompt.md", "meta.txt", "guard.txt", "stdout.txt", "report.md", "last-message.md", "exit", STATE_FILE,
-             "events.jsonl", "acp.jsonl")
+# Record files collect keeps.
+RUN_FILES = ("prompt.md", "meta.txt", "guard.txt", "stdout.txt", "report.md", "exit", STATE_FILE)
+# delegate.sh's files inside <name>/.delegate/, read for its runs only.
+LEGACY_FILES = ("prompt.md", "meta.txt", "guard.txt", "stdout.txt", "report.md", "last-message.md", "exit")
+# Largest task-written file root reads back (report, probe, legacy record): a task can make a file of any size.
+MAX_READ_BYTES = 64 * 1024 * 1024
+LOCK_POLL_SECONDS = 0.1
 
 # Exit codes of the driver. A finished run exits 0 whatever the model returned; that code is in guard.txt.
 EXIT_USAGE = 2
 EXIT_NO_AGENT = 3   # agent executable or its credentials missing
 EXIT_REFUSED = 4    # refused by isolation policy
 EXIT_BUSY = 5       # concurrency limit reached
+
+_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+_DIR = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | _NOFOLLOW
 
 
 class DelegateError(Exception):
@@ -158,14 +172,35 @@ def check_name(name):
         die(f"name must match [a-z0-9-]: {name}")
 
 
-# ---------- files the task uid can touch ----------
-def write_safe(path, text, mode=0o644):
-    """Write text to path inside a task-owned folder without following a link planted there."""
+# ---------- root-owned folders ----------
+def root_dir(path, mode):
+    """Create path with mode if missing; refuse a folder the task side could swap (a link, another owner, writable by
+    group or others). Root writes only into folders that pass this."""
     path = Path(path)
+    try:
+        os.mkdir(path, mode)
+        os.chmod(path, mode)
+    except FileExistsError:
+        pass
+    st = os.lstat(path)
+    if not stat.S_ISDIR(st.st_mode) or st.st_uid != os.geteuid() or st.st_mode & 0o022:
+        die(f"{path} must be a folder owned by uid {os.geteuid()} that only it can write (found mode "
+            f"{stat.filemode(st.st_mode)}, owner {st.st_uid}); fix it by hand", EXIT_REFUSED)
+    return path
+
+
+def record_dir(base, name):
+    return Path(base) / RECORDS / name
+
+
+def write_safe(path, text, mode=0o600):
+    """Write text atomically into a root-owned folder (temp file + rename)."""
+    path = Path(path)
+    data = text.encode("utf-8") if isinstance(text, str) else text
     fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(text)
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
         os.chmod(tmp, mode)
         os.replace(tmp, path)
     except BaseException:
@@ -176,64 +211,124 @@ def write_safe(path, text, mode=0o644):
         raise
 
 
-def read_safe(path, limit=None):
-    """Bytes of a regular file that is not a link, else None."""
+# ---------- reading what the task owns ----------
+def open_dir_under(base, *parts):
+    """fd of base/parts[0]/... opened component by component with O_NOFOLLOW, or None if any part is a link,
+    missing or not a folder. base is a path of a root-owned folder (its entries cannot be swapped by the task) or an
+    fd already opened this way."""
     try:
-        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
+        fd = os.dup(base) if isinstance(base, int) else os.open(base, _DIR)
+    except OSError:
+        return None
+    for part in parts:
+        try:
+            nxt = os.open(part, _DIR, dir_fd=fd)
+        except OSError:
+            os.close(fd)
+            return None
+        os.close(fd)
+        fd = nxt
+    return fd
+
+
+def read_at(dir_fd, name, limit=MAX_READ_BYTES):
+    """Bytes of a regular file name under dir_fd that is not a link, at most limit, else None."""
+    try:
+        fd = os.open(name, os.O_RDONLY | _NOFOLLOW | getattr(os, "O_NONBLOCK", 0), dir_fd=dir_fd)
     except OSError:
         return None
     try:
         if not stat.S_ISREG(os.fstat(fd).st_mode):
             return None
-        with os.fdopen(fd, "rb", closefd=False) as f:
-            return f.read() if limit is None else f.read(limit)
+        chunks, left = [], limit
+        while left > 0:
+            b = os.read(fd, min(left, 1 << 20))
+            if not b:
+                break
+            chunks.append(b)
+            left -= len(b)
+        return b"".join(chunks)
     finally:
         os.close(fd)
 
 
-def has_content(path):
+def read_under(base, *parts, limit=MAX_READ_BYTES):
+    """Bytes of base/parts... read without following a link anywhere below base, else None."""
+    fd = open_dir_under(base, *parts[:-1])
+    if fd is None:
+        return None
     try:
-        st = os.lstat(path)
+        return read_at(fd, parts[-1], limit)
+    finally:
+        os.close(fd)
+
+
+def exists_under(base, *parts, kind=None):
+    """lstat of base/parts... resolved without links; kind 'dir' or 'file' narrows it. False on any link."""
+    fd = open_dir_under(base, *parts[:-1])
+    if fd is None:
+        return False
+    try:
+        st = os.stat(parts[-1], dir_fd=fd, follow_symlinks=False)
     except OSError:
         return False
-    return stat.S_ISREG(st.st_mode) and st.st_size > 0
-
-
-def copy_safe(src, dst):
-    data = read_safe(src)
-    if data is None:
-        return False
-    Path(dst).write_bytes(data)
+    finally:
+        os.close(fd)
+    if kind == "dir":
+        return stat.S_ISDIR(st.st_mode)
+    if kind == "file":
+        return stat.S_ISREG(st.st_mode)
     return True
 
 
-def chown_tree(path, uid, gid, follow_top=False):
-    """chown -R without following links: a link the repository commits must not hand its target to the task uid."""
-    os.chown(path, uid, gid, follow_symlinks=follow_top)
-    for top, dirs, files in os.walk(path):
+def write_new(path, data):
+    """A new file in a root-owned folder, 0600."""
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | _NOFOLLOW, 0o600)
+    with os.fdopen(fd, "wb") as f:
+        f.write(data)
+
+
+def copy_tree_at(dir_fd, dst):
+    """Copy regular files and folders under dir_fd into dst (root-owned), without links; folders 0700, files 0600."""
+    os.makedirs(dst, mode=0o700, exist_ok=True)
+    for top, dirs, files, top_fd in os.fwalk(".", dir_fd=dir_fd, follow_symlinks=False):
+        out = Path(dst) / top
+        for d in dirs:
+            st = os.stat(d, dir_fd=top_fd, follow_symlinks=False)
+            if stat.S_ISDIR(st.st_mode):
+                os.makedirs(out / d, mode=0o700, exist_ok=True)
+        for f in files:
+            data = read_at(top_fd, f)
+            if data is not None:
+                write_new(out / f, data)
+
+
+def chown_tree(path, uid, gid):
+    """chown -R from fds, never through a link: a link the repository commits must not hand its target to the uid."""
+    os.chown(path, uid, gid, follow_symlinks=False)
+    for _top, dirs, files, top_fd in os.fwalk(path, follow_symlinks=False):
         for n in dirs + files:
-            os.chown(os.path.join(top, n), uid, gid, follow_symlinks=False)
+            os.chown(n, uid, gid, dir_fd=top_fd, follow_symlinks=False)
 
 
 # ---------- state ----------
-def read_state(d):
-    data = read_safe(Path(d) / STATE_FILE)
+def read_state(rec):
     try:
-        st = json.loads(data) if data else {}
-    except ValueError:
+        st = json.loads(Path(rec, STATE_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
         return {}
     return st if isinstance(st, dict) else {}
 
 
-def write_state(d, **fields):
-    st = read_state(d)
+def save_state(rec, st):
+    write_safe(Path(rec) / STATE_FILE, json.dumps(st, ensure_ascii=False, indent=1) + "\n")
+
+
+def update_state(rec, **fields):
+    st = read_state(rec)
     st.update(fields)
-    save_state(d, st)
+    save_state(rec, st)
     return st
-
-
-def save_state(d, st):
-    write_safe(Path(d) / STATE_FILE, json.dumps(st, ensure_ascii=False, indent=1) + "\n")
 
 
 def pid_alive(pid):
@@ -249,8 +344,8 @@ def pid_alive(pid):
         return False
 
 
-def legacy_pid_alive(d):
-    data = read_safe(Path(d) / "pid", 64)
+def legacy_pid_alive(base, name):
+    data = read_under(base, name, TASK_OUT, "pid", limit=64)
     try:
         return data is not None and pid_alive(int(data.strip()))
     except ValueError:
@@ -260,7 +355,7 @@ def legacy_pid_alive(d):
 def lock_held(path):
     """True when another process holds the lock file. A missing file is not held (no file is created here)."""
     try:
-        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        fd = os.open(path, os.O_RDONLY | _NOFOLLOW)
     except OSError:
         return False
     try:
@@ -273,40 +368,54 @@ def lock_held(path):
         os.close(fd)
 
 
-def take_lock(path, block=False):
-    """fd holding an exclusive lock on path, or None when it is held elsewhere. The lock lasts until the fd closes."""
-    fd = os.open(path, os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o644)
+def take_lock(path, wait=0.0):
+    """fd holding an exclusive lock on path, or None when it stays held elsewhere for `wait` seconds.
+    The lock lasts until the fd closes. A file this user cannot open for writing is locked through a read fd."""
     try:
-        fcntl.flock(fd, fcntl.LOCK_EX | (0 if block else fcntl.LOCK_NB))
-        return fd
-    except OSError:
-        os.close(fd)
-        return None
+        fd = os.open(path, os.O_RDWR | os.O_CREAT | _NOFOLLOW, 0o600)
+    except PermissionError:
+        fd = os.open(path, os.O_RDONLY | _NOFOLLOW)
+    end = time.monotonic() + wait
+    while True:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return fd
+        except OSError:
+            if time.monotonic() >= end:
+                os.close(fd)
+                return None
+            time.sleep(LOCK_POLL_SECONDS)
 
 
-def is_running(w):
-    d = Path(w) / ".delegate"
-    if (d / STATE_FILE).is_file():
-        # A run of this driver holds run.lock for its whole life; its pid file may name a reused pid after a crash.
-        return lock_held(d / "run.lock")
-    return legacy_pid_alive(d)
+def is_running(base, name):
+    rec = record_dir(base, name)
+    if os.path.isdir(rec):
+        # A run of this driver holds run.lock in its root-owned record for its whole life.
+        return lock_held(rec / "run.lock")
+    return legacy_pid_alive(base, name)
 
 
-def state_of(w):
-    w = Path(w)
-    d = w / ".delegate"
-    if is_running(w):
+def is_collected(base, name):
+    # With a record, only the record counts: the task can write anything into its own .delegate/.
+    rec = record_dir(base, name)
+    if rec.is_dir():
+        return bool(read_state(rec).get("collected"))
+    return read_under(base, name, TASK_OUT, "collected", limit=4096) is not None
+
+
+def state_of(base, name):
+    rec = record_dir(base, name)
+    if is_running(base, name):
         return "running"
-    st = read_state(d)
-    if st.get("collected") or (d / "collected").is_file():
+    if is_collected(base, name):
         return "collected"
-    if st.get("finished") or (d / "exit").is_file():
+    if rec.is_dir():
+        return "finished" if read_state(rec).get("finished") else "aborted"
+    if exists_under(base, name, TASK_OUT, "exit", kind="file"):
         return "finished"
-    if st:
-        return "aborted"
-    if (w / ".agy").is_dir():
+    if exists_under(base, name, ".agy", kind="dir"):
         return "legacy"
-    if (w / "answer.md").is_file() or (w / "prompt.md").is_file():
+    if exists_under(base, name, "answer.md", kind="file") or exists_under(base, name, "prompt.md", kind="file"):
         return "legacy-record"
     return "unknown"
 
@@ -320,21 +429,21 @@ def workspaces(base):
     return [Path(base) / n for n in names if n != "runs" and not n.startswith(".") and (Path(base) / n).is_dir()]
 
 
-def live_legacy_runs(repos, agent):
-    """delegate.sh runs alive now (pid file, no state.json) over every registered repository."""
+def live_legacy_runs(repos, agents=AGENTS):
+    """delegate.sh runs alive now (pid file, no record) of the given repositories and agents."""
     n = 0
     for repo in repos:
-        for w in workspaces(repo.base(agent)):
-            d = w / ".delegate"
-            if not (d / STATE_FILE).is_file() and legacy_pid_alive(d):
-                n += 1
+        for agent in agents:
+            base = repo.base(agent)
+            for w in workspaces(base):
+                if not record_dir(base, w.name).is_dir() and legacy_pid_alive(base, w.name):
+                    n += 1
     return n
 
 
 def acquire_slot(state_dir, agent, limit, busy_elsewhere):
     """fd of a free slot lock among `limit` per agent, or None. busy_elsewhere counts runs that hold no slot."""
-    slots = Path(state_dir) / "slots"
-    slots.mkdir(parents=True, exist_ok=True)
+    slots = root_dir(Path(state_dir) / "slots", 0o700)
     free = []
     for i in range(1, limit + 1):
         fd = take_lock(slots / f"{agent}-{i}.lock")
@@ -345,6 +454,12 @@ def acquire_slot(state_dir, agent, limit, busy_elsewhere):
     for fd in free:
         os.close(fd)
     return chosen, held + busy_elsewhere
+
+
+def uid_lock_path(state_dir, uid):
+    """One task per uid at a time: agy and codex of a repository share its uid, so concurrent tasks could reach each
+    other's worktree, HOME and credentials."""
+    return root_dir(Path(state_dir) / "uids", 0o700) / f"{uid}.lock"
 
 
 def default_state_dir():
@@ -408,4 +523,3 @@ def busy_inside(base):
         except OSError:
             continue
     return False
-

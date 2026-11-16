@@ -11,6 +11,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import delegate_workspace as ws
@@ -18,14 +19,28 @@ import delegate_workspace as ws
 TIMEOUT_RC = 124        # what GNU timeout returned, so a guard.txt reads the same as from delegate.sh
 NOT_FOUND_RC = 127
 KILL_GRACE_SECONDS = 10  # after SIGTERM to the task's process group, before SIGKILL
+KILL_ROUNDS = 50         # passes over /proc while processes of the task uid keep appearing
+WAIT_POLL_SECONDS = 0.2
 MISE_TIMEOUT_SECONDS = 30
+GIT_TIMEOUT_SECONDS = 120
 # PATH tail of the task. /usr/local/bin is left out because the Studio tools live there.
 BASE_PATH = "/usr/bin:/bin"
+# No setuid gain, no inheritable or bounding capabilities left in the task.
+SETPRIV_HARDENING = ("--no-new-privs", "--inh-caps=-all", "--bounding-set=-all")
 
 
 def secret_paths(home, config_dir):
     """Files the task uid must not read; doctor probes them."""
     return [Path(config_dir) / ".credentials.json", Path(home) / ".git-credentials", Path(home) / ".ssh"]
+
+
+def setpriv_lacks(setpriv):
+    """Hardening options this setpriv does not list in --help."""
+    try:
+        text = subprocess.run([setpriv, "--help"], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        text = ""
+    return [o.split("=")[0] for o in SETPRIV_HARDENING if o.split("=")[0] not in text]
 
 
 class UidBackend:
@@ -43,23 +58,77 @@ class UidBackend:
             return "uid isolation needs root (setpriv to the repository's uid)"
         if not self.setpriv:
             return "setpriv not found"
+        if self.uid == 0 or ws.uid_in_passwd(self.uid):
+            return f"uid {self.uid} is a real user (registry.tsv must name an unused uid)"
+        lacks = setpriv_lacks(self.setpriv)
+        if lacks:
+            return f"setpriv lacks {' '.join(lacks)}"
         return ""
 
     def give(self, *paths):
         for p in paths:
             ws.chown_tree(p, self.uid, self.uid)
 
-    def take_back(self, *paths):
-        for p in paths:
-            os.chown(p, 0, 0, follow_symlinks=False)
-
     def wrap(self, argv):
-        return [self.setpriv, f"--reuid={self.uid}", f"--regid={self.uid}", "--clear-groups", *argv]
+        return [self.setpriv, *SETPRIV_HARDENING, f"--reuid={self.uid}", f"--regid={self.uid}", "--clear-groups", *argv]
+
+    def run(self, argv, env, cwd=None, timeout=GIT_TIMEOUT_SECONDS):
+        """(returncode or None on timeout, stdout, stderr) of argv as the task uid."""
+        try:
+            p = subprocess.run(self.wrap(argv), env=env, cwd=cwd, capture_output=True, text=True, timeout=timeout,
+                               stdin=subprocess.DEVNULL)
+            return p.returncode, p.stdout, p.stderr
+        except subprocess.TimeoutExpired as e:
+            return None, e.stdout or "", f"timed out after {timeout}s"
 
     def can(self, test, path):
         """Whether the uid passes `test -<test> path` (doctor). The path is an argument, never shell text."""
-        p = subprocess.run(self.wrap(["sh", "-c", f'test -{test} "$1"', "sh", str(path)]), capture_output=True)
-        return p.returncode == 0
+        rc, _, _ = self.run(["sh", "-c", f'test -{test} "$1"', "sh", str(path)], env={})
+        return rc == 0
+
+    def end_task(self):
+        """Kill every process left running as the task uid; the number killed."""
+        return kill_uid(self.uid)
+
+
+def uid_processes(uid):
+    """Live (not zombie) pids whose real, effective or saved uid is uid. Linux /proc."""
+    out = []
+    try:
+        pids = [p for p in os.listdir("/proc") if p.isdigit()]
+    except OSError:
+        return out
+    for p in pids:
+        try:
+            with open(f"/proc/{p}/status", encoding="utf-8") as f:
+                fields = dict(line.split(":", 1) for line in f if ":" in line)
+        except OSError:
+            continue
+        if fields.get("State", "").strip().startswith("Z"):
+            continue
+        if str(uid) in fields.get("Uid", "").split()[:3]:
+            out.append(int(p))
+    return out
+
+
+def kill_uid(uid):
+    # Processes that left the task's process group (setsid, daemons) still run as its uid and could change the
+    # worktree while root collects or removes it.
+    if uid == 0 or ws.uid_in_passwd(uid):
+        return 0
+    killed = 0
+    for _ in range(KILL_ROUNDS):
+        pids = uid_processes(uid)
+        if not pids:
+            break
+        for pid in pids:
+            try:
+                os.kill(pid, signal.SIGKILL)
+                killed += 1
+            except OSError:
+                pass
+        time.sleep(0.05)
+    return killed
 
 
 def select_backend(repo):
@@ -115,37 +184,54 @@ def task_env(home, tools, hooks, keep_env, extra=None):
     return env
 
 
-class _Stop(Exception):
-    pass
+class StopSignals:
+    """While active, SIGTERM/SIGHUP/SIGINT only record the first signal: the driver then ends the task and still writes
+    its record instead of dying halfway. Later signals are ignored the same way."""
+    SIGNALS = (signal.SIGTERM, signal.SIGHUP, signal.SIGINT)
+
+    def __init__(self):
+        self.signum = None
+        self._old = {}
+
+    def _handle(self, signum, _frame):
+        if self.signum is None:
+            self.signum = signum
+
+    def __enter__(self):
+        self._old = {s: signal.signal(s, self._handle) for s in self.SIGNALS}
+        return self
+
+    def __exit__(self, *exc):
+        for s, h in self._old.items():
+            signal.signal(s, h)
+        return False
 
 
-def run_task(argv, cwd, env, out_path, timeout, stdin_path=None):
-    """Run argv in its own process group; the whole group dies on timeout or when this driver is told to stop.
-    Returns the exit code (TIMEOUT_RC on timeout, 128+signal when stopped)."""
-    def stop(signum, _frame):
-        raise _Stop(signum)
-
-    old = {s: signal.signal(s, stop) for s in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT)}
-    proc = None
-    try:
-        with open(out_path, "wb") as out, open(stdin_path or os.devnull, "rb") as inp:
-            try:
-                proc = subprocess.Popen(argv, cwd=cwd, env=env, stdin=inp, stdout=out, stderr=subprocess.STDOUT,
-                                        start_new_session=True)
-            except OSError as e:
-                out.write(f"delegate: cannot start {argv[0]}: {e}\n".encode())
-                return NOT_FOUND_RC
-            try:
-                return proc.wait(timeout=timeout)
-            except subprocess.TimeoutExpired:
+def run_task(argv, cwd, env, out_path, timeout, stop, stdin_path=None):
+    """Run argv in its own process group with stdout/stderr into out_path. The group ends on timeout or when stop
+    records a signal. Returns the exit code (TIMEOUT_RC on timeout, 128+signal when stopped)."""
+    out_fd = os.open(out_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    with os.fdopen(out_fd, "wb") as out, open(stdin_path or os.devnull, "rb") as inp:
+        try:
+            # A signal during Popen only sets stop.signum, so the child exists in `proc` before anything reacts.
+            proc = subprocess.Popen(argv, cwd=cwd, env=env, stdin=inp, stdout=out, stderr=subprocess.STDOUT,
+                                    start_new_session=True)
+        except OSError as e:
+            out.write(f"delegate: cannot start {argv[0]}: {e}\n".encode())
+            return NOT_FOUND_RC
+        deadline = time.monotonic() + timeout
+        while True:
+            if stop.signum is not None:
+                _kill_group(proc)
+                return 128 + stop.signum
+            left = deadline - time.monotonic()
+            if left <= 0:
                 _kill_group(proc)
                 return TIMEOUT_RC
-            except _Stop as e:
-                _kill_group(proc)
-                return 128 + e.args[0]
-    finally:
-        for s, h in old.items():
-            signal.signal(s, h)
+            try:
+                return proc.wait(timeout=min(WAIT_POLL_SECONDS, left))
+            except subprocess.TimeoutExpired:
+                continue
 
 
 def _kill_group(proc):

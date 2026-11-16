@@ -59,26 +59,25 @@ class AgyPrint:
 
         shutil.copytree(src, home / ".gemini", symlinks=True, ignore=skip)
 
-    def report_path(self, wt, d, mode):
-        return wt / "REPORT.md" if mode == "worktree" else d / "report.md"
+    def report_rel(self, mode):
+        return ("REPORT.md",) if mode == "worktree" else (ws.TASK_OUT, "report.md")
 
-    def last_path(self, d, mode):
+    def last_path(self, wt, mode):
         return None
 
     def argv(self, bin_path, model, effort, timeout, prompt, wt, last, cfg):
         return [bin_path, "--model", model, "--dangerously-skip-permissions", "--print-timeout", f"{timeout}s",
                 "-p", prompt]
 
-    def stdin(self, d):
+    def stdin(self, rec):
         return None
 
     def extra_env(self, home):
         return {}
 
-    def fallback(self, report, d, mode):
+    def fallback(self, mode):
         # agy empty mode has no instruction to write a file; the answer arrives on stdout.
-        if mode == "empty" and ws.has_content(d / "stdout.txt"):
-            ws.write_safe(report, (ws.read_safe(d / "stdout.txt") or b"").decode("utf-8", "replace"))
+        return ("record", "stdout.txt") if mode == "empty" else None
 
 
 class Codex:
@@ -113,28 +112,26 @@ class Codex:
         shutil.copyfile(self.credentials(cfg), dst / "auth.json")
         os.chmod(dst / "auth.json", 0o600)
 
-    def report_path(self, wt, d, mode):
-        return d / "report.md"
+    def report_rel(self, mode):
+        return (ws.TASK_OUT, "report.md")
 
-    def last_path(self, d, mode):
+    def last_path(self, wt, mode):
         # In worktree mode the model writes report.md itself, and -o on the same file would overwrite it.
-        return d / "last-message.md" if mode == "worktree" else d / "report.md"
+        return wt / ws.TASK_OUT / ("last-message.md" if mode == "worktree" else "report.md")
 
     def argv(self, bin_path, model, effort, timeout, prompt, wt, last, cfg):
         return [bin_path, "exec", "-m", model, "-c", f"model_reasoning_effort={effort}", "-c", "approval_policy=never",
                 "-s", self.sandbox(cfg), "--skip-git-repo-check", "--ephemeral", "--ignore-user-config",
                 "--color", "never", "-C", str(wt), "-o", str(last), "-"]
 
-    def stdin(self, d):
-        return d / "prompt.md"
+    def stdin(self, rec):
+        return rec / "prompt.md"
 
     def extra_env(self, home):
         return {"CODEX_HOME": str(home / ".codex")}
 
-    def fallback(self, report, d, mode):
-        last = self.last_path(d, mode)
-        if last != report and ws.has_content(last):
-            ws.write_safe(report, (ws.read_safe(last) or b"").decode("utf-8", "replace"))
+    def fallback(self, mode):
+        return ("task", ws.TASK_OUT, "last-message.md") if mode == "worktree" else None
 
 
 ADAPTERS = {a.name: a for a in (AgyPrint(), Codex())}

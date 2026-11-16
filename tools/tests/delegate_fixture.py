@@ -17,6 +17,7 @@ CANON_HE = ROOT / "home" / ".claude" / "lib" / "harness_env.py"
 IS_ROOT = os.geteuid() == 0
 
 FAKE_SETPRIV = """#!/bin/sh
+if [ "$1" = --help ]; then echo "--no-new-privs --inh-caps --bounding-set --reuid --regid --clear-groups"; exit 0; fi
 echo "$@" >> "{ctl}/setpriv.log"
 while [ $# -gt 0 ]; do case "$1" in --*) shift ;; *) break ;; esac; done
 if [ -e "{ctl}/deny" ] && [ "$1" = sh ]; then exit 1; fi
@@ -24,12 +25,22 @@ exec "$@"
 """
 
 FAKE_AGY = """#!{py}
-import json, os, sys, time
+import json, os, shutil, signal, subprocess, sys, time
 from pathlib import Path
 ctl = Path({ctl!r})
 cwd = Path.cwd()
+home = Path(os.environ["HOME"])
 (ctl / f"agy-{{os.getpid()}}.json").write_text(json.dumps({{"argv": sys.argv, "cwd": str(cwd), "env": dict(os.environ),
-    "cwd_uid": os.stat(cwd).st_uid}}))
+    "cwd_uid": os.stat(cwd).st_uid, "uid": os.getuid()}}))
+if (ctl / "trap").exists():
+    def slow_exit(*_):
+        time.sleep(1)
+        (ctl / "trapped").write_text("1")
+        sys.exit(0)
+    signal.signal(signal.SIGTERM, slow_exit)
+if (ctl / "survivor").exists():
+    p = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(300)"], start_new_session=True)
+    (ctl / "survivor.pid").write_text(str(p.pid))
 (ctl / "started").write_text("1")
 if (ctl / "block").exists():
     for _ in range(600):
@@ -46,6 +57,21 @@ if (cwd / ".git").exists():
     with open(cwd / "tracked.txt", "a") as f:
         f.write("changed by agy\\n")
     (cwd / "new-file.txt").write_text("new\\n")
+if (ctl / "plant").exists():
+    # 작업 uid 가 할 수 있는 바꿔치기: 보고서를 비밀로 가는 링크로, .delegate 와 brain 을 root 폴더로 가는 링크로.
+    if (cwd / "REPORT.md").exists() or (cwd / ".git").exists():
+        (cwd / "REPORT.md").unlink(missing_ok=True)
+        os.symlink({secret!r}, cwd / "REPORT.md")
+    shutil.rmtree(cwd / ".delegate")
+    os.symlink({victim!r}, cwd / ".delegate")
+    brain = home / ".gemini" / "antigravity-cli" / "brain"
+    shutil.rmtree(brain)
+    os.symlink({victim_brain!r}, brain)
+if (ctl / "plant-home").exists():
+    (cwd / ".delegate" / "report.md").unlink(missing_ok=True)
+    os.symlink({secret!r}, cwd / ".delegate" / "report.md")
+    shutil.rmtree(home / ".gemini")
+    os.symlink({victim_gemini!r}, home / ".gemini")
 print("agy stdout answer")
 """
 
@@ -81,7 +107,8 @@ def git(*args, cwd):
 class Fixture:
     """모든 것을 임시 폴더 하나 아래에 둔다. env() 는 드라이버를 돌릴 환경이다."""
 
-    def __init__(self):
+    def __init__(self, real_setpriv=False):
+        self.real = real_setpriv
         self.tmp = Path(tempfile.mkdtemp(prefix="delegate-test-"))
         self.ctl = self.tmp / "ctl"
         self.bin = self.tmp / "bin"
@@ -93,6 +120,12 @@ class Fixture:
         self.uid = free_uid()
         for p in (self.ctl, self.bin, self.cfg, self.repo):
             p.mkdir(parents=True)
+        self._victims()
+        if self.real:
+            # 진짜 setpriv 아래의 가짜 에이전트(작업 uid)가 실행 파일을 읽고 ctl 에 기록할 수 있게.
+            for p in (self.tmp, self.ws, self.repo, self.bin):
+                p.chmod(0o755)
+            self.ctl.chmod(0o777)
         self._fakes()
         self._home()
         git("init", "-q", "-b", "main", cwd=self.repo)
@@ -106,10 +139,28 @@ class Fixture:
         self.prompt = self.tmp / "prompt.md"
         self.prompt.write_text("TASK BODY: say hello\n")
 
+    def _victims(self):
+        """root 만 읽는 비밀 파일과 폴더. 드라이버가 링크를 따라가면 시험이 알아챈다."""
+        self.secret = self.tmp / "secret.txt"
+        self.secret.write_text("ROOTSECRET\n")
+        self.secret.chmod(0o600)
+        self.victim = self.tmp / "victim"
+        self.victim.mkdir(mode=0o700)
+        for top in (self.tmp / "victim-brain", self.tmp / "victim-gemini" / "antigravity-cli" / "brain"):
+            (top / "conv-x" / "scratch").mkdir(parents=True)
+            (top / "conv-x" / "scratch" / "stolen.txt").write_text("ROOTSECRET\n")
+        self.victim_brain = self.tmp / "victim-brain"
+        self.victim_gemini = self.tmp / "victim-gemini"
+        for p in (self.tmp / "victim-brain", self.tmp / "victim-gemini"):
+            p.chmod(0o700)
+
     def _fakes(self):
-        for name, text in (("setpriv", FAKE_SETPRIV), ("agy", FAKE_AGY), ("codex", FAKE_CODEX)):
+        names = (("agy", FAKE_AGY), ("codex", FAKE_CODEX)) + (() if self.real else (("setpriv", FAKE_SETPRIV),))
+        for name, text in names:
             p = self.bin / name
-            p.write_text(text.format(ctl=str(self.ctl), py=sys.executable))
+            p.write_text(text.format(ctl=str(self.ctl), py=sys.executable, secret=str(self.secret),
+                                     victim=str(self.victim), victim_brain=str(self.victim_brain),
+                                     victim_gemini=str(self.victim_gemini)))
             p.chmod(0o755)
 
     def _home(self):
@@ -122,18 +173,37 @@ class Fixture:
         (a / "conversation_summaries.db-wal").write_text("x")
         (self.home / ".codex").mkdir()
         (self.home / ".codex" / "auth.json").write_text('{"token": 1}\n')
-        (self.home / ".ssh").mkdir()
+        (self.home / ".ssh").mkdir(mode=0o700)
         (self.home / ".git-credentials").write_text("https://u:p@example.invalid\n")
         (self.cfg / ".credentials.json").write_text("{}\n")
+        # 실제 비밀 파일처럼 소유자만 읽는다. 진짜 setpriv 시험의 doctor 가 이 권한을 잰다.
+        for p in (self.home / ".git-credentials", self.cfg / ".credentials.json", self.home / ".codex" / "auth.json"):
+            p.chmod(0o600)
 
     def user_env(self, text):
         (self.cfg / "harness.env").write_text(text)
+
+    def add_repo(self, key):
+        """registry 에 저장소 하나를 더한다(다른 uid). 그 저장소 경로."""
+        repo = self.ws / key
+        repo.mkdir()
+        if self.real:
+            repo.chmod(0o755)
+        git("init", "-q", "-b", "main", cwd=repo)
+        (repo / "f.txt").write_text("x\n")
+        git("add", ".", cwd=repo)
+        git("commit", "-q", "-m", "base", cwd=repo)
+        uid = free_uid(self.uid + 1)
+        with open(self.registry, "a") as f:
+            f.write(f"{key}\t{repo}\t{uid}\t-\n")
+        return repo
 
     def env(self, **extra):
         env = {k: v for k, v in os.environ.items()
                if not k.startswith(("HARNESS_", "DELEGATE_")) and k not in (
                    "CLAUDE_PROJECT_DIR", "CODEX_HOME", "XDG_STATE_HOME", "CLAUDE_CONFIG_DIR")}
-        env.update(HOME=str(self.home), CLAUDE_CONFIG_DIR=str(self.cfg), PATH=f"{self.bin}:/usr/bin:/bin",
+        path = f"{self.bin}:/usr/bin:/bin" + (":/usr/sbin:/sbin" if self.real else "")
+        env.update(HOME=str(self.home), CLAUDE_CONFIG_DIR=str(self.cfg), PATH=path,
                    LEAK_CANARY="must-not-reach-the-task")
         env.update(extra)
         return env
@@ -177,6 +247,17 @@ sys.exit(delegate.main(sys.argv[1:]))
 
     def base(self, agent):
         return self.ws / f"proj-{agent}"
+
+    def rec(self, agent, name):
+        return self.base(agent) / ".runs" / name
+
+    def leaked(self, top):
+        """top 아래 파일 중 비밀 내용이 든 것(링크는 따라가지 않는다)."""
+        hits = []
+        for p in Path(top).rglob("*"):
+            if p.is_file() and not p.is_symlink() and b"ROOTSECRET" in p.read_bytes():
+                hits.append(p)
+        return hits
 
     def cleanup(self):
         # worktree 는 시험 저장소에만 등록되므로 임시 폴더를 지우면 같이 사라진다.

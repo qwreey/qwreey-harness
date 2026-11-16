@@ -116,7 +116,7 @@ class Layers(Env):
         self.repo_layer("HARNESS_DELEGATE_AGY_BIN=/evil/agy\nHARNESS_DELEGATE_AGY_MODEL=repo-model\n")
         p = self.f.drive("run", "agy", "t1", self.f.prompt, "--mode", "empty")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertIn("model: repo-model", (self.f.base("agy") / "t1" / ".delegate" / "meta.txt").read_text())
+        self.assertIn("model: repo-model", (self.f.rec("agy", "t1") / "meta.txt").read_text())
 
 
 class InstalledModule(Env):
