@@ -122,6 +122,6 @@ status: described · 근거: table-sim `.claude/conventions.md:96`, devplorer `.
 - Roblox 데이터타입을 다루는 순수 라이브러리는 **로드 시점에 `Vector3` 같은 전역을 참조하지 않는다.** 판별은 `typeof(v) == "Vector3"` 문자열 비교로 한다.
 
 ## 정정 (원천 서술이 재현과 다른 것, 각 저장소 세션에 전달)
-- "require 경로 오류는 정적 검사가 못 잡는다"(claude-doctor `.claude/base/decisions/D-12-require-paths.md` §2 "기록 3곳", `claude-doctor .claude/archive/research/drafts/style/skills/luau-style/references/modules.md:314`)는 너무 넓다. `--!strict` 의 luau-analyze·luau-lsp 는 **없는** 경로를 `Unknown require` 로 잡는다. 못 잡는 것은 nonstrict 파일과 **있는 다른 파일로 풀리는** 경로다(`snippets/style-require-paths.sh` R3).
+- "require 경로 오류는 정적 검사가 못 잡는다"(claude-doctor `.claude/base/decisions/D-12-require-paths.md` §2 "기록 3곳", `claude-doctor .claude/scopes/packs/luau-kb/archive/research/drafts/style/skills/luau-style/references/modules.md:314`)는 너무 넓다. `--!strict` 의 luau-analyze·luau-lsp 는 **없는** 경로를 `Unknown require` 로 잡는다. 못 잡는 것은 nonstrict 파일과 **있는 다른 파일로 풀리는** 경로다(`snippets/style-require-paths.sh` R3).
 - "동적 require 경로는 `ambiguous` 에러를 낸다"(같은 초안 `modules.md:315`)는 재현되지 않았다. luau CLI 0.734·0.742 런타임은 동적 경로를 실행하고, strict 의 luau-analyze 가 `unsupported path` 로 거부한다(R3·R4). Studio 쪽은 재지 않았다.
 - 테스트 엔트리 `tests/init.luau` 의 "ambiguous" 원인을 "`src/init.luau` 와 이름이 겹쳐서"라고 한 설명(tbox `CLAUDE.md:141-147`)은 맞지 않다. `tests/init.luau` 의 `./` 가 저장소 루트를 가리키는 것이 실제 함정이고, "ambiguous" 는 `X.luau` 와 `X/` 가 형제일 때 난다(후보 X-04 의 mrow 쪽 설명, R2, `snippets/rbx-require-cli.sh` Q4·Q5).

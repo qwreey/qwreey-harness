@@ -42,7 +42,7 @@ claude-doctor 저장소에서 실제로 돌린 토론에서 꼴을 정리했다.
 - 이름 토론(quad 저장소의 `naming-table-review-2026-10-16`, `naming-marker-helper-2026-11-06`, `qa-request/code-quality-review-round15.md`): 메인이 정한 이름의 나쁜 근거, 대안, 대안별 장단점이 분명히 나왔다. codex·Gemini 가 `asState` 로 수렴했지만 메인 grep 이 반증했고, Gemini 가 기각된 안을 다시 냈고, 표결이 6·6·6 으로 비겼다.
 - 41 의 1라운드 측정이 엉뚱한 루트를 쟀다가 2라운드에서 상대가 잡았고, 48 은 경로에서 `src/` 가 빠졌다.
 - 비용 $1(1라운드)은 2라운드 약 $2 였던 세션 기록에서 어림한 값이다. 다음 토론에서 서브에이전트 원장으로 잰다.
-- 설계 초안과 그 이력: `.claude/archive/research/drafts/debate/`(옛 3계열·2라운드·`/debate` 전용 초안은 `.claude/research/drafts/delegate/skills/debate/`).
+- 설계 초안과 그 이력: `.claude/scopes/plugins/qwreey-debate/archive/research/drafts/debate/`(옛 3계열·2라운드·`/debate` 전용 초안은 `.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/skills/debate/`).
 
 ## 테스트
 자동 테스트는 없다(훅·스크립트가 없다). 바꾼 뒤 `claude plugin validate plugins/qwreey-debate` 로 매니페스트와 스킬 frontmatter 를 확인한다.

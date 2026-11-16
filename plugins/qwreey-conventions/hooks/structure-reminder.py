@@ -26,7 +26,7 @@ audit 10 기준 이 세션들의 파일 수정은 Bash(sed -i·python) 쪽이 Ed
   파일 머리 10줄 안  `--@structure-exempt: <사유>`  (luau. web·rust·go 는 `//@structure-exempt:`, python 은 `#@structure-exempt:`)
   또는 structure.json  "exempt": [{"path": "<글롭>", "reason": "<사유>"}]
   사유가 비었거나 사유가 아닌 말("나중에", "귀찮", "TODO", "-")이면 무효다 — 평소처럼 알리고 무효라고 덧붙인다.
-  유효한 예외 파일은 경고·강제·성장 알림 대신 "Reason: …" 한 줄(알림 문구는 영어, .claude/audit/17)을 세션당 한 번만 낸다(경고 기준 이상일 때).
+  유효한 예외 파일은 경고·강제·성장 알림 대신 "Reason: …" 한 줄(알림 문구는 영어, .claude/scopes/home/.claude/audit/17)을 세션당 한 번만 낸다(경고 기준 이상일 때).
 강제 기준을 넘은 .luau/.lua 파일에는 분리 계획기(split-plan.py) 명령을 한 줄 붙인다. 계획기는 ~/.claude/skills/luau-style 에서 찾고,
   없으면 harness.env 의 HARNESS_LUAU_KB 또는 ${HARNESS_DOCTOR_ROOT}/packs/luau-kb(없으면 ${HARNESS_WORKSPACE}/claude-doctor/packs/luau-kb)에서 찾는다. 못 찾으면 안내를 생략한다.
 

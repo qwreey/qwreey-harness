@@ -1,12 +1,12 @@
 # qwreey-advisor:inherit-advisor 설계 근거와 측정 (옛 이름 context)
 
-SKILL.md 에서 옮겨 온 내용이다(지시가 아니라 근거). 원문은 `.claude/audit/18` §11·§12.
+SKILL.md 에서 옮겨 온 내용이다(지시가 아니라 근거). 원문은 `.claude/scopes/plugins/qwreey-advisor/audit/18` §11·§12.
 
-## 근거 (.claude/audit/18 §11·§12, advisor 호출 시점 재현, opus)
+## 근거 (.claude/scopes/plugins/qwreey-advisor/audit/18 §11·§12, advisor 호출 시점 재현, opus)
 - 대화를 받은 쪽(이 스킬)은 advisor 가 잡은 "흐름에만 있던" 문제를 다시 잡았다. diff 를 받은 쪽(`qwreey-advisor:fresh-advisor`)은 0건이었다. 대신 diff 쪽은 실측 버그를 잡았다. **둘은 대체재가 아니다.**
 - fork 에 아무 지시 없이 질문만 붙이면 메인처럼 1인칭으로 답하고, 메인이 방금 끝낸 설계를 다시 열지 않았다(§11.4).
 - 후행 프롬프트로 "독립 검토자" 역할과 사각지대 범주를 주면(§12 의 V2) 1인칭이 사라지고(0/6) 방금 끝낸 설계를 반례로 다시 열었다. advisor 4건 완전 회수는 4/8 로, 다른 시스템 프롬프트(3/12)보다 높았다(방향만, 표본 작음). 역할만 주고 범주를 빼면 설계를 다시 열지 않았다. **범주 목록을 빼지 않는다.**
-- 내장 advisor 도구는 평소에 쓰지 않는다. 가격 대비 효용이 diff 기반 리뷰보다 낮다. 사용자가 요청할 때만 쓴다(`.claude/audit/18` §3.3). 이 스킬은 advisor 도구를 부르지 않는다.
+- 내장 advisor 도구는 평소에 쓰지 않는다. 가격 대비 효용이 diff 기반 리뷰보다 낮다. 사용자가 요청할 때만 쓴다(`.claude/scopes/plugins/qwreey-advisor/audit/18` §3.3). 이 스킬은 advisor 도구를 부르지 않는다.
 - 시점표의 "큰 전환점" 행과 "요구 대조" 줄은 §12 의 V3 에서 나왔다. 요구 대조는 넓게 찾는 대신 4번 범주가 얕아질 수 있다(§12.4).
 
 ## 후행 프롬프트와 표지(훅 펼침)

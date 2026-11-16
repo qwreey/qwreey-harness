@@ -72,14 +72,14 @@
 | 46 | `.claude/research/drafts/agents/hooks/test-guard.py` | `/code/Projects/example` 픽스처 | 환경 | – 문자열 픽스처라 무해 |
 | 47 | `.claude/research/drafts/agents/skills/audit/SKILL.md` | 관점 선택 `*.luau`, `subagent_type=<luau-…>` | 툴킷 | ▷ §9-3 |
 | 48 | `.claude/research/drafts/agents/skills/audit-report-format/SKILL.md` | 도구 버전 예 `luau-analyze 0.734`, luau-verify | 툴킷 | ▷ §9-3 |
-| 49 | `.claude/research/drafts/delegate/skills/delegate/scripts/delegate.sh` | `AGY_BIN`·`CODEX_BIN` 기본 `/code/.local/share/mise/installs/…` | 환경 | ▷ 기본값을 `HARNESS_TOOL_INSTALLS` 에서 |
+| 49 | `.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/skills/delegate/scripts/delegate.sh` | `AGY_BIN`·`CODEX_BIN` 기본 `/code/.local/share/mise/installs/…` | 환경 | ▷ 기본값을 `HARNESS_TOOL_INSTALLS` 에서 |
 | 50 | 같은 파일 | `/code/.claude/.credentials.json` | 환경 | ▷ `${CLAUDE_CONFIG_DIR:-$HOME/.claude}` |
 | 51 | 같은 파일 | `choom -n 1000 -- setpriv` | 환경 | ▷ `HARNESS_HEAVY_WRAP`. setpriv(root 필요)는 위임의 환경 전제로 README 에 |
-| 52 | `.claude/research/drafts/delegate/skills/delegate/registry.tsv` | 루트 `/code/Projects/<repo>`, uid 61000~61003 | 환경 | ▷ 파일 자체가 환경 값. 위치는 `HARNESS_DELEGATE_REGISTRY` 로(✔ scan 이 읽음) |
+| 52 | `.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/skills/delegate/registry.tsv` | 루트 `/code/Projects/<repo>`, uid 61000~61003 | 환경 | ▷ 파일 자체가 환경 값. 위치는 `HARNESS_DELEGATE_REGISTRY` 로(✔ scan 이 읽음) |
 | 53 | 같은 파일 setup 열 | `mise exec -- pesde install`(quad) | 툴킷 | – 저장소별 값이라 맞는 자리 |
-| 54 | `.claude/research/drafts/delegate/skills/delegate/templates/AGENTS.md.template` | `/code/Projects/claude-doctor/packs/luau-kb/AGENTS.md`, `/code/Projects/<repo>/vendor/` | 환경 + 툴킷 | ▷ `{{WORKSPACE}}`·툴킷 KB 자리표시 |
-| 55 | `.claude/research/drafts/delegate/{conventions,migration,model-traits,trial-…}.md` | `/code/Projects`, uid, `/code/.claude/projects/…` | 환경 | – 경위·실험 기록이라 그대로 |
-| 56 | `.claude/archive/research/drafts/style/skills/luau-style/` 전체 | Luau 스타일 | 툴킷 | – luau-kb 로 갈 툴킷 지식(맞는 자리) |
+| 54 | `.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/skills/delegate/templates/AGENTS.md.template` | `/code/Projects/claude-doctor/packs/luau-kb/AGENTS.md`, `/code/Projects/<repo>/vendor/` | 환경 + 툴킷 | ▷ `{{WORKSPACE}}`·툴킷 KB 자리표시 |
+| 55 | `.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/{conventions,migration,model-traits,trial-…}.md` | `/code/Projects`, uid, `/code/.claude/projects/…` | 환경 | – 경위·실험 기록이라 그대로 |
+| 56 | `.claude/scopes/packs/luau-kb/archive/research/drafts/style/skills/luau-style/` 전체 | Luau 스타일 | 툴킷 | – luau-kb 로 갈 툴킷 지식(맞는 자리) |
 | 57 | `luau-style/scripts/structure-scan.py` | 길이 기준 800·1,500(D-13, 언어 무관) 이 Luau 스킬 안 | 코어 | ▷ 하네스 공용 위치로(§9-3) |
 | 58 | `luau-style/scripts/structure-scan.py` docstring | `/code/Projects/table-sim` 예 | 환경 | – 예시 |
 
@@ -145,7 +145,7 @@ scan.py v1 의 코드 55종(`grep -oE '"[A-Z]+-[A-Z0-9]+"' scan.py | sort -u`). 
 |---|---|---|
 | quad | luau + web | `*.luau` 3007, mise luau·luau-lsp·pesde·rojo, `default.project.json`, `.luaurc`, `pesde.toml` / `docs/site/package.json: astro` |
 | devplorer | luau + web | … / `docs/package.json: astro` |
-| stl-luau(-doctor), table-sim, tbox, moonwave-luau, rbvm, luau-kb, claude-doctor | luau | `*.luau`(claude-doctor 는 `.claude/archive/research/drafts/gaps/snippets`) 등 |
+| stl-luau(-doctor), table-sim, tbox, moonwave-luau, rbvm, luau-kb, claude-doctor | luau | `*.luau`(claude-doctor 는 `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/snippets`) 등 |
 | vitrine | web | `web/package.json: react, vite`, tsx 7 |
 | VideoSync, coderag | 없음 | go·node 플러그인, rust — 툴킷 미정(코어만) |
 

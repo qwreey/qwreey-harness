@@ -120,7 +120,7 @@ Search first (`coderag search --abs`, or /q:recall), then read only the returned
 - 1. **기준선(옮기기 전)**: 정답 위치가 정해진 recall 질문 10개(예: "D-04 근거", "luau-core 를 왜 옮겼나")를 고른다. 지금 방식인 grep locate 의 hit@5, 호출 수, 읽은 토큰을 잰다. 같은 질문을 `coderag.toml`(target 을 audit, decisions, drafts, handoff 로 지정하고 /tmp 에 둔다)로도 잰다. 이동 효과와 색인 효과를 따로 재기 위해서다.
 - 2. **커밋 A**: `git mv` 만 한다. audit→`.claude/audit`, decisions→`.claude/base/decisions`, drafts 중 landed→`.claude/archive/drafts`, 나머지 drafts→`.claude/research`, handoff→`.claude/handoff`, PLAN.md→`.claude/plan/`. CLAUDE.md·HUMAN_TODO.md·README.md 는 루트에 남긴다.
 - 3. **커밋 B**: 기계적인 경로 치환(옛→새 대응표 하나). 함께 고칠 곳은 web.py `PLUGINS_REF`, conventions.json exclude, conventions-check 정규식, records_home 후보, `.gitignore` 다(.claude/audit/36 §3).
-- 4. **커밋 C**: 끝난 문서에만 frontmatter status 를 단다. 첫 줄 `status: landed in` 이 있는 drafts 는 지금 몇 개뿐이라(예: `.claude/archive/research/drafts/second-opinion/README.md`) 폴더 README 와 머리줄로 하나씩 판정한다. audit 은 백필하지 않고 폴더로 kind 를 얻는다. 주의: drafts 의 절 메타 줄에는 자유문 `status:`(근거 등급, 메모)가 많다. 그래서 C1 문법은 파일 frontmatter 에만 적용하고, 절 메타의 `status:` 는 지금처럼 evidence 나 note 로 읽어야 한다.
+- 4. **커밋 C**: 끝난 문서에만 frontmatter status 를 단다. 첫 줄 `status: landed in` 이 있는 drafts 는 지금 몇 개뿐이라(예: `.claude/scopes/plugins/qwreey-advisor/archive/research/drafts/second-opinion/README.md`) 폴더 README 와 머리줄로 하나씩 판정한다. audit 은 백필하지 않고 폴더로 kind 를 얻는다. 주의: drafts 의 절 메타 줄에는 자유문 `status:`(근거 등급, 메모)가 많다. 그래서 C1 문법은 파일 frontmatter 에만 적용하고, 절 메타의 `status:` 는 지금처럼 evidence 나 note 로 읽어야 한다.
 - 5. **커밋 D**: static-gen 으로 폴더 README 를 만든다.
 - 측정:
   - 같은 10개 질문의 hit@5, 토큰, 호출 수

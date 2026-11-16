@@ -1,6 +1,6 @@
 # 훅 메시지 규약 (모델에게 들어가는 텍스트)
 
-MANIFEST 대상 아님. 근거 실측: `.claude/audit/17-hook-messages.md`. 세션 기록 플러그인 등 새 훅도 이 규약을 따른다.
+MANIFEST 대상 아님. 근거 실측: `.claude/scopes/home/.claude/audit/17-hook-messages.md`. 세션 기록 플러그인 등 새 훅도 이 규약을 따른다.
 
 ## 규칙
 1. **영어, 짧게.** 모델이 읽고 행동을 바꾸는 텍스트(additionalContext, deny 사유)는 영어. 문서·주석·사용자 대상 안내는 한국어.
@@ -63,7 +63,7 @@ MANIFEST 대상 아님. 근거 실측: `.claude/audit/17-hook-messages.md`. 세�
 | qwreey-advisor | (플러그인 `qwreey-advisor`, 옛 이름 second-opinion) 임계 이상 커밋(같은 명령의 `git add` 범위 포함)·같은 실패 2회·high 등급 계획 검토 권고(qwreey-advisor 리뷰어와 inherit-advisor fork 만 추적함을 밝히고, 기계적·문서만·이미 검토·사용자 생략이면 한 줄로 건너뜀. 계획 deny 모드는 action). 이름이 바뀌어도 상태 경로(`claude-second-opinion`)는 기존 기록과 이어지게 그대로 둔다 | warn |
 | | (같은 훅, UserPromptSubmit·PostToolBatch, 메인만) 검토가 아닌 서브에이전트의 보고에 권고·선택지·열린 질문이 있음: 사용자에게 넘겨 결정하게 할 거라면 inherit-advisor·fresh-advisor 가 먼저 볼 수 있다(직접 확인한 사실이나 그대로 전하는 질문이면 건너뜀). 에이전트마다 한 번, 끄기 `HARNESS_REVIEW_HANDBACK=off` | info |
 | auditor-readonly-guard | (플러그인 `qwreey-advisor`, 리뷰어 에이전트에만) 스크래치 밖 쓰기·금지 명령 거절(exit 2, stderr 사유) | action |
-|   (이중 구조) | 메인의 말 고지는 qwreey-operator 규약(병렬로 띄울 때 무엇·몇 개·모델·크기 한 줄)이 2개부터, 훅 warn 은 4개부터다. 의도된 설계: 훅은 메인이 고지를 놓쳤을 때의 보강이라 일부러 더 늦게 울린다(둘 다 2면 warn 이 잦아 무뎌진다). `.claude/audit/21` §5-3 | - |
+|   (이중 구조) | 메인의 말 고지는 qwreey-operator 규약(병렬로 띄울 때 무엇·몇 개·모델·크기 한 줄)이 2개부터, 훅 warn 은 4개부터다. 의도된 설계: 훅은 메인이 고지를 놓쳤을 때의 보강이라 일부러 더 늦게 울린다(둘 다 2면 warn 이 잦아 무뎌진다). `.claude/scopes/plugins/q/audit/21` §5-3 | - |
 | | away 중 허용된 Workflow(내부 동시성은 슬롯 밖) | warn |
 | session-log | (qwreey-sessions 플러그인의 session-log 훅, `scripts/sllib/brief.py`) pending: 보관 위치(home) 있음(commit 직전이면 이 작업에 속할 때만 가져오라는 권고) | info (commit 직전, 또는 `SESSION_LOG_PENDING_STRONG_*` 초과면 warn) |
 | | home 없음 + 쌓임(`SESSION_LOG_HOME_NUDGE_*`): 사용자에게 위치를 제안하라는 알림. action 은 쓰지 않는다(import 는 명령 하나) | warn |
@@ -80,7 +80,7 @@ MANIFEST 대상 아님. 근거 실측: `.claude/audit/17-hook-messages.md`. 세�
 "세션당 한 번" 알림은 session_id 만 키로 쓰면 안 된다. `/compact` 는 session_id 를 유지하는데 요약 과정에서 이전 알림이 맥락에서 사라진다(실측).
 - 공용 모듈: `compact_epoch.py`. 플러그인마다 바이트 같은 사본을 두고(정본 `lib/compact_epoch.py`, `tools/sync-copies.py` 가 옮긴다) 각자 자기 회차를 갖는다: `$TMPDIR/claude-<플러그인>-epoch/<sid>`. 다른 플러그인·사용자 설정의 훅과 회차를 공유하지 않는다.
   - `state_path(plugin, namespace, session_id, agent_id=None)` → `$TMPDIR/<namespace>/<sid>.c<회차>[.a<agent_id>].json`. 디렉터리도 만든다.
-  - 서브에이전트 안의 훅도 부모의 session_id 를 받는다. 입력의 `agent_id` 를 꼭 넘겨야 서브에이전트가 메인의 "한 번" 알림을 쓰지 않는다(`.claude/audit/21` §5-6).
+  - 서브에이전트 안의 훅도 부모의 session_id 를 받는다. 입력의 `agent_id` 를 꼭 넘겨야 서브에이전트가 메인의 "한 번" 알림을 쓰지 않는다(`.claude/scopes/plugins/q/audit/21` §5-6).
   - `epoch(plugin, session_id)`, `bump(plugin, session_id)`.
 - 회차는 PreCompact(manual·auto)에서 올린다. 같은 이벤트의 훅은 병렬이라 순서가 없는데, PreCompact 는 SessionStart(compact)·PostCompact 보다 먼저라 읽는 훅이 항상 올라간 값을 본다. 훅이 따로 없는 플러그인은 `python3 -I compact_epoch.py <플러그인>` 을 PreCompact 에 등록한다. 실측: compact 때 PreCompact → SessionStart(source=compact) → PostCompact 가 모두 불리고 session_id 는 같다.
 - 사용(플러그인 훅 디렉터리의 사본을 import):

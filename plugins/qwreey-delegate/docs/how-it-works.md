@@ -39,7 +39,7 @@
 7. root 는 chown 뒤 작업 쪽 폴더에 쓰지 않고, 거기서 읽을 때는 링크를 따라가지 않는다. 실행 기록과 결과는 root 소유 0700/0600 이다.
 8. 드라이버는 시작할 때 모든 모듈을 읽어 두므로 실행 중에 플러그인 파일을 고쳐도 돌던 작업이 깨지지 않는다.
 
-이 격리는 Linux root 에 기대고, 지금 드라이버는 empty 모드도 uid 로 돌려서 모드와 상관없이 root 가 필요하다(없으면 exit 4). agy 는 ACP 에서 settings `permissions` 를 듣지 않아(OS 샌드박스 없는 Linux 실측) print 모드만 쓴다. root 없이 도는 판의 설계와 기본 정책: `.claude/research/drafts/delegate/driver-design.md`, `portable-isolation.md`.
+이 격리는 Linux root 에 기대고, 지금 드라이버는 empty 모드도 uid 로 돌려서 모드와 상관없이 root 가 필요하다(없으면 exit 4). agy 는 ACP 에서 settings `permissions` 를 듣지 않아(OS 샌드박스 없는 Linux 실측) print 모드만 쓴다. root 없이 도는 판의 설계와 기본 정책: `.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/driver-design.md`, `portable-isolation.md`.
 
 ## 설정
 - uid 표 `registry.tsv`(열: key, root, uid, setup, note, 에이전트별 uid). 여섯째 열 `codex=<uid>` 가 그 에이전트의 uid 이고, agy 와 여섯째 열에 없는 에이전트는 셋째 열을 쓴다. 여섯째 열이 없는 줄은 agy·codex 가 uid 하나를 나눠 하나씩 돈다(`doctor` WARN). `delegate.py register <path> [key]` 가 새 저장소에 에이전트마다 다음 빈 uid 를 주고(`/etc/passwd` 와 겹치지 않게), 여섯째 열이 없는 줄에는 빠진 uid 를 채운다. setup 열은 새 worktree 에서 작업 uid 로 한 번 돈다(실패는 경고만).

@@ -68,4 +68,4 @@ status: described · 근거: 아래 링크한 절의 근거를 따른다
 
 | 원천 경로:줄 | 틀리거나 낡은 서술 | 맞는 것 | 근거 |
 |---|---|---|---|
-| quad claude-doctor .claude/audit/08 Q-011 비고 | `collectgarbage("collect")` 가 일반 스크립트에서도 막혔는지 범위 재확인 필요 | Roblox 샌드박스 전체에서 `"count"` 만 허용(문서) | 문서 `reference/engine/globals/LuaGlobals.yaml` collectgarbage (`roblox_docs.py api LuaGlobals.collectgarbage`) |
+| quad claude-doctor .claude/scopes/packs/luau-kb/audit/08 Q-011 비고 | `collectgarbage("collect")` 가 일반 스크립트에서도 막혔는지 범위 재확인 필요 | Roblox 샌드박스 전체에서 `"count"` 만 허용(문서) | 문서 `reference/engine/globals/LuaGlobals.yaml` collectgarbage (`roblox_docs.py api LuaGlobals.collectgarbage`) |

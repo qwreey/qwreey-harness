@@ -141,9 +141,9 @@ status: verified · last-confirmed: luau-lsp 1.70.1·1.69.0 + `typedefs/globalTy
 
 | # | 내용 | 판정 |
 |---|---|---|
-| claude-doctor .claude/audit/08 M-01 | 파괴된 Instance 위의 트윈: "삭제된다"(사용자 관찰), "연결이 먼저 끊겨 Completed 에 안 닿음"(옛 서술) 대 실측 "끝까지 돌고 Completed, 연결 유지" | **판정**: 두 질문이 섞였다. "Tween 객체(핸들)가 수거되는가"는 예(§5), "통지가 오는가"도 예(§4). 실측 쪽을 채택 |
-| claude-doctor .claude/audit/08 M-02 | 통지 대기 창이 있으니 `PlaybackState` 를 읽어라 대 창이 한 번도 안 보임 | **판정**: "관측 안 됨(2026-10-22·11-04)"만 사실로 둔다. 처방은 `Completed` 판정(§3) |
-| claude-doctor .claude/audit/08 M-03 | 죽은 트윈에 `Cancel` 은 에러 대 던지지 않음 | **판정**: 실측(던지지 않음) |
+| claude-doctor .claude/scopes/packs/luau-kb/audit/08 M-01 | 파괴된 Instance 위의 트윈: "삭제된다"(사용자 관찰), "연결이 먼저 끊겨 Completed 에 안 닿음"(옛 서술) 대 실측 "끝까지 돌고 Completed, 연결 유지" | **판정**: 두 질문이 섞였다. "Tween 객체(핸들)가 수거되는가"는 예(§5), "통지가 오는가"도 예(§4). 실측 쪽을 채택 |
+| claude-doctor .claude/scopes/packs/luau-kb/audit/08 M-02 | 통지 대기 창이 있으니 `PlaybackState` 를 읽어라 대 창이 한 번도 안 보임 | **판정**: "관측 안 됨(2026-10-22·11-04)"만 사실로 둔다. 처방은 `Completed` 판정(§3) |
+| claude-doctor .claude/scopes/packs/luau-kb/audit/08 M-03 | 죽은 트윈에 `Cancel` 은 에러 대 던지지 않음 | **판정**: 실측(던지지 않음) |
 
 ## 정정
 
@@ -153,7 +153,7 @@ status: verified · last-confirmed: luau-lsp 1.70.1·1.69.0 + `typedefs/globalTy
 | quad `.claude/archive/post-implementation-review/post-implementation-review-round12.md:10` | 연결이 먼저 끊겨 Completed 에 닿지 않는다 | 끝까지 돌고 Completed(Completed), 연결 유지 | quad tween-completed-2026-09-21 사실 5 |
 | quad `.claude/base/ui-shorthand-plan.md:303-304` | (취소선) 파괴된 Instance 위 트윈은 삭제된다 | 위와 같음 | 같음 |
 | quad `.claude/research/tween-callback-structure.md:29` | 통지 대기 창이 있으니 PlaybackState 를 직접 읽어라 | 창은 관측되지 않았다. Completed 로 판정 | tween-premises 사실 5, tween-settle 사실 3 |
-| quad `.claude/base/tween-plan.md:548` | 트윈 인스턴스는 재사용 불가 | 완료 뒤 다시 `Play` 가능(관측) | claude-doctor .claude/audit/08 Q-037 비고. 재측 권장 |
+| quad `.claude/base/tween-plan.md:548` | 트윈 인스턴스는 재사용 불가 | 완료 뒤 다시 `Play` 가능(관측) | claude-doctor .claude/scopes/packs/luau-kb/audit/08 Q-037 비고. 재측 권장 |
 
 ## 미판정
 - **트윈 시작값이 `Play` 순간의 값인가(Q-038).** 재현 절차: (1) `Create(part, info, {Transparency = 1})` 로 만든다. (2) `part.Transparency = 0.5` 로 바꾼다. (3) `Play()` 하고 `Heartbeat` 몇 번 동안 값을 기록한다. (4) 0.5 에서 출발하면 Play 시점, 원래 값에서 출발하면 Create 시점이다.

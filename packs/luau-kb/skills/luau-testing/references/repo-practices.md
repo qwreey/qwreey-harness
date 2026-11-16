@@ -34,7 +34,7 @@ last_verified: 2026-11-10
 ---
 
 ## §1 저장소별 표
-status: verified (2026-11-10 작업 트리를 읽기 전용으로 확인, 실행 열은 원천 claude-doctor `.claude/archive/research/drafts/gaps/testing.md` §11 의 직접 실행) · 근거: 표의 경로:줄
+status: verified (2026-11-10 작업 트리를 읽기 전용으로 확인, 실행 열은 원천 claude-doctor `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/testing.md` §11 의 직접 실행) · 근거: 표의 경로:줄
 
 | 저장소 (luau 핀) | 프레임워크 | 러너 | 단언 | 에러 줄 단언 | `-O2` 실행 | Roblox 의존 처리 | 타입 음성 대조군 |
 |---|---|---|---|---|---|---|---|

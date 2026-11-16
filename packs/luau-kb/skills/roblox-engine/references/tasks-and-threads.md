@@ -114,14 +114,14 @@ mock 흉내: 가상 시계가 곧 mock 이다. 프레임 지터와 재개 지점
 
 | # | 내용 | 판정 |
 |---|---|---|
-| claude-doctor .claude/audit/08 M-05 | 죽은 스레드 `task.cancel`: mock 헤더 "에러" 대 Studio "no-op" | **판정**: Studio 실측(quad 2026-09-08, rbvm 2026-10-13 둘 다 no-op)이 맞다. mock 헤더가 틀렸다 |
+| claude-doctor .claude/scopes/packs/luau-kb/audit/08 M-05 | 죽은 스레드 `task.cancel`: mock 헤더 "에러" 대 Studio "no-op" | **판정**: Studio 실측(quad 2026-09-08, rbvm 2026-10-13 둘 다 no-op)이 맞다. mock 헤더가 틀렸다 |
 
 ## 정정
 
 | 원천 경로:줄 | 틀리거나 낡은 서술 | 맞는 것 | 근거 |
 |---|---|---|---|
 | quad `.claude/archive/post-implementation-review/post-implementation-review-round9.md:30`(mock 헤더 인용) | 죽은 스레드에 `task.cancel` 은 에러 | 에러 없는 no-op | quad sugar-studio-2026-09-08:16-23, rbvm engine-behavior:33 |
-| quad `.claude/base/ref-plan.md`(옛 서술, claude-doctor .claude/audit/08 M-14) | `coroutine.resume` 에러는 나중에 난다 | `(false, err)` 를 돌려주고 삼킨다 | quad H-170 실측 |
+| quad `.claude/base/ref-plan.md`(옛 서술, claude-doctor .claude/scopes/packs/luau-kb/audit/08 M-14) | `coroutine.resume` 에러는 나중에 난다 | `(false, err)` 를 돌려주고 삼킨다 | quad H-170 실측 |
 
 ## 미판정
 - **같은 프레임 `task.defer` 여러 개의 엔진 순서와 R-09 의 홉 순서.** 절차: Edit 에서 `execute_luau` 로 `defer(A); defer(B); defer(function() defer(C) end); defer(D)` 를 걸고 `_G.order` 에 기록, 다음 호출에서 읽는다. 40개로 늘려 FIFO 인지 본다.

@@ -90,7 +90,7 @@ status: described · 근거: claude-doctor `.claude/base/decisions/D-13-file-str
 **타입 하나라는 것만으로는 예외가 아니다.** stl `Arr.luau`(3,030줄, 함수 145)도 예외로 두지 않는다(사용자 결정). 3,000줄이 넘으면 사람이 함수를 찾고 하나씩 확인하기 어렵다. 네임스페이스 모듈은 재수출로 나눠도 타입 손실이 없다(`splitting.md` §2, 실측).
 
 ## §2a 예외 표식과 "확실한 이유"
-status: verified (표식 처리) / described (이유 판단) · last-confirmed: 2026-11-10 · 근거: claude-doctor `.claude/archive/research/drafts/hooks/test-structure-reminder.py`(예외 12건 포함 44/44), `scripts/structure-scan.py`, `snippets/style-split-types.sh`
+status: verified (표식 처리) / described (이유 판단) · last-confirmed: 2026-11-10 · 근거: claude-doctor `.claude/scopes/plugins/qwreey-conventions/archive/research/drafts/hooks/test-structure-reminder.py`(예외 12건 포함 44/44), `scripts/structure-scan.py`, `snippets/style-split-types.sh`
 
 에이전트는 확실한 이유가 있으면 기준을 넘겨도 된다. **이유는 반드시 남긴다. 이유 없는 예외는 두지 않는다.**
 

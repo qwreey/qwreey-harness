@@ -55,7 +55,7 @@ status: described (정책) · 근거: claude-doctor `.claude/base/decisions/D-03
 mock 작성 패턴, 주입 방법, 충실도 검증 절차는 luau-roblox 스킬 `../../luau-roblox/references/mocks.md`, Studio 에서 확인하는 절차는 `../../luau-roblox/references/studio-mcp.md`, 무엇이 Studio 를 요구하는지의 판정 표는 `../../luau-roblox/references/env-dependence.md` 에 있다. 이 파일은 **테스트 설계 쪽**(경계 긋기, mock 이 틀리는 지점 목록)만 다룬다.
 
 ## §2 세 방법: 코어 분리, mock 주입, fake 객체
-status: verified (저장소 패턴 읽기, 2026-11-10) · 근거: `table-sim/.claude/conventions.md:96`, `quad/quad-roblox/test/spec.elem.luau:43`, `rbvm/.claude/review/2026-10-05-repro/fake.luau`, 원천 claude-doctor `.claude/archive/research/drafts/gaps/testing.md` §10
+status: verified (저장소 패턴 읽기, 2026-11-10) · 근거: `table-sim/.claude/conventions.md:96`, `quad/quad-roblox/test/spec.elem.luau:43`, `rbvm/.claude/review/2026-10-05-repro/fake.luau`, 원천 claude-doctor `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/testing.md` §10
 
 | 방법 | 모양 | 비용·한계 |
 |---|---|---|

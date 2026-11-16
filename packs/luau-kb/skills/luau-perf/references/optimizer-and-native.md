@@ -58,7 +58,7 @@ last_confirmed:
 - `--!native`·`@native` 는 그 파일을 **최적화 수준 2 로 올린다.** native 를 붙이는 순간 에러 위치가 바뀔 수 있다.
 
 ## §2 수준별로 하는 일과 우선순위
-status: verified · last-confirmed: luau 0.742 (0.734 동일), `run_opt.sh` 58/58 ok (2026-11-10 재실행) · 근거: `claude-doctor .claude/archive/research/drafts/gaps/optimize-levels.md` §1·§2, 스니펫 `snippets/opt-fold-unroll.luau`, `snippets/native-directive-forces-o2.luau`, `native-attribute-forces-o2.luau`, `native-directive-order.luau`, 소스 `Compiler.cpp:5855-5892`
+status: verified · last-confirmed: luau 0.742 (0.734 동일), `run_opt.sh` 58/58 ok (2026-11-10 재실행) · 근거: `claude-doctor .claude/scopes/packs/luau-kb/archive/research/drafts/gaps/optimize-levels.md` §1·§2, 스니펫 `snippets/opt-fold-unroll.luau`, `snippets/native-directive-forces-o2.luau`, `native-attribute-forces-o2.luau`, `native-directive-order.luau`, 소스 `Compiler.cpp:5855-5892`
 
 | 수준 | 하는 일 |
 |---|---|
@@ -101,7 +101,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/
 - 인라인을 막는 사용자 속성(`@noinline`)은 없다. `@inline` 은 SyntaxError 다. 막아야 하면 필드 대입 테이블을 거치거나 가변 인자로 만든다.
 
 ## §4 `-O2` 와 `error(msg, level)` (D-10 정정)
-status: verified · last-confirmed: luau 0.742 (0.734 동일), `run_opt.sh` B1–B4, C1–C3 · 근거: `claude-doctor .claude/archive/research/drafts/gaps/optimize-levels.md` §4·§5, 스니펫 `snippets/opt-o2-error-level.luau`, `opt-o1-error-level.luau`(대조군), `opt-o2-traceback.luau`, `claude-doctor .claude/base/decisions/D-10-error-handling.md` "정정" 절, 후보 S-116(+S-118, R-44), Q-088
+status: verified · last-confirmed: luau 0.742 (0.734 동일), `run_opt.sh` B1–B4, C1–C3 · 근거: `claude-doctor .claude/scopes/packs/luau-kb/archive/research/drafts/gaps/optimize-levels.md` §4·§5, 스니펫 `snippets/opt-o2-error-level.luau`, `opt-o1-error-level.luau`(대조군), `opt-o2-traceback.luau`, `claude-doctor .claude/base/decisions/D-10-error-handling.md` "정정" 절, 후보 S-116(+S-118, R-44), Q-088
 
 `error(msg, 2)` 는 "나를 부른 프레임"을 가리킨다. 인라인된 함수에는 프레임이 없어 level 이 밀린다. `-O2` 에서 지역 함수·**테이블 리터럴** 필드 함수는 인라인돼 위치가 사라지거나 **틀린 줄**을 가리키고, 대입으로 만든 필드(`function M.f`)만 안전하다. `debug.traceback`·`debug.info(1, "n")` 도 인라인된 함수를 보지 못한다(`-g2` 로도 안 돌아옴). native 실행(`--codegen`) 자체는 위치를 바꾸지 않는다. 바꾸는 것은 수준 2 다.
 
@@ -125,7 +125,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/
 - 키 이름만 바꿔도 해시 칸 배치가 바뀌어 ±5% 흔들린다(S-P25). 이름 선택으로 성능을 고르지 않는다.
 
 ## §6 native 코드 생성
-status: verified(CLI) / described(Roblox) · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/native-annot.luau`, `claude-doctor .claude/archive/research/drafts/gaps/native-codegen.md` §1~§7, `run_opt.sh` G1–G7·H1–H2, 스니펫 `snippets/native-annotation-codegen.luau`, `native-attribute-nested.luau`, 후보 M-06
+status: verified(CLI) / described(Roblox) · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/native-annot.luau`, `claude-doctor .claude/scopes/packs/luau-kb/archive/research/drafts/gaps/native-codegen.md` §1~§7, `run_opt.sh` G1–G7·H1–H2, 스니펫 `snippets/native-annotation-codegen.luau`, `native-attribute-nested.luau`, 후보 M-06
 
 어디서 도나: Roblox 에서는 **서버 스크립트와 Android 클라이언트**에서만, `--!native`(파일 전체+루프 있는 최상위) 또는 `@native`(그 함수 하나만, 안의 클로저 제외)를 단 것만. CLI `luau --codegen` 은 지시어와 무관하게 불러온 모든 모듈을 컴파일한다.
 
@@ -163,7 +163,7 @@ $L/luau-compile --text -O1 f.luau           # 바이트코드: LOADN/LOADK(접�
 $L/luau-compile --codegen -O2 --record-stats=function --stats-file=/tmp/st.json f.luau  # 함수별 asmSize
 $L/luau-compile --codegenir -O2 f.luau      # IR: CHECK_TAG, fallback 블록
 choom -n 1000 -- prlimit --data=3221225472 -- $L/luau -O2 --codegen bench.luau
-bash claude-doctor .claude/archive/research/drafts/gaps/tools/run_opt.sh 0.734 0.742   # 이 파일의 CLI 주장 일괄 검사(58 개)
+bash claude-doctor .claude/scopes/packs/luau-kb/archive/research/drafts/gaps/tools/run_opt.sh 0.734 0.742   # 이 파일의 CLI 주장 일괄 검사(58 개)
 ```
 - `-O2` 에서 인라인 하나만 끄려면 `--fflags=DebugLuauNoInline=true` 와 함수 앞 `@debugnoinline`(CLI 전용).
 - Roblox: Script Profiler 의 `<native>` 표시, 서버 콘솔 `debug.dumpcodesize()`, heap 프로파일러의 `[native]`(문서, described).

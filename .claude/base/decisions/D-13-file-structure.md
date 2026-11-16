@@ -1,6 +1,6 @@
 # D-13. 파일 길이, 폴더 묶음, 데이터와 코드 나누기
 
-> 작성 2026-11-10. 실측은 `.claude/archive/research/drafts/style/skills/luau-style/scripts/structure-scan.py` 로 10개 저장소를 읽기만 해서 얻었다. 사례와 원인은 `.claude/audit/12-code-structure.md`.
+> 작성 2026-11-10. 실측은 `.claude/scopes/packs/luau-kb/archive/research/drafts/style/skills/luau-style/scripts/structure-scan.py` 로 10개 저장소를 읽기만 해서 얻었다. 사례와 원인은 `.claude/audit/12-code-structure.md`.
 
 ## 1. 각 프로젝트의 입장과 실태
 

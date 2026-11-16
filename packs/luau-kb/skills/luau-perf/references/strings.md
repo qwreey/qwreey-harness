@@ -98,6 +98,6 @@ status: verified(시간 증가) / described(나머지) · last-confirmed: luau 0
 ## §5 정정과 조건 차이
 | 원천 | 원래 서술 | 이번 측정 | 처리 |
 |---|---|---|---|
-| claude-doctor .claude/audit/09 M-05 요약 ("Luau 로 글자마다 도는 파서는 약 40 배 느리다") | 40 배 느림 | 할당 없는 `string.byte` 손 파서는 `gmatch`+`tonumber` 의 **0.69~0.74x(인터프리터), 0.25x(native)**. `string.sub` 판도 1.75~2.2x | **정정(방향 뒤집힘)**. 원문(mrow REVIEW:809-813)은 "파서 컴비네이터 mrow 가 기준선보다 40 배"라고 정확히 적었다. 요약이 일반화를 잘못했다 |
+| claude-doctor .claude/scopes/packs/luau-kb/audit/09 M-05 요약 ("Luau 로 글자마다 도는 파서는 약 40 배 느리다") | 40 배 느림 | 할당 없는 `string.byte` 손 파서는 `gmatch`+`tonumber` 의 **0.69~0.74x(인터프리터), 0.25x(native)**. `string.sub` 판도 1.75~2.2x | **정정(방향 뒤집힘)**. 원문(mrow REVIEW:809-813)은 "파서 컴비네이터 mrow 가 기준선보다 40 배"라고 정확히 적었다. 요약이 일반화를 잘못했다 |
 | mrow REVIEW:407-423 | `..=` O(n²) | 같은 결론, 네 모드 모두 | 유지 |
 | devplorer shared-specs:56-58 | 12→18→24 자에 0.3→3→15 ms | 0.29 ms → 9 배 → 47 배 | 유지 |

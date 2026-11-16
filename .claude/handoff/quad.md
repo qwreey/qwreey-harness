@@ -6,7 +6,7 @@ claude-doctor 에서 quad 를 읽기 전용으로 조사하다 찾은 것들이�
 1. **`quad-base/src/Relate.luau:28` 의 `error(…, 3)`**
    - `-O2`(그리고 `--!native`)에서 에러 위치가 틀린 줄을 가리키거나 사라진다.
    - quad 를 `-O2` 로 돌리면 테스트 3개가 실패한다.
-   - 근거: `claude-doctor/decisions/D-10` 정정 절, `.claude/archive/research/drafts/gaps/optimize-levels.md`
+   - 근거: `claude-doctor/decisions/D-10` 정정 절, `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/optimize-levels.md`
 2. **`scripts/doc-snippets-runshim.luau` 가상 task 큐의 정렬**
    - `table.sort` 는 안정 정렬이 아니다. 그래서 같은 시각 항목이 5개 이상이면 FIFO 순서가 섞인다(luau 0.742 실측).
    - 근거: `luau-kb/skills/roblox-luau/references/mocks.md`

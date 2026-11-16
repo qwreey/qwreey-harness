@@ -56,7 +56,7 @@ last_confirmed:
 - §11 가변 인자 자리의 꼬리 호출 (버전 차이)
 - §12 자료와 버전
 
-표기: `verified` 는 스니펫이 luau 0.734 와 0.742 의 `luau-analyze`(새 솔버, 기본)에서 그 주장대로 통과했다는 뜻이다. `pack-*` 스니펫은 luau-lsp 1.70.1(새 솔버) 참고 열에서도 결과가 같았다. 이 파일의 초안은 claude-doctor `.claude/archive/research/drafts/gaps/typepacks-varargs.md` 다.
+표기: `verified` 는 스니펫이 luau 0.734 와 0.742 의 `luau-analyze`(새 솔버, 기본)에서 그 주장대로 통과했다는 뜻이다. `pack-*` 스니펫은 luau-lsp 1.70.1(새 솔버) 참고 열에서도 결과가 같았다. 이 파일의 초안은 claude-doctor `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/typepacks-varargs.md` 다.
 
 ---
 
@@ -172,7 +172,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일, 옛 솔버도 같�
 - 처방: 실패 분기에서는 `tostring(v)` 로 다시 변환한다. `unpack` 결과에는 개수(`n`)를 따로 검사한다.
 
 ## §10 넘친 인자를 잡지 않는 경우 (새 솔버)
-status: verified · last-confirmed: luau 0.742 (0.734 동일, luau-lsp 1.70.1 동일) · 근거: `snippets/pack-extra-args.luau`, 짝 `snippets/pack-extra-args-old.luau`, `snippets/pack-extra-args-exposure.luau` · 원천: claude-doctor .claude/audit/11 §2-7
+status: verified · last-confirmed: luau 0.742 (0.734 동일, luau-lsp 1.70.1 동일) · 근거: `snippets/pack-extra-args.luau`, 짝 `snippets/pack-extra-args-old.luau`, `snippets/pack-extra-args-exposure.luau` · 원천: claude-doctor .claude/scopes/packs/luau-kb/audit/11 §2-7
 
 모자란 인자는 늘 잡힌다. 넘친 인자는 **호출 대상의 타입이 함수 정의에서 왔는지, 주석 타입에서 왔는지**로 갈린다.
 

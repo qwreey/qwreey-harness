@@ -5,7 +5,7 @@
 `../.claude-plugin/plugin.json` 에서 읽으므로(없으면 상위 디렉터리 이름) 코드에 이름이 박혀 있지 않다.
 
 왜: 플러그인은 `.claude/rules` 를 실을 수 없다. 공식 rules 는 Read 가 맞는 파일을 열 때 로드되므로, 같은 시점(PostToolUse)에
-같은 본문을 훅이 넣는다. 실측(audit/34 R1-R4): Read 뒤 주입은 다음 Edit 에서 지켜지고 서브에이전트에서도 같다.
+같은 본문을 훅이 넣는다. 실측(.claude/scopes/plugins/qwreey-conventions/audit/34 R1-R4): Read 뒤 주입은 다음 Edit 에서 지켜지고 서브에이전트에서도 같다.
 
 이벤트: PostToolUse(Read|Edit|Write|MultiEdit|NotebookEdit)만. 맞는 rule 중 이 키로 아직 안 넣은 것을 넣는다.
   Read 뒤: 본문만. Edit·Write 뒤(이 키로 처음): 본문과 "방금 쓴 것을 rules 에 대조하고 어긋나면 Edit 로 고쳐라" 한 문장.

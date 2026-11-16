@@ -6,7 +6,7 @@
 
 먼저 인정할 것 셋.
 1. Claude Code 에서 스킬 description 으로 자동 라우팅하고 프로젝트별로 켜는 그릇은 **플러그인이 가장 낫다**(audit/40: `paths` 는 설명을 숨기지 않고, 켜고 끄기는 `enabledPlugins` 만 된다). 그래서 팩마다 `plugin.json` + `skills/` 는 남는다. 내가 없애려는 것은 팩마다 복제되는 **코드**(훅)다. 매니페스트 한 장은 복제가 아니라 선언이다.
-2. 이 환경에서 codex·agy 는 지금 주로 **위임 백엔드**(좁은 질문, headless, `research/drafts/delegate/`)다. 그러니 락인 해소는 당장의 1순위 이득이 아니라 2순위다. 1순위는 중복 제거와 신선도다.
+2. 이 환경에서 codex·agy 는 지금 주로 **위임 백엔드**(좁은 질문, headless, `.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/`)다. 그러니 락인 해소는 당장의 1순위 이득이 아니라 2순위다. 1순위는 중복 제거와 신선도다.
 3. 메모리만 보면 daemon 이 이긴다는 말은 지금 수치로는 작다(4장). daemon 의 진짜 값은 무거운 자산(임베딩 모델)이 생길 때다.
 
 ## 0. 측정 (오늘의 CLI)

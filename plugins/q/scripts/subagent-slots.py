@@ -2,7 +2,7 @@
 """서브에이전트 고지·슬롯 훅. 한 파일이 이벤트 이름으로 나눠 처리한다.
 
 등록(q 플러그인 hooks/hooks.json): PreToolUse(Agent|Workflow), PostToolUse(모든 도구), SubagentStart, SubagentStop, Stop.
-설계: .claude/audit/21-cost-disclosure.md. 원장: subagent_ledger.py(같은 디렉터리). 메시지 규약: HOOK-MESSAGES.md.
+설계: .claude/scopes/plugins/q/audit/21-cost-disclosure.md. 원장: subagent_ledger.py(같은 디렉터리). 메시지 규약: HOOK-MESSAGES.md.
 
 - attended(기본): 막지 않는다. 큰 팬아웃(동시 N 개 이상, opus 이상 M 개 이상, Workflow)이면 warn 으로
   "사용자에게 규모를 고지하라"를 낸다. 팬아웃 한 묶음(실행 중 0 에서 시작해 다시 0 이 될 때까지)마다·compact 회차마다 한 번.

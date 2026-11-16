@@ -14,7 +14,7 @@
 - 실행: Claude 쪽은 지시문 작성과 검증 정도. 본 비용은 각 벤더 구독 한도에서 나간다(agy 는 flash 만, codex 는 Plus 한도가 작아 사용자가 사용량을 확인).
 
 ## 요구 사항
-- Linux, root(`setpriv`, 저장소·모델별 uid, `choom`), Python 3.11 이상. Windows·macOS 와 root 가 없는 Linux 에서는 실행을 거절한다(모드와 상관없이). root 없이 도는 판은 계획 중이다(`.claude/research/drafts/delegate/driver-design.md` M3).
+- Linux, root(`setpriv`, 저장소·모델별 uid, `choom`), Python 3.11 이상. Windows·macOS 와 root 가 없는 Linux 에서는 실행을 거절한다(모드와 상관없이). root 없이 도는 판은 계획 중이다(`.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/driver-design.md` M3).
 - `agy` 또는 `codex` CLI 설치와 각자 구독. 저장소 루트에 `AGENTS.md`, uid 표 등록(`python3 -I <스킬>/scripts/delegate.py register <저장소>`, 처음에는 Claude 가 알리고 한다).
 - uid 표 `registry.tsv` 는 고쳐 쓰므로 `HARNESS_DELEGATE_REGISTRY`(`~/.claude/harness.env`)가 이 클론의 `skills/delegate/registry.tsv` 를 가리켜야 한다.
 - 바꿀 만한 설정(`~/.claude/harness.env`, 저장소 파일로는 바꾸지 못함): 동시 실행 수 `HARNESS_DELEGATE_MAX_CONCURRENT`(1), 결과 보존 일수 `HARNESS_DELEGATE_RUNS_DAYS`(14), 상태 폴더 `HARNESS_DELEGATE_STATE`. 전체 목록은 [docs/how-it-works.md](docs/how-it-works.md).

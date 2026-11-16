@@ -4,7 +4,12 @@
     ".claude/archive/research/drafts/**",
     ".claude/audit/**",
     ".claude/sessions/**",
-    ".claude/handoff/**"
+    ".claude/handoff/**",
+    ".claude/scopes/**/research/drafts/**",
+    ".claude/scopes/**/archive/research/drafts/**",
+    ".claude/scopes/**/audit/**",
+    ".claude/scopes/**/sessions/**",
+    ".claude/scopes/**/handoff/**"
   ],
   "load_budget": {
     "total": 5000,

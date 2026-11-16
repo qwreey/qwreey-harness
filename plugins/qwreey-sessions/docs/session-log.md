@@ -8,7 +8,7 @@ last_verified: 2026-11-10
 ---
 # session-log 훅 (qwreey-sessions 플러그인)
 
-메인 세션이 아무것도 하지 않아도 세션 기록이 남게 한다. 설계 근거는 `.claude/archive/research/drafts/session-log/DESIGN.md`, 조사·실측은 `.claude/audit/15-session-log.md`.
+메인 세션이 아무것도 하지 않아도 세션 기록이 남게 한다. 설계 근거는 `.claude/scopes/plugins/qwreey-sessions/archive/research/drafts/session-log/DESIGN.md`, 조사·실측은 `.claude/scopes/plugins/qwreey-sessions/audit/15-session-log.md`.
 
 ## 흐름
 1. 훅이 트리거를 판단한다(PreCompact·SessionEnd 는 강제, PostToolUse·UserPromptSubmit 은 쿨다운 20분 + 512KB 증가).
