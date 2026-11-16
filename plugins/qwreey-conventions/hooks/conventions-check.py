@@ -17,7 +17,7 @@
   - invisible character: 보이지 않는 문자, 방향 제어 문자. 주석이 아니라 추가된 줄 전체에서 본다
   - language mismatch: 파일 주석의 90% 이상이 한 문자 체계(기존 10줄 이상)인데 추가된 줄이 다른 체계 단어를 3개 이상 쓴다.
     새 파일은 저장소 comment_language, 없으면 같은 폴더 형제 파일의 다수, 그것도 없으면 검사하지 않는다. 지시자 줄(--!strict, eslint-disable 등)은 뺀다.
-    단계 라벨(본문 안 들여쓴 한 줄 주석, 위는 주석 줄이 아니고 아래는 코드, label_language 글자만 1-10낱말, 72자 이하, 마침표와 이유 접속어 없음)은
+    단계 라벨(본문 안 들여쓴 한 줄 주석, 위는 주석 줄이 아니고 아래는 코드, label_language 글자만 2-10낱말, 72자 이하, 마침표와 이유 접속어 없음)은
     언어 판정과 다수 계산에서 뺀다. 한국어 주석 파일에 영어 라벨을 쓰는 것이 readable-code 규약이라서다(키와 무관하게 늘)
   - layout (HARNESS_READABLE_CODE=on 일 때만, hooks/layout_metrics.py): 이번 편집이 새로 쓰거나(함수 줄의 절반 이상) 15줄 이상 키운 함수의
     빈 줄 없는 긴 본문(layout), 문장 사이에 끼운 여러 줄 주석(interleaved comment), 호출하는 쪽이 못 보는 문서 주석(doc summary: 공개 함수에
@@ -121,9 +121,8 @@ LANG_MIN_LINES = 10
 LANG_SHARE = 0.9
 LANG_MIN_WORDS = 3
 # 단계 라벨: 이유 접속어가 있으면 라벨이 아니라 이유 문장이라 언어 판정에 남긴다
-LABEL_REASON = re.compile(r"\b(?:because|since|so|otherwise|unless|must|never|in order to|to avoid)\b", re.I)
+LABEL_REASON = re.compile(r"\b(?:because|since|so|otherwise|unless|must|never|in order to|to avoid|due to|workaround)\b", re.I)
 LABEL_WORDS = {"latin": re.compile(r"[A-Za-z\u00c0-\u024f]+")}
-LABEL_MAX_WORDS = 10
 LABEL_MAX_CHARS = 72
 
 
@@ -228,7 +227,7 @@ def line_script(counts):
 def step_labels(rows, lines, cfg):
     """언어 판정에서 뺄 단계 라벨 줄 번호(0 기반). label_language 가 null 이면 빈 집합이다.
 
-    라벨: 본문 안에 들여쓴 한 줄 주석, 위 줄은 주석만 있는 줄이 아니고 아래 줄은 코드, label_language 글자의 낱말 1-10개,
+    라벨: 본문 안에 들여쓴 한 줄 주석, 위 줄은 주석만 있는 줄이 아니고 아래 줄은 코드, label_language 글자의 낱말 2-10개,
     72자 이하, 마침표와 이유 접속어가 없다.
     """
     lang = cfg.get("label_language", "en")
@@ -252,7 +251,7 @@ def step_labels(rows, lines, cfg):
             continue
         if any(v for k, v in word_counts(body).items() if k != script):
             continue
-        if 1 <= len(words_rx.findall(body)) <= LABEL_MAX_WORDS:
+        if layout_metrics.LABEL_WORDS_MIN <= len(words_rx.findall(body)) <= layout_metrics.LABEL_WORDS_MAX:
             out.add(i)
     return frozenset(out)
 
@@ -463,6 +462,30 @@ def doc_check(text, added, rel, cfg, pats, pub):
 
 def state_file(sid, agent_id):
     return compact_epoch.state_path("qwreey-conventions", NS, sid, agent_id)
+
+
+def load_state(path):
+    """세션 상태 {"files": {경로: [알린 키]}, "doc_recheck": {경로: [함수 키]}}. 깨졌거나 꼴이 다르면 빈 상태로 시작한다."""
+    try:
+        state = json.load(open(path))
+    except Exception:
+        state = {}
+    state = state if isinstance(state, dict) else {}
+    for name in ("files", "doc_recheck"):
+        if not isinstance(state.get(name), dict):
+            state[name] = {}
+    return state
+
+
+def layout_step(state, key, text, rows, added, ext, cfg):
+    """(다시 볼 함수 키, layout 알림). 지표 코드가 어떤 입력에서 터져도 주석 알림은 나가야 하므로 실패하면 둘 다 빈 목록이다."""
+    try:
+        recheck = state["doc_recheck"].get(key)
+        recheck = [k for k in recheck if isinstance(k, str)] if isinstance(recheck, list) else []
+        shapes = layout_metrics.edit_findings(text, rows, added, layout_metrics.LANG_BY_EXT[ext], cfg.get("layout"), recheck)
+        return recheck, shapes
+    except Exception:
+        return [], []
 
 
 def symbol_detail(text, lines, allow):
@@ -708,18 +731,14 @@ def main():
 
     # Layout of the functions this edit wrote or grew
     state_path = state_file(data.get("session_id"), data.get("agent_id"))
-    try:
-        state = json.load(open(state_path))
-    except Exception:
-        state = {}
+    state = load_state(state_path)
     key = os.path.abspath(path)
-    recheck = state.get("doc_recheck", {}).get(key) or []
-    shapes = layout_metrics.edit_findings(text, rows, added, layout_metrics.LANG_BY_EXT[ext], cfg.get("layout"), recheck) if layout else []
+    recheck, shapes = layout_step(state, key, text, rows, added, ext, cfg) if layout else ([], [])
     if not problems and not shapes and not recheck:
         return 0
 
     # One notice per (file, category); layout per (file, category, function)
-    seen = state.setdefault("files", {}).get(key)
+    seen = state["files"].get(key)
     seen = seen if isinstance(seen, list) else []
     fresh = [(ln, c) for ln, c in problems if c not in seen]
     fresh_shapes = [(cat, name, desc, again) for cat, name, desc, again in shapes if again or "%s|%s" % (cat, name) not in seen]
@@ -728,7 +747,7 @@ def main():
     state["files"][key] = seen + [c for c in dict.fromkeys(c for _, c in fresh)] + [
         "%s|%s" % (cat, name) for cat, name, _, again in fresh_shapes if not again]
     docs = [name for cat, name, _, again in fresh_shapes if cat == "doc summary" and not again]
-    state.setdefault("doc_recheck", {})[key] = docs
+    state["doc_recheck"][key] = docs
     if not state["doc_recheck"][key]:
         del state["doc_recheck"][key]
     if fresh or fresh_shapes or recheck:

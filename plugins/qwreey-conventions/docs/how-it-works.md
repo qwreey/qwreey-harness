@@ -53,18 +53,18 @@
 
 제외: 확장자 표 밖, 생성 파일(머리 6줄 표시), 픽스처, testdata, `node_modules`, 설정의 `exclude`.
 
-단계 라벨 예외(늘 켜짐): 본문 안에 들여쓴 한 줄 주석이고, 위 줄은 주석만 있는 줄이 아니고 아래 줄은 코드이며, `label_language`(기본 `en`) 글자의 낱말 1~10개, 72자 이하, 마침표와 이유 접속어(`because`, `since`, `so`, `otherwise`, `unless`, `must`, `never`, `in order to`, `to avoid`)가 없는 줄은 language mismatch 판정과 파일 다수 계산에서 뺀다. 한국어 주석 파일에 영어 라벨을 다는 것이 readable-code 규약이라서다. `label_language: null` 이면 끈다.
+단계 라벨 예외(늘 켜짐): 본문 안에 들여쓴 한 줄 주석이고, 위 줄은 주석만 있는 줄이 아니고 아래 줄은 코드이며, `label_language`(기본 `en`) 글자의 낱말 2~10개, 72자 이하, 마침표와 이유 접속어(`because`, `since`, `so`, `otherwise`, `unless`, `must`, `never`, `in order to`, `to avoid`, `due to`, `workaround`)가 없는 줄은 language mismatch 판정과 파일 다수 계산에서 뺀다. 한국어 주석 파일에 영어 라벨을 다는 것이 readable-code 규약이라서다. `label_language: null` 이면 끈다.
 
 ## layout 알림 (readable-code)
-`HARNESS_READABLE_CODE=on` 이고 확장자가 `.luau .lua .py .ts .tsx .js .jsx .mjs .rs .go .kt` 일 때만. 함수 범위와 지표는 `hooks/layout_metrics.py`(가장 바깥 함수만: Lua 계열은 `function`/`do`/`then`/`repeat` 와 `end`/`until`, Luau `if` 식은 블록이 아님; Python 은 `def` 와 들여쓰기; C 계열은 함수 머리 뒤 중괄호).
+`HARNESS_READABLE_CODE=on` 이고 확장자가 `.luau .lua .py .ts .tsx .js .jsx .mjs .rs .go .kt` 일 때만. 함수 범위와 지표는 `hooks/layout_metrics.py`(가장 바깥 함수만: Lua 계열은 `function`/`do`/`then`/`repeat` 와 `end`/`until`, Luau `if` 식은 블록이 아님(`<`/`>` 뒤는 같은 줄일 때만 식: 줄 끝 제네릭이나 캐스트 다음 줄의 `if` 는 문); Python 은 `def` 와 들여쓰기(한 줄 `def` 포함, 머리는 50줄까지만 찾음); C 계열은 함수 머리 뒤 깊이 0 의 첫 `{`, 매개변수·제네릭·반환 타입 안의 중괄호는 본문이 아님).
 - 대상 함수: 이번 편집이 함수 줄(빈 줄 제외)의 절반 이상을 더했거나(`mostly`) 15줄 이상 더한(`grow`) 함수. 키운 함수는 함수 전체를 보고 알림에 `[grown by N lines]` 를 붙인다.
 - layout: 본문 15줄 이상이고 빈 줄이 없거나 빈 줄 없이 20줄 넘게 이어짐. 사용자 손 코드(본문 15줄 이상)는 3/26, 에이전트 코드는 68/75 가 걸리는 선이다.
 - interleaved comment: 본문 안에서 바로 위와 아래가 코드인 2줄 이상 주석 덩어리.
-- doc summary: 공개 함수에 호버 꼴 문서 주석이 없음(Luau `---`/`--[=[`, Python docstring, TS/JS·Kotlin `/** */`, Rust `///`, Go `//`), 또는 문서 첫 줄 100자 초과, 또는 첫 문장이 첫 줄에서 안 끝남(첫 줄이 `.?!:` 나 한국어 종결 어미 없이 끝나고 다음 문서 줄이 이어짐). 메타메서드(`__x`)는 빼고, 문서가 있는 함수는 공개 여부와 무관하게 첫 줄을 본다. 공개: Luau `function M.x`/`M:x`/`M.x = function`, Python 은 `__main__` 블록이 없는 모듈의 맨 위 함수와 공개 클래스 메서드(`_` 시작 제외), TS/JS `export`, Rust `pub`, Go 대문자, Kotlin `private`/`internal`/`protected` 가 아닌 것. 알림 문구에 그 언어의 문서 꼴을 적는다.
-- dedup: (세션, 에이전트, compact 회차, 파일, 범주, 함수)마다 한 번. doc summary 를 알린 함수는 다음 편집(같은 파일) 뒤 한 번 더 보고, 그대로면 `(still so after your last edit)` 로 다시 알린다.
+- doc summary: 공개 함수에 호버 꼴 문서 주석이 없음(Luau `---`/`--[=[`, Python docstring, TS/JS·Kotlin `/** */`, Rust `///`, Go `//`; 함수 바로 위에서 가장 가까운 주석이 문서 꼴이어야 하고, 그 위의 이유 주석과 `--#region` 같은 접기 표지는 상관없음), 또는 문서 첫 줄 100자 초과, 또는 첫 문장이 첫 줄에서 안 끝남(첫 줄이 `.?!:` 나 한국어 종결 어미 없이 끝나고 다음 문서 줄이 이어짐). 메타메서드(`__x`)는 빼고, 문서가 있는 함수는 공개 여부와 무관하게 첫 줄을 본다. 공개: Luau `function M.x`/`M:x`/`M.x = function`, Python 은 `__main__` 블록이 없는 모듈의 맨 위 함수와 공개 클래스 메서드(`_` 시작 제외), TS/JS `export`, Rust `pub`, Go 대문자, Kotlin `private`/`internal`/`protected` 가 아닌 것. 알림 문구에 그 언어의 문서 꼴을 적는다.
+- dedup: (세션, 에이전트, compact 회차, 파일, 범주, 함수)마다 한 번. 함수는 이름으로 가리고, 같은 파일에 같은 이름이 또 있으면 두 번째부터 `이름#순번`이다. doc summary 를 알린 함수는 다음 편집(같은 파일) 뒤 한 번 더 보고, 그대로면 `(still so after your last edit)` 로 다시 알린다.
 - 주석 알림과 같은 level(info)이라 한 태그로 합친다. 범주당 함수 이름은 8개까지. Stop 보고에는 넣지 않는다.
 - 기준: `.claude/conventions.json` 의 `"layout": {"min_lines": 15, "max_run": 20, "doc_first_max": 100, "grow": 15, "mostly": 0.5}`.
-- Bash 로 고친 파일은 이 훅이 못 본다. `bash-bypass-reminder` 가 쓰기 신호가 있는 명령의 코드 파일마다 한 번 `conventions-scan.py layout <file>` 을 안내한다(키가 켜졌을 때만, level warn).
+- Bash 로 고친 파일은 이 훅이 못 본다. `bash-bypass-reminder` 가 명령이 바꿀 것 같은 코드 파일마다 한 번 `conventions-scan.py layout <file>` 을 안내한다(키가 켜졌을 때만, level warn). 리다이렉트와 `tee` 는 그 대상만 보고 저장소 밖 대상(`git diff > /tmp/x`)은 빼며, 제자리 편집(`sed -i`, `patch`)과 쓰는 인터프리터 스크립트는 명령에 든 코드 경로를 댄다. 따옴표로 묶은 경로는 공백이 있어도 하나다.
 - 비용: 1,520줄 Luau 파일에 25줄 함수를 더하는 Edit 에서 훅 전체 중앙값이 키 off 69.8 ms, on 71.6 ms(1,440줄 Python 49.7, 51.0 ms).
 
 ## 남은 문제 보고

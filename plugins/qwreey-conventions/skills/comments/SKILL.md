@@ -82,7 +82,7 @@ The check passes letters of every writing system (Hangul, Cyrillic, kana, accent
 - A new file follows the repo's `comment_language`, else the majority of sibling files in the folder. With neither, nothing is checked.
 - A public library that wants English only sets `"comment_language": "en"`.
 - Tool directives (`--!strict`, lint-disable lines) are not language.
-- A step label (a short English line heading a step inside a body) is not judged for language, so English labels sit in a Korean file. A line with a reason word (`because`, `so`, `must`, `never`, ...), a period or more than 10 words is a sentence and follows the file's language.
+- A step label (a short English line heading a step inside a body) is not judged for language, so English labels sit in a Korean file. A line with a reason word (`because`, `so`, `must`, `never`, ...), a period, or a word count outside 2-10 is not a label and follows the file's language.
 - Korean comments follow the sentence ending the file already uses (합니다체 or 한다체); a new file follows its siblings.
 
 ## Style

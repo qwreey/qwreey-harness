@@ -495,6 +495,134 @@ check("line_list: a long run costs two numbers", _cc.line_list(list(range(1, 501
 c = write_new("ll/many.luau", "".join(f"-- see Q{100 + i} for more\nlocal a{i} = 1\n" for i in range(8)), sid=uniq("ll"))
 check("notice lists every flagged line (no 5-line cut)", all(f"L{2 * i + 1}" in c for i in range(8)) and "more)" not in c)
 
+# ---- layout 지표 회귀(리뷰 재현) ----
+def spans(src, lang, fam):
+    rows = _lex.lex(src, fam, keep_code=True)
+    return [(f["name"], f["start"] + 1, f["header_end"] + 1, f["last"] + 1) for f in _lm.functions(rows, src.split("\n"), lang)]
+
+
+def docs(src, lang, fam):
+    rows = _lex.lex(src, fam, keep_code=True)
+    lines = src.split("\n")
+    return {f["name"]: _lm.measure(rows, lines, f, lang)["doc"] for f in _lm.functions(rows, lines, lang)}
+
+
+# 문서 주석 위의 이유 주석이나 접기 표지는 문서를 가리지 않는다. 가장 가까운 주석이 정한다
+reason_above = ("local M = {}\n\n-- Kept iterative: deep trees overflow the C stack\n--- Returns the depth of the deepest leaf.\n"
+                "function M.depth(node)\n\treturn 1\nend\n\n--#region Helpers\n--- Returns the node count.\nfunction M.count(node)\n"
+                "\treturn 1\nend\n\n--- Returns two.\n-- Kept for old callers\nfunction M.two()\n\treturn 2\nend\n--#endregion\n\nreturn M\n")
+check("doc: `--` reason or `--#region` above `---` -> ok, `--` nearest -> hidden",
+      docs(reason_above, "lua", "lua") == {"M.depth": "ok", "M.count": "ok", "M.two": "hidden"})
+ts_doc = ("// Kept sync: callers run in a worker\n/** Returns one. */\nexport function one() {\n  return 1;\n}\n"
+          "// #region api\n// Reason here\n/**\n * Returns two.\n */\nexport function two() {\n  return 2;\n}\n"
+          "/** Returns three. */\n// reason\nexport function three() {\n  return 3;\n}\n")
+check("doc: TS `//` above `/** */` -> ok, multi-line JSDoc -> ok, `//` nearest -> hidden",
+      docs(ts_doc, "ts", "c") == {"one": "ok", "two": "ok", "three": "hidden"})
+check("doc: Rust `//` above `///` -> ok", docs("// Reason\n/// Returns one.\npub fn one() -> u8 {\n    1\n}\n", "rust", "rust") == {"one": "ok"})
+c = write_new("ly/rsn.luau", reason_above.replace("--- Returns two.\n-- Kept for old callers\n", "--- Returns two.\n"), sid=uniq("ly"), env_extra=ON)
+check("doc: hook does not report a doc under a reason comment", "Doc comments" not in c)
+
+# 줄 끝의 제네릭 타입이나 캐스트 때문에 다음 줄의 `if` 를 식으로 보지 않는다
+optional_of = ("const function Of<T>(value: T?): Optional<T>\n\tif value == nil then\n\t\treturn Absent\n\tend\n"
+               "\treturn { isPresent = true, value = value :: T }\nend\n\nlocal function g(x)\n\tlocal v = x :: Optional<T>\n"
+               "\tif v then\n\t\treturn 1\n\tend\n\tlocal w = x < if v then 1 else 2\n\treturn w\nend\n")
+check("lua: `if` after a line ending in `>` is a statement, `< if` on one line is an expression",
+      spans(optional_of, "lua", "lua") == [("Of", 1, 1, 6), ("g", 8, 8, 15)])
+
+# 매개변수, 반환 타입, 제네릭 안의 중괄호는 본문이 아니다
+c_cases = [
+    ("export function originalUrl(id: string, opts: { download?: boolean } = {}): string {\n  return id;\n}\n", "ts",
+     [("originalUrl", 1, 1, 3)]),
+    ("export async function uploadFile(\n  file: File,\n): Promise<{ duplicate: boolean; retry?: number }> {\n  const t = 1;\n"
+     "  return { duplicate: false };\n}\n", "ts", [("uploadFile", 1, 3, 6)]),
+    ("export function Login({ onDone }: { onDone: () => void }) {\n  const a = 1;\n  return a;\n}\n", "ts", [("Login", 1, 1, 4)]),
+    ("function h<T extends { a: number }>(x: T): T {\n  return x;\n}\n", "ts", [("h", 1, 1, 3)]),
+    ("export function k(): {\n  a: number;\n} {\n  return { a: 1 };\n}\n", "ts", [("k", 1, 3, 5)]),
+    ("class A {\n  constructor(el: X, id = 'h', opts: O = {}) {\n    this.el = el;\n  }\n}\n", "ts", [("constructor", 2, 2, 4)]),
+    ("useEffect(() => {\n  run();\n}, []);\n", "ts", [("useEffect", 1, 1, 3)]),
+    ("pub fn r<T: Into<Vec<u8>>>(x: T) -> Result<Vec<u8>, E> where T: Clone {\n    Ok(x.into())\n}\n", "rust", [("r", 1, 1, 3)]),
+    ("fun <T> f(x: Map<String, T> = mapOf()): List<T> {\n    return listOf()\n}\n", "kt", [("f", 1, 1, 3)]),
+    ("func start(g *rig, peer string) <-chan int {\n\treturn nil\n}\nfunc (s *S) Watch(stop <-chan struct{}) {\n\treturn\n}\n", "go",
+     [("start", 1, 1, 3), ("Watch", 4, 4, 6)]),
+]
+check("c spans: braces inside the signature are not the body",
+      all(spans(src, lang, "rust" if lang == "rust" else "c") == want for src, lang, want in c_cases))
+
+# 파이썬 머리: 한 줄 def, 닫히지 않은 괄호가 파일 끝까지 훑지 않는다
+check("py: one-line def ends on its own line",
+      spans("def f(): return 1\ndef g(a: int = (1),\n      b: dict = {}) -> list[int]:\n    return [a]\n", "py", "py")
+      == [("f", 1, 1, 1), ("g", 2, 3, 4)])
+check("py: header scan stops after PY_HEADER_SCAN lines",
+      spans("def broken(\n" + "    x,\n" * 60 + "):\n    pass\n", "py", "py")[0][:3] == ("broken", 1, 1))
+
+# 단계 라벨은 rule 대로 2-10 낱말이고 `due to`, `workaround` 는 이유 말이다
+check("label: is_label takes 2-10 words", not _lm.is_label("-- Cleanup") and _lm.is_label("-- Detach previous parent")
+      and not _lm.is_label("-- " + " ".join(["word"] * 11)))
+lab_src = "local function f()\n\tlocal a = 1\n\n\t-- Cleanup\n\ta = 2\n\n\t-- Detach parent\n\ta = 3\nend\n"
+check("label: step_labels skips a one-word comment", _cc.step_labels(_lex.lex(lab_src, "lua"), lab_src.split("\n"), _cc.DEFAULTS) == {6})
+check("label: `due to` and `workaround` keep a line in the language check",
+      all("language mismatch" in label_case(f"lb/r{i}.luau", blk, "lb") for i, blk in enumerate([
+          "\t-- Retry twice due to the flaky network\n", "\t-- Workaround for the engine resize bug\n"])))
+
+# 중복 제거와 다시 보기 키는 같은 이름의 함수를 가른다
+sid = uniq("ly")
+cls_a = '"""Module."""\n\n\nclass A:\n    def run(self):\n        return 1\n'
+cls_b = '\n\nclass B:\n    def run(self):\n        return 2\n'
+c1 = write_new("ly/same.py", cls_a, sid=sid, env_extra=ON)
+c2 = call("Edit", "ly/same.py", {"old_string": "        return 1\n", "new_string": "        return 1\n" + cls_b},
+          disk=cls_a + cls_b, sid=sid, env_extra=ON)
+check("layout: same-named function in another class is reported as new, the first is rechecked",
+      "run L5 has no doc comment" in c1 and "run L5 has no doc comment (still so after your last edit)" in c2
+      and "run L10 has no doc comment" in c2 and "run L10 has no doc comment (still" not in c2)
+check("layout: fn_keys numbers repeats", _lm.fn_keys([{"name": "a"}, {"name": "b"}, {"name": "a"}]) == ["a", "b", "a#2"])
+
+# layout 이 터져도 주석 알림은 나가고, 깨진 상태 파일은 무시한다
+import io as _io
+import tempfile as _tempfile
+import compact_epoch as _ce  # noqa: E402
+
+
+def in_process(rel, content, sid, env):
+    path = os.path.join(REPO, rel)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    open(path, "w").write(content)
+    d = {"session_id": sid, "cwd": REPO, "hook_event_name": "PostToolUse", "tool_name": "Write",
+         "tool_input": {"file_path": path, "content": content}, "tool_response": {"type": "create"}}
+    saved = (sys.stdin, sys.stdout, dict(os.environ), _tempfile.tempdir)
+    sys.stdin, sys.stdout = _io.StringIO(json.dumps(d)), _io.StringIO()
+    os.environ.update(env, TMPDIR=T, CLAUDE_PROJECT_DIR=REPO, CLAUDE_CONFIG_DIR=LIBHOME)
+    _tempfile.tempdir = T
+    try:
+        _cc.main()
+        return sys.stdout.getvalue()
+    finally:
+        sys.stdin, sys.stdout, _tempfile.tempdir = saved[0], saved[1], saved[3]
+        os.environ.clear()
+        os.environ.update(saved[2])
+
+
+def boom(*a, **k):
+    raise RuntimeError("metrics bug")
+
+
+real = _cc.layout_metrics.edit_findings
+_cc.layout_metrics.edit_findings = boom
+try:
+    out = in_process("ly/boom.luau", module(lua_fn("flat", 20)) + "-- see H-973\n", uniq("ly"), ON)
+except Exception:
+    out = ""
+finally:
+    _cc.layout_metrics.edit_findings = real
+check("layout: an exception in the metrics drops only the layout part", "history marker" in out and "layout (readable-code)" not in out)
+sid = uniq("ly")
+_tempfile.tempdir = T
+bad_state = _ce.state_path(_cc.NAME, _cc.NS, sid)
+_tempfile.tempdir = None
+for junk in ("[1, 2]", '{"files": [], "doc_recheck": "x"}'):
+    open(bad_state, "w").write(junk)
+    c = write_new("ly/badstate.luau", module(lua_fn("flat", 20)) + "-- see H-973\n", sid=sid, env_extra=ON)
+    check("layout: non-dict state file %s is ignored" % junk, "history marker" in c and "layout (readable-code)" in c)
+
 # ---- quad 표본(읽기 전용; 없으면 건너뜀) ----
 QUAD = "/code/Projects/quad"
 if os.path.isdir(QUAD):

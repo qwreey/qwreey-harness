@@ -25,6 +25,8 @@ DOC_FORM = {
 }
 DOC_OPEN = {"lua": re.compile(r"^\s*(?:---|--\[=+\[)"), "ts": re.compile(r"^\s*/\*\*"), "kt": re.compile(r"^\s*/\*\*"),
             "rust": re.compile(r"^\s*(?:///|/\*\*)"), "go": re.compile(r"^\s*//")}
+# 편집기 접기 표지(`--#region`, `// #endregion`)는 문서도 이유도 아니라 건너뛴다
+REGION = re.compile(r"^\s*(?:--|//)\s*#\s*(?:end)?region\b")
 DOC_MARK = re.compile(r"^\s*(?:--\[=*\[|-{2,}|/\*\*?|\*/|\*|/{2,}|#)\s?")
 DOC_TAG = re.compile(r"^(?:@|\*|-\s|\|)")
 # 첫 문장이 끝난 줄: 문장 부호나 한국어 종결 어미로 끝난다
@@ -34,8 +36,10 @@ LUA_TOKEN = re.compile(r"[A-Za-z_]\w*|\.\.\.?=?|[=~<>]=|//=?|[-+*/%^]=|->|::|\S"
 LUA_OPENERS = {"function": "function", "if": "if", "repeat": "repeat", "do": "do"}
 # 이 토큰 뒤의 `if` 는 식이라 `end` 가 없다
 LUA_EXPR_BEFORE = frozenset({"=", "(", ",", "{", "[", "return", "and", "or", "not", "elseif", "if", "while", "until", "in",
-                             "..", "==", "~=", "<", ">", "<=", ">=",
+                             "..", "==", "~=", "<=", ">=",
                              "+", "-", "*", "/", "//", "%", "^", "#", "+=", "-=", "*=", "/=", "//=", "%=", "^=", "..="})
+# `<`, `>` 는 줄 끝에서 제네릭 타입이나 캐스트(`): Optional<T>`)를 닫는 일이 많아, 같은 줄의 `if` 앞에서만 식으로 본다
+LUA_EXPR_BEFORE_SAME_LINE = frozenset({"<", ">"})
 LUA_NAME = re.compile(r"function\s+([\w.:]+)\s*[(<]|([\w.:\[\]\"]+)\s*=\s*function\b")
 LUA_PUBLIC = re.compile(r"^\s*function\s+[A-Za-z_]\w*(?:\.\w+)*[.:]\w+|^\s*[A-Za-z_]\w*(?:\.\w+)+\s*=\s*function\b")
 METAMETHOD = re.compile(r"(?:^|[.:])__\w+$")
@@ -55,6 +59,7 @@ KT_PRIVATE = re.compile(r"\b(?:private|protected|internal)\b")
 PY_DEF = re.compile(r"^\s*(?:async\s+)?def\s+(\w+)")
 PY_CLASS = re.compile(r"^\s*class\s+(\w+)")
 PY_MAIN = re.compile(r"^if\s+__name__\s*==")
+PY_HEADER_SCAN = 50  # def 머리를 찾아 내려가는 줄 수. 닫히지 않은 괄호가 파일 끝까지 훑지 않게 막는다
 
 # 한 선언에 이름 여럿: 오른쪽에 최상위 쉼표가 있을 때만 센다(`local ok, err = pcall(f)` 처럼 여러 반환을 받는 것은 뺀다)
 LUA_MULTI = re.compile(r"^\s*local\s+[A-Za-z_]\w*(?:\s*:[^,=]+)?\s*,")
@@ -62,6 +67,8 @@ TS_MULTI = re.compile(r"^\s*(?:let|const|var)\s+[A-Za-z_$][\w$]*\s*(?::[^=,]+)?(
 TS_DESTRUCTURE = re.compile(r"^\s*(?:let|const|var)\s*[\[{]")
 ONE_LETTER = {"lua": re.compile(r"^\s*local\s+([A-Za-z])\s*(?:[:=,]|$)"), "ts": re.compile(r"^\s*(?:let|const|var)\s+([A-Za-z])\s*[:=]")}
 LABEL_WORD = re.compile(r"[A-Za-z\u00c0-\u024f\uac00-\ud7a3]+")
+# 단계 라벨의 낱말 수(rules/readable-code.md 와 같은 2-10). 한 낱말은 라벨이 아니라 이름표나 메모로 본다
+LABEL_WORDS_MIN, LABEL_WORDS_MAX = 2, 10
 
 # 알림 기준. 사용자 손 코드(본문 15줄 이상)는 3/26, 에이전트 코드는 68/75 가 걸리는 선이다. 문서 첫 줄 100자는 지침(80자)보다
 # 느슨하게 두어 잡음을 줄인다. grow 는 기존 함수를 키운 편집, mostly 는 함수를 거의 새로 쓴 편집의 기준이다.
@@ -85,27 +92,41 @@ def functions(rows, lines, lang):
     return _c_functions(rows, lang)
 
 
-def _lua_spans(rows):
-    """가장 바깥 함수의 (머리 줄, `end` 줄) 목록."""
-    stack = []
-    spans = []
+def lua_blocks(rows):
+    """블록을 여닫는 토큰마다 (줄, 토큰, "open" | "close"). 반복문 머리의 `do` 와 `if` 식은 뺀다."""
     pending_do = 0
     prev = ""
+    prev_ln = -1
 
     for ln, row in enumerate(rows):
         for tok in LUA_TOKEN.findall(row["k"]):
             if tok in ("while", "for"):
-                stack.append(("loop", ln))
+                yield ln, tok, "open"
                 pending_do += 1
             elif tok == "do" and pending_do:
                 pending_do -= 1  # 반복문 머리의 `do` 는 새 블록을 열지 않는다
-            elif tok in LUA_OPENERS and not (tok == "if" and prev in LUA_EXPR_BEFORE):
-                stack.append((tok, ln))
-            elif tok in ("end", "until") and stack:
-                kind, start = stack.pop()
-                if kind == "function" and not any(k == "function" for k, _ in stack):
-                    spans.append((start, ln))
-            prev = tok
+            elif tok in LUA_OPENERS and not (tok == "if" and _lua_if_expr(prev, prev_ln == ln)):
+                yield ln, tok, "open"
+            elif tok in ("end", "until"):
+                yield ln, tok, "close"
+            prev, prev_ln = tok, ln
+
+
+def _lua_if_expr(prev, same_line):
+    return prev in LUA_EXPR_BEFORE or same_line and prev in LUA_EXPR_BEFORE_SAME_LINE
+
+
+def _lua_spans(rows):
+    """가장 바깥 함수의 (머리 줄, `end` 줄) 목록."""
+    stack = []
+    spans = []
+    for ln, tok, act in lua_blocks(rows):
+        if act == "open":
+            stack.append(("function" if tok == "function" else "block", ln))
+        elif stack:
+            kind, start = stack.pop()
+            if kind == "function" and not any(k == "function" for k, _ in stack):
+                spans.append((start, ln))
     return spans
 
 
@@ -161,13 +182,21 @@ def _py_functions(rows, lines):
 
 
 def _py_header_end(rows, start):
-    """`def` 머리가 끝나는 줄: 괄호 깊이 0 에서 콜론으로 끝나는 줄."""
+    """`def` 머리가 끝나는 줄: 매개변수 괄호가 닫힌 뒤 괄호 깊이 0 의 첫 콜론이 있는 줄.
+
+    한 줄 함수(`def f(): return 1`)는 머리 줄이 곧 끝이다. PY_HEADER_SCAN 줄 안에 없으면 머리 줄로 본다.
+    """
     depth = 0
-    for k in range(start, len(rows)):
-        code = rows[k]["k"]
-        depth += code.count("(") + code.count("[") - code.count(")") - code.count("]")
-        if depth <= 0 and code.rstrip().endswith(":"):
-            return k
+    opened = False
+    for k in range(start, min(len(rows), start + PY_HEADER_SCAN)):
+        for ch in rows[k]["k"]:
+            if ch in "([{":
+                depth += 1
+                opened = True
+            elif ch in ")]}":
+                depth -= 1
+            elif ch == ":" and depth <= 0 and opened:
+                return k
     return start
 
 
@@ -199,39 +228,60 @@ def _py_public_scope(found, rows, lines):
 
 
 def _c_spans(rows, lang):
-    """가장 바깥 함수의 (머리 줄, 여는 중괄호 줄, 닫는 중괄호 줄) 목록."""
+    """가장 바깥 함수의 (머리 줄, 여는 중괄호 줄, 닫는 중괄호 줄) 목록.
+
+    머리 안(매개변수 괄호, 제네릭 `<>`, 반환 타입 `: {`)의 중괄호는 타입이나 기본값이라 본문이 아니다.
+    본문은 머리 뒤 깊이 0 에서 처음 여는 `{` 다.
+    """
     keyword = C_FN_KEYWORD[lang]
     stack = []
     spans = []
-    pending = None
+    sig = None  # 머리를 읽는 중: {"ln", "paren"(머리가 시작할 때의 괄호 깊이), "angle", "brace", "call"}
     paren = 0
+    prev = ""
+
+    def start(ln, call=False):
+        return {"ln": ln, "paren": paren, "angle": 0, "brace": 0, "call": call}
+
+    def depth():
+        return paren - sig["paren"] + sig["angle"] + sig["brace"] if sig else 0
 
     for ln, row in enumerate(rows):
         code = row["k"].rstrip()
         method = C_METHOD.match(code) if lang == "ts" else None
-        if method and method.group(1) not in C_CONTROL and not code.endswith(";") and pending is None:
-            pending = ln
+        if method and method.group(1) not in C_CONTROL and not code.endswith(";") and sig is None:
+            sig = start(ln, call=True)  # 메서드 머리이거나 호출(`useEffect(() => {`)
 
         toks = C_TOKEN.findall(code)
         for i, tok in enumerate(toks):
             if tok in ("(", ")"):
                 paren += 1 if tok == "(" else -1
-            elif tok == keyword or tok == "=>" and toks[i + 1:i + 2] == ["{"]:
-                pending = ln if tok == keyword or pending is None else pending
+            elif tok == keyword:
+                sig = start(ln)
+            elif tok == "=>" and toks[i + 1:i + 2] == ["{"] and (sig is None or sig["call"] or depth() == 0):
+                sig = start(ln)  # 화살표 함수 본문이 바로 온다. 키워드 머리의 괄호 안이면 함수 타입(`cb: () => {...}`)이다
+            elif sig and tok in ("<", ">") and lang != "go":  # Go 제네릭은 `[]` 이고 `<-` 는 채널이다
+                sig["angle"] = max(0, sig["angle"] + (1 if tok == "<" else -1))
+            elif tok == "{" and sig and (depth() > 0 or prev == ":"):
+                sig["brace"] += 1  # 머리 안의 타입이나 기본값
+                stack.append((False, None, ln, True))
             elif tok == "{":
-                inside = any(is_fn for is_fn, _, _ in stack)
-                stack.append((pending is not None and not inside, pending, ln))
-                pending = None
+                inside = any(is_fn for is_fn, _, _, _ in stack)
+                stack.append((sig is not None and not inside, sig and sig["ln"], ln, False))
+                sig = None
             elif tok == "}" and stack:
-                is_fn, head, brace = stack.pop()
+                is_fn, head, brace, in_sig = stack.pop()
+                if in_sig and sig:
+                    sig["brace"] = max(0, sig["brace"] - 1)
                 if is_fn:
                     spans.append((head, brace, ln))
-            elif paren <= 0 and (tok == ";" or tok == "=" and lang == "kt"):
-                pending = None  # 몸통 없는 선언이거나 Kotlin 식 몸통
+            elif (depth() if sig else paren) <= 0 and (tok == ";" or tok == "=" and lang == "kt"):
+                sig = None  # 몸통 없는 선언이거나 Kotlin 식 몸통
+            prev = tok
 
         # 중괄호가 이 줄에도 다음 줄에도 없는 머리는 호출이나 시그니처다
-        if pending is not None and paren <= 0 and code and not code.endswith("{") and not _next_continues(rows, ln):
-            pending = None
+        if sig is not None and depth() <= 0 and code and not code.endswith("{") and not _next_continues(rows, ln):
+            sig = None
     return spans
 
 
@@ -337,10 +387,10 @@ def _comment_blocks(rows, kinds):
 
 
 def is_label(text):
-    """본문 단계 라벨처럼 보이는 한 줄 주석인가: 낱말 1-10, 마침표로 끝나지 않고 목록 표지나 TODO 로 시작하지 않는다."""
+    """본문 단계 라벨처럼 보이는 한 줄 주석인가: 낱말 2-10, 마침표로 끝나지 않고 목록 표지나 TODO 로 시작하지 않는다."""
     body = text.strip().lstrip("-/#* ").rstrip()
     words = LABEL_WORD.findall(body)
-    return 1 <= len(words) <= 10 and not body.endswith(".") and not body.startswith(("TODO", "NOTE", "FIXME"))
+    return LABEL_WORDS_MIN <= len(words) <= LABEL_WORDS_MAX and not body.endswith(".") and not body.startswith(("TODO", "NOTE", "FIXME"))
 
 
 def _top_level_comma(code):
@@ -390,22 +440,51 @@ def _doc_info(rows, lines, fn, lang):
     if lang == "py":
         return _py_doc(rows, lines, fn)
 
-    # Comment lines right above the header, past decorators
+    # Comment lines above the header, past decorators and region markers
     k = fn["start"] - 1
     while k >= 0 and rows[k]["code"] and re.match(r"^\s*(?:#\[|@)", rows[k]["k"]):
         k -= 1
-    block = []
-    while k >= 0 and not rows[k]["code"] and rows[k]["c"]:
-        block.append(lines[k])
+    while k >= 0 and _comment_only(rows[k]) and REGION.match(lines[k]):
         k -= 1
-    if not block:
+    if k < 0 or not _comment_only(rows[k]):
         return {"doc": "none", "doc_first": "", "doc_first_len": 0, "doc_sentence": True}
 
-    block.reverse()
-    if not DOC_OPEN[lang].match(block[0]):
-        first = _doc_text(block[0])
+    # 가장 가까운 주석이 정한다. 문서 주석 위의 이유 주석은 문서를 가리지 않는다
+    block = _nearest_doc(rows, lines, k, lang)
+    if not block:
+        top = k
+        while top > 0 and _comment_only(rows[top - 1]) and not REGION.match(lines[top - 1]):
+            top -= 1
+        first = _doc_text(lines[top])
         return {"doc": "hidden", "doc_first": first, "doc_first_len": len(first), "doc_sentence": True}
     return _summary([_doc_text(line) for line in block])
+
+
+def _comment_only(row):
+    return not row["code"] and bool(row["c"])
+
+
+def _block_start(rows, k):
+    """k 줄이 든 여러 줄 주석의 여는 줄(줄 주석이면 k)."""
+    while k > 0 and rows[k].get("in") and _comment_only(rows[k - 1]):
+        k -= 1
+    return k
+
+
+def _nearest_doc(rows, lines, k, lang):
+    """k 줄에서 위로 이어진 문서 주석 꼴의 줄 목록(위에서 아래 순). k 줄이 문서 꼴이 아니면 빈 목록.
+
+    블록 주석(`/** */`, `--[=[ ]=]`)은 그 블록 하나, 줄 주석(`---`, `///`)은 문서 꼴이 끊길 때까지다.
+    """
+    start = _block_start(rows, k)
+    if not DOC_OPEN[lang].match(lines[start]):
+        return []
+    if start < k:
+        return lines[start:k + 1]
+    while start > 0 and _comment_only(rows[start - 1]) and not rows[start - 1].get("in") and not REGION.match(lines[start - 1]) \
+            and DOC_OPEN[lang].match(lines[start - 1]):
+        start -= 1
+    return lines[start:k + 1]
 
 
 def _doc_text(line):
@@ -481,19 +560,21 @@ def limits(user):
 
 
 def edit_findings(text, rows, added, lang, user_limits=None, recheck=()):
-    """이번 편집이 쓰거나 키운 함수의 알림: [(범주, 함수 이름, 설명, 다시 본 것인가)].
+    """이번 편집이 쓰거나 키운 함수의 알림: [(범주, 함수 키, 설명, 다시 본 것인가)].
 
-    거의 새로 쓴(mostly) 함수와 grow 줄 이상 키운 함수는 모든 범주를, recheck 이름의 함수는 doc summary 만 본다.
+    거의 새로 쓴(mostly) 함수와 grow 줄 이상 키운 함수는 모든 범주를, recheck 키의 함수는 doc summary 만 본다.
+    함수 키는 이름이고, 파일에 같은 이름이 또 있으면 두 번째부터 `이름#순번`이다(fn_keys).
     """
     lines = text.split("\n")
     lim = limits(user_limits)
     out = []
-    for fn in functions(rows, lines, lang):
+    found_fns = functions(rows, lines, lang)
+    for fn, key in zip(found_fns, fn_keys(found_fns)):
         span = [ln for ln in range(fn["start"], fn["last"] + 1) if lines[ln].strip()]
         new = sum(1 for ln in span if ln in added)
         wrote = bool(span) and new >= lim["mostly"] * len(span)
         grew = new >= lim["grow"]
-        again = fn["name"] in recheck
+        again = key in recheck
         if not (wrote or grew or again):
             continue
 
@@ -501,8 +582,18 @@ def edit_findings(text, rows, added, lang, user_limits=None, recheck=()):
         if not (wrote or grew):
             found = {k: v for k, v in found.items() if k == "doc summary"}
         tag = " [grown by %d lines]" % new if grew and not wrote else ""
-        out += [(cat, fn["name"], desc + tag, again and cat == "doc summary") for cat, desc in found.items()]
+        out += [(cat, key, desc + tag, again and cat == "doc summary") for cat, desc in found.items()]
     return out
+
+
+def fn_keys(fns):
+    """함수마다 알림 중복 제거와 다시 보기에 쓰는 키: 이름, 같은 이름의 두 번째부터는 `이름#2`, `이름#3`."""
+    seen = {}
+    keys = []
+    for fn in fns:
+        seen[fn["name"]] = seen.get(fn["name"], 0) + 1
+        keys.append(fn["name"] if seen[fn["name"]] == 1 else "%s#%d" % (fn["name"], seen[fn["name"]]))
+    return keys
 
 
 def notice(items, lang):
