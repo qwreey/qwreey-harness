@@ -253,6 +253,24 @@ test('the tool actions change the desk and persist it', async ($, on) => {
   expect((kept.get(STORE_KEY) as { shape: string }).shape).toBe('desk-1')
 })
 
+test('set_plan applies a given step state, and keeps the matching rule when absent', async ($, on) => {
+  const { stored } = engine(on)
+  await start($)
+  await $.tool.call(desk({ action: 'set_plan', steps: ['a', 'b', 'c'] }))
+  await $.tool.call(desk({ action: 'update_step', id: 'S2', state: 'doing' }))
+  // S1 retitled with a state wins; S2 keeps its state by id and title; S3 retitled without a state resets.
+  await $.tool.call(
+    desk({ action: 'set_plan', steps: [{ text: 'a2', state: 'done' }, { text: 'b' }, { text: 'c2' }, { text: 'd', state: 'doing' }, { text: 'e', state: 'bogus' }] }),
+  )
+  expect(stored().plan.map((s: any) => [s.id, s.state])).toEqual([
+    ['S1', 'done'],
+    ['S2', 'doing'],
+    ['S3', 'todo'],
+    ['S4', 'doing'],
+    ['S5', 'todo'],
+  ])
+})
+
 test('a chat line answers a decision and tells the model', async ($, on) => {
   const { submitted, stored } = engine(on)
   await start($)
