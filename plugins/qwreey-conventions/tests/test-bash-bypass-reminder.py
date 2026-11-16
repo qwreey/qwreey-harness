@@ -28,6 +28,7 @@ def run(cmd, env=None):
     _n[0] += 1
     payload = {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": cmd}, "session_id": "b%d" % _n[0], "cwd": PROJ}
     e = dict(os.environ, TMPDIR=T, CLAUDE_CONFIG_DIR=CFG, CLAUDE_PROJECT_DIR=PROJ)
+    e.pop("HARNESS_READABLE_CODE", None)
     e.update(env or {})
     r = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(payload), capture_output=True, text=True, env=e)
     return json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"] if r.stdout.strip() else ""
@@ -123,6 +124,11 @@ class PluginRules(unittest.TestCase):
         c = run("python3 -c \"print(open('src/a.py').read())\"")
         self.assertIn("comments (qwreey-conventions rule:", c)
         self.assertNotIn("comments (qwreey-conventions rule:", run("python3 -c \"print(open('src/a.md').read())\""))
+
+    def test_switched_rule_listed_only_when_on(self):
+        cmd = "python3 -c \"print(open('src/a.luau').read())\""
+        self.assertNotIn("readable-code (qwreey-conventions rule:", run(cmd))
+        self.assertIn("readable-code (qwreey-conventions rule:", run(cmd, {"HARNESS_READABLE_CODE": "on"}))
 
 
 if __name__ == "__main__":

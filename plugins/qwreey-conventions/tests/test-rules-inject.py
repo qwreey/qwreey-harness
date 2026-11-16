@@ -2,7 +2,7 @@
 """rules_inject 훅 회귀. 실행: python3 -I test-rules-inject.py  (exit 0 = 통과)
 
 glob 변환(이 플러그인 rule 4개의 패턴 전부), 주입 dedup(에이전트·compact 회차·세션별), PreToolUse 출력 없음과 편집 뒤 대조 문장, 건너뛰는 경로, 병렬 호출 이중 주입 없음,
-끄기(환경 변수, harness.env, rules_exclude)를 본다. 상태는 TMPDIR 로 격리한다.
+끄기(환경 변수, harness.env, rules_exclude)와 `switch:` rule 의 켜기(환경 변수, 사용자·저장소 harness.env 층)를 본다. 상태는 TMPDIR 로 격리한다.
 """
 import json
 import os
@@ -37,6 +37,7 @@ def run(event, tool, path, session="s1", agent=None, env=None, cwd=PROJ):
         payload["agent_id"] = agent
     e = dict(os.environ, TMPDIR=T, CLAUDE_CONFIG_DIR=CFG, CLAUDE_PROJECT_DIR=PROJ)
     e.pop("HARNESS_CONVENTIONS_RULES", None)
+    e.pop("HARNESS_READABLE_CODE", None)
     e.update(env or {})
     r = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(payload), capture_output=True, text=True, env=e)
     return json.loads(r.stdout)["hookSpecificOutput"] if r.stdout.strip() else None
@@ -52,7 +53,7 @@ def fresh():
 
 
 def rx(rule, glob_index=None):
-    return dict((n, r) for n, r, _ in ri.load_rules())[rule]
+    return dict((n, r) for n, r, *_ in ri.load_rules())[rule]
 
 
 def hit(rule, path, root=PROJ):
@@ -61,8 +62,17 @@ def hit(rule, path, root=PROJ):
 
 class Globs(unittest.TestCase):
     def test_every_rule_has_globs(self):
-        names = {n for n, _, _ in ri.load_rules()}
-        self.assertEqual(names, {"comments", "agent-docs", "code-structure", "code-reuse", "memory"})
+        names = {n for n, *_ in ri.load_rules()}
+        self.assertEqual(names, {"comments", "agent-docs", "code-structure", "code-reuse", "memory", "readable-code"})
+
+    def test_switch_frontmatter(self):
+        switches = {n: sw for n, _, _, sw in ri.load_rules()}
+        self.assertEqual(switches.pop("readable-code"), "HARNESS_READABLE_CODE")
+        self.assertEqual(set(switches.values()), {None})
+
+    def test_readable_code_paths_match_code_reuse(self):
+        rules = {n: rx for n, rx, *_ in ri.load_rules()}
+        self.assertEqual([r.pattern for r in rules["readable-code"]], [r.pattern for r in rules["code-reuse"]])
 
     def test_comments_braces(self):
         for ext in ("luau", "py", "html", "sh", "kt", "tsx"):
@@ -280,6 +290,67 @@ class Switches(unittest.TestCase):
             os.remove(p)
 
     def test_bad_input_is_silent(self):
+        r = subprocess.run([sys.executable, "-I", HOOK], input="not json file_path", capture_output=True, text=True)
+        self.assertEqual((r.returncode, r.stdout), (0, ""))
+
+
+RC = 'name="readable-code"'
+
+
+class SwitchedRule(unittest.TestCase):
+    """`switch: HARNESS_READABLE_CODE` rule: 키가 `on` 일 때만, 다른 rule 은 키와 무관하게 그대로."""
+
+    def tearDown(self):
+        for f in (os.path.join(CFG, "harness.env"), os.path.join(PROJ, ".claude", "harness.env"),
+                  os.path.join(PROJ, ".claude", "harness.local.env"), os.path.join(PROJ, ".claude", "conventions.json")):
+            if os.path.exists(f):
+                os.remove(f)
+
+    @staticmethod
+    def write(path, text):
+        with open(path, "w") as f:
+            f.write(text)
+
+    def test_default_off_leaves_other_rules(self):
+        c = ctx(run("PostToolUse", "Read", X + "/a.luau", fresh()))
+        self.assertNotIn(RC, c)
+        self.assertIn('name="comments"', c)
+        self.assertIn('name="code-reuse"', c)
+
+    def test_env_on_injects(self):
+        c = ctx(run("PostToolUse", "Read", X + "/a.luau", fresh(), env={"HARNESS_READABLE_CODE": "on"}))
+        self.assertIn(RC, c)
+        self.assertIn("# Readable code", c)
+        self.assertNotIn("switch:", c)
+        for v in ("off", "", "yes", "1"):
+            self.assertNotIn(RC, ctx(run("PostToolUse", "Read", X + "/a.luau", fresh(), env={"HARNESS_READABLE_CODE": v})), v)
+
+    def test_user_layer_on_repo_layer_off(self):
+        self.write(os.path.join(CFG, "harness.env"), "HARNESS_READABLE_CODE=on\n")
+        self.assertIn(RC, ctx(run("PostToolUse", "Read", X + "/a.py", fresh())))
+        self.write(os.path.join(PROJ, ".claude", "harness.env"), "HARNESS_READABLE_CODE=off\n")
+        c = ctx(run("PostToolUse", "Read", X + "/a.py", fresh()))
+        self.assertNotIn(RC, c)
+        self.assertIn('name="comments"', c)
+        self.write(os.path.join(PROJ, ".claude", "harness.local.env"), "HARNESS_READABLE_CODE=on\n")
+        self.assertIn(RC, ctx(run("PostToolUse", "Read", X + "/a.py", fresh())))
+
+    def test_rules_exclude_beats_switch(self):
+        self.write(os.path.join(PROJ, ".claude", "conventions.json"), json.dumps({"rules_exclude": ["readable-code"]}))
+        self.assertNotIn(RC, ctx(run("PostToolUse", "Read", X + "/a.py", fresh(), env={"HARNESS_READABLE_CODE": "on"})))
+
+    def test_off_does_not_use_up_the_marker(self):
+        s = fresh()
+        self.assertNotIn(RC, ctx(run("PostToolUse", "Read", X + "/a.py", s)))
+        c = ctx(run("PostToolUse", "Edit", X + "/a.py", s, env={"HARNESS_READABLE_CODE": "on"}))
+        self.assertIn(RC, c)
+        self.assertNotIn('name="comments"', c)  # 이미 실린 rule 은 다시 안 넣는다
+        self.assertIsNone(run("PostToolUse", "Read", X + "/b.py", s, env={"HARNESS_READABLE_CODE": "on"}))
+
+    def test_non_code_path_silent_even_on(self):
+        self.assertNotIn(RC, ctx(run("PostToolUse", "Read", X + "/a.md", fresh(), env={"HARNESS_READABLE_CODE": "on"})))
+
+    def test_bad_input_is_silent_with_switch(self):
         r = subprocess.run([sys.executable, "-I", HOOK], input="not json file_path", capture_output=True, text=True)
         self.assertEqual((r.returncode, r.stdout), (0, ""))
 

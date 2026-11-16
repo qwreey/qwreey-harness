@@ -11,6 +11,13 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
 
+# 이 플러그인만 읽는 harness.env 키의 기본값(tools/tests/test-harness-env-owners.py 가 주인을 본다). 저장소 층도 바꿀 수 있다:
+# 개인 취향 규약이라 사용자가 자기 층에서 켜고, 저장소가 팀 공유 층에서 끈다.
+ENV_DEFAULTS = {
+    # rules/readable-code.md 주입과 conventions-check 의 layout 알림. `on` 일 때만 켜진다.
+    "HARNESS_READABLE_CODE": "off",
+}
+
 _VALS = None
 
 
@@ -23,7 +30,7 @@ def _layers():
     if _VALS is None:
         try:
             import harness_env
-            _VALS = harness_env.load_layers()
+            _VALS = harness_env.load_layers(defaults=ENV_DEFAULTS)
         except Exception:
             _VALS = {}
     return _VALS
@@ -38,3 +45,8 @@ def env_value(name):
 
 def is_off(name):
     return env_value(name).lower() == "off"
+
+
+def is_on(name):
+    """켜기 스위치(기본 꺼짐)가 켜졌나: 값이 정확히 `on` 일 때만."""
+    return env_value(name).lower() == "on"

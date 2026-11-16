@@ -138,7 +138,7 @@ def load_rules(dirs):
             for f in sorted(files):
                 if f.endswith(".md"):
                     r = rules_inject.parse_rule(os.path.join(root, f))
-                    if r:
+                    if r and rules_inject.switch_on(r[2]):  # 꺼진 rule 은 주입도 안 되므로 이름을 대지 않는다
                         rules.append((os.path.join(root, f), [rules_inject.glob_to_regex(g) for g in r[0]]))
     return rules
 

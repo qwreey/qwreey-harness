@@ -70,16 +70,16 @@ class Runner:
     def common(self, proj):
         return {"CLAUDE_PROJECT_DIR": str(proj), "CLAUDE_CONFIG_DIR": str(self.cfg)}
 
-    def py(self, event, data, off, proj):
-        env = base_env(self.tmp, {"TMPDIR": str(self.py_tmp), **self.common(proj)})
+    def py(self, event, data, off, proj, extra=None):
+        env = base_env(self.tmp, {"TMPDIR": str(self.py_tmp), **self.common(proj), **(extra or {})})
         if off:
             env["HARNESS_CONVENTIONS_RULES"] = "off"
         script = "rules_inject.py" if event == "hook" else "compact_epoch.py"
         argv = ["python3", "-I", str(self.hooks / script)] + ([] if event == "hook" else [self.pack])
         return subprocess.run(argv, input=json.dumps(data), capture_output=True, text=True, env=env, timeout=30, cwd=str(self.tmp)).stdout
 
-    def cg(self, event, data, off, proj):
-        env = base_env(self.tmp, {"CODERAG_HOME": str(self.cg_home), "CODERAG_CACHE": str(self.cg_cache), **self.common(proj)})
+    def cg(self, event, data, off, proj, extra=None):
+        env = base_env(self.tmp, {"CODERAG_HOME": str(self.cg_home), "CODERAG_CACHE": str(self.cg_cache), **self.common(proj), **(extra or {})})
         if off:
             env["CODERAG_RULES"] = "off"
         argv = [self.bin, "hook", "post-tool" if event == "hook" else "pre-compact"] + (["--pack", self.pack] if event == "hook" else [])
@@ -142,6 +142,10 @@ def scenarios(pack, proj, proj_excl, cfg):
     out.append(("tool-name-missing", [H({"hook_event_name": "PostToolUse", "session_id": "p", "tool_input": {"file_path": f"{P}/{hit}"}})]))
     out.append(("off-switch", [H(ev("Read", f"{P}/{hit}", "q"), off=True), H(ev("Read", f"{P}/{hit}", "q"))]))
     out.append(("rules-exclude", [H(ev("Read", f"{proj_excl}/{hit}", "r"), proj=proj_excl)]))
+    # 참조 구현의 `switch:` 는 프론트매터에 그 키가 있는 rule 만 거른다. 팩 rule 에는 없으므로 키가 꺼져도 켜져도 주입이 같아야 한다.
+    out.append(("switch-key-without-switch-rules", [H(ev("Read", f"{P}/{hit}", "t"), env={"HARNESS_READABLE_CODE": "off"}),
+                                                    H(ev("Read", f"{P}/{hit}", "u"), env={"HARNESS_READABLE_CODE": "on"}),
+                                                    H(ev("Edit", f"{P}/{hit2}", "v"), env={"HARNESS_READABLE_CODE": "off"})]))
     out.append(("garbage-input", [("raw", "not json file_path", {}), ("raw", "{}", {}), ("raw", "", {})]))
     return out
 
@@ -166,6 +170,7 @@ def main():
                 for i, (kind, data, opt) in enumerate(steps):
                     p = opt.get("proj", proj)
                     off = opt.get("off", False)
+                    extra = opt.get("env")
                     if kind == "raw":
                         a = subprocess.run(["python3", "-I", str(r.hooks / "rules_inject.py")], input=data, capture_output=True, text=True,
                                            env=base_env(tmp, {"TMPDIR": str(r.py_tmp), "CLAUDE_PROJECT_DIR": str(p)}), timeout=30).stdout
@@ -174,7 +179,7 @@ def main():
                                            timeout=30).stdout
                     else:
                         ek = "hook" if kind == "hook" else "compact"
-                        a, b = r.py(ek, data, off, p), r.cg(ek, data, off, p)
+                        a, b = r.py(ek, data, off, p, extra), r.cg(ek, data, off, p, extra)
                     if kind != "compact":
                         total += 1
                         injected += bool(a)
