@@ -64,4 +64,5 @@ Multi-file audits:
 - [50-main-delegate/](50-main-delegate/) - main talks, big implementation goes to a background subagent: boundary wording, q delegate-nudge hook (12 edits/8 files + carry-over), skill left to the user
 - [51-precompact-omit/](51-precompact-omit/) - PreCompact stdout steers the compaction summary; plugins that re-inject a block at compact tell it to omit that block
 - [52-luau-kb-skill-descriptions/](52-luau-kb-skill-descriptions/) - luau-kb skill descriptions can shrink to 57% without losing triggers; 30% loses symptom-phrased questions
+- [53-compact-pointer-restore/](53-compact-pointer-restore/) - compact pointers are harmless but add little on CC 2.1.316 (it restores 5 newest-mtime files, the summary keeps paths); no skill-budget push-outs; `coderag get` reads are not ledgered
 - [drafts/](drafts/) - drafts written during audits
