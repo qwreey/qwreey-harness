@@ -1,6 +1,6 @@
 # qwreey-proc-guard 동작 상세
 
-구성: PreToolUse(Bash) 훅 하나(`hooks/heavy-proc-guard.py`). 스킬, 규약 주입, 상태 파일은 없다.
+구성: PreToolUse(Bash) 훅 둘. `hooks/heavy-proc-guard.py`(무거운 실행, 아래 대부분)와 `hooks/self-match-guard.py`(자기 셸에 걸리는 `pgrep -f`, 맨 아래 절). 둘 다 `hooks/shell_segments.py` 로 heredoc 본문을 버리고 구간을 나눈다. 스킬, 규약 주입, 상태 파일은 없다.
 
 ## 왜 choom 인가
 컨테이너의 메모리 cgroup 을 모든 Claude 세션이 같이 쓴다. 벤치가 남은 메모리를 다 쓰면 cgroup OOM killer 가 `oom_score` 로 희생자를 고르는데, Claude 프로세스가 고른 적이 있다(exit 137). Claude 의 점수를 낮추려면 권한(CAP_SYS_RESOURCE)이 필요하지만 자식의 점수를 올리는 것은 권한 없이 되고 exec 를 거쳐 상속된다. 그래서 `choom -n 1000 -- <명령>` 으로 무거운 프로세스 트리를 첫 희생자로 만든다.
@@ -25,7 +25,18 @@
 ## 설정
 harness.env 층의 `HARNESS_HEAVY_WRAP`, `HARNESS_HEAVY_EXECUTORS`, `HARNESS_HEAVY_KEYWORDS`, `HARNESS_TOOLKITS`: 사용자 `~/.claude/harness.env`(`$CLAUDE_CONFIG_DIR` 아래) < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env` < 환경 변수. 읽기는 옆의 `hooks/harness_env.py` 사본(하네스 로더의 사본). `HARNESS_HEAVY_EXECUTORS`, `HARNESS_HEAVY_KEYWORDS` 는 이 훅만 읽어 `heavy-proc-guard.py` 의 `ENV_DEFAULTS` 에 있고, `HARNESS_HEAVY_WRAP`, `HARNESS_TOOLKITS` 는 여러 플러그인이 읽어 로더에 있다. `HARNESS_HEAVY_WRAP` 은 로더의 `USER_ONLY` 라 저장소 층이 바꾸지 못한다(클론한 저장소가 래퍼를 끄거나 다른 프로그램을 쓰게 하지 못하게). 저장소 층은 실행기·키워드를 더할 수 있다. 파일이 없으면 기본값(`auto`)으로 돈다.
 
+## 자기 셸에 걸리는 pgrep -f (`self-match-guard.py`)
+Claude Code 는 Bash 명령을 `bash -c '… eval '<명령>' …'` 로 돌려 셸의 argv 에 명령 전체가 들어간다. `pgrep -f` 는 전체 명령줄에 패턴을 맞추고 자기 자신만 빼므로, 명령에 든 패턴은 늘 그 셸에 걸린다. 백그라운드 `until ! pgrep -f X; do sleep 2; done` 이 몇 시간 동안 자기 셸을 기다린 적이 있고, `pkill -f X` 는 자기를 돌리는 셸을 죽일 수 있다.
+
+1. 명령에 `pgrep`·`pkill` 이 없거나 첫 구간이 `git`·`gh` 면 통과. heredoc 본문은 버린다.
+2. 구간(heavy-proc-guard 와 같은 나눔에 배경 실행 `&` 를 더함)마다 명령 자리의 `pgrep`·`pkill` 을 찾는다: 구간 머리(`while`, `until`, `if`, `!`, `do`, `sudo`, `timeout …` 같은 앞말 뒤)이거나 `$(…)`·백틱 안. `echo`·`grep` 의 인자는 세지 않는다.
+3. 옵션을 읽는다: `-f`/`--full` 이 있고 패턴이 있어야 한다(`-af`, `-fl` 같은 묶음, 값을 받는 옵션, pkill 의 `-9`·`-KILL` 포함). `-v`, `-A`/`--ignore-ancestors` 가 있으면 건너뛴다.
+4. 패턴을 정규식으로 읽어(`-i` 는 대소문자 무시, `-x` 는 전체 일치) 명령 글자에 맞으면 자기 일치다. 그래서 대괄호 꼴(`[t]est`)은 같은 글자가 명령 다른 곳에 없는 한 저절로 통과한다. 패턴의 `$VAR` 는 같은 명령의 대입으로 채우고, 모르는 변수면 건너뛴다. Python 이 못 읽는 정규식은 글자 그대로 들어 있는지로 본다.
+5. 판정: `while`·`until` 루프의 조건이나 본문 안이면 deny(`level="action"`, 루프가 끝나지 않는 이유와 `pgrep -x <이름>`, 대괄호 꼴, `pgrep -A -f`, run_in_background 로 띄우고 완료 알림을 기다리기). 루프 밖 `pkill -f` 는 warn(자기 셸을 죽여 명령이 끊길 수 있음), `pgrep -f` 는 info. `for` 루프는 대기 루프로 치지 않는다.
+6. 못 잡는 것: `bash -c '…'` 따옴표 안의 루프, 따옴표 안의 `;`·`|` 로 구간이 잘못 나뉜 경우(오탐 쪽).
+
 ## 테스트
 ```bash
 python3 -I plugins/qwreey-proc-guard/tests/test-heavy-proc-guard.py
+python3 -I plugins/qwreey-proc-guard/tests/test-self-match-guard.py
 ```

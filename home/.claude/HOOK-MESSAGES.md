@@ -35,6 +35,9 @@ MANIFEST 대상 아님. 근거 실측: `.claude/scopes/home/.claude/audit/17-hoo
 | 훅 | 알림 | level |
 |---|---|---|
 | heavy-proc-guard | (플러그인 `qwreey-proc-guard`, Linux 전용) deny(choom 래핑 요구) | action |
+| self-match-guard | (플러그인 `qwreey-proc-guard`) `pgrep -f`·`pkill -f` 패턴이 자기 셸의 명령줄에 걸리고 while/until 루프 안: deny(끝나지 않는 이유, `pgrep -x`, 대괄호 꼴, `-A`, run_in_background 완료 알림) | action |
+| | 루프 밖 `pkill -f`: 자기 셸을 죽일 수 있음 | warn |
+| | 루프 밖 `pgrep -f`: 자기 셸도 찾음 | info |
 | bash-bypass-reminder | (플러그인 `qwreey-conventions`) 셸로 파일 변경(sed -i, 리다이렉트 등) | warn |
 | | 해당 rules 파일 안내(설치된 모든 플러그인의 `rules/` 포함, 쓰는 명령이면 먼저 읽고 읽기만 하면 할 것 없음): 쓰기 신호가 있으면 | warn |
 | | 같은 안내와 인터프리터 안내: 읽기만 하는 명령(쓰기 신호 없음) | info |
@@ -54,8 +57,8 @@ MANIFEST 대상 아님. 근거 실측: `.claude/scopes/home/.claude/audit/17-hoo
 | | attended 큰 팬아웃(동시 4+, opus 이상 2+, Workflow) → 사용자에게 규모 고지(팬아웃 묶음·회차마다 한 번) | warn |
 | | away 중 메인 단독 작업: 예산 도달(1단계) → 재고 리마인더(PostToolUse 모든 도구, 회차·away 선언마다 한 번) | warn |
 | | away 중 메인 단독 작업: 예산 2배(2단계) → `halt:` 진척 기록 후 대기(같은 경로, 한 번. 강제 중단 없음) | action |
-| stale-work | (q 플러그인 `scripts/stale_work.py`) 백그라운드 작업(subagent, workflow. monitor 제외)이 진척 없이 15분+·관측 30분+: 멈췄거나 대기 중일 수 있다는 질문형 문구(UserPromptSubmit 으로 전달, (세션, task id, 상태)마다 한 번). 끄기 `HARNESS_Q_STALE=off` | warn |
-| | 같은 작업이 2시간+ 실행 중(진척 신호가 없거나 아직 있음) | info |
+| stale-work | (q 플러그인 `scripts/stale_work.py`) 백그라운드 작업(subagent, workflow, shell 등. monitor 제외)이 진척 없이 15분+·관측 30분+: 멈췄거나 대기 중일 수 있다는 질문형 문구, 끝난 일에 딸린 작업이나 대기 루프면 멈추거나(TaskStop) 사용자에게 알리라는 권고(UserPromptSubmit 으로 전달, (세션, task id, 상태)마다 한 번). 끄기 `HARNESS_Q_STALE=off` | warn |
+| | 같은 작업이 2시간+ 실행 중(진척 신호가 없거나 아직 있음): 같은 멈춤 권고, 그 밖이면 사용자에게 한 줄 | info |
 | workspace-gate | (qwreey-workspace 플러그인 `scripts/workspace_gate.py`, .claude/audit/31) 이 세션의 저장소가 아닌 `HARNESS_WORKSPACE/<X>` 에 쓰기(Edit·Write·MultiEdit·NotebookEdit, 쓰기로 분류된 Bash)를 qwreey-workspace:workspace 스킬 로드 전에 시도 → deny(`Load the qwreey-workspace:workspace skill (Skill tool), then retry`; 로드 표시는 세션·agent_id·compact 회차 단위). 예외는 통과, `HARNESS_WORKSPACE_GATE=off` 로 끔 | action |
 | | 형제 저장소 읽기(Read·Grep·Glob, 그 밖의 Bash) → compact 회차마다 한 번: 읽기는 괜찮고 바꾸려면 사용자 승인과 스킬이 먼저 | info |
 | stale-worktrees | (qwreey-workspace 플러그인 `scripts/stale_worktrees.py`, SessionStart startup·resume·clear, 메인만, 세션마다 한 번) 이 저장소에 `HARNESS_WORKSPACE_STALE_WORKTREE_DAYS`(기본 14)일 넘게 손대지 않았고 잠기지 않았고 살아 있는 세션이 없는 worktree, 또는 폴더가 사라진 등록: 끝난 작업일 수 있으니 정리할 때면 스킬의 잠금·세션 확인 뒤 사용자에게 묻기(사용자가 두는 것이면 할 것 없음). 지우는 명령은 적지 않는다 | info |

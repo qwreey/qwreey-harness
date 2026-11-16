@@ -26,6 +26,9 @@ import shutil
 import sys
 from pathlib import Path
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
+from shell_segments import segments, strip_heredocs  # self-match-guard.py 와 같이 쓴다
+
 BASE_KEYWORDS = ["bench", "fuzz", "perf(?:orm(?:ance)?)?(?![A-Za-z])", "stress", "soak", "load-?test", "hyperfine"]
 BASE_EXECUTORS = {"bash", "sh", "zsh", "python", "python3", "node", "hyperfine"}
 # 툴킷마다 무거운 실행을 띄우는 실행기. 새 툴킷은 여기에 한 줄 더한다(q 플러그인 skills/doctor/references/toolkits/README.md).
@@ -37,12 +40,8 @@ TOOLKIT_EXECUTORS = {
 # 이 훅만 읽는 harness.env 키: 위 표에 더할 실행기와 키워드(공백 구분). 더하기만 하므로 저장소 층도 정할 수 있다.
 # HARNESS_HEAVY_WRAP, HARNESS_TOOLKITS 는 여러 플러그인이 읽는 키라 harness_env.DEFAULTS 에 있다.
 ENV_DEFAULTS = {"HARNESS_HEAVY_EXECUTORS": "", "HARNESS_HEAVY_KEYWORDS": ""}
-PREFIX_WORDS = {"(", "{", "time", "nice", "env", "command", "exec", "nohup"}
 EXEMPT_HEADS = {"git", "gh"}
 DELEGATE_SCRIPTS = ("delegate.py", "delegate.sh")  # file names of qwreey-delegate's driver; see main()
-
-
-HEREDOC = re.compile(r"<<(?!<)-?\s*(?:'([A-Za-z_]\w*)'|\"([A-Za-z_]\w*)\"|\\?([A-Za-z_]\w*))")
 
 
 ASSIGN = re.compile(r"(?:^|[;&|\s(])([A-Za-z_][A-Za-z0-9_]*)=(\S*)")
@@ -50,46 +49,6 @@ ASSIGN = re.compile(r"(?:^|[;&|\s(])([A-Za-z_][A-Za-z0-9_]*)=(\S*)")
 
 # Timing calls mark a benchmark far more precisely than the keywords; used only on heredoc bodies.
 TIMING = re.compile(r"os\.clock\(|perf_counter|timeit|performance\.now\(|hrtime|Instant::now")
-
-
-def strip_heredocs(cmd, dropped=None):
-    """Command without heredoc bodies; the body lines go to `dropped` when a list is given."""
-    out, pending = [], []  # pending: (terminator, tab-stripped) for heredocs opened on earlier lines
-    for line in cmd.split("\n"):
-        if pending:
-            term, dash = pending[0]
-            if (line.lstrip("\t") if dash else line) == term:
-                pending.pop(0)
-            elif dropped is not None:
-                dropped.append(line)
-            continue
-        out.append(line)
-        for m in HEREDOC.finditer(line):
-            pending.append((m.group(1) or m.group(2) or m.group(3), m.group(0).startswith("<<-")))
-    return "\n".join(out)
-
-
-def segments(cmd):
-    """(head, segment text) per segment; head is the program after env/time/timeout/... prefixes."""
-    for seg in re.split(r"&&|\|\||[;|\n]", strip_heredocs(cmd)):
-        words = seg.replace("(", " ( ").split()
-        i = 0
-        while i < len(words):
-            w = words[i]
-            if w in PREFIX_WORDS or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=\S*", w):
-                i += 1
-            elif w == "timeout":
-                i += 1
-                while i < len(words) and (words[i].startswith("-") or re.fullmatch(r"[\d.]+[smhd]?", words[i])):
-                    i += 2 if words[i] in ("-s", "-k", "--signal", "--kill-after") else 1
-            elif w == "mise" and i + 1 < len(words) and words[i + 1] == "exec":
-                i += 2
-                if i < len(words) and words[i] == "--":
-                    i += 1
-            else:
-                break
-        if i < len(words):
-            yield words[i], seg
 
 
 def is_executor(head, executors):
