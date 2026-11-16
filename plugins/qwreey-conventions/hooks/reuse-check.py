@@ -33,7 +33,7 @@ import copy_regions  # noqa: E402
 import harness_nonce  # noqa: E402
 from conv_edit import GEN_MARK, MAX_BYTES, SKIP_PARTS, SKIP_SUFFIX, collect, project_root  # noqa: E402
 from conv_env import env_value  # noqa: E402
-from conv_lex import FAMILY  # noqa: E402
+from conv_lex import FAMILY, lex  # noqa: E402
 from reuse_sets import FLAG_DEF, FLAG_TYPE, extract, reason_ok  # noqa: E402
 
 NAME = "qwreey-conventions"
@@ -441,6 +441,124 @@ def source_copies(rel, ents, prev, now, touched_file, touched_regions=frozenset(
     return out
 
 
+# ---------- 표시 자리와 꼴(M1) ----------
+# 표시는 줄 주석에 둔다. 문서 주석(Rust ///, /** */, Luau --- 와 --[=[ ]=])은 문서 도구가 표시를 싣거나 태그로 읽고,
+# 영역 표시는 copy_regions.MARK 꼴의 줄만 읽힌다. 형제 저장소는 @copy-of 가 <저장소>:<경로>, @start-replace 가 ../<저장소>/<경로> 다.
+MARK_WORD = re.compile(r"@(copy-of|start-replace|end-replace)(?![\w-])")
+COPY_AT = re.compile(r"@copy-of:[ \t]*([A-Za-z0-9_.][^\s`'\"<>]*)")
+REGION_PATH = re.compile(r"@start-replace:[ \t]*([^\s#]+)#")
+MIXED_COPY = re.compile(r"^\.\./([\w.-]+):([^/\\].*)$")
+COLON_REGION = re.compile(r"^(?:\.\./)?([\w.-]+):([^/\\].*)$")
+JSON_EXT = {".json", ".jsonc"}
+BLOCKISH = ("block", "doc", "html")
+
+
+def opener_kind(prefix, seg, fam):
+    """주석 조각의 종류: line, docline(줄 문서 주석), block, doc(블록 문서 주석), html. prefix 는 조각 앞 글(여는 표식으로 끝난다), seg 는 조각 본문."""
+    if prefix.endswith("<!--"):
+        return "html"
+    if fam == "lua":
+        m = re.search(r"--\[(=*)\[$", prefix)
+        if m:
+            return "doc" if m.group(1) else "block"
+        return "docline" if seg.startswith("-") and not seg.startswith("--") else "line"
+    if prefix.endswith("/*"):
+        return "doc" if (seg.startswith("*") and not seg.startswith("*/")) or (fam == "rust" and seg.startswith("!")) else "block"
+    if fam == "rust" and prefix.endswith("//") and seg.startswith("/") and not seg.startswith("//"):
+        return "docline"
+    return "line"
+
+
+def comment_kinds(text, fam):
+    """줄마다 [(시작 열, 끝 열, 종류)]. 줄 끝까지 열린 블록의 종류는 다음 줄로 잇는다."""
+    out, carry = [], None
+    rows = lex(text, fam, keep_code=True)
+    for k, s in enumerate(text.split("\n")):
+        segs = []
+        for a, b in rows[k]["s"]:
+            kind = carry if (a == 0 and carry) else opener_kind(s[:a], s[a:b], fam)
+            segs.append((a, b, kind))
+        if segs and segs[-1][1] == len(s):
+            carry = segs[-1][2] if segs[-1][2] in BLOCKISH else None
+        elif k + 1 < len(rows) and rows[k + 1]["in"] and re.search(r"(?:--\[=*\[|/\*|<!--)$", s):
+            carry = opener_kind(s, "", fam)  # 여는 표식이 줄 끝이면 조각이 없다
+        elif segs or not rows[k]["in"]:
+            carry = None  # 빈 줄은 열린 블록을 잇는다
+        out.append(segs)
+    return out
+
+
+def mark_text(s, p):
+    """줄 s 의 p 에서 시작하는 표시 글(닫는 주석 표식 앞까지)."""
+    return re.split(r"\*/|\]=*\]|-->", s[p:], 1)[0].rstrip()
+
+
+def line_comment(text, fam):
+    return "%s %s" % ("--" if fam == "lua" else "#" if fam == "py" else "//", text)
+
+
+def marker_notes(rel, ext, text, added):
+    """M1. 추가한 줄의 표시가 읽히지 않거나 문서에 실리는 자리, 섞인 형제 저장소 꼴. [(줄, 알림)]."""
+    fam = FAMILY.get(ext, "c")
+    lines = text.split("\n")
+    todo = [i for i in sorted(added) if i < len(lines) and MARK_WORD.search(lines[i])]
+    if not todo:
+        return []
+    kinds = comment_kinds(text, fam)
+    out = []
+    for i in todo:
+        s = lines[i]
+        m = MARK_WORD.search(s)
+        mk, p, ln = "@" + m.group(1), m.start(), i + 1
+        seg = next(((a, b, k) for a, b, k in kinds[i] if a <= p <= b), None)
+        if seg is None:
+            # 파이썬 독스트링의 표시는 머리 10줄 안(파일 사본)에서만 읽힌다
+            bare = s.lstrip().lstrip("rRbBuU").lstrip("\"'").lstrip()
+            if fam == "py" and i >= copy_regions.HEADER_LINES and bare.startswith(mk) and (mk != "@copy-of" or COPY_AT.match(bare)):
+                out.append((ln, f"{rel}:{ln}: the {mk} marker is inside a docstring past the first 10 lines, where it is not read. "
+                                f"Put it in a line comment above the copied lines: `{line_comment(mark_text(bare, 0), fam)}`."))
+            continue
+        a, _, kind = seg
+        if s[a:p].strip(" \t" + ("*!" if kind in BLOCKISH else "/!-")):
+            continue  # 주석 글 중간에 든 이름(설명, 인용한 예)은 표시가 아니다
+        if mk == "@copy-of" and not COPY_AT.match(s, p):
+            continue
+        body = mark_text(s, p)
+        fix = line_comment(body, fam)
+        if kind in ("doc", "docline"):
+            out.append((ln, f"{rel}:{ln}: the {mk} marker is in a doc comment, which documentation tools publish or read as a doc tag. "
+                            f"Move it to a plain line comment: `{fix}`."))
+        elif kind == "html" and mk == "@copy-of":
+            out.append((ln, f"{rel}:{ln}: the @copy-of marker is in an HTML comment, which can reach the built page. "
+                            f"In an Astro template write `{{/* {body} */}}`; in the frontmatter or a script, `{fix}`."))
+        elif mk != "@copy-of" and not copy_regions.MARK.match(s):
+            out.append((ln, f"{rel}:{ln}: this {mk} is not read as a region marker: a region marker sits alone on a line comment "
+                            f"(`#`, `//`, `--`), e.g. `{fix}`."))
+        elif mk == "@copy-of":
+            tgt = COPY_AT.match(s, p).group(1).rstrip(".,;)*/}")
+            mm = MIXED_COPY.match(tgt)
+            if mm:
+                out.append((ln, f"{rel}:{ln}: @copy-of {tgt} mixes the two sibling-repo forms. @copy-of names a sibling repo as "
+                                f"`<repo>:<path>` (`{mm.group(1)}:{mm.group(2)}`); `../<repo>/<path>` is the @start-replace form."))
+        elif mk == "@start-replace":
+            rp = REGION_PATH.search(s, p)
+            mm = COLON_REGION.match(rp.group(1)) if rp else None
+            if mm:
+                out.append((ln, f"{rel}:{ln}: @start-replace {rp.group(1)} uses the `<repo>:<path>` form, which only @copy-of reads. "
+                                f"A region names a sibling repo by its path from this repo's root: `../{mm.group(1)}/{mm.group(2)}`."))
+    return out
+
+
+def json_marker_note(rel, text, added):
+    """JSON 에는 표시를 둘 주석이 없고 이 훅도 읽지 않는다. 첫 줄 하나만 알린다."""
+    lines = text.split("\n")
+    for i in sorted(added):
+        if i < len(lines) and (COPY_AT.search(lines[i]) or "@start-replace:" in lines[i]):
+            return (f"{rel}:{i + 1}: JSON cannot hold a copy marker, and nothing reads one here. Drop it and name the source "
+                    f"in the code that reads this file or in the test that compares it with the source.")
+    return None
+
+
 # ---------- 기록 ----------
 
 def shadow_log(rec):
@@ -487,11 +605,14 @@ def main():
     ti = data.get("tool_input") or {}
     path = ti.get("file_path") or ""
     ext = os.path.splitext(path)[1].lower()
-    if tool not in ("Write", "Edit", "MultiEdit") or ext not in RULE_EXT:
+    is_json = ext in JSON_EXT
+    if tool not in ("Write", "Edit", "MultiEdit") or not (ext in RULE_EXT or is_json):
         return 0
     root = project_root(path, data)
     rel = os.path.relpath(path, root)
-    if rel.startswith("..") or not indexable(rel, []) or os.path.getsize(path) > MAX_BYTES:
+    if is_json and any(p in SKIP_DIRS or "-ignoreme" in p for p in rel.split("/")[:-1]):
+        return 0
+    if rel.startswith("..") or not (is_json or indexable(rel, [])) or os.path.getsize(path) > MAX_BYTES:
         return 0
     d = os.path.dirname(rel)
     while d:  # 벤더 트리는 표시도 검사도 하지 않는다
@@ -514,6 +635,29 @@ def main():
     if GEN.search("\n".join(text.split("\n", 6)[:6])):
         return 0
 
+    sid, agent = data.get("session_id"), data.get("agent_id")
+    sp = compact_epoch.state_path(NAME, "claude-reuse", sid, agent)
+    try:
+        state = json.load(open(sp))
+    except (OSError, ValueError):
+        state = {}
+    seen = state.setdefault("seen", [])
+    notes = []
+
+    # M1 marker placement and sibling forms
+    if is_json:
+        note = json_marker_note(rel, text, added)
+        if note and f"m:{rel}:json" not in seen:
+            seen.append(f"m:{rel}:json")
+            emit(sid, sp, state, [note])
+        return 0
+    flagged = set()
+    for ln, msg in marker_notes(rel, ext, text, added):
+        flagged.add(ln)
+        if f"m:{rel}:{ln}" not in seen:
+            seen.append(f"m:{rel}:{ln}")
+            notes.append(msg)
+
     files = list_files(root)
     if len(files) > MAX_FILES:  # 편집한 파일의 패키지 안만 본다(패키지 밖 중복은 못 본다)
         pk = package_of(root, rel, {})
@@ -526,15 +670,8 @@ def main():
     if dirty or prev is None or prev[2:] != own[2:]:
         save_index(root, idx)
 
-    sid, agent = data.get("session_id"), data.get("agent_id")
-    sp = compact_epoch.state_path(NAME, "claude-reuse", sid, agent)
-    try:
-        state = json.load(open(sp))
-    except (OSError, ValueError):
-        state = {}
-    seen = state.setdefault("seen", [])
     pkg_cache = {}
-    notes, log = [], []
+    log = []
 
     def log_rec(check, notice, st, hit, extra=None):
         r = {"id": hashlib.sha1(f"{rel}:{st[0] if st else 0}:{check}:{notice}".encode()).hexdigest()[:12], "t": int(time.time()),
@@ -551,7 +688,7 @@ def main():
     for ln, msg, status, tgt, touched in check_copies(root, rel, text, own, ents, added) + check_regions(root, rel, path, text, added):
         if status in ("differs", "unresolved"):
             differ += 1
-        if msg and touched:
+        if msg and touched and ln not in flagged:  # 꼴 알림(M1)이 같은 줄의 고칠 것을 이미 말했다
             key = f"c1:{rel}:{ln}:{status}"
             if key not in seen:
                 seen.append(key)
@@ -598,6 +735,12 @@ def main():
         r["budget"] = bool(cut or ms > WARM_BUDGET_MS)
         shadow_log(r)
     record_report(data, path, rel, dup_old if mode == "on" else 0, differ)
+    emit(sid, sp, state, notes)
+    return 0
+
+
+def emit(sid, sp, state, notes):
+    """상태를 저장하고, 알림이 있으면 한 블록으로 낸다."""
     try:
         json.dump(state, open(sp, "w"))
     except OSError:
@@ -605,7 +748,6 @@ def main():
     if notes:
         msg = f'<harness-hook name="{NAME}" level="info"{harness_nonce.attr(sid)}>{"; ".join(notes)}</harness-hook>'
         json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": msg}}, sys.stdout, ensure_ascii=False)
-    return 0
 
 
 if __name__ == "__main__":
