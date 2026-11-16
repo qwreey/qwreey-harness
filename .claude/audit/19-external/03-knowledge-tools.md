@@ -9,7 +9,7 @@ last_verified: 2026-11-10
 # 외부 조사 3/4 — 에이전트용 지식 검색·세션 기억 도구의 지형
 
 - 조사일: 2026-11-10. WebSearch/WebFetch 만 썼다. 외부 코드는 받지도 실행하지도 않았다.
-- 로컬은 읽기만 했다. 대상: `coderag`(README, `coderag/.claude/base/` 의 영역별 파일 §0·§11·§13·§16·§18–§20), `claude-doctor/plugins/session-log/README.md`, `.claude/archive/research/drafts/session-log/DESIGN.md`, `luau-kb`(README, AGENTS.md, `snippet-markers.md`, `roblox-docs/SKILL.md`, SKILL.md frontmatter 12개).
+- 로컬은 읽기만 했다. 대상: `coderag`(README, `coderag/.claude/base/` 의 영역별 파일 §0·§11·§13·§16·§18–§20), `claude-doctor/plugins/session-log/README.md`, `.claude/scopes/plugins/qwreey-sessions/archive/research/drafts/session-log/DESIGN.md`, `luau-kb`(README, AGENTS.md, `snippet-markers.md`, `roblox-docs/SKILL.md`, SKILL.md frontmatter 12개).
 - 표기
   - **[1차]**: 공급자 본인의 문서·블로그·저장소를 직접 열어 확인했다.
   - **[2차]**: 검색 요약이나 제3자 글로만 확인했다.

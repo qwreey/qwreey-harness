@@ -1,6 +1,6 @@
 # qwreey-delegate (plugin development)
 
-One skill, `qwreey-delegate:delegate`, and its driver `skills/delegate/scripts/delegate.py` (stdlib Python 3.11+, run as `python3 -I`), which runs Gemini `agy` or OpenAI `codex` as an unprivileged uid in an isolated work folder. No hooks, no ambient. The procedure the model follows is `skills/delegate/SKILL.md`; isolation, run flow, settings and work folders: `docs/how-it-works.md`. Design and open milestones: `.claude/research/drafts/delegate/driver-design.md` (repo root).
+One skill, `qwreey-delegate:delegate`, and its driver `skills/delegate/scripts/delegate.py` (stdlib Python 3.11+, run as `python3 -I`), which runs Gemini `agy` or OpenAI `codex` as an unprivileged uid in an isolated work folder. No hooks, no ambient. The procedure the model follows is `skills/delegate/SKILL.md`; isolation, run flow, settings and work folders: `docs/how-it-works.md`. Design and open milestones: `.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/driver-design.md` (repo root).
 
 ## Where things are
 - `skills/delegate/scripts/delegate.py`: CLI, `run`, `doctor`, `register` (subcommands also `collect`, `remove`, `list`, `gc`).
@@ -25,6 +25,6 @@ Run the CLI tests as root too: the uid isolation cases skip without it. A real `
 - Isolation is the point: changes must keep the delegate unable to write the main worktree or `.git/objects`, read credentials outside its own HOME, or push. `doctor` checks this; extend it with any new isolation step.
 - Every driver module is imported at start, so editing the plugin does not break a running job; keep new imports at the top of `delegate.py`.
 - agy never gets `--dangerously-skip-permissions`: it turns off the headless refusals the `--settings` policy relies on.
-- `skills/delegate/scripts/harness_env.py` is a byte copy of `home/.claude/lib/harness_env.py` (the harness.env layer loader); the driver always uses this copy, never `~/.claude/lib`, which can be older. Edit the canon, then run `python3 -I tools/sync-copies.py --apply`. A new `HARNESS_DELEGATE_*` key goes into `ENV_DEFAULTS` in `delegate.py` (and `ENV_USER_ONLY` when a repository must not set it), plus the design table in `.claude/research/drafts/delegate/driver-design.md`.
+- `skills/delegate/scripts/harness_env.py` is a byte copy of `home/.claude/lib/harness_env.py` (the harness.env layer loader); the driver always uses this copy, never `~/.claude/lib`, which can be older. Edit the canon, then run `python3 -I tools/sync-copies.py --apply`. A new `HARNESS_DELEGATE_*` key goes into `ENV_DEFAULTS` in `delegate.py` (and `ENV_USER_ONLY` when a repository must not set it), plus the design table in `.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/driver-design.md`.
 - Delegate output is a claim, never a decision; keep the SKILL.md verification rules intact when editing.
 - Requires Linux and root (`setpriv`, `choom`); do not add paths that silently weaken isolation on other platforms.

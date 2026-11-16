@@ -78,7 +78,7 @@ def check_drift(repo, files, projects):
             C.add(6, "정보" if same else "경고", "DRIFT-HOOK", f,
                 "qwreey-proc-guard 플러그인의 정본과 같다." if same else "qwreey-proc-guard 플러그인의 정본(plugins/qwreey-proc-guard/hooks)과 다르다. 플러그인으로 일원화 대상.")
         if name == "agy-delegate.sh" or f.endswith("skills/delegate-agy/SKILL.md"):
-            C.add(6, "정보", "DRIFT-DELEGATE", f, "agy 위임 사본. 통합안 claude-doctor/.claude/research/drafts/delegate (P4) 로 대체 예정.",
+            C.add(6, "정보", "DRIFT-DELEGATE", f, "agy 위임 사본. 통합안 claude-doctor/.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate (P4) 로 대체 예정.",
                 "references/drift-and-settings.md#위임-사본")
     # uid 충돌: 저장소 안의 위임 사본 + 환경의 중앙 uid 표
     uids = registry_uids()

@@ -1,6 +1,6 @@
 # 38 기록 규약 토론, 1라운드: P (평문 markdown 우선)
 
-입장: 규약은 grep 과 README 만으로 완결돼야 하고, coderag 는 있으면 빨라지는 가속기다. 이유 셋. (1) 규약은 사용자의 **모든** 저장소와 비프로그래머 동료에게 퍼지는데, coderag 는 PATH 에 없고 배포 방식이 안 정해졌으며(.claude/audit/37 §7) 개발 무게가 팀 서버(§35)로 가 있다. (2) 기록은 몇 년을 가지만 도구 문법은 바뀐다. (3) 사용자 말대로 git 이 있으니 평문은 언제든 다시 색인할 수 있지만, 반대 방향(도구 전용 형식을 평문으로 되돌리기)은 비싸다.
+입장: 규약은 grep 과 README 만으로 완결돼야 하고, coderag 는 있으면 빨라지는 가속기다. 이유 셋. (1) 규약은 사용자의 **모든** 저장소와 비프로그래머 동료에게 퍼지는데, coderag 는 PATH 에 없고 배포 방식이 안 정해졌으며(coderag .claude/audit/37-coderag-records §7) 개발 무게가 팀 서버(§35)로 가 있다. (2) 기록은 몇 년을 가지만 도구 문법은 바뀐다. (3) 사용자 말대로 git 이 있으니 평문은 언제든 다시 색인할 수 있지만, 반대 방향(도구 전용 형식을 평문으로 되돌리기)은 비싸다.
 
 먼저 인정할 것. coderag 의 frontmatter 는 **그 자체로 평문**이다(`grep '^status:'` 로 잡힌다). 그러니 "frontmatter 냐 평문이냐"는 가짜 대립이다. 진짜 쟁점은 셋이다. 규약이 coderag 의 **동작**(숨김, lint, kind)에 기대느냐, 같은 상태를 두 곳에 쓰느냐, 검사기가 어디에 사느냐.
 
@@ -24,7 +24,7 @@
 - target 이 경로처럼 생겼을 때만(`/` 를 포함하거나 `.md` 로 끝날 때) 존재를 검사한다. `D-07`, `user` 같은 값은 검사하지 않는다.
 - `superseded_by: X` 필드는 `status: superseded by X` 와 같은 뜻으로 읽는다. 규약은 한 줄 형태만 쓰게 한다(grep 한 번에 상태와 대상이 같이 나온다).
 
-**위치**는 한 곳이다. frontmatter 에 `status:` 줄이 있으면 그것이고, frontmatter 가 없으면 파일 첫 줄의 `status: ...` 다. 두 곳에 다 쓰는 것은 금지한다. .claude/audit/37 은 "본문 첫 줄에도"를 권했지만, 그것은 .claude/audit/36 이 실패로 꼽은 이중 상태(quad 의 CLAUDE.md·project-context·ROADMAP)를 문서마다 다시 만드는 일이다. 에이전트는 파일을 날것으로 읽으니 frontmatter 가 그대로 보이고, GitHub 도 frontmatter 를 표로 보여 준다. 검사기는 처음 15줄 안의 첫 `^status:` 를 읽는다.
+**위치**는 한 곳이다. frontmatter 에 `status:` 줄이 있으면 그것이고, frontmatter 가 없으면 파일 첫 줄의 `status: ...` 다. 두 곳에 다 쓰는 것은 금지한다. coderag .claude/audit/37-coderag-records 은 "본문 첫 줄에도"를 권했지만, 그것은 .claude/audit/36 이 실패로 꼽은 이중 상태(quad 의 CLAUDE.md·project-context·ROADMAP)를 문서마다 다시 만드는 일이다. 에이전트는 파일을 날것으로 읽으니 frontmatter 가 그대로 보이고, GitHub 도 frontmatter 를 표로 보여 준다. 검사기는 처음 15줄 안의 첫 `^status:` 를 읽는다.
 - 새로 만드는 살아 있는 문서에는 frontmatter(title, description, status)를 **권장**한다. description 은 README 색인 줄과 coderag 검색에 함께 쓰인다. 다만 필수는 아니다. 옛 문서를 백필하지 않아도 규약을 지킨 것이 되게 하려는 것이다.
 - kind 는 적지 않는다. 폴더가 곧 kind 다(5절의 coderag 변경 3).
 
@@ -58,14 +58,14 @@
 
 ## 3. coderag 결합
 
-- **coderag 에 필수로 요구하는 것은 없다.** coderag 가 없어도 규약의 모든 검사와 찾기가 grep 과 stdlib python 으로 돈다. coderag 는 검색 랭킹, 절 단위 줄 범위·토큰 추정, `static-gen`, `stale` 의 해시 변화를 더해 준다. 이 기능들이 실제로 좋다는 것은 인정한다. haiku 가 `경로:줄 ~토큰` 을 받아 범위만 읽는 꼴은 grep 보다 낫다(.claude/audit/37: search 0.006초).
+- **coderag 에 필수로 요구하는 것은 없다.** coderag 가 없어도 규약의 모든 검사와 찾기가 grep 과 stdlib python 으로 돈다. coderag 는 검색 랭킹, 절 단위 줄 범위·토큰 추정, `static-gen`, `stale` 의 해시 변화를 더해 준다. 이 기능들이 실제로 좋다는 것은 인정한다. haiku 가 `경로:줄 ~토큰` 을 받아 범위만 읽는 꼴은 grep 보다 낫다(coderag .claude/audit/37-coderag-records: search 0.006초).
 - **coderag 의 최소 변경**(coderag 저장소라 사용자 승인 필요):
   1. status 문법 파싱. state 는 첫 낱말이다. `in|by` 뒤가 target 이고, target 은 `superseded_by` 와 같이 stale 대상 검사를 받는다. `;` 뒤는 note 다. landed·superseded·rejected·archived 는 `listed=false` 다. KNOWN_STATUS 에 landed·rejected 를 더한다. lib.rs 의 :352, :764, :933-941 만 고치면 된다.
   2. `static-gen --check`. 바뀔 것이 있으면 종료 코드 1 이다. 색인 누락 검사를 coderag 쪽에서도 쓸 수 있게 한다.
   3. frontmatter 에 kind 가 없으면 폴더 이름(plan, base, research, audit, archive, handoff, `sessions`·`session`)으로 kind 를 추론한다. 이게 있어야 백필 없이 `--kind` 가 쓸모 있다.
   4. (있으면 좋음) `raw` 를 기본 제외에 넣거나 `.gitignore` 를 존중한다.
 - **coderag 가 없을 때**는 grep 으로 찾고 q 의 검사기로 검사한다. 사용자가 보는 차이는 속도와 줄 범위 정확도뿐이어야 한다.
-- **recall 의 haiku locate 단계**는 이렇게 한다. coderag 를 쓸 수 있으면(`bin/coderag` 래퍼가 찾으면) 먼저 `coderag gen`(`CODERAG_CACHE` 는 저장소 밖)을 돌린 뒤 `coderag search --abs --layer project` 를 쓴다. **결과가 3건 미만이거나 세션 기록이 대상이면 grep 도 돌린다.** coderag 는 본문 낱말을 색인하지 않는데(.claude/audit/37 §2), 세션 기록은 본문이 핵심이다. 그래서 세션 기록에는 grep 을 대체가 아니라 기본으로 쓴다. recall 은 doc-locator 에 기대지 않는다. doc-locator 는 coderag 플러그인을 설치해야 생기고, 훅이 grep 을 막는다.
+- **recall 의 haiku locate 단계**는 이렇게 한다. coderag 를 쓸 수 있으면(`bin/coderag` 래퍼가 찾으면) 먼저 `coderag gen`(`CODERAG_CACHE` 는 저장소 밖)을 돌린 뒤 `coderag search --abs --layer project` 를 쓴다. **결과가 3건 미만이거나 세션 기록이 대상이면 grep 도 돌린다.** coderag 는 본문 낱말을 색인하지 않는데(coderag .claude/audit/37-coderag-records §2), 세션 기록은 본문이 핵심이다. 그래서 세션 기록에는 grep 을 대체가 아니라 기본으로 쓴다. recall 은 doc-locator 에 기대지 않는다. doc-locator 는 coderag 플러그인을 설치해야 생기고, 훅이 grep 을 막는다.
 - **색인 신선도**: recall 할 때마다 gen 을 돌린다. 155항목에 0.032초라 비용이 없고, M9 를 기다리면 낡은 줄 범위를 읽게 된다. 캐시는 `/tmp` 나 `$XDG_CACHE_HOME` 에 두고, `.coderag/` 는 `.gitignore` 에 넣는다.
 
 ## 4. 자동화

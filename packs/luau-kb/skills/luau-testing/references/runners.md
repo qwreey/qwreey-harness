@@ -57,7 +57,7 @@ status: described (정책) · 근거: claude-doctor `.claude/base/decisions/D-03
 - lune 은 쓰지 않는다. lune 0.10.5 는 `const` 를 파싱하지 못한다(luau-verify 스킬 `tooling.md` §2).
 
 ## §2 `luau` CLI 를 러너로 쓸 때의 사실
-status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/test-cli-runtime-facts.luau`, `snippets/test-mini-runner.luau`, 원천 claude-doctor `.claude/archive/research/drafts/gaps/testing.md` §4 의 수동 실행, 후보 D-C03·S-127·Q-070·Q-118
+status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippets/test-cli-runtime-facts.luau`, `snippets/test-mini-runner.luau`, 원천 claude-doctor `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/testing.md` §4 의 수동 실행, 후보 D-C03·S-127·Q-070·Q-118
 
 | 사실 | 함의 |
 |---|---|
@@ -94,7 +94,7 @@ status: described · 근거: `stl-luau/.claude/base/architecture.md:9-13,24-34`,
 - `pairs` 순회 순서에 기댄 출력은 같은 입력·같은 삽입 순서면 프로세스 안팎에서 같았다는 관찰이 있다(luau 0.734, M-16, described). 약속된 동작이 아니므로 골든 비교 출력은 키를 정렬해서 낸다.
 
 ## §5 독립 런타임: lute, lune
-status: described · last-confirmed: 2026-11-10 (GitHub 조회) · 근거: `luau-lang/lute` `docs/cli/test.md`, `std/libs/test/*`(e065a086), `tbox/mise.toml:23-26`, 원천 `claude-doctor .claude/archive/research/drafts/gaps/testing.md` §9
+status: described · last-confirmed: 2026-11-10 (GitHub 조회) · 근거: `luau-lang/lute` `docs/cli/test.md`, `std/libs/test/*`(e065a086), `tbox/mise.toml:23-26`, 원천 `claude-doctor .claude/scopes/packs/luau-kb/archive/research/drafts/gaps/testing.md` §9
 
 - **lute**(v1.0.0, 2026-04-16): `lute test [--list] [-s SUITE] [-c CASE] [paths]` 가 `*.test.luau`·`*.spec.luau` 를 찾는다(기본 `tests/`). `@std/test` 에 `test.case`, `test.suite`, `beforeEach/afterEach/beforeAll/afterAll` 훅, `eq`·`throws`·`tableeq`·`strContains` 단언이 있다. 이 머신에는 lute 가 없어 실행하지 않았다.
 - 이 사용자 저장소 중 tbox 는 같은 `test/run.luau` 를 `luau` 와 `lute run` 으로 두 번 돈다(`tbox/mise.toml:26`). 워크스페이스 symlink 를 따라가지 못해 `cp -rL` 사본에서 돈다(`tbox/mise.toml:31-42`).
@@ -102,7 +102,7 @@ status: described · last-confirmed: 2026-11-10 (GitHub 조회) · 근거: `luau
 - 두 런타임 모두 Roblox `Instance`·`game` 이 없다. Roblox 의존 코드에는 `roblox-boundary.md` 방법이 따로 필요하다.
 
 ## §6 프레임워크 현황: Jest Roblox, jest-lua, TestEZ, run-in-roblox
-status: described · last-confirmed: 2026-11-10 (GitHub REST API, wally 레지스트리) · 근거: `Roblox/jest-roblox` README·`docs/docs/GettingStarted.md`·`Deviations.md`, `jsdotlua/jest-lua` README, `Roblox/testez`(archived), `rojo-rbx/run-in-roblox`, 원천 `claude-doctor .claude/archive/research/drafts/gaps/testing.md` §1–3
+status: described · last-confirmed: 2026-11-10 (GitHub REST API, wally 레지스트리) · 근거: `Roblox/jest-roblox` README·`docs/docs/GettingStarted.md`·`Deviations.md`, `jsdotlua/jest-lua` README, `Roblox/testez`(archived), `rojo-rbx/run-in-roblox`, 원천 `claude-doctor .claude/scopes/packs/luau-kb/archive/research/drafts/gaps/testing.md` §1–3
 
 | 이름 | 상태(2026-11-10) | Roblox 밖 실행 | 고를 때 |
 |---|---|---|---|

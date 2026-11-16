@@ -16,7 +16,7 @@
 | `DRIFT-TYPEDEFS` | (툴킷 luau) `globalTypes*.d.luau` | luau-kb `typedefs/globalTypes.d.luau` — `toolkits/luau.md#typedefs-사본` |
 | `DRIFT-HOOK` | `heavy-proc-guard.py` 사본 | `<doctor>/plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py` |
 | `DRIFT-HOOKDUP` | 사용자 레벨과 같은 훅을 프로젝트 settings가 또 등록 | 사용자 레벨 `settings.json` |
-| `DRIFT-DELEGATE` | `agy-delegate.sh`, `skills/delegate-agy` 사본 | `<doctor>/plugins/qwreey-delegate/` (초안: `<doctor>/.claude/research/drafts/delegate/`) |
+| `DRIFT-DELEGATE` | `agy-delegate.sh`, `skills/delegate-agy` 사본 | `<doctor>/plugins/qwreey-delegate/` (초안: `<doctor>/.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/`) |
 | `DRIFT-UID` | 서로 다른 저장소가 같은 위임 uid를 쓴다. 저장소 안의 사본과 `harness.env`의 `HARNESS_DELEGATE_REGISTRY`(uid 표)를 함께 본다 | uid 표 |
 | `DRIFT-SKILLCOPY` | 같은 이름 스킬이 다른 저장소나 사용자 레벨에 있는데 내용이 다르다 | 원본 쪽(사례마다 확인) |
 
@@ -39,7 +39,7 @@
 ### 위임 사본
 
 agy 위임 도구는 4벌이다(quad, stl-luau, tbox, table-sim). 지금은 고치지 않는다.
-- 통합안과 걷어내기 순서는 `<doctor>/.claude/research/drafts/delegate/README.md`와 `migration.md`에 있다.
+- 통합안과 걷어내기 순서는 `<doctor>/.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/README.md`와 `migration.md`에 있다.
 - uid 충돌(`DRIFT-UID`)은 격리 보장을 깨므로 보고에 꼭 넣는다. 사례: quad와 tbox가 모두 61000.
   - 고치는 일은 P4 통합 때 한다. 대상 저장소에 세션이 있으면 인계한다.
 - `DRIFT-SKILLCOPY`는 어느 쪽이 정본인지부터 확인한다. CLAUDE.md의 "사본" 서술과 git log를 본다.

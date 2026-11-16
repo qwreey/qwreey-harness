@@ -13,5 +13,5 @@ Default-off knowledge pack: 12 skills of general Luau and Roblox facts, two path
 - SKILL.md stays at 100 lines or fewer and routes to `references/`; new references carry the frontmatter the others have and must pass `coderag lint`.
 - Keep project-specific design (one library's type names or APIs) out.
 - No `hooks/` folder: coderag injects `rules/`, and a pack hook would inject them twice. Rule files stay at 40 lines or fewer (`rules/README.md`).
-- The pack folder ships whole into the plugin cache: development material nothing here cites (such as skill-trigger evals) lives in the repo's `.claude/packs/luau-kb/`.
+- The pack folder ships whole into the plugin cache: development material nothing here cites (such as skill-trigger evals) lives in the repo's `.claude/scopes/packs/luau-kb/`.
 - Bump `version` in `.claude-plugin/plugin.json` when the payload changes, so hosted installs update.

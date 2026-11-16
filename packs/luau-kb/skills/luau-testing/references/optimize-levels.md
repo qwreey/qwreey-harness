@@ -86,7 +86,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippe
 - 주입을 생성자 인자나 모듈 테이블 필드로 받으면 `getfenv` 가 필요 없다(`roblox-boundary.md` §2).
 
 ## §5 실례: quad 스펙 3개가 `-O2` 에서만 실패
-status: verified · last-confirmed: luau 0.734 (quad 의 핀), 2026-11-10 · 근거: 원천 claude-doctor `.claude/archive/research/drafts/gaps/testing.md` §12(quad 테스트를 `luau -O2` 로 읽기 전용 실행, 64/67 통과), `quad/scripts/test.sh:7,81-84`, `quad/quad-base/test/spec.errorutil.luau:21-23`, `quad/quad-base/src/Relate.luau:28-29`
+status: verified · last-confirmed: luau 0.734 (quad 의 핀), 2026-11-10 · 근거: 원천 claude-doctor `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/testing.md` §12(quad 테스트를 `luau -O2` 로 읽기 전용 실행, 64/67 통과), `quad/scripts/test.sh:7,81-84`, `quad/quad-base/test/spec.errorutil.luau:21-23`, `quad/quad-base/src/Relate.luau:28-29`
 
 | 스펙 | 실패 | 분류 |
 |---|---|---|

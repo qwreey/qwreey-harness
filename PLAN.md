@@ -123,15 +123,15 @@
 ## 3.6 지식 채굴 → 증류 (2026-11-10 진행 중)
 
 1. **채굴**: 읽기 전용이고, 결과를 같은 후보표 형식으로 맞춘다.
-   - `.claude/audit/08` quad 기록
-   - `.claude/audit/09` 그 밖의 저장소(stl perf 포함)
+   - `.claude/scopes/packs/luau-kb/audit/08` quad 기록
+   - `.claude/scopes/packs/luau-kb/audit/09` 그 밖의 저장소(stl perf 포함)
    - `.claude/audit/10` 하네스 사용 흔적(history와 auto memory)
-   - `.claude/audit/11` + `.claude/archive/research/drafts/gaps/` 공백 신규 조사
+   - `.claude/scopes/packs/luau-kb/audit/11` + `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/` 공백 신규 조사
 2. **선행 작업**(진행 중)
    - type function 집대성: luau-types
    - roblox-luau 스킬과 LSP DX 검사
 3. **증류**: 타입 함수 작업이 끝난 뒤 시작한다. 후보표를 합치고 중복과 모순을 판정한 다음 luau-kb 스킬로 옮긴다.
-   - 옮길 스킬: luau-perf, luau-style(.claude/archive/research/drafts/style에서 이동), luau-testing, roblox-luau 보강
+   - 옮길 스킬: luau-perf, luau-style(.claude/scopes/packs/luau-kb/archive/research/drafts/style에서 이동), luau-testing, roblox-luau 보강
    - 모순 항목은 decisions에 올린다.
 
 ## 3.7 coderag 확장 (2026-11-10 승인, 설계 a1b309f 의 결정 49개 추천안 전부 확정, 구현 M1~ 진행)
@@ -147,7 +147,7 @@
 
 ## 3.8 설계 원칙 (사용자 결정, 2026-11-10~11)
 
-메모리에만 있던 원칙을 옮긴 것이다(.claude/audit/23, 메모리는 저장소와 동료에게 따라가지 않는다). 지금 사실로 고쳐 썼다.
+메모리에만 있던 원칙을 옮긴 것이다(.claude/scopes/plugins/qwreey-conventions/audit/23, 메모리는 저장소와 동료에게 따라가지 않는다). 지금 사실로 고쳐 썼다.
 
 - **규약 충돌은 한쪽으로 통일하지 않는다.** 대상은 const, stylua, 러너, 타입 함수, luau 버전 등이다. 항목마다 근거를 붙인 합의안을 `.claude/base/decisions/D-xx` 로 만들고 사용자 확인을 받는다. 정책이 갈리면 선택지와 근거를 제시한다.
 - **짧은 필수 규칙은 rules, 상세는 스킬에 둔다.** rules 는 `paths:` 로 범위를 정한다. 파일을 Read/Write 할 때 로드되고, grep 으로는 로드되지 않는다. 사용자 레벨 rules 로드는 apply 뒤 실측으로 확인했다(2026-11-11). 감사 에이전트는 관점별로 나누고 스킬을 프리로드한다.
@@ -161,8 +161,8 @@
   - 사용자가 있을 때는 팬아웃 전에 고지한다(말은 2개부터, 훅 warn 은 4개부터).
   - away 상태에서는 예산 상한과 슬롯으로 직렬화한다. 2배를 넘으면 기록하고 기다린다.
   - 예산 단위는 요금제에 맞춘다(USD 또는 한도 %).
-  - 구현: qwreey-operator 규약(`plugins/qwreey-operator/context/ambient.md`, 모델 줄은 서브에이전트에도), `plugins/q/scripts/subagent-slots.py`, .claude/audit/21.
-- **second opinion:** 내장 advisor 도구는 사용자가 요청할 때만 쓴다. 근거(사용자): 가격 대비 효용이 diff 기반 리뷰보다 너무 낮다. 흐름 검토는 `qwreey-advisor:inherit-advisor`(fork + 표지를 훅이 후행 프롬프트로 펼침), diff 검토는 `qwreey-advisor:fresh-advisor` 로 한다. 근거 실험은 .claude/audit/18 §9·§11·§12.
+  - 구현: qwreey-operator 규약(`plugins/qwreey-operator/context/ambient.md`, 모델 줄은 서브에이전트에도), `plugins/q/scripts/subagent-slots.py`, .claude/scopes/plugins/q/audit/21.
+- **second opinion:** 내장 advisor 도구는 사용자가 요청할 때만 쓴다. 근거(사용자): 가격 대비 효용이 diff 기반 리뷰보다 너무 낮다. 흐름 검토는 `qwreey-advisor:inherit-advisor`(fork + 표지를 훅이 후행 프롬프트로 펼침), diff 검토는 `qwreey-advisor:fresh-advisor` 로 한다. 근거 실험은 .claude/scopes/plugins/qwreey-advisor/audit/18 §9·§11·§12.
 - **사용자 가시성도 개선 대상이다.** statusline, 테마, 응답 형식이 해당한다. 주관적이므로 설치는 묻고, 켜고 끌 수 있게 둔다(.claude/audit/22).
 
 ## 3.9 저장소 구조와 에이전트 기록 체계 (큰 틀 합의 2026-11-12, 세부는 토론 뒤 확정)
@@ -184,11 +184,11 @@
   - coderag 가 없을 때도 기록은 평범한 markdown 으로 읽혀야 한다.
 - **claude-doctor `.claude/` 재편은 coderag 로 구조화하는 실험으로 한다.** 사용자: "git이 있어서 실패하더라도 잃는건 없을거니까".
 - **순서.**
-  1. coderag 적합성 조사(.claude/audit/37)와 heavy-proc-guard 오탐 수정.
+  1. coderag 적합성 조사(coderag .claude/audit/37-coderag-records)와 heavy-proc-guard 오탐 수정.
   2. 실측: 스킬 `paths`, `defaultEnabled`.
   3. 기록 규약 토론(opus 2개, 2라운드). 문구와 자동화 수준, coderag 결합 방식을 정한다.
   4. 재편 실험: 끝남, main 에 합침(사용자: "합치자"). 기록은 `.claude/` 아래(`.claude/README.md`), PLAN.md 는 사용자 결정으로 루트("나도 많이 참조하는 파일"). 시점 기록 안의 옛 경로도 스크립트로 바꿨다(사용자: "작은 모델로 기계적으로 링크를 고치는게 나을지도"). 결과는 `.claude/audit/39-records-experiment/after-D.md`(coderag 10/12, grep 7/12). 남은 것: coderag static-gen 이 하위 폴더로 내려가지 않음, luau-kb 의 옛 경로 12개 파일(가져올 때 고침), 커밋 때 records_check 알림.
-  5. `packs/`: web-security 는 옮김(기본 꺼짐, 마이그레이션 0008, q:doctor PACK- 검사; 사용자: "가로 하는게 맞는것 같음…doctor 가 점검하는 부분에 같이 있으면 편하겠다"). luau-kb 는 이력째 가져옴(git subtree, packs/luau-kb 0.5.0, 기본 꺼짐; 개발 자료 evals 는 `.claude/packs/luau-kb/`). 웹·Luau 저장소별 켜기가 남았다.
+  5. `packs/`: web-security 는 옮김(기본 꺼짐, 마이그레이션 0008, q:doctor PACK- 검사; 사용자: "가로 하는게 맞는것 같음…doctor 가 점검하는 부분에 같이 있으면 편하겠다"). luau-kb 는 이력째 가져옴(git subtree, packs/luau-kb 0.5.0, 기본 꺼짐; 개발 자료 evals 는 `.claude/scopes/packs/luau-kb/`). 웹·Luau 저장소별 켜기가 남았다.
   5a. 지식 팩의 그릇 재검토(사용자: "luau-kb 는 stale 해질 수도 있고, 필요에 따라 검색해야할 수도 있고…web security 도 그런데, 시행착오로 새로운게 나올 수도 있고, 그래서 싱크 되거나 해야할 수도"). PLAN 3.7 의 "원천 하나, 접근 둘" 중 coderag 접근이 빠져 있었다.
      - 1단계 끝: `~/.coderag/coderag.toml` 에 `[[packs]] luau-kb` 를 저장소 사본 경로(`packs/luau-kb`)로 등록. pack 계층 검색과 stale 이 동작한다. 이 설정의 정본을 home/ 에 둘지는 home-sync 가 `~/.claude` 밖을 다루지 않아 2단계 결정 뒤에 정한다.
      - 2단계 토론 끝(.claude/audit/41/synthesis.md): 팩은 데이터만, rule 주입·중복 제거·compact 회차는 coderag 코어 하나, 프로세스는 세션별 stdio 래퍼 + uid 별 데몬(유휴 60초), 팩 스위치는 프로젝트 `coderag.toml` 하나(`coderag adapt` 가 하네스 설정 생성), 교훈은 그 저장소 기록의 `promote:<pack>` 꼬리표, 시맨틱 검색은 본문 색인 실측 뒤. 결정 원문은 synthesis 에.
@@ -197,19 +197,19 @@
      - 배포: 사용자: "바이너리 배포 같은 경우는 어느정도 개발이 완료 되면 올릴려고. 서명은 내가 로컬에서 빌드를 하고 올리는 방식". M2 전환을 release 전에 이 기계의 로컬 빌드로 할지는 사용자에게 물었다.
      - VideoSync 의 web-security 는 사용자가 직접 켠다(그 저장소 사본이 최신이 아닐 수 있음).
      - 기록 규약 정본을 coderag 로(사용자: "coderag 를 정본으로 두는게 맞는것 같기도 하고", (a) 승인): 합친 규약은 coderag 0.3.0(`coderag:agent-records` 스킬, 플러그인 자체 rules/ 내장 팩 주입)에 들어갔고 초안은 .claude/archive/research/drafts/records-in-coderag/. qwreey-conventions 의 사본은 뺐고 `records_check.py` 의 coderag 이전은 다음 단계. 갈음은 `status: superseded by <경로>` 로 쓴다, frontmatter 는 새 살아 있는 기록에 필수(옛 기록은 채우지 않음), Codex·agy 용 본문은 M7 generator 가 rule 파일에서 생성. "끝남"은 일을 마쳤다가 아니라 현재의 원천으로 필요 없어짐이 기준(사용자: "quad를 보면 slot 을 전부 구현 완료 했지만 그래도 base에 가지고 있음…'끝났다' 라는건 문서가 필요하지 않다가 기준일텐데").
-     - 다음 설계(audit/42 메모리 시스템 조사 근거, 짧은 설계 문서부터): (1) 파일별 형식 버전(사용자: "파일 마다 쓰여진 대상 coderag 버전을 두고 필요한 경우 마이그레이션을 하는게 좋을것 같기도"): 선택 `format:`, 없으면 1, 버전대로 읽고 `coderag migrate --dry-run` 은 살아 있는 문서만 다시 씀, 스냅샷은 읽기만(openJiuwen `_v`, Cognee 단계 목록). (2) L0/L1/L2 단계 공개(사용자: "메모리 래밸을 'L0-L1-L2' 식으로…괜찮은 아이디어"): L0 description, L1 절 제목·첫 문장, L2 절 본문, `level=auto` + 토큰 예산. (3) M6 가리킴에 주입 상한과 L0 한 줄.
+     - 다음 설계(coderag .claude/audit/42-memory-systems-survey 메모리 시스템 조사 근거, 짧은 설계 문서부터): (1) 파일별 형식 버전(사용자: "파일 마다 쓰여진 대상 coderag 버전을 두고 필요한 경우 마이그레이션을 하는게 좋을것 같기도"): 선택 `format:`, 없으면 1, 버전대로 읽고 `coderag migrate --dry-run` 은 살아 있는 문서만 다시 씀, 스냅샷은 읽기만(openJiuwen `_v`, Cognee 단계 목록). (2) L0/L1/L2 단계 공개(사용자: "메모리 래밸을 'L0-L1-L2' 식으로…괜찮은 아이디어"): L0 description, L1 절 제목·첫 문장, L2 절 본문, `level=auto` + 토큰 예산. (3) M6 가리킴에 주입 상한과 L0 한 줄.
      - 규약과 coderag 는 잇지 않는다(사용자: "필요한 것을 빠르게 찾기 위해 필요하지 않은 잡음을 줄여주는것도 하는게 coderag인데. 컨벤션은 늘 필요하기도 하고. 또 무언가를 강제화 하기 위한 도구라서…stale 이 되는 도구도 아니고, 상태도 사실상 없고. 어느 하네스의 정본을 따라야할지도 coderag가 물리게 되고…coderag 는 처음부터 '컨벤션' 을 다루는 도구는 아닌것 같아서"). qwreey-conventions 는 자기 주입기·판정 훅을 가진 플러그인 하나로 남고, 팩으로 만들거나 M7 생성기가 읽게 하지 않는다. 다른 하네스에 규약을 주는 법은 아직 열린 문제. 진행: 기록 범위를 coderag 판정 하나로(프로젝트 고유 폴더는 coderag.toml 선언), coderag 사용 주의점(stale·ID·참조)은 coderag 규약에.
      - 기록 범위 판정 통일 끝(coderag 24072e1, `[records.folders]` 선언). quad 의 미선언 폴더(reference, qa-request, luau-test, tools, backlog)는 coderag 가 완성된 뒤 quad 메인 에이전트와 다듬는다(사용자).
      - coderag 코드 쪽(사용자 "추천대로", "참조 검사 넓히는것도 좋은것 같아"): 순서 1) 소스 주석이 가리키는 기록 참조(`.claude/` 경로, `D-xx`, `§N`)를 stale 에, 주석 문법만 아는 여러 언어로 2) Luau 심볼 프로바이더(full-moon, 소스에 적힌 시그니처, moonwave 태그는 있으면 읽음, 문서 백틱 식별자 ↔ 심볼 교차 참조) 3) 색인 자동 갱신(M9) 4) 데몬·MCP 5) codex·M7. 근거: quad 소스 522개 중 기록을 가리키는 주석 217줄, moonwave 태그는 `@deprecated` 132개뿐.
-     - coderag 결정(사용자): coderag 가 만드는 문구와 static-gen 표 머리는 영어, 기록 내용은 그대로("언어는 coderag가 만드는건 영어여도 좋고 static-gen이 각 저장소 README에 넣는 표 머리 또한 영어여도 상관 없을것 같음"). lifecycle 은 코어의 범용 사다리 `proposed → accepted → experimental → available → deprecated → removed` 에 환경 꾸밈 `stage(env)` 목록, 꾸밈 어휘는 팩 taxonomy, 어느 환경이 중요한지는 모델 판단("대 분류 아래 active(...) 식이 되거나 후행 꾸밈이 되는게 나아보임. 판단을 모델이 하도록 해야하는 부분이 일부 있겠다", 단계 이름 "그렇게 정할게"). 지금 lifecycle 을 쓰는 문서 0개. 하드코딩·중복·바퀴 재발명·단순화 실패 규약은 audit/47 사례를 본 뒤.
+     - coderag 결정(사용자): coderag 가 만드는 문구와 static-gen 표 머리는 영어, 기록 내용은 그대로("언어는 coderag가 만드는건 영어여도 좋고 static-gen이 각 저장소 README에 넣는 표 머리 또한 영어여도 상관 없을것 같음"). lifecycle 은 코어의 범용 사다리 `proposed → accepted → experimental → available → deprecated → removed` 에 환경 꾸밈 `stage(env)` 목록, 꾸밈 어휘는 팩 taxonomy, 어느 환경이 중요한지는 모델 판단("대 분류 아래 active(...) 식이 되거나 후행 꾸밈이 되는게 나아보임. 판단을 모델이 하도록 해야하는 부분이 일부 있겠다", 단계 이름 "그렇게 정할게"). 지금 lifecycle 을 쓰는 문서 0개. 하드코딩·중복·바퀴 재발명·단순화 실패 규약은 coderag .claude/audit/47-coderag-code-quality 사례를 본 뒤.
      - coderag 설계 질문 결정(사용자): Q1 "에이전트가 선택 가능하게…순위는 동등해도", Q2 "백틱 식별자를 자동으로 맞추어 보나는 근데 뭔가 애매할수도. 차라리 뭔가 규칙을 두는게 나을지도"(표기 모양 미정), Q3 "mtime 괜찮지 않나 싶음 + size", Q5 "모듈 해석 같은 경우는 언어 프로바이더가 하는게 맞다", Q6 "mcp는 표준화된 경로에 효율적인 경로를 따로 붙여주는 방향도 나쁘지 않겠다". 또 "coderag 쪽도…base 정본이나 archive, research 등으로 좀 문서화 정리가 필요". Q4(바이너리 전달) 남음.
-     - 사용자: "심볼 경우는 a 로 가자. 이름은 괜찮은것 같고 아래 정할 것은 적당히 봤는데, 추천대로 가도 될 것 같음." → Q2 표기 `` `경로::심볼` ``. 규약 초안(`.claude/archive/research/drafts/code-quality-conventions/`): 이름 code-reuse·reuse-check·@copy-of·@dup-ok, 복사 파일 항목은 code-structure 에서 옮김, 패키지 경계를 넘는 중복도 "사본 표시+비교 시험" 안내, 타입 유니언과 런타임 목록은 어긋날 때만, 언어 켜기는 모델 검토자 둘 동의 + 정밀도 80%, `Canonical copy:` 머리말과 `@copy-of` 는 `@copy-of: <경로>[#이름]` 하나로. 설치 전 문구 토론 한 판.
+     - 사용자: "심볼 경우는 a 로 가자. 이름은 괜찮은것 같고 아래 정할 것은 적당히 봤는데, 추천대로 가도 될 것 같음." → Q2 표기 `` `경로::심볼` ``. 규약 초안(`.claude/scopes/plugins/qwreey-conventions/archive/research/drafts/code-quality-conventions/`): 이름 code-reuse·reuse-check·@copy-of·@dup-ok, 복사 파일 항목은 code-structure 에서 옮김, 패키지 경계를 넘는 중복도 "사본 표시+비교 시험" 안내, 타입 유니언과 런타임 목록은 어긋날 때만, 언어 켜기는 모델 검토자 둘 동의 + 정밀도 80%, `Canonical copy:` 머리말과 `@copy-of` 는 `@copy-of: <경로>[#이름]` 하나로. 설치 전 문구 토론 한 판.
      - TS·MCP 시험 결과의 질문 12개 추천대로(사용자 "추천대로 가자. 그런데 svelte 나 vue 도 자체 ts 가 들어갈 수 있지 않을까 싶긴 하네. mcp 관련해서도 동의해"). 데몬은 미루고 세션 MCP 프로세스 안 캐시(audit/41 의 데몬 결정을 바꿈: 세션 안 캐시가 같은 지연 약 10ms, 데몬은 세션당 18-50MB 공유만 이득이고 cwd·환경·stderr 상태 문제). 컴포넌트 파일(.astro·.svelte·.vue)의 TS 스크립트 블록은 TS 프로바이더 하나로. 내용은 `coderag/.claude/base/decisions/user-decisions-2026-11.md`.
-     - 열린 문제(사용자, 천천히): 세션 기록 반입본이 compact 단위로 나뉘지 않음. "sessions 있잖아. 이거 10 일이라 되어있는데 11일 까지 포함이기도 하더라. 또 엄청 길고…compact 단위의 분절이 세션 로그에는 하나도 없다는건 약간 문제가 되는것 같기도…한 세션이라 하더라도 분절과 source_transcript 같은것 뿐만 아니라 바이트 단위 범위나 그런게 필요하지 않을까". 후보: 반입을 compact 회차마다 파일 하나(또는 절 하나)로, 머리에 날짜 범위·transcript 경로·줄/바이트 범위·회차 번호. 같이 고칠 것: 반입본 description 이 세션 전체가 아니라 마지막 구간의 것이라 제목과 어긋난다(`plugins/qwreey-sessions/scripts/sllib/store.py:245` `descs[-1]`, audit/49).
+     - 열린 문제(사용자, 천천히): 세션 기록 반입본이 compact 단위로 나뉘지 않음. "sessions 있잖아. 이거 10 일이라 되어있는데 11일 까지 포함이기도 하더라. 또 엄청 길고…compact 단위의 분절이 세션 로그에는 하나도 없다는건 약간 문제가 되는것 같기도…한 세션이라 하더라도 분절과 source_transcript 같은것 뿐만 아니라 바이트 단위 범위나 그런게 필요하지 않을까". 후보: 반입을 compact 회차마다 파일 하나(또는 절 하나)로, 머리에 날짜 범위·transcript 경로·줄/바이트 범위·회차 번호. 같이 고칠 것: 반입본 description 이 세션 전체가 아니라 마지막 구간의 것이라 제목과 어긋난다(`plugins/qwreey-sessions/scripts/sllib/store.py:245` `descs[-1]`, coderag .claude/audit/49-records-description).
      - coderag 저장소 배치(사용자 "그 구조로 가자"; 제기: "coderag 가 벤더 맞춤형으로 두지 않고 호환성을 띈다 한다면 claude 에 관한걸 프로젝트 루트에 두는게 맞는가"): 벤더 중립 원천은 `conventions/`(기록 규약 rule·스킬 본문·references, MCP 안내문), 하네스별은 `harness/claude/`(플러그인 루트: plugin.json, hooks, doc-locator, 스킬 사본, bin) · 나중 `harness/codex/`·`harness/agy/`. 루트에는 로컬 마켓 `.claude-plugin/marketplace.json` 만(source ./harness/claude). 사본은 생성해 커밋하고 `@copy-of` + 비교 시험, 심볼릭 링크 안 씀. 내장 팩 위치는 `conventions/`. 기록 폴더 이름 `.claude/` 는 기본값일 뿐이라 그대로. 옮긴 뒤 사용자가 마켓 갱신·재로드.
      - 나중: coderag 스킬 감사(사용자: "coderag skill 들도 사실 한국어일 필요는 없지 않나 싶으면서도 skill 생성 skill과 같이 감사해보는것도 좋겠다…천천히 해볼 일"). 합친 규약 스킬은 지금 영어로 쓴다. 대상에 `agents/doc-locator.md` 도(사용자: "하위 에이전트에 주입되는 것이라 영어인 편이 효율적일 수 있는데. 나중에 검토 한번 해볼래?"). 합친 규약 반영 때 qwreey-conventions agent-records 스킬·rule 과 coderag docs-frontmatter 삭제는 사용자 허가("그 부분은 삭제 해도 돼", 삭제함).
      - 제안(사용자, 2026-11-13): 메인은 대화·판단, 구현은 서브에이전트(수행자-오퍼레이터) 를 규약으로. "이 프로젝트에서 수행자와 메인 오퍼레이터 패턴이 생각보다 좋은 성과를 내고 있잖아. 그런데 다른 곳에서는 내가 직접적으로 subagent 사용 지시를 해야 넘어가고, 메인이 직접 코드를 건들여서 컨텍스트가 부폐되거나 작업중인 시간동안 의논을 할 수 없어 시간이 버려지거나…quad 나 stl luau 의 경우…전반 개발이 지체…내 프롬프트가 길게 큐가 되어버리기도 하고. 그런데 주의점은 모든 상황에서 서브에이전트를 남용하는건 또 좋지 않아. 그 경계를 어떻게 잡아야". 후보: 훅 리마인더(메인이 코드를 크게 건드리려 할 때) + 스킬. 전역 문구라 토론. 비용 근거(사용자): "서브 에이전트가 비용이 덜 들기도 함…opus가 작업하는것 보다 sonnet 이 작업하는게 나아…다른 코드를 읽고 관계를 파악하거나 api에 관해 찾아보거나 외부 자료에 의존하는 경우가 아주 많고, 정본도 읽어야하는 경우도 많음. 그렇다면 fresh 컨텍스트에서 그 작업이 시작되고 끝나는게 나아…캐시 토큰이더라도 작업 결과, 툴콜, 테스트 결과 등이 전부 있으면 매 후행 토큰 생성마다 선행 토큰을 읽음…opus 가 opus수행자를 내리는게 더 싼 경우도 많이 존재함. 또 시간도 비용이기도 하고…설계 한 사람이 설계대로 짜면…확증편향에 걸려 과신하고 구현하는데, fresh 맥락은 아니니까". 측정할 것: 메인 맥락 누적의 캐시 읽기 비용 vs 서브에이전트 비용(같은 작업), 사용자 대기 시간.
-       - 실측 `.claude/research/drafts/main-delegate-evidence.md`, 토론 종합 `.claude/audit/50-main-delegate/synthesis.md`. 사용자 "문구 초안 자체는 괜찮은것 같아", 순서 1-3 "둘 다 동의". 수행자 모델은 그 뒤 opus 기본으로 정했고(아래 훅 원칙 줄), implementer 스킬은 operator 0.2.0 에서 상시 문구로 합쳐 지웠다.
+       - 실측 `.claude/scopes/plugins/qwreey-operator/research/drafts/main-delegate-evidence.md`, 토론 종합 `.claude/scopes/plugins/qwreey-operator/audit/50-main-delegate/synthesis.md`. 사용자 "문구 초안 자체는 괜찮은것 같아", 순서 1-3 "둘 다 동의". 수행자 모델은 그 뒤 opus 기본으로 정했고(아래 훅 원칙 줄), implementer 스킬은 operator 0.2.0 에서 상시 문구로 합쳐 지웠다.
      - 플러그인 나누기(사용자, 2026-11-13): "q하나에 기능 집합이 되어가는 느낌", 자연어로 시키거나 모델이 판단해 쓰는 것은 qwreey-advisor 처럼 따로("안 쓰고 싶은 곳에서는 끌 수 있는 모양"). "'최소한의 패키지' 로써 배포한다면…그 패키지가 뭘 하는지, 대략 비용이 어떻고 효과가 어떤지, 택한다면 왜 택해야하는지 알 수 있도록…판단 자체를 할 수 있게 돕는다면…각 동료들은…본인이 원하는 최선을 택할 수 있는것 같음". q 는 사용자 의견이 담긴 사람 명령(away, back, doctor 등). 구현 위임(서브에이전트 운용)과 다른 벤더 위임은 다르다: "구독을 다중으로…여러 모델을 쓰는 사람도 있는데 안 그런 사람도 많고…서브에이전트 이상의 delegate 는 잡음", uid 격리는 "windows 에서 먹지 않는 부분". workspace 도 "항상일까는 모르겠음", 사용자가 직접 쓰는 도구가 아님. quad 에서는 delegate 스킬 이름 없이 "codex랑 agy써서 작명 관해서 논의해봐" 로 시켰다.
        - 순서(동의): (1) `qwreey-operator`(문구 주입, delegate-nudge 훅, implementer 스킬)와 `qwreey-delegate`(agy·codex, Linux) 새로 (2) `qwreey-sessions` 는 의존 조사 뒤 (3) away·back·서브에이전트 슬롯과 workspace 는 조사 결과로. 플러그인마다 README 카드: 무엇을, 비용, 효과, 왜 택하나, 요구 사항, 끄기.
        - 나누기 정함(사용자 "확인. 추천대로"): `qwreey-sessions`(session-log 훅·sllib·bin, checkpoint·import·recall, records_read), `qwreey-workspace`(게이트, workspace 스킬, ambient 의 workspace 줄), q 에 남김(start, doctor+records_check, away·back+subagent-slots+원장(statusline 이 q 에서 찾음), drift, stale_work, ambient). compact 회차는 플러그인마다 `compact_epoch.py` 사본(`@copy-of`)으로 각자 PreCompact 에서 올린다(q 도 회차 전용 PreCompact). 새 settings 마이그레이션으로 새 이름을 켠다. coderag agent-records 스킬의 `q:recall` 은 이름이 정해진 뒤 고친다.
@@ -222,7 +222,7 @@
        - 나중(사용자 "3도 동의. 지금은 나중에 해야할 일로 인지를 해두는것으로 두자"): q doctor·start references 안의 모델용 지시문이 한국어라 agent-docs 영어 규칙과 어긋남. 큰 재작성이라 coderag 스킬 감사 때 함께. 사용자 호출 스킬 description 은 한국어 메뉴 줄로 정함("유저 invoke 는 한국어여도 된다").
        - 구현됨(2026-11-13): q 0.9.0, `qwreey-sessions` 0.1.0, `qwreey-workspace` 0.1.0, 마이그레이션 0009(sessions·workspace·operator 를 켬, delegate 는 안 켬). 스킬 이름이 `qwreey-sessions:recall|checkpoint|import`, `qwreey-workspace:workspace` 로 바뀌었다. workspace 의 UserPromptSubmit 보충 주입(ambient 의 회차 표지)은 두지 않았다: SessionStart·SubagentStart 만.
        - 끄기 스위치는 `HARNESS_OPERATOR_AMBIENT`·`HARNESS_WORKSPACE_AMBIENT` 처럼 플러그인마다. 프로젝트별로 다르게 하려고 harness.env 를 층으로 읽는다(사용자: "local.env…settings.local.json…레이어로 합쳐지는 모양에 local 이 최상위"): 기본값 < `~/.claude/harness.env` < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`(커밋 안 함) < 환경 변수. `USER_ONLY` 키(경로·게이트 등)는 저장소 층이 못 바꾼다(31a552d).
-       - delegate 격리(사용자 "agy ACP 실측 먼저 해보자", "이대로 진행하자"): agy ACP 는 셸만 권한을 묻고 파일 읽기·쓰기는 워크스페이스 밖도 묻지 않으며, settings `permissions` 도 막지 못한다(cf321b7, 81b5c63, `.claude/research/drafts/delegate/portable-isolation.md`). 그래서 격리(root uid, codex 샌드박스, agy 샌드박스)가 없으면 읽기 전용 의견(empty)만 기본. 다음: 운영체제와 상관없이 도는 Python 드라이버 설계(`.claude/research/drafts/delegate/driver-design.md`, M1·M2·M4 끝: print 모드 정책, 상태 폴더 작업·결과와 자동 정리, delegate.sh 는 delegate.py 껍데기. 남은 것 M3 비root·macOS·Windows). macOS·Win11 실측은 사용자 기기. agy worktree 모드는 uid 격리가 있을 때만이 기본이고, 사용자가 harness.env 키(USER_ONLY)로 풀 수 있게 한다(사용자 "옵션을 주는건 괜찮을것 같아").
+       - delegate 격리(사용자 "agy ACP 실측 먼저 해보자", "이대로 진행하자"): agy ACP 는 셸만 권한을 묻고 파일 읽기·쓰기는 워크스페이스 밖도 묻지 않으며, settings `permissions` 도 막지 못한다(cf321b7, 81b5c63, `.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/portable-isolation.md`). 그래서 격리(root uid, codex 샌드박스, agy 샌드박스)가 없으면 읽기 전용 의견(empty)만 기본. 다음: 운영체제와 상관없이 도는 Python 드라이버 설계(`.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/driver-design.md`, M1·M2·M4 끝: print 모드 정책, 상태 폴더 작업·결과와 자동 정리, delegate.sh 는 delegate.py 껍데기. 남은 것 M3 비root·macOS·Windows). macOS·Win11 실측은 사용자 기기. agy worktree 모드는 uid 격리가 있을 때만이 기본이고, 사용자가 harness.env 키(USER_ONLY)로 풀 수 있게 한다(사용자 "옵션을 주는건 괜찮을것 같아").
        - memory 줄은 상시 주입에 넣지 않는다(사용자 "메모리 쓰는건 소수 경우고 그 때 알려주는게 일반적으로 싼것 같아"): memory 파일을 쓸 때 실리는 memory rule 과 memory-placement 훅이 맡는다.
      - 나중(사용자 "일단 나중에 고려해볼 대상으로 두자"): 읽기 어려운 코드 알림. 빈 줄 없이 길게 이어진 코드, 주석 없이 일정 이상 이어진 코드, 주석이 한곳에 몰리고 아래 코드는 주석이 없는 경우에 경고(주석·빈 줄 비율). qwreey-conventions 후보.
      - 나중(사용자 "advisor 를 확정 전, 그런데 추천안을 내기 전에도 볼 수 있도록 약간 조건을 다듬어주는것도 좋을것 같네. 나중에 다뤄보자"): 계기는 서브에이전트 설계의 추천 6개를 검토 없이 전달해 사용자가 승인한 일. qwreey-advisor 의 상시 줄·스킬 설명 조건에 "사용자에게 결정을 맡길 추천안을 내기 전"을 더하는 안. 상시 문구라 기본 지시와 겹침을 먼저 본다.
@@ -245,5 +245,5 @@
 | 3 | 형제 저장소 지도의 포인터 방식 | 미정 | `qwreey-workspace` 지도 |
 | 4 | coderag Q4 바이너리 전달, M2 전환을 release 전 이 기계의 로컬 빌드로 할지 | 미정 | 3.9 5a, `../coderag/.claude/base/decisions/user-decisions-2026-11.md` |
 | 5 | 다른 하네스(codex·agy)에 규약을 주는 법 | 미정(규약은 coderag 와 잇지 않기로 함) | 3.9 5a |
-| 6 | 세션 기록 반입본을 compact 회차 단위로 나눌지(사용자 "천천히") | 회차마다 파일 하나, 머리에 날짜·transcript·줄 범위 | 3.9 5a, `.claude/audit/49-records-description/` |
+| 6 | 세션 기록 반입본을 compact 회차 단위로 나눌지(사용자 "천천히") | 회차마다 파일 하나, 머리에 날짜·transcript·줄 범위 | 3.9 5a, coderag `.claude/audit/49-records-description/` |
 | 7 | 다른 저장소 세션에 인계 파일 전달(정정·`git push` deny 등) | 사용자가 각 세션에 전달 | `HUMAN_TODO.md`, `.claude/handoff/` |

@@ -20,7 +20,7 @@
 | `hook.rs:72` dedup 이 원자적이지 않고 compact 회차를 보지 않는다 | **확인** | `read_to_string` 으로 읽고 `append` 로 덧붙인다(O_EXCL 아님). 키는 `session` + `file\tfnv(msg)` 이고 agent_id·회차가 없다. 지금은 lint 알림이라 해가 작지만, rules 주입을 옮길 때는 `rules_inject.py` 의 키와 마커를 그대로 가져와야 한다 |
 | 본문 낱말을 coderag 는 18파일, grep 은 53파일에서 찾는다 | **확인** | 낱말 6개를 다시 쟀고 값이 하나하나 같다(1/10, 1/6, 3/10, 3/6, 3/5, 7/16) |
 | luau-kb 에서 `닫힌 실패` 를 찾으면 27건이 나온다 | **확인** | 27건이고, luau-kb 를 grep 하면 0파일이다. 토큰 하나만 맞아도 결과에 든다 |
-| 위임 에이전트는 `setpriv` 로 다른 uid 에서 돈다 | **확인** | `research/drafts/delegate/README.md:51` "setpriv 무권한 uid" |
+| 위임 에이전트는 `setpriv` 로 다른 uid 에서 돈다 | **확인** | `.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/README.md:51` "setpriv 무권한 uid" |
 | project 색인 39MB anon, 932ms, 7941항목 | **반박(재측정)** | 7941 은 버그로 생긴 `/code/.claude` 의 항목 수와 정확히 같다. 수정 뒤에는 1,696항목, 약 5MB anon, 250ms 다 |
 | luau-kb description 6,456자 | **확인** | 0장 |
 | codex 훅 PostToolUse `additionalContext`, SessionStart `source=compact`, agy `.agents/rules` 의 `trigger: glob` | **미확인(문서 요약)** | other-harness-hooks.md 는 WebFetch 요약이라 실행으로 확인하지 않았다. 아래 설계는 이것이 맞다는 가정 위에 서고, 각 단계의 첫 측정으로 확인한다 |

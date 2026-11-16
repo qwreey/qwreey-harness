@@ -6,6 +6,6 @@
 --   모르는 이름은 stderr 에 "Warning: unrecognized flag", 정수 한도(LuauTypeInferIterationLimit=10 등)는
 --   "Warning: unrecognized value" 로 무시되고 rc 에 영향이 없다. 정수 한도는 luau-lsp --flag: 로만 바뀐다.
 -- 근거: luau 0.742 소스 CLI/src/Analyze.cpp:434(--fflags=), CLI/src/Flags.cpp(불리언 FValue 만 순회). 0.734, 0.742 실측.
---   후보 S-129, claude-doctor .claude/audit/09 6 모순 1. 이 저장소의 옛 서술("플래그 옵션이 없다")을 정정한다.
+--   후보 S-129, claude-doctor .claude/scopes/packs/luau-kb/audit/09 6 모순 1. 이 저장소의 옛 서술("플래그 옵션이 없다")을 정정한다.
 local x: number = "a" -- expect-error: Expected this to be 'number', but got 'string'
 print(x)

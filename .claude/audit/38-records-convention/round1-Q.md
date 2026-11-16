@@ -5,7 +5,7 @@
 
 ## 0. 이번에 새로 잰 것 (/tmp/q38 사본, coderag 0.1.0 debug, CODERAG_CACHE=/tmp)
 - **조용한 오분류**: `status: superseded by plan/a.md` 는 lint 를 통과한다(lint 가 첫 낱말만 본다, lib.rs:931). 그런데 색인에는 `active` 로 들어간다(core docs/mod.rs:164 는 값 전체를 정확히 비교한다). 그래서 기본 검색에 계속 나오고, static-gen 표에는 `base · active` 로 찍힌다. lint 를 통과한 문서가 엉뚱하게 처리되는 셈이다. 사용자가 말한 `superseded by X` 꼴을 지금 쓰면 바로 이렇게 된다.
-- `landed in …`, `rejected by …; note` 는 lint 오류이고 색인에는 `active` 로 들어간다(.claude/audit/37 과 같은 결과).
+- `landed in …`, `rejected by …; note` 는 lint 오류이고 색인에는 `active` 로 들어간다(coderag .claude/audit/37-coderag-records 과 같은 결과).
 - `.gitignore` 에 든 `.claude/sessions/` 도 색인된다. frontmatter 가 없는 기록은 `[unknown]` 이 된다(폴더로 kind 를 추론하지 않는다).
 - `static-gen --dir .claude/base` 는 `.claude/.claude/base/README.md` 를 만든다. `--dir` 이 모듈 루트 기준이라서다. `--dry-run` 은 "바뀔 예정"이어도 rc=0 이라 검사기로 쓸 수 없다.
 - claude-doctor 의 기록은 이미 반쯤 coderag 꼴이다. `.claude/sessions/*.md` 는 import 때 `title/description/keywords/kind: session/status: active/last_verified` frontmatter 를 받는다. frontmatter 가 있는 것은 drafts 51개 중 16개, audit 75개 중 4개다. decisions·handoff 에는 없다.
@@ -120,7 +120,7 @@ Search first (`coderag search --abs`, or /q:recall), then read only the returned
 - 1. **기준선(옮기기 전)**: 정답 위치가 정해진 recall 질문 10개(예: "D-04 근거", "luau-core 를 왜 옮겼나")를 고른다. 지금 방식인 grep locate 의 hit@5, 호출 수, 읽은 토큰을 잰다. 같은 질문을 `coderag.toml`(target 을 audit, decisions, drafts, handoff 로 지정하고 /tmp 에 둔다)로도 잰다. 이동 효과와 색인 효과를 따로 재기 위해서다.
 - 2. **커밋 A**: `git mv` 만 한다. audit→`.claude/audit`, decisions→`.claude/base/decisions`, drafts 중 landed→`.claude/archive/drafts`, 나머지 drafts→`.claude/research`, handoff→`.claude/handoff`, PLAN.md→`.claude/plan/`. CLAUDE.md·HUMAN_TODO.md·README.md 는 루트에 남긴다.
 - 3. **커밋 B**: 기계적인 경로 치환(옛→새 대응표 하나). 함께 고칠 곳은 web.py `PLUGINS_REF`, conventions.json exclude, conventions-check 정규식, records_home 후보, `.gitignore` 다(.claude/audit/36 §3).
-- 4. **커밋 C**: 끝난 문서에만 frontmatter status 를 단다. 첫 줄 `status: landed in` 이 있는 drafts 는 지금 몇 개뿐이라(예: `.claude/archive/research/drafts/second-opinion/README.md`) 폴더 README 와 머리줄로 하나씩 판정한다. audit 은 백필하지 않고 폴더로 kind 를 얻는다. 주의: drafts 의 절 메타 줄에는 자유문 `status:`(근거 등급, 메모)가 많다. 그래서 C1 문법은 파일 frontmatter 에만 적용하고, 절 메타의 `status:` 는 지금처럼 evidence 나 note 로 읽어야 한다.
+- 4. **커밋 C**: 끝난 문서에만 frontmatter status 를 단다. 첫 줄 `status: landed in` 이 있는 drafts 는 지금 몇 개뿐이라(예: `.claude/scopes/plugins/qwreey-advisor/archive/research/drafts/second-opinion/README.md`) 폴더 README 와 머리줄로 하나씩 판정한다. audit 은 백필하지 않고 폴더로 kind 를 얻는다. 주의: drafts 의 절 메타 줄에는 자유문 `status:`(근거 등급, 메모)가 많다. 그래서 C1 문법은 파일 frontmatter 에만 적용하고, 절 메타의 `status:` 는 지금처럼 evidence 나 note 로 읽어야 한다.
 - 5. **커밋 D**: static-gen 으로 폴더 README 를 만든다.
 - 측정:
   - 같은 10개 질문의 hit@5, 토큰, 호출 수

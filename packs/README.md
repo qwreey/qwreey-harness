@@ -16,4 +16,4 @@ Current packs: `web-security`, `luau-kb`.
 
 A pack folder holds only what runs (skills, rules, tools, snippets, typedefs, `.lsp.json`, and `coderag.toml`/`taxonomy.toml`,
 which coderag reads from the pack root), because the plugin cache copies the whole folder per version. Development material that
-nothing in the payload cites lives in `.claude/packs/<pack>/` (for luau-kb: `evals/`).
+nothing in the payload cites lives in `.claude/scopes/packs/<pack>/` (for luau-kb: `evals/`).

@@ -14,6 +14,9 @@
   - quad 세션이 쓰고 있었다(lock). 그 세션이 끝난 뒤 정리한다.
 - [ ] `/code/Projects/stl-luau-doctor` worktree
   - stl-luau 세션이 `doctor/diet` 를 반영하고 나면 지운다: `git -C /code/Projects/stl-luau worktree remove ../stl-luau-doctor`
+- [ ] coderag 로 옮긴 기록의 claude-doctor 사본(coderag `.claude/audit/` 같은 번호, `.claude/research/coderag-format-and-levels.md`)
+  - coderag 쪽 병합과 그 저장소의 `raw/`(gitignore) 를 확인한 뒤: `git rm -r .claude/audit/{37,42,43,44,45,46,47,49,53}-*/ .claude/research/coderag-format-and-levels.md`, 남는 미추적 `raw/` 폴더도 지운다
+  - 함께 고칠 것: `.claude/audit/README.md` 의 해당 표·목록 줄과 "moved to coderag" 줄, `.claude/research/README.md` 의 그 줄(`coderag gen && coderag static-gen --dir .claude/audit --dir .claude/handoff`)
 
 - [ ] 훅을 플러그인으로 옮긴 뒤 `~/.claude` 에 남는 옛 파일(home-sync 는 MANIFEST 에서 빠진 파일을 지우지 않고 status 가 고아로 보고만 한다). apply 와 마이그레이션 0006 뒤에 지운다
   - `~/.claude/hooks/{heavy-proc-guard,bash-bypass-reminder,structure-reminder,memory-placement,subagent-slots,rearm-on-compact}.py`
@@ -30,7 +33,7 @@
 
 ## 팩 rule 주입을 coderag 로 옮긴 컷오버 (이 기기)
 이 기기의 coderag 플러그인은 `~/.claude/plugins/cache/coderag-market/coderag/<버전>/` 캐시 사본으로 설치된다. 그래도 바이너리, rule 주입(`conventions/`), 프로바이더는 래퍼가 저장소 쪽을 찾아 쓰므로 바로 최신이다. 캐시에서 읽는 것은 스킬 본문, 에이전트 정의, `hooks.json` 뿐이라 이것들이 바뀐 버전에서만 update 가 필요하다.
-- [ ] **먼저(vitrine 세션을 열기 전):** 설치된 web-security 가 0.2.0 이라 캐시에 옛 Python rule 훅이 남아 있다. vitrine 은 `coderag.toml` 에 web-security 가 있어 새 세션에서 rule 이 두 번 붙는다(실측). `claude plugin marketplace update claude-doctor-market`, `claude plugin update web-security@claude-doctor-market`(0.4.0, 훅 없음), Luau 저장소에 luau-kb 스킬이 필요하면 `claude plugin install luau-kb@claude-doctor-market`(0.6.2; 지금 미설치라 Luau 저장소의 enabledPlugins 키가 가리키는 플러그인이 없다). `claude plugin list` 로 확인한 뒤 새 세션. 그 전에 vitrine 을 열어야 하면 그 `coderag.toml` 을 잠시 치운다
+- [ ] **먼저(vitrine 세션을 열기 전):** 설치된 web-security 가 0.2.0 이라 캐시에 옛 Python rule 훅이 남아 있다. vitrine 은 `coderag.toml` 에 web-security 가 있어 새 세션에서 rule 이 두 번 붙는다(실측). `claude plugin marketplace update claude-doctor-market`, `claude plugin update web-security@claude-doctor-market`(0.4.0, 훅 없음), Luau 저장소에 luau-kb 스킬이 필요하면 `claude plugin install luau-kb@claude-doctor-market`(0.6.3; 지금 미설치라 Luau 저장소의 enabledPlugins 키가 가리키는 플러그인이 없다). `claude plugin list` 로 확인한 뒤 새 세션. 그 전에 vitrine 을 열어야 하면 그 `coderag.toml` 을 잠시 치운다
 - [ ] coderag 0.23.0(기록 범위 `scopes/`·`records move`·`search --for`, `coderag get --body` 읽기를 compact 뒤 가리킴에 기록, 바이너리는 release 빌드 완료): `claude plugin marketplace update coderag-market`, `claude plugin update coderag@coderag-market`, `/reload-plugins`. 갱신 전에도 rule 주입은 되고, `get` 기록에 필요한 Bash matcher 와 새 스킬 글만 기다린다
 - [ ] vitrine(web-security)·quad(luau-kb)는 에이전트가 `coderag.toml` 과 `.gitignore` 의 `.coderag/` 를 넣었다(커밋 안 함, 그 저장소에서 확인 뒤 커밋). 나머지(table-sim, rbvm, mrow, moonwave-luau, devplorer, nekolog)는 같은 방식으로 넣기 전까지 새 세션에 팩 rule 이 주입되지 않는다(doctor 항목 7 이 PACK-DRIFT 로 알린다). 넣는 법: `coderag.toml` 에 `[[packs]]` + `name = "luau-kb"`(또는 `web-security`), `coderag adapt --harness claude --dry-run`, 이상 없으면 `coderag adapt --harness claude`, `coderag gen`
 - [ ] 그 저장소에서 새 세션을 열어 `.luau`(또는 `.ts`) 파일을 Read 해 rule 이 한 번만 붙는지 본다. `/q:doctor` 항목 7 에 `PACK-DRIFT`·`PACK-MISSING`·`PACK-NO-CODERAG`·`PACK-UNREGISTERED` 가 없어야 한다. `<rule plugin="web-security">` 가 두 개 보이면 옛 캐시 사본이 적재된 것이니 알려 달라
@@ -51,7 +54,7 @@
   - 이 호스트에서 codex 샌드박스가 bwrap 네임스페이스를 만들지 못해 셸 실행이 안 된다.
   - 열려면 `~/.claude/harness.env` 에 `HARNESS_DELEGATE_CODEX_SANDBOX=danger-full-access` 를 써야 한다. 그대로 두면 empty 모드만 쓴다.
 - [ ] stl-luau, tbox: `.claude/worktrees` 를 `.git/info/exclude` 로만 무시 중이다. `.gitignore` 로 옮길지 결정한다(각 세션 몫).
-- [ ] .claude/audit/34 프로브가 남긴 `~/.claude/plugins/data/probe-inline/`(빈 폴더)와 `~/.claude/projects/-tmp-probe-conv-*` 정리
+- [ ] .claude/scopes/plugins/qwreey-conventions/audit/34 프로브가 남긴 `~/.claude/plugins/data/probe-inline/`(빈 폴더)와 `~/.claude/projects/-tmp-probe-conv-*` 정리
 - [ ] 세션 기록 실측이 남긴 `~/.claude/projects/-tmp-sl-hookproj-omyV*` 디렉터리 2개 정리
 - [ ] 훅 형식 실측이 남긴 `~/.claude/projects/-tmp-hookfmt`, `-tmp-cmp`, `-tmp-effect-*` (6개) 정리
 - [ ] 실측용 임시 프로젝트 기록 `~/.claude/projects/-tmp-*` 정리 (2026-11-10 기준 307개; 이번 작업의 claude -p 실측분이 대부분. `ls -d ~/.claude/projects/-tmp-*` 로 확인 후 삭제)
@@ -99,5 +102,5 @@
 - [ ] rbvm 세션에 `.claude/handoff/rbvm-corrections.md` 전달 (4건: 행동 2, 표현 2. 접두 없는 require, 시그널 userdata 신원. 위 `const` 항목 포함)
 - [ ] table-sim 세션에 `.claude/handoff/table-sim-corrections.md` 전달 (2건: 표현 2)
 - [ ] moonwave-luau 세션에 `.claude/handoff/moonwave-luau-corrections.md` 전달 (2건: 표현 2)
-- [ ] 메인(claude-doctor)이 `.claude/handoff/claude-doctor-corrections.md` 반영 (8건: 행동 2, 표현 6. D-01 §2, .claude/audit/09 M-05)
+- [ ] 메인(claude-doctor)이 `.claude/handoff/claude-doctor-corrections.md` 반영 (8건: 행동 2, 표현 6. D-01 §2, .claude/scopes/packs/luau-kb/audit/09 M-05)
 - [ ] moonwave-luau 의 `.claude/`, `CLAUDE.md` 가 한 번도 커밋되지 않았다. 커밋할지 결정한다.

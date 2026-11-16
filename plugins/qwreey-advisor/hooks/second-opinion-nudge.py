@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """second-opinion-nudge — 정해진 시점에 '독립 검토를 받을 때'라고 알린다. 막지 않는다(ExitPlanMode 선택 기능 제외).
 
-advisor 는 언제 불릴지 모델이 정해서 예측이 안 됐다(.claude/audit/18). 이 훅은 잴 수 있는 시점만 맡는다.
+advisor 는 언제 불릴지 모델이 정해서 예측이 안 됐다(.claude/scopes/plugins/qwreey-advisor/audit/18). 이 훅은 잴 수 있는 시점만 맡는다.
   1. PostToolUseFailure   같은 실패 서명이 이번 회차에 2번째 → stuck 검토 권고 (서명마다 한 번)
   2. PreToolUse(Bash)     `git commit` 이고 커밋될 diff 가 등급 임계 이상, 최근 검토 없음 → done 검토 권고
      같은 명령이 `git add <경로>|-A|.|-u` 나 `git commit -a|<경로>` 로 스테이징하면 그 범위까지 잰다(commit_scope.py).
@@ -10,7 +10,7 @@ advisor 는 언제 불릴지 모델이 정해서 예측이 안 됐다(.claude/au
   5. SubagentStop(모든 에이전트)  검토(qwreey-advisor:reviewer, inherit-advisor fork)면 메인이 부른 것만 최근 검토 시각을 기록하고
      ledger 에 자동 행을 남긴다(review_record.py). 검토가 아니면 보고에 권고·질문이 있는지 기록한다(handback_notice.py).
   6. UserPromptSubmit, PostToolBatch (메인)  5 에서 권고·질문이 있던 보고가 메인에 들어오면 info 한 줄(에이전트마다 한 번)
-'접근 확정 전'은 잴 수 없어서 메인 판단(CLAUDE.md, 스킬)에 맡긴다. 이 저장소들에서 ExitPlanMode 사용은 0회였다(.claude/audit/18 §1.4).
+'접근 확정 전'은 잴 수 없어서 메인 판단(CLAUDE.md, 스킬)에 맡긴다. 이 저장소들에서 ExitPlanMode 사용은 0회였다(.claude/scopes/plugins/qwreey-advisor/audit/18 §1.4).
 
 설치: qwreey-advisor 플러그인의 hooks/hooks.json 이 등록한다. 설정은 harness.env 층(늘 옆의 harness_env.py
 사본): 사용자 $CLAUDE_CONFIG_DIR/harness.env < 저장소 .claude/harness.env < 저장소 .claude/harness.local.env < 환경 변수.

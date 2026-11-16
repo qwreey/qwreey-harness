@@ -2,7 +2,7 @@
 
 Code/config that must change (file:line):
 - `.claude/conventions.json:2` exclude `["drafts/**","audit/drafts/**"]` -> `.claude/research/drafts/**`, `.claude/archive/research/drafts/**`, `.claude/audit/drafts/**`.
-- `home/.claude/harness.env:22` HARNESS_DELEGATE_REGISTRY=`${HARNESS_DOCTOR_ROOT}/drafts/delegate/skills/delegate/registry.tsv` (runtime path) -> `.claude/research/drafts/delegate/...`; line 21 and 34 comments.
+- `home/.claude/harness.env:22` HARNESS_DELEGATE_REGISTRY=`${HARNESS_DOCTOR_ROOT}/drafts/delegate/skills/delegate/registry.tsv` (runtime path) -> `.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/...`; line 21 and 34 comments.
 - `plugins/q/skills/doctor/scripts/toolkits/web.py:58` PLUGINS_REF (printed to the user) `audit/16-marketplace.md#...` -> `.claude/audit/16-marketplace.md#...`.
 - `plugins/q/scripts/sllib/records_home.py:19` HISTORY_CANDIDATES: add `.claude/audit`, `.claude/handoff`.
 - `plugins/qwreey-conventions/hooks/conventions-check.py:64,90,91` history-path regexes (`audit/` still matches as substring in `.claude/audit/`; `plan/`, `archive/`, `base/`, `research/` not detected); line 21-22 doc text.

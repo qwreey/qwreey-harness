@@ -107,7 +107,7 @@ coderag 플러그인은 팩이 아니어서 지금은 그 `rules/` 를 아무도
 ## 3. Codex·agy
 
 경로 조건부 rule 주입은 Claude Code 훅뿐이다. codex·agy 는 `AGENTS.md` 를 읽고(agy 는 `.agents/rules/*.md` 와 `GEMINI.md` 도), 스킬도 읽는다(coderag/.claude/research/team-sharing.md §35.10).
-- 지금: claude-doctor 에서 codex·agy 는 위임으로만 돈다. 위임 템플릿 `.claude/research/drafts/delegate/skills/delegate/templates/AGENTS.md.template` 에 "## 기록 (.claude/)" 절을 더하고 본문은 `rules/agent-records.md` 의 본문 7줄을 그대로, 마지막 줄만 "Details: `<coderag root>/skills/agent-records/SKILL.md`"(평문 경로)로 바꾼다. 위임받은 에이전트가 `.claude/` 기록을 쓰는 일은 드물어서 상시 비용(약 1KB)이 작다.
+- 지금: claude-doctor 에서 codex·agy 는 위임으로만 돈다. 위임 템플릿 `.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/skills/delegate/templates/AGENTS.md.template` 에 "## 기록 (.claude/)" 절을 더하고 본문은 `rules/agent-records.md` 의 본문 7줄을 그대로, 마지막 줄만 "Details: `<coderag root>/skills/agent-records/SKILL.md`"(평문 경로)로 바꾼다. 위임받은 에이전트가 `.claude/` 기록을 쓰는 일은 드물어서 상시 비용(약 1KB)이 작다.
 - 나중(coderag M7, `[[outputs]] generator = "agents-md"`): 손 사본 대신 생성. 내장 팩의 `rules/*.md` 본문을 `<!-- coderag:begin agent-records -->` 마커 블록으로 저장소 `AGENTS.md`(또는 사용자 동의 뒤 `~/.codex/AGENTS.md`, `~/.gemini/config/AGENTS.md`)에 쓴다. 원천이 rule 파일 하나라 Claude 와 codex·agy 의 문구가 어긋나지 않는다. agy 는 `.agents/rules/` 에 같은 파일을 둘 수도 있지만, AGENTS.md 와 둘 다 두면 두 번 실리므로 하나만.
 
 ## 4. 들이는 순서

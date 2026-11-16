@@ -158,5 +158,5 @@ status: described · 근거: claude-doctor `.claude/base/decisions/D-11-object-s
 - 모듈 필드를 지역에 받아 둘지는 `modules.md` §5 에 있다.
 
 ## 정정 (원천 서술이 재현과 다른 것, 각 저장소 세션에 전달)
-- `local const x = 1` 은 "린트 경고만 난다"(claude-doctor `.claude/base/decisions/D-01-const.md` §2, `claude-doctor .claude/archive/research/drafts/style` 초안)는 nonstrict 에서만 맞다. `--!strict` 에서는 luau-analyze 0.734·0.742 가 `TypeError: Unknown global 'x'` 를 낸다(`snippets/style-const-local-const-global.luau`). 실행은 두 모드 모두 된다.
+- `local const x = 1` 은 "린트 경고만 난다"(claude-doctor `.claude/base/decisions/D-01-const.md` §2, `claude-doctor .claude/scopes/packs/luau-kb/archive/research/drafts/style` 초안)는 nonstrict 에서만 맞다. `--!strict` 에서는 luau-analyze 0.734·0.742 가 `TypeError: Unknown global 'x'` 를 낸다(`snippets/style-const-local-const-global.luau`). 실행은 두 모드 모두 된다.
 - "`luau-analyze` 는 맨 `function name()` 에 `GlobalUsedAsLocal` 린트를 낸다"(후보 Q-082, quad `scripts/test.sh:33-35`)는 그 전역을 한 함수 안에서만 쓸 때만 맞다. 모듈 스코프에서 선언하고 여러 곳에서 부르면 타입 진단도 린트도 0건이다(`snippets/style-bare-function-global.luau`).

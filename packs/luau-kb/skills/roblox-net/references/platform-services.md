@@ -186,12 +186,12 @@ mock 흉내: 해당 없음.
 
 | 원천 경로:줄 | 틀린 서술 | 맞는 것 | 근거 |
 |---|---|---|---|
-| `/code/Projects/devplorer/.claude/review/2026-10-19-server-security.md:190` (S-08 본문) | DataStore 쓰기 예산은 서버 전체가 공유하는 "분당 60 + 플레이어 수 × 10" | 2026-10 문서 기준 서버 기본값은 `60 + 플레이어×40`(Write), experience 전체는 `300 + CCU×20` 이고 2026-07-29 부터 Open Cloud 와 공유한다. 원천이 옛 예산을 인용했다(모순은 날짜 차이로 판정) | `table-sim/<비공개>` (claude-doctor .claude/audit/09 §6 #8) |
+| `/code/Projects/devplorer/.claude/review/2026-10-19-server-security.md:190` (S-08 본문) | DataStore 쓰기 예산은 서버 전체가 공유하는 "분당 60 + 플레이어 수 × 10" | 2026-10 문서 기준 서버 기본값은 `60 + 플레이어×40`(Write), experience 전체는 `300 + CCU×20` 이고 2026-07-29 부터 Open Cloud 와 공유한다. 원천이 옛 예산을 인용했다(모순은 날짜 차이로 판정) | `table-sim/<비공개>` (claude-doctor .claude/scopes/packs/luau-kb/audit/09 §6 #8) |
 
 ## 미판정
 
 | 주장 | 갈린 서술 | 재현 절차 |
 |---|---|---|
-| 미게시 Studio 파일에서 MemoryStore 를 쓸 수 있나 (claude-doctor .claude/audit/09 §6 #17) | `/code/Projects/table-sim/.claude/conventions.md:153` "미게시 플레이스에서는 실측할 수 없다" 대 `table-sim/<비공개>` "동작, 미게시는 문서에 없음" | 1) 게시한 적 없는 새 플레이스를 Studio 로 연다. 2) Play(Server)에서 `pcall(function() return game:GetService("MemoryStoreService"):GetSortedMap("probe"):SetAsync("k", 1, 30) end)` 결과를 돌려받는다. 3) 같은 코드를 게시된 테스트 플레이스(Studio 접근 켬)에서 돌린다. 4) 에러 문구와 함께 기록한다 |
-| `JSONEncode` 가 혼합·희소·inf 키, 잘못된 UTF-8 을 어떻게 다루나 (claude-doctor .claude/audit/09 §6 #14) | 같은 저장소 안 세 서술: `shared-specs.md:47` "거부한다고 알고 있다(추정)", `server-security.md:211-212` "미실측", `server-round6.md:248` "조용히 다른 모양으로 바꿀 수 있다" | 1) 아무 플레이스의 Edit DataModel 에서 `HttpService:JSONEncode` 를 `pcall` 로 부른다. 2) 입력: `{1,2,a=3}`, `{[0]=1}`, `{[-5]=1}`, `{[1]=1,[3]=3}`, `{[math.huge]=true}`, `{"\255"}`. 3) 각 결과(성공 문자열 또는 에러 문구)를 표로 돌려받는다. 4) 성공한 것은 `JSONDecode` 로 왕복해 모양이 바뀌는지 본다 |
+| 미게시 Studio 파일에서 MemoryStore 를 쓸 수 있나 (claude-doctor .claude/scopes/packs/luau-kb/audit/09 §6 #17) | `/code/Projects/table-sim/.claude/conventions.md:153` "미게시 플레이스에서는 실측할 수 없다" 대 `table-sim/<비공개>` "동작, 미게시는 문서에 없음" | 1) 게시한 적 없는 새 플레이스를 Studio 로 연다. 2) Play(Server)에서 `pcall(function() return game:GetService("MemoryStoreService"):GetSortedMap("probe"):SetAsync("k", 1, 30) end)` 결과를 돌려받는다. 3) 같은 코드를 게시된 테스트 플레이스(Studio 접근 켬)에서 돌린다. 4) 에러 문구와 함께 기록한다 |
+| `JSONEncode` 가 혼합·희소·inf 키, 잘못된 UTF-8 을 어떻게 다루나 (claude-doctor .claude/scopes/packs/luau-kb/audit/09 §6 #14) | 같은 저장소 안 세 서술: `shared-specs.md:47` "거부한다고 알고 있다(추정)", `server-security.md:211-212` "미실측", `server-round6.md:248` "조용히 다른 모양으로 바꿀 수 있다" | 1) 아무 플레이스의 Edit DataModel 에서 `HttpService:JSONEncode` 를 `pcall` 로 부른다. 2) 입력: `{1,2,a=3}`, `{[0]=1}`, `{[-5]=1}`, `{[1]=1,[3]=3}`, `{[math.huge]=true}`, `{"\255"}`. 3) 각 결과(성공 문자열 또는 에러 문구)를 표로 돌려받는다. 4) 성공한 것은 `JSONDecode` 로 왕복해 모양이 바뀌는지 본다 |
 | 라이브 스크립트 타임아웃 값 | 2018년 비공식 글의 "약 20초"뿐 | 게시 서버에서 `while true do end` 를 돌리는 Script 의 에러 시각을 LogService 로 남긴다(테스트 전용 experience 에서만) |

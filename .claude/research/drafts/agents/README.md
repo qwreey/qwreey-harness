@@ -174,5 +174,5 @@ PLAN §3은 rbvm 감사자에 `memory: project`를 제안했다. 이 설계는 *
 - perf·runtime 본문의 메모리 예산 줄: `choom -n 1000 -- prlimit --data=<예산>` → "`harness.env`의 무거운 실행 래퍼로 감싸고 `prlimit --data=<예산>`" (래퍼가 없는 환경에서도 `prlimit`는 쓴다).
 - `auditor-readonly-guard.py`: 설치 명령·MCP 차단 목록을 `heavy-proc-guard.py`처럼 툴킷 표(`TOOLKIT_INSTALLERS`)로 나누고 `HARNESS_TOOLKITS`로 거른다. `test-guard.py` 34건이 그대로 통과해야 한다.
 - `audit-report-format`: 도구 버전 예시를 툴킷 중립으로(`<검사기> <버전> <플래그>`), luau 예시는 luau-kb `audit-profile.md`로.
-- quality 감사자의 구조 측정(`structure-scan.py`, 기준 800·1,500줄 — D-13)은 언어 무관 기준이다. 스크립트를 luau-style에서 하네스 공용 위치로 옮기는 안을 함께 본다(`.claude/archive/research/drafts/hooks/structure-reminder.py`의 확장자별 기준과 같은 표를 쓰게).
+- quality 감사자의 구조 측정(`structure-scan.py`, 기준 800·1,500줄 — D-13)은 언어 무관 기준이다. 스크립트를 luau-style에서 하네스 공용 위치로 옮기는 안을 함께 본다(`.claude/scopes/plugins/qwreey-conventions/archive/research/drafts/hooks/structure-reminder.py`의 확장자별 기준과 같은 표를 쓰게).
 - 이름 바꿈의 영향: 저장소 문서가 부르는 것은 `/audit <관점>`이라 이름 변경 영향은 `/audit` 스킬과 rbvm `rbvm-api-parity` 프론트매터 정도다(§7).
