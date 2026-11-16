@@ -71,7 +71,6 @@
   2. qwreey-proc-guard 를 먼저, 그다음 qwreey-delegate 를 갱신한다(거꾸로 하면 그 사이 무거운 낱말이 든 `delegate.py` 명령을 옛 proc-guard 가 막을 수 있다)
   3. 돌고 있는 위임이 없을 때 `/reload-plugins` 또는 새 세션. 확인: `python3 -I <스킬>/scripts/delegate.py doctor --all` 에 FAIL 이 없다
   4. `tools/home-sync.sh diff` 로 harness.env 의 위임 주석 예시를 보고 `apply`(값은 바뀌지 않는다)
-- [ ] 전역 CLAUDE.md 지우기: 정본에서 빠졌고 내용은 플러그인 주입으로 옮겼다(q·qwreey-operator·qwreey-advisor 의 `context/`, qwreey-sessions PreCompact). 플러그인을 갱신하고 `tools/home-sync.sh diff`·`apply` 한 뒤 `rm ~/.claude/CLAUDE.md`. home-sync 는 MANIFEST 에서 빠진 파일을 지우지 않고 `status` 에 고아로 보인다
 - 새 정본 변경(rules, settings 마이그레이션 등)이 생기면 다시 `tools/home-sync.sh diff` 로 검토하고 `apply` 한다. 이때도 같은 백업이 생긴다.
 
 ## 다른 세션에 넘길 것
