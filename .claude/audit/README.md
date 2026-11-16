@@ -65,4 +65,5 @@ Multi-file audits:
 - [51-precompact-omit/](51-precompact-omit/) - PreCompact stdout steers the compaction summary; plugins that re-inject a block at compact tell it to omit that block
 - [52-luau-kb-skill-descriptions/](52-luau-kb-skill-descriptions/) - luau-kb skill descriptions can shrink to 57% without losing triggers; 30% loses symptom-phrased questions
 - [53-compact-pointer-restore/](53-compact-pointer-restore/) - compact pointers are harmless but add little on CC 2.1.316 (it restores 5 newest-mtime files, the summary keeps paths); no skill-budget push-outs; `coderag get` reads are not ledgered
+- [54-record-scopes/](54-record-scopes/) - records go to the nearest scope that owns their subject (`.claude/scopes/<path>/` for shipped folders, `<component>/.claude/` for separately owned ones); misplaced snapshots move with path rewrites
 - [drafts/](drafts/) - drafts written during audits
