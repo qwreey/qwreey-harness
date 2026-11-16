@@ -77,6 +77,14 @@ status: active
 - 결론: print 모드에서 `--dangerously-skip-permissions` 를 빼면 기본 프리셋이 작업 폴더 밖 파일·셸을 거절한다. 구멍은 임시 폴더(`/tmp` 전체 허용)이고, B 처럼 명시 deny(`read_file(/tmp)`, `write_file(/tmp)`, 플랫폼 `$TMPDIR`)로 막을 수 있을 것으로 본다(조합은 재지 않음; 작업 폴더가 그 아래면 deny 가 이겨 작업도 막힌다). 지금 `delegate.sh` 는 agy 를 `--dangerously-skip-permissions` 로 돌려 이 보호를 모두 끈다. 재지 않은 것: `read_url`, 임시 폴더 deny 와 작업 폴더의 조합, OS 샌드박스가 있는 호스트에서 셸이 샌드박스 안에서 허용될 때의 범위.
 - 로그: `/tmp/acpprobe-3/out{C,D,E,F}.json`, `home{C,D,E,F}/.gemini/antigravity-cli/log/`.
 
+### Python 드라이버 실제 실행 (uid 격리, agy 1.5.8, codex, 대상 claude-doctor 자신)
+- 레지스트리: claude-doctor agy 61004, codex 61005. `doctor` 는 두 uid 모두 setpriv(`--no-new-privs --inh-caps=-all --bounding-set=-all`), 메인 작업 트리 쓰기 불가, 비밀 읽기 불가를 통과.
+- agy worktree 와 codex empty 를 동시에: 각 프로세스가 자기 uid 로 돌고(`ps -u`), 작업 폴더는 그 uid 소유, `.runs/<name>/` 는 root 700/600. collect 결과 `runs/<…>` 700, remove 뒤 worktree·`.homes`·`.runs`·남은 프로세스 없음.
+- agy 설정 `{"deny":["read_file(/tmp)","write_file(/tmp)"],"allow":["command(*)"]}` 첫 실행: 셸(`git rev-parse HEAD`)은 돌았으나 worktree 안 새 파일 `write_file` 이 `user denied permission` 으로 headless 거절. `--settings` 로 permissions 를 넘기면 프리셋의 "작업 폴더 안 허용"이 빠지는 것으로 보인다[추정]. 작업 폴더 `read_file`·`write_file` 을 명시 허용하자(4415858) `probe.txt` 생성, `REPORT.md`, diff 에 `probe.txt`.
+- 명시 deny 와 기본 Ask 의 차이: `/tmp` 파일 읽기(empty)는 deny 규칙으로 도구 오류가 나고 턴은 이어져 모델이 "거부 규칙으로 차단"이라고 답했다(`denied_actions` 없음). 기본 Ask 의 headless 거절(위 C·E·F, 첫 worktree 실행)은 턴을 빈 답으로 끝낸다.
+- `read_url`: print 모드 empty 에서 모델이 "`read_url` 도구가 제공되지 않는다"고 답했다. 이 판·설정에서는 도구 목록에 없는 것으로 보인다[추정, 모델 진술]. 다른 웹 도구 유무는 재지 않았다.
+- 인증: 작업 HOME 에 토큰 파일 하나로 됨(uid 61004). 비용: agy 4회 약 7.4만 토큰(worktree 2회, empty 2회), codex 1회.
+
 ## 드라이버 기본 정책
 OS 격리가 없는 곳(uid 격리도, 동작하는 OS 샌드박스도 없음, 비개발자 동료의 기본 환경)의 기본은 "읽기 전용 의견"이다. 위 실측 결과와 상관없이 사용자가 정했다.
 - 격리 판정(모델 호출 없이 `doctor` 와 `run` 시작 때):
