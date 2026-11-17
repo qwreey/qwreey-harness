@@ -7,6 +7,7 @@ Open investigations and drafts before a decision (living; each folder's README c
 - [drafts/split-plans/](drafts/split-plans/) - per-file split plans for quad, stl-luau, table-sim
 - [drafts/paste-offload.md](drafts/paste-offload.md) - on hold: long pastes saved to a file with head, tail and path left in the prompt (mod prompt.submit); pastes are rare today
 - [drafts/starlight-site-skill.md](drafts/starlight-site-skill.md) - docs-site skill draft: Starlight site that shows README and docs as generated copies; scratch build passed link checks
+- [drafts/license-skill.md](drafts/license-skill.md) - license skill draft: fetch canonical text (GitHub API or SPDX copy), fill year and holder, compare; notice hook later
 
 <!-- coderag:begin -->
 | Document | Description | Status |
