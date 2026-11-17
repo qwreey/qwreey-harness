@@ -27,7 +27,15 @@ done
 
 # 1. Preflight: clean tree, main checked out, and for --apply no other worktrees.
 cd "$REPO"
-[ -z "$(git status --porcelain --untracked-files=no)" ] || die "uncommitted changes in $REPO; commit first"
+# The desk panel rewrites its plan and decision files on its own; commit those, refuse anything else.
+desk=$(git status --porcelain -- .claude/plan .claude/archive/plan)
+if [ -n "$desk" ]; then
+  git add -A -- .claude/plan .claude/archive/plan
+  git commit -q -m "desk: 결정·계획 파일(기록 재작성 전)"
+  say "committed desk files first"
+fi
+dirty=$(git status --porcelain --untracked-files=no)
+[ -z "$dirty" ] || { printf '%s\n' "$dirty" >&2; die "uncommitted changes above in $REPO; commit them first"; }
 [ "$(git rev-parse --abbrev-ref HEAD)" = main ] || die "check out main first"
 [ "$APPLY" -eq 0 ] || [ "$(git worktree list | wc -l)" -eq 1 ] || die "remove the other worktrees first (git worktree list)"
 before_commits=$(git rev-list --count main)
