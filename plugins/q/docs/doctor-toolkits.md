@@ -44,7 +44,7 @@
    핀 값은 저장소 소유라(D-05) 목표값과 비교하지 말고 `ctx.pin_mismatch`로 형제 사이 불일치만 낸다.
 5. **주변 장치**
    - 무거운 실행: `plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py`의 `TOOLKIT_EXECUTORS`에 실행기를 더한다(rust: `cargo` — 이미 있음).
-   - 공유 지식 저장소(`rust-kb`)가 생기면 `home/MANIFEST`에 `link ... ${HARNESS_WORKSPACE}/rust-kb/...` 줄을 더한다.
+   - 공유 지식 저장소(`rust-kb`)가 생기면 팩(`packs/rust-kb`)으로 두거나, 형제 저장소면 정본 harness.env 에 그 위치 변수를 적고 `home/MANIFEST`에 `link ... ${<변수>}/...` 줄을 더한다(home-sync 는 작업공간 위치를 짐작하지 않는다).
    - 감사자: 관점별 공통 감사자에 그 툴킷 지식 스킬을 프리로드하는 방식은 claude-doctor `.claude/research/drafts/agents/README.md` §9 제안.
 6. **확인**: 그 언어 저장소 하나와 무관한 저장소 하나에 `scan.py --json`을 돌려 감지가 맞는지, 다른 저장소의 결과가 바뀌지 않았는지 본다.
    `claude plugin validate`로 스킬 형식도 본다.

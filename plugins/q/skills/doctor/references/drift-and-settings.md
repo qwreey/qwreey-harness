@@ -17,7 +17,7 @@
 | `DRIFT-HOOK` | `heavy-proc-guard.py` 사본 | `<doctor>/plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py` |
 | `DRIFT-HOOKDUP` | 사용자 레벨과 같은 훅을 프로젝트 settings가 또 등록 | 사용자 레벨 `settings.json` |
 | `DRIFT-DELEGATE` | `agy-delegate.sh`, `skills/delegate-agy` 사본 | `<doctor>/plugins/qwreey-delegate/` (초안: `<doctor>/.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/`) |
-| `DRIFT-UID` | 서로 다른 저장소가 같은 위임 uid를 쓴다. 저장소 안의 사본과 `harness.env`의 `HARNESS_DELEGATE_REGISTRY`(uid 표)를 함께 본다 | uid 표 |
+| `DRIFT-UID` | 서로 다른 저장소가 같은 위임 uid를 쓴다. 저장소 안의 사본과 uid 표(`harness.env`의 `HARNESS_DELEGATE_REGISTRY`, 없으면 `<doctor>`의 표, 하네스 저장소 밖에서는 없음)를 함께 본다 | uid 표 |
 | `DRIFT-SKILLCOPY` | 같은 이름 스킬이 다른 저장소나 사용자 레벨에 있는데 내용이 다르다 | 원본 쪽(사례마다 확인) |
 
 같은 git 저장소의 다른 worktree(stl-luau ↔ stl-luau-doctor)는 사본으로 치지 않는다.
@@ -85,7 +85,7 @@ agy 위임 도구는 4벌이다(quad, stl-luau, tbox, table-sim). 지금은 고�
 | `PACK-DRIFT` | 목록에 있는데 `enabledPlugins`에 없거나 false다, 또는 켜져 있는데 목록에 없다 | 경고 |
 | `PACK-UNUSED` | 팩이 켜져 있는데 그 툴킷 표식이 없다 | 정보 |
 | `PACK-USER-LEVEL` | 팩이 사용자 레벨 `enabledPlugins`에서 켜져 있다 | 정보 |
-| `PACK-NO-CODERAG` | 팩이 켜져 있는데 `HARNESS_CODERAG` 바이너리가 없다. 팩 rule이 주입되지 않는다 | 경고 |
+| `PACK-NO-CODERAG` | 팩이 켜져 있는데 coderag 바이너리(`HARNESS_CODERAG`, 기본 PATH 의 `coderag`)가 없다. 팩 rule이 주입되지 않는다 | 경고 |
 | `PACK-UNREGISTERED` | 목록의 팩이 프로젝트 항목에도 사용자 coderag 설정에도 경로가 없다. coderag가 조용히 건너뛴다 | 경고 |
 | `SET-CODERAG-BINARY` | 팩과 무관하게, coderag 플러그인이 켜져 있는데 바이너리가 없다. 기록 규약 rule이 실리지 않는다 | 경고 |
 

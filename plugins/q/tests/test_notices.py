@@ -76,6 +76,13 @@ class Drift(unittest.TestCase):
         (self.cfg / "plugins" / "installed_plugins.json").write_text("{bad")
         self.assertIsNone(self.start())       # fail-open
 
+    def test_off_by_plugin_option(self):
+        # /config 의 q 옵션(settings.json pluginConfigs)이 harness.env 층으로 들어와 끈다. 환경 변수가 이긴다.
+        wjson(self.cfg / "settings.json", {"enabledPlugins": {"a@m": True, "b@m": True, "q@m": True},
+                                           "pluginConfigs": {"q@m": {"options": {"harness_q_drift": False}}}})
+        self.assertIsNone(self.start())
+        self.assertIn("a 0.5.0 → 0.5.1", self.start(env={"HARNESS_Q_DRIFT": "on"})["systemMessage"])
+
     def test_home_sync_only_in_doctor_repo(self):
         self.set_installed({"a@m": "0.5.1", "b@m": "1.0.0"})
         self.assertIsNone(self.start())
@@ -110,7 +117,7 @@ class Stale(unittest.TestCase):
         t = Path(self.tmp.name)
         self.t = t
         (t / "tmp").mkdir()
-        self.env = {"PATH": os.environ["PATH"], "TMPDIR": str(t / "tmp"),
+        self.env = {"PATH": os.environ["PATH"], "TMPDIR": str(t / "tmp"), "CLAUDE_CONFIG_DIR": str(t / "cfg"),
                     "HARNESS_Q_STALE_IDLE_MIN": "0.05", "HARNESS_Q_STALE_AGE_MIN": "0.1", "HARNESS_Q_STALE_LONG_MIN": "0.15",
                     "QWREEY_HARNESS_SALT_FILE": str(t / "salt")}  # nonce 는 고정 salt 로
         (t / "salt").write_text("00" * 32)
@@ -167,6 +174,11 @@ class Stale(unittest.TestCase):
     def test_off_and_fail_open(self):
         e0 = {**self.env, "HARNESS_Q_STALE_AGE_MIN": "0", "HARNESS_Q_STALE_IDLE_MIN": "0", "HARNESS_Q_STALE": "off"}
         self.assertIsNone(run(STALE, self.payload("Stop", [self.SUB]), e0))
+        wjson(self.t / "cfg" / "settings.json", {"pluginConfigs": {"q@m": {"options": {"harness_q_stale": False}}}})
+        e1 = {k: v for k, v in e0.items() if k != "HARNESS_Q_STALE"}
+        self.assertIsNone(run(STALE, self.payload("Stop", [self.SUB]), e1), "q 옵션으로 끈다")
+        (self.t / "cfg" / "settings.json").unlink()
+        self.assertIn("systemMessage", run(STALE, self.payload("Stop", [self.SUB]), e1))
         self.assertIsNone(run(STALE, {"hook_event_name": "Stop", "session_id": "s1"}, self.env))
         self.assertIsNone(run(STALE, {"hook_event_name": "Stop", "session_id": "s1", "background_tasks": "x"}, self.env))
         self.assertIsNone(run(STALE, self.payload("Stop", []), self.env))

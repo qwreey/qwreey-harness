@@ -176,6 +176,11 @@ class T(unittest.TestCase):
         root = os.path.dirname(os.path.dirname(os.path.abspath(MOD))).replace(os.sep, "/")
         self.assertEqual(e.get()["extraKnownMarketplaces"]["m"]["source"]["path"], root)
         self.assertEqual(e.get()["cmd"], "python3 ${HOME}/x ${OTHER}")  # 모르는 변수는 그대로
+        # 환경 변수의 옛 HARNESS_DOCTOR_ROOT 는 쓰지 않는다: 적용하는 클론이 곧 정본이다
+        e3 = Env(self, {}, [m])
+        with unittest.mock.patch.dict(os.environ, {"HARNESS_DOCTOR_ROOT": "/elsewhere"}):
+            e3.run()
+        self.assertEqual(e3.get()["extraKnownMarketplaces"]["m"]["source"]["path"], root)
         e2 = Env(self, {}, [m])
         e2.run("--var", "HARNESS_DOCTOR_ROOT=C:/Users/u/Projects/claude-doctor")
         self.assertEqual(e2.get()["extraKnownMarketplaces"]["m"]["source"]["path"], "C:/Users/u/Projects/claude-doctor")

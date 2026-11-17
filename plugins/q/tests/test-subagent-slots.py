@@ -534,6 +534,14 @@ check("main-solo: not-away path costs < 10 ms over bare python startup", base_ms
 # ---- 끄기, 잘못된 입력 ----
 check("off switch -> no output", hook({"session_id": "off", "hook_event_name": "PreToolUse", "tool_name": "Agent", "tool_input": {}},
                                       dict(ENV, HARNESS_SUBAGENT_SLOTS="off")) is None)
+# /config 의 q 옵션(settings.json pluginConfigs)도 같은 스위치다. 옵션 키는 환경 변수 이름의 소문자.
+_opt = os.path.join(CFG, "settings.json")
+json.dump({"pluginConfigs": {"q@claude-doctor-market": {"options": {"harness_subagent_slots": False}}}}, open(_opt, "w"))
+po = S("opt-off")
+check("plugin option off -> no fan-out warn", [ctx(po.launch("opus")[0]) for _ in range(2)] == ["", ""])
+os.remove(_opt)
+pn = S("opt-on")
+check("plugin option gone -> fan-out warn is back", "Several subagents at once" in ctx([pn.launch("opus") for _ in range(2)][1][0]))
 bad = subprocess.run([sys.executable, "-I", os.path.join(H, "subagent-slots.py")], input="{no", capture_output=True, text=True, env=ENV)
 check("bad stdin -> exit 0, silent", bad.returncode == 0 and not bad.stdout)
 check("other tools ignored", hook({"session_id": "x", "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {}}) is None)

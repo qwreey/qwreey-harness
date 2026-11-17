@@ -57,9 +57,13 @@ def common_dir(path):
     return out.strip() if out else None
 
 
+REGISTRY_IN_REPO = ("plugins", "qwreey-delegate", "skills", "delegate", "registry.tsv")
+
+
 def registry_uids():
-    """harness.env 의 HARNESS_DELEGATE_REGISTRY(key<TAB>root<TAB>uid…) → {uid: {저장소 이름}}."""
-    reg = C.ENV.get("HARNESS_DELEGATE_REGISTRY")
+    """위임 uid 표(key<TAB>root<TAB>uid...) -> {uid: {저장소 이름}}. 사용자가 정한 HARNESS_DELEGATE_REGISTRY, 없으면 하네스 저장소의 표,
+    둘 다 없으면 빈 dict."""
+    reg = C.ENV.get("HARNESS_DELEGATE_REGISTRY") or (str(C.DOCTOR_ROOT.joinpath(*REGISTRY_IN_REPO)) if C.DOCTOR_ROOT else "")
     out = {}
     for line in (C.read(reg) or "").split("\n") if reg else []:
         cols = line.split("\t")

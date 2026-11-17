@@ -57,7 +57,6 @@ PLUGINS = [
 ]
 PLUGINS_REF = ".claude/audit/16-marketplace.md#8-도입-제안-정본-homeclaudesettingsjson에는-쓰지-않는다"
 USER_HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
-CANON_HOME = Path(os.environ.get("HARNESS_DOCTOR_ROOT") or "/nonexistent") / "home" / ".claude"
 
 
 def _enabled(ctx):

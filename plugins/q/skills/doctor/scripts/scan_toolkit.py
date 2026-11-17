@@ -2,6 +2,7 @@
 
 scan.py 가 경로로 적재하고 C 에 자기 자신을 걸어 둔다. 공용 함수·상수·add 는 C.<이름> 으로 부른다(호출 시점에 찾는다).
 """
+import json
 import tomllib
 from pathlib import Path
 from types import SimpleNamespace
@@ -80,15 +81,34 @@ def detect_toolkits(repo, files, force=None):
     return out
 
 
+def installed_plugin(name):
+    """설치된 플러그인 <name>@<아무 마켓> 의 설치 폴더 또는 None(installed_plugins.json 의 첫 installPath)."""
+    try:
+        data = json.loads((C.USER_HOME / "plugins" / "installed_plugins.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    plugins = data.get("plugins") if isinstance(data, dict) else None
+    for pid, recs in sorted((plugins or {}).items()):
+        if pid.rpartition("@")[0] == name and isinstance(recs, list):
+            for r in recs:
+                p = Path(r.get("installPath") or "") if isinstance(r, dict) else None
+                if p and p.is_dir():
+                    return p
+    return None
+
+
 def toolkit_ctx(repo, files, projects, only, kb):
     def kb_path(name):
+        """툴킷 공유 지식 폴더. 형제 <name>-kb 저장소, 하네스 저장소의 팩, 설치된 팩 플러그인 순. 없으면 없는 형제 경로를 돌려준다(검사가 '없음'으로 낸다)."""
         if kb:
             return kb
-        pack = (C.DOCTOR_ROOT or C.WORKSPACE / "claude-doctor") / "packs" / f"{name}-kb"
-        for cand in (projects / f"{name}-kb", pack):
+        cands = [projects / f"{name}-kb"]
+        if C.DOCTOR_ROOT:
+            cands.append(C.DOCTOR_ROOT / "packs" / f"{name}-kb")
+        for cand in cands:
             if cand.is_dir():
                 return cand
-        return C.WORKSPACE / f"{name}-kb"
+        return installed_plugin(f"{name}-kb") or cands[0]
     return SimpleNamespace(
         repo=repo, files=files, projects=projects, env=C.ENV, want=lambda n: n in only, add=C.add, kb=kb_path,
         read=C.read, md5=C.md5, run=C.run, rel=C.rel, inside=C.inside, strip_code=C.strip_code, rule_files=C.rule_files,

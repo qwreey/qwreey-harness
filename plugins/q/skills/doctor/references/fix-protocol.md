@@ -29,8 +29,8 @@ done
 ```
 
 세션이 있는 저장소는 직접 고치지 않는다. 대신 다음 중 하나를 한다.
-- **인계 문서**(기본): `<doctor>/.claude/handoff/<repo>.md`를 만든다(`<doctor>` = `scan.py --env`의 `DOCTOR_ROOT`). 파일이 이미 있으면 날짜를 단 절을 덧붙인다.
-- **초안 브랜치**(큰 재구성일 때, 사용자가 승인한 경우만): 별도 worktree `<작업공간>/<repo>-doctor`와 브랜치 `doctor/<주제>`에 초안을 만든다.
+- **인계 문서**(기본): `<doctor>/.claude/handoff/<repo>.md`를 만든다(`<doctor>` = `scan.py --env`의 `DOCTOR_ROOT`). 파일이 이미 있으면 날짜를 단 절을 덧붙인다. `DOCTOR_ROOT`가 비면(하네스 저장소 밖) 파일 대신 같은 틀의 글을 보고에 넣는다.
+- **초안 브랜치**(큰 재구성일 때, 사용자가 승인한 경우만): 별도 worktree `<대상 저장소의 부모>/<repo>-doctor`와 브랜치 `doctor/<주제>`에 초안을 만든다.
   인계 문서에 그 브랜치를 적는다. 선례는 stl-luau-doctor다.
 
 인계 문서 틀
@@ -89,7 +89,7 @@ claude-doctor 의 harness-doctor 가 <날짜>에 이 저장소를 진단했습�
 - 실제 `~/.claude`(`CLAUDE_CONFIG_DIR`가 있으면 그것)는 고치지 않는다.
 - 정본 `<doctor>/home/.claude/`를 고치는 안을 낸다. 새 파일이면 `home/MANIFEST`에 줄을 더한다.
   - 복사 대상은 경로 한 줄이다.
-  - 링크 대상은 `link <~/.claude 기준 경로> <대상>` 꼴로 적는다. 대상에는 절대 경로 대신 `${HARNESS_WORKSPACE}`, `${HARNESS_DOCTOR_ROOT}`를 쓴다.
+  - 링크 대상은 `link <~/.claude 기준 경로> <대상>` 꼴로 적는다. 대상에는 절대 경로 대신 `${HARNESS_DOCTOR_ROOT}`(늘 이 클론)나 정본 `home/.claude/harness.env`에 적은 변수를 쓴다.
   - 환경 고유값(경로, 래퍼, 정책)은 문서나 훅에 박지 않고 `home/.claude/harness.env`에 키로 둔다.
 - 고친 뒤에는 사용자에게 `tools/home-sync.sh diff`로 검토하고 `apply`하라고 안내한다. `status` 출력도 함께 보여 준다.
 - 사용자가 `/config` 같은 것으로 실제 쪽만 바꿨으면 `pull`로 정본에 가져오는 안을 낸다.

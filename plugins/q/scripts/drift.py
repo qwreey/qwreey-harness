@@ -10,7 +10,7 @@
    돌려 다른 파일·미적용 마이그레이션·고아가 있으면 한 줄.
 
 같은 내용(해시)이면 하루에 한 번만 낸다(바뀌면 바로). 상태는 $TMPDIR/claude-q-drift/state.json. compact 로 다시 시작한 세션은 건너뛴다.
-SessionStart 에서만 돈다(핫 경로 없음). 실패는 모두 삼킨다(fail-open). 끄기: HARNESS_Q_DRIFT=off.
+SessionStart 에서만 돈다(핫 경로 없음). 실패는 모두 삼킨다(fail-open). 끄기: q 옵션 harness_q_drift(/config), 또는 harness.env 나 환경 변수의 HARNESS_Q_DRIFT=off.
 """
 import hashlib
 import json
@@ -23,6 +23,20 @@ import time
 
 DAY = 86400
 STATUS_TIMEOUT = 6  # home-sync status 상한(초). SessionStart 훅 제한(10초)보다 짧게
+DRIFT_DEFAULTS = {"HARNESS_Q_DRIFT": "on"}  # 끄기 스위치. q 옵션(/config) 이름은 harness_q_drift
+
+
+def switched_off(project):
+    """끄기 스위치: 환경 변수가 이기고, 없으면 harness.env 층(q 옵션 포함). 로더를 못 읽으면 켠 채로 둔다."""
+    v = os.environ.get("HARNESS_Q_DRIFT")
+    if v is None:
+        try:
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
+            import harness_env
+            v = harness_env.load_layers(project, defaults=DRIFT_DEFAULTS).get("HARNESS_Q_DRIFT")
+        except Exception:
+            v = None
+    return str(v or "").strip().lower() in ("off", "0", "no")
 
 
 def cfg_dir():
@@ -168,8 +182,6 @@ def due(state, key, text, now):
 
 
 def main():
-    if os.environ.get("HARNESS_Q_DRIFT", "").lower() in ("off", "0", "no"):
-        return
     try:
         data = json.load(sys.stdin)
     except ValueError:
@@ -177,6 +189,8 @@ def main():
     if not isinstance(data, dict) or data.get("agent_id") or data.get("source") == "compact":
         return
     project = os.environ.get("CLAUDE_PROJECT_DIR") or data.get("cwd") or os.getcwd()
+    if switched_off(project):
+        return
     lines = {}
     try:
         lines["plugin"] = plugin_line(plugin_drift(project))

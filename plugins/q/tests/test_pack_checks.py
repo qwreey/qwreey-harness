@@ -165,7 +165,7 @@ class Packs(unittest.TestCase):
 
     def test_scan_wiring(self):
         (self.repo / "package.json").write_text(json.dumps({"dependencies": {"react": "1"}}), encoding="utf-8")
-        env = {**os.environ, "CLAUDE_CONFIG_DIR": str(self.home), "HARNESS_WORKSPACE": self.tmp.name}
+        env = {**os.environ, "CLAUDE_CONFIG_DIR": str(self.home)}
         out = subprocess.run([sys.executable, "-I", str(DOCTOR / "scan.py"), str(self.repo), "--json", "--only", "7"],
                              capture_output=True, text=True, env=env, timeout=100, stdin=subprocess.DEVNULL)
         codes = [f["code"] for f in json.loads(out.stdout)["findings"]]
