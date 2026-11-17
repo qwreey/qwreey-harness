@@ -1,0 +1,52 @@
+{
+ "description": "rules_inject: no injection for dependency folders, for Reads outside the project, or for files no rule matches",
+ "files": {
+  "node_modules/x/a.ts": "x\n",
+  "notes.txt": "x\n",
+  "{sandbox}/elsewhere/a.ts": "x\n"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/node_modules/x/a.ts"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{sandbox}/elsewhere/a.ts"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/notes.txt"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

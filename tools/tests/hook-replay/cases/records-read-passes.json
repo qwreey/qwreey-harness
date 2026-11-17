@@ -1,0 +1,71 @@
+{
+ "description": "records_read: partial Reads of a big record, living docs and code are not gated",
+ "files": {
+  ".claude/audit/01-x/summary.md": {
+   "repeat": "y",
+   "times": 40960
+  },
+  ".claude/base/decisions/d.md": {
+   "repeat": "y",
+   "times": 40960
+  },
+  "src/big.py": {
+   "repeat": "y",
+   "times": 40960
+  }
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/.claude/audit/01-x/summary.md",
+     "limit": 200
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "PreToolUse"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/.claude/base/decisions/d.md"
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "PreToolUse"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/src/big.py"
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "PreToolUse"
+   ]
+  }
+ ]
+}

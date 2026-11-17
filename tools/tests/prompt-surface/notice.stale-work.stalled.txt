@@ -1,0 +1,5 @@
+<harness-hook name="stale-work" level="warn" nonce="0ce16cf3900f">
+Background shell "Wait for tests" (id b1) shows no output or transcript change for about 60 min (watched for 1 min). It may be stalled or waiting on something; this is a guess from file timestamps. Output file: <sandbox>/tmp/claude-<uid>/-fake/st1/tasks/b1.output. If it belongs to work that already finished or loops waiting on a condition, look at its command and output and stop it (TaskStop) or tell the user; otherwise check its output or ask the user before stopping it.
+</harness-hook>
+--- systemMessage (Stop) ---
+백그라운드 작업 shell "Wait for tests" (id b1) 이(가) 약 60분째 출력 변화가 없습니다. 멈췄거나 대기 중일 수 있습니다.

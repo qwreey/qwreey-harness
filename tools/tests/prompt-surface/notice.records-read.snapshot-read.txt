@@ -1,0 +1,3 @@
+<harness-hook name="session-log" level="info" nonce="1b60a24883e4">
+You read or searched session records. Records are snapshots of what was discussed then and may be stale: verify any decision or fact against current files and the git log before acting on it.
+</harness-hook>

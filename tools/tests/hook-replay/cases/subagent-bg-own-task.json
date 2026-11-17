@@ -1,0 +1,94 @@
+{
+ "description": "subagent-bg-tasks: a subagent stopping with its own shell still running is sent back once; main's tasks are not listed",
+ "files": {
+  "{sandbox}/agent-a1.jsonl": [
+   {
+    "type": "user",
+    "message": {
+     "role": "user",
+     "content": "Run the build."
+    }
+   },
+   {
+    "type": "user",
+    "message": {
+     "content": [
+      {
+       "type": "tool_result",
+       "tool_use_id": "t0",
+       "content": "Command running in background with ID: b7x9k2. Output is being written to: /tmp/x/b7x9k2.output."
+      }
+     ]
+    }
+   }
+  ]
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a1",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done. Report follows.",
+    "stop_hook_active": false,
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "shell",
+      "status": "running",
+      "description": "until ! pgrep -f build; do sleep 5; done"
+     },
+     {
+      "id": "bmain1",
+      "type": "shell",
+      "status": "running",
+      "description": "main's watcher"
+     }
+    ],
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl"
+   },
+   "expect": {
+    "tags": [
+     "subagent-bg-tasks/warn"
+    ],
+    "contains": [
+     "shell b7x9k2",
+     "TaskStop",
+     "final report again"
+    ],
+    "not_contains": [
+     "bmain1"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a1",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done. Report follows.",
+    "stop_hook_active": false,
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "shell",
+      "status": "running",
+      "description": "until ! pgrep -f build; do sleep 5; done"
+     },
+     {
+      "id": "bmain1",
+      "type": "shell",
+      "status": "running",
+      "description": "main's watcher"
+     }
+    ],
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl"
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

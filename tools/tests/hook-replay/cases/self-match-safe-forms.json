@@ -1,0 +1,47 @@
+{
+ "description": "self-match-guard: the bracket trick, pgrep -x and git commands pass silently",
+ "steps": [
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/self-match-guard.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "until ! pgrep -f \"[t]est-x.py\" >/dev/null; do sleep 2; done"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/self-match-guard.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "while pgrep -x node >/dev/null; do sleep 1; done"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/self-match-guard.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git log --grep 'pgrep -f x'"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

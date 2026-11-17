@@ -1,0 +1,1 @@
+<harness-hook name="qwreey-conventions" level="info" nonce="af7adce71aec">b/copy.luau:1: @copy-of a/src.luau#FORMS differs: missing "card", extra "dice". Fix the copy or the mark.</harness-hook>

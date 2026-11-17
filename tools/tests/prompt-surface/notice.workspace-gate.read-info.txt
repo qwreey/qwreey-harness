@@ -1,0 +1,3 @@
+<harness-hook name="workspace-gate" level="info" nonce="77928eae8212">
+Reading `other` is fine; changing it needs the user's approval and the qwreey-workspace:workspace skill first.
+</harness-hook>

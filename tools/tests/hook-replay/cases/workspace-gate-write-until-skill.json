@@ -1,0 +1,99 @@
+{
+ "description": "workspace-gate: a write to a sibling repo is denied until the workspace skill is loaded in this (session, agent, epoch)",
+ "env": {
+  "HARNESS_WORKSPACE": "{ws}"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-workspace/scripts/workspace_gate.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{ws}/other/a.txt"
+    }
+   },
+   "expect": {
+    "decision": "deny",
+    "tags": [
+     "workspace-gate/action"
+    ],
+    "contains": [
+     "qwreey-workspace:workspace skill (Skill tool), then retry"
+    ]
+   },
+   "argv": [
+    "PreToolUse"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-workspace/scripts/workspace_gate.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "sed -i s/a/b/ {ws}/other/a.txt"
+    }
+   },
+   "expect": {
+    "decision": "deny"
+   },
+   "argv": [
+    "PreToolUse"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-workspace/scripts/workspace_gate.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Skill",
+    "tool_input": {
+     "skill": "qwreey-workspace:workspace"
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "PostToolUse"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-workspace/scripts/workspace_gate.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{ws}/other/a.txt"
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "PreToolUse"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-workspace/scripts/workspace_gate.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{ws}/other/a.txt"
+    },
+    "agent_id": "a1"
+   },
+   "expect": {
+    "decision": "deny"
+   },
+   "argv": [
+    "PreToolUse"
+   ]
+  }
+ ]
+}

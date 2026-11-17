@@ -1,0 +1,1 @@
+- luau-kb:roblox-docs: Queries the official Roblox docs from a local cache (tools/roblox_docs.py): API signatures, security level, thread safety, deprecation. Use when verifying a Roblox API or citing the docs. 트리거: 공식 문서 확인, API 시그니처, deprecated 여부.

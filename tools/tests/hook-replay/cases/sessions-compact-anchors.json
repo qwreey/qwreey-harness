@@ -1,0 +1,185 @@
+{
+ "description": "session-log: SessionStart(compact) re-injects the user's verbatim messages of the span just summarized, not those an earlier compact already summarized",
+ "files": {
+  "{sandbox}/sess-1.jsonl": [
+   {
+    "type": "user",
+    "origin": {
+     "kind": "human"
+    },
+    "promptSource": "typed",
+    "uuid": "u0",
+    "timestamp": "2026-11-10T01:00:00Z",
+    "message": {
+     "role": "user",
+     "content": "A0 첫 compact 전에 요약된 말"
+    }
+   },
+   {
+    "type": "assistant",
+    "timestamp": "2026-11-10T01:01:00Z",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "ok"
+      }
+     ]
+    }
+   },
+   {
+    "type": "user",
+    "origin": {
+     "kind": "human"
+    },
+    "promptSource": "typed",
+    "uuid": "u1",
+    "timestamp": "2026-11-10T01:00:00Z",
+    "message": {
+     "role": "user",
+     "content": "P1 첫 compact 가 남긴 꼬리"
+    }
+   },
+   {
+    "type": "assistant",
+    "timestamp": "2026-11-10T01:01:00Z",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "ok"
+      }
+     ]
+    }
+   },
+   {
+    "type": "system",
+    "subtype": "compact_boundary",
+    "content": "Conversation compacted",
+    "timestamp": "2026-11-10T02:00:00Z",
+    "compactMetadata": {
+     "trigger": "auto",
+     "preTokens": 400000,
+     "preservedSegment": {
+      "headUuid": "u1",
+      "anchorUuid": "x",
+      "tailUuid": "y"
+     }
+    }
+   },
+   {
+    "type": "user",
+    "isCompactSummary": true,
+    "message": {
+     "role": "user",
+     "content": "This session is being continued from a previous conversation..."
+    }
+   },
+   {
+    "type": "user",
+    "origin": {
+     "kind": "human"
+    },
+    "promptSource": "typed",
+    "uuid": "u2",
+    "timestamp": "2026-11-10T01:00:00Z",
+    "message": {
+     "role": "user",
+     "content": "A2 두 번째 구간의 말"
+    }
+   },
+   {
+    "type": "assistant",
+    "timestamp": "2026-11-10T01:01:00Z",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "ok"
+      }
+     ]
+    }
+   },
+   {
+    "type": "user",
+    "origin": {
+     "kind": "human"
+    },
+    "promptSource": "typed",
+    "uuid": "u3",
+    "timestamp": "2026-11-10T01:00:00Z",
+    "message": {
+     "role": "user",
+     "content": "A3 마지막 말"
+    }
+   }
+  ]
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "payload": {
+    "session_id": "sess-1",
+    "hook_event_name": "SessionStart",
+    "source": "compact",
+    "transcript_path": "{sandbox}/sess-1.jsonl"
+   },
+   "expect": {
+    "tags": [
+     "session-log/info"
+    ],
+    "contains": [
+     "Pre-compaction anchors",
+     "\"P1 첫 compact 가 남긴 꼬리\"",
+     "\"A2 두 번째 구간의 말\"",
+     "\"A3 마지막 말\""
+    ],
+    "not_contains": [
+     "A0 첫 compact"
+    ],
+    "max_chars": 9000
+   },
+   "argv": [
+    "SessionStart"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "payload": {
+    "session_id": "sess-1",
+    "hook_event_name": "SessionStart",
+    "source": "resume",
+    "transcript_path": "{sandbox}/sess-1.jsonl"
+   },
+   "expect": {
+    "not_contains": [
+     "Pre-compaction anchors"
+    ]
+   },
+   "argv": [
+    "SessionStart"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "payload": {
+    "session_id": "sess-1",
+    "hook_event_name": "SessionStart",
+    "source": "compact",
+    "transcript_path": "{sandbox}/sess-1.jsonl"
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "SessionStart"
+   ],
+   "env": {
+    "SESSION_LOG_COMPACT_ANCHORS": "off"
+   }
+  }
+ ]
+}

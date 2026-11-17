@@ -1,0 +1,37 @@
+{
+ "description": "records_read: a whole-file Read of a 40 KB snapshot record is denied with how to read it in parts",
+ "files": {
+  ".claude/audit/01-x/summary.md": {
+   "repeat": "y",
+   "times": 40960
+  }
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/.claude/audit/01-x/summary.md"
+    }
+   },
+   "expect": {
+    "decision": "deny",
+    "tags": [
+     "session-log/action"
+    ],
+    "contains": [
+     "40 KB",
+     "32 KB",
+     "offset/limit",
+     "/qwreey-sessions:recall"
+    ]
+   },
+   "argv": [
+    "PreToolUse"
+   ]
+  }
+ ]
+}

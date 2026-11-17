@@ -1,0 +1,1 @@
+- luau-kb:luau-perf: Measured Luau performance: benchmark method, metatable, table, closure and string costs, -O2 and --!native effects, GC pressure. Use when Luau code is slow, optimization is asked, or a benchmark is written or read. Engine API cost is roblox-engine. 트리거: 코드가 느려, 최적화해 줘, 벤치마크.

@@ -1,0 +1,1 @@
+<harness-hook name="qwreey-conventions" level="info" nonce="f41dce01b067">a/z.ts may not follow the comment conventions. L2 escaped character: \u00b7 (write the character itself or reword). Fix those lines; a false match (quoted text, a needed symbol) can stay, said once in your report.</harness-hook>

@@ -1,0 +1,33 @@
+{
+ "description": "conventions-check: a SKILL.md description that is not English and has no when-clause gets the skill description notice",
+ "steps": [
+  {
+   "write": {
+    "skills/foo/SKILL.md": "---\nname: foo\ndescription: 이 스킬은 무언가를 한다\n---\n# Foo\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "content": "---\nname: foo\ndescription: 이 스킬은 무언가를 한다\n---\n# Foo\n",
+     "file_path": "{repo}/skills/foo/SKILL.md"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "may not follow the agent-doc conventions. L3 skill description"
+    ]
+   }
+  }
+ ]
+}

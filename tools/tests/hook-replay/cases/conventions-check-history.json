@@ -1,0 +1,36 @@
+{
+ "description": "conventions-check: a ledger id, date or round in an added comment line gets the history marker notice naming the line",
+ "steps": [
+  {
+   "write": {
+    "a/x.luau": "local a = 1\n-- H-973 changed 2026-11-10 in round 15\nlocal b = 2\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "content": "local a = 1\n-- H-973 changed 2026-11-10 in round 15\nlocal b = 2\n",
+     "file_path": "{repo}/a/x.luau"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "a/x.luau may not follow the comment conventions. L2 history marker"
+    ],
+    "not_contains": [
+     "skill"
+    ]
+   }
+  }
+ ]
+}

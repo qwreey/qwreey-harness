@@ -1,0 +1,1 @@
+- luau-kb:roblox-engine: Measured Roblox engine behavior: signal delivery (Deferred vs Immediate), Destroy and Instance lifetime, TweenService, task scheduling races, Actors and parallel Luau, GC. Use when events do not fire or arrive late, or for Destroy, Tween or task ordering. Remotes are roblox-net; GUI and physics are roblox-world. 트리거: 이벤트가 안 와, Destroy 뒤, task 순서.

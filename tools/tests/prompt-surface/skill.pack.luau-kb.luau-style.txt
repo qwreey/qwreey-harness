@@ -1,0 +1,1 @@
+- luau-kb:luau-style: Luau style and idioms with rationale: naming, modules and file splitting, error handling, comments, stylua, and traps the checker misses (table.insert, nil varargs, patterns). Use when writing or reviewing .luau files. Type defects are luau-types; require is luau-runtime. 트리거: 네이밍 기준, 파일 분리, 스타일 리뷰.

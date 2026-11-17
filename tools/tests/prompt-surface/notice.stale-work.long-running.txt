@@ -1,0 +1,5 @@
+<harness-hook name="stale-work" level="warn" nonce="b90042554a8d">
+Background workflow "Long flow" (id b2) has been running for about 1 min and is still showing progress. Output file: <sandbox>/tmp/claude-<uid>/-fake/st2/tasks/b2.output. If it belongs to work that already finished or loops waiting on a condition, look at its command and output and stop it (TaskStop) or tell the user; otherwise mention it to the user in one line.
+</harness-hook>
+--- systemMessage (Stop) ---
+백그라운드 작업 workflow "Long flow" (id b2) 이(가) 1분 넘게 실행 중입니다(진척은 있음).

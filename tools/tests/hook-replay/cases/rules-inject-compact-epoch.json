@@ -1,0 +1,73 @@
+{
+ "description": "rules_inject: after PreCompact bumps the plugin's compact epoch, the same file injects its rules again",
+ "files": {
+  "src/a.py": "x = 1\n"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/src/a.py"
+    }
+   },
+   "expect": {
+    "tags": [
+     "rules-inject/info"
+    ],
+    "contains": [
+     "name=\"comments\""
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/src/a.py"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/compact_epoch.py",
+   "payload": {
+    "hook_event_name": "PreCompact",
+    "trigger": "auto"
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "qwreey-conventions"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/src/a.py"
+    }
+   },
+   "expect": {
+    "tags": [
+     "rules-inject/info"
+    ],
+    "contains": [
+     "name=\"comments\""
+    ]
+   }
+  }
+ ]
+}

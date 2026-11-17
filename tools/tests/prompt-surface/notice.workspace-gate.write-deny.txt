@@ -1,0 +1,3 @@
+<harness-hook name="workspace-gate" level="action" nonce="3798bf1cb3e5">
+This changes the sibling repo `other`, which is outside this session's repo. Repos other than this session's are read-only unless the user approves a change; other sessions may be working there, and `.claude/worktrees/*` entries must not be deleted before checking the lock file and live sessions. Load the qwreey-workspace:workspace skill (Skill tool), then retry; if the user has not approved this change, ask first.
+</harness-hook>

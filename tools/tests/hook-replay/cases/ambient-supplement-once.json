@@ -1,0 +1,97 @@
+{
+ "description": "ambient: SessionStart marks the (session, epoch); UserPromptSubmit supplements only when that mark is missing, and again after a compact",
+ "steps": [
+  {
+   "hook": "plugins/q/scripts/ambient.py",
+   "payload": {
+    "hook_event_name": "SessionStart",
+    "source": "startup"
+   },
+   "expect": {
+    "tags": [
+     "plugin:q"
+    ],
+    "contains": [
+     "## Hook messages"
+    ]
+   },
+   "argv": [
+    "SessionStart"
+   ]
+  },
+  {
+   "hook": "plugins/q/scripts/ambient.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "hi"
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "UserPromptSubmit"
+   ]
+  },
+  {
+   "hook": "plugins/q/scripts/compact_epoch.py",
+   "payload": {
+    "hook_event_name": "PreCompact",
+    "trigger": "auto"
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "q"
+   ]
+  },
+  {
+   "hook": "plugins/q/scripts/ambient.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "hi"
+   },
+   "expect": {
+    "tags": [
+     "plugin:q"
+    ],
+    "contains": [
+     "## Hook messages"
+    ]
+   },
+   "argv": [
+    "UserPromptSubmit"
+   ]
+  },
+  {
+   "hook": "plugins/q/scripts/ambient.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "hi",
+    "session_id": "s2",
+    "agent_id": "a1"
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "UserPromptSubmit"
+   ]
+  },
+  {
+   "hook": "plugins/q/scripts/ambient.py",
+   "payload": {
+    "hook_event_name": "PreCompact",
+    "trigger": "auto"
+   },
+   "expect": {
+    "contains": [
+     "Omit the <plugin name=\"q\"> block from the summary"
+    ]
+   },
+   "argv": [
+    "PreCompact"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,1 @@
+<harness-hook name="qwreey-conventions" level="info" nonce="a15f4ca2b257">a/src.luau:2: FORMS has 2 @copy-of copies: b/copy.luau:1, b/ok.luau:1. If this change altered what they copy, update them too (python3 -I tools/sync-copies.py --apply where the repo has it).</harness-hook>

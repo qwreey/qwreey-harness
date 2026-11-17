@@ -1,0 +1,34 @@
+{
+ "description": "conventions-check: a non-keyboard symbol in a comment is named with its ASCII replacement",
+ "steps": [
+  {
+   "write": {
+    "a/y.py": "x = 1\n# first · second\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "content": "x = 1\n# first · second\n",
+     "file_path": "{repo}/a/y.py"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "L2 non-keyboard symbol: ·",
+     "(use \",\")"
+    ]
+   }
+  }
+ ]
+}

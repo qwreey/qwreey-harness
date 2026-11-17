@@ -1,0 +1,1 @@
+- luau-kb:luau-upstream: Luau ecosystem changes (releases, RFCs, luau-lsp, StyLua, rojo): whether a type limitation is fixed upstream, whether new syntax is safe, and the version-bump procedure. Use when bumping a tool, diagnostics change after an update, or asking if an RFC is usable. 트리거: 버전 올려도 돼?, 업스트림에서 고쳐져?, RFC.

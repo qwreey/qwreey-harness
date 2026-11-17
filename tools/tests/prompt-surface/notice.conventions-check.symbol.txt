@@ -1,0 +1,1 @@
+<harness-hook name="qwreey-conventions" level="info" nonce="bff8c13cf0ac">a/y.py may not follow the comment conventions. L2 non-keyboard symbol: · → (use ",", "->"). Fix those lines; a false match (quoted text, a needed symbol) can stay, said once in your report.</harness-hook>

@@ -1,0 +1,3 @@
+<harness-hook name="session-log" level="info" nonce="fa11771c4807">
+Session log: 1 auto-summarized session record pending import (oldest from <today>, 0 days), not in git yet. No records home is set yet, so import will not run until the user picks one; see /qwreey-sessions:import. `session-log dismiss <rid>...` drops them. You are about to commit. If they belong with this work, importing now puts them in this commit; otherwise leave them. (Not blocking.)
+</harness-hook>

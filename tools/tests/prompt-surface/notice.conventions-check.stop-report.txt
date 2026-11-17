@@ -1,0 +1,2 @@
+손댄 파일에 전부터 있던 문제: s/old.luau(이력 1). 주석은 /qwreey-conventions:comments-cleanup 으로 정리합니다.
+사본이 원본과 다름: b/copy.luau 1. 동작이 달라질 수 있습니다.

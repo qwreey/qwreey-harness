@@ -1,0 +1,67 @@
+{
+ "description": "rules_inject: readable-code (switch HARNESS_READABLE_CODE) loads only when the switch is on, by env or by the repo harness.env layer",
+ "files": {
+  "src/a.luau": "local a = 1\n"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {
+    "session_id": "off",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/src/a.luau"
+    }
+   },
+   "expect": {
+    "tags": [
+     "rules-inject/info"
+    ],
+    "not_contains": [
+     "name=\"readable-code\""
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {
+    "session_id": "env",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/src/a.luau"
+    }
+   },
+   "expect": {
+    "contains": [
+     "<rule plugin=\"qwreey-conventions\" name=\"readable-code\">"
+    ]
+   },
+   "env": {
+    "HARNESS_READABLE_CODE": "on"
+   }
+  },
+  {
+   "write": {
+    ".claude/harness.env": "HARNESS_READABLE_CODE=on\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {
+    "session_id": "layer",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/src/a.luau"
+    }
+   },
+   "expect": {
+    "contains": [
+     "name=\"readable-code\""
+    ]
+   }
+  }
+ ]
+}

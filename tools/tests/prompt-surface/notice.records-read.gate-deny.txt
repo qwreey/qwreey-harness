@@ -1,0 +1,3 @@
+<harness-hook name="session-log" level="action" nonce="dba9e85a78b7">
+Read blocked: this record is 40 KB (32 KB or more) and the Read had no offset/limit. It is a snapshot from its date and may be stale, and reading it whole fills the context. Find the part you need first: `coderag get <sandbox>/ws/mine/.claude/audit/01-x/summary.md --sections` (sections with line ranges), Grep this file for the section, or /qwreey-sessions:recall for an earlier discussion; then Read only those lines with offset/limit. If you do need all of it, Read it in chunks with offset/limit.
+</harness-hook>

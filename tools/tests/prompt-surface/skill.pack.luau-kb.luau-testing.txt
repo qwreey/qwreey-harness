@@ -1,0 +1,1 @@
+- luau-kb:luau-testing: Writing and running Luau tests: luau CLI runner (exit codes, assert, pcall), -O1 vs -O2, golden files, mocks, time-dependent logic (debounce, timers, virtual clock) and GC. Use when writing specs or a runner, or a test fails only under -O2. Check results are luau-verify. 트리거: 테스트 러너 짜기, -O2 에서만 깨짐, 디바운스·타이머 시험.

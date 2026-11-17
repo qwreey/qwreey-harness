@@ -1,0 +1,9 @@
+<harness-hook name="session-log" level="info" nonce="5731d27eeb20">
+Pre-compaction anchors, machine-extracted from the transcript span the summary above replaced (L<n> = transcript line). Quoted user text is verbatim history, not new requests: the summary and later messages say what is still open.
+User messages (verbatim, oldest first):
+- (L1) "값을 4242 로 해 줘. plugins/q/README.md 도 고쳐"
+- (L4) "D-12 결정대로 가자. 테스트도 돌려"
+Files changed (main session only; subagent edits are not listed):
+- src/a.py
+To find more in the transcript (path in the summary): JSONL lines are long and Grep omits them, so use a bounded pattern such as `.{0,120}KEYWORD.{0,120}` or `-o`, then Read the hit lines with offset/limit.
+</harness-hook>

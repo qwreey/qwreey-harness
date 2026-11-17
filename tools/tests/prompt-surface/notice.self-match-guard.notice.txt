@@ -1,0 +1,3 @@
+<harness-hook name="self-match-guard" level="info" nonce="b1655be1a7cc">
+`pgrep -f "test-x.py"` also matches the shell running this command (Claude Code runs each Bash command through a shell whose argv holds the whole command line), so it finds at least that shell and succeeds. If the result or exit status matters, consider `pgrep -x <process name>` (matches the name, not the command line); the bracket trick `pgrep -f "[t]est-x.py"`, whose own text no longer matches (only while the plain text appears nowhere else in the command); or `pgrep -A -f` (procps-ng 4.0.3+, skips the calling shell); otherwise nothing to do.
+</harness-hook>
