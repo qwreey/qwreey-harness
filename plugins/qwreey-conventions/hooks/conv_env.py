@@ -12,11 +12,11 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
 
 # 이 플러그인만 읽는 harness.env 키의 기본값(tools/tests/test-harness-env-owners.py 가 주인을 본다). 저장소 층도 바꿀 수 있다:
-# 개인 취향 규약이라 사용자가 자기 층에서 켜고, 저장소가 팀 공유 층에서 끈다.
+# 사용자는 자기 층이나 /config 에서 끄고, 저장소는 팀 공유 층에서 끈다.
 # 키 셋은 userConfig 옵션(harness_readable_code 등)이기도 해서 plugin.json 의 default 와 같아야 한다(tools/tests/test-plugin-userconfig.py).
 ENV_DEFAULTS = {
-    # rules/readable-code.md 주입과 conventions-check 의 layout 알림. `on` 일 때만 켜진다.
-    "HARNESS_READABLE_CODE": "off",
+    # rules/readable-code.md 주입과 conventions-check 의 layout 알림. 값이 `on` 일 때만 켜진다(기본 on, 플러그인을 깔면 켜짐).
+    "HARNESS_READABLE_CODE": "on",
     # rules/ 주입(rules_inject, bash_writes). `off` 일 때만 꺼진다.
     "HARNESS_CONVENTIONS_RULES": "on",
     # 답변 언어 이탈 감지(reply_language). `off` 일 때만 꺼진다.
@@ -49,7 +49,7 @@ def env_value(name):
     v = os.environ.get(name)
     if v is not None:
         return v.strip()
-    return str(_layers().get(name, "")).strip()
+    return str(_layers().get(name, ENV_DEFAULTS.get(name, ""))).strip()  # 층 읽기가 실패해도 기본값으로 돈다
 
 
 def is_off(name):
@@ -57,5 +57,5 @@ def is_off(name):
 
 
 def is_on(name):
-    """켜기 스위치(기본 꺼짐)가 켜졌나: 값이 정확히 `on` 일 때만."""
+    """켜기 스위치가 켜졌나: 값이 정확히 `on` 일 때만(off, 0 같은 다른 값은 꺼짐)."""
     return env_value(name).lower() == "on"

@@ -19,9 +19,9 @@ dedup 키: (session, agent_id 또는 main, compact 회차, rule 이름). compact
 glob: 공식 paths 와 같게 `**`, `*`, `?`, `{a,b}`, `[..]`. 절대 경로에 맞춘다. 앞이 `**/` 이거나 `/` 로 시작하지 않는 패턴은 프로젝트 기준 상대
   경로(프로젝트 밖 파일은 절대 경로에서 앞 `/` 를 뗀 것)에 맞춘다.
 끄기: HARNESS_CONVENTIONS_RULES=off (환경 변수 또는 harness.env). 저장소 `.claude/conventions.json` 의 `rules_exclude: ["comments", ...]` 로 rule 별 제외.
-켜기 스위치: 프론트매터에 `switch: <KEY>` 가 있는 rule 은 harness.env 층(conv_env.env_value)에서 KEY 가 `on` 일 때만 넣는다. 개인 취향인 rule 을
-  사용자가 자기 ~/.claude/harness.env 로 켜고 저장소가 .claude/harness.env 로 끌 수 있게 하려는 것이다. 마커를 잡기 전에 거르므로 세션 중간에
-  켜도 다음 맞는 파일에서 실린다. `switch` 없는 rule 은 그대로다(팩 rule 은 `switch` 를 쓰지 않아 coderag 와의 대조가 같다).
+켜기 스위치: 프론트매터에 `switch: <KEY>` 가 있는 rule 은 harness.env 층(conv_env.env_value)에서 KEY 가 `on` 일 때만 넣는다. 기본값은
+  conv_env.ENV_DEFAULTS 에 있고, 사용자(~/.claude/harness.env, /config)나 저장소(.claude/harness.env)가 `off` 로 끈다. 마커를 잡기 전에
+  거르므로 세션 중간에 켜도 다음 맞는 파일에서 실린다. `switch` 없는 rule 은 그대로다(팩 rule 은 `switch` 를 쓰지 않아 coderag 와의 대조가 같다).
 저장소 설정 줄: comments rule 을 넣을 때 편집하는 파일의 저장소 설정에 comment_language 가 있으면 제목 아래에 그 값을 한 줄로 넣는다
   (setting_line). 이름이 `comments` 인 rule 에만 붙으므로 팩 rule 출력은 그대로다.
 고칠 때 주의: 이 파일은 파일 열기마다 돈다. 표준 라이브러리만, 맞는 rule 이 없으면 바로 끝낸다.

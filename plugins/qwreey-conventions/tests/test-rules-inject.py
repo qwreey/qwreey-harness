@@ -430,7 +430,7 @@ RC = 'name="readable-code"'
 
 
 class SwitchedRule(unittest.TestCase):
-    """`switch: HARNESS_READABLE_CODE` rule: 키가 `on` 일 때만, 다른 rule 은 키와 무관하게 그대로."""
+    """`switch: HARNESS_READABLE_CODE` rule: 키가 `on`(기본)일 때만, 다른 rule 은 키와 무관하게 그대로."""
 
     def tearDown(self):
         for f in (os.path.join(CFG, "harness.env"), os.path.join(PROJ, ".claude", "harness.env"),
@@ -443,11 +443,22 @@ class SwitchedRule(unittest.TestCase):
         with open(path, "w") as f:
             f.write(text)
 
-    def test_default_off_leaves_other_rules(self):
+    def test_default_on_with_other_rules(self):
         c = ctx(run("PostToolUse", "Read", X + "/a.luau", fresh()))
-        self.assertNotIn(RC, c)
+        self.assertIn(RC, c)
         self.assertIn('name="comments"', c)
         self.assertIn('name="code-reuse"', c)
+
+    def test_off_leaves_other_rules(self):
+        c = ctx(run("PostToolUse", "Read", X + "/a.luau", fresh(), env={"HARNESS_READABLE_CODE": "off"}))
+        self.assertNotIn(RC, c)
+        self.assertIn('name="comments"', c)
+
+    def test_repo_layer_off_beats_default(self):
+        self.write(os.path.join(PROJ, ".claude", "harness.env"), "HARNESS_READABLE_CODE=off\n")
+        c = ctx(run("PostToolUse", "Read", X + "/a.py", fresh()))
+        self.assertNotIn(RC, c)
+        self.assertIn('name="comments"', c)
 
     def test_env_on_injects(self):
         c = ctx(run("PostToolUse", "Read", X + "/a.luau", fresh(), env={"HARNESS_READABLE_CODE": "on"}))
@@ -476,6 +487,10 @@ class SwitchedRule(unittest.TestCase):
             self.assertIn(RC, ctx(run("PostToolUse", "Read", X + "/a.py", fresh())))
             self.write(os.path.join(PROJ, ".claude", "harness.env"), "HARNESS_READABLE_CODE=off\n")
             self.assertNotIn(RC, ctx(run("PostToolUse", "Read", X + "/a.py", fresh())))
+            os.remove(os.path.join(PROJ, ".claude", "harness.env"))
+            self.write(os.path.join(CFG, "settings.json"), json.dumps({"pluginConfigs": {"qwreey-conventions@claude-doctor-market": {
+                "options": {"harness_readable_code": False}}}}))
+            self.assertNotIn(RC, ctx(run("PostToolUse", "Read", X + "/a.py", fresh())))
         finally:
             os.remove(os.path.join(CFG, "settings.json"))
 
@@ -485,7 +500,7 @@ class SwitchedRule(unittest.TestCase):
 
     def test_off_does_not_use_up_the_marker(self):
         s = fresh()
-        self.assertNotIn(RC, ctx(run("PostToolUse", "Read", X + "/a.py", s)))
+        self.assertNotIn(RC, ctx(run("PostToolUse", "Read", X + "/a.py", s, env={"HARNESS_READABLE_CODE": "off"})))
         c = ctx(run("PostToolUse", "Edit", X + "/a.py", s, env={"HARNESS_READABLE_CODE": "on"}))
         self.assertIn(RC, c)
         self.assertNotIn('name="comments"', c)  # 이미 실린 rule 은 다시 안 넣는다

@@ -125,10 +125,11 @@ class PluginRules(unittest.TestCase):
         self.assertIn("comments (qwreey-conventions rule:", c)
         self.assertNotIn("comments (qwreey-conventions rule:", run("python3 -c \"print(open('src/a.md').read())\""))
 
-    def test_switched_rule_listed_only_when_on(self):
+    def test_switched_rule_listed_unless_off(self):
         cmd = "python3 -c \"print(open('src/a.luau').read())\""
-        self.assertNotIn("readable-code (qwreey-conventions rule:", run(cmd))
+        self.assertIn("readable-code (qwreey-conventions rule:", run(cmd))
         self.assertIn("readable-code (qwreey-conventions rule:", run(cmd, {"HARNESS_READABLE_CODE": "on"}))
+        self.assertNotIn("readable-code (qwreey-conventions rule:", run(cmd, {"HARNESS_READABLE_CODE": "off"}))
 
 
 class OddInput(unittest.TestCase):

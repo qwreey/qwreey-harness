@@ -398,7 +398,8 @@ def module(*fns):
 
 c = write_new("ly/a.luau", module(lua_fn("flat", 20)), sid=uniq("ly"), env_extra=ON)
 check("layout: 20-line function without blank lines -> layout", "layout (readable-code)" in c and "M.flat L5-26 (20 lines, 0 blank, longest run 20)" in c)
-check("layout: key off -> silent", write_new("ly/b.luau", module(lua_fn("flat", 20)), sid=uniq("ly")) == "")
+check("layout: key unset -> on by default", "layout (readable-code)" in write_new("ly/b.luau", module(lua_fn("flat", 20)), sid=uniq("ly")))
+check("layout: key off -> silent", write_new("ly/b2.luau", module(lua_fn("flat", 20)), sid=uniq("ly"), env_extra={"HARNESS_READABLE_CODE": "off"}) == "")
 check("layout: same function in 4 paragraphs -> silent", write_new("ly/c.luau", module(lua_fn("para", 20, blank_every=5)), sid=uniq("ly"), env_extra=ON) == "")
 check("layout: 9-line function -> silent", write_new("ly/d.luau", module(lua_fn("short", 9)), sid=uniq("ly"), env_extra=ON) == "")
 inter = "--- Wraps x.\nfunction M.wrap(x)\n\tlocal a = x\n\t-- The cache holds stale entries until\n\t-- the next frame, so read it twice\n\t-- before trusting the value\n\treturn a\nend\n"
@@ -457,11 +458,14 @@ cfg_write('{"layout": {"min_lines": 30}}')
 check("layout: conventions.json layout.min_lines raises the bar", write_new("ly/o.luau", module(lua_fn("flat", 20)), sid=uniq("ly"), env_extra=ON) == "")
 cfg_clear()
 user_env = os.path.join(T, "user-harness.env")
-open(user_env, "w").write("HARNESS_READABLE_CODE=on\n")
-check("layout: user harness.env on -> notice", "layout (readable-code)" in write_new("ly/p.luau", module(lua_fn("flat", 20)), sid=uniq("ly"), env_extra={"HARNESS_ENV": user_env}))
+open(user_env, "w").write("HARNESS_READABLE_CODE=off\n")
+check("layout: user harness.env off -> silent", write_new("ly/p.luau", module(lua_fn("flat", 20)), sid=uniq("ly"), env_extra={"HARNESS_ENV": user_env}) == "")
+open(os.path.join(REPO, ".claude", "harness.env"), "w").write("HARNESS_READABLE_CODE=on\n")
+check("layout: repo .claude/harness.env on wins over the user layer",
+      "layout (readable-code)" in write_new("ly/q.luau", module(lua_fn("flat", 20)), sid=uniq("ly"), env_extra={"HARNESS_ENV": user_env}))
 open(os.path.join(REPO, ".claude", "harness.env"), "w").write("HARNESS_READABLE_CODE=off\n")
-check("layout: repo .claude/harness.env off wins over the user layer",
-      write_new("ly/q.luau", module(lua_fn("flat", 20)), sid=uniq("ly"), env_extra={"HARNESS_ENV": user_env}) == "")
+check("layout: repo .claude/harness.env off turns the default off",
+      write_new("ly/q2.luau", module(lua_fn("flat", 20)), sid=uniq("ly")) == "")
 os.remove(os.path.join(REPO, ".claude", "harness.env"))
 
 # 다른 언어

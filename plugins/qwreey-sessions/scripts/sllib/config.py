@@ -15,7 +15,8 @@ import os
 from pathlib import Path
 
 DEFAULTS = {
-    "SESSION_LOG_DISABLE": "off",        # on(또는 1) 이면 모든 훅이 아무것도 안 한다
+    "SESSION_LOG": "on",                 # off(또는 0, false, no) 면 모든 훅이 아무것도 안 한다(옵션 session_log)
+    "SESSION_LOG_DISABLE": "off",        # 옛 끄기 키. userConfig 에는 없고, 이미 적어 둔 harness.env, 환경 변수의 on(또는 1)이 계속 끄게 읽는다
     "SESSION_LOG_RECORD_NONINTERACTIVE": "",  # 1 이면 claude -p, SDK 로 도는 세션도 기록한다(기본은 건너뜀: 프로브 실행이 쓰레기 기록을 만든다)
     "SESSION_LOG_HOME": "",              # 외부 저장소 루트. 비면 ${XDG_DATA_HOME:-~/.local/share}/session-log
     "SESSION_LOG_MODEL": "haiku",        # 요약 모델(claude -p --model 값)
@@ -85,6 +86,9 @@ def num(key: str) -> float:
 
 
 def disabled() -> bool:
+    """세션 기록이 꺼졌나: SESSION_LOG 가 꺼짐 값이거나, 옛 키 SESSION_LOG_DISABLE 이 켜짐 값이면."""
+    if get("SESSION_LOG").strip().lower() in ("off", "0", "false", "no"):
+        return True
     return get("SESSION_LOG_DISABLE").strip().lower() in ("1", "true", "yes", "on")
 
 

@@ -736,7 +736,8 @@ class TestRecordsGate(Env):
     def test_off_switches_and_size_override(self):
         f = self.write(".claude/audit/a.md", 40 * self.KB)
         self.assertIsNone(self.gate(f, env={"SESSION_LOG_READ_GATE": "off"}))
-        self.assertIsNone(self.gate(f, env={"SESSION_LOG_DISABLE": "1"}))
+        self.assertIsNone(self.gate(f, env={"SESSION_LOG": "off"}))
+        self.assertIsNone(self.gate(f, env={"SESSION_LOG_DISABLE": "1"}))  # 옛 끄기 키
         self.assertIsNone(self.gate(f, env={"SESSION_LOG_READ_GATE_KB": "64"}))
         small = self.write(".claude/audit/b.md", 10 * self.KB)
         self.assertEqual(self.gate(small, env={"SESSION_LOG_READ_GATE_KB": "8"})["permissionDecision"], "deny")

@@ -20,10 +20,10 @@
     ],
     "contains": [
      "<rule plugin=\"qwreey-conventions\" name=\"comments\">",
-     "you opened a.luau"
+     "you opened a.luau",
+     "<rule plugin=\"qwreey-conventions\" name=\"readable-code\">"
     ],
     "not_contains": [
-     "name=\"readable-code\"",
      "Check what you wrote"
     ]
    }

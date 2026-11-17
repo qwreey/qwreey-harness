@@ -18,7 +18,7 @@
 
 ## 설정
 `/plugin configure qwreey-sessions@claude-doctor-market` 또는 `/config` 의 플러그인 설정에서 바꾼다.
-- 세션 기록 끄기(`session_log_disable`, 기본 꺼짐): 켜면 훅이 모두 아무것도 하지 않는다.
+- 세션 기록(`session_log`, 기본 켜짐): 끄면 훅이 모두 아무것도 하지 않는다. 옛 키 `SESSION_LOG_DISABLE=1` 도 harness.env 와 환경 변수에서 그대로 끈다.
 - 요약 모델(`session_log_model`, 기본 `haiku`).
 - 기록 보관 폴더(`session_log_home`): 비우면 `~/.local/share/session-log`.
 - compact 뒤 원문 되살리기(`session_log_compact_anchors`, 기본 켜짐).

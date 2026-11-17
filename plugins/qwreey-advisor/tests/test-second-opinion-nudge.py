@@ -88,9 +88,14 @@ check("grep 의 exit 1 은 무시", fail_ev("s6", "Exit code 1", "grep foo x") =
 
 stop = lambda sid, env=None, **kw: run({"hook_event_name": "Stop", "session_id": sid, "cwd": HI, "stop_hook_active": False,
                                          "last_assistant_message": "Done: changed the parser.", **kw}, env)
-check("Stop 기본 꺼짐", stop("s7") == "")
+check("Stop 기본 켜짐", "Turn ending" in stop("s7"))
+check("같은 diff 로 다음 턴이 끝나도 조용(diff 마다 한 번)", stop("s7") == "")
+open(os.path.join(HI, "a.txt"), "a").write("more\n")
+check("diff 가 바뀌어도 쿨다운 동안 조용", stop("s7") == "")
+open(os.path.join(HI, "a.txt"), "w").write("x\n")
+check("off 로 끔", stop("s7off", dict(ENV, HARNESS_REVIEW_STOP="off")) == "")
 env_on = dict(ENV, HARNESS_REVIEW_STOP="1")
-check("Stop 켜면 알림", "Turn ending" in stop("s8", env_on))
+check("Stop 1 도 켬", "Turn ending" in stop("s8", env_on))
 check("stop_hook_active 면 조용", stop("s9", env_on, stop_hook_active=True) == "")
 check("빈 답이면 조용", stop("s9b", env_on, last_assistant_message="") == "")
 check("오류·한도 알림이면 조용", stop("s9c", env_on, last_assistant_message="Prompt is too long") == "")
@@ -102,6 +107,11 @@ plan = lambda sid, text, mode: run({"hook_event_name": "PreToolUse", "session_id
 out = plan("s10", "do X", "deny")
 check("plan deny → permissionDecision deny + action", '"deny"' in out and 'level=\\"action\\"' in out)
 check("plan 표시 있으면 통과", plan("s10", "do X\nqwreey-advisor: reviewed", "deny") == "")
+out = run({"hook_event_name": "PreToolUse", "session_id": "s10b", "cwd": HI, "tool_name": "ExitPlanMode", "tool_input": {"plan": "do X"}})
+check("plan 기본 warn: high 등급이면 권고만(deny 아님)", "kind=plan review" in out and "permissionDecision" not in out)
+out = run({"hook_event_name": "PreToolUse", "session_id": "s10c", "cwd": MID, "tool_name": "ExitPlanMode", "tool_input": {"plan": "do X"}})
+check("plan 기본 warn: mid 등급은 조용", out == "")
+check("plan off 로 끔", plan("s10d", "do X", "off") == "")
 
 # 저장소 개인 층(.claude/harness.local.env)이 사용자 층의 등급을 덮는다. 저장소는 훅 cwd 로 안다.
 LOC = repo("loc")

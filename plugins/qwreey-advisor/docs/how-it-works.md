@@ -33,8 +33,8 @@
   - `git add -A`·`git add .`(현재 폴더 기준)·`git commit -a`: `git diff HEAD` 전체(+ `-A`·`.` 는 추적 안 된 파일). `git add -u` 는 추적 파일만.
   - `git commit <경로>`: 그 경로의 `git diff HEAD`. `cd <폴더> &&`, `git -C <폴더>`, `;`·`&&`·`|`·줄바꿈, `2>&1` 같은 리다이렉트, `-m "$(cat <<EOF ...)"` 를 읽는다. 다른 저장소에 커밋하면 그 저장소의 등급을 쓴다.
   - 읽지 못하는 명령(따옴표 오류, 경로에 `$VAR`·명령 치환, `add -p`·`-i`·`-e`, `--pathspec-from-file`)은 예전처럼 `--cached`(커밋에 `-a` 면 `HEAD`)로 잰다. `--dry-run` 커밋은 건너뛴다. git 호출은 rev-parse 1회와 diff·ls-files 최대 3회.
-- 턴 끝(Stop, 기본 꺼짐): `HARNESS_REVIEW_STOP=on`(또는 `1`) 이면 커밋 안 된 diff 가 임계 이상일 때 같은 알림. Stop 의 additionalContext 는 턴을 이어 가게 하므로 `home/.claude/HOOK-MESSAGES.md` 의 Stop 규칙을 따른다: `stop_hook_active` 재진입, 빈 답, 오류·한도 알림(`API Error`, `Prompt is too long` 등), 끝 다섯 줄 안에 `?` 로 끝나는 줄이 있는 답(사용자에게 묻는 중)이면 내지 않는다.
-- 계획 종료(ExitPlanMode, 기본 꺼짐): high 등급에서 `HARNESS_REVIEW_PLAN=deny` 면 계획에 `qwreey-advisor: reviewed`(또는 `skip <사유>`) 줄이 없을 때 거절하고, `warn` 이면 권하기만 한다.
+- 턴 끝(Stop, 기본 켜짐, `HARNESS_REVIEW_STOP=off` 로 끔): 커밋 안 된 diff(`git diff HEAD`)가 임계 이상일 때 같은 알림. Stop 의 additionalContext 는 턴을 이어 가게 하므로 `home/.claude/HOOK-MESSAGES.md` 의 Stop 규칙을 따른다: `stop_hook_active` 재진입, 빈 답, 오류·한도 알림(`API Error`, `Prompt is too long` 등), 끝 다섯 줄 안에 `?` 로 끝나는 줄이 있는 답(사용자에게 묻는 중)이면 내지 않는다. 같은 diff 로 턴이 다시 끝나도 아래 조건(diff 해시를 회차당 한 번, 알림 뒤 쿨다운)이 막고, 상태를 쓰지 못하면 알림도 내지 않는다.
+- 계획 종료(ExitPlanMode, 기본 `warn`): high 등급에서만. 계획에 `qwreey-advisor: reviewed`(또는 `skip <사유>`) 줄이 없을 때 `warn` 은 권하기만 하고, `HARNESS_REVIEW_PLAN=deny` 면 거절한다. deny 는 계획 모드를 막으므로 저장소가 켠다.
 - 다시 울리지 않는 조건: 메인이 부른 검토(리뷰어 또는 inherit-advisor fork)가 `HARNESS_REVIEW_FRESH_MIN` 분 안에 끝났을 때, 같은 diff 해시를 이번 회차에 이미 알렸을 때, done 알림 뒤 같은 시간 동안.
 - 알림이 권하는 리뷰어 모델: high 는 opus, mid·low 는 sonnet.
 - 저장소 이름은 git common dir 의 부모 폴더 이름이라 worktree 안에서도 본 저장소로 센다. git 저장소가 아니면 아무것도 하지 않는다(보고 알림은 기본 등급으로 낸다).
@@ -58,8 +58,8 @@
 | `HARNESS_REVIEW_DEFAULT` | `mid` | 목록에 없는 저장소의 등급(옵션 `harness_review_default`) |
 | `HARNESS_REVIEW_LINES` | `high=40 mid=200 low=0` | done 알림 임계(추가+삭제 줄, 0 은 끔) |
 | `HARNESS_REVIEW_FRESH_MIN` | `90` | 최근 검토로 치는 시간(분) |
-| `HARNESS_REVIEW_STOP` | `off` | `on`(또는 `1`) 이면 Stop 알림을 켠다(옵션 `harness_review_stop`) |
-| `HARNESS_REVIEW_PLAN` | `off` | `deny` 또는 `warn` 이면 high 등급 계획 검토를 켠다(옵션 `harness_review_plan`) |
+| `HARNESS_REVIEW_STOP` | `on` | `on`(또는 `1`) 이면 Stop 알림을 낸다. `off` 로 끈다(옵션 `harness_review_stop`) |
+| `HARNESS_REVIEW_PLAN` | `warn` | high 등급 계획 검토. `warn` 은 권고, `deny` 는 거절, `off` 는 끔(옵션 `harness_review_plan`) |
 | `HARNESS_REVIEW_HANDBACK` | `on` | `off` 면 서브에이전트 보고 알림을 끈다(옵션 `harness_review_handback`) |
 | `HARNESS_QWREEY_ADVISOR_AMBIENT` | 빈 값 | `off` 면 규약 주입을 끈다 |
 

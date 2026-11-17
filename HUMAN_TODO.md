@@ -49,7 +49,7 @@
 - [ ] Windows 동료 한 명에게 luau-lsp 플러그인 확인을 부탁한다(`plugins/luau-lsp/README.md` 의 Windows 절 1-4번). `.cmd` 런처는 실기기에서 돌려 본 적이 없다
 
 ## 읽기 좋은 코드 규약 켜기 (이 기기, 사용자 본인만)
-- [ ] 자기 `~/.claude/harness.env` 에 `HARNESS_READABLE_CODE=on` 한 줄을 직접 더한다(플러그인은 2026-11-16 `/reload-plugins` 로 0.10.0 이 실려 있다. 정본 `home/.claude/harness.env` 에는 주석 처리한 예시만 있어 home-sync 로는 켜지지 않는다; 동료 배포에 퍼지지 않게 일부러 그렇게 뒀다). Luau 저장소에서 쓰면 luau-kb(0.6.4)도 켠다. 끄고 싶은 저장소는 `.claude/harness.env` 에 `HARNESS_READABLE_CODE=off`. 확인: `.luau` 나 `.py` 파일을 Read 하면 `<rule plugin="qwreey-conventions" name="readable-code">` 가 한 번 붙는다
+- [x] 자기 `~/.claude/harness.env` 에 `HARNESS_READABLE_CODE=on` 한 줄을 직접 더한다(플러그인은 2026-11-16 `/reload-plugins` 로 0.10.0 이 실려 있다. 정본 `home/.claude/harness.env` 에는 주석 처리한 예시만 있어 home-sync 로는 켜지지 않는다; 동료 배포에 퍼지지 않게 일부러 그렇게 뒀다). Luau 저장소에서 쓰면 luau-kb(0.6.4)도 켠다. 끄고 싶은 저장소는 `.claude/harness.env` 에 `HARNESS_READABLE_CODE=off`. 확인: `.luau` 나 `.py` 파일을 Read 하면 `<rule plugin="qwreey-conventions" name="readable-code">` 가 한 번 붙는다 (Q30 b 로 기본 켜짐, 할 일 없음)
 
 ## 팩 rule 주입을 coderag 로 옮긴 컷오버 (이 기기)
 이 기기의 coderag 플러그인은 `~/.claude/plugins/cache/coderag-market/coderag/<버전>/` 캐시 사본으로 설치된다. 그래도 바이너리, rule 주입(`conventions/`), 프로바이더는 래퍼가 저장소 쪽을 찾아 쓰므로 바로 최신이다. 캐시에서 읽는 것은 스킬 본문, 에이전트 정의, `hooks.json` 뿐이라 이것들이 바뀐 버전에서만 update 가 필요하다.

@@ -23,7 +23,7 @@
 
 - 쿨다운 트리거: 마지막 요약에서 `SESSION_LOG_COOLDOWN_MIN`(20분)이 지났고 트랜스크립트가 `SESSION_LOG_GROW_KB`(512KB) 이상 늘었을 때. PreCompact·SessionEnd 는 조건 없이 요약한다.
 - 서브에이전트 안에서 불린 훅(입력에 `agent_id`)은 무시한다. 기록과 알림은 메인 세션 것이다.
-- `SESSION_LOG_DISABLE`, 비대화형 세션(`CLAUDE_CODE_ENTRYPOINT` 가 `sdk` 로 시작, `SESSION_LOG_RECORD_NONINTERACTIVE` 로 켬), 요약 워커 안(`SESSION_LOG_NESTED=1`)에서는 아무것도 하지 않는다. 단 PreCompact 의 회차 올리기는 이때도 한다.
+- `SESSION_LOG=off`(옛 키 `SESSION_LOG_DISABLE=1` 도), 비대화형 세션(`CLAUDE_CODE_ENTRYPOINT` 가 `sdk` 로 시작, `SESSION_LOG_RECORD_NONINTERACTIVE` 로 켬), 요약 워커 안(`SESSION_LOG_NESTED=1`)에서는 아무것도 하지 않는다. 단 PreCompact 의 회차 올리기는 이때도 한다.
 
 ## 부하
 - 자주 도는 경로는 PostToolUse(모든 도구)와 PreToolUse(Bash·Skill)의 짧은 파이썬 실행이다. 모델 호출은 없다.

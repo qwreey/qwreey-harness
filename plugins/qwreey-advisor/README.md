@@ -21,8 +21,8 @@
 ## 설정
 `/plugin configure qwreey-advisor@claude-doctor-market` 또는 `/config` 의 플러그인 설정에서 바꾼다.
 - 검토 등급(`harness_review_default`, 기본 `mid`): high, mid, low, off 가운데. 저장소별 등급이 없는 저장소에 쓴다.
-- 턴 끝 검토 권고(`harness_review_stop`, 기본 꺼짐).
-- 계획 검토 요구(`harness_review_plan`, 기본 `off`): high 등급 저장소에서 `warn` 은 권하고 `deny` 는 검토 표시 없이 계획 모드를 나가지 못하게 한다.
+- 턴 끝 검토 권고(`harness_review_stop`, 기본 켜짐): 커밋하지 않은 변경이 등급 기준보다 크면 턴을 끝내기 전에 검토를 권한다. 같은 변경에는 한 번만, 권한 뒤 90분은 다시 권하지 않는다.
+- 계획 검토(`harness_review_plan`, 기본 `warn`): high 등급 저장소에서만 쓰인다. `warn` 은 권하고, `deny` 는 검토 표시 없이 계획 모드를 나가지 못하게 한다(막는 쪽이라 저장소가 고른다), `off` 는 끈다.
 - 서브에이전트 보고 알림(`harness_review_handback`, 기본 켜짐).
 - 고급: 저장소별 등급 `HARNESS_REVIEW_TIERS="저장소이름=high 다른저장소=off"`, 줄 수 임계, 최근 검토 시간은 `~/.claude/harness.env` 키다. 한 저장소에서만 바꾸려면 그 저장소 `.claude/harness.env`(공유)나 `.claude/harness.local.env`(나만, `.gitignore` 에 넣는다)에 같은 키를 둔다. 목록은 [docs/how-it-works.md](docs/how-it-works.md).
 

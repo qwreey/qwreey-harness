@@ -26,7 +26,7 @@ import os
 import re
 import shutil
 import sys
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -444,7 +444,9 @@ def collect():
             text = harness_nonce.RULE_RE.sub("", text)
             text = sb.normalize(text)
             key = re.sub(r"[^A-Za-z0-9]", "-", str(sb.root))
-            return text.replace(key, "<sandbox-key>").replace(date.today().isoformat(), "<today>")
+            text = text.replace(key, "<sandbox-key>").replace(date.today().isoformat(), "<today>")
+            # 세션 기록은 UTC 날짜를 적는다. 한국 시각 09:00 전에는 지역 날짜와 하루 어긋나므로 UTC 날짜도 같은 자리표시로 바꾼다.
+            return text.replace(datetime.now(timezone.utc).date().isoformat(), "<today>")
         items = {k: clean(v) for k, v in items.items()}
         if not rule_seen:
             raise RuntimeError("no hook emitted the nonce rule line")

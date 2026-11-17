@@ -1,5 +1,5 @@
 {
- "description": "rules_inject: readable-code (switch HARNESS_READABLE_CODE) loads only when the switch is on, by env or by the repo harness.env layer",
+ "description": "rules_inject: readable-code (switch HARNESS_READABLE_CODE) loads by default and stays out when the switch is off, by env or by the repo harness.env layer",
  "files": {
   "src/a.luau": "local a = 1\n"
  },
@@ -7,7 +7,7 @@
   {
    "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
    "payload": {
-    "session_id": "off",
+    "session_id": "default",
     "hook_event_name": "PostToolUse",
     "tool_name": "Read",
     "tool_input": {
@@ -18,8 +18,8 @@
     "tags": [
      "rules-inject/info"
     ],
-    "not_contains": [
-     "name=\"readable-code\""
+    "contains": [
+     "<rule plugin=\"qwreey-conventions\" name=\"readable-code\">"
     ]
    }
   },
@@ -34,17 +34,20 @@
     }
    },
    "expect": {
-    "contains": [
-     "<rule plugin=\"qwreey-conventions\" name=\"readable-code\">"
+    "tags": [
+     "rules-inject/info"
+    ],
+    "not_contains": [
+     "name=\"readable-code\""
     ]
    },
    "env": {
-    "HARNESS_READABLE_CODE": "on"
+    "HARNESS_READABLE_CODE": "off"
    }
   },
   {
    "write": {
-    ".claude/harness.env": "HARNESS_READABLE_CODE=on\n"
+    ".claude/harness.env": "HARNESS_READABLE_CODE=off\n"
    }
   },
   {
@@ -58,7 +61,10 @@
     }
    },
    "expect": {
-    "contains": [
+    "tags": [
+     "rules-inject/info"
+    ],
+    "not_contains": [
      "name=\"readable-code\""
     ]
    }

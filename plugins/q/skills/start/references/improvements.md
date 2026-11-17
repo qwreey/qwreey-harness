@@ -68,4 +68,4 @@
 ## J. 세션 기록 (qwreey-sessions 플러그인)
 - 하는 일: 세션을 백그라운드에서 요약해 저장소 밖에 쌓고, 다음 세션에서 이어받게 한다.
 - 비용·주의: 요약에 별도 모델 호출(haiku)이 든다. 기록은 이 컴퓨터에 남는다.
-- 명령(동의 후): qwreey-sessions 가 이미 켜져 있으면 따로 깔 것이 없다. 끄려면 환경 변수 `SESSION_LOG_DISABLE=1` 이나 `claude plugin disable qwreey-sessions@claude-doctor-market`. 없으면 `claude plugin marketplace add <claude-doctor 저장소 주소>` → `claude plugin install qwreey-sessions@claude-doctor-market`
+- 명령(동의 후): qwreey-sessions 가 이미 켜져 있으면 따로 깔 것이 없다. 끄려면 `/config` 의 qwreey-sessions 옵션 `session_log`, 환경 변수 `SESSION_LOG=off` 나 `claude plugin disable qwreey-sessions@claude-doctor-market`. 없으면 `claude plugin marketplace add <claude-doctor 저장소 주소>` → `claude plugin install qwreey-sessions@claude-doctor-market`

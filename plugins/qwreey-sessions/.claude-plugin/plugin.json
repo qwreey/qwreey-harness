@@ -1,6 +1,6 @@
 {
   "name": "qwreey-sessions",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "세션 기록 자동화: 훅이 트랜스크립트를 분리 프로세스에서 증분 요약해 저장소 밖 외부 저장소에 기록하고(PreCompact 상기, SessionStart 인계, pending 알림), 스킬 checkpoint·import·recall 로 지금 저장·저장소로 가져오기·옛 논의 찾기를 한다. 요약은 백그라운드 haiku 호출이라 비용이 든다. Linux·macOS 전용(fcntl).",
   "author": {
     "name": "qwreey",
@@ -15,11 +15,11 @@
     "recall"
   ],
   "userConfig": {
-    "session_log_disable": {
+    "session_log": {
       "type": "boolean",
-      "title": "세션 기록 끄기",
-      "description": "켜면 자동 요약, compact 상기, 인계, pending 알림을 모두 멈춘다.",
-      "default": false
+      "title": "세션 기록",
+      "description": "자동 요약, compact 상기, 인계, pending 알림. 끄면 모두 멈춘다(요약은 백그라운드 모델 호출이라 비용이 든다).",
+      "default": true
     },
     "session_log_model": {
       "type": "string",

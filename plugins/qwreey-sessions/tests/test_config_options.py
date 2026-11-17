@@ -36,7 +36,7 @@ class PluginOptions(unittest.TestCase):
             d.mkdir()
         subprocess.run(["git", "init", "-q", str(self.proj)], check=True)
         self.env = {k: v for k, v in os.environ.items()
-                    if not k.startswith(("SESSION_LOG_", "HARNESS_", "CLAUDE_", "XDG_"))}
+                    if not k.startswith(("SESSION_LOG", "HARNESS_", "CLAUDE_", "XDG_"))}
         self.env.update(HOME=str(self.home), CLAUDE_CONFIG_DIR=str(self.cfg), CLAUDE_PROJECT_DIR=str(self.proj),
                         TMPDIR=self.tmp.name, CLAUDE_CODE_ENTRYPOINT="cli")
 
@@ -62,7 +62,7 @@ class PluginOptions(unittest.TestCase):
 
     def test_options_reach_the_config(self):
         store = self.proj.parent / "store"
-        self.options(session_log_disable=True, session_log_model="sonnet", session_log_home=str(store),
+        self.options(session_log=False, session_log_model="sonnet", session_log_home=str(store),
                      session_log_compact_anchors=False, session_log_read_gate=False,
                      session_log_cooldown_min=1)  # userConfig 에 없는 키는 읽지 않는다
         got = self.config()
@@ -72,6 +72,33 @@ class PluginOptions(unittest.TestCase):
         self.assertEqual(got["vals"]["SESSION_LOG_MODEL"], "sonnet")
         self.assertEqual(got["home"], str(store))
         self.assertEqual(got["vals"]["SESSION_LOG_COOLDOWN_MIN"], "20")
+
+    def test_session_log_switch_and_legacy_key(self):
+        """SESSION_LOG 는 옵션, 저장소 층, 환경 변수에서 끈다. 옛 SESSION_LOG_DISABLE 은 harness.env 와 환경 변수에서만 끈다."""
+        # Options: new switch read, legacy key ignored
+        self.options(session_log=True)
+        self.assertFalse(self.config()["disabled"])
+        self.options(session_log_disable=True)  # 옵션에서 뺀 옛 키: userConfig 에 없으니 읽지 않는다
+        self.assertFalse(self.config()["disabled"])
+
+        # Legacy key in the user harness.env
+        (self.cfg / "harness.env").write_text("SESSION_LOG_DISABLE=1\n", encoding="utf-8")
+        self.assertTrue(self.config()["disabled"])
+        (self.cfg / "harness.env").unlink()
+
+        # Repo layer turns it off
+        (self.proj / ".claude").mkdir()
+        (self.proj / ".claude" / "harness.env").write_text("SESSION_LOG=off\n", encoding="utf-8")
+        self.assertTrue(self.config()["disabled"])
+        (self.proj / ".claude" / "harness.env").unlink()
+
+        # Environment values
+        for v in ("off", "0", "false"):
+            self.env["SESSION_LOG"] = v
+            self.assertTrue(self.config()["disabled"], v)
+        self.env["SESSION_LOG"] = "on"
+        self.env["SESSION_LOG_DISABLE"] = "yes"
+        self.assertTrue(self.config()["disabled"])
 
     def test_environment_beats_options(self):
         self.options(session_log_model="sonnet")

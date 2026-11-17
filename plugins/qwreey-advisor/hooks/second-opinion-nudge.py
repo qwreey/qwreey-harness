@@ -5,10 +5,10 @@ advisor 는 언제 불릴지 모델이 정해서 예측이 안 됐다(.claude/sc
   1. PostToolUseFailure   같은 실패 서명이 이번 회차에 2번째 → stuck 검토 권고 (서명마다 한 번)
   2. PreToolUse(Bash)     `git commit` 이고 커밋될 diff 가 등급 임계 이상, 최근 검토 없음 → done 검토 권고
      같은 명령이 `git add <경로>|-A|.|-u` 나 `git commit -a|<경로>` 로 스테이징하면 그 범위까지 잰다(commit_scope.py).
-  3. Stop                 (기본 꺼짐, HARNESS_REVIEW_STOP=on 또는 1) 커밋 안 된 diff 가 임계 이상, 최근 검토 없음 → done 검토 권고
+  3. Stop                 (기본 켜짐, HARNESS_REVIEW_STOP=off 로 끔) 커밋 안 된 diff 가 임계 이상, 최근 검토 없음 → done 검토 권고
      Stop 의 additionalContext 는 턴을 이어 가게 하므로 HOOK-MESSAGES.md 의 Stop 규칙을 따른다: stop_hook_active, 빈 답,
-     오류·한도 알림, 사용자에게 묻는 질문으로 끝난 답이면 내지 않는다(stop_passes).
-  4. PreToolUse(ExitPlanMode) (기본 꺼짐, HARNESS_REVIEW_PLAN=deny|warn) high 등급에서 계획 검토 요구
+     오류·한도 알림, 사용자에게 묻는 질문으로 끝난 답이면 내지 않는다(stop_passes). 같은 diff 는 아래 dedup 으로 한 번만 낸다.
+  4. PreToolUse(ExitPlanMode) (기본 warn, HARNESS_REVIEW_PLAN=off|warn|deny) high 등급에서 계획 검토 권고, deny 면 요구
   5. SubagentStop(모든 에이전트)  검토(qwreey-advisor:reviewer, inherit-advisor fork)면 메인이 부른 것만 최근 검토 시각을 기록하고
      ledger 에 자동 행을 남긴다(review_record.py). 검토가 아니면 보고에 권고·질문이 있는지 기록한다(handback_notice.py).
   6. UserPromptSubmit, PostToolBatch (메인)  5 에서 권고·질문이 있던 보고가 메인에 들어오면 info 한 줄(에이전트마다 한 번)
@@ -59,8 +59,8 @@ QUESTION_TAIL = 5  # 질문 뒤에 선택지 목록이 붙는 답을 위해 끝�
 # (tools/tests/test-plugin-userconfig.py). TIERS, LINES, FRESH_MIN 은 저장소별 표와 튜닝 값이라 harness.env 에만 둔다.
 REVIEW_DEFAULTS = {
     "HARNESS_REVIEW_DEFAULT": "mid",  # 등급 표에 없는 저장소의 등급(high, mid, low, off 가운데)
-    "HARNESS_REVIEW_STOP": "off",  # on(또는 1) 이면 Stop 검토 권고
-    "HARNESS_REVIEW_PLAN": "off",  # high 등급의 계획 검토 요구(off, warn, deny 가운데)
+    "HARNESS_REVIEW_STOP": "on",  # on(또는 1) 이면 Stop 검토 권고. 같은 diff 는 한 번만이라 기본으로 켠다
+    "HARNESS_REVIEW_PLAN": "warn",  # high 등급의 계획 검토(off, warn, deny 가운데). deny 는 계획 모드를 막으므로 저장소가 고른다
     "HARNESS_REVIEW_HANDBACK": "on",  # off 면 권고, 질문이 든 서브에이전트 보고 알림을 끈다
 }
 ON = ("1", "on", "true", "yes")

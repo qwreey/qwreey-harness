@@ -22,7 +22,7 @@ Bash 로 바꾼 파일은 bash_writes.py 가 이 파일의 file_notice 로 같�
     새 파일은 저장소 comment_language, 없으면 같은 폴더 형제 파일의 다수, 그것도 없으면 검사하지 않는다. 지시자 줄(--!strict, eslint-disable 등)은 뺀다.
     단계 라벨(본문 안 들여쓴 한 줄 주석, 위는 주석 줄이 아니고 아래는 코드, label_language 글자만 2-10낱말, 72자 이하, 마침표와 이유 접속어 없음)은
     언어 판정과 다수 계산에서 뺀다. 한국어 주석 파일에 영어 라벨을 쓰는 것이 readable-code 규약이라서다(키와 무관하게 늘)
-  - layout (HARNESS_READABLE_CODE=on 일 때만, hooks/layout_metrics.py): 이번 편집이 새로 쓰거나(함수 줄의 절반 이상) 15줄 이상 키운 함수의
+  - layout (harness.env 층의 HARNESS_READABLE_CODE 가 on 일 때, 기본 on, hooks/layout_metrics.py): 이번 편집이 새로 쓰거나(함수 줄의 절반 이상) 15줄 이상 키운 함수의
     빈 줄 없는 긴 본문(layout), 문장 사이에 끼운 여러 줄 주석(interleaved comment), 호출하는 쪽이 못 보는 문서 주석(doc summary: 공개 함수에
     호버 꼴 문서가 없음, 첫 줄이 길거나 첫 문장이 첫 줄에서 안 끝남. 메타메서드 제외). (파일, 범주, 함수)마다 한 번이고, doc summary 를 알린 함수는
     다음 편집 뒤 한 번 더 본다
@@ -41,7 +41,7 @@ Bash 로 바꾼 파일은 bash_writes.py 가 이 파일의 file_notice 로 같�
   label_language: 단계 라벨의 언어(기본 en), null 이면 라벨 예외를 끈다. layout: layout 알림 기준(layout_metrics.DEFAULT_LAYOUT).
   allow_chars: "emoji" 는 이모지를 끄고, 그 밖의 항목은 허용할 글자들이다. public_ids: 줄에서 먼저 지우고 검사하는 공개 식별자 정규식.
   patterns: 이름별로 덮어쓰기, null 이면 끈다.
-끄기: 환경 변수 CONVENTIONS_CHECK=off. layout 알림은 harness.env 층의 HARNESS_READABLE_CODE=on 일 때만 켜진다(conv_env.py).
+끄기: 환경 변수 CONVENTIONS_CHECK=off. layout 알림은 harness.env 층의 HARNESS_READABLE_CODE=off 로 끈다(기본 on, conv_env.py).
 알림 중복: (session_id, 호출한 쪽, 파일, 범주)마다 한 번(이미 알린 범주는 다시 알리지 않고, 새 범주는 알린다). compact 회차도 구분한다(compact_epoch.py, PreCompact 훅이 올린다).
 상태 파일: $TMPDIR/claude-conventions/<session_id>.c<회차>[.a<agent_id>].json
 """

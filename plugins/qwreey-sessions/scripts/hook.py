@@ -6,7 +6,7 @@
 
 compact 회차: "세션당 같은 트리거로 1회" 알림의 dedup 키는 (session_id, 회차)다. compact 는 session_id 를 유지하지만
 이전 알림을 맥락에서 지운다. 회차는 compact_epoch.py(q 자기 것)가 갖고, 이 파일이 PreCompact 에서 올린다. PreCompact 는
-SessionStart(compact)·PostCompact 보다 먼저라 읽는 쪽이 항상 올라간 값을 본다. 끄기(SESSION_LOG_DISABLE 등)와 무관하게 올린다:
+SessionStart(compact)·PostCompact 보다 먼저라 읽는 쪽이 항상 올라간 값을 본다. 끄기(SESSION_LOG=off 등)와 무관하게 올린다:
 회차는 ambient.py·workspace_gate.py 도 읽는다.
 """
 from __future__ import annotations

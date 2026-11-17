@@ -1,5 +1,5 @@
 {
- "description": "conventions-check: the readable-code layout notice appears only with HARNESS_READABLE_CODE=on",
+ "description": "conventions-check: the readable-code layout notice is on by default and HARNESS_READABLE_CODE=off silences it",
  "steps": [
   {
    "write": {
@@ -22,6 +22,9 @@
    },
    "expect": {
     "empty": true
+   },
+   "env": {
+    "HARNESS_READABLE_CODE": "off"
    }
   },
   {
@@ -51,9 +54,6 @@
      "l/on.luau layout (readable-code)",
      "big L1-33"
     ]
-   },
-   "env": {
-    "HARNESS_READABLE_CODE": "on"
    }
   }
  ]

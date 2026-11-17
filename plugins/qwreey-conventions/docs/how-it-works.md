@@ -15,7 +15,7 @@
 
 `code-reuse` 는 규칙이 지킬 것을 말하고, 스킬은 정의를 다른 패키지나 저장소로 옮겨 적을 때의 절차와 라이브러리 선택 단계만 맡는다. 그래서 description 을 그 작업들로 좁혔고 규칙 끝의 "Before you add a `@copy-of` or `@start-replace` marker, or act on a reuse notice, load ..." 줄이 스킬을 가리킨다. 정책·불변식 표와 저장소 설정(`reuse`)은 [code-reuse.md](code-reuse.md) 에 있다.
 
-`readable-code` 는 함수 안 문단(빈 줄), 단계 라벨, 호버에 보이는 문서 주석, 이유 주석의 자리, 선언과 이름, 분기 사다리, 되풀이 루프를 말한다. `comments` 처럼 규약 전체를 본문에 둔다(약 2.3k자): 규칙 끝의 스킬 포인터는 실제 세션에서 거의 읽히지 않았다. 언어 중립으로 쓰고, Luau 의 `---` 같은 툴킷 꼴은 툴킷 팩 규칙(luau-kb `luau-core`)이 말한다. 프론트매터 `switch: HARNESS_READABLE_CODE` 라서 그 키가 `on` 일 때만 실린다(아래 규칙 주입).
+`readable-code` 는 함수 안 문단(빈 줄), 단계 라벨, 호버에 보이는 문서 주석, 이유 주석의 자리, 선언과 이름, 분기 사다리, 되풀이 루프를 말한다. `comments` 처럼 규약 전체를 본문에 둔다(약 2.3k자): 규칙 끝의 스킬 포인터는 실제 세션에서 거의 읽히지 않았다. 언어 중립으로 쓰고, Luau 의 `---` 같은 툴킷 꼴은 툴킷 팩 규칙(luau-kb `luau-core`)이 말한다. 프론트매터 `switch: HARNESS_READABLE_CODE` 라서 그 키가 `on` 일 때(기본) 실리고 `off` 면 빠진다(아래 규칙 주입).
 
 ## 훅
 | 이벤트(matcher) | 스크립트 | 하는 일 |
@@ -40,7 +40,7 @@
 - 저장소 설정 줄: `comments` 규칙을 넣을 때 편집하는 파일의 저장소(`conventions-check.py` 와 같은 `conv_edit.project_root`) `.claude/conventions.json`(없으면 `comments.json`)에 언어 코드 꼴의 `comment_language` 가 있으면 제목 아래에 `- This repo: comment_language = en. ...` 한 줄을 넣는다. 모델은 쓰기 전에 스킬을 열지 않아 스킬에만 있는 설정은 지켜지지 않기 때문이다. 키가 없거나 설정을 못 읽으면 본문 그대로이고, 다른 규칙과 팩 규칙에는 붙지 않는다.
 - 도메인 팩(`packs/*`)의 규칙은 이 훅이 아니라 coderag 플러그인이 넣고, 이 파일이 그 대조 기준이다(`tools/tests/test-coderag-rules-parity.py`).
 - 끄기: 옵션 `harness_conventions_rules`(= `HARNESS_CONVENTIONS_RULES=off`; 층은 사용자 harness.env < 플러그인 옵션 < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env` < 환경 변수, `hooks/conv_env.py` 가 옆의 `hooks/harness_env.py` 사본으로 읽는다), 규칙별로는 저장소 `.claude/conventions.json` 의 `rules_exclude`.
-- 켜기 스위치: 프론트매터에 `switch: <KEY>` 가 있는 규칙은 같은 harness.env 층에서 KEY 가 `on` 일 때만 넣는다(마커를 잡기 전에 거르므로 세션 중간에 켜도 다음 맞는 파일에서 실린다). 지금은 `readable-code` 의 `HARNESS_READABLE_CODE` 하나이고 기본값은 `off`(`conv_env.py` 의 `ENV_DEFAULTS`). 개인 취향이 동료 배포로 퍼지지 않게 사용자가 옵션 `harness_readable_code`(`/config`)나 자기 `~/.claude/harness.env` 에서 켜고, 저장소는 `.claude/harness.env`(공유)나 `harness.local.env`(개인)에 `off` 를 두어 끈다. 사용자 전용 키가 아니라서 저장소 층이 이긴다. `bash-bypass-reminder` 도 꺼진 규칙은 이름을 대지 않는다.
+- 켜기 스위치: 프론트매터에 `switch: <KEY>` 가 있는 규칙은 같은 harness.env 층에서 KEY 가 `on` 일 때만 넣는다(마커를 잡기 전에 거르므로 세션 중간에 켜도 다음 맞는 파일에서 실린다). 지금은 `readable-code` 의 `HARNESS_READABLE_CODE` 하나이고 기본값은 `on`(`conv_env.py` 의 `ENV_DEFAULTS`): 플러그인을 깐 것이 쓰겠다는 뜻이라 따로 켜지 않는다. 사용자는 옵션 `harness_readable_code`(`/config`)나 자기 `~/.claude/harness.env` 에서 끄고, 저장소는 `.claude/harness.env`(공유)나 `harness.local.env`(개인)에 `off` 를 두어 끈다. `on` 이 아닌 값(`0`, `false` 포함)은 모두 꺼짐이다. 사용자 전용 키가 아니라서 저장소 층이 이긴다. `bash-bypass-reminder` 도 꺼진 규칙은 이름을 대지 않는다.
 - coderag 는 팩 규칙의 `switch` 를 읽지 않는다. 팩 규칙에 `switch` 를 쓰려면 coderag 에 같은 변경이 먼저 필요하다(대조 시험은 키를 켜고 꺼도 팩 규칙 주입이 같은지만 본다).
 
 ## 주석·문서 검사 (`conventions-check.py`)
@@ -69,7 +69,7 @@
 단계 라벨 예외(늘 켜짐): 본문 안에 들여쓴 한 줄 주석이고, 위 줄은 주석만 있는 줄이 아니고 아래 줄은 코드이며, `label_language`(기본 `en`) 글자의 낱말 2~10개, 72자 이하, 마침표와 이유 접속어(`because`, `since`, `so`, `otherwise`, `unless`, `must`, `never`, `in order to`, `to avoid`, `due to`, `workaround`)가 없는 줄은 language mismatch 판정과 파일 다수 계산에서 뺀다. 한국어 주석 파일에 영어 라벨을 다는 것이 readable-code 규약이라서다. `label_language: null` 이면 끈다.
 
 ## layout 알림 (readable-code)
-`HARNESS_READABLE_CODE=on` 이고 확장자가 `.luau .lua .py .ts .tsx .js .jsx .mjs .rs .go .kt` 일 때만. 함수 범위와 지표는 `hooks/layout_metrics.py`(가장 바깥 함수만: Lua 계열은 `function`/`do`/`then`/`repeat` 와 `end`/`until`, Luau `if` 식은 블록이 아님(`<`/`>` 뒤는 같은 줄일 때만 식: 줄 끝 제네릭이나 캐스트 다음 줄의 `if` 는 문); Python 은 `def` 와 들여쓰기(한 줄 `def` 포함, 머리는 50줄까지만 찾음); C 계열은 함수 머리 뒤 깊이 0 의 첫 `{`, 매개변수·제네릭·반환 타입 안의 중괄호는 본문이 아님).
+`HARNESS_READABLE_CODE` 가 `on`(기본)이고 확장자가 `.luau .lua .py .ts .tsx .js .jsx .mjs .rs .go .kt` 일 때만. 함수 범위와 지표는 `hooks/layout_metrics.py`(가장 바깥 함수만: Lua 계열은 `function`/`do`/`then`/`repeat` 와 `end`/`until`, Luau `if` 식은 블록이 아님(`<`/`>` 뒤는 같은 줄일 때만 식: 줄 끝 제네릭이나 캐스트 다음 줄의 `if` 는 문); Python 은 `def` 와 들여쓰기(한 줄 `def` 포함, 머리는 50줄까지만 찾음); C 계열은 함수 머리 뒤 깊이 0 의 첫 `{`, 매개변수·제네릭·반환 타입 안의 중괄호는 본문이 아님).
 - 대상 함수: 이번 편집이 함수 줄(빈 줄 제외)의 절반 이상을 더했거나(`mostly`) 15줄 이상 더한(`grow`) 함수. 키운 함수는 함수 전체를 보고 알림에 `[grown by N lines]` 를 붙인다.
 - layout: 본문 15줄 이상이고 빈 줄이 없거나 빈 줄 없이 20줄 넘게 이어짐. 사용자 손 코드(본문 15줄 이상)는 3/26, 에이전트 코드는 68/75 가 걸리는 선이다.
 - interleaved comment: 본문 안에서 바로 위와 아래가 코드인 2줄 이상 주석 덩어리.

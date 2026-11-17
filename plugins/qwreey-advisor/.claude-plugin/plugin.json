@@ -1,7 +1,7 @@
 {
   "name": "qwreey-advisor",
-  "version": "0.5.0",
-  "description": "정해진 시점의 독립 검토. qwreey-advisor:inherit-advisor 는 대화를 이어받은 fork(표지를 훅이 검토자 후행 프롬프트로 펼친다)로 흐름에서 놓친 것을 짚고, qwreey-advisor:fresh-advisor 는 새 컨텍스트의 읽기 전용 리뷰어가 diff·주장을 반증한다. 훅이 반복 실패·큰 커밋 시점과, 추천안·질문이 든 서브에이전트 보고를 알린다. 내장 advisor 도구는 사용자가 요청할 때만 쓴다.",
+  "version": "0.6.0",
+  "description": "정해진 시점의 독립 검토. qwreey-advisor:inherit-advisor 는 대화를 이어받은 fork(표지를 훅이 검토자 후행 프롬프트로 펼친다)로 흐름에서 놓친 것을 짚고, qwreey-advisor:fresh-advisor 는 새 컨텍스트의 읽기 전용 리뷰어가 diff·주장을 반증한다. 훅이 반복 실패, 큰 커밋, 커밋 안 한 큰 변경이 남은 턴 끝과, 추천안·질문이 든 서브에이전트 보고를 알린다. 내장 advisor 도구는 사용자가 요청할 때만 쓴다.",
   "author": {
     "name": "qwreey",
     "email": "me@qwreey.moe"
@@ -31,19 +31,19 @@
     "harness_review_stop": {
       "type": "boolean",
       "title": "턴 끝 검토 권고",
-      "description": "켜면 커밋하지 않은 변경이 등급 기준보다 클 때 턴이 끝나기 전에 검토를 권한다.",
-      "default": false
+      "description": "커밋하지 않은 변경이 등급 기준보다 클 때 턴이 끝나기 전에 검토를 권한다. 같은 변경에는 한 번만, 권한 뒤 90분은 쉰다.",
+      "default": true
     },
     "harness_review_plan": {
       "type": "string",
-      "title": "계획 검토 요구",
-      "description": "high 등급 저장소에서 계획 모드를 나갈 때. warn 은 검토를 권하고, deny 는 검토 표시가 없으면 나가지 못하게 한다.",
+      "title": "계획 검토",
+      "description": "high 등급 저장소에서 계획 모드를 나갈 때. warn(기본)은 검토를 권하고, deny 는 검토 표시가 없으면 나가지 못하게 한다. mid 이하 등급에서는 아무것도 하지 않는다.",
       "options": [
         "off",
         "warn",
         "deny"
       ],
-      "default": "off"
+      "default": "warn"
     },
     "harness_review_handback": {
       "type": "boolean",

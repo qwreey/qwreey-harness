@@ -1,5 +1,5 @@
 ---
-description: Layout of code for a human reader (paragraphs, step labels, doc comments, where reasons go, declarations, names). All toolkits; on only when HARNESS_READABLE_CODE=on, pairs with the layout notice of conventions-check
+description: Layout of code for a human reader (paragraphs, step labels, doc comments, where reasons go, declarations, names). All toolkits; on by default, off when HARNESS_READABLE_CODE is not on, pairs with the layout notice of conventions-check
 paths:
   - "**/*.luau"
   - "**/*.lua"
