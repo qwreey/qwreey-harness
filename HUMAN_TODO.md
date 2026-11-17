@@ -121,3 +121,4 @@
 - [ ] moonwave-luau 세션에 `.claude/handoff/moonwave-luau-corrections.md` 전달 (2건: 표현 2)
 - [ ] 메인(claude-doctor)이 `.claude/handoff/claude-doctor-corrections.md` 반영 (8건: 행동 2, 표현 6. D-01 §2, .claude/scopes/packs/luau-kb/audit/09 M-05)
 - [ ] moonwave-luau 의 `.claude/`, `CLAUDE.md` 가 한 번도 커밋되지 않았다. 커밋할지 결정한다.
+- [ ] 비개발자·Windows 동료 배포 안내문에 qwreey-delegate README "Windows·비개발자 동료" 절(공식 codex-plugin-cc 설치, Stop-gate 끔, rescue 쓰기 주의)을 넣는다

@@ -64,6 +64,7 @@ Before launching, show the user in one line what you will ask.
 
 ## Verify before applying
 
+0. A bug-hunt or review answer ends with a JSON block (`templates/tasks.md` B, E: verdict, findings[file, line_start, line_end, confidence, recommendation, evidence]). Read that block, then reproduce each finding from its file:line and evidence; a finding missing either, or a missing block, is unverified.
 1. **The main session checks every claim.** What went wrong in practice: the base commit copied from the input document, a measured result quoted backwards, a citation pointing the wrong way, an unrun test marked "measured", a closed question counted as open, code quoted with changed indentation.
 2. **Reproduce first.** For a claimed defect, write the reproduction test, then fix. If it does not reproduce, record it only as "external claim, not reproduced by main".
 3. **Re-measure the fix.** The other model's fixes ignore performance: a correct fix can be a multiple slower. Measure on hot paths.

@@ -31,3 +31,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## codex-plugin-cc prompt style
+
+Files:
+- `plugins/qwreey-delegate/skills/delegate/templates/tasks.md` (templates B and E)
+
+Source: https://github.com/openai/codex-plugin-cc (Apache-2.0, Copyright OpenAI), `plugins/codex/prompts/adversarial-review.md` and `plugins/codex/schemas/review-output.schema.json`. We borrow the XML block layout (role, task, operating stance, attack surface, finding bar, grounding rules, structured output contract) and the shape of the findings JSON (verdict, summary, findings with file and line range, confidence, recommendation, next steps). The wording is our own. Licensed under the Apache License, Version 2.0: https://www.apache.org/licenses/LICENSE-2.0
