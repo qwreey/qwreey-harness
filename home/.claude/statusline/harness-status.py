@@ -119,7 +119,8 @@ def git_head(cwd):
 
 def git_dirty(root):
     """추적 파일 변경 여부. git status 는 느릴 수 있어 GIT_TTL 초 캐시한다."""
-    base = os.path.join(os.environ.get("TMPDIR") or "/tmp", f"claude-statusline-git-{os.getuid()}")
+    tmp = os.environ.get("TMPDIR") or os.environ.get("TEMP") or os.environ.get("TMP") or "/tmp"  # tempfile.gettempdir() 와 같은 순서
+    base = os.path.join(tmp, "claude-statusline-git-%s" % (os.getuid() if hasattr(os, "getuid") else "w"))  # Windows: TEMP 가 사용자별
     f = os.path.join(base, hashlib.md5(str(root).encode()).hexdigest()[:16])
     now = time.time()
     try:

@@ -14,7 +14,6 @@
 - SubagentStop·Stop 의 background_tasks 는 실행 중인 백그라운드 작업 목록(id = agent_id)이다. 복구에 쓴다.
 - 트랜스크립트 usage 는 같은 message.id 의 줄마다 같다 → id 당 한 번 센다. 이렇게 낸 값이 -p 의 total_cost_usd 와 일치했다.
 """
-import fcntl
 import glob
 import json
 import os
@@ -28,6 +27,7 @@ from pathlib import Path
 HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")  # 사용자 설정 위치(projects/)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
+import file_lock  # noqa: E402  (POSIX flock, Windows msvcrt)
 NS = "claude-subagent-slots"
 
 # 공식 가격(USD / MTok): https://platform.claude.com/docs/en/about-claude/pricing (2026-11-10 열람)
@@ -232,14 +232,17 @@ def session(sid):
     """잠금을 잡고 상태를 읽어 넘기고, 블록이 끝나면 원자적으로 쓴다(병렬 훅 대비)."""
     p = state_path(sid)
     with open(p + ".lock", "w") as lk:
-        fcntl.flock(lk, fcntl.LOCK_EX)
-        st = read(sid)
-        yield st
-        st["log"] = st["log"][-200:]
-        tmp = p + ".tmp"
-        with open(tmp, "w") as f:
-            json.dump(st, f)
-        os.replace(tmp, p)
+        file_lock.lock(lk)
+        try:
+            st = read(sid)
+            yield st
+            st["log"] = st["log"][-200:]
+            tmp = p + ".tmp"
+            with open(tmp, "w") as f:
+                json.dump(st, f)
+            os.replace(tmp, p)
+        finally:
+            file_lock.unlock(lk)
 
 
 def log(st, event, **kw):

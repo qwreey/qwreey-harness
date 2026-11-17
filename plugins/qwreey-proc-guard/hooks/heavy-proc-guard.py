@@ -111,6 +111,8 @@ def main():
         data = json.load(sys.stdin)
     except Exception:
         return 0
+    if os.name == "nt":  # choom 과 공유 메모리 cgroup 은 Linux 의 일이다. Windows 에서는 래퍼 설정과 상관없이 막지 않는다
+        return 0
     cmd = (data.get("tool_input") or {}).get("command") or ""
     env = load_env(data.get("cwd"))
     wrap = wrap_argv(env)
