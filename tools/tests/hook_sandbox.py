@@ -9,7 +9,13 @@ nonce salt(고정 값이라 태그의 nonce 가 실행마다 같다).
   tmp/   TMPDIR           home/  HOME            cfg/   CLAUDE_CONFIG_DIR     store/  SESSION_LOG_HOME
   ws/    workspace 루트   ws/mine  프로젝트 저장소(git init, .claude/)          ws/other, ws/x-kb  형제 저장소
 subst() 가 펼치는 자리 표시: {repo} {ws} {tmp} {home} {cfg} {store} {sandbox} {root}(이 저장소) {uid}.
+
+설치본 흉내(HOOK_SANDBOX_PLUGIN_COPY=1): 동료는 GitHub 마켓에서 받은 cache 사본으로 훅을 돌린다. 그 조건을 흉내 내려고 프로세스마다
+한 번 plugins/*, packs/* 를 저장소 밖 임시 폴더의 cache/<마켓>/<이름>/<버전>/ 으로 플러그인마다 따로 복사하고(설치본은 서로 옆에 있지
+않다), 훅을 그 사본에서 돌린다. CLAUDE_PLUGIN_ROOT 는 사본 폴더, CLAUDE_PLUGIN_DATA 는 <cfg>/plugins/data/<이름>-<마켓>(사례가 정하면 그 값).
+출력의 사본 경로는 normalize() 가 <root>/plugins/<이름> 꼴로 되돌려, 경로 글자만 다른 것은 어긋남으로 세지 않는다.
 """
+import atexit
 import hashlib
 import json
 import os
@@ -31,6 +37,40 @@ TEXT_FIELDS = (("hookSpecificOutput", "additionalContext"), ("hookSpecificOutput
 
 def nonce(session_id):
     return hashlib.sha256((SALT + ":" + session_id).encode()).hexdigest()[:12]
+
+
+PLUGIN_COPY = os.environ.get("HOOK_SANDBOX_PLUGIN_COPY") == "1"
+_INSTALL = {}
+
+
+def plugin_install():
+    """설치본 흉내: {"base": 임시 폴더, "market": 마켓 이름, "dirs": {"plugins/<이름>": (사본 폴더, 이름)}}. 한 프로세스에 한 번 복사한다."""
+    if _INSTALL:
+        return _INSTALL
+    base = Path(tempfile.mkdtemp(prefix="hook-sandbox-install-")).resolve()
+    atexit.register(shutil.rmtree, str(base), True)
+    try:
+        market = json.loads((ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))["name"]
+    except (OSError, ValueError, KeyError):
+        market = "local"
+    dirs = {}
+    for manifest in sorted(ROOT.glob("plugins/*/.claude-plugin/plugin.json")) + sorted(ROOT.glob("packs/*/.claude-plugin/plugin.json")):
+        src = manifest.parent.parent
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        dst = base / "cache" / market / data["name"] / str(data.get("version") or "0.0.0")
+        shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "node_modules"))
+        dirs[src.relative_to(ROOT).as_posix()] = (dst, data["name"])
+    _INSTALL.update(base=base, market=market, dirs=dirs)
+    return _INSTALL
+
+
+def installed_script(script):
+    """저장소 기준 스크립트 경로를 설치본 사본 안 경로로: (경로, 사본 플러그인 폴더, 이름). 플러그인 밖이면 None."""
+    rel = Path(script).as_posix()
+    for prefix, (dst, name) in plugin_install()["dirs"].items():
+        if rel.startswith(prefix + "/"):
+            return dst / rel[len(prefix) + 1:], dst, name
+    return None
 
 
 class Result:
@@ -133,6 +173,9 @@ class Sandbox:
 
     def normalize(self, text):
         """기계마다 다른 경로를 자리 표시로 바꿔 실행과 기계를 넘어 비교할 수 있게 한다."""
+        if PLUGIN_COPY:
+            for prefix, (dst, _) in plugin_install()["dirs"].items():
+                text = text.replace(str(dst), str(ROOT / prefix))
         text = text.replace(str(self.root), "<sandbox>").replace(str(ROOT), "<root>")
         return text.replace("claude-%d" % os.getuid(), "claude-<uid>")
 
@@ -186,6 +229,12 @@ class Sandbox:
     def run(self, script, payload, argv=(), env=None, cwd=None, timeout=30):
         """훅 스크립트(이 저장소 기준 상대 경로 또는 절대 경로)를 payload 를 stdin 으로 주어 돌린다. Result 를 돌려준다."""
         path = Path(script) if os.path.isabs(script) else ROOT / script
+        env = dict(env or {})
+        hit = installed_script(script) if PLUGIN_COPY and not os.path.isabs(script) else None
+        if hit:
+            path, plugin_root, name = hit
+            env.setdefault("CLAUDE_PLUGIN_ROOT", str(plugin_root))
+            env.setdefault("CLAUDE_PLUGIN_DATA", str(self.cfg / "plugins" / "data" / ("%s-%s" % (name, plugin_install()["market"]))))
         stdin = payload if isinstance(payload, str) else json.dumps(self.subst(payload), ensure_ascii=False)
         shim = [str(Path(__file__).resolve().with_name("simwin.py"))] if os.environ.get("HOOK_SANDBOX_SIMWIN") == "1" else []
         p = subprocess.run([sys.executable, "-I", "-X", "utf8", *shim, str(path), *[self.subst(a) for a in argv]], input=stdin, capture_output=True,
