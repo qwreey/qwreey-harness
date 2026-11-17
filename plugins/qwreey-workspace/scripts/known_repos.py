@@ -18,8 +18,8 @@ worktree(`.git` 파일의 gitdir 이 다른 저장소의 .git/worktrees/ 를 가
 
 캐시: $CLAUDE_PLUGIN_DATA/known_repos.json(없으면 캐시 없음). projects/ 아래 폴더마다의 mtime(새 세션 파일이 생기면 바뀐다),
 옵션 값, 2, 3 의 폴더 mtime 이 같으면 저장한 목록을 다시 쓴다(있는지만 다시 본다). 폴더 mtime 이 바뀐 projects/ 폴더만 다시 읽는다.
-실측(2026-11-17, projects/ 폴더 569개 가운데 jsonl 이 있는 것 141개, 결과 저장소 82개, 캐시 35 KB): 캐시 적중 2.3 ms(중앙값),
-캐시 없이 14 ms, 첫 수집(설정 읽기와 캐시 쓰기 포함) 26 ms. 모듈 import 는 json, fnmatch 가 처음이면 약 4 ms 를 더 낸다.
+실측(2026-11-17, projects/ 폴더 569개 가운데 jsonl 이 있는 것 141개, 결과 저장소 82개, 캐시 35 KB): 캐시 적중 2.2 ms(중앙값),
+캐시 없이 12 ms, 첫 수집(설정 읽기와 캐시 쓰기 포함) 16 ms, 모두 OS 파일 캐시가 데워진 상태. 모듈 import 는 1 에서 4 ms(json, fnmatch 가 처음일 때).
 
 쓰는 법: repos() 는 정렬된 저장소 루트 절대 경로 목록. 값을 직접 넘기면(extra=, exclude=, workspace=) 설정을 읽지 않는다.
 repo_root(path) 는 path 를 담은 저장소 루트(worktree 는 본 저장소로), 없으면 None.
@@ -39,6 +39,7 @@ CACHE_FILE = "known_repos.json"
 CACHE_VERSION = 1
 # 세션 파일 앞부분에서 cwd 를 찾는 한도. 이 기기 실측으로 첫 cwd 는 18 KB 안에 있었다(앞줄은 제목, 모드 같은 짧은 줄).
 HEAD_BYTES = 256 * 1024
+HEAD_FIRST = 32 * 1024
 _CWD = re.compile(rb'"cwd"\s*:\s*"((?:[^"\\]|\\.)*)"')
 _GLOB = re.compile(r"[*?\[]")
 
@@ -116,7 +117,12 @@ def _cwd_of(folder):
     for _, path in sorted(files, reverse=True)[:3]:
         try:
             with open(path, "rb") as f:
-                m = _CWD.search(f.read(HEAD_BYTES))
+                # 대개 첫 수 KB 안에 있어 작게 먼저 읽는다. 없을 때만 한도까지 더 읽는다.
+                head = f.read(HEAD_FIRST)
+                m = _CWD.search(head)
+                if not m and len(head) == HEAD_FIRST:
+                    head += f.read(HEAD_BYTES - HEAD_FIRST)
+                    m = _CWD.search(head)
         except OSError:
             continue
         if m:

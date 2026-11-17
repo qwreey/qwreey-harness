@@ -217,10 +217,11 @@ def plugin_options(name, keys, cfg=None):
 
 def _options_layer(vals, extra=None):
     """플러그인 옵션 층을 vals 에 얹고 읽은 플러그인 id 들을 돌려준다. 자기 플러그인(plugin_manifest)이 extra 보다 나중이라 겹치면 이긴다."""
-    want = [(n, frozenset(k)) for n, k in (extra or {}).items()]
     own = plugin_manifest()
-    if own and own[1]:
-        want.append(own)
+    want = [(n, frozenset(k)) for n, k in (extra or {}).items() if not (own and n == own[0])]
+    if own and (own[1] or (extra or {}).get(own[0])):
+        # 공용 모듈이 자기 플러그인 이름을 넘겼으면 선언된 키에 그 키를 더해 한 번만 읽는다.
+        want.append((own[0], own[1] | frozenset((extra or {}).get(own[0]) or ())))
     ids = []
     for name, keys in want:
         got, pid = plugin_options(name, keys)

@@ -98,7 +98,7 @@ class Sources(Base):
 
     def test_cwd_after_long_head_and_windows_escape(self):
         a = self.repo("p/a")
-        self.session(a, head=[{"type": "summary", "text": "x" * 5000}] * 5)
+        self.session(a, head=[{"type": "summary", "text": "x" * 5000}] * 10)  # 첫 읽기(HEAD_FIRST) 너머의 cwd
         self.assertEqual(self.repos(), [str(a)])
         f = self.session(a, folder="-esc")
         f.write_text('{"cwd":"%s"}\n' % str(a).replace("/", "\\/"), encoding="utf-8")
