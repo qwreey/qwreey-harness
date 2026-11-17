@@ -3,6 +3,7 @@
 에이전트가 하지 않기로 한 일만 모았다. 삭제, 권한, 다른 세션 소관이 여기 해당한다. 처리했으면 줄을 지운다.
 
 ## 삭제와 정리 (사용자 승인 사항, 에이전트는 하지 않음)
+- [ ] 공개 전 git 기록 재작성(Q26 a): table-sim 내부 세부·동료 평가 문장·옛 `plugins/q-ui/node_modules` 를 모든 커밋에서 뺀다. 규칙은 저장소 밖 `~/.local/share/claude-doctor-history-cleanup/`(공개하면 안 되는 이름이 들어 있다). (1) 이 저장소의 Claude Code 세션을 모두 닫고 `git worktree list` 가 main 하나인지 본다 (2) 터미널에서 `tools/history-rewrite.sh` 로 한 번 더 검사(사본만 만들고 아무것도 안 바꿈; 남은 말이 있으면 멈추고 줄을 보여 준다) (3) `tools/history-rewrite.sh --apply`: 백업 `~/backup/claude-doctor-pre-rewrite-*.git`, 정리본을 같은 경로에 교체, 옛 저장소는 `claude-doctor.old-*` 로 남김, 옛 해시 -> 새 해시 표를 `.claude/history/` 에 커밋 (4) 새 세션에서 훅이 도는지 보고 main 만 push(옛 클론·백업은 공개 원격에 연결하지 않음) (5) 확인 뒤 `claude-doctor.old-*` 와 규칙 폴더를 지운다. table-sim 의 하네스 파일 경로(`.claude/conventions.md`, `todos.md`, `settings.json`, `mise.toml`)는 하네스 비교라 남겼다; 더 가리려면 규칙에 더한다
 - [ ] quad 에 남은 옛 위임 worktree 기록과 브랜치 `agy/naming-1021e`(폴더 `/code/Projects/quad-agy` 는 지웠고 worktree 는 prunable)
   - quad 에 세션이 없을 때: `git -C /code/Projects/quad worktree prune` 뒤 `git -C /code/Projects/quad branch -D agy/naming-1021e`
 - [ ] devplorer 에 남은 `worktree-agent-*` 브랜치 21개
