@@ -2,7 +2,7 @@
 format: 1
 title: 사람이 읽기 좋은 코드 규약 초안 (rbvm·tbox 사용자 코드 탐사)
 description: 사용자 손 코드는 빈 줄 문단, 주석만 따라 읽어도 흐름이 보이는 영어 단계 라벨(3~10단어), 선언은 첫 사용 자리, 좁은 캐스트, 형제 모듈 같은 순서; 에이전트 코드는 빈 줄 없음, 본문 안 긴 이유 문단, 이력 표지
-status: active
+status: landed in plugins/qwreey-conventions/rules/readable-code.md
 ---
 # 사람이 읽기 좋은 코드 규약 초안
 

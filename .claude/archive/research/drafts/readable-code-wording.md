@@ -6,7 +6,7 @@ status: landed in plugins/qwreey-conventions/rules/readable-code.md
 ---
 # 사람이 읽기 좋은 코드 규약 문구 초안
 
-근거와 사용자 설명은 `.claude/research/drafts/readable-code.md`. 이 문서는 그 진행 순서 1~3단계(기본 지시 대조, 문구, 쓰기 실측 설계)와 사용자 추가 요청(응집도 지표, lint, 문서 주석 유지)을 담는다. 설치나 플러그인 파일 수정은 하지 않았다.
+근거와 사용자 설명은 `.claude/archive/research/drafts/readable-code.md`. 이 문서는 그 진행 순서 1~3단계(기본 지시 대조, 문구, 쓰기 실측 설계)와 사용자 추가 요청(응집도 지표, lint, 문서 주석 유지)을 담는다. 설치나 플러그인 파일 수정은 하지 않았다.
 
 ## 1. 기본 지시 대조
 

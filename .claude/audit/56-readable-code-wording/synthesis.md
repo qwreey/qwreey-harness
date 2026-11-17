@@ -7,7 +7,7 @@ description: 상시 rule 에 문단·라벨·문서 주석 자리·이유 자리
 
 > Snapshot 2026-11-16. May differ from now; check current files and git log before relying on it.
 
-입장: P 최소(효과가 잰 줄만 상시, 나머지는 알림과 스킬), Q 전부(스킬은 안 읽히고 알림은 Bash 편집을 놓치니 규약 전체를 상시). opus 2명, 1라운드. 원문은 대화 기록(c9a9e895)에 있고 `raw/` 에는 브리프와 메인의 사전 견해만 있다. 근거: `.claude/research/drafts/readable-code.md`, `readable-code-wording.md` 3.1, `audit/55-readable-code-probe/summary.md`.
+입장: P 최소(효과가 잰 줄만 상시, 나머지는 알림과 스킬), Q 전부(스킬은 안 읽히고 알림은 Bash 편집을 놓치니 규약 전체를 상시). opus 2명, 1라운드. 원문은 대화 기록(c9a9e895)에 있고 `raw/` 에는 브리프와 메인의 사전 견해만 있다. 근거: `.claude/archive/research/drafts/readable-code.md`, `readable-code-wording.md` 3.1, `audit/55-readable-code-probe/summary.md`.
 
 ## 둘이 확인한 사실 (메인이 다시 확인)
 - rule 끝의 "자세한 건 스킬" 포인터는 실제 세션에서 읽히지 않는다: comments rule 이 실린 기록 36~73개에서 `qwreey-conventions:comments` 스킬 호출 0, SKILL.md Read 0. 쓰인 스킬은 q:workspace 60, code-review 25, code-reuse 2~3, agent-docs 1~2. audit 55 B 의 세부 파일 29/30 읽힘은 작은 프로젝트를 `ls`/`cat` 으로 둘러본 것이다. 표본은 claude-doctor 작업에 치우쳤다.
