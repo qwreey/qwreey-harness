@@ -67,6 +67,7 @@
   "skill.qwreey-conventions.code-reuse": 554,
   "skill.qwreey-debate.debate": 676,
   "skill.qwreey-delegate.delegate": 692,
+  "skill.qwreey-license.license": 478,
   "skill.qwreey-sessions.checkpoint": 330,
   "skill.qwreey-sessions.import": 267,
   "skill.qwreey-sessions.recall": 427,
@@ -77,9 +78,9 @@
  },
  "totals": {
   "packs_listings": 4413,
-  "session_start": 12954,
+  "session_start": 13432,
   "session_start_hooks": 5308,
-  "session_start_listings": 7646,
+  "session_start_listings": 8124,
   "subagent_start_hooks": 2746
  }
 }

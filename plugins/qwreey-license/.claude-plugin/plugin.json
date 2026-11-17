@@ -1,0 +1,8 @@
+{
+  "name": "qwreey-license",
+  "version": "0.1.0",
+  "description": "라이선스 파일을 기억으로 쓰지 않게 하는 스킬 qwreey-license:license. 무엇을 어떻게 공개하는지 물어 라이선스 고르기를 돕고(정하는 것은 사용자), GitHub licenses API 나 SPDX 에서 정본을 받아 연도·소유자를 채우고, 기존 LICENSE 와 manifest license 필드를 정본과 대조하고, THIRD_PARTY_NOTICES.md 에 서드파티 고지를 더한다. 훅 없음, 모든 OS(Python 3.11 이상, 네트워크 필요).",
+  "author": { "name": "qwreey", "email": "me@qwreey.moe" },
+  "license": "MIT",
+  "keywords": ["license", "spdx", "notice", "third-party", "skill"]
+}
