@@ -12,13 +12,13 @@ status: active
 ## 목표
 - 출발점(2026-11-10, `.claude/audit/01`~`06`): 지식이 각 프로젝트의 상시 로드 문서에만 쌓여 세션마다 수십 KB를 썼고(quad 약 28~31k 토큰, table-sim 73.6KB), 저장소 사이 지식은 복사한 뒤 갈라지는 식으로만 옮겨졌다.
 - 목표: 여러 저장소가 함께 쓰는 지식은 켜고 끌 수 있는 플러그인과 도메인 팩으로, 프로젝트 고유한 것만 그 프로젝트에, 이유와 근거는 기록(`.claude/`)으로 둔다.
-- 특정 언어나 sandbox 에 묶이지 않는다. 툴킷(luau, web)은 자리만 갖고, 기기 값은 `harness.env` 에 둔다.
+- 특정 언어나 sandbox 에 묶이지 않는다. 툴킷(luau, web)은 자리만 갖는다. 플러그인은 설치본만으로 돌고 설정은 각자 `/config` 옵션이며, `harness.env` 는 저장소 층과 튜닝용 선택 파일이다.
 - 이 저장소는 사용자의 Claude 관련 지식과 플러그인을 모은 곳이다(사용자: "claude conf 같은 느낌…결국 내 오피니언임"). 나중에 공개할 수 있고, 동료에게는 플러그인 단위로 골라 설치하게 배포한다.
 
 ## 세 층
 1. 사용자 레벨 `~/.claude`: 정본은 `home/`, 관리 목록은 `home/MANIFEST`(harness.env, lib/harness_env.py, statusline). settings.json 은 복사하지 않고 `home/settings-migrations/` 마이그레이션으로 반영한다. 전역 CLAUDE.md, 사용자 레벨 rules, 사용자 레벨 훅은 두지 않는다. 상시 규약과 훅은 플러그인이 싣는다.
 2. 플러그인과 팩: 마켓 `.claude-plugin/marketplace.json`(`claude-doctor-market`).
-   - `plugins/`: `q`(사람이 치는 명령), `qwreey-*`(sessions, workspace, operator, delegate, debate, advisor, conventions, proc-guard, desk), `luau-lsp`.
+   - `plugins/`: `q`(사람이 치는 명령), `qwreey-*`(sessions, workspace, operator, delegate, debate, advisor, conventions, proc-guard, desk, license), `luau-lsp`. 저자는 로컬 폴더 마켓으로 저장소에서 바로 싣고, 동료는 GitHub 마켓에서 설치본을 받는다.
    - `packs/`: 도메인 팩 `luau-kb`, `web-security`. 기본 꺼짐이고, 쓰는 저장소가 `coderag.toml` 의 `[[packs]]` 와 `coderag adapt --harness claude` 로 켠다. 팩 rule 주입은 coderag 플러그인이 한다. luau-kb 는 LSP 를 싣지 않는다(`plugins/luau-lsp`).
 3. 프로젝트(각 저장소): CLAUDE.md 는 정체성, 넘지 않는 선, 빌드·검사 명령만. 경로 조건 rules, 프로젝트 고유 스킬, 기록 `.claude/`(import 하지 않음). 상시 로드되는 할 일 문서에서는 끝난 항목을 지운다(`.claude/base/decisions/D-07-finished-todos.md`).
 

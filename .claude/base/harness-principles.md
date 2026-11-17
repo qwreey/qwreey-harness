@@ -17,7 +17,7 @@ status: active
 
 ## 지식을 두는 곳
 - 짧은 필수 규칙은 rule(경로 조건), 상세는 스킬에 둔다. 실측: 경로 조건 rule 은 Read, 새 파일 Write, Bash `cat`, 서브에이전트의 Read 에서 실리고 grep 에서는 실리지 않는다(사용자 레벨 rule 도 2026-11-11 확인). Bash 로 쓴 파일에는 qwreey-conventions 의 `bash_writes.py` 가 rule 을 붙인다.
-- 툴킷 무관: 하네스는 Roblox/Luau 전용이 아니다. 공통 코어에 툴킷별 자리(luau, web …)를 두고, 경로와 기기 값은 `harness.env` 변수로 뺀다. 근거: `.claude` 를 제어하지 못해 실패한 예전 경험. 설계 조사는 `.claude/audit/14-toolkit-agnostic.md`.
+- 툴킷 무관: 하네스는 Roblox/Luau 전용이 아니다. 공통 코어에 툴킷별 자리(luau, web …)를 두고, 경로와 기기 값은 코드 기본값과 자동 감지로 정하며 바꿀 때만 `/config` 옵션이나 `harness.env` 를 쓴다. 근거: `.claude` 를 제어하지 못해 실패한 예전 경험. 설계 조사는 `.claude/audit/14-toolkit-agnostic.md`.
 - 도메인 팩(`packs/`)은 관용 규약(qwreey-conventions)과 따로 둔다(사용자: "luau-kb 는 관용 표현이 아님"). 기본 꺼짐이고, 쓰는 저장소가 `coderag.toml` 의 `[[packs]]` 로 켠다.
 - 팩은 데이터만 든다. rule 주입, 중복 제거, compact 회차는 coderag 코어가 맡고, 팩 스위치는 프로젝트 `coderag.toml` 하나다(`.claude/audit/41-knowledge-packs-debate/synthesis.md`). 이유(사용자): "luau-kb 는 stale 해질 수도 있고, 필요에 따라 검색해야할 수도 있고…시행착오로 새로운게 나올 수도 있고, 그래서 싱크 되거나 해야할 수도".
 - 원천 하나, 접근 둘: 팩 references 는 frontmatter 를 달고, 스킬(Claude)과 coderag CLI(다른 에이전트, 정밀 조회)가 같은 파일을 읽는다.
@@ -28,9 +28,12 @@ status: active
 - 공유와 배포는 플러그인으로 한다(마켓 `claude-doctor-market`).
 - 전역 CLAUDE.md 는 두지 않는다. 사용자: "끄고 켜거나 하는 유연성도 적고 이식성이 적어서. 없는게 나아보이기도 하더라. 하나를 정본으로 두고 끄고 켜는 방법을 선호". 상시 규약은 플러그인의 SessionStart·SubagentStart 주입(`lib/ambient.py`, 글은 `plugins/<p>/context/`)으로 싣고 플러그인마다 끈다(`.claude/audit/32-plugin-ambient-context.md`).
 - memory 줄은 상시 주입에 넣지 않는다. 사용자: "메모리 쓰는건 소수 경우고 그 때 알려주는게 일반적으로 싼것 같아". memory 파일을 쓸 때 실리는 memory rule 과 memory-placement 훅이 맡는다.
+- 플러그인은 독립 패키지다(Q28 a): 설치본만으로 돌고 자기 폴더, `CLAUDE_PLUGIN_DATA`, `CLAUDE_PROJECT_DIR`, Claude Code 자신의 파일만 본다. 이 저장소의 클론 위치, 작업공간 폴더, 다른 플러그인 설치 여부에 기대지 않고, 다른 플러그인은 있을 때만 쓴다. 기반 플러그인과 묶음 플러그인은 두지 않는다. 사용자: "딱 하나의 plugins/*/readme.md 를 보고 필요한걸 까는 구조", "윈도우면 문서함에 프로젝트가 있기도, desktop 에 프로젝트가 있기도 다 다르고". 확인은 `HOOK_SANDBOX_PLUGIN_COPY=1 python3 -I tools/tests/test-hook-replay.py`. 계획 `.claude/plan/plugin-independence.md`.
+- 다른 저장소는 Claude Code 세션 기록의 작업 폴더에서 자동으로 찾고, 사용자가 qwreey-workspace 옵션으로 더하고 뺀다(Q29 a, `lib/known_repos.py`).
 - 플러그인은 작게 나눈다. 사람이 치는 명령은 `q`(start, doctor, away, back)에 두고, 자연어로 시키거나 모델이 판단해 쓰는 기능은 따로 끌 수 있는 플러그인으로 둔다(사용자: "안 쓰고 싶은 곳에서는 끌 수 있는 모양").
 - 플러그인마다 README 를 사람용 카드로 쓴다: 무엇이 달라지나, 비용, 효과, 왜 택하나, 요구 사항, 설치와 끄기. 기술 세부는 플러그인 `docs/`. 사용자: "그 패키지가 뭘 하는지, 대략 비용이 어떻고 효과가 어떤지, 택한다면 왜 택해야하는지 알 수 있도록…각 동료들은…본인이 원하는 최선을 택할 수 있는것 같음".
-- 끄기 스위치는 플러그인마다 둔다. `harness.env` 는 층으로 읽는다: 기본값 < `~/.claude/harness.env` < 저장소 `.claude/harness.env` < `.claude/harness.local.env`(커밋 안 함) < 환경 변수(사용자: "레이어로 합쳐지는 모양에 local 이 최상위"). 실행 경로, 기기 값, 보안 게이트 키(`USER_ONLY`)는 저장소 층이 바꾸지 못한다.
+- 사람이 고르는 설정(켜기·끄기, 언어, 모델 선택 등)은 각 플러그인의 `userConfig`(`/config`)에 둔다. 사용자: userConfig 를 두고 harness.env 를 쓰면 "공개하기에 애매한 단계처럼 보이기도". 튜닝 값과 저장소 층은 `harness.env` 고급 키로 남는다.
+- 끄기 스위치는 플러그인마다 둔다. 설정은 층으로 읽는다: 기본값 < `~/.claude/harness.env` < 플러그인 옵션(`settings.json` 의 `pluginConfigs`) < 저장소 `.claude/harness.env` < `.claude/harness.local.env`(커밋 안 함) < 환경 변수(사용자: "레이어로 합쳐지는 모양에 local 이 최상위"). 실행 경로, 기기 값, 보안 게이트 키(`USER_ONLY`)는 저장소 층이 바꾸지 못한다.
 - 플러그인이 함께 쓰는 코드와 문구는 `lib/` 에 정본을 두고 플러그인은 사본을 든다(`tools/sync-copies.py`). 사용자: "플러그인의 특징과 상관 없게 필요한 코드기도 하니까".
 - `~/.claude` 는 `home/` 정본에서 고치고, `home-sync.sh apply` 는 사용자가 한다. settings.json 은 마이그레이션으로 반영하고 사용자가 `/config` 로 바꾼 값은 건드리지 않는다.
 - 이 sandbox 의 git 계정은 에이전트 전용이라 에이전트의 push 가 정상 흐름이다(`HARNESS_AGENT_PUSH=normal`). `git push` deny 를 기본으로 넣지 않는다.

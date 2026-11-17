@@ -1,7 +1,7 @@
 # claude-doctor
 
 Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, 감사 에이전트 초안, 규약 합의안)를 관리하는 저장소다.
-특정 언어나 sandbox 에 묶이지 않게 짰다. 언어별 검사는 **툴킷**(지금 luau, web 골격), 환경 고유값은 **`home/.claude/harness.env`** 한 곳에 둔다.
+특정 언어나 sandbox 에 묶이지 않게 짰다. 언어별 검사는 **툴킷**(지금 luau, web 골격)에 둔다. 플러그인은 하나씩 골라 설치하고 설치본만으로 돈다. 설정은 각 플러그인의 `/config` 옵션(userConfig)이고, `home/.claude/harness.env` 는 저장소 층과 튜닝 값을 위한 고급용 선택 파일이다.
 
 | 위치 | 무엇 |
 |---|---|
@@ -9,7 +9,7 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 | `tools/home-sync.sh` | 정본 ↔ 실제 `~/.claude` 동기화(status / diff / apply / pull / new-migration / env). settings.json 은 복사가 아니라 `home/settings-migrations/` 마이그레이션(`tools/settings-migrate.py`) |
 | `plugins/q/` | 사람이 치는 명령 플러그인 `q`(`/q:` 만 치면 전부 나온다): `/q:start` 온보딩, `/q:doctor` 진단(코어 검사 + `skills/doctor/scripts/toolkits/<이름>.py`), `/q:away`·`/q:back` 자리 비움, 서브에이전트 고지·슬롯 훅(원장 `scripts/subagent_ledger.py`) 포함. 이름은 사용자명 qwreey 에서 왔다. 설명 `plugins/q/docs/` 상시 규약(훅 메시지 배경)은 q 의 SessionStart·SubagentStart·UserPromptSubmit(보충) 주입(`plugins/q/context/ambient.md`, `<plugin name="q">`)이 싣는다. q 를 끄면 같이 빠진다(끄기 `HARNESS_Q_AMBIENT=off`). |
 | `plugins/qwreey-sessions/` | 세션 기록 자동화: session-log 훅(분리 프로세스 요약, 저장소 밖 보관), `/qwreey-sessions:checkpoint`·`import`·`recall`. README 카드 `plugins/qwreey-sessions/README.md` |
-| `plugins/qwreey-workspace/` | 형제 저장소 읽기 전용 게이트(`workspace_gate.py`)와 `qwreey-workspace:workspace` 스킬(지도, 살아 있는 세션, worktree 잠금), 규약 주입. 카드 `plugins/qwreey-workspace/README.md` |
+| `plugins/qwreey-workspace/` | 다른 저장소 읽기 전용 게이트(`workspace_gate.py`)와 `qwreey-workspace:workspace` 스킬(지도, 살아 있는 세션, worktree 잠금), 규약 주입. 카드 `plugins/qwreey-workspace/README.md` |
 | `plugins/qwreey-advisor/` | 모델이 부르는 독립 검토(별도 플러그인). luau 지식은 `luau-kb` 플러그인 |
 | `plugins/qwreey-conventions/` | 코드 주석·모델용 문서 관례(둘 다 rule, 기존 주석·문서 정리 명령 `comments-cleanup`·`docs-cleanup`)와 추가한 줄을 한 줄로 알리는 훅, 구조 한도(`structure-reminder`)·셸 우회 쓰기(`bash-bypass-reminder`)·auto memory 배치(`memory-placement`) 알림 훅. 옛 user-level 훅들을 대체 |
 | `plugins/luau-lsp/` | `.luau` 에 luau-lsp 언어 서버를 붙이는 플러그인(진단, hover, 정의 찾기, Rojo 면 Roblox 정의 파일). 바이너리는 따로 설치하고 런처가 찾는다. luau-kb 팩은 LSP 를 싣지 않는다. 카드 `plugins/luau-lsp/README.md` |
@@ -24,22 +24,32 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 | `.claude/audit/` | 조사·감사 보고서. 반입 프로젝트 감사는 `.claude/audit/intake/` |
 | `PLAN.md`, `HUMAN_TODO.md`, `.claude/handoff/` | 작업 계획, 사람이 할 일, 다른 세션 인계 |
 
-## 다른 sandbox 에 설치하기
+## 플러그인만 설치하기
+
+동료처럼 필요한 플러그인만 쓰는 경우. 클론, harness.env, `home-sync` 는 필요 없다.
+
+1. 마켓을 한 번 더한다: `claude plugin marketplace add <GitHub 저장소>`.
+2. `plugins/*/README.md` 카드를 보고 고른 것을 설치한다: `claude plugin install <이름>@claude-doctor-market`. 설치본(`~/.claude/plugins/cache/` 의 사본)만으로 돈다.
+3. 설정은 `/plugin configure <이름>@claude-doctor-market` 나 `/config` 의 플러그인 옵션에서 고른다. 다른 저장소는 qwreey-workspace 가 세션 기록에서 자동으로 찾고, 빠진 곳은 그 옵션으로 더한다.
+4. 갱신: 공식이 아닌 마켓은 자동 갱신이 기본으로 꺼져 있다. `/plugin` 의 Marketplaces 에서 자동 갱신을 켜거나, `claude plugin marketplace update claude-doctor-market` 뒤 `claude plugin update <이름>@claude-doctor-market`, 그다음 `/reload-plugins`.
+
+## 하네스 전체를 sandbox 에 설치하기
+
+이 저장소를 클론해 `~/.claude` 정본(`home/`)까지 쓰는 경우(저자). 로컬 폴더 마켓이라 플러그인이 저장소에서 바로 실린다.
 
 전제: `git`, `python3`(3.11 이상, `tomllib`), `bash` 4 이상. `jq` 는 있으면 쓴다(없으면 플러그인 설치 보고만 빠진다). `choom`(util-linux)은 있으면 쓴다. Windows 는 아래 "Windows" 절.
 
-1. **클론**한다. `~/Projects/claude-doctor` 에 두면 harness.env 를 고칠 것이 없다(형제 저장소도 `~/Projects` 아래).
+1. **클론**한다. 위치는 상관없다(`home-sync` 와 마켓 경로는 클론 위치에서 정해진다).
    ```bash
    cd <작업공간>            # 예: ~/Projects
    git clone <claude-doctor 저장소 URL> claude-doctor
    ```
-2. **환경 설정**: `home/.claude/harness.env` 를 이 sandbox 값으로 고친다. 키 설명은 이 파일의 주석에 있다. 기본값은 여러 플러그인이 읽는 키면 `home/.claude/lib/harness_env.py` 의 `DEFAULTS`, 한 플러그인만 읽는 키면 그 플러그인의 `docs/how-it-works.md` 와 읽는 코드(`ENV_DEFAULTS` 등).
-   - `HARNESS_WORKSPACE`: 형제 저장소 루트(지우면 claude-doctor 의 부모)
+2. **환경 설정**(선택): 보통의 설정은 각 플러그인의 `/config` 옵션이다. `home/.claude/harness.env` 는 그 밖의 고급 값만 이 sandbox 에 맞게 고친다. 키 설명은 이 파일의 주석에 있다. 기본값은 여러 플러그인이 읽는 키면 `home/.claude/lib/harness_env.py` 의 `DEFAULTS`, 한 플러그인만 읽는 키면 그 플러그인의 `docs/how-it-works.md` 와 읽는 코드(`ENV_DEFAULTS` 등).
    - `HARNESS_TOOL_INSTALLS`: 툴체인 설치 경로(mise 기본은 `~/.local/share/mise/installs`)
    - `HARNESS_HEAVY_WRAP`: 무거운 실행 래퍼. 메모리를 다른 세션과 공유하지 않으면 빈 값으로 둔다(훅이 아무것도 막지 않는다). 키를 지우면 choom 이 있을 때만 쓴다
-   - `HARNESS_DELEGATE_REGISTRY`: 위임 uid 표(위임을 안 쓰면 비움). `HARNESS_AGENT_PUSH`: 에이전트 push 정책(normal / deny)
+   - `HARNESS_AGENT_PUSH`: 에이전트 push 정책(normal / deny). 위임 uid 표 경로는 qwreey-delegate 의 `/config` 옵션이다
    - 파일을 커밋하고 싶지 않으면 다른 곳에 두고 `HARNESS_ENV=<경로>` 를 셸 환경에 둔다. 같은 이름의 환경 변수는 파일보다 우선한다.
-   - 이 파일은 사용자 층이다. 저장소마다 다르게 하려면 그 저장소 `.claude/harness.env`(팀 공유, 커밋), 나만 쓰려면 `.claude/harness.local.env`(그 저장소 `.gitignore` 에 넣는다)에 같은 키를 둔다. 키마다 합치고 local > 저장소 공유 > 사용자 순으로 이기며 환경 변수가 모두를 이긴다. 실행 경로·기기 고유값·보안 게이트 키는 저장소 층이 바꾸지 못한다(공용 키는 `home/.claude/lib/harness_env.py` 의 `USER_ONLY`, 플러그인 키는 그 플러그인의 `ENV_USER_ONLY` 등).
+   - 이 파일은 사용자 층이고, `/config` 옵션이 그 위에 온다. 저장소마다 다르게 하려면 그 저장소 `.claude/harness.env`(팀 공유, 커밋), 나만 쓰려면 `.claude/harness.local.env`(그 저장소 `.gitignore` 에 넣는다)에 같은 키를 둔다. 키마다 합치고 local > 저장소 공유 > `/config` 옵션 > 사용자 harness.env 순으로 이기며 환경 변수가 모두를 이긴다. 실행 경로·기기 고유값·보안 게이트 키는 저장소 층이 바꾸지 못한다(공용 키는 `home/.claude/lib/harness_env.py` 의 `USER_ONLY`, 플러그인 키는 그 플러그인의 `ENV_USER_ONLY` 등).
 3. **확인**: `tools/home-sync.sh env` 로 푼 값을, `tools/home-sync.sh status` 로 링크 대상(MANIFEST 의 `link` 줄)이 있는지 본다.
    `~/.claude` 대신 다른 곳에 먼저 시험하려면 `CLAUDE_HOME=/tmp/test-home tools/home-sync.sh apply`.
 4. **반영**: `tools/home-sync.sh diff` 로 검토한 뒤 `tools/home-sync.sh apply`. 기존 파일은 `*.bak-<시각>` 으로 남는다.
@@ -52,7 +62,7 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 5. **luau 팩**(luau 툴킷): luau-kb 는 이 저장소의 도메인 팩(`packs/luau-kb`, 기본 꺼짐)이다. Luau 저장소의 `.claude/settings.json` 에 `"enabledPlugins": {"luau-kb@claude-doctor-market": true}` 를 더한다(6번의 마켓 등록이 먼저). 예전 `~/.claude/skills/luau-*`·`~/.claude/rules/luau-core.md` 심볼릭 링크는 지운다(둘 다 두면 겹친다).
 6. **q 플러그인**: `claude plugin marketplace add <claude-doctor 폴더>` 후 `claude plugin install q@claude-doctor-market`(마이그레이션 0002 가 켠다). 옛 `~/.claude/skills/{away,back,harness-doctor}` 는 apply 가 지우지 않는다: `tools/home-sync.sh status` 의 고아 보고를 보고 직접 정리한다.
 7. **진단**: Claude Code 에서 `/q:doctor --user`, 그다음 `/q:doctor <저장소>`.
-   스크립트만 돌리려면 `python3 -I <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py --env` 와 `... scan.py <저장소>`. 플러그인 캐시에서 돌 때는 `HARNESS_DOCTOR_ROOT`(harness.env)로 이 폴더를 알려야 정본 검사가 켜진다.
+   스크립트만 돌리려면 `python3 -I <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py --env` 와 `... scan.py <저장소>`. 정본 검사(`home/` 대조, 설치 어긋남)는 이 저장소에서 연 세션에서만 돈다. 다른 곳에서 돌리려면 환경 변수 `HARNESS_DOCTOR_ROOT` 로 이 폴더를 알린다.
 
 ## Windows
 
@@ -65,7 +75,7 @@ Windows(회사 PC)에서도 플러그인과 `home-sync` 가 돌게 짰다. 실�
   - 옛 python.org 설치 관리자(3.13 이하)는 `python`·`py` 만 준다. 설치 폴더(`python.exe` 가 있는 곳)에서 `python.exe` 를 `python3.exe` 로 복사한다.
   - `python3` 를 쳤을 때 Microsoft Store 가 열리면 그것은 Windows 의 앱 실행 별칭(가짜)이다. 설정 > 앱 > 고급 앱 설정 > 앱 실행 별칭에서 `python3.exe` 를 끈다.
   - 확인: Git Bash 에서 `python3 -c "import sys; print(sys.executable)"`. `/q:doctor --user` 도 `WIN-PYTHON3`, `WIN-GITBASH` 로 알린다.
-- 클론은 `~/Projects/claude-doctor`(`C:/Users/<이름>/Projects/claude-doctor`)에 두면 harness.env 를 고칠 것이 없다. 다른 곳이면 `home/.claude/harness.env` 의 `HARNESS_WORKSPACE` 를 `/` 구분 경로로 고친다(`HARNESS_ENV` 로 다른 파일을 가리켜도 된다).
+- 프로젝트가 문서함, 바탕화면 등 어디에 있어도 된다. 다른 저장소는 세션 기록에서 자동으로 찾고, 빠진 곳은 qwreey-workspace 의 `/config` 옵션(`;` 구분, `C:/...` 경로)으로 더한다.
 - 설치 순서는 위 "다른 sandbox 에 설치하기"와 같다. 명령은 모두 Git Bash 에서 친다. 마켓 경로는 `home-sync apply` 가 클론 위치로 채운다.
 
 **되는 것**
