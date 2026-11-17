@@ -1,17 +1,19 @@
 # qwreey-conventions 동작 상세
 
-구성: 모델이 부르는 스킬 둘(`agent-docs`, `code-reuse`), 사용자 명령 하나(`comments-cleanup`), 경로 한정 규칙 여섯(`rules/*.md`, 맞는 파일을 열 때 훅이 주입, 하나는 켜기 스위치가 있다), 알림 훅(`hooks/hooks.json`). 훅은 막지 않는다. 예외는 답변 언어 이탈의 Stop `decision: block` 하나다. `.claude/` 기록 규약은 이 플러그인에 없고 coderag 플러그인의 `coderag:agent-records` 가 맡는다.
+구성: 모델이 부르는 스킬 하나(`code-reuse`), 사용자 명령 둘(`comments-cleanup`, `docs-cleanup`), 경로 한정 규칙 여섯(`rules/*.md`, 맞는 파일을 열 때 훅이 주입, 하나는 켜기 스위치가 있다), 알림 훅(`hooks/hooks.json`). 훅은 막지 않는다. 예외는 답변 언어 이탈의 Stop `decision: block` 하나다. `.claude/` 기록 규약은 이 플러그인에 없고 coderag 플러그인의 `coderag:agent-records` 가 맡는다.
 
 ## 스킬과 규칙
 | 이름 | 다루는 것 |
 |---|---|
-| `/qwreey-conventions:comments-cleanup [경로]` | 사용자 명령(`disable-model-invocation`): 기존 주석을 `conventions-scan.py` 로 검사하고 `fix` 로 기계적인 것을 고친 뒤 나머지를 다시 쓴다 |
-| `qwreey-conventions:agent-docs` | CLAUDE.md, SKILL.md, references, agents, rules: 둘 것과 옮길 것, 입구 문서와 references 의 차이, 원장 id |
-| `qwreey-conventions:code-reuse` | 값(정책/불변식), 한 사실 한 정의, `@copy-of` 사본 표시, 라이브러리와 직접 구현의 기준, 저장소 설정(`reuse`) |
+| `/qwreey-conventions:comments-cleanup [경로]` | 사용자 명령(`disable-model-invocation`): 코드 파일의 기존 주석을 `conventions-scan.py --kind comment` 로 검사하고 `fix` 로 기계적인 것을 고친 뒤 나머지를 다시 쓴다 |
+| `/qwreey-conventions:docs-cleanup [경로]` | 사용자 명령: 모델용 문서를 `conventions-scan.py --kind doc` 으로 검사하고 보이지 않는 문자를 지운 뒤 이력 줄을 지금의 사실로 다시 쓰고, 옮길 이력을 보고에 모은다 |
+| `qwreey-conventions:code-reuse` | 경계를 넘는 사본의 표시(`@copy-of`, `@start-replace`), 영역과 동기화, 사본 비교 시험, 라이브러리와 직접 구현을 가르는 측정, 중복 판단 순서 |
 
 규칙 파일: `comments`, `agent-docs`, `code-structure`, `code-reuse`, `memory`, `readable-code`. 각 파일의 `paths:` 가 대상이다. 플러그인은 `.claude/rules` 를 실을 수 없어서 훅이 같은 시점에 같은 본문을 넣는다.
 
-`comments` 는 스킬 없이 규칙 하나다. 모델이 지킬 것(이유, 이력 옮기기, 키보드 문자, 한국어 어미, 문체, 알림 대응)은 모두 본문에 있고, 알림이 줄과 고치는 법을 준다. 실제 기록에서 쓰기 79번 중 comments 스킬 로드는 0번이었고 알림을 받고 고친 것은 대부분 스킬 없이였다. 사람이 찾아볼 알림 표, 기호 대체 표, 저장소 설정은 [comments.md](comments.md) 에 있다.
+`comments` 와 `agent-docs` 는 스킬 없이 규칙 하나다. 모델이 지킬 것은 모두 본문에 있고, 기계로 볼 수 있는 것(이력 표지, 스킬 description 꼴, 모델용 문서 언어, 원장 id 경로)은 훅 알림이 줄과 고치는 법을 준다. 실제 기록에서 쓰기 79번 중 comments 스킬 로드는 0번, 모델용 문서 쓰기 35번 중 agent-docs 스킬 로드는 1번이었고 알림을 받고 고친 것은 대부분 스킬 없이였다. 사람이 찾아볼 알림 표와 설정은 [comments.md](comments.md), [agent-docs.md](agent-docs.md) 에 있다.
+
+`code-reuse` 는 규칙이 지킬 것을 말하고, 스킬은 정의를 다른 패키지나 저장소로 옮겨 적을 때의 절차와 라이브러리 선택 단계만 맡는다. 그래서 description 을 그 작업들로 좁혔고 규칙 끝의 "Before you add a `@copy-of` or `@start-replace` marker, or act on a reuse notice, load ..." 줄이 스킬을 가리킨다. 정책·불변식 표와 저장소 설정(`reuse`)은 [code-reuse.md](code-reuse.md) 에 있다.
 
 `readable-code` 는 함수 안 문단(빈 줄), 단계 라벨, 호버에 보이는 문서 주석, 이유 주석의 자리, 선언과 이름, 분기 사다리, 되풀이 루프를 말한다. `comments` 처럼 규약 전체를 본문에 둔다(약 2.3k자): 규칙 끝의 스킬 포인터는 실제 세션에서 거의 읽히지 않았다. 언어 중립으로 쓰고, Luau 의 `---` 같은 툴킷 꼴은 툴킷 팩 규칙(luau-kb `luau-core`)이 말한다. 프론트매터 `switch: HARNESS_READABLE_CODE` 라서 그 키가 `on` 일 때만 실린다(아래 규칙 주입).
 
@@ -103,19 +105,19 @@ heredoc, `sed -i`, `python3 - <<`, `tee`, 리다이렉트로 쓰면 Edit·Write 
 
 ## 남은 문제 보고
 - 같은 PostToolUse 에서 편집한 파일의 "이번에 추가하지 않은 줄" 문제를 범주별로 세어 `$TMPDIR/claude-conventions/<session>.left.<main|agent_id>.json` 에 조용히 쌓는다(파일마다 마지막 편집 기준, 고치면 사라진다).
-- Stop 이 모든 호출자 기록과 reuse-check 의 기록(`<session>.reuse.<who>.json`)을 합쳐 사용자에게 한 줄을 `systemMessage` 로 보인다. 주석 문제가 있으면 `/qwreey-conventions:comments-cleanup` 을, 같은 목록 중복만 있으면 "기존 문제도 정리해줘" 를 안내한다. 직전 보고와 같으면 보이지 않는다. 파일은 5개까지. 사본이 원본과 다르면 둘째 줄이 붙는다.
+- Stop 이 모든 호출자 기록과 reuse-check 의 기록(`<session>.reuse.<who>.json`)을 합쳐 사용자에게 한 줄을 `systemMessage` 로 보인다. 코드 파일의 주석 문제가 있으면 `/qwreey-conventions:comments-cleanup` 을, 모델용 문서의 문제가 있으면 `/qwreey-conventions:docs-cleanup` 을, 같은 목록 중복만 있으면 "기존 문제도 정리해줘" 를 안내한다. 직전 보고와 같으면 보이지 않는다. 파일은 5개까지. 사본이 원본과 다르면 둘째 줄이 붙는다.
 - `systemMessage` 를 쓰는 이유: 모델을 거치지 않아 비용이 없고 빠지지 않는다. Stop 의 `additionalContext` 나 `decision` 은 턴을 이어 가게 해 매번 모델 호출과 보고 재작성 비용이 든다.
 
 ## 파일 전체 검사, 기계적 고치기 (`scripts/conventions-scan.py`)
-훅이 아니라 명령이다. 사용자 명령 `/qwreey-conventions:comments-cleanup` 이 이것을 부른다: 훅은 추가한 줄만 보고 남은 문제는 세기만 한다.
+훅이 아니라 명령이다. 사용자 명령 `/qwreey-conventions:comments-cleanup`(`--kind comment`)과 `/qwreey-conventions:docs-cleanup`(`--kind doc`)이 이것을 부른다: 훅은 추가한 줄만 보고 남은 문제는 세기만 한다.
 ```bash
-python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py scan [경로...] [--json] [--category symbol ...] [--summary] [--top N] [--budget S] [--exit-zero]
+python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py scan [경로...] [--json] [--category symbol ...] [--kind comment|doc] [--summary] [--top N] [--budget S] [--exit-zero]
 python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py fix [경로...] --dry-run   # unified diff 만, 쓰지 않는다
 python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py fix [경로...]
 ```
-- 검사: `conventions-check.py` 의 함수를 불러 모든 줄에 돌린다. 확장자 표, 제외, 생성 파일 표시, `.claude/conventions.json` 이 훅과 같다. 경로를 안 주면 저장소 전체, git 이면 `git ls-files -co --exclude-standard` 라 무시 파일은 보지 않는다. 주석 언어 기준은 파일 전체 다수(없으면 `comment_language`, 형제 파일).
+- 검사: `conventions-check.py` 의 함수를 불러 모든 줄에 돌린다. 확장자 표, 제외, 생성 파일 표시, `.claude/conventions.json` 이 훅과 같다. 경로를 안 주면 저장소 전체, git 이면 `git ls-files -co --exclude-standard` 라 무시 파일은 보지 않는다. 주석 언어 기준은 파일 전체 다수(없으면 `comment_language`, 형제 파일). `--kind comment` 는 코드 파일의 주석만, `--kind doc` 는 모델용 문서만 본다.
 - 출력: `경로:줄: 범주: 내용`, 범주별, 파일별 수, `--fix` 로 고칠 수 있는 추정. `--json` 은 `findings`, `needs_judgment`, `diffs`, `summary`. 종료 코드 0 = 남은 문제 없음, 1 = 있음, 2 = 사용법 오류.
-- `--budget S`: S 초가 지나면 파일 읽기를 멈추고 요약에 `partial:` 줄(멈춘 자리, 전체 파일 수, 전체 검사 명령)을 낸다. `--exit-zero`: 찾은 것이 있어도, 사용법 오류나 예외여도 0 으로 끝난다. `comments-cleanup` 명령의 `!` 미리 실행이 `--summary --top 15 --budget 30 --exit-zero` 로 부른다: `!` 명령이 0 이 아니면 Claude Code 가 명령 전체를 멈추고, 2분 한도가 있기 때문이다(quad 전체 검사 56 s, 30초에서 6,194 중 3,575 번째 파일에서 멈춤, coderag 2.3 s). 요약이 `partial` 이면 모델이 그 줄의 명령을 Bash 로 다시 돌린다.
+- `--budget S`: S 초가 지나면 파일 읽기를 멈추고 요약에 `partial:` 줄(멈춘 자리, 전체 파일 수, 전체 검사 명령)을 낸다. `--exit-zero`: 찾은 것이 있어도, 사용법 오류나 예외여도 0 으로 끝난다. 두 정리 명령의 `!` 미리 실행이 `--kind <종류> --summary --top 15 --budget 30 --exit-zero` 로 부른다: `!` 명령이 0 이 아니면 Claude Code 가 명령 전체를 멈추고, 2분 한도가 있기 때문이다(quad 전체 검사 56 s, 30초에서 6,194 중 3,575 번째 파일에서 멈춤, coderag 2.3 s). 요약이 `partial` 이면 모델이 그 줄의 명령을 Bash 로 다시 돌린다.
 - 고치는 것: 코드 파일 주석 안의 non-keyboard symbol 과 invisible character, 모델용 문서 본문의 invisible character(훅이 문서의 기호는 보지 않으므로 고치지도 않는다). 주석 안의 인라인 코드와 URL, 따옴표로 감싼 한 글자, 지시자 줄, 문서의 frontmatter, 코드 펜스, 인라인 코드, URL, 경로 토큰은 그대로 둔다.
 - 대체: 대시는 ` - `(숫자 사이 en dash, minus 는 `-`), 가운뎃점은 `, `(조각 맨 앞이면 `-`; `/` 는 곱을 나눗셈으로 바꿀 수 있어 쓰지 않는다), `…` 는 `...`, 화살표는 `->` `<-` `<->` `=>`, 곡선 따옴표는 곧은 따옴표, `§` 는 지운다, 동그라미 숫자는 `1)`, 전각은 ASCII, NBSP 는 공백, 그 밖의 보이지 않는 문자는 지운다(이모지 옆 ZWJ 와 파일 맨 앞 BOM 은 둔다). 규칙 전체는 스크립트 머리 주석.
 - 사본(머리의 `@copy-of:` 로 다른 파일을 가리키는 파일, 정본이 아닌 `@start-replace` 영역)은 고치지 않고 `copies left unfixed` 로 알린다. 정본을 고치고 `tools/sync-copies.py --apply` 로 옮긴다. 사본을 따로 고치면 `--check` 가 깨진다.
@@ -160,7 +162,7 @@ auto memory 디렉터리(`<config>/projects/*/memory/` 또는 `autoMemoryDirecto
 - 기록: `${CLAUDE_PLUGIN_DATA}/drift.jsonl`(본문 없음). 끄기: `HARNESS_REPLY_LANGUAGE=off`(환경 변수 또는 harness.env).
 
 ## 저장소 설정
-`<프로젝트>/.claude/conventions.json`(없으면 예전 이름 `.claude/comments.json`): `comment_language`, `allow_chars`, `public_ids`, `exclude`, `patterns`, `allow_ref_tail`, `min_reason_words`, `label_language`, `layout`(형식은 [comments.md](comments.md)), `reuse`(`mode`, `allow`, `vocab_ok`, `min_shared`, 형식은 `code-reuse` 스킬), `rules_exclude`. 파일 길이는 `.claude/structure.json`. 사용자 설정 위치는 `$CLAUDE_CONFIG_DIR`(기본 `~/.claude`).
+`<프로젝트>/.claude/conventions.json`(없으면 예전 이름 `.claude/comments.json`): `comment_language`, `allow_chars`, `public_ids`, `exclude`, `patterns`, `allow_ref_tail`, `min_reason_words`, `label_language`, `layout`(형식은 [comments.md](comments.md)), `reuse`(`mode`, `allow`, `vocab_ok`, `min_shared`, 형식은 [code-reuse.md](code-reuse.md)), `rules_exclude`. 파일 길이는 `.claude/structure.json`. 사용자 설정 위치는 `$CLAUDE_CONFIG_DIR`(기본 `~/.claude`).
 
 ## 플랫폼
 훅은 표준 라이브러리 Python 3 이다. 상태는 `tempfile.gettempdir()` 아래에 둔다.

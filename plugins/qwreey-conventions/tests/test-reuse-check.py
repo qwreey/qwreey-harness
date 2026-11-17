@@ -215,9 +215,10 @@ check("H1 log has no source text beyond the shared strings", all("SKIP" not in j
 check("H1 log is outside the repo", not os.path.exists(os.path.join(REPO, "shadow.jsonl")) and SHADOW.startswith(T))
 r = run("m/three.py", dup, "", dup, env={"REUSE_CHECK": "on"})
 check("H1 on: notice names an existing definition and the shared strings", "m/three.py:1" in r and re.search(r"at m/(one|two)\.py:1", r) and "/4 shared" in r
-      and "@dup-ok" in r and "Unsure: load the qwreey-conventions:code-reuse skill" in r)
+      and "@dup-ok" in r and "DEFAULT_*" in r and "different facts" in r and "skill" not in r)
 lk = 'local K = { "alpha", "bravo", "charlie", "echo" }\n'
-check("H1 on: other-language pair -> cannot import notice", "cannot import" in run("m/four.luau", lk, "", lk, env={"REUSE_CHECK": "on"}))
+r = run("m/four.luau", lk, "", lk, env={"REUSE_CHECK": "on"})
+check("H1 on: other-language pair -> cannot import notice with the fix inline", "cannot import" in r and "@copy-of" in r and "DEFAULT_*" in r and "skill" not in r)
 sid = "dd1"
 a = run("m/five.py", dup, "", dup, sid=sid, env={"REUSE_CHECK": "on"})
 b = run("m/five.py", dup, "", dup, sid=sid, env={"REUSE_CHECK": "on"})

@@ -603,9 +603,12 @@ def leftover_message(sid, d=None):
         shown = ", ".join(f"{rel}(" + ", ".join(f"{c} {n[c]}" for c in order if c in n) + ")" for rel, n in items[:LEFT_MAX_FILES])
         more = f" 외 {len(items) - LEFT_MAX_FILES}개" if len(items) > LEFT_MAX_FILES else ""
         cats = {c for _, n in items for c in n}
+        is_doc = [bool(doc_class(rel)) for rel, n in items if set(n) - {"같은 목록이 두 곳"}]
+        tools = (["주석은 /qwreey-conventions:comments-cleanup"] if not all(is_doc) else []) + (
+            ["모델용 문서는 /qwreey-conventions:docs-cleanup"] if any(is_doc) else [])
         how = []
-        if cats - {"같은 목록이 두 곳"}:
-            how.append("주석은 /qwreey-conventions:comments-cleanup 으로 정리합니다.")
+        if tools:
+            how.append(", ".join(tools) + " 으로 정리합니다.")
         if "같은 목록이 두 곳" in cats:
             how.append('같은 목록은 "기존 문제도 정리해줘" 라고 하시면 됩니다.')
         lines.append(f'손댄 파일에 전부터 있던 문제: {shown}{more}. ' + " ".join(how))

@@ -229,7 +229,8 @@ def doc(rel, content, **kw):
 
 
 check("CLAUDE.md date -> history marker", "history marker" in doc("d/CLAUDE.md", "# P\nUse tabs. Decided 2026-11-10.\n"))
-check("message names the doc skill", "qwreey-conventions:agent-docs" in doc("d/CLAUDE.md", "# P\nUse tabs. Decided 2026-11-10.\n") or True)
+n = doc("d/CLAUDE.md", "# P\nUse tabs. Decided 2026-11-10.\n")
+check("doc notice carries its fix and names no skill", "history marker" in n and "qwreey-conventions:" not in n)
 c = doc("d2/SKILL.md", "---\nname: x\ndescription: Checks x, made 2026-11-10. Use when y.\n---\n# X\nSee audit/18 for why.\n")
 check("SKILL.md: frontmatter date passes, audit path flagged, notice is self-contained",
       "L6" in c and "L3" not in c and "agent-doc conventions" in c and "move dates, ids" in c and "Fix those lines" in c and "skill" not in c.split("L6")[1])
@@ -529,7 +530,12 @@ os.remove(os.path.join(REPO, "l/gone.luau"))
 check("deleted file is not reported", stop("L5") is None)
 # 모델용 문서의 기존 이력도 센다
 edit("skills/x/SKILL.md", "Run it.\n", "Run it now.\n", "Decided 2026-11-10 by the user.\nRun it now.\n", sid="L6")
-check("agent-doc leftovers are counted", "SKILL.md(이력 1)" in (stop("L6") or {}).get("systemMessage", ""))
+m6 = (stop("L6") or {}).get("systemMessage", "")
+check("agent-doc leftovers are counted and point to docs-cleanup only", "SKILL.md(이력 1)" in m6
+      and "/qwreey-conventions:docs-cleanup" in m6 and "comments-cleanup" not in m6)
+edit("l/both.luau", "local a = 1\n", "local a = 2\n", "-- old → x\nlocal a = 2\n", sid="L6")
+m6 = (stop("L6") or {}).get("systemMessage", "")
+check("comment and doc leftovers name both commands", "주석은 /qwreey-conventions:comments-cleanup, 모델용 문서는 /qwreey-conventions:docs-cleanup 으로" in m6)
 edit("l/off.luau", "local a = 1\n", "local a = 2\n", "-- old \u2192 x\nlocal a = 2\n", sid="L7")
 check("CONVENTIONS_CHECK=off silences Stop", stop("L7", {"CONVENTIONS_CHECK": "off"}) is None and stop("L7") is not None)
 

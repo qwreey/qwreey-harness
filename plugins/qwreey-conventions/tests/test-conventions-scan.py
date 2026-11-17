@@ -116,10 +116,19 @@ rc, out, err = cli("scan", "--summary", "--exit-zero", "--nope")
 check("--exit-zero: a usage error still exits 0", rc == 0)
 rc, out, err = cli("scan", "--summary", "--exit-zero", "--budget", "0")
 check("--budget: stops early and says how to run the full scan", rc == 0 and "partial:" in out and "scan" in out.split("partial:")[1])
-skill = open(os.path.join(os.path.dirname(HERE), "skills", "comments-cleanup", "SKILL.md"), encoding="utf-8").read()
-pre = [l for l in skill.split("\n") if l.startswith("!`")]
-check("comments-cleanup preload never fails and is time-capped", len(pre) == 1 and "--exit-zero" in pre[0] and "--budget" in pre[0] and "--top" in pre[0])
-check("comments-cleanup description has no em dash", "\u2014" not in skill.split("---")[1])
+rc, out, err = cli("scan", "--kind", "doc")
+check("--kind doc: only model documents", "skills/s/SKILL.md:6: history marker" in out and "src/" not in out.split("\nroot:")[0])
+rc, out, err = cli("scan", "--kind", "comment")
+check("--kind comment: only code comments", "src/a.luau:1: history marker" in out and "SKILL.md" not in out)
+rc, out, err = cli("scan", "--summary", "--exit-zero", "--budget", "0", "--kind", "doc")
+check("--budget with --kind: the full-scan command keeps the kind", "--kind doc" in out.split("partial:")[1])
+for name, kind in (("comments-cleanup", "comment"), ("docs-cleanup", "doc")):
+    skill = open(os.path.join(os.path.dirname(HERE), "skills", name, "SKILL.md"), encoding="utf-8").read()
+    pre = [l for l in skill.split("\n") if l.startswith("!`")]
+    check(f"{name} preload never fails, is time-capped and scans its kind", len(pre) == 1 and "--exit-zero" in pre[0] and "--budget" in pre[0]
+          and "--top" in pre[0] and f"--kind {kind}" in pre[0])
+    check(f"{name} is a user command", "disable-model-invocation: true" in skill.split("---")[1])
+    check(f"{name} description has no em dash", "\u2014" not in skill.split("---")[1])
 
 rc, out, err = cli("scan", "--json")
 data = json.loads(out)
