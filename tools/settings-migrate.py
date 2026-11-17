@@ -15,11 +15,14 @@
                훅 = {"type":"command","command":command, **fields}. command 의 $HOME 은 풀어 같은지 본다
   hook-remove  event, command   그 command 의 훅 제거(빈 그룹·이벤트도 정리)
 
+기계 값: op 안 문자열의 ${HARNESS_DOCTOR_ROOT} 는 적용할 때 이 클론의 절대 경로(이 스크립트의 부모의 부모, Windows 는 / 구분)로 푼다.
+  --var HARNESS_DOCTOR_ROOT=<경로> 로 바꿀 수 있다. 그 밖의 ${...}, $HOME 은 그대로 둔다(훅 command 는 셸이 푼다).
+
 태그(소유 판별, 보고용): 훅 command 가 $HOME/.claude/hooks/ 나 $CLAUDE_HOME/hooks/ 아래면 관리 훅,
   플러그인 이름이 @<관리 마켓> 으로 끝나면 관리 플러그인(HOME_SYNC_MARKETS, 기본 claude-doctor-market).
 
 사용:
-  settings-migrate.py run    --settings S --dir D --records R [--dry-run] [--out O] [--quiet]
+  settings-migrate.py run    --settings S --dir D --records R [--dry-run] [--out O] [--quiet] [--var NAME=VALUE]
   settings-migrate.py status --settings S --dir D --records R
 exit: 0 정상 / 1 마이그레이션 실패(그 마이그레이션은 되돌림, 앞선 것은 적용) / 2 JSON·사용 오류
 """
@@ -197,11 +200,33 @@ def describe(o):
     return f"{o.get('op')} {t}{extra}"
 
 
+VARS = ("HARNESS_DOCTOR_ROOT",)  # 마이그레이션 값에서 푸는 기계 값. 기본은 default_vars()
+
+
+def default_vars():
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return {"HARNESS_DOCTOR_ROOT": root.replace(os.sep, "/")}
+
+
+def expand_vars(v, vars):
+    """값 안의 문자열에서 ${NAME}(NAME 은 vars 의 키)만 바꾼다. 사본을 돌려준다."""
+    if isinstance(v, str):
+        for k, x in vars.items():
+            v = v.replace("${%s}" % k, x)
+        return v
+    if isinstance(v, list):
+        return [expand_vars(x, vars) for x in v]
+    if isinstance(v, dict):
+        return {k: expand_vars(x, vars) for k, x in v.items()}
+    return v
+
+
 def apply_migration(settings, mig, ctx):
     """settings 사본에 ops 를 적용해 (새 settings, [(op, 변경 여부)]) 를 돌려준다. 실패하면 OpError."""
     cur = copy.deepcopy(settings)
     res = []
     for i, o in enumerate(mig.get("ops", [])):
+        o = expand_vars(o, ctx.get("vars") or {})
         name = o.get("op")
         if name not in OPS:
             raise OpError(f"ops[{i}]: 알 수 없는 op {name!r}")
@@ -289,7 +314,13 @@ def cmd_status(a):
 def cmd_run(a):
     home, migs, recs, done, settings = plan(a)
     claude_home = os.path.dirname(os.path.abspath(a.settings))
-    ctx = {"home": home}
+    vars = default_vars()
+    for kv in a.var or []:
+        k, sep, v = kv.partition("=")
+        if not sep or k not in VARS:
+            print(f"중단: --var 는 {', '.join(VARS)} 중 하나의 NAME=VALUE: {kv!r}", file=sys.stderr); sys.exit(2)
+        vars[k] = v
+    ctx = {"home": home, "vars": vars}
     pend = [m for m in migs if m["id"] not in done]
     log = (lambda *x: None) if a.quiet else print
     log(f"# 마이그레이션 {len(migs) - len(pend)}/{len(migs)} 적용됨" + ("" if recs is not None else " (기록 파일 없음 — 첫 apply: 모두 미적용으로 본다)"))
@@ -340,6 +371,7 @@ def main(argv=None):
         p.add_argument("--settings", required=True); p.add_argument("--dir", required=True); p.add_argument("--records", required=True)
         if n == "run":
             p.add_argument("--dry-run", action="store_true"); p.add_argument("--out"); p.add_argument("--quiet", action="store_true")
+            p.add_argument("--var", action="append")
     a = ap.parse_args(argv)
     return cmd_run(a) if a.cmd == "run" else cmd_status(a)
 

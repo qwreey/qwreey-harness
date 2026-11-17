@@ -28,7 +28,12 @@ MIG_DIR="$ROOT/home/settings-migrations"
 MIG_REC="$DST/.home-sync-migrations"
 migrate() { # $1 = run|status, 나머지는 settings-migrate.py 에 전달
   local c=$1; shift
-  python3 -I "$ROOT/tools/settings-migrate.py" "$c" --settings "$DST/settings.json" --dir "$MIG_DIR" --records "$MIG_REC" "$@"
+  python3 -I -X utf8 "$ROOT/tools/settings-migrate.py" "$c" --settings "$DST/settings.json" --dir "$MIG_DIR" --records "$MIG_REC" "$@"
+}
+# JSON 을 키 정렬로 찍는다. jq 가 없으면(Git for Windows 에는 없다) python3 로.
+json_sorted() {
+  if command -v jq >/dev/null; then jq -S . "$1"
+  else python3 -I -X utf8 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1], encoding="utf-8")), indent=2, sort_keys=True, ensure_ascii=False))' "$1"; fi
 }
 # 링크 항목: "link <~/.claude 기준 경로> <대상(변수 가능)>"
 mapfile -t LINKS < <(grep '^link ' "$ROOT/home/MANIFEST" | cut -d' ' -f2-)
@@ -154,6 +159,7 @@ write_state() { # 현재 MANIFEST + 아직 실제에 남은 고아를 기록한�
 plugins_report() { # settings 의 enabledPlugins(true) 중 아직 설치 안 된 것을 알리고, 원하면 설치한다
   local want have missing p m src
   [[ -f "$DST/settings.json" ]] && command -v claude >/dev/null || return 0
+  command -v jq >/dev/null || { echo "plugins: jq 가 없어 설치 상태 확인을 건너뛴다(claude plugin list 로 본다)"; return 0; }
   [[ "$DST" == "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" ]] || return 0   # 임시 CLAUDE_HOME 시험에서는 실제 CLI 상태와 무관
   want=$(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true) | .key' "$DST/settings.json" | grep -v '@builtin$' || true)
   have=$(claude plugin list --json 2>/dev/null | jq -r '.[]?.id' 2>/dev/null || true)
@@ -192,7 +198,7 @@ case "$cmd" in
       [[ -e "$DST/settings.json" ]] && cp "$DST/settings.json" "$tmp/actual.json" || echo '{}' > "$tmp/actual.json"
       migrate run --dry-run --out "$tmp/result.json" || echo "(마이그레이션 계획 실패)"
       diff -u --label "~/.claude/settings.json (실제)" --label "settings.json (마이그레이션 적용 후)" \
-        <(jq -S . "$tmp/actual.json") <(jq -S . "$tmp/result.json") || true
+        <(json_sorted "$tmp/actual.json") <(json_sorted "$tmp/result.json") || true
     fi
     for f in "${FILES[@]}"; do
       diff -u --label "~/.claude/$f (실제)" --label "home/.claude/$f (정본)" "$DST/$f" "$SRC/$f" 2>/dev/null || true
@@ -216,7 +222,7 @@ case "$cmd" in
       fi
     done
     write_state
-    [[ -f "$DST/settings.json" ]] && { jq -e . "$DST/settings.json" >/dev/null && echo "settings.json JSON OK"; }
+    [[ -f "$DST/settings.json" ]] && { json_sorted "$DST/settings.json" >/dev/null && echo "settings.json JSON OK"; }
     plugins_report ;;
   new-migration)
     slug=${2:?usage: $0 new-migration <slug>}
