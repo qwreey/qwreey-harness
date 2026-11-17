@@ -1,0 +1,183 @@
+#!/bin/sh
+# Starts luau-lsp over stdio for this plugin's .lsp.json (Linux, macOS).
+# Windows resolves the same command to luau-lsp.cmd, which runs find-luau-lsp.ps1: that script must search in the
+# same order as this one (the [find:*] tags; tests/test-launcher.py compares them).
+#
+# Binary: $LUAU_LSP_BIN > project pin (`mise which` in the project, shims skipped) > luau-lsp on PATH if
+# `--version` succeeds > highest version in the rokit, aftman, foreman, mise and editor-extension stores.
+# Platform: roblox when the project root has *.project.json or sourcemap.json, else standard ($LUAU_LSP_PLATFORM).
+# Definitions: $LUAU_LSP_DEFS > the editor's downloaded file when the binary is that editor's server > shipped file.
+# Docs: $LUAU_LSP_DOCS > the editor's downloaded api docs, if any. $LUAU_LSP_LOG=<file> records client messages.
+# Arguments from the client are ignored, except `--which`.
+set -eu
+HERE=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+ROOT=${CLAUDE_PLUGIN_ROOT:-$(dirname -- "$HERE")}
+PROJ=${CLAUDE_PROJECT_DIR:-$PWD}
+HOME=${HOME:-}
+MISE_DATA=${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}
+CONFIG=${XDG_CONFIG_HOME:-$HOME/.config}
+EXT_ID=johnnymorganz.luau-lsp
+
+say() { printf 'luau-lsp plugin: %s\n' "$*" >&2; }
+
+is_ver() { printf '%s\n' "$1" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; }
+
+first_exe() {
+	for f in "$@"; do
+		if [ -f "$f" ] && [ -x "$f" ]; then
+			printf '%s\n' "$f"
+			return 0
+		fi
+	done
+	return 1
+}
+
+# stdin is the LSP channel: probes read /dev/null so they cannot eat client messages.
+runs() { (cd "$PROJ" && "$1" --version </dev/null >/dev/null 2>&1); }
+
+# Prints "<version><TAB><path>" for every installed binary, store by store.
+stores() {
+	# [find:rokit]
+	for d in "$HOME"/.rokit/tool-storage/*/luau-lsp/*/; do
+		v=$(basename "$d")
+		is_ver "$v" || continue
+		f=$(first_exe "${d}luau-lsp" "${d}luau-lsp.exe") && printf '%s\t%s\n' "$v" "$f"
+	done
+	# [find:aftman]
+	for d in "$HOME"/.aftman/tool-storage/*/luau-lsp/*/; do
+		v=$(basename "$d")
+		is_ver "$v" || continue
+		f=$(first_exe "${d}luau-lsp" "${d}luau-lsp.exe") && printf '%s\t%s\n' "$v" "$f"
+	done
+	# [find:foreman] tools/<source key>-<version>, the key ending in luau-lsp
+	for f in "$HOME"/.foreman/tools/*luau-lsp-*; do
+		n=$(basename "$f")
+		v=${n##*luau-lsp-}
+		v=${v%.exe}
+		is_ver "$v" || continue
+		[ -f "$f" ] && [ -x "$f" ] && printf '%s\t%s\n' "$v" "$f"
+	done
+	# [find:mise] installs/<backend>-<owner>-luau-lsp/<version>/
+	for d in "$MISE_DATA"/installs/*luau-lsp/*/; do
+		v=$(basename "$d")
+		is_ver "$v" || continue
+		f=$(first_exe "${d}luau-lsp" "${d}bin/luau-lsp") && printf '%s\t%s\n' "$v" "$f"
+	done
+	# [find:editor] VS Code, Insiders, Cursor, VS Code Server extensions: <id>-<version>[-<target>]/bin/server
+	for d in "$HOME"/.vscode/extensions/$EXT_ID-*/ "$HOME"/.vscode-insiders/extensions/$EXT_ID-*/ \
+		"$HOME"/.cursor/extensions/$EXT_ID-*/ "$HOME"/.vscode-server/extensions/$EXT_ID-*/; do
+		v=$(basename "$d")
+		v=${v#"$EXT_ID"-}
+		v=${v%%-*}
+		is_ver "$v" || continue
+		f=$(first_exe "${d}bin/server" "${d}bin/server.exe") && printf '%s\t%s\n' "$v" "$f"
+	done
+	return 0
+}
+
+# Files the editor extension downloaded (definitions, api docs), first match wins.
+editor_file() {
+	for d in "$CONFIG/Code" "$CONFIG/Code - Insiders" "$CONFIG/Cursor" \
+		"$HOME/Library/Application Support/Code" "$HOME/Library/Application Support/Code - Insiders" \
+		"$HOME/Library/Application Support/Cursor" "$HOME/.vscode-server/data"; do
+		for name in "$@"; do
+			f="$d/User/globalStorage/$EXT_ID/$name"
+			if [ -f "$f" ]; then
+				printf '%s\n' "$f"
+				return 0
+			fi
+		done
+	done
+	return 1
+}
+
+find_bin() {
+	# [find:env]
+	if [ -n "${LUAU_LSP_BIN:-}" ]; then
+		if [ -x "$LUAU_LSP_BIN" ] && [ -f "$LUAU_LSP_BIN" ]; then
+			printf '%s\n' "$LUAU_LSP_BIN"
+			return 0
+		fi
+		say "LUAU_LSP_BIN=$LUAU_LSP_BIN is not an executable file."
+		return 1
+	fi
+	# [find:mise-pin] the shim fails with "No version is set" outside a pinned directory, so only real paths count
+	if command -v mise >/dev/null 2>&1; then
+		b=$(cd "$PROJ" && mise which luau-lsp </dev/null 2>/dev/null) || b=
+		case $b in */shims/*) b= ;; esac
+		if [ -n "$b" ] && [ -x "$b" ]; then
+			printf '%s\n' "$b"
+			return 0
+		fi
+	fi
+	# [find:path] rokit, aftman, foreman and mise put trampolines here that fail without a pin
+	b=$(command -v luau-lsp 2>/dev/null) || b=
+	if [ -n "$b" ] && runs "$b"; then
+		printf '%s\n' "$b"
+		return 0
+	fi
+	# [find:stores] highest version; on a tie the earlier store wins (sort -s keeps input order)
+	b=$(stores | sort -s -t. -k1,1nr -k2,2nr -k3,3nr | head -n 1 | cut -f 2-)
+	if [ -n "$b" ]; then
+		printf '%s\n' "$b"
+		return 0
+	fi
+	# [find:fail]
+	say "luau-lsp not found. Install it (rokit add JohnnyMorganz/luau-lsp, mise use github:JohnnyMorganz/luau-lsp, or the release zip on PATH) or set LUAU_LSP_BIN; see the plugin README."
+	return 1
+}
+
+which_only=no
+if [ "${1:-}" = --which ]; then which_only=yes; fi
+
+bin=$(find_bin) || exit 127
+
+platform=${LUAU_LSP_PLATFORM:-}
+if [ -z "$platform" ]; then
+	platform=standard
+	for f in "$PROJ"/*.project.json "$PROJ"/sourcemap.json; do
+		if [ -e "$f" ]; then
+			platform=roblox
+			break
+		fi
+	done
+fi
+case $platform in
+standard | roblox) ;;
+*)
+	say "LUAU_LSP_PLATFORM must be standard or roblox, got '$platform'."
+	exit 2
+	;;
+esac
+
+from_editor=no
+case $bin in */extensions/$EXT_ID-*) from_editor=yes ;; esac
+
+set -- lsp --stdio --flag:LuauSolverV2=true "--settings=$ROOT/lsp-settings/$platform.json"
+if [ "$platform" = roblox ]; then
+	defs=${LUAU_LSP_DEFS:-}
+	if [ -z "$defs" ] && [ "$from_editor" = yes ]; then
+		defs=$(editor_file globalTypes.PluginSecurity.d.luau globalTypes.None.d.luau) || defs=
+	fi
+	set -- "$@" "--definitions=@roblox=${defs:-$ROOT/definitions/globalTypes.d.luau}"
+	docs=${LUAU_LSP_DOCS:-$(editor_file api-docs.json || true)}
+else
+	docs=${LUAU_LSP_DOCS:-$(editor_file luau-api-docs.json || true)}
+fi
+if [ -n "$docs" ]; then
+	set -- "$@" "--docs=$docs"
+fi
+
+# `luau-lsp --which` prints the command it would run, for checking an install from a shell.
+if [ "$which_only" = yes ]; then
+	printf '%s' "$bin"
+	printf ' %s' "$@"
+	printf '\n'
+	exit 0
+fi
+if [ -n "${LUAU_LSP_LOG:-}" ]; then
+	printf '# %s bin=%s platform=%s proj=%s\n' "$(date -u +%FT%TZ)" "$bin" "$platform" "$PROJ" >>"$LUAU_LSP_LOG"
+	tee -a "$LUAU_LSP_LOG" | "$bin" "$@"
+	exit $?
+fi
+exec "$bin" "$@"

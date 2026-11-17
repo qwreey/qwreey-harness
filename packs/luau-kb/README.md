@@ -5,7 +5,6 @@ Luau·Roblox 저장소에서 켜는 지식 팩이다. 켜 두면 Claude 가 Luau
 ## 무엇이 달라지나
 - 타입 에러가 이해되지 않거나, 날 곳에서 안 나거나, 성능·테스트·Roblox API 질문을 하면 해당 스킬(12개 중 맞는 것)을 불러 근거 파일과 함께 답한다.
 - `.luau` 파일을 처음 열면 공통 규칙(`--!strict`, 이름, 에러, require, 포맷 등 약 40줄)이 한 번 실리고, 저장소 자체 규칙이 있으면 그쪽을 따른다.
-- luau-lsp 가 붙어 Claude 가 `.luau` 파일의 진단, 타입 정보, 정의 위치를 직접 본다. Rojo 프로젝트면 Roblox 정의 파일로 검사한다.
 - Roblox 공식 문서를 내려받아 API 시그니처와 deprecated 여부를 찾아 인용할 수 있다.
 - 다른 저장소에서는 켜지지 않는다.
 
@@ -14,8 +13,10 @@ Luau·Roblox 저장소에서 켜는 지식 팩이다. 켜 두면 Claude 가 Luau
 - 스킬 본문과 참고 문서는 부를 때만 읽는다. 훅은 없다.
 
 ## 요구 사항
-- 규칙 주입은 coderag 플러그인(`coderag@coderag-market`)과 coderag 설정이 한다. 이 팩만 켜면 스킬과 LSP 만 쓰인다.
-- LSP: `luau-lsp`(mise 로 `github:JohnnyMorganz/luau-lsp` 설치, 또는 `LUAU_LSP_BIN` 으로 경로 지정). Linux·macOS 셸 스크립트로 띄운다.
+- 규칙 주입은 coderag 플러그인(`coderag@coderag-market`)과 coderag 설정이 한다. 이 팩만 켜면 스킬만 쓰인다.
+
+## 함께 쓰면 좋은 것
+- Claude 가 `.luau` 를 고친 뒤 검사기 진단을 받고 hover·정의 찾기를 하게 하려면 별도 플러그인 `luau-lsp`(같은 마켓, `plugins/luau-lsp`)를 설치한다. 이 팩은 LSP 를 싣지 않는다. 둘 다 같은 Roblox 정의 파일을 쓴다.
 
 ## 끄기
 - 그 저장소의 `coderag.toml` 에서 `[[packs]] name = "luau-kb"` 를 지우고 `coderag adapt --harness claude` 를 다시 돌린다.

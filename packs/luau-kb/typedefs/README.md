@@ -13,6 +13,10 @@
 | 크기 | 806,997 바이트, 19,110 줄 |
 | 확인 | luau-lsp 1.70.1 에서 `Instance.new("Part").Name` 을 `number` 에 대입하면 잡힘 |
 
+## 이 저장소 안의 사본
+
+`plugins/luau-lsp/definitions/globalTypes.d.luau` 는 이 파일의 바이트 사본이다(luau-lsp 플러그인이 Roblox 모드에서 넘긴다). 이 파일을 바꾸면 그 자리에 그대로 복사한다. 표시 줄을 넣지 않는 것은 md5 가 위 표와 다른 저장소의 사본 비교에 쓰이기 때문이고, 같은지는 `tools/tests/test-vendored-copies.py` 가 본다.
+
 ## 다른 복제본과의 비교 (2026-11-10, md5)
 
 quad 원본을 빼고 작업 트리 밖에 있는 복제본은 7개다.

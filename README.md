@@ -12,6 +12,7 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 | `plugins/qwreey-workspace/` | 형제 저장소 읽기 전용 게이트(`workspace_gate.py`)와 `qwreey-workspace:workspace` 스킬(지도, 살아 있는 세션, worktree 잠금), 규약 주입. 카드 `plugins/qwreey-workspace/README.md` |
 | `plugins/qwreey-advisor/` | 모델이 부르는 독립 검토(별도 플러그인). luau 지식은 `luau-kb` 플러그인 |
 | `plugins/qwreey-conventions/` | 코드 주석·모델용 문서 관례(주석은 rule, 모델용 문서는 스킬 `agent-docs`, 기존 주석 정리 명령 `comments-cleanup`)와 추가한 줄을 한 줄로 알리는 훅, 구조 한도(`structure-reminder`)·셸 우회 쓰기(`bash-bypass-reminder`)·auto memory 배치(`memory-placement`) 알림 훅. 옛 user-level 훅들을 대체 |
+| `plugins/luau-lsp/` | `.luau` 에 luau-lsp 언어 서버를 붙이는 플러그인(진단, hover, 정의 찾기, Rojo 면 Roblox 정의 파일). 바이너리는 따로 설치하고 런처가 찾는다. luau-kb 팩은 LSP 를 싣지 않는다. 카드 `plugins/luau-lsp/README.md` |
 | `plugins/qwreey-proc-guard/` | 무거운 실행(벤치·퍼저)이 choom 없이 나가면 거절하는 PreToolUse 훅(`heavy-proc-guard`, Linux 전용)과 자기 셸에 걸리는 `pgrep -f` 대기 루프를 거절하는 훅(`self-match-guard`, 모든 플랫폼) |
 | `.claude/base/decisions/` | 저장소 사이 갈린 규약의 합의안(D-xx)과 사용자 결정 현황 |
 | `.claude/research/drafts/` | 설치 전 초안(감사 에이전트, 위임, coderag 분류 예시, 분리 계획). 결론이 자리 잡았거나(landed) 접은(rejected) 초안은 `.claude/archive/research/drafts/` 로 옮긴다 |

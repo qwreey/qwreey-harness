@@ -1,6 +1,6 @@
 {
   "luau": {
-    "command": "${CLAUDE_PLUGIN_ROOT}/tools/luau-lsp.sh",
+    "command": "${CLAUDE_PLUGIN_ROOT}/launcher/luau-lsp",
     "extensionToLanguage": { ".luau": "luau" },
     "startupTimeout": 30000
   }

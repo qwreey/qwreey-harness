@@ -1,6 +1,6 @@
 ---
 title: "Roblox 타입 정의와 sourcemap 을 luau-lsp 에 넘기기"
-description: "Roblox 코드를 luau-lsp 로 검사하려면 정의 파일 globalTypes.d.luau, --platform=roblox, Rojo sourcemap 이 필요하다. 빠졌을 때의 진단, luau-kb typedefs 판, Claude Code LSP 래퍼·lsp_probe 설정"
+description: "Roblox 코드를 luau-lsp 로 검사하려면 정의 파일 globalTypes.d.luau, --platform=roblox, Rojo sourcemap 이 필요하다. 빠졌을 때의 진단, luau-kb typedefs 판, Claude Code luau-lsp 플러그인·lsp_probe 설정"
 keywords:
   - "globalTypes.d.luau"
   - "정의 파일"
@@ -82,6 +82,6 @@ status: verified · last-confirmed: luau-lsp 1.70.1 (`/tmp` 의 최소 Rojo 구�
 ## §5 LSP 세션 (에디터, Claude Code, lsp_probe)
 status: verified · last-confirmed: luau-lsp 1.70.1, Claude Code 2.1.316
 
-- **Claude Code**: 이 플러그인의 `.lsp.json` 이 `tools/luau-lsp.sh` 래퍼를 띄운다. 래퍼는 프로젝트 루트(`$CLAUDE_PROJECT_DIR`)에 `*.project.json` 이나 `sourcemap.json` 이 있으면 roblox 모드(정의 파일 = `typedefs/globalTypes.d.luau`, sourcemap 사용, 자동 생성 끔)로, 없으면 standard 모드로 띄운다. `LUAU_KB_LSP_PLATFORM=standard|roblox` 로 강제하고 `LUAU_KB_LSP_DEFS` 로 정의 파일을 바꾼다. sourcemap 은 만들지 않으므로(rojo 를 띄우지 않는다) 프로젝트가 직접 만들어 둬야 한다. 자세한 동작과 검증은 luau-verify `checkers.md` §6.
+- **Claude Code**: 별도 플러그인 luau-lsp(claude-doctor `plugins/luau-lsp`)가 붙인다. 프로젝트 루트(`$CLAUDE_PROJECT_DIR`)에 `*.project.json` 이나 `sourcemap.json` 이 있으면 roblox 모드(정의 파일 = 그 플러그인에 동봉한 이 저장소 `typedefs/globalTypes.d.luau` 의 사본, sourcemap 사용, 자동 생성 끔)로, 없으면 standard 모드로 띄운다. `LUAU_LSP_PLATFORM=standard|roblox` 로 강제하고 `LUAU_LSP_DEFS` 로 정의 파일을 바꾼다. sourcemap 은 만들지 않으므로(rojo 를 띄우지 않는다) 프로젝트가 직접 만들어 둬야 한다. 자세한 동작은 그 플러그인의 `docs/how-it-works.md`, 검증은 luau-verify `checkers.md` §6.
 - **lsp_probe**: `python3 -I tools/lsp_probe.py FILE --platform roblox --defs typedefs/globalTypes.d.luau --sourcemap sourcemap.json --root <프로젝트> --hover 'part'` 로 같은 조건의 hover·자동완성·inlay 를 한 번에 본다.
 - **에디터(VS Code 확장)**: 정의 파일을 스스로 내려받고 `--no-flags-enabled` 와 동기화한 FFlag 로 서버를 띄운다. 이 저장소의 CLI·래퍼 결과와 FFlag 하나 차이로 갈릴 수 있다(luau-verify `checkers.md` §2).

@@ -1,0 +1,3 @@
+# Windows cmd.exe needs CRLF in batch files; the POSIX launcher must stay LF.
+*.cmd text eol=crlf
+launcher/luau-lsp text eol=lf

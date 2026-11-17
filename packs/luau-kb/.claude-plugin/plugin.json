@@ -1,8 +1,8 @@
 {
   "name": "luau-kb",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "defaultEnabled": false,
-  "description": "여러 Luau·Roblox 저장소에서 모은 일반 지식의 정본(실행 가능한 스니펫으로 luau 0.734/0.742 에서 검증). 스킬: luau-types(타입 한계), luau-verify(검사 도구·검증 절차), luau-testing(테스트), luau-perf(성능 실측), luau-style(스타일·언어 함정), luau-runtime(weak 표·코루틴·require 의미론), luau-roblox(Roblox 타입·mock·Studio MCP), roblox-engine(시그널·Instance·Tween·task·Actor), roblox-net(원격·복제·서비스), roblox-world(GUI·물리), roblox-docs(Roblox 문서 로컬 조회), luau-upstream(업스트림 변화·버전 올리기). LSP: luau-lsp(.lsp.json). 기본 꺼짐 팩이라 Luau 저장소가 coderag.toml 에 [[packs]] name = \"luau-kb\" 를 적고 coderag adapt --harness claude 로 켠다(.luau rule 주입은 coderag 플러그인이 한다).",
+  "description": "여러 Luau·Roblox 저장소에서 모은 일반 지식의 정본(실행 가능한 스니펫으로 luau 0.734/0.742 에서 검증). 스킬: luau-types(타입 한계), luau-verify(검사 도구·검증 절차), luau-testing(테스트), luau-perf(성능 실측), luau-style(스타일·언어 함정), luau-runtime(weak 표·코루틴·require 의미론), luau-roblox(Roblox 타입·mock·Studio MCP), roblox-engine(시그널·Instance·Tween·task·Actor), roblox-net(원격·복제·서비스), roblox-world(GUI·물리), roblox-docs(Roblox 문서 로컬 조회), luau-upstream(업스트림 변화·버전 올리기). LSP 는 들지 않는다(.luau 진단·hover 는 별도 플러그인 luau-lsp). 기본 꺼짐 팩이라 Luau 저장소가 coderag.toml 에 [[packs]] name = \"luau-kb\" 를 적고 coderag adapt --harness claude 로 켠다(.luau rule 주입은 coderag 플러그인이 한다).",
   "author": {
     "name": "qwreey",
     "email": "me@qwreey.moe"

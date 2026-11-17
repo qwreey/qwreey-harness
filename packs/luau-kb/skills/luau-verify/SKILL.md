@@ -34,7 +34,7 @@ description: >-
 | luau-lsp analyze 와 정의 파일, FFlag 기본값, 한도 플래그 | `references/checkers.md` §2 |
 | 새 솔버/옛 솔버/버전/도구 비교 실행 | `references/checkers.md` §3 |
 | 공개 API 의 hover, 자동완성, 추론 타입 표시(DX) 확인 | `references/checkers.md` §6, `tools/lsp_probe.py` |
-| Claude Code 에서 luau-lsp 를 LSP 도구로 쓰기, `.lsp.json`, 래퍼 | `references/checkers.md` §6 |
+| Claude Code 에서 luau-lsp 를 LSP 도구로 쓰기(luau-lsp 플러그인), `.lsp.json` | `references/checkers.md` §6 |
 | 진단 0건을 믿어도 되나, 대조군 만드는 법, 돌연변이 검사 | `references/negative-controls.md` |
 | 알려진 결함을 테스트로 고정(고쳐지면 알림) | `references/negative-controls.md` §3, `references/snippet-markers.md` |
 | 스니펫 표식 문법, 하네스 실행, RESULTS 표 갱신 | `references/snippet-markers.md` |

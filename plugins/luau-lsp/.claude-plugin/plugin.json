@@ -1,0 +1,7 @@
+{
+  "name": "luau-lsp",
+  "version": "0.1.0",
+  "description": "luau-lsp 언어 서버를 Claude Code 에 붙인다: .luau 를 고치면 다음 도구 호출에 타입·문법 진단이 붙고, LSP 도구로 hover·정의 찾기를 한다. Rojo 프로젝트(*.project.json, sourcemap.json)면 동봉한 Roblox 정의 파일로 검사한다. luau-lsp 바이너리는 따로 설치한다(rokit, aftman, foreman, mise, 릴리스 zip, VS Code 확장 중 있는 것을 찾아 쓴다). Linux·macOS 는 sh 런처, Windows 는 .cmd 런처(PowerShell 로 찾음, 실기기 미확인).",
+  "author": { "name": "qwreey", "email": "me@qwreey.moe" },
+  "keywords": ["luau", "roblox", "luau-lsp", "lsp", "diagnostics", "rojo"]
+}

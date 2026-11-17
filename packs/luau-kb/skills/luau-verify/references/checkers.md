@@ -134,7 +134,7 @@ status: described · 원천: 사용자 결정 claude-doctor `.claude/base/decisi
 사실 정리: 순수 Luau 파일은 두 도구 모두 쓸 수 있다. Roblox 코드는 luau-lsp 만 가능하다. 한도 플래그는 luau-lsp 만 바꿀 수 있다. 두 도구의 Luau 판이 다를 수 있다.
 
 ## §6 DX 검사 (hover, 자동완성, 추론 타입) 와 Claude Code LSP 연동
-status: verified · last-confirmed: luau-lsp 1.70.1 (새 솔버, 1.69.0 과 옛 솔버 일부 대조), Claude Code 2.1.316 · 근거: `tools/lsp_probe.py`, `tools/dx-sample/`, `tools/luau-lsp.sh`, `.lsp.json`
+status: verified · last-confirmed: luau-lsp 1.70.1 (새 솔버, 1.69.0 과 옛 솔버 일부 대조), Claude Code 2.1.316 · 근거: `tools/lsp_probe.py`, `tools/dx-sample/`, claude-doctor `plugins/luau-lsp`(런처, `.lsp.json`)
 
 ### 무엇을 보나
 진단 0건은 "소비자가 쓰기 좋다"를 뜻하지 않는다. 주석 없는 공개 함수는 오류 없이 `unknown` 을 돌려줄 수 있다. DX 검사는 **소비자 파일에서** 에디터가 보여 줄 것을 확인한다.
@@ -180,21 +180,21 @@ Roblox(정의 파일 + platform roblox): hover `part` → `Part`, `players` → 
 읽는 법: `fromList` 처럼 주석이 없으면 진단 0건이어도 소비자에게 `unknown` 이 보인다. 공개 함수의 매개변수와 반환은 주석을 단다.
 
 ### Claude Code LSP 연동 (`.lsp.json`)
-summary: tools/luau-lsp.sh 래퍼가 바이너리·플랫폼을 골라 LSP 도구로 붙인다. hover·정의는 되나 자동완성·inlay 는 lsp_probe.py 로, validate 뒤 도구 목록도 확인
+summary: luau-lsp 플러그인(claude-doctor `plugins/luau-lsp`)의 런처가 바이너리·플랫폼을 골라 LSP 도구로 붙인다. hover·정의는 되나 자동완성·inlay 는 lsp_probe.py 로, validate 뒤 도구 목록도 확인
 
 ```json
-{ "luau": { "command": "${CLAUDE_PLUGIN_ROOT}/tools/luau-lsp.sh",
+{ "luau": { "command": "${CLAUDE_PLUGIN_ROOT}/launcher/luau-lsp",
             "extensionToLanguage": { ".luau": "luau" }, "startupTimeout": 30000 } }
 ```
 
-- `tools/luau-lsp.sh` 가 바이너리와 플랫폼을 고른다. 바이너리: `$LUAU_LSP_BIN` → 프로젝트 디렉터리에서 `mise which luau-lsp`(프로젝트 핀, shim 경로는 버림) → `$MISE_DATA_DIR/installs/github-johnny-morganz-luau-lsp/` 의 가장 높은 버전. 플랫폼: 프로젝트 루트에 `*.project.json` 이나 `sourcemap.json` 이 있으면 roblox(`--definitions=@roblox=typedefs/globalTypes.d.luau`, sourcemap 사용, 자동 생성 끔), 아니면 standard. 기본 설정은 `--settings=tools/lsp/settings-<platform>.json`(새 솔버, inlay hint 켬). `.lua` 는 다른 Lua 프로젝트를 건드리지 않도록 넣지 않았다.
-- 검증 결과:
+- Claude Code 연동은 이 팩이 아니라 luau-lsp 플러그인이 한다. 런처 `launcher/luau-lsp`(Windows 는 `luau-lsp.cmd`)가 바이너리(`$LUAU_LSP_BIN` → 프로젝트의 `mise which` → `--version` 이 되는 PATH 의 `luau-lsp` → rokit·aftman·foreman·mise·에디터 확장 중 가장 높은 버전)와 플랫폼(프로젝트 루트에 `*.project.json` 이나 `sourcemap.json` 이 있으면 roblox: 동봉 정의 파일, sourcemap 사용, 자동 생성 끔)을 고르고 `--settings=lsp-settings/<platform>.json`(새 솔버, inlay hint 켬)을 넘긴다. 세부는 그 플러그인의 `docs/how-it-works.md`. `.lua` 는 다른 Lua 프로젝트를 건드리지 않도록 넣지 않았다.
+- 검증 결과(연동이 이 팩에 있던 때, 같은 설정):
   - `claude plugin validate /code/Projects/claude-doctor/packs/luau-kb` → `✔ Validation passed`.
   - `claude -p --model sonnet --plugin-dir /code/Projects/claude-doctor/packs/luau-kb` 의 init 메시지 도구 목록에 `LSP` 가 있었다. 모델이 `LSP` 도구로 `consumer.luau` 6줄 7열 hover 를 부르자 `local top: number?` 가, 7줄 7열은 프로브와 같은 `fromList` 문자열이 왔다. 편집하지 않았는데도 모델 답에 그 파일의 진단(`LocalUnused`, 8줄 SyntaxError)이 들어 있었다.
-- Claude Code 클라이언트가 실제로 보낸 initialize 능력(래퍼의 `LUAU_KB_LSP_LOG` 로 기록): `workspace.configuration: false`, hover, definition, references, documentSymbol, callHierarchy, publishDiagnostics. **completion, inlayHint, pull diagnostic 능력은 없다.** 그래서 Claude Code 의 `LSP` 도구로는 자동완성 목록과 inlay hint 를 볼 수 없고, 그 둘은 `lsp_probe.py` 로 본다. 도구 입력의 줄·열은 1 기반이고(서버에는 0 기반으로 보냄) 공식 문서 기준 연산은 정의 이동, 참조 찾기, 위치의 타입 정보, 문서 심볼, 작업 공간 심볼 검색, 구현 찾기, 호출 계층이다.
-- **설정 전달 실측(luau-lsp 1.70.1)**: 클라이언트가 `workspace.configuration` 능력을 알리지 않으면 `--settings` 파일이 쓰인다. 키는 평평한 `"luau-lsp.platform.type"` 꼴이어야 하고, 중첩 `{"luau-lsp": {…}}` 꼴은 무시됐다. 클라이언트가 능력을 알리고 `null` 로 답하면 `--settings` 가 무시됐다. `workspace/didChangeConfiguration` 페이로드만으로는 반영되지 않았다. 그래서 `.lsp.json` 의 `settings` 필드 대신 래퍼의 `--settings` 를 쓴다.
+- Claude Code 클라이언트가 실제로 보낸 initialize 능력(런처의 메시지 기록, 지금 변수는 `LUAU_LSP_LOG`): `workspace.configuration: false`, hover, definition, references, documentSymbol, callHierarchy, publishDiagnostics. **completion, inlayHint, pull diagnostic 능력은 없다.** 그래서 Claude Code 의 `LSP` 도구로는 자동완성 목록과 inlay hint 를 볼 수 없고, 그 둘은 `lsp_probe.py` 로 본다. 도구 입력의 줄·열은 1 기반이고(서버에는 0 기반으로 보냄) 공식 문서 기준 연산은 정의 이동, 참조 찾기, 위치의 타입 정보, 문서 심볼, 작업 공간 심볼 검색, 구현 찾기, 호출 계층이다.
+- **설정 전달 실측(luau-lsp 1.70.1)**: 클라이언트가 `workspace.configuration` 능력을 알리지 않으면 `--settings` 파일이 쓰인다. 키는 평평한 `"luau-lsp.platform.type"` 꼴이어야 하고, 중첩 `{"luau-lsp": {…}}` 꼴은 무시됐다. 클라이언트가 능력을 알리고 `null` 로 답하면 `--settings` 가 무시됐다. `workspace/didChangeConfiguration` 페이로드만으로는 반영되지 않았다. 그래서 `.lsp.json` 의 `settings` 필드 대신 런처의 `--settings` 를 쓴다.
 - **`validate` 가 잡지 못하는 것**: 문서상 `.lsp.json` 의 서버 설정은 strict 라 알 수 없는 키가 있으면 로드에 실패한다. 사본에 `bogusKey` 를 넣고 돌린 결과 `claude plugin validate` 는 `✔ Validation passed` 였지만(`plugin.json` 에 `lspServers` 를 선언해도 같음), `claude -p` 에서 `LSP` 도구가 사라졌다. `.lsp.json` 을 고친 뒤에는 init 도구 목록에 `LSP` 가 있는지까지 본다.
-- 문제 추적: `LUAU_KB_LSP_LOG=/tmp/x.log claude …` 로 띄우면 래퍼가 고른 바이너리·플랫폼과 클라이언트가 보낸 메시지를 남긴다. Claude Code 는 `didChangeWatchedFiles` 동적 등록을 지원하지 않는다고 알린다. `analyze` 는 같은 조건에서 "sourcemap 변경 자동 반영 꺼짐" 경고를 냈으므로, 세션 중 sourcemap 을 다시 만들면 서버가 모를 수 있다(LSP 세션에서는 미검증).
+- 문제 추적: `LUAU_LSP_LOG=/tmp/x.log claude …` 로 띄우면 런처가 고른 바이너리·플랫폼과 클라이언트가 보낸 메시지를 남긴다. Claude Code 는 `didChangeWatchedFiles` 동적 등록을 지원하지 않는다고 알린다. `analyze` 는 같은 조건에서 "sourcemap 변경 자동 반영 꺼짐" 경고를 냈으므로, 세션 중 sourcemap 을 다시 만들면 서버가 모를 수 있다(LSP 세션에서는 미검증).
 
 ## §7 require 해소: 검사기와 런타임이 갈리는 자리
 status: verified · last-confirmed: luau 0.734·0.742, luau-lsp 1.70.1 · 근거: `snippets/verify-require.sh`(R1~R6, rc=0), `snippets/rbx-require-cli.sh` Q8·Q9(다른 모듈로 풀림), `snippets/style-require-paths.sh` R3·R4(동적 경로) · 원천: 후보 Q-102, Q-103, Q-104, S-123, S-124, S-126 (quad `scripts/relink.sh:4-18`, `.claude/base/project-setup-plan.md:112-246,339-348`; stl `base/architecture.md:37-57,312-341`; tbox `CLAUDE.md:63-70,95-117`; moonwave `conventions.md:66-74`)

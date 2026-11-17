@@ -31,12 +31,10 @@ bench/                       성능 벤치 *.luau, lib/ 하네스, run.sh, summa
 tools/check_snippets.py      스니펫 하네스(표식: -- expect-error[: 부분], -- bug-present, [버전 조건], --@run 등)
 tools/repro-stylua-typeargs.sh  stylua 가 f<<T>> 를 망가뜨리는 조건 재현
 tools/lsp_probe.py           luau-lsp 를 잠깐 띄워 hover·자동완성·inlay·진단을 묻는 DX 프로브(샘플: tools/dx-sample/)
-tools/luau-lsp.sh, tools/lsp/  .lsp.json 이 부르는 래퍼와 --settings 파일
 tools/upstream_check.py      업스트림 릴리스·RFC 확인
 tools/roblox_docs.py         Roblox/creator-docs 원본을 캐시에 받아 search·get·api 로 조회
 tools/tests/                 팩 시험(rule 주입, coderag 정책 값)
-.lsp.json                    Claude Code LSP: luau-lsp
-typedefs/                    globalTypes.d.luau(Roblox 정의 파일) + README.md(출처와 다른 복제본 비교)
+typedefs/                    globalTypes.d.luau(Roblox 정의 파일의 정본, luau-lsp 플러그인이 사본을 든다) + README.md(출처와 다른 복제본 비교)
 decisions/                   README(미결 목록) + 결정 요약 D-01, D-02, D-03, D-04, D-06
 AGENTS.md                    다른 에이전트용 진입점
 coderag.toml, taxonomy.toml  coderag 팩 매니페스트(모듈 = 스킬 디렉터리), 분류 어휘
@@ -48,10 +46,7 @@ coderag.toml, taxonomy.toml  coderag 팩 매니페스트(모듈 = 스킬 디렉�
 - 저장소마다 정책이 갈린 항목은 한쪽을 고르지 않고 `> 정책: 미정` 으로 표시하고 `decisions/` 를 가리킨다.
 
 ## LSP
-`.lsp.json` 이 `tools/luau-lsp.sh` 를 띄운다.
-- 바이너리: `$LUAU_LSP_BIN` > 프로젝트 디렉터리의 `mise which luau-lsp` > `$MISE_DATA_DIR/installs/github-johnny-morganz-luau-lsp/` 의 가장 높은 버전. mise shim 은 버전이 정해지지 않은 디렉터리에서 실패해 쓰지 않는다.
-- 플랫폼: 프로젝트 루트에 `*.project.json` 이나 `sourcemap.json` 이 있으면 roblox(정의 파일 + sourcemap), 아니면 standard. `LUAU_KB_LSP_PLATFORM=standard|roblox` 로 강제한다. 정의 파일은 `LUAU_KB_LSP_DEFS`, 메시지 기록은 `LUAU_KB_LSP_LOG=<파일>`.
-- 설정은 `tools/lsp/settings-*.json`(새 솔버, sourcemap 자동 생성 끔이라 rojo 를 띄우지 않는다).
+Claude Code 에 luau-lsp 를 붙이는 일은 이 팩이 아니라 별도 플러그인 `luau-lsp`(저장소의 `plugins/luau-lsp`)가 한다. 바이너리 찾기, Rojo 판정, Windows 런처는 그쪽 `docs/how-it-works.md`.
 
 ## 검증
 ```bash
