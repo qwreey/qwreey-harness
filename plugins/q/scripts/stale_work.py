@@ -12,7 +12,7 @@ Claude Code 가 쓰는 <tmp>/claude-<uid>/<프로젝트 키>/<sid>/tasks/<id>.ou
 
 판정(분 단위, 환경 변수로 바꿀 수 있다):
 - 멈춤(stalled): 진척 없이 HARNESS_Q_STALE_IDLE_MIN(15) 이상이고 나이가 HARNESS_Q_STALE_AGE_MIN(30) 이상. 모델 warn + 사용자 줄.
-- 오래 실행(long): 멈춤이 아니고 나이가 HARNESS_Q_STALE_LONG_MIN(120) 이상. 모델 info + 사용자 줄.
+- 오래 실행(long): 멈춤이 아니고 나이가 HARNESS_Q_STALE_LONG_MIN(120) 이상. 모델 warn + 사용자 줄.
 문구는 확정하지 않는 질문형("멈췄거나 대기 중일 수 있음")이다. 두 문구 모두 끝난 일에 딸린 작업이나 조건을 기다리며 도는
 루프면 멈추라(TaskStop)고 권하고, 언급하지 말라는 말은 쓰지 않는다: 자기 명령줄에 걸리는 `pgrep -f` 대기 루프가 몇 시간 남았는데
 "필요할 때만 언급" 알림 하나로 묻힌 적이 있다. dedup 은 (세션, task id, 상태)마다 1회.

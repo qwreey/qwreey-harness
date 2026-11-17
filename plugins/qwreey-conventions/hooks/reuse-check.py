@@ -493,7 +493,7 @@ def comment_kinds(text, fam):
 
 def mark_text(s, p):
     """줄 s 의 p 에서 시작하는 표시 글(닫는 주석 표식 앞까지)."""
-    return re.split(r"\*/|\]=*\]|-->", s[p:], 1)[0].rstrip()
+    return re.split(r"\*/|\]=*\]|-->", s[p:], maxsplit=1)[0].rstrip()
 
 
 def line_comment(text, fam):
