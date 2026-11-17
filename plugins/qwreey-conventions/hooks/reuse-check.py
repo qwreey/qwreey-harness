@@ -311,9 +311,12 @@ def text_of(kind, rel, st, hit):
         opkg = os.path.dirname(orel) or "."
         return (f"{rel}:{ln}: string set repeats {name} at {orel}:{oln} in {opkg}, which this package cannot import ({k}/{n} shared: {shown(shared)}). "
                 f"Same knowledge: keep it, mark it `{c} @copy-of: {orel}#{oname or name}` and compare the two in the repo's tests (or generate one from the other); "
-                f"do not add a cross-package import. Only alike: `{c} @dup-ok: <reason>`. Unsure: load the qwreey-conventions:code-reuse skill.")
-    return (f"{rel}:{ln}: string set repeats {oname or 'a list'} at {orel}:{oln} ({k}/{n} shared: {shown(shared)}). Same knowledge: reference {oname or 'it'} instead. "
-            f"Only alike: put `{c} @dup-ok: <reason>` above it. Unsure: load the qwreey-conventions:code-reuse skill.")
+                f"do not add a cross-package import. A value each project sets differently: config with a `DEFAULT_*` fallback instead. "
+                f"Only alike: `{c} @dup-ok: <reason>`, the reason saying why they are different facts.")
+    return (f"{rel}:{ln}: string set repeats {oname or 'a list'} at {orel}:{oln} ({k}/{n} shared: {shown(shared)}). "
+            f"Same knowledge: reference {oname or 'it'} instead, or move it to one module both import. "
+            f"A value each project sets differently: config with a `DEFAULT_*` fallback instead. "
+            f"Only alike: put `{c} @dup-ok: <reason>` above it, the reason saying why they are different facts.")
 
 
 # ---------- 사본 검사(C1, C2) ----------

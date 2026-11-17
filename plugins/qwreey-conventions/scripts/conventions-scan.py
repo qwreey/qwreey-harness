@@ -2,12 +2,13 @@
 """qwreey-conventions 검사를 파일 전체(모든 줄)에 돌리고, 판단이 필요 없는 문자만 주석과 모델용 문서 본문 안에서 기계적으로 고친다.
 
 쓰는 법(저장소 안에서, 모델을 부르지 않는다):
-  python3 -I conventions-scan.py scan [경로...] [--json] [--category C ...] [--summary] [--top N] [--root DIR] [--budget S] [--exit-zero]
+  python3 -I conventions-scan.py scan [경로...] [--json] [--category C ...] [--kind comment|doc] [--summary] [--top N] [--root DIR] [--budget S] [--exit-zero]
   python3 -I conventions-scan.py scan --fix [--dry-run] ...      (= fix [경로...] [--dry-run])
   python3 -I conventions-scan.py layout [경로...] [--json] [--summary] [--root DIR]
 layout: 함수마다 읽기 모양 지표(hooks/layout_metrics.py)와 훅의 layout 알림 범주를 모든 함수에 대해 낸다. 고치지 않는다.
   HARNESS_READABLE_CODE 와 무관하게 돈다. Bash 로 고친 파일처럼 훅이 못 본 편집을 확인하고, 쓰기 실측의 채점에도 쓴다.
 경로를 안 주면 저장소 루트 전체. git 저장소면 git ls-files(추적 + 무시되지 않은 새 파일)만 본다.
+--kind comment 는 코드 파일의 주석만, --kind doc 는 모델용 문서만 본다(정리 명령 comments-cleanup, docs-cleanup 이 나눠 쓴다).
 출력: 찾은 것마다 `경로:줄: 범주: 내용`, 끝에 범주별, 파일별 수. --json 은 기계용 한 덩어리.
 종료 코드: 0 = 남은 문제 없음, 1 = 남은 문제 있음(scan 은 찾은 것, fix 는 고친 뒤 남은 것), 2 = 사용법 오류.
   --exit-zero 면 무엇이든(사용법 오류, 예외 포함) 0 이다. 스킬의 `!` 미리 실행은 0 이 아니면 스킬 전체를 멈추기 때문이다.
@@ -515,7 +516,7 @@ def run(args, out=sys.stdout):
             break
         kind = file_kind(rel)
         path = os.path.join(root, rel)
-        if not kind:
+        if not kind or (args.kind and kind != args.kind):
             continue
         if cc.excluded(path, rel, cfg):
             skipped["excluded"] += 1
@@ -601,7 +602,8 @@ def run(args, out=sys.stdout):
             w(f"{f['path']}:{f['line']}: {f['category']}: {f['detail']}\n")
     w(f"\nroot: {root}\nfiles scanned: {scanned}" + (f" (skipped: {', '.join(f'{k} {v}' for k, v in sorted(skipped.items()))})" if skipped else "") + "\n")
     if stopped is not None:
-        again = " ".join(["python3 -I", os.path.abspath(__file__), "fix" if fixing else "scan", "--summary"] + list(args.paths))
+        again = " ".join(["python3 -I", os.path.abspath(__file__), "fix" if fixing else "scan", "--summary"]
+                         + (["--kind", args.kind] if args.kind else []) + list(args.paths))
         w(f"partial: stopped after {args.budget:g} s at file {stopped} of {len(files)}; counts below cover only those. "
           f"For the whole set run `{again}` with Bash (it can take minutes on a large repo; give it a long timeout).\n")
     w(f"findings: {len(findings)}" + "".join(f"\n  {c}: {n}" for c, n in summary["by_category"].items()) + "\n")
@@ -638,6 +640,7 @@ def parse(argv):
         p.add_argument("--json", action="store_true", help="machine-readable output")
         p.add_argument("--category", action="append", metavar="C",
                        help="limit to a category (repeatable): " + ", ".join(ALIASES) + " or the full name")
+        p.add_argument("--kind", choices=("comment", "doc"), help="only code-file comments, or only model documents (default: both)")
         p.add_argument("--summary", action="store_true", help="print only the summary")
         p.add_argument("--top", type=int, default=20, help="files listed in the summary (default 20)")
         p.add_argument("--dry-run", action="store_true", help="with fix: print a unified diff, write nothing")

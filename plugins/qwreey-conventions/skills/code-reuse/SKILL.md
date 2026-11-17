@@ -1,38 +1,23 @@
 ---
 name: code-reuse
-description: Conventions for values and duplicates in source code. Decides whether a hardcoded value is policy (config with a DEFAULT_* fallback) or an invariant (const), keeps one definition per fact, marks unavoidable copies with @copy-of and a comparison test, and records why a module is hand-written instead of using a library. Use it whenever a qwreey-conventions reuse notice names lines you added, before adding a list of names, a size limit or a helper that may already exist, and before choosing between a library and your own parser. 하드코딩, 중복 구현, 바퀴의 재발명, 사본 표시.
+description: Steps for a definition that must live in two places. Marks a copy that cannot be imported with @copy-of or @start-replace region markers, syncs regions with sync-copies, compares a copy with its source in a test, and measures a library against a hand-written parser or algorithm. Use it when copying a definition into another package, language or repo, when adding region markers or acting on a reuse-check notice, and before hand-writing a parser or algorithm a well-known library provides. 사본 표시, 영역 복사, 라이브러리 대신 직접 구현.
 argument-hint: "[file or note]"
 ---
 
 # qwreey-conventions:code-reuse
 
-Two copies of one fact drift apart, and the bug shows up far from both. A value baked into code that another project would set differently forces a code change where a config line would do. The rule `code-reuse` has the short form; this skill has the steps and the details.
+The rule `code-reuse` says what must hold; this skill has the steps for copies across a boundary and for the library choice.
 
-## When a hook notice arrives
+## Deciding on a duplicate
 
-The notice names the line you added, the definition it overlaps and the shared strings. Decide in this order:
+A reuse notice names the line you added, the definition it overlaps and the shared strings. Decide in this order:
 
 1. Same fact, and this package can import the other place (same package, or a declared dependency such as a Cargo path dependency, a wally or pesde package, an npm workspace package): delete your list and reference the definition. If neither place is the right home, move it to one module both import. Do not import across a boundary the package does not already have.
-2. Same fact, not importable (separately installed plugin, another repo, another language, a reference implementation): keep the copy, mark it (see Markers) and add or extend a test that compares the two. When one side can be derived from the other (a script that reads the Luau source, a build step), generate it instead.
-3. A value that varies per project (the policy table below says yes): config, with a `DEFAULT_*` fallback in code. If the list names one ecosystem (Roblox, Wally, pesde), it can instead live in that ecosystem's pack; propose that to the user, because a pack is usually another repo.
+2. Same fact, not importable (separately installed plugin, another repo, another language, a reference implementation): keep the copy, mark it (see Markers) and compare the two in a test (see Comparing a copy in a test). When one side can be derived from the other (a script that reads the Luau source, a build step), generate it instead.
+3. A value that varies per project (policy in the rule's Values lines): config, with a `DEFAULT_*` fallback in code. If the list names one ecosystem (Roblox, Wally, pesde), it can instead live in that ecosystem's pack; propose that to the user, because a pack is usually another repo.
 4. Alike only on the surface (an outside API's names used for another purpose, a subset chosen for another reason): put `@dup-ok: <reason>` in a line comment above the list. The reason says why they are different facts.
 
 Fix only what you added. Old duplicates in files you edited are counted and shown to the user at turn end; do not repeat that or start a cleanup.
-
-## Policy or invariant
-
-| Value | Kind | Where |
-|---|---|---|
-| folders to skip, file extensions to index, size limits, stage ladders, tool name lists | policy, in code that runs against other repos | config key, `DEFAULT_*` in code |
-| Roblox, Wally or pesde folder and package names | policy, ecosystem | config, or the ecosystem's pack (propose) |
-| balance numbers, UI sizes, colors of a game or app repo | the repo's own design | `const` or the repo's data module; not config |
-| schema or protocol version, known frontmatter keys, grammar tables | invariant (format) | `const` |
-| tool input keys, OS paths an outside tool fixes | invariant (outside fact) | `const`, with the source in one line if not obvious |
-| security allowlists | invariant (safety) | `const`; widening is a code review, not a config edit |
-| cache caps, prune ages | internal | `const` |
-| a value client and server (or two scripts of one game) must agree on | shared fact | one module both `require`; a "same as X" comment is not enough |
-
-The prefix `DEFAULT_` promises an override. A value nothing overrides is a plain `const`.
 
 ## Markers
 
@@ -43,14 +28,14 @@ The prefix `DEFAULT_` promises an override. A value nothing overrides is a plain
 | `@dup-ok: <reason>` | line comment on one of the 3 lines above the list | the overlap is not one fact; the reason must be a reason ("later", "TODO", "-" are not) |
 | `why not <library>: <reason>` | first 10 lines of a hand-written module | the library was considered and rejected; not checked |
 
-The two copy markers write a sibling repo differently. A mix such as `../statuslib:src/statuses.py` resolves under neither; the hook names it with the right form, with or without `HARNESS_WORKSPACE`.
+The two copy markers write a sibling repo differently. A mix such as `../statuslib:src/statuses.py` resolves under neither; the hook names it with the right form.
 
 | Marker | Same repo | Sibling repo |
 |---|---|---|
 | `@copy-of` | `# @copy-of: src/statuses.py#STATUSES` | `# @copy-of: statuslib:src/statuses.py#STATUSES` (repo name, colon, path in that repo; found under `HARNESS_WORKSPACE`; the copy is not compared when it is unset) |
 | `@start-replace` | `# @start-replace: lib/harness_texts.py#OMIT_LINE` | `// @start-replace: ../claude-doctor/lib/harness_texts.py#OMIT_LINE` (a plain path from this repo's root; no colon form) |
 
-Check behavior: `@copy-of` and `@start-replace` must resolve; a file copy must be byte-identical to its source, a value copy must hold the same strings as `NAME` there, a region copy must equal what the canon region renders to. Editing a source (or the lines inside a canon region) lists its copies. `#NAME` is the name as written at the definition (a Luau table key, a module field, a `const`). A copy that is meant to hold fewer strings is not a copy: use `@dup-ok`.
+The hook checks that `@copy-of` and `@start-replace` resolve; a file copy must be byte-identical to its source, a value copy must hold the same strings as `NAME` there, a region copy must equal what the canon region renders to. Editing a source (or the lines inside a canon region) lists its copies. `#NAME` is the name as written at the definition (a Luau table key, a module field, a `const`). A copy that is meant to hold fewer strings is not a copy: use `@dup-ok`.
 
 Syntax per language:
 
@@ -63,8 +48,8 @@ Syntax per language:
 | Astro | frontmatter: `//`; template: `{/* @copy-of: ... */}`, never `<!-- -->` (it can reach the HTML) | frontmatter `//` |
 | JSON | cannot hold markers; name the source in the code that reads it or in the comparison test | same |
 
-- Use a line comment, not a doc comment: a moonwave `--[=[ ]=]` block, a Luau `---` line, a JSDoc `/** */` or a Rust `///` line publishes the marker or reads it as a doc tag, and a region marker is read only alone on a line comment. The hook names such a marker with its plain form.
-- A marker that names its own file marks the source (an identical file whose header names its canonical path: the source carries the same bytes, so its marker names itself). Copies must stay byte-identical, so edit the source and copy it over (see Syncing).
+- Use a line comment, not a doc comment: a moonwave `--[=[ ]=]` block, a Luau `---` line, a JSDoc `/** */` or a Rust `///` line publishes the marker or reads it as a doc tag, and a region marker is read only alone on a line comment.
+- A marker that names its own file marks the source (an identical file whose header names its canonical path). Copies must stay byte-identical, so edit the source and copy it over (see Syncing).
 - Vendored trees (`vendor.lock.json`, `vendor/`, `third_party/`) are not marked or edited. Change the source and vendor again.
 - Generated files carry the generator path and "do not edit" in the header instead of a marker.
 
@@ -92,6 +77,14 @@ pub const OMIT_LINE: &str = "Omit the {block} block from the summary; it is re-i
 - A repo with `tools/sync-copies.py` (claude-doctor): shared canon lives in `lib/`. Edit the canon, then run `python3 -I tools/sync-copies.py --apply`; `--check` (in its tests) fails on drift, and with no flag it prints the diff. Never edit text between region markers in a copy by hand.
 - A repo without the tool: compare each copy with its source in a test, or generate one from the other.
 
+### Comparing a copy in a test
+
+The hook compares marked copies only while a session edits them; a test keeps them equal in CI and for edits made elsewhere.
+
+1. Put the test in the repo that holds the copy, next to its other tests, and read both files by path (a sibling repo through the same workspace path the marker uses; skip with a message when it is absent).
+2. Extract the copied value the way the language defines it (parse the literal, or import the module where the test runner can), not by matching text lines.
+3. Assert equality of the whole value; on failure print both paths and the command that brings them back in line (`sync-copies.py --apply`, or "edit the source and copy it over").
+
 ## Library or hand-written
 
 Before writing a parser, matcher or algorithm that a well-known library provides:
@@ -108,17 +101,4 @@ The cost claim is measured, not guessed. Adding the dependency is the user's dec
 - A match or if-chain with an arm that returns its own input (`"a" -> "a"`, `or` chains of `IsA` names) is a set membership test: use a set lookup.
 - A long function that chains independent steps becomes step functions run in order, in the code you are adding.
 
-## Repo settings
-
-`.claude/conventions.json`, key `reuse` (all optional):
-
-```json
-{"reuse": {"mode": "on", "allow": [{"path": "src/legacy/**", "reason": "frozen"}],
-           "vocab_ok": [["Edit", "Write", "MultiEdit"]], "min_shared": 3}}
-```
-
-- `mode`: `shadow` (default; duplicate checks are logged, not shown), `on` or `off`. The environment variable `REUSE_CHECK` overrides it. `@copy-of` checks run unless `off`.
-- `allow`: globs whose sets are never reported, each with a reason.
-- `vocab_ok`: sets known to be an outside vocabulary; a match made only of these strings is not reported.
-- `min_shared`: shared strings needed for a match (default 3).
-- The hook never looks at `.claude/`, `*-ignoreme*`, vendored trees, generated files, tests, stories, galleries, examples and `refs/`.
+Repo settings for the hook (`reuse` in `.claude/conventions.json`) and the policy-or-invariant table are for people, in the plugin's `docs/code-reuse.md`.

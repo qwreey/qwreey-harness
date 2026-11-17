@@ -1,5 +1,5 @@
 ---
-description: Conventions for documents a model reads to act (CLAUDE.md, SKILL.md, agents, rules). Details are in the qwreey-conventions:agent-docs skill
+description: Conventions for documents a model reads to act (CLAUDE.md, SKILL.md, agents, rules). Pairs with the conventions-check doc notices; reference for people in docs/agent-docs.md
 paths: ["**/CLAUDE.md", "**/SKILL.md", "**/agents/*.md", "**/.claude/rules/*.md", "**/skills/**/*.md", "**/plugins/*/rules/*.md"]
 ---
 # Agent docs
@@ -8,4 +8,4 @@ paths: ["**/CLAUDE.md", "**/SKILL.md", "**/agents/*.md", "**/.claude/rules/*.md"
 - References (`skills/**/references/*.md`) may keep dates, ids and old-pattern notes; the always-loaded entry documents stay lean.
 - State a principle once and let the model generalize; do not list cases it would infer.
 - Why it is built this way, for maintainers, goes in the skill's `references/rationale.md` (linked in one line) or a `docs/` folder, not in the entry document.
-- Before you add a section, table or rule line to such a document, load the `qwreey-conventions:agent-docs` skill. A repo's own rules win.
+- A repo's own rules win.
