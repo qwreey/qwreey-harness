@@ -57,7 +57,8 @@ class Env(unittest.TestCase):
         self.env = {"SESSION_LOG_HOME": str(self.home), "SESSION_LOG_CLAUDE": str(FAKE), "HARNESS_ENV": "/nonexistent",
                     "SESSION_LOG_MIN_CHARS": "10", "SESSION_LOG_FORCE_MIN_CHARS": "10",
                     "XDG_RUNTIME_DIR": str(t), "TMPDIR": str(t / "tmp"), "CLAUDE_CODE_ENTRYPOINT": "cli",  # 기계 전체 슬롯 잠금도 격리
-                    "QWREEY_HARNESS_SALT_FILE": str(t / "salt")}  # nonce 는 고정 salt 로
+                    "QWREEY_HARNESS_SALT_FILE": str(t / "salt"),  # nonce 는 고정 salt 로
+                    "SESSION_LOG_HANDOVER_MAX_DAYS": "100000"}  # 사례 날짜가 고정이라 오늘 기준 나이 제한을 풀어 둔다
         (t / "salt").write_text(SALT)
         self.old = {k: os.environ.get(k) for k in list(self.env) + ["FAKE_MODE", "CLAUDE_PROJECT_DIR", "SESSION_LOG_NESTED",
                                                                      "SESSION_LOG_PENDING_STRONG_COUNT", "SESSION_LOG_HANDOVER_MAX_DAYS"]}

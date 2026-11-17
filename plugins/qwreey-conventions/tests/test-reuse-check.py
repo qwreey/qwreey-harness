@@ -16,6 +16,8 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOOK = os.path.join(HERE, "hooks", "reuse-check.py")
 CONV = os.path.join(HERE, "hooks", "conventions-check.py")
 T = tempfile.mkdtemp(prefix="reuse-")
+# 세션 기록으로 찾을 저장소는 훅의 TMPDIR(T) 밖에 둔다. known_repos 는 임시 폴더 아래를 자동 출처에서 뺀다.
+F = tempfile.mkdtemp(prefix="reuse-far-")
 # nonce 는 고정 salt 로(실제 ~/.local/share 의 salt 를 쓰지 않게)
 open(os.path.join(T, "salt"), "w").write("00" * 32)
 os.environ["QWREEY_HARNESS_SALT_FILE"] = os.path.join(T, "salt")
@@ -321,7 +323,7 @@ open(os.path.join(wt, ".git"), "w").write("gitdir: %s\n" % os.path.join(REPO, ".
 r = run("r/c.luau", diff, "", diff, proj=wt)
 check("S1 repo:path from a worktree -> beside the main repo", "differs: missing" in r and "r/c.luau:1" in r)
 # 옆에 없으면 세션 기록의 cwd 로 모은 저장소에서 이름으로 찾는다
-far = os.path.join(T, "far", "Documents", "lib2")
+far = os.path.join(F, "Documents", "lib2")
 sibling(far)
 mark2 = diff.replace("sib:", "lib2:")
 before = sum(x.get("status") == "sibling" for x in shadow())
@@ -332,7 +334,7 @@ r = run("r/e.luau", mark2, "", mark2)
 check("S2 repo:path found through known_repos (session cwd) -> differs notice", "differs: missing" in r and "r/e.luau:1" in r)
 check("S2 repo:path through known_repos, equal -> silent", run("r/f.luau", mark2.replace('"dice"', '"card"'), "", "x") == "")
 # 같은 이름 저장소가 둘: 그 경로가 있는 쪽과 비교하고, 알림에 어느 것인지 적는다
-dup_a, dup_b = os.path.join(T, "far", "a", "dup"), os.path.join(T, "far", "b", "dup")
+dup_a, dup_b = os.path.join(F, "a", "dup"), os.path.join(F, "b", "dup")
 sibling(dup_a, rel="other.luau")
 sibling(dup_b)
 session(dup_a, "-far-a-dup")
@@ -359,6 +361,7 @@ print("warm median ms (incl. process start, 300 files):", round(ts[len(ts) // 2]
 check("warm edit stays under the 150 ms p95 budget", ts[len(ts) // 2] < 150)
 
 shutil.rmtree(T, ignore_errors=True)
+shutil.rmtree(F, ignore_errors=True)
 bad_n = [n for n, ok_ in res if not ok_]
 for n, ok_ in res:
     print(("PASS " if ok_ else "FAIL ") + n)

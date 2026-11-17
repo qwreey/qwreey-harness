@@ -46,7 +46,9 @@ def _load_env():
     try:
         sys.path.insert(0, str(HERE.parent))
         import harness_env as mod
-        return mod.load_layers(mod.project_dir(os.getcwd()), user_only=ENV_USER_ONLY), mod
+        # 위임 uid 표 경로는 qwreey-delegate 의 /config 옵션으로도 정한다(DRIFT-UID 검사가 같은 표를 보게).
+        return mod.load_layers(mod.project_dir(os.getcwd()), user_only=ENV_USER_ONLY,
+                               options={"qwreey-delegate": {"HARNESS_DELEGATE_REGISTRY"}}), mod
     except Exception:
         return {}, None
 
