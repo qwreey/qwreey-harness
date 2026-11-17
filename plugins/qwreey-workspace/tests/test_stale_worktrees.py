@@ -79,7 +79,8 @@ class Base(unittest.TestCase):
 
     def env(self, **kw):
         e = {k: v for k, v in os.environ.items() if not k.startswith(("HARNESS_", "GIT_")) and k != "CLAUDE_PROJECT_DIR"}
-        e.update(TMPDIR=str(self.t / "tmp"), CLAUDE_CONFIG_DIR=str(self.t / "cfg"), HARNESS_WORKSPACE=str(self.ws),
+        # 옛 작업공간 키는 두지 않는다: 이 알림은 다른 저장소 목록 없이 이 저장소만 본다(새로 설치한 동료와 같은 조건).
+        e.update(TMPDIR=str(self.t / "tmp"), CLAUDE_CONFIG_DIR=str(self.t / "cfg"), HARNESS_ENV=str(self.t / "no-user.env"),
                  QWREEY_HARNESS_SALT_FILE=str(self.t / "salt"))
         e.update(kw)
         return {k: v for k, v in e.items() if v is not None}
@@ -197,9 +198,17 @@ class Hook(Base):
         (lib / "harness_env.py").write_text(text, encoding="utf-8")
         self.assertIn("14+ days", self.run_hook())
 
-    def test_quiet_without_workspace_or_repo(self):
+    def test_switch_and_option(self):
         self.add(".claude/worktrees/agent-old", 40)
-        self.assertEqual(self.run_hook(sid="w1", HARNESS_WORKSPACE=""), "", "작업공간이 없으면 플러그인은 아무것도 하지 않는다")
+        self.assertEqual(self.run_hook(sid="w1", HARNESS_WORKSPACE_STALE_WORKTREES="off"), "")
+        (self.t / "cfg" / "settings.json").write_text(json.dumps({"pluginConfigs": {"qwreey-workspace@m": {
+            "options": {"harness_workspace_stale_worktrees": False}}}}), encoding="utf-8")
+        self.assertEqual(self.run_hook(sid="w3"), "", "/config 옵션으로 끈다")
+        (self.t / "cfg" / "settings.json").unlink()
+        self.assertIn("14+ days", self.run_hook(sid="w4"))
+
+    def test_quiet_without_repo(self):
+        self.add(".claude/worktrees/agent-old", 40)
         self.assertEqual(self.run_hook(sid="w2", cwd=self.t), "", "git 저장소가 아니면 조용히")
         p = subprocess.run([sys.executable, "-I", str(SCRIPT)], input="not json", capture_output=True, text=True, env=self.env(), timeout=30)
         self.assertEqual((p.returncode, p.stdout), (0, ""))

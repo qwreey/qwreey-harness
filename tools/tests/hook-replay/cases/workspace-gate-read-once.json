@@ -1,5 +1,5 @@
 {
- "description": "workspace-gate: reading a sibling is an info note once per epoch; own-repo edits and an unset workspace pass",
+ "description": "workspace-gate: reading another repo is an info note once per epoch; own-repo edits and the gate off switch pass",
  "env": {
   "HARNESS_WORKSPACE": "{ws}"
  },
@@ -19,7 +19,7 @@
      "workspace-gate/info"
     ],
     "contains": [
-     "Reading `other` is fine"
+     "Reading `{ws}/other` is fine"
     ]
    },
    "argv": [
@@ -78,7 +78,7 @@
     "PreToolUse"
    ],
    "env": {
-    "HARNESS_WORKSPACE": ""
+    "HARNESS_WORKSPACE_GATE": "off"
    }
   }
  ]

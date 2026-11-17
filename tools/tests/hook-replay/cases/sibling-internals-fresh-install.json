@@ -1,0 +1,37 @@
+{
+ "description": "sibling-internals without HARNESS_WORKSPACE (a fresh install): other repos come from Claude Code session records (projects/*.jsonl cwd), wherever they live; the option turns the note off",
+ "files": {
+  "{cfg}/projects/-repo-mine/s.jsonl": [{"type": "user", "cwd": "{repo}"}],
+  "{cfg}/projects/-documents-far/s.jsonl": [{"type": "user", "cwd": "{sandbox}/Documents/far/src"}],
+  "{sandbox}/Documents/far/.git/HEAD": "ref: refs/heads/main\n",
+  "{sandbox}/Documents/far/src/engine.py": "x = 1\n"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-workspace/scripts/sibling_notice.py",
+   "payload": {"hook_event_name": "PostToolUse", "tool_name": "Write",
+               "tool_input": {"file_path": "{repo}/.claude/research/a.md",
+                              "content": "The loop lives in `far/src/engine.py`; notes in {sandbox}/Documents/far/docs/x.md.\n"}},
+   "expect": {
+    "tags": ["sibling-internals/info"],
+    "contains": ["This record names 2 internal paths of sibling repo `far` (e.g. `far/src/engine.py`)"]
+   }
+  },
+  {
+   "note": "`other` has a .git but no session record and no option, so it is not known",
+   "hook": "plugins/qwreey-workspace/scripts/sibling_notice.py",
+   "payload": {"hook_event_name": "PostToolUse", "tool_name": "Write",
+               "tool_input": {"file_path": "{repo}/.claude/research/b.md", "content": "`../other/src/engine.py`\n"}},
+   "expect": {"empty": true}
+  },
+  {
+   "write": {"{cfg}/settings.json": "{\"pluginConfigs\": {\"qwreey-workspace@claude-doctor-market\": {\"options\": {\"harness_workspace_sibling_notice\": false}}}}\n"}
+  },
+  {
+   "hook": "plugins/qwreey-workspace/scripts/sibling_notice.py",
+   "payload": {"hook_event_name": "PostToolUse", "tool_name": "Write",
+               "tool_input": {"file_path": "{repo}/.claude/research/c.md", "content": "`../far/src/engine.py`\n"}},
+   "expect": {"empty": true}
+  }
+ ]
+}
