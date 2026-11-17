@@ -13,7 +13,7 @@
 # 근거: quad/.claude/base/typing-limits.md 8.18(2026-09-16 정정), 8.22; quad/type-version-check/src/init.luau:229-235;
 #       tbox/packages/tbox/scripts/analyze.luau:24-32; tbox/.vscode/settings.json
 set -u
-MISE=${MISE_DATA_DIR:-/code/.local/share/mise}
+MISE=${MISE_DATA_DIR:-$HOME/.local/share/mise}
 LSPDIR=$MISE/installs/github-johnny-morganz-luau-lsp
 d=$(mktemp -d /tmp/luau-kb-tfx.XXXXXX)
 trap 'rm -rf "$d"' EXIT

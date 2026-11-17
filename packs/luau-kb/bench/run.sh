@@ -33,7 +33,7 @@ for f in "${files[@]}"; do
 			m=${mode_list[$(((p + j) % n))]}
 			ver=${m%%|*}
 			flags=${m#*|}
-			bin=/code/.local/share/mise/installs/luau/$ver/luau
+			bin=${MISE_DATA_DIR:-$HOME/.local/share/mise}/installs/luau/$ver/luau
 			# shellcheck disable=SC2086
 			res=$(cd "$here" && choom -n 1000 -- prlimit --data=3221225472 -- timeout 600 "$bin" $flags "$f" 2>&1)
 			rc=$?

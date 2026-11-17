@@ -41,7 +41,7 @@
 규칙:
   - 표식 없는 줄의 진단은 실패.  - expect-error 줄에 진단이 없으면 실패(검사기가 꺼진 0건 방지).
   - bug-present 가 있는 파일엔 그 버전에서 살아 있는 expect-error 가 최소 하나 있어야 한다(음성 대조군).
-도구 위치: $LUAU_BIN_DIR/<ver> 가 있으면 그것, 없으면 $MISE_DATA_DIR(기본 /code/.local/share/mise)/installs/luau/<ver>.
+도구 위치: $LUAU_BIN_DIR/<ver> 가 있으면 그것, 없으면 $MISE_DATA_DIR(기본 ~/.local/share/mise)/installs/luau/<ver>.
 mise shim 은 쓰지 않는다(버전 미지정 디렉터리에서 'No version is set' 으로 실패하고, --help 에는 rc=0 으로 답해 오판을 부른다).
 """
 import argparse
@@ -54,7 +54,7 @@ import sys
 import tempfile
 
 KB = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MISE = os.environ.get("MISE_DATA_DIR", "/code/.local/share/mise")
+MISE = os.environ.get("MISE_DATA_DIR") or os.path.expanduser("~/.local/share/mise")
 DEFS = os.path.join(KB, "typedefs", "globalTypes.d.luau")
 DIAG = re.compile(r"^(?P<f>.+?)\((?P<l>\d+),(?P<c>\d+)\): (?P<k>TypeError|SyntaxError): (?P<m>.*)$")
 LOC_ANY = re.compile(r"^.+?\(\d+,\d+\): ")

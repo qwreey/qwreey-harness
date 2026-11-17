@@ -29,7 +29,7 @@ import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 KB = os.path.dirname(HERE)
-MISE = os.environ.get("MISE_DATA_DIR", "/code/.local/share/mise")
+MISE = os.environ.get("MISE_DATA_DIR") or os.path.expanduser("~/.local/share/mise")
 UA = {"User-Agent": "luau-kb-upstream-check"}
 
 # 표의 도구 -> (GitHub 저장소, mise.toml 에 나올 수 있는 키들, mise installs 디렉터리 이름들)
@@ -259,7 +259,7 @@ def bug_scan(args):
 
 def main():
     ap = argparse.ArgumentParser(description="mise 핀 vs 업스트림 최신, 그리고 스니펫 bug-scan")
-    ap.add_argument("--projects-root", default=os.environ.get("PROJECTS_ROOT", "/code/Projects"))
+    ap.add_argument("--projects-root", default=os.environ.get("PROJECTS_ROOT") or os.environ.get("HARNESS_WORKSPACE") or os.path.expanduser("~/Projects"))
     ap.add_argument("--offline", action="store_true")
     ap.add_argument("--notes", action="store_true", help="가장 낡은 luau 핀 이후 릴리스 목록")
     ap.add_argument("--bug-scan", metavar="VER")

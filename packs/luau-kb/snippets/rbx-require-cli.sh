@@ -24,7 +24,7 @@
 # 근거: stl-luau-doctor/.claude/base/architecture.md:37-57,305-330; quad/.claude/base/project-setup-plan.md:112-176;
 #       quad/scripts/relink.sh:4-6; mrow/review/REVIEW.md:1159-1187; tbox/CLAUDE.md:141-145; claude-doctor .claude/scopes/packs/luau-kb/audit/08 Q-101~Q-104, claude-doctor .claude/scopes/packs/luau-kb/audit/09 S-123~S-125, X-02, X-04
 set -u
-MISE=${MISE_DATA_DIR:-/code/.local/share/mise}
+MISE=${MISE_DATA_DIR:-$HOME/.local/share/mise}
 LSP=$MISE/installs/github-johnny-morganz-luau-lsp/1.70.1/luau-lsp
 d=$(mktemp -d /tmp/luau-kb-rbxreq.XXXXXX)
 trap 'rm -rf "$d"' EXIT

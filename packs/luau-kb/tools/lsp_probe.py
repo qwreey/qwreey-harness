@@ -42,7 +42,7 @@ import threading
 import time
 import queue
 
-MISE = os.environ.get("MISE_DATA_DIR", "/code/.local/share/mise")
+MISE = os.environ.get("MISE_DATA_DIR") or os.path.expanduser("~/.local/share/mise")
 DEFAULT_LSP = os.environ.get("LUAU_LSP_VERSION", "1.70.1")
 
 COMPLETION_KIND = {

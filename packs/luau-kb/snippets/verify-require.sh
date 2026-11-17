@@ -15,7 +15,7 @@
 # 근거(후보): Q-102, Q-103, Q-104, S-123, S-124, S-126, S-128 (claude-doctor .claude/scopes/packs/luau-kb/audit/08, claude-doctor .claude/scopes/packs/luau-kb/audit/09). 원천 서술 Q-104 "커스텀 alias 는
 #   CLI 런타임에서 실패"는 alias 값에 ./ 가 없을 때만 맞다(quad .luaurc 가 "quad-base/src" 꼴).
 set -u
-MISE=${MISE_DATA_DIR:-/code/.local/share/mise}
+MISE=${MISE_DATA_DIR:-$HOME/.local/share/mise}
 LSP=$MISE/installs/github-johnny-morganz-luau-lsp/1.70.1/luau-lsp
 vers=("$@"); [ $# -eq 0 ] && vers=(0.734 0.742)
 d=$(mktemp -d /tmp/luau-kb-req.XXXXXX)
