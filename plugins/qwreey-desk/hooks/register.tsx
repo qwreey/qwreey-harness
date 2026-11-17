@@ -1,9 +1,10 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderSurface } from 'claude-code'
 
-import type { DeskData, DeskDecision, DeskField, DeskRunStatus, DeskStepState, DeskStored, DeskTab, DeskView } from '../types'
+import type { DeskBacking, DeskData, DeskDecision, DeskField, DeskRunStatus, DeskStepState, DeskStored, DeskTab, DeskUi, DeskView } from '../types'
 import {
   SHAPE,
+  SHAPE_V1,
   addDecision,
   answerDecision,
   applyChat,
@@ -11,12 +12,16 @@ import {
   addComment,
   clearDraft,
   commentNote,
+  decisionId,
   deferDecision,
   drafts,
   emptyData,
+  fromUi,
+  fromV1,
   isUrgency,
   logSince,
   markRead,
+  marksOf,
   markSent,
   mergeLoaded,
   migrate,
@@ -36,10 +41,14 @@ import {
   setPlan,
   setUrgency,
   settleLoaded,
+  timesOf,
+  toUi,
   toolSummary,
   unsent,
   updateStep,
+  withFiles,
 } from './model'
+import { NOT_WRITTEN, carryOver, findRoot, placed, readFiles, saveFiles } from './files'
 import type { NewDecision, NewStep, Outcome, Revision, Sent } from './model'
 import {
   BAR,
@@ -70,7 +79,7 @@ const TOOL = 'mcp__qwreey-desk__desk'
 const PANE_ROWS = 40
 
 const data = atom({ plugin: 'qwreey-desk', key: 'data' } as const, emptyData(), { shape: SHAPE })
-const storeKey = atom({ plugin: 'qwreey-desk', key: 'storeKey' } as const, '')
+const backing = atom({ plugin: 'qwreey-desk', key: 'backing' } as const, { storeKey: '' } as DeskBacking)
 const seenFrom = atom({ plugin: 'qwreey-desk', key: 'seenFrom' } as const, 0)
 const view = atom({ plugin: 'qwreey-desk', key: 'view' } as const, {})
 const tab = atom({ plugin: 'qwreey-desk', key: 'tab' } as const, 'wait' as DeskTab)
@@ -87,44 +96,95 @@ type $ = EngineInterface
 const deskNow = async ($: $) => migrate(await read($, data))
 
 /**
- * Reads the project's desk from the store once per process, before anything
- * writes it. Session state is empty in a new process, and hooks other than
- * session.start (a turn ending, an agent starting) may run first in it; were
- * they to write before the read, the stored desk would be overwritten.
+ * Reads the project's desk once per process, before anything writes it: the
+ * store's value, then the files under the project folder, which win. Session
+ * state is empty in a new process (and after a reload that changed its
+ * shape), and hooks other than session.start (a turn ending, an agent
+ * starting) may run first in it; were they to write before the read, the
+ * stored desk would be overwritten. A desk-1 value, or decisions the store
+ * held for a folder that now has files, are written to files first.
  */
-const ensureLoaded = async ($: $, cwd?: string): Promise<string> => {
-  const have = await read($, storeKey)
-  if (have) return have
-  const key = `project:${cwd ?? (await $.session.cwd())}`
-  const stored = (await $.store.get(key)) as Partial<DeskStored> | undefined
-  if (stored?.shape === SHAPE && stored.value) {
-    const loaded = settleLoaded(normalize(stored.value))
-    await update($, data, held => mergeLoaded(loaded, held))
+const ensureLoaded = async ($: $, cwd?: string): Promise<DeskBacking> => {
+  const have = await read($, backing)
+  if (have.storeKey) return have
+  loading ??= load($, cwd).finally(() => {
+    loading = undefined
+  })
+  return loading
+}
+
+// One load at a time: two hooks starting a process together read it once.
+let loading: Promise<DeskBacking> | undefined
+
+const load = async ($: $, cwd?: string): Promise<DeskBacking> => {
+  const dir = cwd ?? (await $.session.cwd())
+  const key = `project:${dir}`
+  const stored = (await $.store.get(key)) as { shape?: string; value?: unknown } | undefined
+  const isV1 = stored?.shape === SHAPE_V1 && !!stored.value
+  const ui = stored?.shape === SHAPE && stored.value ? (stored.value as Partial<DeskUi>) : undefined
+  const held = isV1 ? fromV1(normalize(stored?.value as Partial<DeskData>)) : ui ? fromUi(ui) : emptyData()
+  const marks = { ...marksOf(held), ...(ui?.marks ?? {}) }
+  const times = { ...timesOf(held), ...(ui?.times ?? {}) }
+  const where = await findRoot($, dir)
+  let found: DeskBacking = { storeKey: key, ...where }
+  let loaded = settleLoaded(held)
+  // The store is written again when what it held moved to files or changed tag.
+  let isMoved = isV1
+  if (found.root) {
+    try {
+      await carryOver($, found.root, held)
+      if (held.decisions.length > 0 || held.plan.length > 0) isMoved = true
+      const files = await readFiles($, found.root)
+      loaded = withFiles(loaded, marks, times, files.decisions, files.plan ?? [])
+    } catch {
+      found = { storeKey: key, reason: NOT_WRITTEN }
+    }
   }
-  await update($, storeKey, () => key)
-  return key
+  const merged = await update($, data, now => mergeLoaded(loaded, now))
+  await update($, backing, () => found)
+  if (isMoved) await $.store.set(key, { shape: SHAPE, value: toUi(merged, !!found.root) } satisfies DeskStored)
+  return found
+}
+
+/** Reads the files again, when there are any: another session or a git pull may have changed them. */
+const refresh = async ($: $) => {
+  const { root } = await ensureLoaded($)
+  if (!root) return
+  const files = await readFiles($, root).catch(() => undefined)
+  if (files) await update($, data, cur => withFiles(cur, marksOf(cur), timesOf(cur), files.decisions, files.plan ?? []))
 }
 
 // Every change goes through here: the session's value first (what the band
-// and pane draw from), then the project's copy in the store.
+// and pane draw from), then the files it touched, then the project's copy in
+// the store. A file that cannot be written leaves the whole desk in the
+// store from then on, and the band says so once.
 const mutate = async ($: $, change: (d: DeskData, now: number) => Outcome | DeskData): Promise<string> => {
-  const key = await ensureLoaded($)
+  const where = await ensureLoaded($)
   const now = await $.clock.now()
   let text = ''
+  let before = emptyData()
   const next = await update($, data, d => {
-    const out = change(migrate(d), now)
-    if ('text' in out) {
-      text = out.text
-      return out.data
-    }
-    return out
+    before = migrate(d)
+    const out = change(before, now)
+    if ('text' in out) text = out.text
+    const after = 'text' in out ? out.data : out
+    return where.root ? placed(after) : after
   })
-  await $.store.set(key, { shape: SHAPE, value: next } satisfies DeskStored)
+  let hasFiles = !!where.root
+  if (where.root) {
+    const wrote = await saveFiles($, where.root, before, next).catch(() => undefined)
+    if (wrote === undefined) {
+      hasFiles = false
+      await update($, backing, b => ({ storeKey: b.storeKey, reason: NOT_WRITTEN }))
+    } else if (wrote) await refresh($)
+  }
+  // After a refresh the session's value may hold another session's changes too.
+  await $.store.set(where.storeKey, { shape: SHAPE, value: toUi(await read($, data), hasFiles) } satisfies DeskStored)
   return text
 }
 
 const openDesk = async ($: $) => {
-  await ensureLoaded($)
+  await refresh($)
   await update($, view, () => ({}))
   await update($, tab, () => 'wait' as DeskTab)
   for (const id of TABS) await setOffset($, id, () => -1)
@@ -145,9 +205,10 @@ const openTab = async ($: $, next: DeskTab) => {
 
 const TOOL_DESCRIPTION = [
   "The user's desk: a side pane they read on a phone-width terminal instead of scrolling the chat.",
-  'Every question that needs their decision goes here (add_decision: one-line question, markdown context (prefer short lists over tables), options with why, recommended + reason, urgency blocking|soon|later with blocks: what waits on it; set_urgency changes it); in chat say only one line, e.g. "D3 on the desk".',
+  'Every question that needs their decision goes here (add_decision: one-line question, markdown context (prefer short lists over tables), options with why, recommended + reason, urgency blocking|soon|later with blocks: what waits on it; set_urgency changes it); in chat say only one line, e.g. "Q3 on the desk".',
   'Keep the plan here (set_plan, update_step) and log finished work (note: a 1-3 sentence summary of what got done, in the user\'s language); a step is a short title, its detail a line under it.',
-  'Chat lines like "D3: b" or "D3 코멘트: ..." are recorded automatically, and so are answers and comments the user sends from the desk; call answer_decision (their exact words) or memo only for answers or notes given another way.',
+  'Decisions and the plan are saved as repo files under .claude/plan/ (answered ones move to .claude/archive/plan/decisions/) and go into the next commit; cite a decision as Q3 (older commits say D3).',
+  'Chat lines like "Q3: b" or "Q3 코멘트: ..." are recorded automatically, and so are answers and comments the user sends from the desk; call answer_decision (their exact words) or memo only for answers or notes given another way.',
   'When the user comments on a decision, reply there with comment, and revise_decision if the discussion changed it.',
 ].join(' ')
 
@@ -158,7 +219,7 @@ const TOOL_SCHEMA = {
       type: 'string',
       enum: ['add_decision', 'answer_decision', 'defer_decision', 'set_urgency', 'memo', 'comment', 'revise_decision', 'set_plan', 'update_step', 'note'],
     },
-    id: { type: 'string', description: 'D3 for decisions, S2 for steps' },
+    id: { type: 'string', description: 'Q3 for decisions (D3 also accepted), S2 for steps' },
     question: { type: 'string', description: 'add_decision, revise_decision: one line' },
     context: { type: 'string', description: 'add_decision, revise_decision: markdown the user needs to decide' },
     urgency: { type: 'string', enum: ['blocking', 'soon', 'later'], description: 'blocking: work stops on it; soon: next steps need it; later: can wait' },
@@ -212,7 +273,7 @@ const optionsOf = (v: unknown) =>
   Array.isArray(v)
     ? (v as { key?: unknown; label?: unknown; why?: unknown }[])
         .filter(o => str(o.key) && str(o.label))
-        .map(o => ({ key: String(o.key), label: String(o.label), why: str(o.why) }))
+        .map(o => ({ key: oneLine(String(o.key)), label: oneLine(String(o.label)), why: str(o.why) }))
     : undefined
 
 const runTool = (e: Readonly<Record<string, unknown>>) => (d: DeskData, now: number): Outcome => {
@@ -270,7 +331,7 @@ const runTool = (e: Readonly<Record<string, unknown>>) => (d: DeskData, now: num
 
 const TASK_ID = /<task-id>([^<]+)<\/task-id>/
 const TASK_STATUS = /<status>([^<]+)<\/status>/
-const DISCUSS = /^\s*(D\d+)\s+더 논의/m
+const DISCUSS = /^\s*([DQ]\d+)\s+더 논의/im
 
 const taskStatus = (word: string | undefined): DeskRunStatus =>
   word === 'failed' ? 'failed' : word === 'killed' ? 'stopped' : 'done'
@@ -313,6 +374,7 @@ export const register: Register = on => {
   })
 
   on('tool.call', { tool: TOOL }, async ($, e) => {
+    await refresh($)
     const text = await mutate($, runTool(e as Readonly<Record<string, unknown>>))
     return { result: text }
   })
@@ -373,6 +435,10 @@ export const register: Register = on => {
     }
     if (e.command || !fromPerson(e.origin)) return next(e)
 
+    // The band said where the desk keeps its decisions; once is enough.
+    const where = await read($, backing)
+    if (where.reason && !where.told && bandLines(await deskNow($))) await update($, backing, b => ({ ...b, told: true as const }))
+
     const lines: string[] = []
     const marks = parseChat(e.text)
     if (marks.length > 0) {
@@ -384,7 +450,7 @@ export const register: Register = on => {
     }
     const discussed = DISCUSS.exec(e.text)?.[1]
     if (discussed) {
-      const d = (await deskNow($)).decisions.find(one => one.id === discussed)
+      const d = (await deskNow($)).decisions.find(one => one.id === decisionId(discussed))
       if (d) lines.push(`The user wants to discuss this desk decision further; it stays open.\n${decisionBrief(d)}`)
     }
     return lines.length > 0 ? next({ ...e, context: [...(e.context ?? []), ...lines] }) : next(e)
@@ -396,6 +462,8 @@ export const register: Register = on => {
     if (!lines) return next(e)
     const { Box, Text, Button } = $.ui.resolve(e)
     const hasOpen = openDecisions(await deskNow($)).length > 0
+    const where = await read($, backing)
+    const said = where.reason && !where.told ? where.reason : undefined
     // The button first: after the counts, it would move as they change.
     return (
       <Box flexDirection="column">
@@ -410,6 +478,11 @@ export const register: Register = on => {
         {lines.next ? (
           <Text dimColor wrap="truncate-end">
             {lines.next}
+          </Text>
+        ) : null}
+        {said ? (
+          <Text dimColor wrap="truncate-end">
+            {said}
           </Text>
         ) : null}
       </Box>

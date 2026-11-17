@@ -1,5 +1,6 @@
-// The desk's contract: what it keeps for the session ($.state) and, per
-// project directory, across sessions ($.store, under `project:<cwd>`).
+// The desk's contract: what it keeps for the session ($.state), per project
+// directory across sessions ($.store, under `project:<cwd>`), and what it
+// reads back from the record files it writes under the project's `.claude/`.
 
 export type DeskOption = { key: string; label: string; why?: string }
 
@@ -24,8 +25,15 @@ export type DeskComment = {
   sent?: true
 }
 
+/**
+ * What a decision's file holds that the desk does not know, written back as
+ * it was read: frontmatter lines of other keys, text between the title and
+ * the first section, sections of other names.
+ */
+export type DeskKept = { head?: string[]; lead?: string; sections?: string[] }
+
 export type DeskDecision = {
-  /** D1, D2, ... counted per project. */
+  /** Q1, Q2, ... counted per project (D<n> before files: the same number). */
   id: string
   /** One line. */
   question: string
@@ -60,6 +68,10 @@ export type DeskDecision = {
   pick?: string
   createdAt: number
   answeredAt?: number
+  /** Its file, relative to the project folder, once written or read there. */
+  file?: string
+  /** What its file holds beyond the desk's own fields. */
+  kept?: DeskKept
 }
 
 export type DeskStepState = 'todo' | 'doing' | 'done'
@@ -107,8 +119,55 @@ export type DeskData = {
   outboxNote?: string
 }
 
-/** What `$.store` keeps under `project:<cwd>`. */
-export type DeskStored = { shape: string; value: DeskData }
+/** What only the desk keeps of a decision: the person's unsent picks and comments, read marks. */
+export type DeskMarks = {
+  pick?: string
+  draft?: string
+  draftAt?: number
+  unread?: true
+  /** The person's comments waiting in the outbox; a comment joins the file once sent. */
+  unsent?: DeskComment[]
+}
+
+/** When a step started and ended, kept for the step of that id while its title stays. */
+export type DeskTimes = { text: string; startedAt?: number; endedAt?: number }
+
+/**
+ * What `$.store` keeps under `project:<cwd>` (tag `desk-2`): the pane's own
+ * state. Decisions and the plan are files under the project's `.claude/`;
+ * where it has no folder the desk can write, they stay here
+ * (`decisions`, `plan`).
+ */
+export type DeskUi = {
+  running: DeskRun[]
+  log: DeskLogEntry[]
+  lastSeen: number
+  nextDecision: number
+  outboxNote?: string
+  /** By decision id. */
+  marks: Record<string, DeskMarks>
+  /** By step id. */
+  times: Record<string, DeskTimes>
+  decisions?: DeskDecision[]
+  plan?: DeskStep[]
+}
+
+export type DeskStored = { shape: string; value: DeskUi }
+
+/** The store's value under the older tag `desk-1`: the whole desk; read once into files and `desk-2`. */
+export type DeskStoredV1 = { shape: string; value: DeskData }
+
+/** Where the session's desk lives: the store key, and the project folder its files go under. */
+export type DeskBacking = {
+  /** `project:<cwd>`; '' until the desk has been read in this process. */
+  storeKey: string
+  /** The project folder; absent when everything stays in the store. */
+  root?: string
+  /** Why there are no files, shown once in the band. */
+  reason?: string
+  /** The band has shown `reason` and the person has sent a prompt since. */
+  told?: true
+}
 
 /** Which part of the pane shows: the tabs, a decision's or a step's detail, or the outbox. */
 export type DeskView = {
@@ -135,8 +194,7 @@ declare module 'claude-code' {
   interface PluginState {
     'qwreey-desk': {
       data: Shaped<DeskData>
-      /** The store key this session reads and writes (`project:<cwd>`). */
-      storeKey: string
+      backing: DeskBacking
       /** `lastSeen` as it stood when the 기록 tab was last opened: where its 여기부터 새로 rule stands. */
       seenFrom: number
       view: DeskView

@@ -72,13 +72,13 @@
   "skill.qwreey-workspace.workspace": 441,
   "start.qwreey-sessions.compact-anchors": 718,
   "start.qwreey-sessions.pending": 701,
-  "tool.qwreey-desk.desk": 2608
+  "tool.qwreey-desk.desk": 2825
  },
  "totals": {
   "packs_listings": 4413,
-  "session_start": 12428,
+  "session_start": 12645,
   "session_start_hooks": 4999,
-  "session_start_listings": 7429,
+  "session_start_listings": 7646,
   "subagent_start_hooks": 2437
  }
 }

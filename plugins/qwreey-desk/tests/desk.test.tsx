@@ -1,14 +1,11 @@
 import { expect, mock, test } from 'claude-code/testing'
 import type { Engine, Mounted } from 'claude-code/testing'
-import type { On } from 'claude-code'
 
 import { NEW_MARK as NEW_RULE, cells, laidOut, regions, wrap } from '../hooks/layout'
 import { markdownRows } from '../hooks/richtext'
 import { decisionDetail } from '../hooks/views'
 import type { Do } from '../hooks/views'
-
-const TOOL = 'mcp__qwreey-desk__desk'
-const STORE_KEY = 'project:/p'
+import { STORE_KEY, TOOL, desk, engine, start } from './kit'
 
 const BAND = {
   plugin: 'qwreey-desk',
@@ -37,48 +34,6 @@ const pane = (columns: number, rows = 40, placement: 'inline' | 'dock' = 'inline
 const PANE = pane(45)
 
 const SURFACES = ['terminal', 'desktop', 'vscode', 'mobile'] as const
-
-type Submitted = { text: string; context?: readonly string[] }
-
-// Nothing sits beneath the plugin: these hooks stand for the engine.
-const engine = (on: On, store: Record<string, unknown> = {}) => {
-  const clock = mock.clock(on, { now: 1_000_000 })
-  // The store in memory, kept here so a test reads what the plugin wrote.
-  const kept = new Map<string, unknown>(Object.entries(store))
-  // Every write the desk makes, the store's counted and the session state's by key.
-  const writes = { store: 0, state: [] as string[] }
-  on('store.get', (_, e) => ({ value: kept.get(e.key) }))
-  on('store.set', (_, e) => {
-    writes.store += 1
-    kept.set(e.key, JSON.parse(JSON.stringify(e.value)))
-    return { value: undefined }
-  })
-  on('state.set', (_, e, next) => {
-    writes.state.push(e.key)
-    return next(e)
-  })
-  // What the desk last persisted for /p (it mirrors the session's state).
-  const stored = () => (kept.get(STORE_KEY) as { shape: string; value: any } | undefined)?.value
-  const submitted: Submitted[] = []
-  on('session.start', (_, e) => ({ cwd: e.cwd }))
-  on('session.cwd', () => ({ value: '/p' }))
-  on('tool.register', () => ({ value: { tool: TOOL } }))
-  on('command.register', () => ({ value: { command: 'desk' } }))
-  on('ui.open', () => ({ value: { isPlaced: true } }))
-  on('prompt.submit', (_, e) => {
-    submitted.push({ text: e.text, context: e.context })
-    return { text: e.text, context: e.context }
-  })
-  on('ui.render', ($, e) => {
-    const { Text } = $.ui.resolve(e)
-    return <Text>engine</Text>
-  })
-  return { clock, submitted, kept, stored, writes }
-}
-
-const start = ($: Engine) => $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
-
-const desk = (input: Record<string, unknown>) => ({ tool: TOOL, ...input }) as Parameters<Engine['tool']['call']>[0]
 
 const seed = async ($: Engine) => {
   await $.tool.call(
@@ -220,19 +175,19 @@ test('the tool actions change the desk and persist it', async ($, on) => {
   await start($)
   await seed($)
 
-  const answered = await $.tool.call(desk({ action: 'answer_decision', id: 'D2', text: '응, 프로젝트별로' }))
-  expect(answered.result).toBe('D2 답 기록 (대기 1)')
+  const answered = await $.tool.call(desk({ action: 'answer_decision', id: 'Q2', text: '응, 프로젝트별로' }))
+  expect(answered.result).toBe('Q2 답 기록 (대기 1)')
   await $.tool.call(desk({ action: 'memo', id: 'd1', text: '두 줄이면 좁을까' }))
   await $.tool.call(desk({ action: 'update_step', id: 'S1', state: 'done' }))
   await $.tool.call(desk({ action: 'update_step', id: 'S2', state: 'doing', text: '밴드는 두 줄로' }))
   await $.tool.call(desk({ action: 'note', text: '리뷰 끝' }))
-  const deferred = await $.tool.call(desk({ action: 'defer_decision', id: 'D9' }))
-  expect(deferred.result).toBe('D9: 없는 결정')
+  const deferred = await $.tool.call(desk({ action: 'defer_decision', id: 'Q9' }))
+  expect(deferred.result).toBe('Q9: 없는 결정')
 
   const d = stored()
   expect(d.decisions.map((x: any) => [x.id, x.status])).toEqual([
-    ['D1', 'open'],
-    ['D2', 'answered'],
+    ['Q1', 'open'],
+    ['Q2', 'answered'],
   ])
   expect(d.decisions[1].answer).toBe('응, 프로젝트별로')
   // A memo the model records is the person's comment, which it has already.
@@ -240,7 +195,7 @@ test('the tool actions change the desk and persist it', async ($, on) => {
   expect(d.plan.map((s: any) => s.state)).toEqual(['done', 'doing', 'todo'])
   expect(d.plan.map((s: any) => s.detail)).toEqual([undefined, '밴드는 두 줄로', '탭, 타임라인, 스크롤'])
   expect(d.plan[0].endedAt).toBe(1_000_000)
-  expect(d.log.map((l: any) => l.text)).toEqual(['D1 올림: 밴드는 몇 줄까지?', 'D2 올림: 책상 저장은 프로젝트별?', 'D2 답: 응, 프로젝트별로', 'S1 타입 쓰기', '리뷰 끝'])
+  expect(d.log.map((l: any) => l.text)).toEqual(['Q1 올림: 밴드는 몇 줄까지?', 'Q2 올림: 책상 저장은 프로젝트별?', 'Q2 답: 응, 프로젝트별로', 'S1 타입 쓰기', '리뷰 끝'])
 
   // Sending the plan again (here to add a detail) keeps the progress.
   await $.tool.call(desk({ action: 'set_plan', steps: [{ text: '타입 쓰기', detail: '끝난 일' }, '밴드 그리기', '패널 그리기', '정리'] }))
@@ -251,7 +206,7 @@ test('the tool actions change the desk and persist it', async ($, on) => {
     ['S4', 'todo', undefined],
   ])
 
-  expect((kept.get(STORE_KEY) as { shape: string }).shape).toBe('desk-1')
+  expect((kept.get(STORE_KEY) as { shape: string }).shape).toBe('desk-2')
 })
 
 test('set_plan applies a given step state, and keeps the matching rule when absent', async ($, on) => {
@@ -277,7 +232,7 @@ test('a chat line answers a decision and tells the model', async ($, on) => {
   await start($)
   await seed($)
 
-  await $.prompt.submit({ text: 'D1: b 로 가자\nD2 메모: 나중에 다시', wait: false, origin: { kind: 'composer' } })
+  await $.prompt.submit({ text: 'Q1: b 로 가자\nQ2 메모: 나중에 다시', wait: false, origin: { kind: 'composer' } })
   const d = stored()
   expect(d.decisions[0].status).toBe('answered')
   expect(d.decisions[0].answer).toBe('b 로 가자')
@@ -286,7 +241,7 @@ test('a chat line answers a decision and tells the model', async ($, on) => {
   expect(submitted[0]?.context?.[0]).toContain('= option b) 두 줄')
 
   // Another session's message is not the person's answer.
-  await $.prompt.submit({ text: 'D2: a', wait: false, origin: { kind: 'peer' } })
+  await $.prompt.submit({ text: 'Q2: a', wait: false, origin: { kind: 'peer' } })
   expect(stored().decisions[1].status).toBe('open')
 })
 
@@ -316,46 +271,46 @@ test('the pane has three tabs and opens a decision', async ($, on) => {
   const session = mock.session(on)
   await start($)
   await seed($)
-  await $.tool.call(desk({ action: 'answer_decision', id: 'D2', text: 'a' }))
+  await $.tool.call(desk({ action: 'answer_decision', id: 'Q2', text: 'a' }))
 
   for (const surface of SURFACES) {
     const ui = await $.ui.mount({ ...PANE, surface })
     // 답을 기다림: the waiting decision, a rule, the answered one under it.
     expect(await ui.find({ type: 'Button', key: 'tab-wait' })).toBeDefined()
-    expect(await ui.find({ type: 'Button', key: 'dec-D1' })).toBeDefined()
+    expect(await ui.find({ type: 'Button', key: 'dec-Q1' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /^── 끝난 결정 1 ─+$/ })).toBeDefined()
-    expect((await ui.find({ type: 'Button', key: 'dec-D2' }))?.text).toContain('책상 저장은')
+    expect((await ui.find({ type: 'Button', key: 'dec-Q2' }))?.text).toContain('책상 저장은')
 
     await ui.press({ key: 'tab-tasks' })
-    expect(await ui.find({ type: 'Button', key: 'dec-D1' })).toBeUndefined()
+    expect(await ui.find({ type: 'Button', key: 'dec-Q1' })).toBeUndefined()
     expect(await ui.find({ type: 'Button', key: 'step-S1' })).toBeDefined()
     await ui.press({ key: 'tab-away' })
-    expect(await ui.find({ type: 'Text', text: /D2 답: a/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /Q2 답: a/ })).toBeDefined()
     await ui.press({ key: 'tab-wait' })
 
     // The detail view: context, options with the recommended one, memo.
-    await ui.press({ key: 'dec-D1' })
+    await ui.press({ key: 'dec-Q1' })
     // The context's markdown is drawn row by row, its bold kept.
     const bold = (await ui.findAll({ type: 'Text', text: /45칸/ })).find(t => t.text === '45칸')
     expect(bold?.props.bold).toBe(true)
     expect((await ui.find({ type: 'Button', key: 'opt-b' }))?.text).toContain('★권장')
     expect(await ui.find({ type: 'Text', text: /다음 할 일이 늘 보여야 함/ })).toBeDefined()
     if (surface === 'mobile') {
-      expect(await ui.find({ type: 'Text', text: /D1 코멘트/ })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: /Q1 코멘트/ })).toBeDefined()
     } else {
-      expect((await ui.findAll({ type: 'Input' })).find(e => e.key?.startsWith('comment-D1~'))).toBeDefined()
+      expect((await ui.findAll({ type: 'Input' })).find(e => e.key?.startsWith('comment-Q1~'))).toBeDefined()
     }
     await ui.press({ key: 'back' })
-    expect(await ui.find({ type: 'Button', key: 'dec-D1' })).toBeDefined()
+    expect(await ui.find({ type: 'Button', key: 'dec-Q1' })).toBeDefined()
     await ui.unmount()
   }
 
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  await ui.press({ key: 'dec-D1' })
-  await typeIn(ui, 'comment-D1', '좁으면 한 줄', 'change')
+  await ui.press({ key: 'dec-Q1' })
+  await typeIn(ui, 'comment-Q1', '좁으면 한 줄', 'change')
   expect(stored().decisions[0].draft).toBe('좁으면 한 줄')
   await ui.press({ key: 'discuss' })
-  expect(submitted.at(-1)?.text).toBe('D1 더 논의: 밴드는 몇 줄까지?\n내 코멘트: 좁으면 한 줄')
+  expect(submitted.at(-1)?.text).toBe('Q1 더 논의: 밴드는 몇 줄까지?\n내 코멘트: 좁으면 한 줄')
   expect(JSON.stringify(session.appended().at(-1)?.message.content)).toContain('Recommended b')
   // The draft went with the request to talk, posted and sent: nothing waits in the outbox.
   expect(stored().decisions[0].draft).toBeUndefined()
@@ -373,7 +328,7 @@ test('picks and comments wait in the outbox and go out as one prompt', async ($,
   expect(await ui.find({ type: 'Button', key: 'outbox' })).toBeUndefined()
 
   // Pressing an option picks it; nothing is sent.
-  await ui.press({ key: 'dec-D1' })
+  await ui.press({ key: 'dec-Q1' })
   await ui.press({ key: 'opt-b' })
   expect(submitted).toEqual([])
   expect(stored().decisions[0].status).toBe('open')
@@ -386,10 +341,10 @@ test('picks and comments wait in the outbox and go out as one prompt', async ($,
   await ui.press({ key: 'opt-b' })
   await ui.press({ key: 'back' })
 
-  await ui.press({ key: 'dec-D2' })
-  await typeIn(ui, 'comment-D2', 'D1 의 두 줄과 합칠 수 있을 듯', 'submit')
+  await ui.press({ key: 'dec-Q2' })
+  await typeIn(ui, 'comment-Q2', 'Q1 의 두 줄과 합칠 수 있을 듯', 'submit')
   await ui.press({ key: 'back' })
-  await ui.press({ key: 'dec-D3' })
+  await ui.press({ key: 'dec-Q3' })
   await ui.press({ key: 'opt-a' })
   await ui.press({ key: 'back' })
 
@@ -403,34 +358,34 @@ test('picks and comments wait in the outbox and go out as one prompt', async ($,
   await ui.press({ key: 'outbox' })
   expect(await ui.find({ type: 'Text', text: '보낼 것 3개 · 전송하면 한 번에 보냄' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: '→ b) 두 줄' })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: '코멘트: D1 의 두 줄과 합칠 수 있을 듯' })).toBeDefined()
-  await ui.press({ key: 'cancel-D3' })
+  expect(await ui.find({ type: 'Text', text: '코멘트: Q1 의 두 줄과 합칠 수 있을 듯' })).toBeDefined()
+  await ui.press({ key: 'cancel-Q3' })
   expect(stored().decisions[2].pick).toBeUndefined()
-  await typeIn(ui, 'outbox-note', 'D1 과 D2 는 같이 보자', 'submit')
+  await typeIn(ui, 'outbox-note', 'Q1 과 Q2 는 같이 보자', 'submit')
   show('the outbox', await screen(ui, 43), 43)
 
   await ui.press({ key: 'send' })
-  expect(submitted.map(s => s.text)).toEqual(['D1 → b\nD2 코멘트: D1 의 두 줄과 합칠 수 있을 듯\n전체 메모: D1 과 D2 는 같이 보자'])
+  expect(submitted.map(s => s.text)).toEqual(['Q1 → b\nQ2 코멘트: Q1 의 두 줄과 합칠 수 있을 듯\n전체 메모: Q1 과 Q2 는 같이 보자'])
   const d = stored()
   expect(d.decisions.map((x: any) => [x.id, x.status, x.answer, x.pick])).toEqual([
-    ['D1', 'answered', 'b', undefined],
-    ['D2', 'open', undefined, undefined],
-    ['D3', 'open', undefined, undefined],
+    ['Q1', 'answered', 'b', undefined],
+    ['Q2', 'open', undefined, undefined],
+    ['Q3', 'open', undefined, undefined],
   ])
-  expect(d.decisions[1].comments?.map((c: any) => [c.by, c.text, c.sent])).toEqual([['user', 'D1 의 두 줄과 합칠 수 있을 듯', true]])
+  expect(d.decisions[1].comments?.map((c: any) => [c.by, c.text, c.sent])).toEqual([['user', 'Q1 의 두 줄과 합칠 수 있을 듯', true]])
   expect(d.outboxNote).toBeUndefined()
   expect(JSON.stringify(session.appended().at(-1)?.message.content)).toContain('do not call answer_decision')
   // Back on the list, the outbox empty.
   expect(await ui.find({ type: 'Button', key: 'outbox' })).toBeUndefined()
-  expect(await ui.find({ type: 'Button', key: 'dec-D1' })).toBeDefined()
+  expect(await ui.find({ type: 'Button', key: 'dec-Q1' })).toBeDefined()
   await ui.unmount()
 })
 
 test('drafts kept in the store come back after a restart', async ($, on) => {
   const value = {
     decisions: [
-      { id: 'D1', question: '밴드는 몇 줄까지?', options: [{ key: 'b', label: '두 줄' }], status: 'open', createdAt: 1, pick: 'b' },
-      { id: 'D2', question: '책상 저장은?', options: [], status: 'open', createdAt: 2, memo: '합칠 듯', memoAt: 3, memoPending: true },
+      { id: 'Q1', question: '밴드는 몇 줄까지?', options: [{ key: 'b', label: '두 줄' }], status: 'open', createdAt: 1, pick: 'b' },
+      { id: 'Q2', question: '책상 저장은?', options: [], status: 'open', createdAt: 2, memo: '합칠 듯', memoAt: 3, memoPending: true },
     ],
     plan: [],
     running: [],
@@ -446,8 +401,8 @@ test('drafts kept in the store come back after a restart', async ($, on) => {
   await ui.press({ key: 'outbox' })
   expect((await fieldOf(ui, 'outbox-note'))?.props.value).toBe('둘 다 같이')
   await ui.press({ key: 'send' })
-  // The memo waiting under the older layout went as D2's comment.
-  expect(submitted.at(-1)?.text).toBe('D1 → b\nD2 코멘트: 합칠 듯\n전체 메모: 둘 다 같이')
+  // The memo waiting under the older layout went as Q2's comment.
+  expect(submitted.at(-1)?.text).toBe('Q1 → b\nQ2 코멘트: 합칠 듯\n전체 메모: 둘 다 같이')
   await ui.unmount()
 })
 
@@ -456,30 +411,30 @@ test('a comment posts on Enter to the thread, the box saving the draft until the
   await start($)
   await seed($)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  await ui.press({ key: 'dec-D1' })
+  await ui.press({ key: 'dec-Q1' })
   const KEYS = 'Enter 달기 · Shift+Enter 줄바꿈'
   expect((await ui.find({ type: 'Text', text: /^새 코멘트/ }))?.text).toBe(`새 코멘트 · ${KEYS}`)
   // The engine's own hint beside a focused field is only its return glyph.
-  expect((await fieldOf(ui, 'comment-D1'))?.props.submitLabel).toBe('')
+  expect((await fieldOf(ui, 'comment-Q1'))?.props.submitLabel).toBe('')
   // A pane 40 rows tall: the field is 8 rows, whatever it holds.
-  expect((await fieldOf(ui, 'comment-D1'))?.props.rows).toBe(8)
+  expect((await fieldOf(ui, 'comment-Q1'))?.props.rows).toBe(8)
 
   // Typed, the draft is kept and says so; nothing waits in the outbox yet.
-  await typeIn(ui, 'comment-D1', '엔터로', 'change')
+  await typeIn(ui, 'comment-Q1', '엔터로', 'change')
   expect(stored().decisions[0].draft).toBe('엔터로')
   expect((await ui.find({ type: 'Text', text: /^새 코멘트/ }))?.text).toBe(`새 코멘트 · 저장됨 방금 · ${KEYS}`)
   expect(await ui.find({ type: 'Button', key: 'outbox' })).toBeUndefined()
 
   // Enter puts it on the thread, waiting to be sent, and empties the box for
   // the next under a new key (the terminal empties the old one's text itself).
-  const before = (await fieldOf(ui, 'comment-D1'))?.key
-  expect(before).toBe('comment-D1~0')
-  await typeIn(ui, 'comment-D1', '엔터로 달기', 'submit')
+  const before = (await fieldOf(ui, 'comment-Q1'))?.key
+  expect(before).toBe('comment-Q1~0')
+  await typeIn(ui, 'comment-Q1', '엔터로 달기', 'submit')
   const d = stored().decisions[0]
   expect(d.draft).toBeUndefined()
   expect(d.comments).toEqual([{ id: 'c1', by: 'user', text: '엔터로 달기', at: 1_000_000 }])
-  expect((await fieldOf(ui, 'comment-D1'))?.key).not.toBe(before)
-  expect((await fieldOf(ui, 'comment-D1'))?.props.value).toBe('')
+  expect((await fieldOf(ui, 'comment-Q1'))?.key).not.toBe(before)
+  expect((await fieldOf(ui, 'comment-Q1'))?.props.value).toBe('')
   expect((await ui.find({ type: 'Text', text: /^새 코멘트/ }))?.text).toBe(`새 코멘트 · ${KEYS}`)
   expect(await ui.find({ type: 'Text', text: /^── 코멘트 1 ─+$/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: '나 · 방금 · 보내기 전' })).toBeDefined()
@@ -489,13 +444,13 @@ test('a comment posts on Enter to the thread, the box saving the draft until the
   expect(await ui.find({ type: 'Text', text: '나 · 5분 전 · 보내기 전' })).toBeDefined()
 
   // A real clear of a draft still clears it.
-  await typeIn(ui, 'comment-D1', '다시 쓴 글', 'change')
-  await typeIn(ui, 'comment-D1', '', 'change')
+  await typeIn(ui, 'comment-Q1', '다시 쓴 글', 'change')
+  await typeIn(ui, 'comment-Q1', '', 'change')
   expect(stored().decisions[0].draft).toBeUndefined()
 
   const longer = Array.from({ length: 12 }, (_, i) => `${i + 1}번째 줄`).join('\n')
-  await typeIn(ui, 'comment-D1', longer, 'change')
-  expect((await fieldOf(ui, 'comment-D1'))?.props.rows).toBe(8)
+  await typeIn(ui, 'comment-Q1', longer, 'change')
+  expect((await fieldOf(ui, 'comment-Q1'))?.props.rows).toBe(8)
   expect((await ui.find({ type: 'Text', text: /줄씩 보임/ }))?.text).toBe(`새 코멘트 · 저장됨 방금 · ${KEYS} · 12줄 중 8줄씩 보임`)
   await ui.unmount()
 })
@@ -506,12 +461,12 @@ test('a comment alone goes out without an answer, the decision staying open', as
   await start($)
   await seed($)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  await ui.press({ key: 'dec-D1' })
-  await typeIn(ui, 'comment-D1', '두 줄이면\n폰에서 좁지 않나', 'submit')
+  await ui.press({ key: 'dec-Q1' })
+  await typeIn(ui, 'comment-Q1', '두 줄이면\n폰에서 좁지 않나', 'submit')
   await ui.press({ key: 'back' })
   await ui.press({ key: 'outbox' })
   await ui.press({ key: 'send' })
-  expect(submitted.map(s => s.text)).toEqual(['D1 코멘트: 두 줄이면\n폰에서 좁지 않나'])
+  expect(submitted.map(s => s.text)).toEqual(['Q1 코멘트: 두 줄이면\n폰에서 좁지 않나'])
   const d = stored().decisions[0]
   expect(d.status).toBe('open')
   expect(d.answer).toBeUndefined()
@@ -522,17 +477,17 @@ test('a comment alone goes out without an answer, the decision staying open', as
   expect(note).toContain('밴드는 몇 줄까지?')
   expect(note).toContain('두 줄이면 폰에서 좁지 않나')
   expect(note).toContain('The decision stays open.')
-  expect(note).toContain('Reply on the desk with the desk action comment (id D1)')
+  expect(note).toContain('Reply on the desk with the desk action comment (id Q1)')
   expect(note).toContain('revise_decision')
   expect(note).toContain('keep the chat to one line')
   // With a pick too, both go and the pick answers it.
-  await ui.press({ key: 'dec-D1' })
+  await ui.press({ key: 'dec-Q1' })
   await ui.press({ key: 'opt-a' })
-  await typeIn(ui, 'comment-D1', '그래도 한 줄', 'submit')
+  await typeIn(ui, 'comment-Q1', '그래도 한 줄', 'submit')
   await ui.press({ key: 'back' })
   await ui.press({ key: 'outbox' })
   await ui.press({ key: 'send' })
-  expect(submitted.at(-1)?.text).toBe('D1 → a\nD1 코멘트: 그래도 한 줄')
+  expect(submitted.at(-1)?.text).toBe('Q1 → a\nQ1 코멘트: 그래도 한 줄')
   expect(stored().decisions[0].status).toBe('answered')
   await ui.unmount()
 })
@@ -542,12 +497,12 @@ test('a cancelled draft puts its comments back in the box', async ($, on) => {
   await start($)
   await seed($)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  await ui.press({ key: 'dec-D1' })
-  await typeIn(ui, 'comment-D1', '먼저 쓴 말', 'submit')
-  await typeIn(ui, 'comment-D1', '쓰는 중', 'change')
+  await ui.press({ key: 'dec-Q1' })
+  await typeIn(ui, 'comment-Q1', '먼저 쓴 말', 'submit')
+  await typeIn(ui, 'comment-Q1', '쓰는 중', 'change')
   await ui.press({ key: 'back' })
   await ui.press({ key: 'outbox' })
-  await ui.press({ key: 'cancel-D1' })
+  await ui.press({ key: 'cancel-Q1' })
   const d = stored().decisions[0]
   expect(d.comments).toEqual([])
   expect(d.draft).toBe('먼저 쓴 말\n쓰는 중')
@@ -558,16 +513,16 @@ test('the agent replies on the thread; the list marks it unread until the decisi
   const { stored } = engine(on)
   await start($)
   await seed($)
-  await $.prompt.submit({ text: 'D1 코멘트: 한 줄이면 모자라나?', wait: false, origin: { kind: 'composer' } })
-  const replied = await $.tool.call(desk({ action: 'comment', id: 'D1', text: '두 번째 줄은 다음 단계라서\n빼면 안 보임' }))
-  expect(replied.result).toBe('D1 코멘트 2')
+  await $.prompt.submit({ text: 'Q1 코멘트: 한 줄이면 모자라나?', wait: false, origin: { kind: 'composer' } })
+  const replied = await $.tool.call(desk({ action: 'comment', id: 'Q1', text: '두 번째 줄은 다음 단계라서\n빼면 안 보임' }))
+  expect(replied.result).toBe('Q1 코멘트 2')
   const d = stored().decisions[0]
   expect(d.comments?.map((c: any) => [c.id, c.by, c.sent])).toEqual([
     ['c1', 'user', true],
     ['c2', 'agent', true],
   ])
   expect(d.unread).toBe(true)
-  expect(stored().log.at(-1)?.text).toBe('D1 코멘트: 두 번째 줄은 다음 단계라서 빼면 안 보임')
+  expect(stored().log.at(-1)?.text).toBe('Q1 코멘트: 두 번째 줄은 다음 단계라서 빼면 안 보임')
 
   const target = pane(43)
   const columns = target.props.bodyColumns
@@ -579,7 +534,7 @@ test('the agent replies on the thread; the list marks it unread until the decisi
   expect(list[row]).toMatch(/^● {2}\[2\] +▸ 에이전트: /)
   for (const line of list) expect(cells(line)).toBeLessThanOrEqual(columns)
 
-  await ui.press({ key: 'dec-D1' })
+  await ui.press({ key: 'dec-Q1' })
   expect(stored().decisions[0].unread).toBeUndefined()
   const detail = await screen(ui, columns)
   show('the thread under a decision', detail, columns)
@@ -600,15 +555,15 @@ test('revise_decision changes the decision and says what changed on its thread',
   const { stored } = engine(on)
   await start($)
   await seed($)
-  await $.tool.call(desk({ action: 'answer_decision', id: 'D2', text: 'a' }))
+  await $.tool.call(desk({ action: 'answer_decision', id: 'Q2', text: 'a' }))
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  await ui.press({ key: 'dec-D1' })
+  await ui.press({ key: 'dec-Q1' })
   await ui.press({ key: 'opt-a' })
   await ui.press({ key: 'back' })
   const revised = await $.tool.call(
     desk({
       action: 'revise_decision',
-      id: 'D1',
+      id: 'Q1',
       options: [
         { key: 'b', label: '두 줄', why: '다음 단계가 보임' },
         { key: 'c', label: '접었다 펴기', why: '평소 한 줄' },
@@ -618,7 +573,7 @@ test('revise_decision changes the decision and says what changed on its thread',
       text: '한 줄 의견을 반영함',
     }),
   )
-  expect(revised.result).toBe('D1 다듬음: 선택지 c 추가, 선택지 a 뺌, 권장 b → c, 곧 → 막힘')
+  expect(revised.result).toBe('Q1 다듬음: 선택지 c 추가, 선택지 a 뺌, 권장 b → c, 곧 → 막힘')
   const d = stored().decisions[0]
   expect(d.options.map((o: any) => o.key)).toEqual(['b', 'c'])
   expect(d.recommended).toBe('c')
@@ -633,11 +588,11 @@ test('revise_decision changes the decision and says what changed on its thread',
     sent: true,
   })
   expect(d.unread).toBe(true)
-  expect(stored().log.at(-1)?.text).toBe('D1 다듬음: 선택지 c 추가, 선택지 a 뺌, 권장 b → c, 곧 → 막힘')
-  const same = await $.tool.call(desk({ action: 'revise_decision', id: 'D1', recommended: 'c' }))
-  expect(same.result).toBe('D1: 바뀐 것 없음')
-  const question = await $.tool.call(desk({ action: 'revise_decision', id: 'D1', question: '밴드는 기본 몇 줄?' }))
-  expect(question.result).toBe('D1 다듬음: 질문 고침')
+  expect(stored().log.at(-1)?.text).toBe('Q1 다듬음: 선택지 c 추가, 선택지 a 뺌, 권장 b → c, 곧 → 막힘')
+  const same = await $.tool.call(desk({ action: 'revise_decision', id: 'Q1', recommended: 'c' }))
+  expect(same.result).toBe('Q1: 바뀐 것 없음')
+  const question = await $.tool.call(desk({ action: 'revise_decision', id: 'Q1', question: '밴드는 기본 몇 줄?' }))
+  expect(question.result).toBe('Q1 다듬음: 질문 고침')
   expect(stored().decisions[0].question).toBe('밴드는 기본 몇 줄?')
   await ui.unmount()
 })
@@ -646,14 +601,14 @@ test('a chat line comments on a decision', async ($, on) => {
   const { stored, submitted } = engine(on)
   await start($)
   await seed($)
-  await $.prompt.submit({ text: 'D1 코멘트: 한 줄도 괜찮을지도\nD2 comment: 프로젝트별이 맞음', wait: false, origin: { kind: 'composer' } })
+  await $.prompt.submit({ text: 'Q1 코멘트: 한 줄도 괜찮을지도\nQ2 comment: 프로젝트별이 맞음', wait: false, origin: { kind: 'composer' } })
   const d = stored()
   expect(d.decisions[0].status).toBe('open')
   expect(d.decisions[0].comments?.map((c: any) => [c.by, c.text, c.sent])).toEqual([['user', '한 줄도 괜찮을지도', true]])
   expect(d.decisions[1].comments?.map((c: any) => c.text)).toEqual(['프로젝트별이 맞음'])
   const context = submitted[0]?.context ?? []
   expect(context[0]).toContain('"한 줄도 괜찮을지도"')
-  expect(context[0]).toContain('Reply on the desk with the desk action comment (id D1)')
+  expect(context[0]).toContain('Reply on the desk with the desk action comment (id Q1)')
 })
 
 // The terminal empties the text a field holds under its key once an Enter
@@ -665,7 +620,7 @@ test('Enter keeps the 전체 메모 in its field, and an empty change right afte
   await start($)
   await seed($)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  await ui.press({ key: 'dec-D1' })
+  await ui.press({ key: 'dec-Q1' })
   await ui.press({ key: 'opt-b' })
   await ui.press({ key: 'back' })
   await ui.press({ key: 'outbox' })
@@ -698,11 +653,11 @@ test('typing a comment across a wrap moves no row and drops no line', async ($, 
   const columns = target.props.bodyColumns
   expect(columns).toBe(41)
   const ui = await $.ui.mount({ ...target, surface: 'terminal' })
-  await ui.press({ key: 'dec-D1' })
+  await ui.press({ key: 'dec-Q1' })
   const before = await screen(ui, columns)
   const head = before.findIndex(l => l.startsWith('새 코멘트 · '))
   expect(head).toBeGreaterThan(0)
-  const rows = (await fieldOf(ui, 'comment-D1'))?.props.rows as number
+  const rows = (await fieldOf(ui, 'comment-Q1'))?.props.rows as number
   expect(rows).toBe(6)
   // The field sits on the pane's foot, as wide as the pane.
   expect(head + 1 + rows).toBe(before.length)
@@ -711,14 +666,14 @@ test('typing a comment across a wrap moves no row and drops no line', async ($, 
   let typed = ''
   for (const ch of text) {
     typed += ch
-    await typeIn(ui, 'comment-D1', typed, 'change')
+    await typeIn(ui, 'comment-Q1', typed, 'change')
     const now = await screen(ui, columns)
     expect(now.length).toBe(before.length)
     // The body above stays, and so does the header's place.
     expect(now.slice(0, head - 1)).toEqual(before.slice(0, head - 1))
     expect(now[head - 1]).toMatch(/^j: … 아래 \d+줄/)
     expect(now[head]).toMatch(/^새 코멘트 · 저장됨/)
-    expect((await fieldOf(ui, 'comment-D1'))?.props.rows).toBe(rows)
+    expect((await fieldOf(ui, 'comment-Q1'))?.props.rows).toBe(rows)
     // Every wrapped line of what is typed shows in the field.
     const shown = now.slice(head + 1).map(l => l.replace(/^\||\|$/g, '').trim()).join('')
     expect(shown.replace(/\s/g, '')).toBe(typed.replace(/\s/g, ''))
@@ -730,9 +685,9 @@ test('typing a comment across a wrap moves no row and drops no line', async ($, 
 test('a memo of the older layout comes back as the first comment of its thread', async ($, on) => {
   const value = {
     decisions: [
-      { id: 'D1', question: '밴드는 몇 줄까지?', options: [], status: 'open', createdAt: 1, memo: '재시작 전에 쓴 메모', memoAt: 5 },
-      { id: 'D2', question: '책상 저장은?', options: [], status: 'open', createdAt: 2, memo: '아직 안 보낸 메모', memoAt: 6, memoPending: true },
-      { id: 'D3', question: '빈 메모는?', options: [], status: 'answered', answer: 'a', createdAt: 3, memo: '' },
+      { id: 'Q1', question: '밴드는 몇 줄까지?', options: [], status: 'open', createdAt: 1, memo: '재시작 전에 쓴 메모', memoAt: 5 },
+      { id: 'Q2', question: '책상 저장은?', options: [], status: 'open', createdAt: 2, memo: '아직 안 보낸 메모', memoAt: 6, memoPending: true },
+      { id: 'Q3', question: '빈 메모는?', options: [], status: 'answered', answer: 'a', createdAt: 3, memo: '' },
     ],
     plan: [],
     running: [],
@@ -745,10 +700,10 @@ test('a memo of the older layout comes back as the first comment of its thread',
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   // The waiting one is in the outbox; the sent one is not.
   expect((await ui.find({ type: 'Button', key: 'outbox' }))?.text).toBe('보내기 (1) ▸')
-  await ui.press({ key: 'dec-D1' })
+  await ui.press({ key: 'dec-Q1' })
   expect(await ui.find({ type: 'Text', text: /^── 코멘트 1 ─+$/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /재시작 전에 쓴 메모/ })).toBeDefined()
-  expect((await fieldOf(ui, 'comment-D1'))?.props.value).toBe('')
+  expect((await fieldOf(ui, 'comment-Q1'))?.props.value).toBe('')
   await ui.unmount()
   // The first write stores the thread in place of the memo, under the same tag.
   await $.tool.call(desk({ action: 'note', text: '기록' }))
@@ -763,7 +718,7 @@ test('a memo of the older layout comes back as the first comment of its thread',
 
 test('a hook that runs before session.start reads the store before writing it', async ($, on) => {
   const value = {
-    decisions: [{ id: 'D4', question: '어제 질문', options: [], status: 'open', createdAt: 1 }],
+    decisions: [{ id: 'Q4', question: '어제 질문', options: [], status: 'open', createdAt: 1 }],
     plan: [{ id: 'S1', text: '어제 단계', state: 'doing' }],
     running: [],
     log: [],
@@ -882,7 +837,7 @@ test('a wrapped line continues under its text, not under its prefix', async ($, 
   const columns = target.props.bodyColumns
   const ui = await $.ui.mount({ ...target, surface: 'terminal' })
   const lines = await screen(ui, columns)
-  const first = lines.findIndex(l => l.startsWith('!  D1  '))
+  const first = lines.findIndex(l => l.startsWith('!  Q1  '))
   expect(first).toBeGreaterThan(0)
   const second = lines[first + 1] ?? ''
   // The mark's cell is three wide and the id's four; the question's second
@@ -900,7 +855,7 @@ test('a wrapped line continues under its text, not under its prefix', async ($, 
   expect(away[entry + 1]?.[8]).not.toBe(' ')
   await ui.press({ key: 'tab-wait' })
 
-  await ui.press({ key: 'dec-D1' })
+  await ui.press({ key: 'dec-Q1' })
   const detail = await screen(ui, columns)
   const why = detail.findIndex(l => l.includes('목록에서'))
   expect(detail[why]?.startsWith('   목록에서')).toBe(true)
@@ -923,7 +878,7 @@ test('a long list scrolls inside the pane with markers and a bar', async ($, on)
   const before = await screen(ui, columns)
 
   await ui.press({ key: 'scroll-down' })
-  expect(await ui.find({ type: 'Button', key: 'dec-D1' })).toBeUndefined()
+  expect(await ui.find({ type: 'Button', key: 'dec-Q1' })).toBeUndefined()
   expect((await ui.find({ type: 'Button', key: 'scroll-up' }))?.text).toContain('위에 1개')
   const after = await screen(ui, columns)
   expect(after.length).toBe(before.length)
@@ -931,10 +886,10 @@ test('a long list scrolls inside the pane with markers and a bar', async ($, on)
   // The wheel and the arrow keys move the list, not the engine's window.
   const moved = await $.ui.scroll({ component: 'Pane', requestId: 'desk', offset: 1, by: 1, bodyRows: 20, contentRows: 20, origin: { kind: 'person' } })
   expect(moved.deny).toBeUndefined()
-  expect(await ui.find({ type: 'Button', key: 'dec-D2' })).toBeUndefined()
+  expect(await ui.find({ type: 'Button', key: 'dec-Q2' })).toBeUndefined()
   for (let i = 0; i < 30; i += 1)
     await $.ui.scroll({ component: 'Pane', requestId: 'desk', offset: 0, by: -1, bodyRows: 20, contentRows: 20, origin: { kind: 'person' } })
-  expect(await ui.find({ type: 'Button', key: 'dec-D1' })).toBeDefined()
+  expect(await ui.find({ type: 'Button', key: 'dec-Q1' })).toBeDefined()
   show('a scrolled list, 20 rows', after, columns)
   await ui.unmount()
 })
@@ -951,7 +906,7 @@ test('finished decisions sit under their rule in the same scrolling list', async
   show('3 open and 5 finished, 24 rows', top, columns)
   // Three open, then the rule right after them: no rows held back between.
   const rule = top.findIndex(l => /^── 끝난 결정 5 ─+/.test(l))
-  expect(rule).toBe(top.findIndex(l => l.startsWith('!  D3  ')) + 2)
+  expect(rule).toBe(top.findIndex(l => l.startsWith('!  Q3  ')) + 2)
   const bar = barOf(top, columns)
   const thumb = bar.filter(c => c === '┃').length
   expect(thumb).toBeGreaterThan(0)
@@ -960,7 +915,7 @@ test('finished decisions sit under their rule in the same scrolling list', async
   // Scrolling down reaches the finished ones; the thumb keeps its size.
   for (let i = 0; i < 10; i += 1) await ui.press({ key: 'scroll-down' }).catch(() => undefined)
   const end = await screen(ui, columns)
-  expect(end.some(l => l.startsWith('   D4  '))).toBe(true)
+  expect(end.some(l => l.startsWith('   Q4  '))).toBe(true)
   expect(barOf(end, columns).filter(c => c === '┃').length).toBe(thumb)
   expect(await ui.find({ type: 'Button', key: 'scroll-down' })).toBeUndefined()
   show('scrolled to the finished ones', end, columns)
@@ -1063,7 +1018,7 @@ test('a stored desk of the older layout comes back whole', async ($, on) => {
   await start($)
 
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  expect(await ui.find({ type: 'Button', key: 'dec-D6' })).toBeDefined()
+  expect(await ui.find({ type: 'Button', key: 'dec-Q6' })).toBeDefined()
   // A memo from before the outbox was sent then: nothing waits to be sent.
   expect(await ui.find({ type: 'Button', key: 'outbox' })).toBeUndefined()
   await ui.press({ key: 'tab-tasks' })
@@ -1076,9 +1031,9 @@ test('a stored desk of the older layout comes back whole', async ($, on) => {
   await ui.unmount()
 
   const added = await $.tool.call(desk({ action: 'add_decision', question: '새 질문' }))
-  expect(added.result).toBe('D7 올림 (대기 5)')
+  expect(added.result).toBe('Q7 올림 (대기 5)')
   const d = stored()
-  expect(d.decisions.map((x: any) => x.id)).toEqual(['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7'])
+  expect(d.decisions.map((x: any) => x.id)).toEqual(['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7'])
   expect(d.plan.map((s: any) => [s.id, s.state])).toEqual([
     ['S1', 'done'],
     ['S2', 'done'],
@@ -1088,11 +1043,11 @@ test('a stored desk of the older layout comes back whole', async ($, on) => {
   ])
   // A run the last session left running cannot be followed any more.
   expect(d.running[0].status).toBe('lost')
-  expect((kept.get(STORE_KEY) as { shape: string }).shape).toBe('desk-1')
+  expect((kept.get(STORE_KEY) as { shape: string }).shape).toBe('desk-2')
 })
 
 test('an older shape in the store starts an empty desk', async ($, on) => {
-  engine(on, { [STORE_KEY]: { shape: 'desk-0', value: { decisions: [{ id: 'D1' }] } } })
+  engine(on, { [STORE_KEY]: { shape: 'desk-0', value: { decisions: [{ id: 'Q1' }] } } })
   await start($)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Text' }))?.text).toBe('engine')
@@ -1123,10 +1078,10 @@ test('a long decision scrolls under its header, the way back always on top', asy
   const target = pane(45, 20)
   const columns = target.props.bodyColumns
   const ui = await $.ui.mount({ ...target, surface: 'terminal' })
-  await ui.press({ key: 'dec-D1' })
+  await ui.press({ key: 'dec-Q1' })
   const opened = await screen(ui, columns)
   expect(opened.length).toBe(20)
-  expect(opened[0]).toMatch(/^← 목록 {2}D1 · 답을 기다림/)
+  expect(opened[0]).toMatch(/^← 목록 {2}Q1 · 답을 기다림/)
   expect(await ui.find({ type: 'Button', key: 'scroll-up' })).toBeUndefined()
   expect((await ui.find({ type: 'Button', key: 'scroll-down' }))?.text).toMatch(/아래 \d+줄/)
   expect(await ui.find({ type: 'Button', key: 'discuss' })).toBeUndefined()
@@ -1136,7 +1091,7 @@ test('a long decision scrolls under its header, the way back always on top', asy
   const end = await screen(ui, columns)
   show('a long decision scrolled to its end, 20 rows', end, columns)
   expect(end.length).toBe(20)
-  expect(end[0]).toMatch(/^← 목록 {2}D1 · 답을 기다림/)
+  expect(end[0]).toMatch(/^← 목록 {2}Q1 · 답을 기다림/)
   expect(await ui.find({ type: 'Button', key: 'back' })).toBeDefined()
   expect(await ui.find({ type: 'Button', key: 'discuss' })).toBeDefined()
   expect(await ui.find({ type: 'Button', key: 'scroll-down' })).toBeUndefined()
@@ -1154,9 +1109,9 @@ test('a long decision scrolls under its header, the way back always on top', asy
   for (let i = 0; i < 10; i += 1) await ui.press({ key: 'scroll-up' }).catch(() => undefined)
   expect((await screen(ui, columns))[2]).toBe(opened[2])
   await ui.press({ key: 'back' })
-  expect(await ui.find({ type: 'Button', key: 'dec-D1' })).toBeDefined()
+  expect(await ui.find({ type: 'Button', key: 'dec-Q1' })).toBeDefined()
   // Opened again, it starts at its top.
-  await ui.press({ key: 'dec-D1' })
+  await ui.press({ key: 'dec-Q1' })
   expect(await ui.find({ type: 'Button', key: 'scroll-up' })).toBeUndefined()
   await ui.unmount()
 })
@@ -1208,7 +1163,7 @@ test('a long step and a full outbox keep their header, the outbox its 전송', a
   expect(end[0]).toMatch(/^← 목록 {2}보낼 것 8개/)
   expect(end.at(-1)).toBe('[ 전송 ]')
   expect(await fieldOf(ui, 'outbox-note')).toBeDefined()
-  expect(await ui.find({ type: 'Button', key: 'cancel-D1' })).toBeUndefined()
+  expect(await ui.find({ type: 'Button', key: 'cancel-Q1' })).toBeUndefined()
   await ui.unmount()
 })
 
@@ -1216,11 +1171,11 @@ test('finished decisions list the latest answer first', async ($, on) => {
   const value = {
     decisions: [
       // Two answered before answers were timed: the later asked comes first.
-      { id: 'D1', question: '아주 옛날 결정', options: [], status: 'answered', answer: 'a', createdAt: 1 },
-      { id: 'D2', question: '옛날 결정', options: [], status: 'answered', answer: 'a', createdAt: 2 },
-      { id: 'D3', question: '지금 열린 결정', options: [], status: 'open', createdAt: 3 },
-      { id: 'D4', question: '어제 끝낸 결정', options: [], status: 'answered', answer: 'a', createdAt: 4, answeredAt: 50 },
-      { id: 'D5', question: '방금 끝낸 결정', options: [], status: 'answered', answer: 'a', createdAt: 5, answeredAt: 90 },
+      { id: 'Q1', question: '아주 옛날 결정', options: [], status: 'answered', answer: 'a', createdAt: 1 },
+      { id: 'Q2', question: '옛날 결정', options: [], status: 'answered', answer: 'a', createdAt: 2 },
+      { id: 'Q3', question: '지금 열린 결정', options: [], status: 'open', createdAt: 3 },
+      { id: 'Q4', question: '어제 끝낸 결정', options: [], status: 'answered', answer: 'a', createdAt: 4, answeredAt: 50 },
+      { id: 'Q5', question: '방금 끝낸 결정', options: [], status: 'answered', answer: 'a', createdAt: 5, answeredAt: 90 },
     ],
     plan: [],
     running: [],
@@ -1231,12 +1186,12 @@ test('finished decisions list the latest answer first', async ($, on) => {
   const { clock } = engine(on, { [STORE_KEY]: { shape: 'desk-1', value } })
   await start($)
   await clock.advance(1000)
-  await $.tool.call(desk({ action: 'answer_decision', id: 'D3', text: 'b' }))
+  await $.tool.call(desk({ action: 'answer_decision', id: 'Q3', text: 'b' }))
   const target = pane(45, 30)
   const ui = await $.ui.mount({ ...target, surface: 'terminal' })
   const lines = await screen(ui, target.props.bodyColumns)
-  const order = lines.map(l => /^[! ]{3}(D\d)\s/.exec(l)?.[1]).filter(Boolean)
-  expect(order).toEqual(['D3', 'D5', 'D4', 'D2', 'D1'])
+  const order = lines.map(l => /^[! ]{3}(Q\d)\s/.exec(l)?.[1]).filter(Boolean)
+  expect(order).toEqual(['Q3', 'Q5', 'Q4', 'Q2', 'Q1'])
   await ui.unmount()
 })
 
@@ -1255,10 +1210,10 @@ test('a desk call shows as one line, whole under ctrl+o', async ($, on) => {
   engine(on)
   await start($)
   const call = { action: 'add_decision', question: '서브에이전트 지침의 "브리프가 길면" 문장을 고칠까?', context: LONG_CONTEXT, options: [{ key: 'a', label: '예' }] }
-  const compact = await $.ui.mount({ ...toolRow(call, { output: 'D8 올림 (대기 3)' }), surface: 'terminal' })
+  const compact = await $.ui.mount({ ...toolRow(call, { output: 'Q8 올림 (대기 3)' }), surface: 'terminal' })
   const texts = await compact.findAll({ type: 'Text' })
   expect(texts.length).toBe(1)
-  expect(texts[0]?.text).toBe('책상 · D8 올림: 서브에이전트 지침의 "브리프가 길면" 문장을 고칠까?')
+  expect(texts[0]?.text).toBe('책상 · Q8 올림: 서브에이전트 지침의 "브리프가 길면" 문장을 고칠까?')
   expect(texts[0]?.props.wrap).toBe('truncate-end')
   expect(texts[0]?.props.dimColor).toBe(true)
   await compact.unmount()
@@ -1267,15 +1222,15 @@ test('a desk call shows as one line, whole under ctrl+o', async ($, on) => {
     [{ action: 'update_step', id: 's5', state: 'done' }, '책상 · S5 끝'],
     [{ action: 'set_plan', steps: ['a', 'b', { text: 'c' }] }, '책상 · 계획 3단계'],
     [{ action: 'note', text: '리뷰 끝' }, '책상 · 기록: 리뷰 끝'],
-    [{ action: 'answer_decision', id: 'D2', text: 'b' }, '책상 · D2 답: b'],
+    [{ action: 'answer_decision', id: 'Q2', text: 'b' }, '책상 · Q2 답: b'],
   ] as const) {
     const ui = await $.ui.mount({ ...toolRow(input), surface: 'terminal' })
     expect((await ui.find({ type: 'Text' }))?.text).toBe(line)
     await ui.unmount()
   }
 
-  const failed = await $.ui.mount({ ...toolRow({ action: 'memo' }, { isErrored: true, output: 'D9: 없는 결정' }), surface: 'terminal' })
-  expect((await failed.find({ type: 'Text' }))?.text).toBe('책상 · 오류: D9: 없는 결정')
+  const failed = await $.ui.mount({ ...toolRow({ action: 'memo' }, { isErrored: true, output: 'Q9: 없는 결정' }), surface: 'terminal' })
+  expect((await failed.find({ type: 'Text' }))?.text).toBe('책상 · 오류: Q9: 없는 결정')
   expect((await failed.find({ type: 'Text' }))?.props.color).toBe('error')
   await failed.unmount()
 
@@ -1294,7 +1249,7 @@ test('a desk call shows as one line, whole under ctrl+o', async ($, on) => {
       plugin: 'qwreey-desk',
       component: 'ToolResult',
       requestId: 't1',
-      props: { tool_use_id: 't1', tool: TOOL, output: 'D8 올림 (대기 3)', isErrored: false, ...extra },
+      props: { tool_use_id: 't1', tool: TOOL, output: 'Q8 올림 (대기 3)', isErrored: false, ...extra },
       viewport: { columns: 45, rows: 80, isFullscreen: false },
       surface: 'terminal',
     }) as const
@@ -1311,7 +1266,7 @@ test('a desk call shows as one line, whole under ctrl+o', async ($, on) => {
 test('open decisions go by urgency, marked in a cell of fixed width', async ($, on) => {
   const value = {
     // Stored before urgency was kept: read as soon.
-    decisions: [{ id: 'D1', question: '예전 결정', options: [], status: 'open', createdAt: 1 }],
+    decisions: [{ id: 'Q1', question: '예전 결정', options: [], status: 'open', createdAt: 1 }],
     plan: [],
     running: [],
     log: [],
@@ -1322,7 +1277,7 @@ test('open decisions go by urgency, marked in a cell of fixed width', async ($, 
   await start($)
   await $.tool.call(desk({ action: 'add_decision', question: '나중에 봐도 되는 것', urgency: 'later' }))
   const added = await $.tool.call(desk({ action: 'add_decision', question: '작업이 멈춘 것', urgency: 'blocking', blocks: 'S3 구현 전부' }))
-  expect(added.result).toBe('D3 올림 (대기 3)')
+  expect(added.result).toBe('Q3 올림 (대기 3)')
   await $.tool.call(desk({ action: 'add_decision', question: '다음에 필요한 것', urgency: 'soon' }))
   await $.tool.call(desk({ action: 'add_decision', question: '이것도 멈춤', urgency: 'blocking' }))
   await $.tool.call(desk({ action: 'add_decision', question: '잘못 준 값', urgency: 'now' }))
@@ -1334,11 +1289,11 @@ test('open decisions go by urgency, marked in a cell of fixed width', async ($, 
   const ui = await $.ui.mount({ ...target, surface: 'terminal' })
   const lines = await screen(ui, columns)
   show('decisions by urgency at 41 cells', lines.slice(0, 16), columns)
-  const firsts = lines.filter(l => /^[! ]{3}D\d /.test(l))
+  const firsts = lines.filter(l => /^[! ]{3}Q\d /.test(l))
   // Blocking first, then soon (an old one and an unknown value with them) as asked, then later.
-  expect(firsts.map(l => l.slice(0, 5))).toEqual(['!! D3', '!! D5', '!  D1', '!  D4', '!  D6', '   D2'])
+  expect(firsts.map(l => l.slice(0, 5))).toEqual(['!! Q3', '!! Q5', '!  Q1', '!  Q4', '!  Q6', '   Q2'])
   // The id and the question start in the same columns whatever the mark.
-  expect(new Set(firsts.map(l => l.indexOf('D')))).toEqual(new Set([3]))
+  expect(new Set(firsts.map(l => l.indexOf('Q')))).toEqual(new Set([3]))
   expect(new Set(firsts.map(l => cells(l.slice(0, 7))))).toEqual(new Set([7]))
   // The mark is drawn in the alert tone, the id beside it as before.
   const mark = (await ui.findAll({ type: 'Text', text: /!!/ })).find(x => x.text === '!! ')
@@ -1346,11 +1301,11 @@ test('open decisions go by urgency, marked in a cell of fixed width', async ($, 
 
   // Changing it moves the decision; the detail says it and what waits on it.
   const changed = await $.tool.call(desk({ action: 'set_urgency', id: 'd2', urgency: 'blocking', blocks: '배포' }))
-  expect(changed.result).toBe('D2 막힘')
-  expect((await screen(ui, columns)).filter(l => /^[! ]{3}D\d /.test(l)).map(l => l.slice(0, 5))).toEqual(['!! D2', '!! D3', '!! D5', '!  D1', '!  D4', '!  D6'])
-  await ui.press({ key: 'dec-D3' })
+  expect(changed.result).toBe('Q2 막힘')
+  expect((await screen(ui, columns)).filter(l => /^[! ]{3}Q\d /.test(l)).map(l => l.slice(0, 5))).toEqual(['!! Q2', '!! Q3', '!! Q5', '!  Q1', '!  Q4', '!  Q6'])
+  await ui.press({ key: 'dec-Q3' })
   const detail = await screen(ui, columns)
-  expect(detail[0]).toBe('← 목록  D3 · 답을 기다림 · 막힘')
+  expect(detail[0]).toBe('← 목록  Q3 · 답을 기다림 · 막힘')
   expect(await ui.find({ type: 'Text', text: '기다리는 것: S3 구현 전부' })).toBeDefined()
   await ui.unmount()
 
@@ -1360,8 +1315,8 @@ test('open decisions go by urgency, marked in a cell of fixed width', async ($, 
   await band.unmount()
 
   // The call's row in the transcript.
-  const row = await $.ui.mount({ ...toolRow({ action: 'set_urgency', id: 'D2', urgency: 'later' }), surface: 'terminal' })
-  expect((await row.find({ type: 'Text' }))?.text).toBe('책상 · D2 나중')
+  const row = await $.ui.mount({ ...toolRow({ action: 'set_urgency', id: 'Q2', urgency: 'later' }), surface: 'terminal' })
+  expect((await row.find({ type: 'Text' }))?.text).toBe('책상 · Q2 나중')
   await row.unmount()
 })
 
@@ -1424,7 +1379,7 @@ test('a table in a context stacks its rows on a phone and stays a grid where it 
   for (const [columns, grid] of [[43, false], [102, true]] as const) {
     const target = pane(columns)
     const ui = await $.ui.mount({ ...target, surface: 'terminal' })
-    await ui.press({ key: 'dec-D1' })
+    await ui.press({ key: 'dec-Q1' })
     const lines = await screen(ui, target.props.bodyColumns)
     show(`a table in a context at ${columns} columns`, lines.slice(0, 16), target.props.bodyColumns)
     // No raw pipes of the source (the field's own frame is drawn with them).
@@ -1456,12 +1411,12 @@ test('a scroll step writes only where the body stands and lays out no text again
       reason: '폰에서 목록이 길어지면 스크롤이 늘어난다',
     }),
   )
-  for (let i = 0; i < 10; i += 1) await $.tool.call(desk({ action: 'comment', id: 'D1', text: `${i + 1}: ${COMMENT}` }))
+  for (let i = 0; i < 10; i += 1) await $.tool.call(desk({ action: 'comment', id: 'Q1', text: `${i + 1}: ${COMMENT}` }))
 
   for (const columns of [41, 100]) {
     const target = pane(columns)
     const ui = await $.ui.mount({ ...target, surface: 'terminal' })
-    await ui.press({ key: 'dec-D1' })
+    await ui.press({ key: 'dec-Q1' })
     const opened = await screen(ui, target.props.bodyColumns)
     const before = { store: writes.store, state: writes.state.length }
     for (let i = 0; i < 6; i += 1) await scrollBy($, 1, 40)
@@ -1663,7 +1618,7 @@ test('the 기록 tab is the work log as a feed: whole entries, oldest first, a r
   const order = [
     lines.findIndex(l => /^── 11월 15일 ─+$/.test(l)),
     at,
-    lines.findIndex(l => l.startsWith(`${hm(first + 10 * 60_000)} ? D1 올림: 탭 이름을 기록으로?`)),
+    lines.findIndex(l => l.startsWith(`${hm(first + 10 * 60_000)} ? Q1 올림: 탭 이름을 기록으로?`)),
     lines.findIndex(l => /^── 11월 16일 ─+$/.test(l)),
     lines.findIndex(l => l.startsWith(`${hm(morning)}   다음 날 아침`)),
   ]
@@ -1671,7 +1626,7 @@ test('the 기록 tab is the work log as a feed: whole entries, oldest first, a r
   expect([...order].sort((a, b) => a - b)).toEqual(order)
   // The summaries plain, what the desk logged on its own dim.
   expect((await ui.find({ type: 'Text', text: /^다음 날 아침/ }))?.props.dimColor).toBeFalsy()
-  expect((await ui.find({ type: 'Text', text: /^D1 올림/ }))?.props.dimColor).toBe(true)
+  expect((await ui.find({ type: 'Text', text: /^Q1 올림/ }))?.props.dimColor).toBe(true)
   await ui.unmount()
 })
 
@@ -1836,19 +1791,19 @@ test('a decision the window foot crosses shows its first line, its last at the t
   // Two rows and a blank each: the fifth starts on the last row.
   const opened = listRows(await screen(ui, columns), body)
   show('a decision across the window foot', await screen(ui, columns), columns)
-  expect(opened[9]).toMatch(/^! {2}D4 {2}4번 /)
-  expect(opened[12]).toMatch(/^! {2}D5 {2}5번 /)
-  expect(await ui.find({ type: 'Button', key: 'dec-D5' })).toBeDefined()
+  expect(opened[9]).toMatch(/^! {2}Q4 {2}4번 /)
+  expect(opened[12]).toMatch(/^! {2}Q5 {2}5번 /)
+  expect(await ui.find({ type: 'Button', key: 'dec-Q5' })).toBeDefined()
   expect((await ui.find({ type: 'Button', key: 'scroll-down' }))?.text).toContain('아래 8개')
 
   for (let i = 0; i < 20; i += 1) await ui.press({ key: 'scroll-down' }).catch(() => undefined)
   const end = listRows(await screen(ui, columns), body)
   show('a decision across the window top', await screen(ui, columns), columns)
-  // D8's second line on the top row, D12 ending on the foot.
+  // Q8's second line on the top row, Q12 ending on the foot.
   expect(end[0]).toMatch(/^ {7}\S/)
   expect(end[0]).toBe(opened[10])
   expect(end[1]).toBe('')
-  expect(end[2]).toMatch(/^! {2}D9 {2}9번 /)
+  expect(end[2]).toMatch(/^! {2}Q9 {2}9번 /)
   expect(end[12]).toMatch(/^ {7}\S/)
   expect((await ui.find({ type: 'Button', key: 'scroll-up' }))?.text).toContain('위에 8개')
   await ui.unmount()
@@ -1905,8 +1860,8 @@ test('an answered decision in the 기록 tab names the option and shows the ques
   engine(on)
   await start($)
   await $.tool.call(desk({ action: 'add_decision', question: ASKED, options: [{ key: 'a', label: '이 문구로 합침' }, { key: 'b', label: '둘로 나눔' }] }))
-  await $.tool.call(desk({ action: 'answer_decision', id: 'D1', text: 'a' }))
-  await $.tool.call(desk({ action: 'comment', id: 'D1', text: '첫 줄 의견\n둘째 줄은 안 보임' }))
+  await $.tool.call(desk({ action: 'answer_decision', id: 'Q1', text: 'a' }))
+  await $.tool.call(desk({ action: 'comment', id: 'Q1', text: '첫 줄 의견\n둘째 줄은 안 보임' }))
   for (let i = 1; i <= 14; i += 1) await $.tool.call(desk({ action: 'note', text: `${i}번째 요약` }))
   const target = pane(45, 20)
   const columns = target.props.bodyColumns
@@ -1917,7 +1872,7 @@ test('an answered decision in the 기록 tab names the option and shows the ques
   const before = await screen(ui, columns)
   show('decision entries in the 기록 tab', before, columns)
   const lines = feed(before)
-  const at = lines.findIndex(l => /^\d\d:\d\d \? D1 답: a\) 이 문구로 합침$/.test(l))
+  const at = lines.findIndex(l => /^\d\d:\d\d \? Q1 답: a\) 이 문구로 합침$/.test(l))
   expect(at).toBeGreaterThan(0)
   // The question whole, hung under the event, dim.
   const asked = lines.slice(at + 1, at + 4).map(l => l.slice(8))
@@ -1944,7 +1899,7 @@ test('a decision entry whose decision is gone keeps its stored text and is not p
         decisions: [],
         plan: [],
         running: [],
-        log: [{ at: 1_000_000, kind: 'decision', text: 'D9 답: a' }],
+        log: [{ at: 1_000_000, kind: 'decision', text: 'Q9 답: a' }],
         lastSeen: 0,
         nextDecision: 10,
       },
@@ -1956,7 +1911,7 @@ test('a decision entry whose decision is gone keeps its stored text and is not p
   const ui = await $.ui.mount({ ...target, surface: 'terminal' })
   await ui.press({ key: 'tab-away' })
   const lines = feed(await screen(ui, target.props.bodyColumns))
-  expect(lines.some(l => /^\d\d:\d\d \? D9 답: a$/.test(l))).toBe(true)
+  expect(lines.some(l => /^\d\d:\d\d \? Q9 답: a$/.test(l))).toBe(true)
   expect(await ui.find({ type: 'Button', key: 'log-0' })).toBeUndefined()
   await ui.unmount()
 })

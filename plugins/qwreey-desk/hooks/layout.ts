@@ -4,7 +4,7 @@
 // and no region grows or shrinks with what it holds.
 
 import type { DeskData, DeskDecision, DeskLogEntry, DeskStep, DeskTab } from '../types'
-import { URGENCIES, ago, oneLine, runningNow, unsent, urgencyOf } from './model'
+import { URGENCIES, ago, decisionId, oneLine, runningNow, unsent, urgencyOf } from './model'
 
 // Cells a code point takes, as terminals count East Asian widths: Hangul,
 // CJK and emoji two, combining marks none, the rest (ambiguous glyphs too)
@@ -423,16 +423,17 @@ export const NEW_MARK = '여기부터 새로'
  */
 // What a decision entry of the log shows, worked out at render time from the
 // decision as it stands now, so entries stored before this existed gain it too.
-const DECISION_EVENT = /^(D\d+) (답|올림|코멘트|다듬음|미룸)(?:: ([\s\S]*))?$/
+const DECISION_EVENT = /^([DQ]\d+) (답|올림|코멘트|다듬음|미룸)(?:: ([\s\S]*))?$/
 const HANG = '  '
 
 /** The entry's text rows below the first, from the decision; undefined when it is not about a live decision. */
 const decisionRows = (l: DeskLogEntry, d: DeskData, width: number): { rows: Line[]; id: string } | undefined => {
   if (l.kind !== 'decision') return undefined
   const m = DECISION_EVENT.exec(l.text)
-  const one = m && d.decisions.find(x => x.id === m[1])
+  const one = m && d.decisions.find(x => x.id === decisionId(m[1] ?? ''))
   if (!m || !one) return undefined
-  const [, id, what, rest = ''] = m
+  const [, , what, rest = ''] = m
+  const id = one.id
   const option = what === '답' ? one.options.find(o => o.key.toLowerCase() === rest.trim().toLowerCase()) : undefined
   const said = what === '코멘트' ? one.comments?.find(c => c.by === 'agent' && c.at === l.at) : undefined
   const comment = said ? oneLine(said.text.split('\n')[0] ?? '') : ''
@@ -456,8 +457,8 @@ const decisionRows = (l: DeskLogEntry, d: DeskData, width: number): { rows: Line
 const LOG_ROWS_KEPT = 2000
 const logRows = new Map<string, { rows: Line[]; id: string } | null>()
 const decisionRowsCached = (l: DeskLogEntry, d: DeskData, width: number) => {
-  const one = /^(D\d+) /.exec(l.text)?.[1]
-  const dec = d.decisions.find(x => x.id === one)
+  const one = /^([DQ]\d+) /.exec(l.text)?.[1]
+  const dec = one ? d.decisions.find(x => x.id === decisionId(one)) : undefined
   const key = `${width}|${l.at}|${l.text}|${dec ? `${dec.id}|${dec.status}|${dec.answeredAt ?? 0}|${dec.comments?.length ?? 0}|${dec.question}|${dec.options.map(o => o.key + o.label).join(',')}` : ''}`
   const hit = logRows.get(key)
   if (hit !== undefined) return hit
