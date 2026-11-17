@@ -49,7 +49,7 @@
 
 ### 안 B. 조건부: 상시 로드 문서면 지운다, 아니면 자유
 - `@import` 되는 todos 는 끝난 항목을 지운다.
-- 상시 로드되지 않는 할 일 문서(예: `backlog.md`, 또는 SessionStart 훅이 열린 항목만 주입하는 구조, PLAN.md §1 ③)는 형식이 자유다.
+- 상시 로드되지 않는 할 일 문서(예: `backlog.md`, 또는 SessionStart 훅이 열린 항목만 주입하는 구조, `.claude/archive/plan/PLAN-2026-11.md` §1 ③)는 형식이 자유다.
 - table-sim 이 "된 것" 보존을 원하면 그 구획을 import 되지 않는 파일로 분리하는 것만으로 충족된다.
 
 코드 `TODO` 는 두 안 모두 같은 규칙을 둔다.

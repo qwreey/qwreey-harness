@@ -82,7 +82,7 @@ status: active; canonical skill, script and registry moved to plugins/qwreey-del
 
 ## 3. 설치 위치
 
-- 스킬: `~/.claude/skills/delegate/`. 심볼릭 링크로 걸든 luau-kb 플러그인으로 넣든 된다. PLAN §4-1 결정에 따른다.
+- 스킬: `~/.claude/skills/delegate/`. 심볼릭 링크로 걸든 luau-kb 플러그인으로 넣든 된다. 공유는 플러그인으로 정했다(`.claude/base/harness-principles.md`).
   - 스크립트는 `${CLAUDE_SKILL_DIR}/scripts/delegate.sh`로 부른다.
 - **중앙 표는 고쳐 쓰는 파일이라 플러그인 캐시에 두면 안 된다.** 플러그인 캐시는 버전마다 사본이 생긴다.
   - 플러그인으로 갈 경우 `registry.tsv`는 git 정본 저장소에 두고, `~/.claude/settings.json`의 `env.DELEGATE_REGISTRY`로 가리킨다.

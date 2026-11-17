@@ -112,7 +112,7 @@ status: verified · last-confirmed: stylua 2.5.2 · 근거: `tools/repro-stylua-
 - **오염 조건은 "Luau 문법 설정이 없을 때"다.** stylua 가 `stylua.toml` 을 찾지 못하면 기본 문법으로 파싱하고, `id<<number>>(1)` 을 `id << number >> 1` 로, `T.Unsafe<<number>>({ a = 1 })` 를 `T.Unsafe << number >> { a = 1 }` 로 **rc=0 인 채** 바꾼다. 인자가 여럿이라 시프트로 파싱되지 않는 꼴(`f<<A, B>>(…)`)은 파싱 에러로 멈춘다.
 - `syntax = "Luau"` 가 설정에 있거나 `--syntax luau` 를 주면 그대로 보존된다. tbox 문서의 "syntax = Luau 에서도 오염" 은 재현되지 않았다. tbox 문서 스스로 "stylua 는 현재 디렉터리의 설정만 찾는다, 하위 디렉터리에서 돌리면 기본 설정으로 포매팅된다"고 적었는데, 그것이 실제 조건으로 보인다.
 - 규칙: stylua 는 **설정 파일이 있는 루트에서** 실행하거나 `--syntax luau` 를 명시한다. 포맷 뒤 `git diff` 에서 `<< ` 나 ` >>` 가 생겼는지 본다. stylua 를 올릴 때는 재현 스크립트를 먼저 돌린다.
-- 여러 저장소가 같은 모양의 `stylua.toml`(syntax Luau, column_width 120, Tabs, AutoPreferDouble, call_parentheses Always, collapse_simple_statement Never)을 쓴다. 들여쓰기(Tabs/Spaces)와 `call_parentheses`(Always/Input)는 저장소마다 갈린다(claude-doctor PLAN §4).
+- 여러 저장소가 같은 모양의 `stylua.toml`(syntax Luau, column_width 120, Tabs, AutoPreferDouble, call_parentheses Always, collapse_simple_statement Never)을 쓴다. 들여쓰기(Tabs/Spaces)와 `call_parentheses`(Always/Input)는 저장소마다 갈린다(claude-doctor `.claude/base/decisions/D-02-stylua.md`).
 - stylua 가 하위 디렉터리에서 기본 설정으로 포맷하는 같은 함정을 두 저장소가 따로 기록했다(후보 X-13, `tbox/CLAUDE.md:80-82`, `moonwave-luau/.claude/conventions.md:57-58`).
 
 > 결정: D-02 — 값(들여쓰기, `call_parentheses`)은 저장소 `stylua.toml` 이 소유한다. 공통 규칙은 '루트에서 실행, `syntax = "Luau"`, 포맷 뒤 `<<` diff 확인' 셋이다(`decisions/D-02-stylua.md`).

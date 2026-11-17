@@ -68,11 +68,11 @@ status: active; not installed
 
 - 프로젝트 레벨 서브에이전트의 frontmatter 훅은 작업공간 신뢰 전까지 건너뛴다(공식 문서). 사용자 레벨(`~/.claude/agents`)에 두면 이 문제가 없다.
 - 플러그인 서브에이전트는 `hooks`와 `permissionMode`가 **무시된다**(공식 문서). 그래서 이 에이전트들은 luau-kb 플러그인이 아니라 **사용자 레벨 파일**로 둔다. 스킬(`luau-types` 등)은 플러그인으로 가도 된다.
-- 스킬이 플러그인으로 설치되면 프리로드 이름이 `luau-kb:luau-types`꼴이 될 수 있다(미확인). PLAN §4-1 결정(심볼릭 링크 vs 플러그인) 뒤에 `skills:` 목록을 맞춘다.
+- 스킬이 플러그인으로 설치되면 프리로드 이름이 `luau-kb:luau-types`꼴이 될 수 있다(미확인). 공유는 플러그인으로 정했으니(`.claude/base/harness-principles.md`) 설치할 때 `skills:` 목록을 맞춘다.
 
 ## 4. memory를 쓰지 않는 이유
 
-PLAN §3은 rbvm 감사자에 `memory: project`를 제안했다. 이 설계는 **쓰지 않는 쪽**을 기본으로 한다. 이유는 넷이다.
+옛 PLAN §3(`.claude/archive/plan/PLAN-2026-11.md`)은 rbvm 감사자에 `memory: project`를 제안했다. 이 설계는 **쓰지 않는 쪽**을 기본으로 한다. 이유는 넷이다.
 
 1. **감사자의 가치는 신선한 맥락이다.** quad와 rbvm 모두 "변경한 세션은 자기가 무엇을 안 건드렸는지 모른다"를 감사자의 존재 이유로 적었다. 누적 메모리는 감사자를 다시 "아는 세션"으로 만든다. 실제로 quad-doc-auditor의 메모리에는 "자기참조 개수 금지" 같은 교훈과 낡은 서술이 같이 쌓였다(`.claude/audit/03` §3).
 2. **memory는 Read, Write, Edit을 자동으로 켠다**(공식 문서, quad 2026-08-16 실측과 일치). 읽기 전용 설계와 정면으로 충돌한다. 훅이 막기는 하지만, 막히는 도구를 켜 둘 이유가 없다.

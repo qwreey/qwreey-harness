@@ -1,7 +1,7 @@
 # .claude records
 
-Agent records for claude-doctor, laid out per the `coderag:agent-records` skill. `PLAN.md` stays at the repo root.
-- [base/](base/) - settled decisions (`decisions/D-xx`)
+Agent records for claude-doctor, laid out per the `coderag:agent-records` skill. `PLAN.md` stays at the repo root; the PLAN before 2026-11-17 is [archive/plan/PLAN-2026-11.md](archive/plan/PLAN-2026-11.md).
+- [base/](base/) - project overview, harness principles, settled decisions (`decisions/D-xx`)
 - [research/](research/) - open drafts
 - [audit/](audit/) - point-in-time measurements, reviews, debates (snapshots)
 - [handoff/](handoff/) - handoffs to other sessions (snapshots)
