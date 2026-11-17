@@ -1,4 +1,4 @@
 #!/bin/sh
 # session-log CLI. 플러그인 bin/ 이 PATH 에 없으면 "${CLAUDE_PLUGIN_ROOT}/bin/session-log" 로 부른다.
 here=$(dirname "$(readlink -f "$0")")
-exec python3 -I "$here/../scripts/cli.py" "$@"
+exec python3 -I -X utf8 "$here/../scripts/cli.py" "$@"

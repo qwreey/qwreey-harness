@@ -10,7 +10,7 @@ allowed-tools: Bash(python3 *subagent_ledger.py *)
 
 Below is the result of running `/q:away` (if output is already there, do not run it again; if only a run instruction is there, run that command once).
 
-!`python3 "${CLAUDE_SKILL_DIR}/../../scripts/subagent_ledger.py" away ${CLAUDE_SESSION_ID} $ARGUMENTS`
+!`python3 -X utf8 "${CLAUDE_SKILL_DIR}/../../scripts/subagent_ledger.py" away ${CLAUDE_SESSION_ID} $ARGUMENTS`
 
 Two stages: at the budget (stage 1) subagents run `HARNESS_AWAY_OVER_SLOTS` at a time; at `HARNESS_AWAY_STAGE2_MULT` times the budget (stage 2) new subagents and Workflows are refused until the user returns. The hook messages say what to do at each stage.
 
