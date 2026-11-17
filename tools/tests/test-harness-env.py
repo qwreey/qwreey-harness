@@ -310,6 +310,9 @@ class PluginOptions(unittest.TestCase):
         self.settings({"demo@a": {"demo_mode": "a"}, "demo@b": {"demo_mode": "b"}}, enabled={"demo@a": False, "demo@b": True})
         v = self.mod.load_layers(self.proj)
         self.assertEqual((v["DEMO_MODE"], v["_options"]), ("b", "demo@b"), "enabledPlugins 에서 켠 것")
+        self.settings({"demo@old": {"demo_mode": "old"}}, enabled={"demo@old": False, "demo@new": True})
+        v = self.mod.load_layers(self.proj)
+        self.assertEqual(("DEMO_MODE" in v, v["_options"]), (False, ""), "켠 사본이 설정 전이면 꺼진 옛 사본의 값을 쓰지 않는다")
 
     def test_settings_change_is_seen_in_one_process(self):
         self.settings({"demo@mkt": {"demo_mode": "one"}})

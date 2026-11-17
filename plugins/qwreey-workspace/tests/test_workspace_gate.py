@@ -116,6 +116,33 @@ class ScopeTest(unittest.TestCase):
         self.assertIsNone(from_wt.sibling(str(self.t / "a" / "mine" / "x.py")), "worktree 세션에서 본 저장소는 같은 저장소")
         self.assertEqual(from_wt.sibling(str(self.t / "b" / "other")), str(self.t / "b" / "other"))
 
+    def test_dotfiles_home_and_config_are_not_other_repos(self):
+        # 홈이나 ~/.claude 를 git 으로 관리하는 사람(dotfiles)도 memory, 계획, 설정 쓰기가 스킬 전에 막히지 않아야 한다.
+        home, cfg = self.t / "home", self.t / "home" / ".claude"
+        (cfg / ".git").mkdir(parents=True)
+        old = {k: os.environ.get(k) for k in ("HOME", "CLAUDE_CONFIG_DIR")}
+        try:
+            os.environ["HOME"] = str(home)
+            os.environ.pop("CLAUDE_CONFIG_DIR", None)
+            sc = wslib.Scope(str(self.t / "a" / "mine"), exclude=[])
+            self.assertIsNone(sc.sibling(str(cfg / "projects" / "p" / "memory" / "MEMORY.md")), "~/.claude 저장소")
+            (home / ".git").mkdir()
+            (cfg / ".git").rmdir()
+            sc = wslib.Scope(str(self.t / "a" / "mine"), exclude=[])
+            self.assertIsNone(sc.sibling(str(home / "notes.txt")), "홈 저장소")
+            self.assertEqual(sc.sibling(str(self.t / "b" / "other" / "x")), str(self.t / "b" / "other"), "다른 저장소는 그대로")
+        finally:
+            for k, v in old.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+
+    def test_inside_handles_case_and_separators(self):
+        self.assertTrue(wslib.inside(os.path.join("r", "a", "x"), os.path.join("r", "a")))
+        self.assertTrue(wslib.inside("r/a/x", "r/a/"))
+        self.assertFalse(wslib.inside("r/ab/x", "r/a"))
+
     def test_list_keys_are_user_only(self):
         # 저장소 제외를 저장소 층이 정하면 클론한 저장소가 게이트를 비켜 간다. 리터럴로 적은 사본이 known_repos 와 어긋나지 않게.
         self.assertLessEqual(wslib.known_repos.KNOWN_REPOS_USER_ONLY, wslib.ENV_USER_ONLY)

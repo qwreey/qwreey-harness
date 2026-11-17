@@ -106,7 +106,7 @@
   1. `claude plugin marketplace update claude-doctor-market` 뒤 위 플러그인을 `claude plugin update <이름>@claude-doctor-market`, 그다음 `/reload-plugins` 나 새 세션
   2. 위임을 쓰면 먼저 `/plugin configure qwreey-delegate@claude-doctor-market` 에서 위임 uid 표 경로를 `/code/Projects/claude-doctor/plugins/qwreey-delegate/skills/delegate/registry.tsv` 로 둔다. 비워 두면 `register` 가 플러그인 안 사본에 쓰기를 거절한다(실행은 된다)
   3. `tools/home-sync.sh diff` 뒤 `apply`: harness.env 정본에서 `HARNESS_WORKSPACE`, `HARNESS_DOCTOR_ROOT`, `HARNESS_DELEGATE_REGISTRY` 줄이 빠지고 `HARNESS_CODERAG` 는 PATH 의 `coderag`(같은 래퍼로 풀림)
-  4. 바뀌는 것: `/q:doctor` 정본 검사는 이 저장소 세션에서만; luau 분할 계획 안내는 luau-kb 플러그인을 설치해야 나온다(위 luau-kb 항목, 또는 harness.env 에 `HARNESS_LUAU_KB=<팩 폴더>`); 세션을 한 번도 연 적 없는 저장소는 qwreey-workspace 옵션 `harness_workspace_extra` 에 `/code/Projects` 를 두면 모두 잡힌다
+  4. 바뀌는 것: `/q:doctor` 정본 검사는 이 저장소 세션에서만; 세션을 한 번도 연 적 없는 저장소는 qwreey-workspace 옵션 `harness_workspace_extra` 에 `/code/Projects` 를 두면 모두 잡힌다
   5. 설정 우선순위: 코드 기본값 < `~/.claude/harness.env` < `/config` 옵션 < 저장소 `.claude/harness.env` < `harness.local.env` < 환경 변수
 - [ ] 회사 Windows PC 첫 실행 확인(README "Windows" 절). 결과를 알려 주면 남은 위험을 고친다
   1. Git Bash 에서 `python3 -c "import sys; print(sys.executable)"` 가 진짜 파이썬을 찍는다(Store 안내 창이 뜨거나 9009 로 끝나면 README 의 python3 항목)

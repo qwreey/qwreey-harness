@@ -94,6 +94,24 @@ def installed_plugin(name):
                 p = Path(r.get("installPath") or "") if isinstance(r, dict) else None
                 if p and p.is_dir():
                     return p
+    # 설치 기록이 없어도 로컬 폴더 마켓의 상대 경로 플러그인은 켜기만 하면 제자리에서 실린다. 그 폴더를 마켓 정의에서 찾는다.
+    try:
+        markets = json.loads((C.USER_HOME / "plugins" / "known_marketplaces.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    for market in sorted(markets if isinstance(markets, dict) else {}):
+        loc = markets[market].get("installLocation") if isinstance(markets[market], dict) else None
+        if not isinstance(loc, str):
+            continue
+        try:
+            entries = json.loads((Path(loc) / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8")).get("plugins") or []
+        except (OSError, ValueError, AttributeError):
+            continue
+        for e in entries:
+            if isinstance(e, dict) and e.get("name") == name and isinstance(e.get("source"), str):
+                p = (Path(loc) / e["source"]).resolve()
+                if p.is_dir():
+                    return p
     return None
 
 

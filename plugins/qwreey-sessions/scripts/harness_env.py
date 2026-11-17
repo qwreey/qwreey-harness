@@ -207,6 +207,9 @@ def plugin_options(name, keys, cfg=None):
     if not ids:
         return {}, ""
     enabled = data.get("enabledPlugins") if isinstance(data.get("enabledPlugins"), dict) else {}
+    on = [i for i, v in enabled.items() if v is True and isinstance(i, str) and i.rpartition("@")[0] == name]
+    if on and not any(i in ids for i in on):
+        return {}, ""  # 켠 사본은 아직 설정 전이다. 꺼진 옛 마켓 사본의 값(예: 게이트 끔)이 새 사본에 새지 않게 한다
     pid = min(ids, key=lambda i: (enabled.get(i) is not True, i))
     opts = pcs[pid].get("options")
     out = {}

@@ -52,6 +52,15 @@ def installed_roots(cfg=None):
 
 
 def plugin_root(name, cfg=None):
-    """설치된 플러그인 name 의 폴더. 여러 마켓에 있으면 마켓 이름순 첫째(실행마다 같은 답). 없으면 None."""
+    """플러그인 name 의 폴더. 여러 마켓에 있으면 마켓 이름순 첫째(실행마다 같은 답). 없으면 None.
+    설치 기록이 없으면 아는 마켓의 정의에서 찾는다: 로컬 폴더로 더한 마켓의 상대 경로 플러그인은 설치 없이 켜기만 해도
+    (예: 저장소 .claude/settings.json 의 enabledPlugins) 세션 시작 때 제자리에서 실린다."""
     hits = sorted((m, r) for n, m, r in installed_roots(cfg) if n == name)
-    return hits[0][1] if hits else None
+    if hits:
+        return hits[0][1]
+    markets = read_json(os.path.join(cfg or config_dir(), "plugins", "known_marketplaces.json"))
+    for market in sorted(markets if isinstance(markets, dict) else {}):
+        root = market_dir(markets, market, name)
+        if root is not None:
+            return root
+    return None

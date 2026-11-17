@@ -87,7 +87,17 @@ def norm(p: str, cwd: str) -> str:
 
 
 def inside(p: str, root: str) -> bool:
-    return p == root or p.startswith(root.rstrip("/") + "/")
+    # Windows 는 normpath 뒤 구분자가 백슬래시이고 대소문자를 가리지 않는다. 양쪽을 normcase 하고 두 구분자를 모두 받는다.
+    p, root = os.path.normcase(p), os.path.normcase(root).rstrip("/\\")
+    return p == root or p.startswith(root + os.sep) or p.startswith(root + "/")
+
+
+def _own_config(root: str) -> bool:
+    """홈 폴더나 Claude Code 설정 폴더 자체가 git 저장소(dotfiles)면 그 저장소는 '다른 저장소'가 아니다.
+    memory, 계획, 설정 쓰기가 스킬 전까지 막히면 안 된다."""
+    cfg = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
+    r = os.path.normcase(os.path.normpath(root))
+    return r == os.path.normcase(os.path.normpath(os.path.expanduser("~"))) or inside(r, os.path.normpath(cfg))
 
 
 class Scope:
@@ -121,7 +131,7 @@ class Scope:
             root = known_repos.repo_root(path)
             if not root or os.path.normcase(root) == self.own:
                 root = None
-            elif known_repos.excluded(root, self.exclude()):
+            elif _own_config(root) or known_repos.excluded(root, self.exclude()):
                 root = None
             self._memo[path] = root
         return self._memo[path]

@@ -20,7 +20,7 @@ MAXLEN = 120
 # 지도는 스킬을 실을 때마다 맥락에 들어간다. 저장소가 아주 많은 기기에서도 몇 천 자 안에 머물게 자른다(`*-kb` 가 앞이라 잘리지 않는다).
 MAX_ROWS = 60
 NONE_FOUND = ("No other repos known yet. Repos are found from this machine's Claude Code sessions; the user can add more "
-              "with the qwreey-workspace option harness_workspace_extra (/plugin configure qwreey-workspace@claude-doctor-market).")
+              "with the qwreey-workspace option harness_workspace_extra (/config, or /plugin configure qwreey-workspace).")
 
 
 def first_line(path: Path) -> str:
