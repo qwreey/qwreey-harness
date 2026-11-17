@@ -1,7 +1,7 @@
 ---
 format: 1
 title: 지금 계획
-description: 책상의 지금 계획 7단계(끝 3), 하는 중 S3 Windows 대응
+description: 책상의 지금 계획 9단계(끝 5), 하는 중 S4 공개 정리
 status: active
 ---
 
@@ -10,14 +10,18 @@ status: active
 - [x] S1 PLAN.md 수명별로 나누기
   df024a0
 - [x] S2 패널 결정·계획을 저장소 파일로
-  94790e1, qwreey-desk 0.3.0. 결정 23개가 Q 파일로 옮겨짐
-- [~] S3 Windows 대응
-  경로, python, fcntl (에이전트)
+  94790e1
+- [x] S3 Windows 대응
+  e75623f. 실기기 확인은 HUMAN_TODO
 - [~] S4 공개 정리
-  LICENSE 67a529d; table-sim 내부·동료 문장 기록 정리는 사본에서 계획 중
-- [x] S5 codex-plugin-cc 가져오기 (D21)
-  b8c9a4c, qwreey-delegate 0.3.0
-- [~] S6 다른 저장소 내부 기록 유도 (D22)
-  Q22 a: workspace 상시 줄 + 형제 경로 알림 훅(에이전트)
-- [ ] S7 비공개·공개로 올리기 (D19 미룸)
+  LICENSE 67a529d; table-sim·동료 문장 기록 정리는 사본에서 계획 중
+- [x] S5 codex-plugin-cc 가져오기
+  b8c9a4c
+- [x] S6 다른 저장소 내부 기록 유도
+  0cf23fb
+- [ ] S7 비공개·공개로 올리기
   기록 정리 적용 뒤 사용자가 push
+- [ ] S8 docs-site 팩 starlight 스킬
+  Q24 a. 첫 실사용은 공개 뒤
+- [~] S9 라이선스 도구
+  Q25 a: qwreey-license 플러그인 스킬(원문 받기·채우기·대조·NOTICE) 에이전트 진행 중
