@@ -351,7 +351,7 @@ export const outboxDetail = (d: DeskData, surface: RenderSurface, columns: numbe
             return Input ? (
               <Input
                 key={field.key}
-                placeholder="예: D3 과 D4 는 합칠 수 있을 듯"
+                placeholder="예: Q3 과 Q4 는 합칠 수 있을 듯"
                 rows={rows}
                 value={overall}
                 submitLabel=""

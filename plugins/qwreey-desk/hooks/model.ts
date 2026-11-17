@@ -8,19 +8,24 @@ import type {
   DeskDecision,
   DeskLogEntry,
   DeskLogKind,
+  DeskMarks,
   DeskOption,
   DeskRun,
   DeskRunStatus,
   DeskStep,
   DeskStepState,
+  DeskTimes,
+  DeskUi,
   DeskUrgency,
 } from '../types'
 
 // Bump when a value of the old shape would be misread by the new code: one
-// under another tag is read as empty. Optional fields added since (a step's
-// detail and times, a decision's urgency and comment thread) leave desk-1
-// values valid as they are; a memo of the older layout is read into the thread.
-export const SHAPE = 'desk-1'
+// under another tag is read as empty, unless a migration reads it. desk-2
+// keeps the pane's state only (decisions and the plan are files); a desk-1
+// value, the whole desk, is read once into files (`fromV1`), and a memo of
+// the older layout into its thread.
+export const SHAPE = 'desk-2'
+export const SHAPE_V1 = 'desk-1'
 
 // The work log keeps its newest entries; older ones drop off the store.
 export const LOG_KEEP = 500
@@ -54,8 +59,25 @@ const tidyLog = (log: readonly unknown[]): DeskLogEntry[] =>
     .map(({ l }) => l)
     .slice(-LOG_KEEP)
 
-const findDecision = (data: DeskData, id: string): DeskDecision | undefined =>
-  data.decisions.find(d => d.id.toLowerCase() === id.trim().toLowerCase())
+/**
+ * A decision's id as the desk writes it: `Q12` for `Q12`, `q12`, `12` and
+ * `D12`, the older prefix that commits and habits still use.
+ */
+export const decisionId = (id: string): string => {
+  const m = /^[DQ]?(\d+)$/i.exec(id.trim())
+  return m ? `Q${Number(m[1])}` : id.trim().toUpperCase()
+}
+
+const findDecision = (data: DeskData, id: string): DeskDecision | undefined => {
+  const want = decisionId(id)
+  return data.decisions.find(d => d.id === want)
+}
+
+/** The option an answer names by its first word (`b`, `b) 두 줄`, `b, 이유는`), if any. */
+export const optionOf = (d: DeskDecision, answer: string): DeskOption | undefined => {
+  const first = answer.trim().split(/[\s,.)]/)[0]?.toLowerCase()
+  return first ? d.options.find(o => o.key.toLowerCase() === first) : undefined
+}
 
 const withDecision = (data: DeskData, id: string, change: (d: DeskDecision) => DeskDecision): DeskData => ({
   ...data,
@@ -80,7 +102,7 @@ export const urgencyOf = (d: DeskDecision): DeskUrgency => d.urgency ?? 'soon'
 export const isUrgency = (v: unknown): v is DeskUrgency => URGENCIES.includes(v as DeskUrgency)
 
 export const addDecision = (data: DeskData, at: number, input: NewDecision): Outcome => {
-  const id = `D${data.nextDecision}`
+  const id = `Q${data.nextDecision}`
   const decision: DeskDecision = {
     id,
     question: oneLine(input.question),
@@ -455,11 +477,11 @@ export const ago = (now: number, at: number): string => {
   return `${Math.round(h / 24)}일`
 }
 
-// A chat line that answers or comments on a decision: `D3: b`, `D3 -> b` (or
-// the arrow glyph the desk's buttons send), `D3 = b`, or `D3 코멘트: ...`
-// (`메모` too, its older word). Only whole lines that start so count, so a
-// sentence that merely names D3 is left to the model.
-const LINE = /^\s*(D\d+)\s*(코멘트|comment|메모|memo)?\s*(?::|→|->|=)\s*(.+?)\s*$/i
+// A chat line that answers or comments on a decision: `Q3: b`, `Q3 -> b` (or
+// the arrow glyph the desk's buttons send), `Q3 = b`, or `Q3 코멘트: ...`
+// (`메모` too, its older word); `D3` is the same decision. Only whole lines
+// that start so count, so a sentence that merely names Q3 is left to the model.
+const LINE = /^\s*([DQ]\d+)\s*(코멘트|comment|메모|memo)?\s*(?::|→|->|=)\s*(.+?)\s*$/i
 
 export type ChatMark = { id: string; kind: 'answer' | 'comment'; text: string }
 
@@ -467,7 +489,7 @@ export const parseChat = (text: string): ChatMark[] =>
   text.split('\n').flatMap(line => {
     const m = LINE.exec(line)
     if (!m || !m[1] || !m[3]) return []
-    return [{ id: m[1].toUpperCase(), kind: m[2] ? 'comment' : 'answer', text: m[3] } as ChatMark]
+    return [{ id: decisionId(m[1]), kind: m[2] ? 'comment' : 'answer', text: m[3] } as ChatMark]
   })
 
 /** Applies what parseChat found; returns the data and one line per mark for the model. */
@@ -482,7 +504,7 @@ export const applyChat = (data: DeskData, at: number, marks: readonly ChatMark[]
       lines.push(`On the desk's thread: ${commentNote(found, [mark.text], found.status === 'answered')}`)
       continue
     }
-    const option = found.options.find(o => o.key.toLowerCase() === mark.text.split(/[\s,.)]/)[0]?.toLowerCase())
+    const option = optionOf(found, mark.text)
     out = answerDecision(out, at, found.id, mark.text).data
     lines.push(
       `${found.id} ("${found.question}") answered on the desk: "${mark.text}"` +
@@ -532,12 +554,13 @@ export const resultText = (output: unknown): string => {
 export const toolSummary = (input: unknown, output: unknown, isErrored: boolean): string => {
   const result = resultText(output)
   if (isErrored) return `오류: ${result || field(input, 'action')}`
-  const id = field(input, 'id').toUpperCase()
+  const given = field(input, 'id')
+  const id = /^S\d+$/i.test(given) ? given.toUpperCase() : given ? decisionId(given) : ''
   const text = field(input, 'text')
   const action = field(input, 'action')
   switch (action) {
     case 'add_decision': {
-      const made = /^(D\d+)/.exec(result)?.[1]
+      const made = /^([DQ]\d+)/.exec(result)?.[1]
       return `${made ?? '결정'} 올림: ${field(input, 'question')}`
     }
     case 'answer_decision':
@@ -567,4 +590,100 @@ export const toolSummary = (input: unknown, output: unknown, isErrored: boolean)
     default:
       return result || action || '호출'
   }
+}
+
+// ---- what the store keeps (desk-2), and the files joined to it --------------------------
+
+const byNumber = (a: DeskDecision, b: DeskDecision) => Number(/\d+/.exec(a.id)?.[0] ?? 0) - Number(/\d+/.exec(b.id)?.[0] ?? 0)
+
+/** What only the desk keeps of each decision, by id. */
+export const marksOf = (data: DeskData): Record<string, DeskMarks> => {
+  const out: Record<string, DeskMarks> = {}
+  for (const d of data.decisions) {
+    const waiting = unsent(d)
+    const m: DeskMarks = {
+      ...(d.pick !== undefined ? { pick: d.pick } : {}),
+      ...(d.draft !== undefined ? { draft: d.draft } : {}),
+      ...(d.draftAt !== undefined ? { draftAt: d.draftAt } : {}),
+      ...(d.unread ? { unread: true as const } : {}),
+      ...(waiting.length > 0 ? { unsent: waiting } : {}),
+    }
+    if (Object.keys(m).length > 0) out[d.id] = m
+  }
+  return out
+}
+
+/** When each step started and ended, by id. */
+export const timesOf = (data: DeskData): Record<string, DeskTimes> => {
+  const out: Record<string, DeskTimes> = {}
+  for (const s of data.plan) {
+    if (s.startedAt !== undefined || s.endedAt !== undefined)
+      out[s.id] = { text: s.text, ...(s.startedAt !== undefined ? { startedAt: s.startedAt } : {}), ...(s.endedAt !== undefined ? { endedAt: s.endedAt } : {}) }
+  }
+  return out
+}
+
+/** The store's value for the desk: with files, the pane's state only; without, the decisions and the plan too. */
+export const toUi = (data: DeskData, hasFiles: boolean): DeskUi => ({
+  running: data.running,
+  log: data.log,
+  lastSeen: data.lastSeen,
+  nextDecision: data.nextDecision,
+  ...(data.outboxNote !== undefined ? { outboxNote: data.outboxNote } : {}),
+  marks: hasFiles ? marksOf(data) : {},
+  times: hasFiles ? timesOf(data) : {},
+  ...(hasFiles ? {} : { decisions: data.decisions.map(({ file: _f, kept: _k, ...d }) => d), plan: data.plan }),
+})
+
+/** The desk a desk-2 value holds: its decisions and plan only where it kept them itself. */
+export const fromUi = (ui: Partial<DeskUi>): DeskData =>
+  normalize({
+    running: ui.running,
+    log: ui.log,
+    lastSeen: typeof ui.lastSeen === 'number' ? ui.lastSeen : 0,
+    nextDecision: typeof ui.nextDecision === 'number' ? ui.nextDecision : 1,
+    ...(ui.outboxNote !== undefined ? { outboxNote: ui.outboxNote } : {}),
+    decisions: ui.decisions,
+    plan: ui.plan,
+  })
+
+/** A desk-1 value under the Q names: each decision's id, and the log's entries about one. */
+export const fromV1 = (data: DeskData): DeskData => ({
+  ...data,
+  decisions: data.decisions.map(d => ({ ...d, id: decisionId(d.id) })),
+  log: data.log.map(l => (l.kind === 'decision' && /^D\d+ /.test(l.text) ? { ...l, text: `Q${l.text.slice(1)}` } : l)),
+})
+
+/**
+ * The desk with its decisions and plan as the files hold them, each
+ * decision's marks and each step's times laid back on: the files win over
+ * what the session had, which another session or a git pull may have changed.
+ */
+export const withFiles = (
+  base: DeskData,
+  marks: Readonly<Record<string, DeskMarks>>,
+  times: Readonly<Record<string, DeskTimes>>,
+  files: readonly DeskDecision[],
+  plan: readonly DeskStep[],
+): DeskData => {
+  const decisions = [...files].sort(byNumber).map(f => {
+    const m = marks[f.id]
+    if (!m) return f
+    const said = f.comments ?? []
+    const waiting = (m.unsent ?? []).map(({ sent: _s, ...c }, i) => ({ ...c, id: `c${said.length + i + 1}` }))
+    return {
+      ...f,
+      ...(m.pick !== undefined && f.status !== 'answered' ? { pick: m.pick } : {}),
+      ...(m.draft !== undefined ? { draft: m.draft } : {}),
+      ...(m.draftAt !== undefined ? { draftAt: m.draftAt } : {}),
+      ...(m.unread ? { unread: true as const } : {}),
+      ...(waiting.length > 0 ? { comments: [...said, ...waiting] } : {}),
+    }
+  })
+  const steps = plan.map(s => {
+    const t = times[s.id]
+    return t && t.text === s.text ? { ...s, ...(t.startedAt !== undefined ? { startedAt: t.startedAt } : {}), ...(t.endedAt !== undefined ? { endedAt: t.endedAt } : {}) } : s
+  })
+  const top = Math.max(0, ...decisions.map(d => Number(/\d+/.exec(d.id)?.[0] ?? 0)))
+  return { ...base, decisions, plan: steps, nextDecision: Math.max(base.nextDecision, top + 1) }
 }

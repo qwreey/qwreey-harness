@@ -1,6 +1,7 @@
 # .claude records
 
 Agent records for claude-doctor, laid out per the `coderag:agent-records` skill. `PLAN.md` stays at the repo root.
+- [plan/](plan/) - open decisions (`decisions/Q<n>-*.md`) and the current plan (`now.md`), written by the desk (qwreey-desk); answered ones in `archive/plan/decisions/`
 - [base/](base/) - settled decisions (`decisions/D-xx`)
 - [research/](research/) - open drafts
 - [audit/](audit/) - point-in-time measurements, reviews, debates (snapshots)
