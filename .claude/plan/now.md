@@ -17,7 +17,7 @@ status: active
   LICENSE 67a529d; table-sim 내부·동료 문장 기록 정리는 사본에서 계획 중
 - [x] S5 codex-plugin-cc 가져오기 (D21)
   b8c9a4c, qwreey-delegate 0.3.0
-- [ ] S6 다른 저장소 내부 기록 유도 (D22)
-  답 기다림
+- [~] S6 다른 저장소 내부 기록 유도 (D22)
+  Q22 a: workspace 상시 줄 + 형제 경로 알림 훅(에이전트)
 - [ ] S7 비공개·공개로 올리기 (D19 미룸)
   기록 정리 적용 뒤 사용자가 push
