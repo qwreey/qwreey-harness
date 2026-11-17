@@ -2,7 +2,8 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { Engine, Mounted } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
-import { NEW_MARK as NEW_RULE, cells, laidOut, markdownRows, regions, wrap } from '../hooks/layout'
+import { NEW_MARK as NEW_RULE, cells, laidOut, regions, wrap } from '../hooks/layout'
+import { markdownRows } from '../hooks/richtext'
 import { decisionDetail } from '../hooks/views'
 import type { Do } from '../hooks/views'
 
