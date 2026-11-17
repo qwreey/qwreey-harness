@@ -313,6 +313,15 @@ class Switches(unittest.TestCase):
             os.remove(os.path.join(CFG, "harness.env"))
         self.assertTrue(run("PostToolUse", "Read", X + "/a.py", fresh()))
 
+    def test_plugin_option_off(self):
+        with open(os.path.join(CFG, "settings.json"), "w") as f:
+            json.dump({"pluginConfigs": {"qwreey-conventions@m": {"options": {"harness_conventions_rules": False}}}}, f)
+        try:
+            self.assertIsNone(run("PostToolUse", "Read", X + "/a.py", fresh()))
+        finally:
+            os.remove(os.path.join(CFG, "settings.json"))
+        self.assertTrue(run("PostToolUse", "Read", X + "/a.py", fresh()))
+
     def test_repo_local_env_off(self):
         # 저장소 .claude/harness.local.env(개인, 커밋 안 함)가 사용자 층과 저장소 층을 이긴다.
         os.makedirs(os.path.join(PROJ, ".claude"), exist_ok=True)
@@ -457,6 +466,18 @@ class SwitchedRule(unittest.TestCase):
         self.assertIn('name="comments"', c)
         self.write(os.path.join(PROJ, ".claude", "harness.local.env"), "HARNESS_READABLE_CODE=on\n")
         self.assertIn(RC, ctx(run("PostToolUse", "Read", X + "/a.py", fresh())))
+
+    def test_plugin_option_on_repo_layer_off(self):
+        """/config 의 플러그인 옵션(settings.json pluginConfigs)이 사용자 harness.env 를 이기고, 저장소 층이 그 위에서 끈다."""
+        self.write(os.path.join(CFG, "harness.env"), "HARNESS_READABLE_CODE=off\n")
+        self.write(os.path.join(CFG, "settings.json"), json.dumps({"pluginConfigs": {"qwreey-conventions@claude-doctor-market": {
+            "options": {"harness_readable_code": True}}}}))
+        try:
+            self.assertIn(RC, ctx(run("PostToolUse", "Read", X + "/a.py", fresh())))
+            self.write(os.path.join(PROJ, ".claude", "harness.env"), "HARNESS_READABLE_CODE=off\n")
+            self.assertNotIn(RC, ctx(run("PostToolUse", "Read", X + "/a.py", fresh())))
+        finally:
+            os.remove(os.path.join(CFG, "settings.json"))
 
     def test_rules_exclude_beats_switch(self):
         self.write(os.path.join(PROJ, ".claude", "conventions.json"), json.dumps({"rules_exclude": ["readable-code"]}))

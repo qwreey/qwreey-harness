@@ -27,8 +27,9 @@ audit 10 기준 이 세션들의 파일 수정은 Bash(sed -i·python) 쪽이 Ed
   또는 structure.json  "exempt": [{"path": "<글롭>", "reason": "<사유>"}]
   사유가 비었거나 사유가 아닌 말("나중에", "귀찮", "TODO", "-")이면 무효다 — 평소처럼 알리고 무효라고 덧붙인다.
   유효한 예외 파일은 경고·강제·성장 알림 대신 "Reason: …" 한 줄(알림 문구는 영어, .claude/scopes/home/.claude/audit/17)을 세션당 한 번만 낸다(경고 기준 이상일 때).
-강제 기준을 넘은 .luau/.lua 파일에는 분리 계획기(split-plan.py) 명령을 한 줄 붙인다. 계획기는 ~/.claude/skills/luau-style 에서 찾고,
-  없으면 harness.env 의 HARNESS_LUAU_KB 또는 ${HARNESS_DOCTOR_ROOT}/packs/luau-kb(없으면 ${HARNESS_WORKSPACE}/claude-doctor/packs/luau-kb)에서 찾는다. 못 찾으면 안내를 생략한다.
+강제 기준을 넘은 .luau/.lua 파일에는 분리 계획기(split-plan.py) 명령을 한 줄 붙인다. 계획기는 luau-kb 팩에 있고, 팩은
+  harness.env 의 HARNESS_LUAU_KB(팩 폴더, 고급용)나 설치된 luau-kb 플러그인(conv_plugins.py: installed_plugins.json, 마켓 위치)에서 찾는다.
+  이 플러그인은 luau-kb 없이도 돌아야 하므로 못 찾으면 안내를 조용히 생략한다.
 
 저장소 설정: <프로젝트>/.claude/structure.json —
   {"warn": 800, "hard": 1500, "grow": 300, "flat": 15, "ignore": ["glob", …], "exempt": [{"path": "glob", "reason": "…"}],
@@ -51,6 +52,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
+import conv_plugins  # noqa: E402
 import harness_nonce  # noqa: E402
 
 # 툴킷 표: 확장자, 예외 표식 주석, 생성물 접미사, 건너뛸 폴더, 테스트 판정. 새 툴킷은 한 줄 더한다(또는 저장소 structure.json 의 toolkits).
@@ -80,10 +82,13 @@ BASH_PATH = re.compile(CODE)
 DEFAULTS = {"warn": 800, "hard": 1500, "grow": 300, "flat": 15, "ignore": [], "exempt": [], "toolkits": {}}
 REF = "the qwreey-conventions rule code-structure (rules/code-structure.md in the plugin; injected when you open a matching file)"
 PLANNER_REL = "skills/luau-style/scripts/split-plan.py"
+PLANNER_PLUGIN = "luau-kb"
 # 사유가 아닌 말: 비었거나, 미루기, 귀찮음, 자리표시
 NOT_A_REASON = re.compile(r"^(?:[-.…~_?!\s]*|todo|tbd|fixme|later|wip|n/?a|none|x+|임시|나중에?|나중에 ?나눔|추후|일단|귀찮.*)$", re.I)
 
-# 이 훅만 읽는 harness.env 키 가운데 저장소 층이 바꾸지 못하는 것: find_planner 가 실행할 스크립트를 찾는 경로다.
+# 이 훅만 읽는 harness.env 키. 기본값에 있어야 환경 변수만으로 준 값도 층 결과에 들어간다.
+ENV_DEFAULTS = {"HARNESS_LUAU_KB": ""}
+# 그 가운데 저장소 층이 바꾸지 못하는 것: find_planner 가 실행할 스크립트를 찾는 경로다.
 ENV_USER_ONLY = frozenset({"HARNESS_LUAU_KB"})
 _ENV = None
 
@@ -94,7 +99,7 @@ def harness_env():
     if _ENV is None:
         try:
             import harness_env as he
-            _ENV = he.load_layers(user_only=ENV_USER_ONLY)
+            _ENV = he.load_layers(defaults=ENV_DEFAULTS, user_only=ENV_USER_ONLY)
         except Exception:
             _ENV = {}
     return _ENV
@@ -113,16 +118,12 @@ def dedup_path(namespace, session_id, agent_id=None):
 
 
 def find_planner():
-    """split-plan.py 경로. 못 찾으면 None(안내 생략)."""
-    env = harness_env()
-    cands = [Path.home() / ".claude" / PLANNER_REL]
-    kb = env.get("HARNESS_LUAU_KB")
-    if not kb:
-        root = env.get("HARNESS_DOCTOR_ROOT") or (os.path.join(env["HARNESS_WORKSPACE"], "claude-doctor") if env.get("HARNESS_WORKSPACE") else "")
-        kb = os.path.join(root, "packs", "luau-kb") if root else ""
-    if kb:
-        cands.append(Path(kb) / PLANNER_REL)
-    return next((str(c) for c in cands if c.is_file()), None)
+    """split-plan.py 경로. HARNESS_LUAU_KB 가 설치본보다 앞선다(팩을 고치는 사람이 자기 작업 사본을 가리킨다). 못 찾으면 None(안내 생략)."""
+    kb = os.path.expanduser((harness_env().get("HARNESS_LUAU_KB") or "").strip())
+    for root in (kb, conv_plugins.plugin_root(PLANNER_PLUGIN)):
+        if root and (Path(root) / PLANNER_REL).is_file():
+            return str(Path(root) / PLANNER_REL)
+    return None
 
 
 def reason_ok(reason):

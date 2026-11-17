@@ -3,6 +3,7 @@
 
 검사
   C1 `@copy-of: <경로>[#이름]` 사본이 원본과 같은가(파일은 바이트, 값은 문자열 묶음). 풀리지 않거나 다르면 알린다.
+     `<저장소>:<경로>` 는 현재 저장소 옆의 같은 이름 폴더, 없으면 known_repos.py 의 저장소 목록에서 찾는다(sibling_repos). 못 찾으면 기록만 한다.
      영역 사본(`@start-replace: <경로>#<이름> [옵션]` ... `@end-replace`)은 정본 영역에서 만든 줄과 같은가(copy_regions.py, 정본은 lib/).
   C2 원본을 고치면 그것을 가리키는 사본 목록을 알린다(묶음은 원소가 바뀐 때만, 정본 영역은 그 안의 줄을 고친 때만).
   H1 추가한 문자열 묶음이 저장소의 다른 정의와 겹침(타입 합집합과 런타임 목록이 어긋난 것 포함). 기본은 그림자: 알리지 않고
@@ -17,6 +18,7 @@
 턴 끝 보고용 기록: $TMPDIR/claude-conventions/<session_id>.reuse.<main|agent_id>.json (conventions-check 의 Stop 이 합쳐 보인다).
 """
 import fnmatch
+import functools
 import hashlib
 import json
 import os
@@ -321,13 +323,37 @@ def text_of(kind, rel, st, hit):
 
 # ---------- 사본 검사(C1, C2) ----------
 
+@functools.lru_cache(maxsize=None)  # 한 편집에 같은 저장소를 가리키는 표시가 여럿이어도 한 번만 찾는다
+def sibling_repos(root, name):
+    """`<저장소>:<경로>` 의 저장소 이름 name 에 맞는 폴더 후보(앞이 우선). 프로젝트를 어디에 두는지는 사람과 OS 마다 달라
+    작업공간 폴더를 정하게 하지 않는다: 현재 저장소(worktree 면 본 저장소) 옆의 같은 이름 폴더가 있으면 그것 하나,
+    없으면 이 기기에서 일한 저장소(known_repos: 세션 기록의 cwd 와 qwreey-workspace 옵션) 가운데 폴더 이름이 같은 것 전부(경로순)."""
+    # known_repos 는 이 표시가 있을 때만 쓴다. 대부분의 편집은 이 import 와 수집을 치르지 않는다.
+    import known_repos
+    main = known_repos.repo_root(root) or root
+    beside = os.path.join(os.path.dirname(os.path.normpath(main)), name)
+    if os.path.isdir(beside):
+        return (beside,)
+    want = os.path.normcase(name)
+    try:
+        found = known_repos.repos()
+    except Exception:  # 수집 실패는 "못 찾음": 훅은 편집을 막지 않는다
+        found = []
+    return tuple(r for r in found if os.path.normcase(os.path.basename(r)) == want)
+
+
 def resolve(root, target):
-    """(경로 또는 None, 풀 수 없는 이유 'sibling' 여부). `<저장소>:<경로>` 는 HARNESS_WORKSPACE 로 푼다."""
+    """(경로 또는 None, 풀 수 없는 이유 'sibling' 여부, 알림에 덧붙일 말). `<저장소>:<경로>` 는 sibling_repos 로 푼다.
+    같은 이름 저장소가 여럿이면 그 경로가 있는 첫 후보를 쓰고, 어느 것과 비교했는지 알림 끝에 적는다(알림이 날 때만 보인다)."""
     if re.match(r"^[\w.-]+:[^/\\]", target) and "/" not in target.split(":", 1)[0]:
-        ws = env_value("HARNESS_WORKSPACE")
         repo, path = target.split(":", 1)
-        return (os.path.join(ws, repo, path), False) if ws else (None, True)
-    return os.path.join(root, target.lstrip("./") if target.startswith("./") else target), False
+        cands = sibling_repos(root, repo)
+        if not cands:
+            return None, True, ""
+        pick = next((c for c in cands if os.path.exists(os.path.join(c, path))), cands[0])
+        note = f" ({len(cands)} repos named {repo} on this machine; compared with {pick}.)" if len(cands) > 1 else ""
+        return os.path.join(pick, path), False, note
+    return os.path.join(root, target.lstrip("./") if target.startswith("./") else target), False, ""
 
 
 def sets_of_file(root, rel_or_abs, ents):
@@ -348,7 +374,7 @@ def check_copies(root, rel, text, own_entry, ents, added_lines):
             continue  # 영역 사본은 check_regions
         if tgt == rel and kind == "f":
             continue  # 자기 경로를 적은 표시는 원본 표시
-        path, sib = resolve(root, tgt)
+        path, sib, which = resolve(root, tgt)
         if sib:
             res.append((ln, None, "sibling", tgt, False))
             continue
@@ -356,25 +382,25 @@ def check_copies(root, rel, text, own_entry, ents, added_lines):
             try:
                 same = open(path, "rb").read() == text.encode("utf-8")
             except OSError:
-                res.append((ln, f"{rel}:{ln}: @copy-of {tgt} does not resolve. Fix the copy or the mark.", "unresolved", tgt, True))
+                res.append((ln, f"{rel}:{ln}: @copy-of {tgt} does not resolve. Fix the copy or the mark.{which}", "unresolved", tgt, True))
                 continue
             touched = bool(added_lines)
             if same:
                 res.append((ln, None, "ok", tgt, False))
             else:
-                res.append((ln, f"{rel}:{ln}: @copy-of {tgt} differs from this copy. Edit the source, then copy it over.", "differs", tgt, touched))
+                res.append((ln, f"{rel}:{ln}: @copy-of {tgt} differs from this copy. Edit the source, then copy it over.{which}", "differs", tgt, touched))
             continue
         mine = next((s for s in own_entry[2] if s[4] == f"{tgt}#{name}"), None)
         srcsets = sets_of_file(root, tgt if tgt in ents else path, ents) if os.path.exists(path) else None
         src = next((s for s in (srcsets or []) if s[1] == name), None)
         touched = (bool(mine) and (mine[0] - 1) in added_lines) or (ln - 1) in added_lines
         if src is None:
-            res.append((ln, f"{rel}:{ln}: @copy-of {tgt}#{name} does not resolve (no such file or name). Fix the copy or the mark.", "unresolved", tgt, touched))
+            res.append((ln, f"{rel}:{ln}: @copy-of {tgt}#{name} does not resolve (no such file or name). Fix the copy or the mark.{which}", "unresolved", tgt, touched))
         elif mine is None:
             res.append((ln, None, "ok", tgt, False))
         elif mine[3] != src[3]:
             a, b = sorted(set(src[3]) - set(mine[3])), sorted(set(mine[3]) - set(src[3]))
-            res.append((ln, f"{rel}:{ln}: @copy-of {tgt}#{name} differs: missing {shown(a) or 'none'}, extra {shown(b) or 'none'}. Fix the copy or the mark.",
+            res.append((ln, f"{rel}:{ln}: @copy-of {tgt}#{name} differs: missing {shown(a) or 'none'}, extra {shown(b) or 'none'}. Fix the copy or the mark.{which}",
                         "differs", tgt, touched))
         else:
             res.append((ln, None, "ok", tgt, False))

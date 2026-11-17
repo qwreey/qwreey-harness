@@ -39,8 +39,8 @@
 - 넣지 않는 곳: `node_modules`, `.git`, `dist`, `build`, `.venv`, `vendor`, `__pycache__` 아래, 그리고 프로젝트 밖 Read(설정 디렉터리의 `projects/*/memory/` 는 예외). 프로젝트 밖이라도 편집은 넣는다.
 - 저장소 설정 줄: `comments` 규칙을 넣을 때 편집하는 파일의 저장소(`conventions-check.py` 와 같은 `conv_edit.project_root`) `.claude/conventions.json`(없으면 `comments.json`)에 언어 코드 꼴의 `comment_language` 가 있으면 제목 아래에 `- This repo: comment_language = en. ...` 한 줄을 넣는다. 모델은 쓰기 전에 스킬을 열지 않아 스킬에만 있는 설정은 지켜지지 않기 때문이다. 키가 없거나 설정을 못 읽으면 본문 그대로이고, 다른 규칙과 팩 규칙에는 붙지 않는다.
 - 도메인 팩(`packs/*`)의 규칙은 이 훅이 아니라 coderag 플러그인이 넣고, 이 파일이 그 대조 기준이다(`tools/tests/test-coderag-rules-parity.py`).
-- 끄기: `HARNESS_CONVENTIONS_RULES=off`(환경 변수 또는 harness.env 층: 사용자 < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`, `hooks/conv_env.py` 가 옆의 `hooks/harness_env.py` 사본으로 읽는다), 규칙별로는 저장소 `.claude/conventions.json` 의 `rules_exclude`.
-- 켜기 스위치: 프론트매터에 `switch: <KEY>` 가 있는 규칙은 같은 harness.env 층에서 KEY 가 `on` 일 때만 넣는다(마커를 잡기 전에 거르므로 세션 중간에 켜도 다음 맞는 파일에서 실린다). 지금은 `readable-code` 의 `HARNESS_READABLE_CODE` 하나이고 기본값은 `off`(`conv_env.py` 의 `ENV_DEFAULTS`). 개인 취향이 동료 배포로 퍼지지 않게 사용자가 자기 `~/.claude/harness.env` 에서 켜고, 저장소는 `.claude/harness.env`(공유)나 `harness.local.env`(개인)에 `off` 를 두어 끈다. 사용자 전용 키가 아니라서 저장소 층이 이긴다. `bash-bypass-reminder` 도 꺼진 규칙은 이름을 대지 않는다.
+- 끄기: 옵션 `harness_conventions_rules`(= `HARNESS_CONVENTIONS_RULES=off`; 층은 사용자 harness.env < 플러그인 옵션 < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env` < 환경 변수, `hooks/conv_env.py` 가 옆의 `hooks/harness_env.py` 사본으로 읽는다), 규칙별로는 저장소 `.claude/conventions.json` 의 `rules_exclude`.
+- 켜기 스위치: 프론트매터에 `switch: <KEY>` 가 있는 규칙은 같은 harness.env 층에서 KEY 가 `on` 일 때만 넣는다(마커를 잡기 전에 거르므로 세션 중간에 켜도 다음 맞는 파일에서 실린다). 지금은 `readable-code` 의 `HARNESS_READABLE_CODE` 하나이고 기본값은 `off`(`conv_env.py` 의 `ENV_DEFAULTS`). 개인 취향이 동료 배포로 퍼지지 않게 사용자가 옵션 `harness_readable_code`(`/config`)나 자기 `~/.claude/harness.env` 에서 켜고, 저장소는 `.claude/harness.env`(공유)나 `harness.local.env`(개인)에 `off` 를 두어 끈다. 사용자 전용 키가 아니라서 저장소 층이 이긴다. `bash-bypass-reminder` 도 꺼진 규칙은 이름을 대지 않는다.
 - coderag 는 팩 규칙의 `switch` 를 읽지 않는다. 팩 규칙에 `switch` 를 쓰려면 coderag 에 같은 변경이 먼저 필요하다(대조 시험은 키를 켜고 꺼도 팩 규칙 주입이 같은지만 본다).
 
 ## 주석·문서 검사 (`conventions-check.py`)
@@ -128,13 +128,14 @@ python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py fix [경로...
 
 ## 사본 검사 (`reuse-check.py`)
 - C1: `@copy-of: <경로>[#이름]` 사본이 원본과 같은가(파일은 바이트, 값은 문자열 묶음). 풀리지 않거나 다르면 알린다.
+  - `<저장소>:<경로>`: 지금 저장소(worktree 면 본 저장소) 옆의 같은 이름 폴더, 없으면 `hooks/known_repos.py`(lib 정본의 사본)의 저장소 목록(세션 기록의 cwd, qwreey-workspace 옵션 `harness_workspace_extra`·`harness_workspace_exclude`)에서 폴더 이름이 같은 것. 프로젝트를 두는 곳이 사람과 OS 마다 달라 작업공간 폴더를 정하게 하지 않는다. 같은 이름이 여럿이면 그 경로가 있는 첫 후보(경로순)와 비교하고 알림 끝에 어느 것인지 적는다. 못 찾으면 비교하지 않고 그림자 기록(`sibling`)만 남긴다.
 - C2: 원본을 고치면 그것을 가리키는 사본 목록을 알린다.
 - M1: 추가한 줄의 표시(`@copy-of`, `@start-replace`, `@end-replace`, 주석 본문의 맨 앞에 온 것만; 설명 글 중간이나 문서 블록 안에 인용한 `// @copy-of` 예는 아니다)가 놓인 자리와 꼴. 줄마다 회차당 한 번, 고친 꼴을 함께 준다.
   - 문서 주석: Rust `///`·`/** */`·`/*! */`, JS·TS·Kotlin `/** */`, Luau `---`·`--[=[ ]=]`. 문서 도구가 표시를 싣거나 태그로 읽는다. `//!`, `////`, `/* */`, `--[[ ]]` 는 통과.
   - Astro 의 `<!-- -->` 안 `@copy-of`(빌드된 페이지에 남을 수 있다): 템플릿은 `{/* */}`, frontmatter 는 `//`.
   - 영역 표시가 `copy_regions.MARK` 꼴(혼자 있는 줄 주석)이 아님: 읽히지 않는다.
   - 파이썬 머리 10줄 밖 독스트링의 `@copy-of`: 읽히지 않는다.
-  - 형제 저장소 꼴이 섞임: `@copy-of: ../repo:path`(→ `repo:path`), `@start-replace: repo:path` 나 `../repo:path`(→ `../repo/path`). `HARNESS_WORKSPACE` 와 무관하게 알리고, 같은 줄의 "does not resolve" 알림은 내지 않는다.
+  - 형제 저장소 꼴이 섞임: `@copy-of: ../repo:path`(→ `repo:path`), `@start-replace: repo:path` 나 `../repo:path`(→ `../repo/path`). 저장소를 찾았는지와 무관하게 알리고, 같은 줄의 "does not resolve" 알림은 내지 않는다.
   - `.json`, `.jsonc` 의 추가 줄에 경로 꼴 표시가 있음: JSON 은 표시를 둘 주석이 없고 아무도 읽지 않는다(파일당 한 번). Edit·Write 만 본다(Bash 경로는 코드 파일만 reuse-check 에 넘긴다).
   - 이 저장소와 coderag 의 추적 파일 전체를 한 줄씩 추가한 것으로 놓고 돌린 결과: 둘 다 0(검사 대상 코드 파일에서 표시 낱말이 든 줄 claude-doctor 114, coderag 4).
 - H1: 추가한 문자열 묶음(따옴표 문자열 3개 이상의 목록이나 `"a" | "b"` 합집합)이 저장소의 다른 정의와 겹침. 기본은 그림자 모드라 알리지 않고 `${CLAUDE_PLUGIN_DATA}/reuse-shadow.jsonl`(없으면 `$TMPDIR/claude-qwreey-reuse/shadow.jsonl`)에 남긴다.
@@ -149,6 +150,7 @@ python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py fix [경로...
 - Bash 는 파일을 바꿨을 법한 명령(`sed -i`, 리다이렉트, `tee`, `patch`, 인터프리터)에 든 소스 경로만 본다.
 - 예외: 파일 머리 10줄 안 `--@structure-exempt: <사유>`(언어별 주석 표식) 또는 `structure.json` 의 `exempt`. 사유가 비었거나 "나중에", "TODO" 같은 말이면 무효.
 - 저장소 설정: `.claude/structure.json` 의 `warn`, `hard`, `grow`, `flat`, `ignore`, `exempt`, `toolkits`. 형식은 스크립트 머리 주석.
+- 분리 계획기: hard 를 넘은 `.luau`/`.lua` 에는 luau-kb 팩의 `skills/luau-style/scripts/split-plan.py` 명령을 붙인다. 팩은 사용자 harness.env 의 `HARNESS_LUAU_KB`(팩 폴더, 저장소 층은 못 바꾼다), 없으면 설치된 luau-kb 플러그인(`hooks/conv_plugins.py`: `installed_plugins.json` 과 마켓 위치, `bash-bypass-reminder` 와 같은 찾기)에서 찾는다. 둘 다 없으면 그 줄만 조용히 뺀다.
 - 끄기: `STRUCTURE_REMINDER=off`.
 
 ## 메모 배치 (`memory-placement.py`)
@@ -159,7 +161,7 @@ auto memory 디렉터리(`<config>/projects/*/memory/` 또는 `autoMemoryDirecto
 - 언어 출처(좁은 쪽이 이김): 프로젝트 `.claude/settings.local.json` > `.claude/settings.json` > 사용자 `settings.json` 의 `language`, 없으면 `${CLAUDE_PLUGIN_DATA}/language.json`. 둘 다 없으면 UserPromptSubmit 이 세션당 한 번 "요청에 먼저 답하고 끝에서 언어를 물어 `reply_language.py set <language>` 로 저장하라" 고 알린다.
 - Stop: 마지막 답의 목표 문자 비율이 0.25 미만이고 라틴 글자가 20자 이상이면 `decision: block` 으로 다시 쓰게 한다. 사용자가 이번 턴에 영어로만 썼으면 통과하고, `stop_hook_active` 면 통과한다(루프 방지). 라틴 문자 언어는 감지하지 않는다.
 - PostToolBatch: 도구 호출 사이 텍스트가 이탈이면 info(쿨다운), 한 요청의 도구 호출이 10회, 이후 15회마다 info 한 줄.
-- 기록: `${CLAUDE_PLUGIN_DATA}/drift.jsonl`(본문 없음). 끄기: `HARNESS_REPLY_LANGUAGE=off`(환경 변수 또는 harness.env).
+- 기록: `${CLAUDE_PLUGIN_DATA}/drift.jsonl`(본문 없음). 끄기: 옵션 `harness_reply_language`(= `HARNESS_REPLY_LANGUAGE=off`, 환경 변수나 harness.env 층도 된다).
 
 ## 저장소 설정
 `<프로젝트>/.claude/conventions.json`(없으면 예전 이름 `.claude/comments.json`): `comment_language`, `allow_chars`, `public_ids`, `exclude`, `patterns`, `allow_ref_tail`, `min_reason_words`, `label_language`, `layout`(형식은 [comments.md](comments.md)), `reuse`(`mode`, `allow`, `vocab_ok`, `min_shared`, 형식은 [code-reuse.md](code-reuse.md)), `rules_exclude`. 파일 길이는 `.claude/structure.json`. 사용자 설정 위치는 `$CLAUDE_CONFIG_DIR`(기본 `~/.claude`).

@@ -26,20 +26,13 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
+import conv_plugins  # noqa: E402
 import harness_nonce  # noqa: E402
 import rules_inject  # noqa: E402
 
 # 플러그인이 싣는 rules(이 플러그인과 web-security 등 설치된 모든 플러그인의 `rules/`): 공식 .claude/rules 가 아니라 rules_inject 훅이
 # 파일을 열 때 주입한다. 셸로 파일을 바꾸면 주입도 비껴가므로 이름을 짚는다
 PLUGIN_RULES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rules")
-
-
-def _read_json(path):
-    try:
-        with open(path, encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, ValueError):
-        return {}
 
 
 def _read_toml(path):
@@ -49,18 +42,6 @@ def _read_toml(path):
             return tomllib.load(f)
     except Exception:  # 없거나 깨진 설정은 없는 것으로 본다(fail-open)
         return {}
-
-
-def _market_dir(markets, market, name):
-    """마켓 정의가 가리키는 플러그인 폴더. installed_plugins.json 의 installPath 는 폴더 마켓에서도 옛 캐시를 가리킬 수 있어 먼저 본다."""
-    loc = (markets.get(market) or {}).get("installLocation") if isinstance(markets.get(market), dict) else None
-    if not isinstance(loc, str):
-        return None
-    for e in _read_json(os.path.join(loc, ".claude-plugin", "marketplace.json")).get("plugins") or []:
-        if isinstance(e, dict) and e.get("name") == name and isinstance(e.get("source"), str):
-            d = os.path.normpath(os.path.join(loc, e["source"]))
-            return d if os.path.isdir(d) else None
-    return None
 
 
 def _listed_pack_dirs(proj):
@@ -81,17 +62,10 @@ def _listed_pack_dirs(proj):
 def plugin_rule_dirs(proj=None):
     """{rules 디렉터리: 플러그인 이름}. 이 플러그인 것, 설치된 플러그인의 `rules/`(도메인 팩 제외), 이 프로젝트가 목록에 적은 팩의 `rules/`."""
     out = {PLUGIN_RULES: "qwreey-conventions"}
-    cfg = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
-    markets = _read_json(os.path.join(cfg, "plugins", "known_marketplaces.json"))
-    for key, entries in (_read_json(os.path.join(cfg, "plugins", "installed_plugins.json")).get("plugins") or {}).items():
-        name, _, market = key.partition("@")
+    for name, _, root in conv_plugins.installed_roots():
         if name in out.values():  # 이 플러그인은 지금 도는 사본이 이긴다(설치된 옛 버전과 이중으로 나오지 않게)
             continue
-        root = _market_dir(markets, market, name)
-        if root is None:
-            paths = [e.get("installPath") for e in entries if isinstance(e, dict)] if isinstance(entries, list) else []
-            root = next((x for x in paths if isinstance(x, str)), None)
-        if root is None or os.path.isfile(os.path.join(root, "coderag.toml")):
+        if os.path.isfile(os.path.join(root, "coderag.toml")):
             continue  # 도메인 팩: 아래에서 프로젝트 목록으로만 더한다
         out[os.path.join(root, "rules")] = name
     if proj:

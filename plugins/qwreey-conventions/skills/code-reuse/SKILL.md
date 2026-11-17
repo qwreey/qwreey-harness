@@ -32,7 +32,7 @@ The two copy markers write a sibling repo differently. A mix such as `../statusl
 
 | Marker | Same repo | Sibling repo |
 |---|---|---|
-| `@copy-of` | `# @copy-of: src/statuses.py#STATUSES` | `# @copy-of: statuslib:src/statuses.py#STATUSES` (repo name, colon, path in that repo; found under `HARNESS_WORKSPACE`; the copy is not compared when it is unset) |
+| `@copy-of` | `# @copy-of: src/statuses.py#STATUSES` | `# @copy-of: statuslib:src/statuses.py#STATUSES` (repo name, colon, path in that repo; found beside this repo, else among repos opened in Claude Code on this machine; not compared when not found) |
 | `@start-replace` | `# @start-replace: lib/harness_texts.py#OMIT_LINE` | `// @start-replace: ../claude-doctor/lib/harness_texts.py#OMIT_LINE` (a plain path from this repo's root; no colon form) |
 
 The hook checks that `@copy-of` and `@start-replace` resolve; a file copy must be byte-identical to its source, a value copy must hold the same strings as `NAME` there, a region copy must equal what the canon region renders to. Editing a source (or the lines inside a canon region) lists its copies. `#NAME` is the name as written at the definition (a Luau table key, a module field, a `const`). A copy that is meant to hold fewer strings is not a copy: use `@dup-ok`.

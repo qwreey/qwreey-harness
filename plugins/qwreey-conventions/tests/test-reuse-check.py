@@ -41,29 +41,35 @@ def put(rel, content):
 
 def env_for(extra=None):
     env = dict(os.environ, TMPDIR=T, CLAUDE_PROJECT_DIR=REPO, CLAUDE_CONFIG_DIR=LIBHOME)
-    for k in ("CONVENTIONS_CHECK", "REUSE_CHECK", "CLAUDE_PLUGIN_DATA", "HARNESS_WORKSPACE"):
+    # 저장소 찾기(known_repos)가 이 기기의 실제 설정을 보지 않게 그 키들도 뺀다
+    for k in ("CONVENTIONS_CHECK", "REUSE_CHECK", "CLAUDE_PLUGIN_DATA", "HARNESS_WORKSPACE", "HARNESS_WORKSPACE_EXTRA",
+              "HARNESS_WORKSPACE_EXCLUDE", "HARNESS_ENV"):
         env.pop(k, None)
     env.update(extra or {})
     return env
 
 
-def run(rel, content, old="", new=None, sid=None, agent=None, env=None):
-    """파일을 content 로 만들고 훅을 돌린다. new 가 있으면 Edit(old -> new), 없으면 Write(create). 알림 문구 또는 ''."""
-    put(rel, content)
+def run(rel, content, old="", new=None, sid=None, agent=None, env=None, proj=None):
+    """파일을 content 로 만들고 훅을 돌린다. new 가 있으면 Edit(old -> new), 없으면 Write(create). 알림 문구 또는 ''.
+    proj 를 주면 그 폴더가 프로젝트다(REPO 대신, worktree 시험용)."""
+    proj = proj or REPO
+    os.makedirs(os.path.dirname(os.path.join(proj, rel)), exist_ok=True)
+    open(os.path.join(proj, rel), "w", encoding="utf-8").write(content)
     if sid is None:
         SID[0] += 1
         sid = f"s{SID[0]}"
-    ti = {"file_path": os.path.join(REPO, rel)}
+    ti = {"file_path": os.path.join(proj, rel)}
     if new is None:
         ti["content"] = content
         tool, resp = "Write", {"type": "create"}
     else:
         ti.update(old_string=old, new_string=new)
         tool, resp = "Edit", {}
-    d = {"session_id": sid, "cwd": REPO, "hook_event_name": "PostToolUse", "tool_name": tool, "tool_input": ti, "tool_response": resp}
+    d = {"session_id": sid, "cwd": proj, "hook_event_name": "PostToolUse", "tool_name": tool, "tool_input": ti, "tool_response": resp}
     if agent:
         d["agent_id"] = agent
-    p = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(d), capture_output=True, text=True, env=env_for(env), timeout=10)
+    p = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(d), capture_output=True, text=True,
+                       env=env_for(dict({"CLAUDE_PROJECT_DIR": proj}, **(env or {}))), timeout=10)
     assert p.returncode == 0, p.stderr
     if not p.stdout.strip():
         return ""
@@ -151,7 +157,7 @@ check("M1 region in the repo:path form -> notice with ../repo/path, no second un
 r = run("mk/reg3.py", lines("# @start-replace: ../other:lib/texts.py#OMIT", "X = 1", "# @end-replace"))
 check("M1 region in the mixed ../repo:path form -> notice", "`../other/lib/texts.py`" in r)
 check("M1 region in the ../repo/path form -> no form notice", "<repo>:<path>" not in run("mk/reg4.py", lines("# @start-replace: ../other/lib/texts.py#OMIT", "X = 1", "# @end-replace")))
-check("M1 copy-of repo:path without HARNESS_WORKSPACE -> silent", run("mk/sib.luau", "-- @copy-of: other:src/x.luau#FORMS\n" + FORMS) == "")
+check("M1 copy-of repo:path to a repo not on this machine -> silent", run("mk/sib.luau", "-- @copy-of: other:src/x.luau#FORMS\n" + FORMS) == "")
 doc = '"""Mod."""\n' + "X = 1\n" * 10 + 'def f():\n    """Kinds.\n\n    @copy-of: p/src.py#KINDS\n    """\n'
 check("M1 Python docstring past the header -> notice", "inside a docstring past the first 10 lines" in run("mk/ds.py", doc))
 check("M1 Python module docstring header -> silent", "docstring" not in run("mk/hd.py", '"""Mod.\n@copy-of: mk/hd.py\n"""\nX = 1\n'))
@@ -283,6 +289,59 @@ check("Stop: existing duplicate sets are counted in plain words", m.startswith("
       and '"기존 문제도 정리해줘"' in m)
 run("m/old2.py", both, "pass\n", "pass\n", sid="rep3")
 check("Stop: shadow mode never reports duplicates", stop("rep3") is None)
+
+# ---- <저장소>:<경로> 풀기: 현재 저장소 옆 폴더, 없으면 이 기기에서 일한 저장소(known_repos) ----
+SRC = '-- source\nlocal FORMS = { "coin", "stick", "back", "card" }\nreturn FORMS\n'
+
+
+def sibling(path, rel="src/x.luau", body=SRC):
+    os.makedirs(os.path.join(path, ".git"), exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.join(path, rel)), exist_ok=True)
+    open(os.path.join(path, rel), "w", encoding="utf-8").write(body)
+
+
+def session(cwd, folder):
+    """설정 폴더의 projects/<folder>/s.jsonl 에 cwd 를 남긴다(Claude Code 세션 기록 흉내)."""
+    d = os.path.join(LIBHOME, "projects", folder)
+    os.makedirs(d, exist_ok=True)
+    open(os.path.join(d, "s.jsonl"), "w", encoding="utf-8").write(json.dumps({"type": "user", "cwd": cwd}) + "\n")
+
+
+sibling(os.path.join(T, "sib"))
+same = '-- @copy-of: sib:src/x.luau#FORMS\nlocal FORMS = { "coin", "stick", "back", "card" }\n'
+check("S1 repo:path beside this repo, equal -> silent", run("r/a.luau", same, "", same) == "")
+diff = same.replace('"card"', '"dice"')
+r = run("r/b.luau", diff, "", diff)
+check("S1 repo:path beside this repo, differs -> notice, no ambiguity note", "differs: missing" in r and '"dice"' in r and "repos named" not in r)
+# worktree 의 프로젝트 폴더는 <본 저장소>/.claude/worktrees/<이름>: 옆 폴더는 본 저장소 옆에서 찾는다
+wt = os.path.join(REPO, ".claude", "worktrees", "w1")
+os.makedirs(os.path.join(REPO, ".git", "worktrees", "w1"), exist_ok=True)
+os.makedirs(wt, exist_ok=True)
+open(os.path.join(wt, ".git"), "w").write("gitdir: %s\n" % os.path.join(REPO, ".git", "worktrees", "w1"))
+r = run("r/c.luau", diff, "", diff, proj=wt)
+check("S1 repo:path from a worktree -> beside the main repo", "differs: missing" in r and "r/c.luau:1" in r)
+# 옆에 없으면 세션 기록의 cwd 로 모은 저장소에서 이름으로 찾는다
+far = os.path.join(T, "far", "Documents", "lib2")
+sibling(far)
+mark2 = diff.replace("sib:", "lib2:")
+before = sum(x.get("status") == "sibling" for x in shadow())
+check("S2 repo:path not beside and no session record -> silent, logged",
+      run("r/d.luau", mark2, "", mark2) == "" and sum(x.get("status") == "sibling" for x in shadow()) > before)
+session(os.path.join(far, "src"), "-far-Documents-lib2-src")
+r = run("r/e.luau", mark2, "", mark2)
+check("S2 repo:path found through known_repos (session cwd) -> differs notice", "differs: missing" in r and "r/e.luau:1" in r)
+check("S2 repo:path through known_repos, equal -> silent", run("r/f.luau", mark2.replace('"dice"', '"card"'), "", "x") == "")
+# 같은 이름 저장소가 둘: 그 경로가 있는 쪽과 비교하고, 알림에 어느 것인지 적는다
+dup_a, dup_b = os.path.join(T, "far", "a", "dup"), os.path.join(T, "far", "b", "dup")
+sibling(dup_a, rel="other.luau")
+sibling(dup_b)
+session(dup_a, "-far-a-dup")
+session(dup_b, "-far-b-dup")
+mark3 = diff.replace("sib:", "dup:")
+r = run("r/g.luau", mark3, "", mark3)
+check("S3 two repos with the name -> compares with the one that has the path, says which",
+      "differs: missing" in r and "(2 repos named dup on this machine; compared with %s.)" % dup_b in r)
+check("S3 two repos with the name, equal -> silent", run("r/h.luau", mark3.replace('"dice"', '"card"'), "", "x") == "")
 
 # ---- 비용 ----
 big = os.path.join(REPO, "big")
