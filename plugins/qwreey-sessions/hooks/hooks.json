@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" SessionStart",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" SessionStart",
             "timeout": 10
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" UserPromptSubmit",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" UserPromptSubmit",
             "timeout": 10
           }
         ]
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" PreToolUse",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" PreToolUse",
             "timeout": 10
           }
         ]
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/records_read.py\" PreToolUse",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/records_read.py\" PreToolUse",
             "timeout": 10
           }
         ]
@@ -50,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" PostToolUse",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" PostToolUse",
             "timeout": 10
           }
         ]
@@ -60,7 +60,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/records_read.py\" PostToolUse",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/records_read.py\" PostToolUse",
             "timeout": 10
           }
         ]
@@ -72,7 +72,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" PreCompact",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" PreCompact",
             "timeout": 30
           }
         ]
@@ -83,7 +83,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" PostCompact",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" PostCompact",
             "timeout": 10
           }
         ]
@@ -94,7 +94,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" SessionEnd",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" SessionEnd",
             "timeout": 5
           }
         ]

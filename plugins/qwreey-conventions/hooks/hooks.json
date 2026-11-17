@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/compact_epoch.py\" qwreey-conventions",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/compact_epoch.py\" qwreey-conventions",
             "timeout": 5
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/rules_inject.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/rules_inject.py\"",
             "timeout": 5
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/conventions-check.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/conventions-check.py\"",
             "timeout": 10
           }
         ]
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/bash_writes.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/bash_writes.py\"",
             "timeout": 10
           }
         ]
@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/reuse-check.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/reuse-check.py\"",
             "timeout": 5
           }
         ]
@@ -58,7 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/structure-reminder.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/structure-reminder.py\"",
             "timeout": 10
           }
         ]
@@ -68,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-placement.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-placement.py\"",
             "timeout": 10
           }
         ]
@@ -80,7 +80,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/bash_writes.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/bash_writes.py\"",
             "timeout": 10
           }
         ]
@@ -91,7 +91,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/conventions-check.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/conventions-check.py\"",
             "timeout": 10
           }
         ]
@@ -100,7 +100,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/reply_language.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/reply_language.py\"",
             "timeout": 5
           }
         ]
@@ -112,7 +112,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/bash-bypass-reminder.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/bash-bypass-reminder.py\"",
             "timeout": 10
           }
         ]
@@ -123,7 +123,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/reply_language.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/reply_language.py\"",
             "timeout": 5
           }
         ]
@@ -134,7 +134,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/reply_language.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/reply_language.py\"",
             "timeout": 5
           }
         ]

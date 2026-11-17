@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" SessionStart",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" SessionStart",
             "timeout": 10
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/drift.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/drift.py\"",
             "timeout": 10
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" SubagentStart",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" SubagentStart",
             "timeout": 10
           }
         ]
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
             "timeout": 10
           }
         ]
@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/stale_work.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/stale_work.py\"",
             "timeout": 10
           }
         ]
@@ -57,7 +57,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" UserPromptSubmit",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" UserPromptSubmit",
             "timeout": 10
           }
         ]
@@ -69,7 +69,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
             "timeout": 10
           }
         ]
@@ -81,7 +81,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
             "timeout": 10
           }
         ]
@@ -92,7 +92,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/stale_work.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/stale_work.py\"",
             "timeout": 10
           }
         ]
@@ -101,7 +101,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
             "timeout": 10
           }
         ]
@@ -112,7 +112,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/stale_work.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/stale_work.py\"",
             "timeout": 10
           }
         ]
@@ -121,7 +121,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
             "timeout": 10
           }
         ]
@@ -133,12 +133,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/compact_epoch.py\" q",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/compact_epoch.py\" q",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" PreCompact",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" PreCompact",
             "timeout": 5
           }
         ]

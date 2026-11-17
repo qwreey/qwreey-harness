@@ -7,12 +7,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/heavy-proc-guard.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/heavy-proc-guard.py\"",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/self-match-guard.py\"",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/self-match-guard.py\"",
             "timeout": 10
           }
         ]

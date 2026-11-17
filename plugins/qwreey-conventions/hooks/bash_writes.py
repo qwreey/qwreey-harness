@@ -457,7 +457,7 @@ def reuse_notes(data, items):
         payload.update({"hook_event_name": "PostToolUse", "tool_name": "Write", "tool_input": {"file_path": ap, "content": now},
                         "tool_response": {"type": "create"} if not before else {"type": "update", "originalFile": before}})
         try:
-            p = subprocess.Popen([sys.executable, "-I", script], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            p = subprocess.Popen([sys.executable, "-I", "-X", "utf8", script], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
             p.stdin.write(json.dumps(payload).encode())
             p.stdin.close()
             procs.append(p)
