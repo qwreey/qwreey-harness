@@ -3,7 +3,7 @@
 // one terminal line cut to a width counted here, so nothing wraps on its own
 // and no region grows or shrinks with what it holds.
 
-import type { DeskData, DeskDecision, DeskStep, DeskTab } from '../types'
+import type { DeskData, DeskDecision, DeskLogEntry, DeskStep, DeskTab } from '../types'
 import { URGENCIES, ago, oneLine, runningNow, unsent, urgencyOf } from './model'
 
 // Cells a code point takes, as terminals count East Asian widths: Hangul,
@@ -423,6 +423,60 @@ export const NEW_MARK = '여기부터 새로'
  * are plain; what the desk logs on its own is dim. It opens where the unseen
  * entries begin, or at its end.
  */
+// What a decision entry of the log shows, worked out at render time from the
+// decision as it stands now, so entries stored before this existed gain it too.
+const DECISION_EVENT = /^(D\d+) (답|올림|코멘트|다듬음|미룸)(?:: ([\s\S]*))?$/
+const HANG = '  '
+
+/** The entry's text rows below the first, from the decision; undefined when it is not about a live decision. */
+const decisionRows = (l: DeskLogEntry, d: DeskData, width: number): { rows: Line[]; id: string } | undefined => {
+  if (l.kind !== 'decision') return undefined
+  const m = DECISION_EVENT.exec(l.text)
+  const one = m && d.decisions.find(x => x.id === m[1])
+  if (!m || !one) return undefined
+  const [, id, what, rest = ''] = m
+  const option = what === '답' ? one.options.find(o => o.key.toLowerCase() === rest.trim().toLowerCase()) : undefined
+  const said = what === '코멘트' ? one.comments?.find(c => c.by === 'agent' && c.at === l.at) : undefined
+  const comment = said ? oneLine(said.text.split('\n')[0] ?? '') : ''
+  // The comment's first line has its own row below, so the event line is just the event.
+  const head = option ? `${id} ${what}: ${option.key}) ${option.label}` : comment ? `${id} ${what}` : l.text
+  const sub = (text: string) => wrap(text, Math.max(4, width - cells(HANG))).map((t): Line => ({ prefix: '', text: `${HANG}${t}`, tone: 'dim' }))
+  return {
+    id: one.id,
+    rows: [
+      ...entryRows(head, width).map((text): Line => ({ prefix: '', text, tone: 'dim' })),
+      // The added line's text is the question itself already.
+      ...(what === '올림' ? [] : sub(oneLine(one.question))),
+      ...(comment ? sub(`▸ ${comment}`) : []),
+    ],
+  }
+}
+
+// Rows of a decision entry by what they were built from (the entry, the
+// decision's question, answer time, comment count, options and the width):
+// scrolling redraws the list on every wheel step, so they are laid out once.
+const LOG_ROWS_KEPT = 2000
+const logRows = new Map<string, { rows: Line[]; id: string } | null>()
+const decisionRowsCached = (l: DeskLogEntry, d: DeskData, width: number) => {
+  const one = /^(D\d+) /.exec(l.text)?.[1]
+  const dec = d.decisions.find(x => x.id === one)
+  const key = `${width}|${l.at}|${l.text}|${dec ? `${dec.id}|${dec.status}|${dec.answeredAt ?? 0}|${dec.comments?.length ?? 0}|${dec.question}|${dec.options.map(o => o.key + o.label).join(',')}` : ''}`
+  const hit = logRows.get(key)
+  if (hit !== undefined) return hit
+  const made = decisionRows(l, d, width) ?? null
+  if (logRows.size >= LOG_ROWS_KEPT) logRows.clear()
+  logRows.set(key, made)
+  return made
+}
+
+/**
+ * The work log as a feed, oldest first and growing at the bottom: each entry
+ * whole under its time, a rule where the day changes and one where the
+ * entries the person has not seen begin. The model's notes, the summaries,
+ * are plain; what the desk logs on its own is dim. It opens where the unseen
+ * entries begin, or at its end. An entry about a decision still on the desk
+ * names the chosen option and the question under it, and opens the decision.
+ */
 export const logList = (d: DeskData, since: number, now: number, columns: number): List => {
   const width = textWidth(columns, LOG_PREFIX)
   const items: Item[] = []
@@ -439,12 +493,17 @@ export const logList = (d: DeskData, since: number, now: number, columns: number
       items.push(lineItem(rule(dayOf(l.at, now), columns)))
     }
     const tone: Tone = l.kind === 'note' ? 'plain' : 'dim'
-    items.push({
-      rows: entryRows(l.text, width).map(
-        (text, j): Line => ({ prefix: j === 0 ? `${clockOf(l.at)} ${LOG_MARK[l.kind]}` : '', prefixTone: 'dim', text, tone }),
-      ),
-      most: entryRows(l.text, Math.min(width, LOG_NARROW)).length,
-    })
+    const about = decisionRowsCached(l, d, width)
+    const rows: Line[] = (about?.rows ?? entryRows(l.text, width).map((text): Line => ({ prefix: '', text, tone }))).map(
+      (row, j): Line => ({
+        ...row,
+        prefix: j === 0 ? `${clockOf(l.at)} ${LOG_MARK[l.kind]}` : '',
+        prefixTone: 'dim',
+        ...(j === 0 && about ? { act: { kind: 'decision', id: about.id } as Act, key: `log-${i}` } : {}),
+      }),
+    )
+    const narrow = about ? (decisionRowsCached(l, d, Math.min(width, LOG_NARROW))?.rows.length ?? 0) : entryRows(l.text, Math.min(width, LOG_NARROW)).length
+    items.push({ rows, most: Math.max(narrow, rows.length) })
   })
   return { items, prefix: LOG_PREFIX, auto, tight: true, empty: '기록 없음' }
 }

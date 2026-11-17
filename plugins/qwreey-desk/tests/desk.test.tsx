@@ -1895,3 +1895,67 @@ test('a step the window foot crosses shows its first rows, its last at the top a
   expect((await ui.find({ type: 'Button', key: 'scroll-up' }))?.text).toContain(`위에 ${hidden}개`)
   await ui.unmount()
 })
+
+// ---- decision entries of the 기록 tab --------------------------------------------------
+
+const ASKED = '문구를 하나로 합칠까, 둘로 나눌까? 길어서 한 줄에는 다 들어가지 않는 질문'
+
+test('an answered decision in the 기록 tab names the option and shows the question; pressing opens it, back restores the tab', async ($, on) => {
+  engine(on)
+  await start($)
+  await $.tool.call(desk({ action: 'add_decision', question: ASKED, options: [{ key: 'a', label: '이 문구로 합침' }, { key: 'b', label: '둘로 나눔' }] }))
+  await $.tool.call(desk({ action: 'answer_decision', id: 'D1', text: 'a' }))
+  await $.tool.call(desk({ action: 'comment', id: 'D1', text: '첫 줄 의견\n둘째 줄은 안 보임' }))
+  for (let i = 1; i <= 14; i += 1) await $.tool.call(desk({ action: 'note', text: `${i}번째 요약` }))
+  const target = pane(45, 20)
+  const columns = target.props.bodyColumns
+  const ui = await $.ui.mount({ ...target, surface: 'terminal' })
+  await ui.press({ key: 'tab-away' })
+  // One step down, so the offset is not where the tab opens.
+  await ui.press({ key: 'scroll-down' })
+  const before = await screen(ui, columns)
+  show('decision entries in the 기록 tab', before, columns)
+  const lines = feed(before)
+  const at = lines.findIndex(l => /^\d\d:\d\d \? D1 답: a\) 이 문구로 합침$/.test(l))
+  expect(at).toBeGreaterThan(0)
+  // The question whole, hung under the event, dim.
+  const asked = lines.slice(at + 1, at + 4).map(l => l.slice(8))
+  expect(asked[0]?.startsWith('  문구를')).toBe(true)
+  expect(asked.slice(0, 2).join('').replace(/\s+/g, '')).toContain(ASKED.slice(0, 20).replace(/\s+/g, ''))
+  expect((await ui.find({ type: 'Text', text: /^ {2}문구를/ }))?.props.dimColor).toBe(true)
+  // The comment's first line only.
+  expect(lines.some(l => l.includes('첫 줄 의견'))).toBe(true)
+  expect(lines.some(l => l.includes('둘째 줄'))).toBe(false)
+
+  await ui.press({ key: 'log-1' })
+  expect(await ui.find({ type: 'Button', key: 'back' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /문구를 하나로 합칠까/ })).toBeDefined()
+  await ui.press({ key: 'back' })
+  expect(feed(await screen(ui, columns))).toEqual(lines)
+  await ui.unmount()
+})
+
+test('a decision entry whose decision is gone keeps its stored text and is not pressable', async ($, on) => {
+  const { clock } = engine(on, {
+    [STORE_KEY]: {
+      shape: 'desk-1',
+      value: {
+        decisions: [],
+        plan: [],
+        running: [],
+        log: [{ at: 1_000_000, kind: 'decision', text: 'D9 답: a' }],
+        lastSeen: 0,
+        nextDecision: 10,
+      },
+    },
+  })
+  await clock.set(1_000_000)
+  await start($)
+  const target = pane(45)
+  const ui = await $.ui.mount({ ...target, surface: 'terminal' })
+  await ui.press({ key: 'tab-away' })
+  const lines = feed(await screen(ui, target.props.bodyColumns))
+  expect(lines.some(l => /^\d\d:\d\d \? D9 답: a$/.test(l))).toBe(true)
+  expect(await ui.find({ type: 'Button', key: 'log-0' })).toBeUndefined()
+  await ui.unmount()
+})
