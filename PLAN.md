@@ -9,9 +9,8 @@
 
 ## 지금 (2026-11-17)
 초점: 계획과 결정의 자리를 git 안으로 옮긴다(desk D17 a, 근거 `.claude/audit/64-plan-md-alternatives/summary.md`).
-1. PLAN.md 를 수명별로 나눈다: 옛 본문은 `.claude/archive/plan/PLAN-2026-11.md`, 원칙과 개요는 `.claude/base/`.
-2. desk D18(결정 번호, 옛 D1~D17 옮기기)의 답을 받은 뒤, qwreey-desk 패널이 열린 결정을 `.claude/plan/decisions/` 항목 파일에, 계획 단계를 `.claude/plan/now.md` 에 쓰게 바꾼다.
-3. 사용자 몫(`HUMAN_TODO.md`): qwreey-conventions 0.11·0.12 갱신, luau-lsp 설치와 Windows 동료 확인, qwreey-desk 설치, Luau·웹 저장소마다 `coderag.toml` 로 팩 켜기.
+1. qwreey-desk 패널이 열린 결정을 `.claude/plan/decisions/` 항목 파일에, 계획 단계를 `.claude/plan/now.md` 에 쓰게 바꾼다(D18 a: 번호는 Q<n>, 옛 D1~D18 도 같은 번호로 옮김).
+2. 사용자 몫(`HUMAN_TODO.md`): qwreey-conventions 0.11·0.12 갱신, luau-lsp 설치와 Windows 동료 확인, qwreey-desk 설치, Luau·웹 저장소마다 `coderag.toml` 로 팩 켜기.
 
 열린 결정과 계획 단계는 desk 패널이 `.claude/plan/` 파일에 쓰게 옮길 예정이다. 그때까지는 패널(`/desk`)이 원천이다.
 커밋 메시지의 `D<n> a` 꼴(D1~D18)은 desk 패널 결정이고, `.claude/base/decisions/` 의 `D-xx` 와 다르다.
