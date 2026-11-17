@@ -12,6 +12,8 @@ Claude Code 가 이미 남긴 세션 기록의 cwd 로 저장소를 모으고, �
 2. HARNESS_WORKSPACE_EXTRA(`;` 구분): 저장소 경로, 또는 바로 아래 자식 저장소를 모두 넣을 폴더.
 3. HARNESS_WORKSPACE(옛 설정, 사용자 harness.env 나 환경 변수): 바로 아래 자식 저장소.
 4. HARNESS_WORKSPACE_EXCLUDE(`;` 구분 경로 또는 glob)로 뺀다. 경로는 그 저장소와 그 아래를, glob 은 저장소 경로 전체에 맞춘다.
+5. 기본 제외(default_exclude): 시스템 임시 폴더(tempfile.gettempdir()), ~/.cache, `.claude/worktrees/` 아래. 1, 3 의 자동 출처에만 건다.
+   세션 기록에는 시험이나 실측으로 잠깐 만든 저장소가 많다(이 기기에서 82개 가운데 절반 넘게 /tmp, ~/.cache 아래). 사람이 2 에 적은 것은 뺄 이유가 없다.
 worktree(`.git` 파일의 gitdir 이 다른 저장소의 .git/worktrees/ 를 가리킴)는 본 저장소로 합친다. 없어진 경로는 뺀다.
 2, 4 의 키는 qwreey-workspace 의 userConfig 옵션(harness_workspace_extra, harness_workspace_exclude)이다. 다른 플러그인(qwreey-conventions)이
 불러도 같은 값을 보도록 options() 가 그 플러그인의 옵션을 읽는다. 셋 다 저장소 층(.claude/harness.env)은 바꾸지 못한다.
@@ -22,7 +24,7 @@ worktree(`.git` 파일의 gitdir 이 다른 저장소의 .git/worktrees/ 를 가
 캐시 없이 12 ms, 첫 수집(설정 읽기와 캐시 쓰기 포함) 16 ms, 모두 OS 파일 캐시가 데워진 상태. 모듈 import 는 1 에서 4 ms(json, fnmatch 가 처음일 때).
 
 쓰는 법: repos() 는 정렬된 저장소 루트 절대 경로 목록. 값을 직접 넘기면(extra=, exclude=, workspace=) 설정을 읽지 않는다.
-repo_root(path) 는 path 를 담은 저장소 루트(worktree 는 본 저장소로), 없으면 None.
+repo_root(path) 는 path 를 담은 저장소 루트(worktree 는 본 저장소로), 없으면 None. excluded(root, patterns) 는 4, 5 의 맞춤 규칙.
 """
 import fnmatch
 import json
@@ -166,7 +168,14 @@ def _folder_repos(folder, self_ok):
     return out
 
 
-def _excluded(root, patterns):
+def default_exclude():
+    """자동 출처에서 늘 빼는 경로와 glob. 임시 폴더는 TMPDIR 등을 따르므로(tempfile.gettempdir) 시험 샌드박스가 TMPDIR 을 바꾸면 그 폴더다."""
+    import tempfile  # 여기서만 쓴다. import 가 10 ms 가까이 들어 모듈을 읽을 때마다 내지 않는다
+    return [tempfile.gettempdir(), os.path.join(os.path.expanduser("~"), ".cache"), "*/.claude/worktrees/*"]
+
+
+def excluded(root, patterns):
+    """root 가 patterns(경로면 그 아래까지, glob 이면 경로 전체) 가운데 하나에 걸리면 True."""
     r = os.path.normcase(root)
     for pat in patterns:
         if _GLOB.search(pat):
@@ -220,9 +229,10 @@ def _write_cache(path, data):
             pass
 
 
-def repos(extra=None, exclude=None, workspace=None, cfg=None, cache=None):
+def repos(extra=None, exclude=None, workspace=None, cfg=None, cache=None, defaults=None):
     """저장소 루트 절대 경로 목록(정렬). extra, exclude, workspace 가 None 이면 options() 에서 읽는다.
-    cfg 는 설정 디렉터리(기본 $CLAUDE_CONFIG_DIR 또는 ~/.claude), cache 는 캐시 파일(None 이면 $CLAUDE_PLUGIN_DATA 아래, '' 이면 끔)."""
+    cfg 는 설정 디렉터리(기본 $CLAUDE_CONFIG_DIR 또는 ~/.claude), cache 는 캐시 파일(None 이면 $CLAUDE_PLUGIN_DATA 아래, '' 이면 끔).
+    defaults 는 자동 출처에만 거는 제외(None 이면 default_exclude(), [] 이면 없음)."""
     if extra is None or exclude is None or workspace is None:
         o = options()
         extra = o["HARNESS_WORKSPACE_EXTRA"] if extra is None else extra
@@ -230,7 +240,8 @@ def repos(extra=None, exclude=None, workspace=None, cfg=None, cache=None):
         workspace = o["HARNESS_WORKSPACE"] if workspace is None else workspace
     projects = os.path.join(cfg or config_dir(), "projects")
     folders = [(f, True) for f in _split(extra)] + ([(os.path.expanduser(workspace.strip()), False)] if str(workspace or "").strip() else [])
-    key = {"projects": projects, "extra": extra, "exclude": exclude, "workspace": workspace,
+    defaults = default_exclude() if defaults is None else list(defaults)
+    key = {"projects": projects, "extra": extra, "exclude": exclude, "workspace": workspace, "defaults": defaults,
            "folders": [[f, _mtime(f)] for f, _ in folders]}
     dirs = _project_dirs(projects)
     path = _cache_path(cache)
@@ -243,16 +254,19 @@ def repos(extra=None, exclude=None, workspace=None, cfg=None, cache=None):
         p = prev.get(name)
         cwd = p[1] if isinstance(p, list) and len(p) == 2 and p[0] == m else _cwd_of(os.path.join(projects, name))
         seen[name] = [m, cwd]
-    found = [repo_root(cwd) for _, cwd in seen.values() if cwd and os.path.isdir(cwd)]
+    # (저장소 루트, 자동 출처인가). 자동 출처만 기본 제외에 건다.
+    found = [(repo_root(cwd), True) for _, cwd in seen.values() if cwd and os.path.isdir(cwd)]
     for f, self_ok in folders:
-        found += _folder_repos(f, self_ok)
+        found += [(r, not self_ok) for r in _folder_repos(f, self_ok)]
     pats = _split(exclude)
     # 심볼릭 링크는 풀지 않는다: 사용자가 보는 경로(세션 cwd 와 같은 꼴)를 그대로 돌려준다. 비교하는 쪽도 같은 꼴로 비교한다.
     roots = {}
-    for r in found:
+    for r, auto in found:
         if r:
             r = os.path.normpath(r)
+            if auto and excluded(r, defaults):
+                continue
             roots.setdefault(os.path.normcase(r), r)
-    out = sorted(r for r in roots.values() if os.path.isdir(r) and not _excluded(r, pats))
+    out = sorted(r for r in roots.values() if os.path.isdir(r) and not excluded(r, pats))
     _write_cache(path, {"version": CACHE_VERSION, "key": key, "dirs": seen, "repos": out})
     return out

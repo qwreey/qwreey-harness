@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """형제 저장소 내부 경로 알림. 사용: python3 -I sibling_notice.py  (stdin: PostToolUse 훅 JSON, Write|Edit|MultiEdit)
 
-이 세션 저장소의 기록(`.claude/` 아래)에 쓴 글에 작업공간(HARNESS_WORKSPACE)의 형제 저장소 안 경로가 있으면 info 한 줄을 낸다.
+이 세션 저장소의 기록(`.claude/` 아래)에 쓴 글에 이 기기의 다른 저장소(형제) 안 경로가 있으면 info 한 줄을 낸다.
 그 내부를 이 저장소가 정말 필요로 하는지(의존), 그 저장소가 이 저장소만큼 공개인지(remote, LICENSE) 확인하고, 모르면 사용자에게
 묻게 하는 알림이다. 비공개 목록 같은 설정은 없다. 판단은 모델이 한다.
 
 - 기록: 기록 뿌리(이 세션 저장소, 또는 그 안 `.claude/worktrees/<이름>` worktree)의 `.claude/` 아래 파일.
-  `.claude/worktrees/` 자체와 설정·규약 폴더(rules, skills, agents, commands, hooks, settings*.json, harness*.env)는 뺀다.
-- 형제 저장소: map.py 와 같이 HARNESS_WORKSPACE 아래 `.git` 이 있는 폴더. 이 세션 저장소와 같은 git 저장소(worktree)는 뺀다.
+  `.claude/worktrees/` 자체와 설정, 규약 폴더(rules, skills, agents, commands, hooks, settings*.json, harness*.env)는 뺀다.
+- 형제 저장소: map.py 와 같은 known_repos 목록(세션 기록의 cwd, 옵션으로 더하고 뺀 것). 이 세션 저장소(worktree 는 본 저장소로)는 뺀다.
+  `<형제>` 는 저장소 폴더 이름이다. 이름이 같은 저장소가 여럿이면 이 저장소와 같은 폴더에 있는 것, 없으면 경로순 첫째로 본다.
 - 경로 꼴: 형제 뿌리 아래 절대 경로, `../<형제>/<경로>`, `<형제>/<경로>`. 마지막 꼴은 그 경로가 형제 안에 실제로 있고
   이 저장소 안(저장소 뿌리, `.claude/`, 쓴 파일의 폴더)에는 없을 때만 센다(저장소 이름만 지나가거나 우연히 같은 낱말은 잡지 않는다).
 - 쓴 글만 본다: Write 의 content, Edit 의 new_string, MultiEdit 의 edits[].new_string.
 - 한 번: (쓴 파일, 형제)마다 (세션, agent_id, compact 회차)에 한 번.
-- 끄기: HARNESS_WORKSPACE_SIBLING_NOTICE=off(환경 변수, harness.env 의 사용자·저장소 층). HARNESS_WORKSPACE 가 비어도 꺼진다.
+- 끄기: HARNESS_WORKSPACE_SIBLING_NOTICE=off(옵션 harness_workspace_sibling_notice, 환경 변수, harness.env 의 사용자, 저장소 층).
+  다른 저장소를 하나도 모르면 낼 것이 없다.
 - 어떤 실패든 출력 없이 exit 0.
 """
 from __future__ import annotations
@@ -26,6 +28,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
 import compact_epoch  # noqa: E402
 import harness_nonce  # noqa: E402
+import known_repos  # noqa: E402
 import wslib  # noqa: E402
 
 KEY = "HARNESS_WORKSPACE_SIBLING_NOTICE"
@@ -53,46 +56,18 @@ def records_rel(path: str, project: str) -> str | None:
     return "/".join(parts[1:])
 
 
-def git_common(repo: Path) -> str:
-    """repo 의 git 공통 폴더(normpath). `.git` 이 파일(worktree)이면 gitdir 의 두 단계 위. 모르면 ""."""
-    g = repo / ".git"
-    try:
-        if g.is_dir():
-            return os.path.normpath(str(g))
-        line = g.read_text(encoding="utf-8", errors="replace").strip()
-    except OSError:
-        return ""
-    if not line.startswith("gitdir:"):
-        return ""
-    gd = Path(line[len("gitdir:"):].strip())
-    if not gd.is_absolute():
-        gd = repo / gd
-    gd = Path(os.path.normpath(str(gd)))
-    return os.path.normpath(str(gd.parent.parent)) if gd.parent.name == "worktrees" else os.path.normpath(str(gd))
-
-
-def own_root(project: str, ws: str) -> str:
-    """이 세션 저장소의 작업공간 바로 아래 폴더(worktree 안에서 돌아도 주 저장소 폴더)."""
-    x = os.path.relpath(project, ws).replace("\\", "/").split("/", 1)[0]
-    return os.path.join(ws, x)
-
-
-def siblings(ws: str, project: str) -> list[str]:
-    """형제 저장소 이름. 이 세션 저장소와 같은 git 저장소를 가리키는 폴더는 뺀다."""
-    try:
-        names = sorted(os.listdir(ws))
-    except OSError:
-        return []
-    mine = own_root(project, ws)
-    my_common = git_common(Path(mine))
-    out = []
-    for n in names:
-        root = Path(ws) / n
-        if os.path.normpath(str(root)) == os.path.normpath(mine) or not (root / ".git").exists():
+def siblings(project: str, repos: list[str]) -> dict[str, str]:
+    """{형제 이름(폴더 이름): 저장소 루트}. 이 세션 저장소와 이름이 같은 저장소는 뺀다(`../<이름>` 이 어느 쪽인지 모른다).
+    이름이 겹치면 이 저장소와 같은 폴더에 있는 것, 없으면 경로순 첫째."""
+    own = known_repos.repo_root(project) or project
+    mine, parent = os.path.normcase(own), os.path.normcase(os.path.dirname(own))
+    out: dict[str, str] = {}
+    for r in sorted(repos):
+        n = os.path.basename(r)
+        if not n or os.path.normcase(r) == mine or n == os.path.basename(own):
             continue
-        if my_common and git_common(root) == my_common:
-            continue
-        out.append(n)
+        if n not in out or (os.path.normcase(os.path.dirname(r)) == parent and os.path.normcase(os.path.dirname(out[n])) != parent):
+            out[n] = r
     return out
 
 
@@ -114,28 +89,40 @@ def _clean(rest: str) -> str:
     return rest.replace("\\", "/").rstrip("./")
 
 
-def find_hits(text: str, ws: str, names: list[str], local_dirs: list[str]) -> dict[str, list[tuple[str, str]]]:
-    """{형제: [(형제 안 상대 경로, 글에 적힌 꼴)]}. 상대 경로가 같으면 한 번만 센다."""
-    if not names or not text:
-        return {}
-    alt = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
-    flags = re.IGNORECASE if os.name == "nt" else 0
-    prefixes = [_sep_re(ws)]
+def _abs_prefixes(root: str) -> list[str]:
+    """root 를 가리키는 절대 경로 꼴의 정규식: 그대로, 홈 아래면 `~/` 꼴도."""
+    out = [_sep_re(root)]
     home = os.path.expanduser("~")
-    if wslib.inside(ws, home) and ws != home:
-        prefixes.append(r"~[\\/]" + _sep_re(os.path.relpath(ws, home)))
-    forms = [
-        (re.compile(r"(?<![\w.-])(?:%s)[\\/](%s)[\\/](%s)" % ("|".join(prefixes), alt, REST), flags), False),
-        (re.compile(r"(?<![\w.-])(?:\.\.[\\/])+(%s)[\\/](%s)" % (alt, REST), flags), False),
-        (re.compile(r"(?<![\w.\-/\\~$])(%s)/(%s)" % (alt, REST), flags), True),
+    if wslib.inside(root, home) and root != home:
+        out.append(r"~[\\/]" + _sep_re(os.path.relpath(root, home)))
+    return out
+
+
+def find_hits(text: str, sibs: dict[str, str], local_dirs: list[str]) -> dict[str, list[tuple[str, str]]]:
+    """{형제 이름: [(형제 안 상대 경로, 글에 적힌 꼴)]}. sibs 는 siblings() 의 {이름: 루트}. 상대 경로가 같으면 한 번만 센다."""
+    if not sibs or not text:
+        return {}
+    flags = re.IGNORECASE if os.name == "nt" else 0
+    by_name = {(n.lower() if flags else n): n for n in sibs}
+    alt = "|".join(re.escape(n) for n in sorted(sibs, key=len, reverse=True))
+    # 절대 경로 꼴은 저장소마다 뿌리가 달라 저장소마다 식 하나(이름이 정해져 있다). 상대 꼴은 이름을 그룹 1 로 꺼낸다.
+    forms = [(re.compile(r"(?<![\w.-])(?:%s)[\\/](%s)" % ("|".join(_abs_prefixes(root)), REST), flags), name, False)
+             for name, root in sibs.items()]
+    forms += [
+        (re.compile(r"(?<![\w.-])(?:\.\.[\\/])+(%s)[\\/](%s)" % (alt, REST), flags), None, False),
+        (re.compile(r"(?<![\w.\-/\\~$])(%s)/(%s)" % (alt, REST), flags), None, True),
     ]
     found: dict[str, dict[str, tuple[int, str]]] = {}
-    for rx, must_exist in forms:
+    for rx, fixed, must_exist in forms:
         for m in rx.finditer(text):
-            name, rel = m.group(1), _clean(m.group(2))
+            if fixed:
+                name, rel = fixed, _clean(m.group(1))
+            else:
+                g = m.group(1)
+                name, rel = by_name.get(g.lower() if flags else g, g), _clean(m.group(2))
             if not rel or rel.startswith("../") or rel == "..":
                 continue
-            if must_exist and not exists_only_there(ws, name, rel, local_dirs):
+            if must_exist and not exists_only_there(sibs[name], name, rel, local_dirs):
                 continue
             seen = found.setdefault(name, {})
             if rel not in seen or m.start() < seen[rel][0]:
@@ -144,9 +131,8 @@ def find_hits(text: str, ws: str, names: list[str], local_dirs: list[str]) -> di
     return {n: [(rel, shown) for rel, (_, shown) in sorted(r.items(), key=lambda kv: kv[1][0])] for n, r in found.items()}
 
 
-def exists_only_there(ws: str, name: str, rel: str, local_dirs: list[str]) -> bool:
-    """`<name>/<rel>` 이 형제 안에 있고, 이 저장소 쪽(local_dirs 기준)에는 없으면 True."""
-    root = os.path.join(ws, name)
+def exists_only_there(root: str, name: str, rel: str, local_dirs: list[str]) -> bool:
+    """`<name>/<rel>` 이 형제(root) 안에 있고, 이 저장소 쪽(local_dirs 기준)에는 없으면 True."""
     p = os.path.normpath(os.path.join(root, rel))
     if not wslib.inside(p.replace("\\", "/"), root.replace("\\", "/")) or not os.path.lexists(p):
         return False
@@ -198,19 +184,17 @@ def run(data: dict) -> str:
     if not fp or not text or ".claude" not in fp:
         return ""
     cwd = data.get("cwd") or ""
-    vals = wslib.load_env(cwd)
-    ws = wslib.workspace(vals)
-    if not ws or wslib.setting(KEY, vals).strip().lower() in ("off", "0", "no", "false"):
-        return ""
     project = os.path.normpath(os.environ.get("CLAUDE_PROJECT_DIR") or cwd or "")
-    if not project or not wslib.inside(project, ws) or project == ws:
+    if not project or project == os.path.dirname(project):
         return ""
     path = wslib.norm(fp, cwd or project)
     if records_rel(path, project) is None:
         return ""
-    names = siblings(ws, project)
+    if wslib.is_off(KEY, wslib.load_env(cwd)):
+        return ""
+    sibs = siblings(project, known_repos.repos())
     local_dirs = [project, os.path.join(project, ".claude"), os.path.dirname(path)]
-    found = find_hits(text, ws, names, local_dirs)
+    found = find_hits(text, sibs, local_dirs)
     if not found:
         return ""
     sid = data.get("session_id")

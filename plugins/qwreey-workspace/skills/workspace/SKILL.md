@@ -1,12 +1,12 @@
 ---
 name: workspace
-description: "Load before reading or changing any repo other than the current one: lists the sibling repos in the workspace with one line each (`*-kb` toolkit knowledge repos first), and has the rules (read-only unless the user approves, ask before changing), the live-session check, and the worktree lock check. Also load before deleting any .claude/worktrees entry. Hooks deny writes to a sibling repo until this is loaded."
+description: "Load before reading or changing any repo other than the current one: lists the other repos on this machine with one line each (`*-kb` toolkit knowledge repos first), and has the rules (read-only unless the user approves, ask before changing), the live-session check, and the worktree lock check. Also load before deleting any .claude/worktrees entry. Hooks deny writes to a sibling repo until this is loaded."
 allowed-tools: Bash(python3 -I *map.py*)
 ---
 
 # workspace
 
-The repos in the workspace are siblings run by one person; several sessions may be working in them at once.
+The repos on this machine are siblings run by one person; several sessions may be working in them at once.
 
 ## Rules
 - Repos other than this session's are **read-only**. If a change is needed, ask the user first and say which repo and file. Do not "just fix" a sibling.
@@ -17,7 +17,7 @@ The repos in the workspace are siblings run by one person; several sessions may 
 ## Map (generated now)
 !`python3 -I -X utf8 "${CLAUDE_SKILL_DIR}/scripts/map.py"`
 
-If the line above is only the command, run it once. If it says `HARNESS_WORKSPACE not configured`, tell the user to set it in harness.env (from claude-doctor: `home/.claude/harness.env`, then `home-sync.sh apply`; without claude-doctor, just tell the user). Do not edit `~/.claude/harness.env` yourself; the map and the gate are off until then.
+If the line above is only the command, run it once. The list comes from this machine's Claude Code sessions. If a repo the user means is missing (or should not be listed), tell the user to add it to the `harness_workspace_extra` option (or `harness_workspace_exclude`) with `/plugin configure qwreey-workspace@claude-doctor-market`; do not edit settings files yourself. The gate does not need the list: any git repo outside this session's repo counts.
 
 ## Live sessions
 Which repos have a session running (do not use `pgrep -f`; it matches shell wrappers):

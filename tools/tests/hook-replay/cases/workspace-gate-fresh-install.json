@@ -1,0 +1,57 @@
+{
+ "description": "workspace-gate without HARNESS_WORKSPACE (a fresh install): any git repo outside this session's repo is gated wherever it lives; temp-dir repos and the exclude option pass; the gate option turns it off",
+ "files": {
+  "{sandbox}/Documents/far/.git/HEAD": "ref: refs/heads/main\n",
+  "{tmp}/scratch/.git/HEAD": "ref: refs/heads/main\n"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-workspace/scripts/workspace_gate.py",
+   "argv": ["PreToolUse"],
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Edit", "tool_input": {"file_path": "{sandbox}/Documents/far/a.txt"}},
+   "expect": {
+    "decision": "deny",
+    "tags": ["workspace-gate/action"],
+    "contains": ["This changes the repo `{sandbox}/Documents/far`, which is outside this session's repo.", "Load the qwreey-workspace:workspace skill (Skill tool), then retry"]
+   }
+  },
+  {
+   "note": "a path outside any git repo is not another repo",
+   "hook": "plugins/qwreey-workspace/scripts/workspace_gate.py",
+   "argv": ["PreToolUse"],
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Write", "tool_input": {"file_path": "{sandbox}/Documents/notes.txt"}},
+   "expect": {"empty": true}
+  },
+  {
+   "note": "repos under the system temp dir are excluded by default",
+   "hook": "plugins/qwreey-workspace/scripts/workspace_gate.py",
+   "argv": ["PreToolUse"],
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "echo x > {tmp}/scratch/a.txt"}},
+   "expect": {"empty": true}
+  },
+  {
+   "write": {"{cfg}/settings.json": "{\"pluginConfigs\": {\"qwreey-workspace@claude-doctor-market\": {\"options\": {\"harness_workspace_exclude\": \"{sandbox}/Documents\"}}}}\n"}
+  },
+  {
+   "hook": "plugins/qwreey-workspace/scripts/workspace_gate.py",
+   "argv": ["PreToolUse"],
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Edit", "tool_input": {"file_path": "{sandbox}/Documents/far/a.txt"}},
+   "expect": {"empty": true}
+  },
+  {
+   "hook": "plugins/qwreey-workspace/scripts/workspace_gate.py",
+   "argv": ["PreToolUse"],
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Edit", "tool_input": {"file_path": "{ws}/other/a.txt"}},
+   "expect": {"decision": "deny"}
+  },
+  {
+   "write": {"{cfg}/settings.json": "{\"pluginConfigs\": {\"qwreey-workspace@claude-doctor-market\": {\"options\": {\"harness_workspace_gate\": false}}}}\n"}
+  },
+  {
+   "hook": "plugins/qwreey-workspace/scripts/workspace_gate.py",
+   "argv": ["PreToolUse"],
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Edit", "tool_input": {"file_path": "{ws}/other/a.txt"}},
+   "expect": {"empty": true}
+  }
+ ]
+}

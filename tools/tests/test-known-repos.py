@@ -1,7 +1,7 @@
 """lib/known_repos.py 시험. 실행: python3 -I tools/tests/test-known-repos.py  (모델 호출 없음, git 없이 .git 폴더와 파일만 흉내 낸다)
 
 가짜 설정 디렉터리의 projects/<폴더>/<세션>.jsonl 에 cwd 줄을 두고, 저장소 루트 찾기, worktree 합치기, 없어진 경로 빼기,
-extra 와 exclude, 옛 HARNESS_WORKSPACE 출처, 옵션 층(qwreey-workspace 옵션을 다른 플러그인 사본도 본다), 캐시 적중과 다시 읽기를 본다.
+extra 와 exclude, 기본 제외(임시 폴더, ~/.cache, .claude/worktrees), 옛 HARNESS_WORKSPACE 출처, 옵션 층(qwreey-workspace 옵션을 다른 플러그인 사본도 본다), 캐시 적중과 다시 읽기를 본다.
 """
 import importlib.util
 import json
@@ -41,9 +41,16 @@ class Base(unittest.TestCase):
         os.environ["CLAUDE_CONFIG_DIR"] = str(self.cfg)
         os.environ["HOME"] = str(self.tmp / "home")
         os.environ["HARNESS_ENV"] = str(self.tmp / "no-user-harness.env")
+        # 시험 트리는 시스템 임시 폴더 아래라 기본 제외에 걸린다. 이 프로세스의 임시 폴더(gettempdir 가 기억하는 값)를 트리 안 한 곳으로 옮긴다.
+        self.systmp = self.tmp / "systmp"
+        self.systmp.mkdir()
+        self.saved_tempdir = tempfile.tempdir
+        tempfile.tempdir = str(self.systmp)
+        os.environ["TMPDIR"] = str(self.systmp)  # 하위 프로세스도 같은 곳을 보게
         self.n = 0
 
     def tearDown(self):
+        tempfile.tempdir = self.saved_tempdir
         os.environ.clear()
         os.environ.update(self.saved)
         shutil.rmtree(self.tmp, ignore_errors=True)
@@ -177,6 +184,36 @@ class Sources(Base):
         got = self.repos(exclude=str(a))
         self.assertIn(str(ab), got, "이름 앞부분만 같은 저장소(p/ab)는 p/a 경로 제외에 걸리지 않는다")
         self.assertNotIn(str(a), got)
+
+
+class Defaults(Base):
+    def test_scratch_places_are_dropped_from_sessions(self):
+        a = self.repo("p/a")
+        t = self.repo("systmp/scratch")
+        c = self.repo("home/.cache/tool/clone")
+        wt = self.repo("p/a/.claude/worktrees/w1/inner")  # worktree 아래 따로 만든 저장소
+        for r in (a, t, c, wt):
+            self.session(r)
+        self.assertEqual(self.repos(), [str(a)])
+        self.assertEqual(self.repos(defaults=[]), sorted(map(str, (a, t, c, wt))), "defaults=[] 면 기본 제외가 없다")
+        self.assertEqual(kr.default_exclude()[:2], [str(self.systmp), str(self.tmp / "home" / ".cache")])
+
+    def test_explicit_extra_is_kept(self):
+        t = self.repo("systmp/kept")
+        self.assertEqual(self.repos(extra=str(t)), [str(t)], "사람이 적은 저장소는 기본 제외에 걸지 않는다")
+        self.assertEqual(self.repos(extra=str(t), exclude=str(t)), [], "사람이 적은 제외는 건다")
+
+    def test_legacy_workspace_children_are_auto(self):
+        a = self.repo("ws/a")
+        self.repo("ws/a/.claude/worktrees/x")
+        self.assertEqual(self.repos(workspace=str(self.tmp / "ws")), [str(a)])
+        self.assertEqual(self.repos(workspace=str(self.systmp)), [])
+
+    def test_excluded_rules(self):
+        self.assertTrue(kr.excluded("/w/p/.claude/worktrees/x", ["*/.claude/worktrees/*"]))
+        self.assertFalse(kr.excluded("/w/p", ["*/.claude/worktrees/*"]))
+        self.assertTrue(kr.excluded("/w/tmp/x", ["/w/tmp"]))
+        self.assertFalse(kr.excluded("/w/tmpx", ["/w/tmp"]))
 
 
 class Options(Base):

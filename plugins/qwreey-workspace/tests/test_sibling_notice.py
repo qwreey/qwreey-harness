@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -36,13 +37,21 @@ class Base(unittest.TestCase):
         (t / "cfg").mkdir()
         (t / "tmp").mkdir()
         (t / "salt").write_text("00" * 32)
+        # 옛 작업공간 키 없이(새로 설치한 동료와 같은 조건) 세션 기록의 cwd 로 다른 저장소를 찾는다. plain 은 저장소가 아니다.
+        for n in ("mine", "other", "x-kb", "test", "plain"):
+            self.session(self.ws / n)
+
+    def session(self, cwd):
+        d = self.t / "cfg" / "projects" / ("-" + str(cwd).strip("/").replace("/", "-"))
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "s.jsonl").write_text(json.dumps({"type": "user", "cwd": str(cwd)}) + "\n")
 
     def tearDown(self):
         self.tmp.cleanup()
 
     def env(self, **kw):
         e = {k: v for k, v in os.environ.items() if not k.startswith(("HARNESS_", "CLAUDE_"))}
-        e.update(TMPDIR=str(self.t / "tmp"), CLAUDE_CONFIG_DIR=str(self.t / "cfg"), HARNESS_WORKSPACE=str(self.ws),
+        e.update(TMPDIR=str(self.t / "tmp"), CLAUDE_CONFIG_DIR=str(self.t / "cfg"),
                  CLAUDE_PROJECT_DIR=str(self.mine), QWREEY_HARNESS_SALT_FILE=str(self.t / "salt"), HARNESS_ENV="/nonexistent")
         e.update(kw)
         return e
@@ -124,17 +133,48 @@ class Silent(Base):
     def test_same_repo_worktree_folder(self):
         wt = self.ws / "mine-wt"
         wt.mkdir()
+        (self.mine / ".git" / "worktrees" / "mine-wt").mkdir(parents=True)
         (wt / ".git").write_text("gitdir: %s/.git/worktrees/mine-wt\n" % self.mine)
+        self.session(wt)
         self.assertIsNone(self.write(".claude/research/a.md", "../mine-wt/src/a.py\n"))
+
+    def test_sibling_in_another_folder(self):
+        far = self.t / "Documents" / "far"
+        (far / ".git").mkdir(parents=True)
+        (far / "lib").mkdir()
+        (far / "lib" / "x.py").write_text("x\n")
+        self.session(far)
+        out = self.write(".claude/research/a.md", "See %s/lib/x.py and far/lib/x.py.\n" % far)
+        self.assertIn("1 internal path of sibling repo `far`", out)
+
+    def test_same_name_prefers_same_folder(self):
+        dup = self.t / "elsewhere" / "other"
+        (dup / ".git").mkdir(parents=True)
+        self.session(dup)
+        self.assertEqual(sn.siblings(str(self.mine), [str(dup), str(self.ws / "other")])["other"], str(self.ws / "other"))
+        self.assertEqual(sn.siblings(str(self.mine), [str(dup)])["other"], str(dup))
 
     def test_url_and_nested_path(self):
         self.assertIsNone(self.write(".claude/research/a.md", "https://github.com/u/other/src/engine.py and tools/other/src/engine.py\n"))
 
     def test_off_switches(self):
         self.assertIsNone(self.write(".claude/research/a.md", "../other/a\n", HARNESS_WORKSPACE_SIBLING_NOTICE="off"))
-        self.assertIsNone(self.write(".claude/research/a.md", "../other/a\n", HARNESS_WORKSPACE=""))
+        (self.t / "cfg" / "settings.json").write_text(json.dumps({"pluginConfigs": {"qwreey-workspace@m": {
+            "options": {"harness_workspace_sibling_notice": False}}}}))
+        self.assertIsNone(self.write(".claude/research/a.md", "../other/a\n"), "/config 옵션으로 끈다")
+        (self.t / "cfg" / "settings.json").unlink()
         (self.mine / ".claude" / "harness.env").write_text("HARNESS_WORKSPACE_SIBLING_NOTICE=off\n")
         self.assertIsNone(self.write(".claude/research/a.md", "../other/a\n"))
+
+    def test_no_other_repo_known(self):
+        shutil.rmtree(self.t / "cfg" / "projects")
+        self.assertIsNone(self.write(".claude/research/a.md", "../other/a\n"))
+
+    def test_excluded_repo(self):
+        (self.t / "cfg" / "settings.json").write_text(json.dumps({"pluginConfigs": {"qwreey-workspace@m": {
+            "options": {"harness_workspace_exclude": str(self.ws / "other")}}}}))
+        self.assertIsNone(self.write(".claude/research/a.md", "../other/a\n"))
+        self.assertIsNotNone(self.write(".claude/research/a.md", "../x-kb/a\n"))
 
     def test_other_tools_and_bad_input(self):
         self.assertIsNone(self.run_hook("Read", {"file_path": str(self.mine / ".claude" / "a.md")}))
