@@ -2,7 +2,7 @@
 
 Source of truth for the Claude Code harness. Pointers only; read the target, not everything.
 
-- `PLAN.md`: current goal and open decisions. Check it before proposing structure.
+- `PLAN.md`: goal, current focus and open questions. Before proposing structure, also read `.claude/base/overview.md` (layers, layout) and `.claude/base/harness-principles.md` (the user's settled principles).
 - `HUMAN_TODO.md`: what only the user does (deletes, permissions, apply). Do not do these.
 - `README.md`: for humans (install, layout).
 - `home/`: source of the user-level `~/.claude` (list in `home/MANIFEST`). Edit here, never `~/.claude`; the user runs `tools/home-sync.sh diff` then `apply`.

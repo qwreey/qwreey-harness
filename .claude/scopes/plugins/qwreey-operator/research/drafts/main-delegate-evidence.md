@@ -5,7 +5,7 @@ description: 위임의 이득은 비용보다 대화 가능성·맥락 위생·s
 status: active
 ---
 
-PLAN 5a "제안(사용자, 2026-11-13)"의 근거 측정. 트랜스크립트는 읽기 전용으로 스트리밍했다. 대상은 메인 세션 5개(quad 3, stl-luau 1, claude-doctor 현 세션)와 서브에이전트 1,379개다(quad 753, claude-doctor 216, stl-luau 159, 그 밖 프로젝트 제외).
+옛 PLAN 3.9 5a(`.claude/archive/plan/PLAN-2026-11.md`) "제안(사용자, 2026-11-13)"의 근거 측정. 트랜스크립트는 읽기 전용으로 스트리밍했다. 대상은 메인 세션 5개(quad 3, stl-luau 1, claude-doctor 현 세션)와 서브에이전트 1,379개다(quad 753, claude-doctor 216, stl-luau 159, 그 밖 프로젝트 제외).
 가격은 `plugins/q/scripts/subagent_ledger.py` PRICES(목록가, opus-5-5 입력 4 / 캐시읽기 0.20 / 출력 20 USD/MTok).
 재생성: `.claude/scopes/plugins/qwreey-operator/research/drafts/raw/` 의 `extract.py`(jsonl -> 슬림 이벤트, `python3 -I extract.py <in> <out>`), `turns.py`, `sub.py`, `cost.py`, `wait.py`, `hook.py`, `growth.py`. raw 는 gitignore 이고 이 머신에만 있다.
 
