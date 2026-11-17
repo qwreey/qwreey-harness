@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """PostToolUse(Write|Edit|MultiEdit) 알림: 이번에 추가한 줄이 주석, 모델용 문서 관례를 벗어난 것 같으면 한 줄로 알린다.
 
-막지 않는다(decision 없음). additionalContext(level=info) 한 줄만 주입한다. 주석 알림은 줄 번호와 고치는 법(대체 문자 등)을 함께 줘서
-알림만 보고 고칠 수 있다. 모델용 문서 알림은 qwreey-conventions:agent-docs 스킬을 가리킨다.
+막지 않는다(decision 없음). additionalContext(level=info) 한 줄만 주입한다. 주석 알림과 모델용 문서 알림 모두 줄 번호와 고치는 법(대체 문자,
+옮길 곳, 써야 할 꼴)을 함께 줘서 알림만 보고 고칠 수 있다. 스킬을 열라고 하지 않는다.
 Bash 로 바꾼 파일은 bash_writes.py 가 이 파일의 file_notice 로 같은 검사, 같은 중복 거르기를 한다.
 
 남은 기존 주석 보고: 같은 PostToolUse 에서 이번에 추가하지 않은 줄의 문제를 범주별(이력, 기호, 이스케이프, 보이지 않는 문자) 줄 수로 세어
@@ -30,6 +30,8 @@ Bash 로 바꾼 파일은 bash_writes.py 가 이 파일의 file_notice 로 같�
   - 입구 문서: 날짜, audit/session/handoff 경로와 .claude/ 아래 기록 폴더 경로, 라운드, 결정 문구, 실측 표지, 변경 서술, 같은 줄에 .md 경로가 없는 원장 id
   - skills/**/references/*.md: 결정 문구, 라운드, audit/N 근거, 실측 표지, 정정 배너만(날짜, id, "previously" 는 통과)
   - `status:` 줄은 통과
+  - 꼴(conv_docs.doc_shape): SKILL.md 의 description(영어, 언제 쓰는지, 3인칭, 한국어 계기는 끝; disable-model-invocation 은 제외),
+    한국어가 대부분인 줄(이미 한국어로 쓴 문서는 제외), 입구 문서에서 원장 id 옆 .md 경로가 플러그인(밖이면 저장소) 안의 있는 파일이 아님
 제외: 확장자 표 밖, 생성 파일(머리 6줄 표시), 픽스처, testdata, node_modules 등, 설정의 exclude.
 
 저장소 설정: <프로젝트>/.claude/conventions.json (없으면 예전 이름 .claude/comments.json)
@@ -58,6 +60,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
 import harness_nonce  # noqa: E402
 from conv_edit import GEN_MARK, MAX_BYTES, SKIP_PARTS, SKIP_SUFFIX, collect, project_root  # noqa: E402
+from conv_docs import DOC_HINT, INLINE_CODE, PATH_TOKEN, URL, doc_check, doc_class, doc_lines, doc_shape  # noqa: E402,F401 (scan 이 cc. 로 쓴다)
 from conv_lex import FAMILY, comment_body, lex  # noqa: E402
 import layout_metrics  # noqa: E402
 
@@ -90,8 +93,8 @@ BUILTIN_PUBLIC = [r"error-code:\s*\S+", r"\bR(?:6|15)\b", r"\bES\d{4}\b", r"\bH2
 # 주석 안의 유니코드 이스케이프(\\uXXXX, \\u{...}, \\UXXXXXXXX): 금지 문자를 이스케이프로 적어 검사를 피한 것
 ESCAPE = re.compile(r"\\u[0-9A-Fa-f]{4}|\\u\{[0-9A-Fa-f]+\}|\\U[0-9A-Fa-f]{8}")
 # 알림 범주 순서(알림 문장에서 앞일수록 먼저 고친다)
-CATEGORY_ORDER = ("history marker", "Ref tail without a reason sentence", "non-keyboard symbol", "escaped character",
-                  "invisible character", "language mismatch")
+CATEGORY_ORDER = ("history marker", "Ref tail without a reason sentence", "skill description", "ledger id path", "non-keyboard symbol",
+                  "escaped character", "invisible character", "language mismatch")
 # 흔한 기호의 대체. 키가 없으면 ASCII 나 평범한 단어로 풀어 쓴다.
 SYMBOL_FIX = {"\u2014": "-", "\u2013": "-", "\u2015": "-", "\u2212": "-", "\u00b7": ",", "\u2022": "-", "\u2026": "...",
               "\u2192": "->", "\u2190": "<-", "\u2194": "<->", "\u21d2": "=>", "\u00a7": "(omit)", "\u00d7": "x",
@@ -102,23 +105,6 @@ WORD = re.compile(r"[A-Za-z\u00c0-\u024f]{2,}|[가-힣]{2,}")
 DEFAULTS = {"allow_ref_tail": True, "public_ids": [], "exclude": [], "patterns": {}, "min_reason_words": 3,
             "comment_language": None, "allow_chars": [], "label_language": "en", "layout": {}}
 
-# 모델용 문서 패턴. 날짜, round, 결정 문구는 위 PATTERNS 와 설정 덮어쓰기를 공유한다.
-DOC_PATTERNS = {
-    "decision": r"사용자\s*(?:결정|합의)|\bper (?:the )?user\b|\bas (?:the user )?(?:discussed|decided|agreed)\b|\bthe user decided\b|사용자\s*20\d\d",
-    "path": r"(?<![\w-])(?:audit|session|handoff)/|\.claude/(?:plan|base|research|audit|handoff|archive)/",
-    "ref_path": r"(?<![\w-])audit/\d+",
-    "tag": r"\[(?:실측|측정|추정|추론|measured|estimated?|inferred)[^\]]*\]",
-    "narration": r"\b(?:previously|recently)\b|\bas of\b(?!\s+(?:v?\d|luau|version))|현재 기준|지난\s?(?:주|번)|요즘|사실 정정|\bfact fix\b",
-    "banner": r"사실 정정|\bfact fix\b|정정\s*:|\bcorrection\s*:",
-    "ledger": r"\b[A-Z]{1,2}-\d{2,4}\b",
-}
-DOC_ENTRY = ("date", "path", "round", "decision", "tag", "narration", "ledger")
-DOC_REFERENCE = ("decision", "round", "ref_path", "tag", "banner")
-DOC_STATUS = re.compile(r"^\s*(?:[-*>]\s*)?\**status\**\s*:", re.I)
-INLINE_CODE = re.compile(r"`[^`]*`")
-URL = re.compile(r"https?://\S+")
-PATH_TOKEN = re.compile(r"\S*/\S*|\S+\.\w{1,5}\b")
-HAS_MD_PATH = re.compile(r"\S+\.md\b")
 
 # 보이지 않는 문자, 방향 제어 문자(소프트 하이픈, NBSP, ZW*, 방향 표식, 임베딩, 고립, WORD JOINER, BOM)
 INVISIBLE = re.compile("[\u00ad\u00a0\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]")
@@ -401,80 +387,6 @@ def check_lines(rows, added, pats, pub, cfg):
     return problems
 
 
-def doc_class(rel):
-    """모델용 문서면 "entry" 나 "reference", 아니면 None."""
-    parts = Path(rel).parts
-    name = parts[-1]
-    if not name.endswith(".md"):
-        return None
-    if "skills" in parts[:-1]:
-        after = parts[parts.index("skills") + 1:-1]
-        return "reference" if "references" in after else "entry"
-    if name in ("CLAUDE.md", "SKILL.md") or (len(parts) > 1 and parts[-2] == "agents"):
-        return "entry"
-    if ".claude" in parts[:-1] and "rules" in parts[:-1]:
-        return "entry"
-    return None
-
-
-def doc_lines(text):
-    """(줄 번호 0 기반, 검사할 줄) 쌍. frontmatter 와 코드 펜스 안은 뺀다."""
-    out, fence, front = [], None, False
-    for idx, line in enumerate(text.split("\n")):
-        if idx == 0 and line.strip() == "---":
-            front = True
-            continue
-        if front:
-            front = line.strip() != "---"
-            continue
-        m = re.match(r"^\s*(`{3,}|~{3,})", line)
-        if m:
-            if fence is None:
-                fence = m.group(1)[0]
-            elif m.group(1)[0] == fence:
-                fence = None
-            continue
-        if fence is None:
-            out.append((idx, line))
-    return out
-
-
-def doc_check(text, added, rel, cfg, pats, pub):
-    """모델용 문서에서 추가된 줄의 이력 표지. [(줄 번호(1 기반), 범주)]."""
-    cls = doc_class(rel)
-    if not cls:
-        return []
-    names = DOC_ENTRY if cls == "entry" else DOC_REFERENCE
-    rx = {}
-    for k in names:
-        if k in ("date", "round", "decision"):
-            if k == "decision" and k in pats:
-                rx[k] = re.compile(DOC_PATTERNS[k], re.I)
-            elif k in pats:
-                rx[k] = pats[k]
-        else:
-            rx[k] = re.compile(DOC_PATTERNS[k], re.I if k in ("narration", "banner", "tag") else 0)
-    out = []
-    for idx, line in doc_lines(text):
-        if idx not in added or DOC_STATUS.match(line):
-            continue
-        s = URL.sub(" ", INLINE_CODE.sub(" ", line))
-        for p in pub:
-            s = p.sub(" ", s)
-        bare = PATH_TOKEN.sub(" ", s)  # 경로, 파일명 속 날짜나 id 는 이력이 아니다
-        hit = False
-        for k, r in rx.items():
-            if k in ("path", "ref_path"):
-                hit = hit or bool(r.search(s))
-            elif k == "ledger":
-                hit = hit or (bool(r.search(bare)) and not HAS_MD_PATH.search(s))
-            else:
-                hit = hit or bool(r.search(bare if k == "date" else s))
-        if hit:
-            out.append((idx + 1, "history marker"))
-    return out
-
-
 def state_file(sid, agent_id):
     return compact_epoch.state_path("qwreey-conventions", NS, sid, agent_id)
 
@@ -747,7 +659,7 @@ SCRIPT_NAME = {"latin": "English", "hangul": "Korean", "cjk": "Japanese or Chine
 
 
 COMMENT_TAIL = "Fix those lines; a false match (quoted text, a needed symbol) can stay, said once in your report."
-DOC_TAIL = f"If a hit is real, the {NAME}:agent-docs skill has the fix; false matches (quoted text, a needed symbol) can stay."
+DOC_TAIL = "Fix those lines; a false match (quoted text, a needed symbol) can stay, said once in your report."
 
 
 def file_notice(data, path, rel, kind, ext, cfg, text, added, state, tail=True):
@@ -765,7 +677,7 @@ def file_notice(data, path, rel, kind, ext, cfg, text, added, state, tail=True):
         return [], False
 
     # Added-line checks
-    exp = None
+    exp, doc_det = None, {}
     if kind == "comment":
         problems = check_lines(rows, added, pats, pub, cfg)
         labels = step_labels(rows, text.split("\n"), cfg)
@@ -774,6 +686,8 @@ def file_notice(data, path, rel, kind, ext, cfg, text, added, state, tail=True):
             problems += [(ln, "language mismatch") for ln in language_lines(rows, added, exp, labels)]
     else:
         problems = doc_check(text, added, rel, cfg, pats, pub)
+        shape, doc_det = doc_shape(text, added, path, rel, pub)
+        problems += shape
     problems += [(ln, "invisible character") for ln in invisible_lines(text, added)]
 
     # Layout of the functions this edit wrote or grew
@@ -813,7 +727,7 @@ def file_notice(data, path, rel, kind, ext, cfg, text, added, state, tail=True):
         elif kind == "comment" and cat == "language mismatch" and exp in SCRIPT_NAME:
             det = f"write it in {SCRIPT_NAME[exp]} like the file's other comments"
         else:
-            det = FIX_HINT.get(cat, "") if kind == "comment" else ""
+            det = FIX_HINT.get(cat, "") if kind == "comment" else doc_det.get(cat) or DOC_HINT.get(cat, "")
         parts.append(f"{line_list(lns)} {cat}" + (f": {det}" if det else ""))
 
     body = []

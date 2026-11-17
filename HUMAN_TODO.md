@@ -39,6 +39,8 @@
 
 - [x] qwreey-conventions 0.10.0(Bash 로 쓴 파일도 추가 줄 검사와 rules 주입: 새 PostToolUse·PostToolUseFailure:Bash 훅 `bash_writes.py`, PreToolUse 의 bash-bypass-reminder 가 쓰기 신호가 있을 때만 스냅숏을 남긴다; comments rule 끝 줄을 어미, 문체, 알림 대응 세 줄로 바꿈; 주석 알림이 스킬 대신 고치는 법을 직접 준다; 주석의 변경 서술(Previously, used to, 예전에는 등)도 이력으로 알림; 모델이 부르던 comments 스킬을 없애고 기존 주석 정리는 사용자 명령 `/qwreey-conventions:comments-cleanup [경로]`, 사람용 참고는 `plugins/qwreey-conventions/docs/comments.md`) 갱신: `claude plugin marketplace update claude-doctor-market` 뒤 `claude plugin update qwreey-conventions@claude-doctor-market`, 그다음 `/reload-plugins` 나 새 세션. `home/.claude/HOOK-MESSAGES.md` 의 bash-bypass-reminder, rules-inject, qwreey-conventions 행이 바뀌었으니 `tools/home-sync.sh diff` 뒤 `apply`
 
+- [ ] qwreey-conventions 0.11.0(D11 4: 스킬에만 있던 요구를 훅으로. 사본 표시가 문서 주석·HTML 주석·JSON 처럼 읽히지 않는 자리에 있거나 형제 저장소 꼴이 섞이면 알림, `SKILL.md` description 꼴·모델용 문서의 한국어 줄·플러그인 밖 원장 경로 알림, 모델용 문서 알림이 스킬 대신 고치는 법을 줌; agent-docs rule 에 두 줄을 더하고 포인터 줄을 줄임) 갱신: 먼저 agent-docs rule 문구를 승인하고 병합한 뒤 `claude plugin marketplace update claude-doctor-market`, `claude plugin update qwreey-conventions@claude-doctor-market`, 그다음 `/reload-plugins` 나 새 세션. `home/.claude/HOOK-MESSAGES.md` 는 MANIFEST 밖이라 apply 할 것은 없다
+
 ## 읽기 좋은 코드 규약 켜기 (이 기기, 사용자 본인만)
 - [ ] 자기 `~/.claude/harness.env` 에 `HARNESS_READABLE_CODE=on` 한 줄을 직접 더한다(플러그인은 2026-11-16 `/reload-plugins` 로 0.10.0 이 실려 있다. 정본 `home/.claude/harness.env` 에는 주석 처리한 예시만 있어 home-sync 로는 켜지지 않는다; 동료 배포에 퍼지지 않게 일부러 그렇게 뒀다). Luau 저장소에서 쓰면 luau-kb(0.6.4)도 켠다. 끄고 싶은 저장소는 `.claude/harness.env` 에 `HARNESS_READABLE_CODE=off`. 확인: `.luau` 나 `.py` 파일을 Read 하면 `<rule plugin="qwreey-conventions" name="readable-code">` 가 한 번 붙는다
 

@@ -230,12 +230,14 @@ def doc(rel, content, **kw):
 
 check("CLAUDE.md date -> history marker", "history marker" in doc("d/CLAUDE.md", "# P\nUse tabs. Decided 2026-11-10.\n"))
 check("message names the doc skill", "qwreey-conventions:agent-docs" in doc("d/CLAUDE.md", "# P\nUse tabs. Decided 2026-11-10.\n") or True)
-c = doc("d2/SKILL.md", "---\nname: x\ndescription: made 2026-11-10\n---\n# X\nSee audit/18 for why.\n")
-check("SKILL.md: frontmatter date passes, audit path flagged", "L6" in c and "L3" not in c and "agent-doc conventions" in c and "qwreey-conventions:agent-docs" in c)
+c = doc("d2/SKILL.md", "---\nname: x\ndescription: Checks x, made 2026-11-10. Use when y.\n---\n# X\nSee audit/18 for why.\n")
+check("SKILL.md: frontmatter date passes, audit path flagged, notice is self-contained",
+      "L6" in c and "L3" not in c and "agent-doc conventions" in c and "move dates, ids" in c and "Fix those lines" in c and "skill" not in c.split("L6")[1])
 check("decision phrase / round / tag / narration in entry doc", all("history marker" in doc(f"d3/{i}/SKILL.md", f"# X\n{t}\n") for i, t in enumerate(
     ["The user decided to keep it.", "Found in round 4.", "Cost [measured] is low.", "Previously this was a hook.", "As of today it works."])))
 check("as of with a version passes", doc("d4/SKILL.md", "# X\nAs of luau 0.742 this works.\nRequires v2 as of v2.\n") == "")
-check("ledger id without .md on the line -> flagged; with .md -> pass",
+doc("d6/decisions/log.md", "# Log\n")
+check("ledger id without .md on the line -> flagged; with an existing .md -> pass",
       "history marker" in doc("d5/SKILL.md", "# X\nSee D-13 here.\n") and doc("d6/SKILL.md", "# X\nSee D-13 in decisions/log.md here.\n") == "")
 check("code fence, inline code, url, path token pass",
       doc("d7/SKILL.md", "# X\n```\nsince 2026-11-10 audit/18\n```\nRun `date 2026-11-10` or https://x.io/2026-11-10/a or snapshots/2026-11-10/a.json now.\n") == "")
@@ -255,6 +257,50 @@ check("doc invisible character -> flagged", "invisible character" in doc("d13/CL
 check("doc symbols (arrows) are not checked", doc("d14/CLAUDE.md", "# X\nA \u2192 B \u2014 C \u00a7 D\n") == "")
 check("doc exclude config", (cfg_write('{"exclude": ["d15/*"]}'), doc("d15/CLAUDE.md", "# X\n2026-11-10\n"))[1] == "")
 cfg_clear()
+
+# ---- (c2) 모델용 문서의 꼴: 스킬 description, 본문 언어, 원장 경로 ----
+def skill(rel, desc, body="# X\nRuns the widget check.\n", extra=""):
+    return doc(rel, f"---\nname: x\n{extra}description: {desc}\n---\n{body}")
+
+
+check("description: what, when, English, Korean triggers at the end -> silent",
+      skill("ds/a/SKILL.md", "Checks widget files for drift. Use when a widget changes. 위젯 검사, 드리프트 확인.") == "")
+r = skill("ds/b/SKILL.md", "위젯 파일의 드리프트를 검사하는 스킬이다. Use when a widget changes.")
+check("description: Korean before the English part -> notice on the description line with the shape",
+      "L3 skill description: not English outside the trailing Korean trigger phrases" in r and "Use when ..." in r and "third person" in r)
+check("description: no when-clause -> notice", "no when-clause" in skill("ds/c/SKILL.md", "Checks widget files for drift."))
+check("description: first or second person -> notice", "first or second person" in skill("ds/d/SKILL.md", "I can check widget files. Use when a widget changes."))
+check("description: disable-model-invocation skill takes any menu line -> silent",
+      skill("ds/e/SKILL.md", "위젯 정리", extra="disable-model-invocation: true\n") == "")
+check("description: folded >- value with a 트리거: tail -> silent",
+      doc("ds/f/SKILL.md", "---\nname: x\ndescription: >-\n  Measured widget behavior: drift and lifetime. Use when a widget\n  misbehaves. 트리거: 위젯 이상, 드리프트.\n---\n# X\n") == "")
+check("description: quoted Korean trigger phrases in the middle -> silent",
+      skill("ds/g/SKILL.md", 'Puts a choice to a debate. Also when the user says "토론 붙여봐 이거 지금", in plain words. 토론, 찬반.') == "")
+check("description: a description: line inside a code fence of the body is not the description",
+      skill("ds/h/SKILL.md", "Checks widgets. Use when a widget changes.", body="# X\n```yaml\ndescription: 위젯을 검사한다 이렇게 쓴다\n```\n") == "")
+whole = "---\nname: x\ndescription: Checks widgets.\n---\n# X\nRuns it.\nMore.\n"
+check("description: unchanged description, body edit -> no description notice",
+      "skill description" not in edit("ds/i/SKILL.md", "Runs it.\n", "Runs it.\nMore.\n", whole, sid=uniq("doc")))
+check("description: only SKILL.md (an agent's description is not checked)", doc("ds/agents/a.md", "---\nname: a\ndescription: 위젯 검사 에이전트 설명\n---\n# A\n") == "")
+
+r = doc("dl/a/SKILL.md", "# X\nRuns the check.\n결과를 사용자에게 한국어로 짧게 보고하고 끝낸다.\n")
+check("language: Korean line in a new model doc -> notice with the English fix", "L3 language mismatch: write it in English" in r)
+ko_doc = "# X\n" + "".join(f"{w} 위젯을 검사하고 결과를 기록한다.\n" for w in ("첫째", "둘째", "셋째", "넷째"))
+check("language: a doc already written in Korean keeps its language -> silent",
+      "language" not in edit("dl/b/SKILL.md", "넷째 위젯을 검사하고 결과를 기록한다.\n", "넷째 위젯을 검사하고 결과를 기록한다.\n다섯째 위젯을 검사하고 결과를 기록한다.\n",
+                             ko_doc + "다섯째 위젯을 검사하고 결과를 기록한다.\n", sid=uniq("doc")))
+check("language: quoted wording for the user and fenced Korean -> silent",
+      doc("dl/c/SKILL.md", '# X\nTell the user "정리를 마쳤습니다 확인해 주세요" and stop.\n```\n위젯을 검사하고 결과를 기록한다\n```\n') == "")
+check("language: a Korean term or two in an English line -> silent", doc("dl/d/CLAUDE.md", "# X\nKorean comments keep the ending (합니다체 or 한다체).\n") == "")
+
+for rel, body in [("dg/plug/.claude-plugin/plugin.json", "{}\n"), ("dg/decisions.md", "# D\n"), ("dg/plug/skills/s/references/decisions.md", "# D\n")]:
+    doc(rel, body)
+r = doc("dg/plug/skills/s/SKILL.md", "# X\nWhy: D-13 in ../../../decisions.md.\n")
+check("ledger: id with a .md path outside the plugin -> notice naming the plugin", "L2 ledger id path" in r and "inside dg/plug" in r)
+check("ledger: id with a .md path inside the plugin (from the doc's folder) -> silent",
+      doc("dg/plug/skills/s/c.md", "# X\nWhy: D-13 in references/decisions.md.\n") == "")
+check("ledger: id with a missing .md path -> notice", "ledger id path" in doc("dg/plug/skills/s/d.md", "# X\nWhy: D-13 in nowhere/gone.md.\n"))
+check("ledger: references may keep ids -> silent", doc("dg/plug/skills/s/references/e.md", "# X\nWhy: D-13 in ../../../../decisions.md.\n") == "")
 
 check("doc: if the user asked / claude-audit/ path -> silent", doc("d16/SKILL.md", "# X\nUse `self` if the user asked. Writes outside /tmp/claude-audit/ are blocked.\n") == "")
 check("lint directive comment (noqa: E402) -> silent", write_new("s/nq.py", "import os  # noqa: E402\n", sid=uniq("nq")) == "")

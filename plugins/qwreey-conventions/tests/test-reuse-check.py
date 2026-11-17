@@ -86,6 +86,10 @@ def shadow():
         return []
 
 
+def lines(*xs):
+    return "\n".join(xs) + "\n"
+
+
 LIST = 'local KINDS = { "omega", "sigma", "kappa", "theta" }\n'
 
 # ---- C1: @copy-of 사본 ----
@@ -105,7 +109,59 @@ check("C1 unresolved name -> notice", "does not resolve" in run("b/c3.luau", nor
 check("C1 sibling-repo mark without workspace -> silent, logged", run("b/c4.luau", '-- @copy-of: other:src/x.luau#FORMS\n' + LIST, "", "x") == ""
       and any(s.get("status") == "sibling" for s in shadow()))
 mixed = '-- @copy-of: ../other:src/x.luau#FORMS\nlocal FORMS = { "coin", "stick", "back", "card" }\n'
-check("C1 region path mixed with repo: form -> does not resolve", "does not resolve" in run("b/c5.luau", mixed, "", mixed))
+r = run("b/c5.luau", mixed, "", mixed)
+check("M1 copy-of in the mixed ../repo:path form -> form notice with the fix, no second unresolved notice",
+      "mixes the two sibling-repo forms" in r and "(`other:src/x.luau#FORMS`)" in r and "does not resolve" not in r)
+
+# ---- M1: 표시 자리(줄 주석), 언어별 꼴, 형제 저장소 꼴 ----
+FORMS = 'local FORMS = { "coin", "stick", "back", "card" }\n'
+r = run("mk/doc.luau", "--- @copy-of: a/src.luau#FORMS\n" + FORMS)
+check("M1 Luau --- doc comment -> notice with the plain -- form", "mk/doc.luau:1: the @copy-of marker is in a doc comment" in r
+      and "`-- @copy-of: a/src.luau#FORMS`" in r)
+r = run("mk/moon.luau", "--[=[\n\t@copy-of: a/src.luau#FORMS\n]=]\n" + FORMS)
+check("M1 moonwave --[=[ ]=] block -> notice on the marker line", "mk/moon.luau:2: the @copy-of marker is in a doc comment" in r)
+check("M1 plain -- line comment -> silent", run("mk/ok.luau", "-- @copy-of: a/src.luau#FORMS\n" + FORMS) == "")
+put("mk/src.rs", 'pub const KINDS: &[&str] = &["amber", "jade", "onyx", "ruby"];\n')
+RS = 'pub const KINDS: &[&str] = &["amber", "jade", "onyx", "ruby"];\n'
+r = run("mk/a.rs", "/// @copy-of: mk/src.rs#KINDS\n" + RS)
+check("M1 Rust /// -> notice with the // form", "doc comment" in r and "`// @copy-of: mk/src.rs#KINDS`" in r)
+check("M1 Rust // and //! header -> silent", run("mk/b.rs", "// @copy-of: mk/src.rs#KINDS\n" + RS) == ""
+      and "doc comment" not in run("mk/c.rs", "//! @copy-of: mk/src.rs\n" + RS))
+check("M1 Rust //// (not a doc comment) -> silent", "doc comment" not in run("mk/d.rs", "//// @copy-of: mk/src.rs#KINDS\n" + RS))
+put("mk/src.ts", 'export const KINDS = ["lilac", "mauve", "olive", "taupe"];\n')
+TS = 'export const KINDS = ["lilac", "mauve", "olive", "taupe"];\n'
+r = run("mk/a.ts", "/** @copy-of: mk/src.ts#KINDS */\n" + TS)
+check("M1 JSDoc /** */ one line -> notice, fix drops the closer", "doc comment" in r and "`// @copy-of: mk/src.ts#KINDS`" in r)
+r = run("mk/b.ts", "/**\n * Kinds.\n * @copy-of: mk/src.ts#KINDS\n */\n" + TS)
+check("M1 JSDoc block continuation line -> notice on that line", "mk/b.ts:3: the @copy-of marker is in a doc comment" in r)
+ex = "/**\n * Mark a copy like this:\n *   // @copy-of: mk/src.ts#KINDS\n * The `@copy-of:` marker goes above the list.\n */\n" + TS
+check("M1 quoted example and prose inside a doc block -> no form notice", "doc comment" not in run("mk/c.ts", ex))
+check("M1 plain /* */ block -> silent", "doc comment" not in run("mk/d.ts", "/* @copy-of: mk/src.ts#KINDS */\n" + TS))
+AST = "---\nconst x = 1;\n---\n"
+r = run("mk/a.astro", AST + "<!-- @copy-of: mk/src.ts#KINDS -->\n<p>hi</p>\n")
+check("M1 Astro HTML comment -> notice with {/* */} and // forms", "HTML comment" in r and "`{/* @copy-of: mk/src.ts#KINDS */}`" in r)
+check("M1 Astro {/* */} in the template -> no form notice", "comment" not in run("mk/b.astro", AST + "{/* @copy-of: mk/src.ts#KINDS */}\n<p>hi</p>\n"))
+r = run("mk/reg.ts", lines("/** @start-replace: lib/texts.py#OMIT */", "const x = 1;", "// @end-replace"))
+check("M1 region marker in a doc block -> doc notice", "mk/reg.ts:1: the @start-replace marker is in a doc comment" in r)
+r = run("mk/reg.astro", AST + lines("<!-- @start-replace: lib/texts.py#OMIT -->", "<p>x</p>", "<!-- @end-replace -->"))
+check("M1 region marker in an HTML comment -> not read as a region marker", "is not read as a region marker" in r)
+r = run("mk/reg2.py", lines("# @start-replace: other:lib/texts.py#OMIT", "X = 1", "# @end-replace"))
+check("M1 region in the repo:path form -> notice with ../repo/path, no second unresolved notice",
+      "uses the `<repo>:<path>` form" in r and "`../other/lib/texts.py`" in r and "does not resolve" not in r)
+r = run("mk/reg3.py", lines("# @start-replace: ../other:lib/texts.py#OMIT", "X = 1", "# @end-replace"))
+check("M1 region in the mixed ../repo:path form -> notice", "`../other/lib/texts.py`" in r)
+check("M1 region in the ../repo/path form -> no form notice", "<repo>:<path>" not in run("mk/reg4.py", lines("# @start-replace: ../other/lib/texts.py#OMIT", "X = 1", "# @end-replace")))
+check("M1 copy-of repo:path without HARNESS_WORKSPACE -> silent", run("mk/sib.luau", "-- @copy-of: other:src/x.luau#FORMS\n" + FORMS) == "")
+doc = '"""Mod."""\n' + "X = 1\n" * 10 + 'def f():\n    """Kinds.\n\n    @copy-of: p/src.py#KINDS\n    """\n'
+check("M1 Python docstring past the header -> notice", "inside a docstring past the first 10 lines" in run("mk/ds.py", doc))
+check("M1 Python module docstring header -> silent", "docstring" not in run("mk/hd.py", '"""Mod.\n@copy-of: mk/hd.py\n"""\nX = 1\n'))
+r = run("mk/data.json", '{\n  "_source": "@copy-of: mk/src.ts#KINDS",\n  "kinds": ["red"]\n}\n')
+check("M1 JSON with a marker -> notice", "mk/data.json:2: JSON cannot hold a copy marker" in r)
+check("M1 JSON prose naming the marker -> silent", run("mk/p.json", '{"description": "checks (@copy-of marks) and lists"}\n') == "")
+check("M1 marker form notice is once per line", run("mk/once.luau", "--- @copy-of: a/src.luau#FORMS\n" + FORMS, sid="m1once") != ""
+      and run("mk/once.luau", "--- @copy-of: a/src.luau#FORMS\n" + FORMS, sid="m1once") == "")
+check("M1 untouched marker line -> silent", run("mk/doc.luau", "--- @copy-of: a/src.luau#FORMS\n" + FORMS + "-- x\n", "", "-- x\n") .find("doc comment") < 0)
+check("M1 REUSE_CHECK=off silences the form notice", run("mk/off.luau", "--- @copy-of: a/src.luau#FORMS\n" + FORMS, env={"REUSE_CHECK": "off"}) == "")
 
 # 파일 사본: 바이트 비교, 자기 경로를 적은 파일이 원본
 put("p/src.py", '"""mod.\n@copy-of: p/src.py\nbody\n"""\nX = 1\n')
@@ -126,10 +182,6 @@ r = run("p/src.py", cp + "Z = 3\n", "X = 1\n", "X = 1\nZ = 3\n")
 check("C2 editing a file source lists file copies", "src.py has 1 @copy-of copies: q/cp.py:2" in r)
 
 # ---- 영역 사본(@start-replace ... @end-replace), 정본은 lib/ ----
-def lines(*xs):
-    return "\n".join(xs) + "\n"
-
-
 put("lib/texts.py", lines("# @start-replace: lib/texts.py#OMIT", 'OMIT = "Omit the {block} block."', "# @end-replace"))
 reg_ok = lines("A = 1", '# @start-replace: lib/texts.py#OMIT value=string template="OMIT = {value}"', 'OMIT = "Omit the {block} block."', "# @end-replace")
 check("R1 region copy equal -> silent", run("r/ok.py", reg_ok) == "")
