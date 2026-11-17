@@ -63,7 +63,13 @@ ENTRIES = [
      "plugins/q/skills/doctor/scripts/scan.py"),
     ("q subagent_ledger", "plugins/q/scripts", "import subagent_ledger; out = subagent_ledger.config(PROJ)", None,
      "plugins/q/scripts/subagent_ledger.py"),
+    ("qwreey-workspace known_repos", "plugins/qwreey-workspace/scripts", "import known_repos; out = known_repos.options()",
+     "plugins/qwreey-workspace/scripts/known_repos.py", "plugins/qwreey-workspace/scripts/known_repos.py"),
+    ("qwreey-conventions known_repos", "plugins/qwreey-conventions/hooks", "import known_repos; out = known_repos.options()",
+     "plugins/qwreey-conventions/hooks/known_repos.py", "plugins/qwreey-conventions/hooks/known_repos.py"),
 ]
+# ENTRIES 가 사본을 시험하는 lib/ 정본. 정본 옆에는 harness_env 사본이 없어 그 자리에서 돌릴 수 없다.
+CANON_OF_ENTRIES = frozenset({"lib/known_repos.py"})
 # ENTRIES 밖에서 load_layers 를 부르는 곳. 저장소 층이 정해도 되는 키(끄기 스위치, 검토 문턱)만 읽어 user_only 를 넘기지 않는다.
 # 새 호출자는 여기나 ENTRIES 에 넣어야 시험이 통과한다: 사용자 전용 키를 읽는다면 ENTRIES 에 넣고 user_only 를 넘긴다.
 LAYERS_ALLOW = frozenset({
@@ -211,7 +217,7 @@ class Callers(unittest.TestCase):
     def test_every_caller_is_listed(self):
         callers = load_layers_callers()
         self.assertIn("plugins/qwreey-sessions/scripts/sllib/config.py", callers, "호출 찾기가 동작하지 않는다")
-        listed = {e[4] for e in ENTRIES} | LAYERS_ALLOW
+        listed = {e[4] for e in ENTRIES} | LAYERS_ALLOW | CANON_OF_ENTRIES
         self.assertFalse(callers - listed, f"{sorted(callers - listed)}: load_layers 를 부르지만 ENTRIES 에도 LAYERS_ALLOW 에도 없다")
         self.assertFalse(listed - callers, f"{sorted(listed - callers)}: 목록에 있지만 load_layers 를 부르지 않는다")
 
@@ -246,7 +252,7 @@ class OldInstalledLoader(unittest.TestCase):
         self.user_only = set().union(*(u for _, u in decl.values()))
         # 저장소 층을 막지 않는 옛 로더. 플러그인이 이것을 읽으면 아래 값이 evil 이 된다.
         (self.cfg / "lib" / "harness_env.py").write_text(
-            CANON.read_text(encoding="utf-8") + "\nUSER_ONLY = frozenset()\nLEGACY_USER_ONLY = frozenset()\n", encoding="utf-8")
+            CANON.read_text(encoding="utf-8") + "\nUSER_ONLY = frozenset()\nRETIRED_USER_ONLY = frozenset()\nLEGACY_USER_ONLY = frozenset()\n", encoding="utf-8")
         (self.cfg / "harness.env").write_text("".join(f"{k}=user-{k}\n" for k in sorted(self.user_only)), encoding="utf-8")
         evil = "".join(f"{k}=evil\n" for k in sorted(self.user_only))
         (self.proj / ".claude" / "harness.env").write_text(evil, encoding="utf-8")

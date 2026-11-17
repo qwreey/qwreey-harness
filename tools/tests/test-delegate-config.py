@@ -126,7 +126,7 @@ class Layers(Env):
 class InstalledModule(Env):
     def test_old_installed_module_is_not_used(self):
         # 위임 키를 모르는 옛 정본을 흉내 낸다: 저장소 층을 막지 않는다.
-        self.install(CANON_HE.read_text() + "\nUSER_ONLY = frozenset()\nLEGACY_USER_ONLY = frozenset()\n")
+        self.install(CANON_HE.read_text() + "\nUSER_ONLY = frozenset()\nRETIRED_USER_ONLY = frozenset()\nLEGACY_USER_ONLY = frozenset()\n")
         self.repo_layer("HARNESS_DELEGATE_AGY_BIN=/evil/agy\nHARNESS_DELEGATE_REGISTRY=/evil.tsv\n")
         old = load(self.f.cfg / "lib" / "harness_env.py", "old_installed")
         self.assertEqual(old.load_layers(str(self.f.repo))["HARNESS_DELEGATE_AGY_BIN"], "/evil/agy",

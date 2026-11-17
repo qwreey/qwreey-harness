@@ -1,8 +1,9 @@
 """home/.claude/lib/harness_env.py 의 층 읽기 테스트. 실행: python3 -I tools/tests/test-harness-env.py  (모델 호출 없음)
 
-층: DEFAULTS < 사용자 harness.env < 저장소 .claude/harness.env < 저장소 .claude/harness.local.env < 환경 변수.
+층: DEFAULTS < 사용자 harness.env < 플러그인 옵션(settings.json pluginConfigs) < 저장소 .claude/harness.env < 저장소 .claude/harness.local.env < 환경 변수.
 """
 import importlib.util
+import json
 import os
 import shutil
 import tempfile
@@ -163,6 +164,167 @@ class Layers(unittest.TestCase):
         os.environ["CLAUDE_PROJECT_DIR"] = str(self.proj)
         v = he.load([self.cfg / "harness.env"])
         self.assertEqual((v["DEMO_A"], v["_file"]), ("user", str(self.cfg / "harness.env")))
+
+    def test_retired_location_keys(self):
+        # 옛 위치 키는 기본값이 없지만 저장소 층은 여전히 막고, 환경 변수는 지금처럼 결과에 들어온다.
+        self.assertNotIn("HARNESS_WORKSPACE", he.DEFAULTS)
+        self.assertNotIn("HARNESS_DOCTOR_ROOT", he.DEFAULTS)
+        self.assertNotIn("HARNESS_WORKSPACE", he.USER_ONLY)
+        self.assertNotIn("HARNESS_WORKSPACE", he.load_layers(self.proj), "설정이 없으면 키도 없다(호출자는 .get 으로 읽는다)")
+        self.repo("HARNESS_WORKSPACE=/evil\nHARNESS_DOCTOR_ROOT=/evil\n")
+        self.assertNotIn("HARNESS_DOCTOR_ROOT", he.load_layers(self.proj), "저장소 층은 옛 위치 키를 정하지 못한다")
+        os.environ["HARNESS_DOCTOR_ROOT"] = "/env"
+        self.assertEqual(he.load_layers(self.proj)["HARNESS_DOCTOR_ROOT"], "/env")
+
+
+class PluginOptions(unittest.TestCase):
+    """플러그인 옵션 층: 사본 위치에서 찾은 plugin.json 의 userConfig 키만 settings.json pluginConfigs 에서 읽는다."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="harness-env-opt-"))
+        self.cfg = self.tmp / "cfg"
+        self.proj = self.tmp / "proj"
+        self.cfg.mkdir()
+        (self.proj / ".claude").mkdir(parents=True)
+        self.saved = dict(os.environ)
+        for k in list(os.environ):
+            if k.startswith(("HARNESS_", "DEMO_")) or k in ("CLAUDE_PROJECT_DIR", "CLAUDE_CONFIG_DIR", "HOME"):
+                del os.environ[k]
+        os.environ["CLAUDE_CONFIG_DIR"] = str(self.cfg)
+        os.environ["HOME"] = str(self.tmp / "home")
+        self.mod = self.plugin("demo", {"demo_mode": {}, "demo_flag": {}, "demo_n": {}, "demo_paths": {}, "harness_toolkits": {}})
+
+    def tearDown(self):
+        os.environ.clear()
+        os.environ.update(self.saved)
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def plugin(self, name, user_config, sub="hooks", depth=None):
+        """가짜 플러그인 폴더에 로더 사본을 두고 그 사본을 읽는다. sub 는 사본이 놓일 플러그인 안 경로."""
+        root = self.tmp / "plugins" / name
+        (root / ".claude-plugin").mkdir(parents=True, exist_ok=True)
+        manifest = {"name": name, "version": "0.1.0", "description": "x"}
+        if user_config is not None:
+            manifest["userConfig"] = {k: dict({"type": "string", "title": k, "description": k}, **v) for k, v in user_config.items()}
+        (root / ".claude-plugin" / "plugin.json").write_text(json.dumps(manifest), encoding="utf-8")
+        (root / sub).mkdir(parents=True, exist_ok=True)
+        shutil.copy(CANON, root / sub / "harness_env.py")
+        return load_canon(root / sub / "harness_env.py", "harness_env_" + name + "_" + sub.replace("/", "_"))
+
+    def settings(self, configs, enabled=None):
+        data = {"pluginConfigs": {pid: {"options": opts} for pid, opts in configs.items()}}
+        if enabled is not None:
+            data["enabledPlugins"] = enabled
+        (self.cfg / "settings.json").write_text(json.dumps(data), encoding="utf-8")
+
+    def test_layer_order(self):
+        # DEFAULTS < 사용자 harness.env < 플러그인 옵션 < 저장소 < 저장소 local < 환경 변수
+        m = self.mod
+        self.assertEqual(m.load_layers(self.proj, defaults={"DEMO_MODE": "base"})["DEMO_MODE"], "base")
+        (self.cfg / "harness.env").write_text("DEMO_MODE=user\nDEMO_FLAG=user\n", encoding="utf-8")
+        self.assertEqual(m.load_layers(self.proj)["DEMO_MODE"], "user")
+        self.settings({"demo@mkt": {"demo_mode": "option"}})
+        v = m.load_layers(self.proj)
+        self.assertEqual((v["DEMO_MODE"], v["DEMO_FLAG"], v["_options"]), ("option", "user", "demo@mkt"), "옵션이 사용자 harness.env 를 이긴다")
+        (self.proj / ".claude" / "harness.env").write_text("DEMO_MODE=repo\n", encoding="utf-8")
+        self.assertEqual(m.load_layers(self.proj)["DEMO_MODE"], "repo", "저장소 층이 옵션을 이긴다")
+        (self.proj / ".claude" / "harness.local.env").write_text("DEMO_MODE=local\n", encoding="utf-8")
+        self.assertEqual(m.load_layers(self.proj)["DEMO_MODE"], "local")
+        os.environ["DEMO_MODE"] = "env"
+        self.assertEqual(m.load_layers(self.proj)["DEMO_MODE"], "env", "환경 변수가 모두를 이긴다")
+        del os.environ["DEMO_MODE"]
+        (self.proj / ".claude" / "harness.env").unlink()
+        (self.proj / ".claude" / "harness.local.env").unlink()
+        os.environ["DEMO_MODE"] = "env"
+        self.assertEqual(m.load_layers(self.proj)["DEMO_MODE"], "env", "저장소 층이 없어도 환경 변수가 옵션을 이긴다")
+
+    def test_repo_layers_cannot_override_user_only_options(self):
+        m = self.mod
+        self.settings({"demo@mkt": {"demo_mode": "option", "harness_toolkits": "luau"}})
+        (self.proj / ".claude" / "harness.env").write_text("DEMO_MODE=repo\nHARNESS_TOOLKITS=web\n", encoding="utf-8")
+        v = m.load_layers(self.proj, user_only={"DEMO_MODE"})
+        self.assertEqual((v["DEMO_MODE"], v["HARNESS_TOOLKITS"]), ("option", "web"))
+
+    def test_references_in_repo_layer_see_options(self):
+        self.settings({"demo@mkt": {"demo_mode": "option"}})
+        (self.proj / ".claude" / "harness.env").write_text("DEMO_X=${DEMO_MODE}/x\n", encoding="utf-8")
+        self.assertEqual(self.mod.load_layers(self.proj)["DEMO_X"], "option/x")
+
+    def test_value_conversion(self):
+        self.settings({"demo@mkt": {"demo_flag": True, "demo_mode": False, "demo_n": 3, "demo_paths": ["~/a", "b"]}})
+        v = self.mod.load_layers(self.proj)
+        home = str(self.tmp / "home")
+        self.assertEqual((v["DEMO_FLAG"], v["DEMO_MODE"], v["DEMO_N"], v["DEMO_PATHS"]), ("on", "off", "3", home + "/a;b"))
+        self.settings({"demo@mkt": {"demo_n": 2.5, "demo_paths": "~/a;~/b;c", "demo_mode": None, "demo_flag": {"x": 1}}})
+        v = self.mod.load_layers(self.proj)
+        self.assertEqual((v["DEMO_N"], v["DEMO_PATHS"]), ("2.5", home + "/a;" + home + "/b;c"))
+        self.assertNotIn("DEMO_MODE", v, "null 은 설정하지 않은 것과 같다")
+        self.assertNotIn("DEMO_FLAG", v, "객체 값은 쓰지 않는다")
+        self.assertEqual(he.option_value(4.0), "4")
+        self.assertEqual(he.option_value("$HOME/x"), "$HOME/x", "$NAME 은 풀지 않는다")
+
+    def test_undeclared_keys_are_ignored(self):
+        self.settings({"demo@mkt": {"demo_mode": "ok", "demo_left_over": "x", "HARNESS_HEAVY_WRAP": "evil", "harness_heavy_wrap": "evil"}})
+        v = self.mod.load_layers(self.proj)
+        self.assertEqual(v["DEMO_MODE"], "ok")
+        self.assertNotIn("DEMO_LEFT_OVER", v)
+        self.assertEqual(v["HARNESS_HEAVY_WRAP"], "auto", "선언하지 않은 키는 다른 플러그인 키라도 읽지 않는다")
+
+    def test_name_lookup(self):
+        # 사본이 플러그인 안 깊은 곳(skills/<이름>/scripts)에 있어도 위로 올라가 plugin.json 을 찾는다.
+        deep = self.plugin("deep", {"demo_mode": {}}, sub="skills/deep/scripts")
+        self.assertEqual(deep.plugin_manifest(), ("deep", frozenset({"DEMO_MODE"})))
+        self.settings({"deep@mkt": {"demo_mode": "deep"}, "demo@mkt": {"demo_mode": "demo"}})
+        self.assertEqual(deep.load_layers(self.proj)["DEMO_MODE"], "deep", "자기 이름의 옵션만 읽는다")
+        self.assertEqual(self.mod.load_layers(self.proj)["DEMO_MODE"], "demo")
+        # 5단계보다 깊으면 찾지 않는다.
+        far = self.plugin("far", {"demo_mode": {}}, sub="a/b/c/d/e")
+        self.assertIsNone(far.plugin_manifest())
+        self.assertNotIn("DEMO_MODE", far.load_layers(self.proj))
+        # plugin.json 이 없는 곳(~/.claude/lib 설치본)은 이 층이 없다.
+        (self.tmp / "lib").mkdir()
+        shutil.copy(CANON, self.tmp / "lib" / "harness_env.py")
+        bare = load_canon(self.tmp / "lib" / "harness_env.py", "harness_env_bare")
+        self.assertIsNone(bare.plugin_manifest())
+        self.assertEqual(bare.load_layers(self.proj)["_options"], "")
+
+    def test_plugin_without_user_config(self):
+        none = self.plugin("plain", None)
+        self.assertEqual(none.plugin_manifest(), ("plain", frozenset()))
+        self.settings({"plain@mkt": {"demo_mode": "x"}})
+        v = none.load_layers(self.proj)
+        self.assertEqual((v.get("DEMO_MODE"), v["_options"]), (None, ""))
+
+    def test_missing_or_broken_settings(self):
+        self.assertEqual(self.mod.load_layers(self.proj)["_options"], "", "settings.json 이 없어도 돈다")
+        (self.cfg / "settings.json").write_text("{not json", encoding="utf-8")
+        self.assertEqual(self.mod.load_layers(self.proj)["_options"], "")
+        (self.cfg / "settings.json").write_text('{"pluginConfigs": {"demo@mkt": "x"}}', encoding="utf-8")
+        self.assertEqual(self.mod.load_layers(self.proj)["_options"], "")
+        (self.cfg / "settings.json").write_text('{"pluginConfigs": {"demo@mkt": {"options": ["x"]}}}', encoding="utf-8")
+        self.assertNotIn("DEMO_MODE", self.mod.load_layers(self.proj))
+
+    def test_several_marketplaces(self):
+        self.settings({"demo@a": {"demo_mode": "a"}, "demo@b": {"demo_mode": "b"}, "demox@c": {"demo_mode": "c"}})
+        self.assertEqual(self.mod.load_layers(self.proj)["DEMO_MODE"], "a", "켠 것이 없으면 id 이름순 첫째")
+        self.settings({"demo@a": {"demo_mode": "a"}, "demo@b": {"demo_mode": "b"}}, enabled={"demo@a": False, "demo@b": True})
+        v = self.mod.load_layers(self.proj)
+        self.assertEqual((v["DEMO_MODE"], v["_options"]), ("b", "demo@b"), "enabledPlugins 에서 켠 것")
+
+    def test_settings_change_is_seen_in_one_process(self):
+        self.settings({"demo@mkt": {"demo_mode": "one"}})
+        self.assertEqual(self.mod.load_layers(self.proj)["DEMO_MODE"], "one")
+        self.settings({"demo@mkt": {"demo_mode": "second"}})
+        self.assertEqual(self.mod.load_layers(self.proj)["DEMO_MODE"], "second", "크기가 바뀌면 다시 읽는다")
+
+    def test_other_plugin_options_for_shared_modules(self):
+        # 공용 모듈(known_repos)은 다른 플러그인의 옵션을 키를 넘겨 읽는다. 자기 플러그인 옵션이 겹치면 이긴다.
+        self.settings({"other@mkt": {"demo_mode": "other", "demo_extra": "x"}, "demo@mkt": {"demo_flag": True}})
+        v = self.mod.load_layers(self.proj, options={"other": {"DEMO_MODE", "DEMO_EXTRA"}})
+        self.assertEqual((v["DEMO_MODE"], v["DEMO_EXTRA"], v["DEMO_FLAG"]), ("other", "x", "on"))
+        self.assertEqual(v["_options"].split(), ["other@mkt", "demo@mkt"])
+        self.settings({"other@mkt": {"demo_mode": "other"}, "demo@mkt": {"demo_mode": "own"}})
+        self.assertEqual(self.mod.load_layers(self.proj, options={"other": {"DEMO_MODE"}})["DEMO_MODE"], "own")
 
 
 if __name__ == "__main__":

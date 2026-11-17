@@ -23,6 +23,7 @@ EXPECTED = {
     "lib/copy_regions.py": ["plugins/qwreey-conventions/hooks/copy_regions.py"],
     "lib/file_lock.py": ["plugins/q/scripts/file_lock.py", "plugins/qwreey-sessions/scripts/sllib/file_lock.py"],
     "home/.claude/lib/harness_env.py": ["plugins/q/scripts/harness_env.py", "plugins/q/skills/doctor/scripts/harness_env.py", "plugins/qwreey-advisor/hooks/harness_env.py", "plugins/qwreey-conventions/hooks/harness_env.py", "plugins/qwreey-delegate/skills/delegate/scripts/harness_env.py", "plugins/qwreey-operator/hooks/harness_env.py", "plugins/qwreey-proc-guard/hooks/harness_env.py", "plugins/qwreey-sessions/scripts/harness_env.py", "plugins/qwreey-workspace/scripts/harness_env.py"],
+    "lib/known_repos.py": ["plugins/qwreey-conventions/hooks/known_repos.py", "plugins/qwreey-workspace/scripts/known_repos.py"],
     "lib/ambient.py": ["plugins/q/scripts/ambient.py", "plugins/qwreey-advisor/hooks/ambient.py", "plugins/qwreey-operator/hooks/ambient.py", "plugins/qwreey-workspace/scripts/ambient.py"],
 }
 # 키는 정본 영역(<경로>#<이름>), 값은 그 영역의 사본을 둔 파일. ../ 로 시작하는 형제 저장소는 옆에 있을 때만 본다.
