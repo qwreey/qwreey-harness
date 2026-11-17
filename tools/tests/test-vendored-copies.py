@@ -30,6 +30,11 @@ REGIONS = {
     "lib/harness_texts.py#NONCE_RULE": ["lib/harness_nonce.py", "../coderag/crates/coderag-core/src/hooktag.rs"],
     "lib/harness_texts.py#STOP_ERROR": ["plugins/qwreey-advisor/hooks/second-opinion-nudge.py", "plugins/qwreey-operator/hooks/subagent-bg-tasks.py"],
 }
+# 표시 없이 바이트째 같아야 하는 사본. 데이터 파일이라 머리에 표시 줄을 넣으면 출처 기록의 md5 가 어긋난다.
+# 정본을 고친 뒤 사본 자리에 그대로 복사한다(sync-copies 가 다루지 않는다).
+UNMARKED = {
+    "packs/luau-kb/typedefs/globalTypes.d.luau": ["plugins/luau-lsp/definitions/globalTypes.d.luau"],
+}
 
 
 class VendoredCopies(unittest.TestCase):
@@ -44,6 +49,12 @@ class VendoredCopies(unittest.TestCase):
                 path = ROOT / rel
                 self.assertTrue(path.is_file(), f"{rel} 사본이 없다")
                 self.assertEqual(copy_regions.file_copy_target(path.read_text(encoding="utf-8")), src, f"{rel}: 머리에 `@copy-of: {src}` 표시가 없다")
+
+    def test_unmarked_copies_match(self):
+        for src, copies in UNMARKED.items():
+            want = (ROOT / src).read_bytes()
+            for rel in copies:
+                self.assertTrue((ROOT / rel).read_bytes() == want, f"{rel} 가 {src} 와 다르다: cp {src} {rel}")
 
     def test_expected_region_copies_exist(self):
         for key, files in REGIONS.items():

@@ -29,7 +29,12 @@
     {
       "name": "luau-kb",
       "source": "./packs/luau-kb",
-      "description": "Luau·Roblox 일반 지식의 정본: 타입 한계, 검증, 테스트, 성능, 스타일, 런타임 의미론, Roblox 타입·검증, 엔진·네트워크·월드 동작, Roblox 문서 조회, 업스트림 변화(스킬 12개, luau-lsp LSP, .luau 경로 rules). 기본 꺼짐 도메인 팩: Luau 저장소가 coderag.toml 의 [[packs]] 로 켠다"
+      "description": "Luau·Roblox 일반 지식의 정본: 타입 한계, 검증, 테스트, 성능, 스타일, 런타임 의미론, Roblox 타입·검증, 엔진·네트워크·월드 동작, Roblox 문서 조회, 업스트림 변화(스킬 12개, .luau 경로 rules. LSP 는 luau-lsp 플러그인). 기본 꺼짐 도메인 팩: Luau 저장소가 coderag.toml 의 [[packs]] 로 켠다"
+    },
+    {
+      "name": "luau-lsp",
+      "source": "./plugins/luau-lsp",
+      "description": "luau-lsp 언어 서버를 붙여 .luau 편집 뒤 진단과 LSP 도구의 hover·정의 찾기를 준다. Rojo 프로젝트면 동봉한 Roblox 정의 파일로 검사한다. 바이너리는 따로 설치(rokit, aftman, foreman, mise, 릴리스 zip, VS Code 확장 중 있는 것을 찾음). Linux·macOS sh 런처, Windows .cmd 런처(실기기 미확인)"
     },
     {
       "name": "qwreey-proc-guard",
