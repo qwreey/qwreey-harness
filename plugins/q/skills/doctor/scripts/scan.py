@@ -345,7 +345,11 @@ def claude_sessions():
     """[(pid, cwd, 자기 조상 여부, 실행 파일)]. Claude 와 위임 에이전트(agy, codex)만 센다.
     `pgrep -f claude` 는 셸 스냅숏 경로에 'claude' 가 든 bash 래퍼까지 잡으므로 실행 파일 이름으로 거른다."""
     me, out = self_pids(), []
-    for d in Path("/proc").iterdir():
+    try:
+        procs = list(Path("/proc").iterdir())
+    except OSError:  # /proc 이 없는 플랫폼(Windows, macOS): 살아 있는 세션 검사를 건너뛴다
+        return out
+    for d in procs:
         if not d.name.isdigit():
             continue
         try:
