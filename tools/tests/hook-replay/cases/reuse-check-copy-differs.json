@@ -1,0 +1,36 @@
+{
+ "description": "reuse-check: a @copy-of value copy that drifted from its source names the missing and extra members",
+ "files": {
+  "a/src.luau": "-- source\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"card\" }\nreturn FORMS\n"
+ },
+ "steps": [
+  {
+   "write": {
+    "b/copy.luau": "-- @copy-of: a/src.luau#FORMS\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"dice\" }\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "content": "-- @copy-of: a/src.luau#FORMS\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"dice\" }\n",
+     "file_path": "{repo}/b/copy.luau"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "b/copy.luau:1: @copy-of a/src.luau#FORMS differs: missing \"card\", extra \"dice\""
+    ]
+   }
+  }
+ ]
+}

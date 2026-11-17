@@ -1,0 +1,1 @@
+- luau-kb:roblox-world: Roblox GUI and 3D world rules: click-through and gameProcessed, AutomaticSize and AbsoluteSize timing, ZIndex, SurfaceGui, physics tunneling, welds, Humanoid, camera. Use when GUI input or layout misbehaves, or for physics, characters or camera. 트리거: GUI 클릭 관통, AutomaticSize, 물리 뚫림.

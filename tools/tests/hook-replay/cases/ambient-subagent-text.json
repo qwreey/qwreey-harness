@@ -1,0 +1,77 @@
+{
+ "description": "ambient: subagents get context/subagent.md (not the main delegation text); forks inherit the parent context and get nothing",
+ "steps": [
+  {
+   "hook": "plugins/qwreey-operator/hooks/ambient.py",
+   "payload": {
+    "hook_event_name": "SubagentStart",
+    "agent_id": "a1",
+    "agent_type": "general-purpose"
+   },
+   "expect": {
+    "tags": [
+     "plugin:qwreey-operator"
+    ],
+    "contains": [
+     "Before your final report, collect the results"
+    ],
+    "not_contains": [
+     "Split the work along independent seams"
+    ]
+   },
+   "argv": [
+    "SubagentStart"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/ambient.py",
+   "payload": {
+    "hook_event_name": "SubagentStart",
+    "agent_id": "a2",
+    "agent_type": "fork"
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "SubagentStart"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/ambient.py",
+   "payload": {
+    "hook_event_name": "SessionStart",
+    "source": "startup",
+    "session_id": "s3"
+   },
+   "expect": {
+    "tags": [
+     "plugin:qwreey-operator"
+    ],
+    "contains": [
+     "Split the work along independent seams"
+    ]
+   },
+   "argv": [
+    "SessionStart"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/ambient.py",
+   "payload": {
+    "hook_event_name": "SessionStart",
+    "source": "startup",
+    "session_id": "s4"
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "SessionStart"
+   ],
+   "env": {
+    "HARNESS_OPERATOR_AMBIENT": "off"
+   }
+  }
+ ]
+}

@@ -1,0 +1,5 @@
+<harness-hook name="subagent-bg-tasks" level="warn" nonce="3bb38ef5cb0b">
+You are about to finish while background work you started is still running:
+- shell b7x9k2: "sleep 600"
+Collect their results, or stop them with TaskStop, unless your brief explicitly says to leave them running. Then give your final report again in full: your caller receives only your last message.
+</harness-hook>

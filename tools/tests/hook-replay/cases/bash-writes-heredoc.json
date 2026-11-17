@@ -1,0 +1,57 @@
+{
+ "description": "bash: a heredoc write is a write signal (warn before), and the added lines get the comment notice and rules after",
+ "files": {
+  "src/a.py": "def f():\n    # Keep the order stable for callers.\n    return 1\n"
+ },
+ "setup": [
+  "git add -A && git commit -qm init"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "cat > src/new.py <<'EOF'\nx = 1\n# first · second\nEOF"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "tags": [
+     "bash-bypass-reminder/warn"
+    ],
+    "contains": [
+     "This command changes files without the Edit/Write tools"
+    ]
+   }
+  },
+  {
+   "sh": "cat > src/new.py <<'EOF'\nx = 1\n# first · second\nEOF"
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "cat > src/new.py <<'EOF'\nx = 1\n# first · second\nEOF"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info",
+     "rules-inject/info"
+    ],
+    "contains": [
+     "src/new.py may not follow the comment conventions",
+     "L2 non-keyboard symbol"
+    ],
+    "max_chars": 9000
+   }
+  }
+ ]
+}

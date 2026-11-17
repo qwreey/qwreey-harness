@@ -1,0 +1,66 @@
+{
+ "description": "rules_inject: the first injection after an Edit asks to check what was written; a subagent gets its own injection",
+ "files": {
+  "src/a.py": "x = 2\n"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "old_string": "1",
+     "new_string": "2",
+     "file_path": "{repo}/src/a.py"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "tags": [
+     "rules-inject/info"
+    ],
+    "contains": [
+     "you wrote a.py",
+     "Check what you wrote against them and fix only what conflicts."
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/src/a.py"
+    },
+    "agent_id": "a1"
+   },
+   "expect": {
+    "tags": [
+     "rules-inject/info"
+    ],
+    "contains": [
+     "you opened a.py"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/src/a.py"
+    },
+    "agent_id": "a1"
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

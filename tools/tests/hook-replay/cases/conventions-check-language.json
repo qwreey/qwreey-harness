@@ -1,0 +1,36 @@
+{
+ "description": "conventions-check: English words in a new file whose sibling files comment in Korean get the language mismatch notice",
+ "files": {
+  "k/old.luau": "-- 한국어 주석 줄 0 입니다\nlocal v0 = 0\n-- 한국어 주석 줄 1 입니다\nlocal v1 = 1\n-- 한국어 주석 줄 2 입니다\nlocal v2 = 2\n-- 한국어 주석 줄 3 입니다\nlocal v3 = 3\n-- 한국어 주석 줄 4 입니다\nlocal v4 = 4\n-- 한국어 주석 줄 5 입니다\nlocal v5 = 5\n-- 한국어 주석 줄 6 입니다\nlocal v6 = 6\n-- 한국어 주석 줄 7 입니다\nlocal v7 = 7\n-- 한국어 주석 줄 8 입니다\nlocal v8 = 8\n-- 한국어 주석 줄 9 입니다\nlocal v9 = 9\n-- 한국어 주석 줄 10 입니다\nlocal v10 = 10\n-- 한국어 주석 줄 11 입니다\nlocal v11 = 11\n"
+ },
+ "steps": [
+  {
+   "write": {
+    "k/new.luau": "-- This comment is written in English words here\nlocal x = 1\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "content": "-- This comment is written in English words here\nlocal x = 1\n",
+     "file_path": "{repo}/k/new.luau"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "L1 language mismatch: write it in Korean"
+    ]
+   }
+  }
+ ]
+}

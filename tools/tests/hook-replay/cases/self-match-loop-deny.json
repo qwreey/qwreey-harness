@@ -1,0 +1,43 @@
+{
+ "description": "self-match-guard: pgrep -f inside a while/until loop matches its own shell and is denied with how to re-run",
+ "steps": [
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/self-match-guard.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "until ! pgrep -f \"test-x.py\" >/dev/null; do sleep 2; done"
+    }
+   },
+   "expect": {
+    "decision": "deny",
+    "tags": [
+     "self-match-guard/action"
+    ],
+    "contains": [
+     "pgrep -x <process name>",
+     "\"[t]est-x.py\"",
+     "run_in_background"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/self-match-guard.py",
+   "payload": {
+    "session_id": "s2",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "pgrep -f \"test-x.py\"; echo done"
+    }
+   },
+   "expect": {
+    "tags": [
+     "self-match-guard/info"
+    ]
+   }
+  }
+ ]
+}

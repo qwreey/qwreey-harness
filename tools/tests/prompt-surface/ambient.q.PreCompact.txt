@@ -1,0 +1,1 @@
+Omit the <plugin name="q"> block from the summary; it is re-injected after compaction.

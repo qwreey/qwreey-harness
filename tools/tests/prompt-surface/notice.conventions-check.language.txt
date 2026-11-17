@@ -1,0 +1,1 @@
+<harness-hook name="qwreey-conventions" level="info" nonce="83f550ebf1ad">k/new.luau may not follow the comment conventions. L1 language mismatch: write it in Korean like the file's other comments. Fix those lines; a false match (quoted text, a needed symbol) can stay, said once in your report.</harness-hook>

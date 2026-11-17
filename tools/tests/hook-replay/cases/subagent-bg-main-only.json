@@ -1,0 +1,94 @@
+{
+ "description": "subagent-bg-tasks: only main's tasks running, or stop_hook_active, means no notice",
+ "files": {
+  "{sandbox}/agent-a1.jsonl": [
+   {
+    "type": "user",
+    "message": {
+     "role": "user",
+     "content": "Run the build."
+    }
+   },
+   {
+    "type": "user",
+    "message": {
+     "content": [
+      {
+       "type": "tool_result",
+       "tool_use_id": "t0",
+       "content": "Command running in background with ID: b7x9k2. Output is being written to: /tmp/x/b7x9k2.output."
+      }
+     ]
+    }
+   }
+  ]
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a1",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done. Report follows.",
+    "stop_hook_active": false,
+    "background_tasks": [
+     {
+      "id": "bmain1",
+      "type": "shell",
+      "status": "running",
+      "description": "main's watcher"
+     }
+    ],
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s2",
+    "agent_id": "a1",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done. Report follows.",
+    "stop_hook_active": true,
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "shell",
+      "status": "running",
+      "description": "until ! pgrep -f build; do sleep 5; done"
+     }
+    ],
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s3",
+    "agent_id": "a1",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done. Report follows.",
+    "stop_hook_active": false,
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "monitor",
+      "status": "running",
+      "description": "until ! pgrep -f build; do sleep 5; done"
+     }
+    ],
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl"
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

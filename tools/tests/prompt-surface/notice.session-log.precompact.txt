@@ -1,0 +1,12 @@
+Keep in the summary: user decisions with verbatim quotes, unanswered questions to the user, running background agents and their tasks, commit hashes and changed files, constraints in force (read-only repos, no direct ~/.claude edits).
+Drop from the summary: raw tool output, contents of committed files, finished agents' detailed reports (keep conclusions and numbers).
+<harness-hook name="session-log" level="warn" nonce="0da6b0df729d">
+Session-log reminder for this compaction. Keep the items below in the summary; quote user directives verbatim.
+Recent user messages not yet in the log (verbatim):
+- "값을 4242 로 해 줘. plugins/q/README.md 도 고쳐"
+- "D-12 결정대로 가자. 테스트도 돌려"
+Session logs for this repo: <sandbox>/store/<sandbox-key>-ws-mine/records — mention this path in the summary.
+</harness-hook>
+<harness-hook name="session-log" level="info" nonce="0da6b0df729d">
+Session log: 1 auto-summarized session record pending import (oldest from <today>, 0 days), not in git yet. No records home is set yet, so import will not run until the user picks one; see /qwreey-sessions:import. `session-log dismiss <rid>...` drops them. Compaction is about to drop details; importing keeps them in the repo.
+</harness-hook>

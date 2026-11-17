@@ -1,0 +1,1 @@
+- qwreey-sessions:checkpoint: Flush the automatic session log now (summarize everything since the last saved point), then show only the new open items and user directives, and draft /compact arguments from the record instead of from memory. Use before /compact, before a handover, or when the user asks to save/record the session.

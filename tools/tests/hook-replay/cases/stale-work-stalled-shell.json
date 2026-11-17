@@ -1,0 +1,67 @@
+{
+ "description": "stale_work: a running shell whose output file has not changed for an hour is reported to the user at Stop and to the model on the next prompt",
+ "env": {
+  "HARNESS_Q_STALE_IDLE_MIN": "5",
+  "HARNESS_Q_STALE_AGE_MIN": "0",
+  "HARNESS_Q_STALE_LONG_MIN": "999"
+ },
+ "files": {
+  "{sandbox}/projects/-fake/st1.jsonl": "",
+  "{tmp}/claude-{uid}/-fake/st1/tasks/b1.output": {
+   "text": "",
+   "mtime_ago": 3600
+  }
+ },
+ "steps": [
+  {
+   "hook": "plugins/q/scripts/stale_work.py",
+   "payload": {
+    "session_id": "st1",
+    "hook_event_name": "Stop",
+    "transcript_path": "{sandbox}/projects/-fake/st1.jsonl",
+    "background_tasks": [
+     {
+      "id": "b1",
+      "type": "shell",
+      "status": "running",
+      "description": "Wait for tests"
+     }
+    ]
+   },
+   "expect": {
+    "contains": [
+     "멈췄거나 대기 중일 수 있습니다",
+     "Wait for tests"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/stale_work.py",
+   "payload": {
+    "session_id": "st1",
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "hi"
+   },
+   "expect": {
+    "tags": [
+     "stale-work/warn"
+    ],
+    "contains": [
+     "may be stalled or waiting",
+     "TaskStop"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/stale_work.py",
+   "payload": {
+    "session_id": "st1",
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "hi"
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

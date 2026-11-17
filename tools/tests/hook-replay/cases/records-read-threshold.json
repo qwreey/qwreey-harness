@@ -1,0 +1,49 @@
+{
+ "description": "records_read: the gate starts at exactly 32 KiB",
+ "files": {
+  ".claude/handoff/a.md": {
+   "repeat": "y",
+   "times": 32767
+  },
+  ".claude/handoff/b.md": {
+   "repeat": "y",
+   "times": 32768
+  }
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/.claude/handoff/a.md"
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "PreToolUse"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/.claude/handoff/b.md"
+    }
+   },
+   "expect": {
+    "decision": "deny"
+   },
+   "argv": [
+    "PreToolUse"
+   ]
+  }
+ ]
+}

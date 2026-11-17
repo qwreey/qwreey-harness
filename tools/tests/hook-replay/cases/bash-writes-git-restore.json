@@ -1,0 +1,49 @@
+{
+ "description": "bash: lines git restores (git checkout -- path) are not counted as written, even with history markers in them",
+ "files": {
+  "src/g.py": "x = 1\n# 2023-05-05 legacy (D-12)\ny = 2\n"
+ },
+ "setup": [
+  "git add -A && git commit -qm init",
+  "sed -i 2d src/g.py"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "cd . && git checkout -- src/g.py && echo hi > notes.md"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "tags": [
+     "bash-bypass-reminder/warn"
+    ]
+   }
+  },
+  {
+   "sh": "cd . && git checkout -- src/g.py && echo hi > notes.md"
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "cd . && git checkout -- src/g.py && echo hi > notes.md"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "not_contains": [
+     "src/g.py"
+    ]
+   }
+  }
+ ]
+}

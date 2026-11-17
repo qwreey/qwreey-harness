@@ -1,0 +1,1 @@
+- luau-kb:luau-roblox: Roblox typing and test setup: luau-lsp definition files and sourcemap, typing GetService, Instance.new, FindFirstChild and IsA, luau CLI mocks vs Studio, Studio MCP. Use when Roblox API types fail or deciding mock vs Studio. Engine behavior is roblox-engine/net/world. 트리거: mock 으로 충분해?, Studio MCP, 정의 파일 설정.

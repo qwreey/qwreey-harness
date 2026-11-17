@@ -1,0 +1,1 @@
+- luau-kb:luau-types: How the Luau type system behaves and breaks: generic inference and f<<T>>, narrowing, recursive aliases, "Code is too complex to typecheck", type functions, false positives, old vs new solver. Use when a .luau type error is confusing or correct code is rejected. Tools are luau-verify; Roblox API types are luau-roblox. 트리거: 타입 에러 이해 안 됨, 제네릭 추론.

@@ -1,0 +1,82 @@
+{
+ "description": "conventions-check: a category already noticed for a file stays quiet in the same session; a new category is noticed",
+ "steps": [
+  {
+   "write": {
+    "a/x.luau": "-- H-973\nlocal a = 1\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "content": "-- H-973\nlocal a = 1\n",
+     "file_path": "{repo}/a/x.luau"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "contains": [
+     "L1 history marker"
+    ]
+   }
+  },
+  {
+   "write": {
+    "a/x.luau": "-- H-973\nlocal a = 1\n-- round 15 audit\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "old_string": "local a = 1\n",
+     "new_string": "local a = 1\n-- round 15 audit\n",
+     "file_path": "{repo}/a/x.luau"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "write": {
+    "a/x.luau": "-- H-973\nlocal a = 1\n-- round 15 audit\n-- a · b\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "old_string": "audit\n",
+     "new_string": "audit\n-- a · b\n",
+     "file_path": "{repo}/a/x.luau"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "non-keyboard symbol"
+    ],
+    "not_contains": [
+     "history marker"
+    ]
+   }
+  }
+ ]
+}

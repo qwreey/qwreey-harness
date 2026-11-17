@@ -1,0 +1,1 @@
+- qwreey-sessions:import: Copy pending auto-summarized session records into this repo's records home, or dismiss them. Use when a session-log notice says records are pending (it also fires before a commit), or when the user asks to import or clean up session records.

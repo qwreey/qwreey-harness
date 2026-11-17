@@ -1,0 +1,60 @@
+{
+ "description": "conventions-check: the readable-code layout notice appears only with HARNESS_READABLE_CODE=on",
+ "steps": [
+  {
+   "write": {
+    "l/off.luau": "local function big(a)\n  local v0 = a + 0\n  local v1 = a + 1\n  local v2 = a + 2\n  local v3 = a + 3\n  local v4 = a + 4\n  local v5 = a + 5\n  local v6 = a + 6\n  local v7 = a + 7\n  local v8 = a + 8\n  local v9 = a + 9\n  local v10 = a + 10\n  local v11 = a + 11\n  local v12 = a + 12\n  local v13 = a + 13\n  local v14 = a + 14\n  local v15 = a + 15\n  local v16 = a + 16\n  local v17 = a + 17\n  local v18 = a + 18\n  local v19 = a + 19\n  local v20 = a + 20\n  local v21 = a + 21\n  local v22 = a + 22\n  local v23 = a + 23\n  local v24 = a + 24\n  local v25 = a + 25\n  local v26 = a + 26\n  local v27 = a + 27\n  local v28 = a + 28\n  local v29 = a + 29\n  return a\nend\nreturn big\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "off",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "content": "local function big(a)\n  local v0 = a + 0\n  local v1 = a + 1\n  local v2 = a + 2\n  local v3 = a + 3\n  local v4 = a + 4\n  local v5 = a + 5\n  local v6 = a + 6\n  local v7 = a + 7\n  local v8 = a + 8\n  local v9 = a + 9\n  local v10 = a + 10\n  local v11 = a + 11\n  local v12 = a + 12\n  local v13 = a + 13\n  local v14 = a + 14\n  local v15 = a + 15\n  local v16 = a + 16\n  local v17 = a + 17\n  local v18 = a + 18\n  local v19 = a + 19\n  local v20 = a + 20\n  local v21 = a + 21\n  local v22 = a + 22\n  local v23 = a + 23\n  local v24 = a + 24\n  local v25 = a + 25\n  local v26 = a + 26\n  local v27 = a + 27\n  local v28 = a + 28\n  local v29 = a + 29\n  return a\nend\nreturn big\n",
+     "file_path": "{repo}/l/off.luau"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "write": {
+    "l/on.luau": "local function big(a)\n  local v0 = a + 0\n  local v1 = a + 1\n  local v2 = a + 2\n  local v3 = a + 3\n  local v4 = a + 4\n  local v5 = a + 5\n  local v6 = a + 6\n  local v7 = a + 7\n  local v8 = a + 8\n  local v9 = a + 9\n  local v10 = a + 10\n  local v11 = a + 11\n  local v12 = a + 12\n  local v13 = a + 13\n  local v14 = a + 14\n  local v15 = a + 15\n  local v16 = a + 16\n  local v17 = a + 17\n  local v18 = a + 18\n  local v19 = a + 19\n  local v20 = a + 20\n  local v21 = a + 21\n  local v22 = a + 22\n  local v23 = a + 23\n  local v24 = a + 24\n  local v25 = a + 25\n  local v26 = a + 26\n  local v27 = a + 27\n  local v28 = a + 28\n  local v29 = a + 29\n  return a\nend\nreturn big\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "on",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "content": "local function big(a)\n  local v0 = a + 0\n  local v1 = a + 1\n  local v2 = a + 2\n  local v3 = a + 3\n  local v4 = a + 4\n  local v5 = a + 5\n  local v6 = a + 6\n  local v7 = a + 7\n  local v8 = a + 8\n  local v9 = a + 9\n  local v10 = a + 10\n  local v11 = a + 11\n  local v12 = a + 12\n  local v13 = a + 13\n  local v14 = a + 14\n  local v15 = a + 15\n  local v16 = a + 16\n  local v17 = a + 17\n  local v18 = a + 18\n  local v19 = a + 19\n  local v20 = a + 20\n  local v21 = a + 21\n  local v22 = a + 22\n  local v23 = a + 23\n  local v24 = a + 24\n  local v25 = a + 25\n  local v26 = a + 26\n  local v27 = a + 27\n  local v28 = a + 28\n  local v29 = a + 29\n  return a\nend\nreturn big\n",
+     "file_path": "{repo}/l/on.luau"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "l/on.luau layout (readable-code)",
+     "big L1-33"
+    ]
+   },
+   "env": {
+    "HARNESS_READABLE_CODE": "on"
+   }
+  }
+ ]
+}

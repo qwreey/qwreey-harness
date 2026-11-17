@@ -1,0 +1,5 @@
+<harness-hook name="session-log" level="info" nonce="fa11771c4807">
+Session log: saved 1 new section to <sandbox>/store/<sandbox-key>-ws-mine/records/2026-11-10-sess-1.md. 3 items failed the source check and are marked ⚠. 1 record pending import (`session-log pending`).
+Session log: 1 auto-summarized session record pending import (oldest from <today>, 0 days), not in git yet. No records home is set yet, so import will not run until the user picks one; see /qwreey-sessions:import. `session-log dismiss <rid>...` drops them.
+Session records: <sandbox>/store/<sandbox-key>-ws-mine/records. They are snapshots; look things up with /qwreey-sessions:recall instead of reading them here.
+</harness-hook>

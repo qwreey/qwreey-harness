@@ -1,0 +1,63 @@
+{
+ "description": "rules_inject: a matching Read injects the rules once per (session, agent, compact epoch); a second Read or a later Edit of the same file adds nothing",
+ "files": {
+  "src/a.luau": "local a = 1\n"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/src/a.luau"
+    }
+   },
+   "expect": {
+    "tags": [
+     "rules-inject/info"
+    ],
+    "contains": [
+     "<rule plugin=\"qwreey-conventions\" name=\"comments\">",
+     "you opened a.luau"
+    ],
+    "not_contains": [
+     "name=\"readable-code\"",
+     "Check what you wrote"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/src/a.luau"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "old_string": "1",
+     "new_string": "2",
+     "file_path": "{repo}/src/a.luau"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

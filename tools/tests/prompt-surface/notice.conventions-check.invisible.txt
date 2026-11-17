@@ -1,0 +1,1 @@
+<harness-hook name="qwreey-conventions" level="info" nonce="3db8c1e168c3">a/w.ts may not follow the comment conventions. L2 invisible character: U+200B (delete it). Fix those lines; a false match (quoted text, a needed symbol) can stay, said once in your report.</harness-hook>
