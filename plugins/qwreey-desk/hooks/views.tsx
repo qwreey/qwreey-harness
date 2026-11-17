@@ -8,8 +8,10 @@ import type { ElementTable, EngineInterface, RenderElement, RenderSurface, Theme
 
 import type { DeskData, DeskDecision, DeskStep, DeskView } from '../types'
 import { STEP_WORD, URGENCY_WORD, ago, drafts, unsent, urgencyOf } from './model'
-import { BAR, STEP_MARK, cells, detailRegions, markdownRows, pageOf, rule, textRows, wrap } from './layout'
-import type { Line, Span, Tone } from './layout'
+import { BAR, STEP_MARK, cells, detailRegions, pageOf, rule, wrap } from './layout'
+import { markdownRows, textRows } from './richtext'
+import type { Span } from './richtext'
+import type { Line, Tone } from './layout'
 
 export type Els = ReturnType<EngineInterface['ui']['resolve']>
 
