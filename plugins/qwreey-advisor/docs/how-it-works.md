@@ -33,7 +33,7 @@
   - `git add -A`·`git add .`(현재 폴더 기준)·`git commit -a`: `git diff HEAD` 전체(+ `-A`·`.` 는 추적 안 된 파일). `git add -u` 는 추적 파일만.
   - `git commit <경로>`: 그 경로의 `git diff HEAD`. `cd <폴더> &&`, `git -C <폴더>`, `;`·`&&`·`|`·줄바꿈, `2>&1` 같은 리다이렉트, `-m "$(cat <<EOF ...)"` 를 읽는다. 다른 저장소에 커밋하면 그 저장소의 등급을 쓴다.
   - 읽지 못하는 명령(따옴표 오류, 경로에 `$VAR`·명령 치환, `add -p`·`-i`·`-e`, `--pathspec-from-file`)은 예전처럼 `--cached`(커밋에 `-a` 면 `HEAD`)로 잰다. `--dry-run` 커밋은 건너뛴다. git 호출은 rev-parse 1회와 diff·ls-files 최대 3회.
-- 턴 끝(Stop, 기본 꺼짐): `HARNESS_REVIEW_STOP=1` 이면 커밋 안 된 diff 가 임계 이상일 때 같은 알림. Stop 의 additionalContext 는 턴을 이어 가게 하므로 `home/.claude/HOOK-MESSAGES.md` 의 Stop 규칙을 따른다: `stop_hook_active` 재진입, 빈 답, 오류·한도 알림(`API Error`, `Prompt is too long` 등), 끝 다섯 줄 안에 `?` 로 끝나는 줄이 있는 답(사용자에게 묻는 중)이면 내지 않는다.
+- 턴 끝(Stop, 기본 꺼짐): `HARNESS_REVIEW_STOP=on`(또는 `1`) 이면 커밋 안 된 diff 가 임계 이상일 때 같은 알림. Stop 의 additionalContext 는 턴을 이어 가게 하므로 `home/.claude/HOOK-MESSAGES.md` 의 Stop 규칙을 따른다: `stop_hook_active` 재진입, 빈 답, 오류·한도 알림(`API Error`, `Prompt is too long` 등), 끝 다섯 줄 안에 `?` 로 끝나는 줄이 있는 답(사용자에게 묻는 중)이면 내지 않는다.
 - 계획 종료(ExitPlanMode, 기본 꺼짐): high 등급에서 `HARNESS_REVIEW_PLAN=deny` 면 계획에 `qwreey-advisor: reviewed`(또는 `skip <사유>`) 줄이 없을 때 거절하고, `warn` 이면 권하기만 한다.
 - 다시 울리지 않는 조건: 메인이 부른 검토(리뷰어 또는 inherit-advisor fork)가 `HARNESS_REVIEW_FRESH_MIN` 분 안에 끝났을 때, 같은 diff 해시를 이번 회차에 이미 알렸을 때, done 알림 뒤 같은 시간 동안.
 - 알림이 권하는 리뷰어 모델: high 는 opus, mid·low 는 sonnet.
@@ -50,17 +50,17 @@
 - 재생(이 저장소의 한 세션 transcript, 메인에 온 서브에이전트 보고 252건, 에이전트 217개): 검토 3개는 0건, 검토가 아닌 에이전트 214개 중 51개(24%)에서 한 번씩 났다. 대부분 설계안·조사·토론 입장이고, 사용자에게 결정을 넘기는 "Open questions ... each with my recommendation" 보고가 포함된다.
 
 ### 설정
-harness.env 층(사용자 `~/.claude/harness.env`, `$CLAUDE_CONFIG_DIR` 가 있으면 그 아래 < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`)과 환경 변수에서 읽고, 환경 변수가 이긴다. 저장소는 `$CLAUDE_PROJECT_DIR`, 없으면 훅 `cwd`. 읽기는 옆의 `hooks/harness_env.py` 사본(하네스 로더의 사본). 파일이 없으면 환경 변수와 기본값만 쓴다.
+설정 층(사용자 `~/.claude/harness.env`, `$CLAUDE_CONFIG_DIR` 가 있으면 그 아래 < 플러그인 옵션(`/config`, `settings.json` 의 `pluginConfigs`, `plugin.json` `userConfig` 에 둔 네 키) < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`)과 환경 변수에서 읽고, 환경 변수가 이긴다. 저장소는 `$CLAUDE_PROJECT_DIR`, 없으면 훅 `cwd`. 읽기는 옆의 `hooks/harness_env.py` 사본(하네스 로더의 사본). 파일이 없으면 환경 변수와 기본값만 쓴다.
 
 | 키 | 기본 | 뜻 |
 |---|---|---|
 | `HARNESS_REVIEW_TIERS` | 없음 | `저장소=high\|mid\|low\|off` 를 공백으로 나열 |
-| `HARNESS_REVIEW_DEFAULT` | `mid` | 목록에 없는 저장소의 등급 |
+| `HARNESS_REVIEW_DEFAULT` | `mid` | 목록에 없는 저장소의 등급(옵션 `harness_review_default`) |
 | `HARNESS_REVIEW_LINES` | `high=40 mid=200 low=0` | done 알림 임계(추가+삭제 줄, 0 은 끔) |
 | `HARNESS_REVIEW_FRESH_MIN` | `90` | 최근 검토로 치는 시간(분) |
-| `HARNESS_REVIEW_STOP` | 빈 값 | `1` 이면 Stop 알림을 켠다 |
-| `HARNESS_REVIEW_PLAN` | 빈 값 | `deny` 또는 `warn` 이면 high 등급 계획 검토를 켠다 |
-| `HARNESS_REVIEW_HANDBACK` | 빈 값 | `off` 면 서브에이전트 보고 알림을 끈다 |
+| `HARNESS_REVIEW_STOP` | `off` | `on`(또는 `1`) 이면 Stop 알림을 켠다(옵션 `harness_review_stop`) |
+| `HARNESS_REVIEW_PLAN` | `off` | `deny` 또는 `warn` 이면 high 등급 계획 검토를 켠다(옵션 `harness_review_plan`) |
+| `HARNESS_REVIEW_HANDBACK` | `on` | `off` 면 서브에이전트 보고 알림을 끈다(옵션 `harness_review_handback`) |
 | `HARNESS_QWREEY_ADVISOR_AMBIENT` | 빈 값 | `off` 면 규약 주입을 끈다 |
 
 `off` 등급은 알림만 멈춘다. 스킬은 여전히 부를 수 있다(inherit-advisor 는 off 저장소에서 사용자가 요청할 때만 부르라고 적혀 있다).

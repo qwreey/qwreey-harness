@@ -1,8 +1,11 @@
 """설정 읽기. 우선순위: 환경 변수 > harness.env 층 > DEFAULTS. 이 모듈의 키(DEFAULTS)만 읽는다.
 
 harness.env 층은 scripts/harness_env.py(하네스 정본 home/.claude/lib/harness_env.py 의 사본)의
-load_layers 다: 사용자($HARNESS_ENV, 없으면 $CLAUDE_CONFIG_DIR 또는 ~/.claude 의 harness.env) < 저장소($CLAUDE_PROJECT_DIR)
-.claude/harness.env < .claude/harness.local.env. USER_ONLY 의 키는 저장소 층이 바꾸지 못한다.
+load_layers 다: 사용자($HARNESS_ENV, 없으면 $CLAUDE_CONFIG_DIR 또는 ~/.claude 의 harness.env) < 플러그인 옵션
+(settings.json pluginConfigs, plugin.json userConfig 에 둔 키만) < 저장소($CLAUDE_PROJECT_DIR) .claude/harness.env
+< .claude/harness.local.env. USER_ONLY 의 키는 저장소 층이 바꾸지 못한다.
+userConfig 의 default 는 여기 DEFAULTS 와 같아야 한다(tools/tests/test-plugin-userconfig.py). 켜고 끄는 키는 on/off 를 받는다:
+옵션의 boolean 이 on/off 로 들어온다.
 파일이 없어도 플러그인은 기본값으로 돈다(툴킷, 하네스 무관).
 """
 from __future__ import annotations
@@ -12,7 +15,7 @@ import os
 from pathlib import Path
 
 DEFAULTS = {
-    "SESSION_LOG_DISABLE": "",           # 1 이면 모든 훅이 아무것도 안 한다
+    "SESSION_LOG_DISABLE": "off",        # on(또는 1) 이면 모든 훅이 아무것도 안 한다
     "SESSION_LOG_RECORD_NONINTERACTIVE": "",  # 1 이면 claude -p, SDK 로 도는 세션도 기록한다(기본은 건너뜀: 프로브 실행이 쓰레기 기록을 만든다)
     "SESSION_LOG_HOME": "",              # 외부 저장소 루트. 비면 ${XDG_DATA_HOME:-~/.local/share}/session-log
     "SESSION_LOG_MODEL": "haiku",        # 요약 모델(claude -p --model 값)

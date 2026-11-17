@@ -164,7 +164,7 @@ harness.env 층(`load_layers(ROOT)`) 하나로 읽는다. 옛 `DELEGATE_*` 이�
 
 | 키 | 기본 | USER_ONLY | 옛 이름 |
 |---|---|---|---|
-| `HARNESS_DELEGATE_REGISTRY` | 스킬 옆 사본 | 예(기존) | `DELEGATE_REGISTRY` |
+| `HARNESS_DELEGATE_REGISTRY` | 스킬 옆 사본(읽기만, `register` 는 거절) | 예(기존) | `DELEGATE_REGISTRY` |
 | `HARNESS_TOOL_INSTALLS`, `HARNESS_HEAVY_WRAP` | 기존 | 예(기존) | - |
 | `HARNESS_DELEGATE_AGY_BIN`, `HARNESS_DELEGATE_CODEX_BIN` | PATH 의 `agy`/`codex`, 없으면 `HARNESS_TOOL_INSTALLS` 아래 | 예(실행 파일) | `DELEGATE_AGY_BIN`, `DELEGATE_CODEX_BIN` |
 | `HARNESS_DELEGATE_AGY_HOME` | `~/.gemini` | 예(인증 위치) | `DELEGATE_GEMINI_SRC` |
@@ -180,6 +180,7 @@ harness.env 층(`load_layers(ROOT)`) 하나로 읽는다. 옛 `DELEGATE_*` 이�
 | `HARNESS_DELEGATE_SECRET_GLOBS` | 빈 값(기본 목록에 더함) | 아니오(더하기만 됨, 더 엄격해질 뿐) | - |
 
 - 위임 키는 `delegate.py` 의 `ENV_DEFAULTS`·`ENV_USER_ONLY` 에 넣고 `load_layers(defaults=, user_only=)` 로 넘긴다. `HARNESS_DELEGATE_REGISTRY`, `HARNESS_TOOL_INSTALLS`, `HARNESS_HEAVY_WRAP` 은 다른 플러그인도 읽어 로더(`home/.claude/lib/harness_env.py`)가 정한다. 위 표는 `tools/tests/test-delegate-config.py` 의 `USER_ONLY_YES`·`USER_ONLY_NO` 와 맞춘다.
+- 사람이 고르는 다섯 키(표 위치, 두 모델, 두 실행 파일)는 `plugin.json` 의 `userConfig` 에도 두어 `/config` 에서 바꾼다(설정 층의 플러그인 옵션, 사용자 harness.env 위, 저장소 층 아래). 격리 게이트, 상태 폴더, 한도는 harness.env 에만 둔다.
 - 설치된 `~/.claude/lib/harness_env.py` 는 옛 판일 수 있어 새 USER_ONLY 키를 모를 수 있다. 그래서 드라이버는 늘 자기 옆 사본을 쓴다(`tools/tests/test-harness-env-owners.py` 가 옛 설치본으로 확인).
 - `DELEGATE_AGY_FULL_HOME` 은 없앤다(토큰 하나로 인증됨 [실측]).
 - `registry.tsv`: uid 백엔드 전용으로 남긴다. 에이전트별 uid 열(§6 uid 행)을 더했고 `register` 는 에이전트마다 uid 를 준다. uid 가 없는 환경은 등록 없이 돈다: key = `basename(ROOT)`, setup 없음(registry 에 줄이 있으면 setup 을 쓰되 사용자 권한으로). setup 은 명령 실행이므로 저장소 층으로 옮기지 않는다.

@@ -174,6 +174,20 @@ out = run({"hook_event_name": "PreToolUse", "session_id": "s11", "cwd": BIG, "to
            "tool_input": {"command": "git commit -m x"}}, bare)
 check("하네스 없음: mid 기본, 250줄 → 알림(sonnet)", "model=sonnet" in out)
 
+# 플러그인 옵션(/plugin configure 가 settings.json pluginConfigs 에 쓴 값)이 훅에 닿는다. boolean 은 on/off 로 들어온다.
+OPT = dict(ENV, HOME=os.path.join(T, "opt"))
+os.makedirs(os.path.join(T, "opt", ".claude"))
+with open(os.path.join(T, "opt", ".claude", "settings.json"), "w") as f:
+    json.dump({"pluginConfigs": {"qwreey-advisor@test-market": {"options": {
+        "harness_review_stop": True, "harness_review_default": "high", "harness_review_lines": "high=0"}}}}, f)
+check("옵션 stop=true → Stop 알림, 등급 high(opus)", "model=opus" in stop("o1", OPT) and "Turn ending" in stop("o2", OPT))
+out = run({"hook_event_name": "PreToolUse", "session_id": "o3", "cwd": BIG, "tool_name": "Bash",
+           "tool_input": {"command": "git commit -m x"}}, OPT)
+check("옵션 등급 high → 250줄 커밋 알림(opus)", "model=opus" in out)
+check("userConfig 에 없는 키(harness_review_lines=high=0, 읽으면 끔)는 읽지 않는다",
+      "model=opus" in stop("o4", dict(OPT, HARNESS_REVIEW_TIERS="")))
+check("환경 변수가 옵션보다 이긴다", stop("o5", dict(OPT, HARNESS_REVIEW_STOP="off")) == "")
+
 shutil.rmtree(T, ignore_errors=True)
 print(f"{ok}/{ok + fail}")
 sys.exit(1 if fail else 0)

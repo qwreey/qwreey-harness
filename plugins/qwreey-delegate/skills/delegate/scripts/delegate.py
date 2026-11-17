@@ -39,6 +39,7 @@ import harness_env  # noqa: E402
 PROG = ws.PROG
 SKILL_DIR = Path(HERE).parent
 TEMPLATES = SKILL_DIR / "templates"
+SHIPPED_REGISTRY = SKILL_DIR / "registry.tsv"
 DEFAULT_EFFORT = "medium"
 DEFAULT_TIMEOUT_SECONDS = 3600
 START_LOCK_SECONDS = 120     # wait for another start of the same agent (seconds of git and copying) before giving up
@@ -104,7 +105,11 @@ def config(project):
 class Ctx:
     def __init__(self):
         self.cfg = self.layers("")
-        self.registry = self.cfg["HARNESS_DELEGATE_REGISTRY"] or str(SKILL_DIR / "registry.tsv")
+        # Empty: the table shipped in the plugin, read only (a plugin update replaces the folder). register needs a
+        # file the user owns, named by the harness_delegate_registry option or HARNESS_DELEGATE_REGISTRY.
+        own = self.cfg["HARNESS_DELEGATE_REGISTRY"].strip()
+        self.registry = os.path.expanduser(own) if own else str(SHIPPED_REGISTRY)
+        self.registry_shipped = not own
         # USER_ONLY, so the user layer decides for every repository.
         self.state_dir = Path(self.cfg["HARNESS_DELEGATE_STATE"] or ws.default_state_dir())
 
@@ -528,6 +533,16 @@ def cmd_doctor(ctx, args):
 
 def cmd_register(ctx, args):
     (path, *key), _ = parse(args, {}, 1, "register <repository path> [key]", max_pos=2)
+    if ctx.registry_shipped:
+        die(f"the registry shipped in the plugin ({ctx.registry}) is read only: a plugin update replaces it. Set the "
+            f"harness_delegate_registry option to a file you own ('/plugin configure qwreey-delegate@<marketplace>', or "
+            f"HARNESS_DELEGATE_REGISTRY in ~/.claude/harness.env); register creates it with the shipped header", ws.EXIT_REFUSED)
+    reg = Path(ctx.registry)
+    if not reg.exists():
+        # The header explains the columns; the shipped rows are another user's repositories, so they stay behind.
+        reg.parent.mkdir(parents=True, exist_ok=True)
+        head = [ln for ln in SHIPPED_REGISTRY.read_text(encoding="utf-8").splitlines(keepends=True) if ln.startswith("#")]
+        reg.write_text("".join(head), encoding="utf-8")
     key, root, added = ws.register(ctx.registry, path, key[0] if key else None)
     print(f"registered: {key} {root} " + " ".join(f"{a}={u}" for a, u in added.items()))
     return 0

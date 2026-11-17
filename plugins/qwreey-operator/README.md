@@ -18,11 +18,16 @@
 - Claude Code 서브에이전트가 도는 곳이면 어디서나(구독만으로 충분, 다른 벤더 불필요). Linux·macOS·Windows.
 - 훅이 `python3` 를 부른다. Windows 는 Python 3 설치가 필요하다.
 
+## 설정
+`/plugin configure qwreey-operator@claude-doctor-market` 또는 `/config` 의 플러그인 설정에서 바꾼다.
+- 위임 권유 알림(`harness_operator_nudge`, 기본 켜짐).
+- 서브에이전트 남은 작업 알림(`harness_operator_subagent_bg`, 기본 켜짐).
+- 고급: 규약 주입 스위치 `HARNESS_OPERATOR_AMBIENT=off` 는 `~/.claude/harness.env` 키, 알림 문턱 `HARNESS_OPERATOR_NUDGE_WRITES`, `HARNESS_OPERATOR_NUDGE_FILES` 는 환경 변수다. 목록은 [docs/how-it-works.md](docs/how-it-works.md).
+
 ## 끄기
-- 알림만: 환경 변수 `HARNESS_OPERATOR_NUDGE=off`.
-- 서브에이전트 끝맺음 알림만: `HARNESS_OPERATOR_SUBAGENT_BG=off`(규약 주입 스위치처럼 harness.env 층에도 둘 수 있다).
+- 알림만: 위 설정에서 끈다.
 - 규약 주입만: `HARNESS_OPERATOR_AMBIENT=off`.
-- 한 프로젝트에서만: 그 저장소 `.claude/settings.json` 의 `enabledPlugins` 로 끄거나, 규약 주입 스위치를 그 저장소 `.claude/harness.env`(팀 공유, 커밋)나 `.claude/harness.local.env`(나만, `.gitignore` 에 넣는다), 또는 settings 의 `env` 에 둔다. local 이 공유 파일을 이기고 환경 변수가 둘 다 이긴다. 알림 스위치는 환경 변수만 본다.
+- 한 프로젝트에서만: 그 저장소 `.claude/settings.json` 의 `enabledPlugins` 로 끄거나, 스위치를 그 저장소 `.claude/harness.env`(팀 공유, 커밋)나 `.claude/harness.local.env`(나만, `.gitignore` 에 넣는다), 또는 settings 의 `env` 에 둔다. local 이 공유 파일을 이기고 환경 변수가 둘 다 이긴다.
 - 전부: `claude plugin disable qwreey-operator@claude-doctor-market` (제거는 `uninstall`).
 
 ## 설치

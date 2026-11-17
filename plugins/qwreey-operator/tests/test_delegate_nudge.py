@@ -20,6 +20,11 @@ class Nudge(unittest.TestCase):
         with open(self.env["QWREEY_HARNESS_SALT_FILE"], "w") as f:
             f.write("00" * 32)
         self.env.pop("HARNESS_OPERATOR_NUDGE", None)
+        self.env.pop("CLAUDE_PROJECT_DIR", None)
+        # 끄기 스위치는 설정 층에서도 읽으므로 사용자의 ~/.claude 를 보지 않게 한다.
+        self.cfg = os.path.join(self.tmp.name, "cfg")
+        os.mkdir(self.cfg)
+        self.env.update(CLAUDE_CONFIG_DIR=self.cfg, HARNESS_ENV=os.path.join(self.cfg, "harness.env"))
         self.n = 0
 
     def tearDown(self):
@@ -107,6 +112,20 @@ class Nudge(unittest.TestCase):
         self.assertIn("Last turn main wrote code 12 times in 1 files", out)
         self.assertIn('"hookEventName": "UserPromptSubmit"', out)
         self.assertEqual(self.prompt(), "")
+
+    def test_off_switch_layers(self):
+        with open(os.path.join(self.cfg, "settings.json"), "w") as f:
+            json.dump({"pluginConfigs": {"qwreey-operator@test-market": {"options": {"harness_operator_nudge": False}}}}, f)
+        self.assertEqual("".join(self.edit("/w/f%d.ts" % i) for i in range(10)), "", "plugin option off")
+        with open(os.path.join(self.cfg, "harness.env"), "w") as f:
+            f.write("HARNESS_OPERATOR_NUDGE=off\n")
+        os.remove(os.path.join(self.cfg, "settings.json"))
+        self.assertEqual(self.prompt(), "")
+        self.assertEqual("".join(self.edit("/w/g%d.ts" % i) for i in range(10)), "", "user harness.env off")
+        env = dict(self.env, HARNESS_OPERATOR_NUDGE="on")
+        outs = "".join(self.run_hook(dict(hook_event_name="PostToolUse", tool_name="Edit", tool_input={"file_path": "/w/h%d.ts" % i}), env)
+                       for i in range(8))
+        self.assertIn("8 files", outs, "env var wins")
 
     def test_off_switch(self):
         env = dict(self.env, HARNESS_OPERATOR_NUDGE="off")

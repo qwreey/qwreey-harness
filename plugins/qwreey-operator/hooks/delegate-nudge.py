@@ -6,7 +6,9 @@
   .md .json .toml .yaml .yml .txt(와 로그·csv 류)와 /tmp 아래 경로는 제외. 헤레독 본문 안의 `>` 는 보지 않는다. 정규식은 거칠다.
 - 문턱: 한 턴(사용자 입력 사이)에 쓰기 12회 또는 서로 다른 파일 8개. 넘으면 턴당 한 번 알림.
 - 리셋: UserPromptSubmit, Agent·Task·Workflow 호출. 직전 턴이 문턱을 넘었고 Agent 호출이 없었으면 UserPromptSubmit 이 이월 알림을 한 번 낸다.
-- 상태: $TMPDIR/claude-qwreey-operator/<session_id>.json (세션당 한 파일, 작다). 끄기: HARNESS_OPERATOR_NUDGE=off.
+- 상태: $TMPDIR/claude-qwreey-operator/<session_id>.json (세션당 한 파일, 작다).
+- 끄기: HARNESS_OPERATOR_NUDGE=off. 환경 변수가 이기고, 없으면 설정 층(사용자 harness.env < 플러그인 옵션 < 저장소 < 저장소 local).
+  층은 셀 만한 호출에서만 읽는다: PostToolUse(*) 는 모든 도구 호출마다 돈다.
 - 어떤 실패도 조용히 exit 0 한다.
 """
 import json
@@ -17,6 +19,9 @@ import tempfile
 
 DEFAULT_WRITES = 12  # 정책: 환경 변수 HARNESS_OPERATOR_NUDGE_WRITES 로 바꾼다
 DEFAULT_FILES = 8  # HARNESS_OPERATOR_NUDGE_FILES
+# 설정 층 키(플러그인 옵션 harness_operator_nudge 의 기본값과 같아야 한다). 저장소 층이 꺼도 되는 스위치라 사용자 전용이 아니다.
+OPERATOR_NUDGE_DEFAULTS = {"HARNESS_OPERATOR_NUDGE": "on"}
+OFF_VALUES = ("off", "0", "no")
 WRITE_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 RESET_TOOLS = {"Agent", "Task", "Workflow"}
 NONCODE = {"md", "json", "toml", "yaml", "yml", "txt", "log", "out", "csv", "lock", "tmp"}
@@ -98,6 +103,16 @@ def threshold(name, default):
         return default
 
 
+def is_off(cwd):
+    name = "HARNESS_OPERATOR_NUDGE"
+    if name in os.environ:
+        return os.environ[name].strip().lower() in OFF_VALUES
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
+    import harness_env
+    vals = harness_env.load_layers(harness_env.project_dir(cwd), defaults=OPERATOR_NUDGE_DEFAULTS)
+    return str(vals.get(name, "")).strip().lower() in OFF_VALUES
+
+
 def message(event, level, body, session_id=None):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
     import harness_nonce
@@ -106,13 +121,13 @@ def message(event, level, body, session_id=None):
 
 
 def handle(data):
-    if str(os.environ.get("HARNESS_OPERATOR_NUDGE", "")).strip().lower() in ("off", "0", "no"):
-        return ""
     if data.get("agent_id"):
         return ""
     event, tool = data.get("hook_event_name"), data.get("tool_name")
     if event == "PostToolUse" and tool not in WRITE_TOOLS and tool != "Bash" and tool not in RESET_TOOLS:
         return ""  # 대부분의 도구 호출은 상태를 열지 않고 끝낸다
+    if is_off(data.get("cwd")):
+        return ""
     path = state_path(data.get("session_id"))
     st = load(path)
     out = ""

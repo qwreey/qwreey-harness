@@ -34,7 +34,7 @@ Claude Code 의 기본 지침이 이미 다루는 것은 반복하지 않는다:
 - 메시지: 영어, `<harness-hook name="delegate-nudge" level="info" nonce="…">`. 관찰과 권고만 쓰고 따르지 않아도 되는 경우(거의 끝남, 중간에 사용자가 필요함)를 함께 적는다. 규약은 `home/.claude/HOOK-MESSAGES.md`.
 - 상태: `$TMPDIR/claude-qwreey-operator/<session_id>.json`(세션당 작은 파일 하나). 턴 단위라 compact 회차는 쓰지 않는다.
 - 설정(환경 변수):
-  - `HARNESS_OPERATOR_NUDGE=off`(`0`, `no` 도 같음): 알림 끔.
+  - `HARNESS_OPERATOR_NUDGE=off`(`0`, `no` 도 같음, 옵션 `harness_operator_nudge`): 알림 끔. 환경 변수가 이기고, 없으면 설정 층(사용자 harness.env < 플러그인 옵션 < 저장소 < 저장소 local). 셀 만한 호출(쓰기 도구, Bash, 리셋 도구, UserPromptSubmit)에서만 층을 읽는다.
   - `HARNESS_OPERATOR_NUDGE_WRITES`(기본 12), `HARNESS_OPERATOR_NUDGE_FILES`(기본 8). 1 미만은 1, 숫자가 아니면 기본값.
 - 어떤 실패도 조용히 exit 0 한다.
 
@@ -46,7 +46,7 @@ Claude Code 의 기본 지침이 이미 다루는 것은 반복하지 않는다:
 - 내는 것: `hookSpecificOutput.additionalContext` 에 `<harness-hook name="subagent-bg-tasks" level="warn" nonce="…">`. 작업마다 `- <type> <id>: "<설명 80자까지>"` 한 줄, 그리고 결과를 거두거나 TaskStop 으로 멈추라(지시문이 두라고 했으면 둠), 그다음 최종 보고를 다시 온전히 내라(호출한 쪽은 마지막 메시지만 받는다). 이 출력은 끝나던 서브에이전트에게 새 턴으로 들어가고 메인에게는 가지 않는다. 메인은 다시 낸 보고를 받는다.
 - 통과(`home/.claude/HOOK-MESSAGES.md` 의 Stop 규칙): `stop_hook_active`, 마지막 답이 비었거나 오류·한도 알림(`lib/harness_texts.py` 의 `STOP_ERROR` 영역 사본), `agent_id`·`session_id` 없음, 남은 작업 없음, 끄기 스위치, 어떤 실패든(fail-open, exit 0). 마지막 답이 질문이어도 낸다: 서브에이전트의 질문은 보고에 실려 호출한 쪽에 가고 다시 쓰는 보고에도 남는다.
 - 한 번: `compact_epoch.state_path("qwreey-operator", "claude-qwreey-operator-subagent-bg", session_id, agent_id)` 파일을 O_EXCL 로 만든 호출만 낸다. 이 플러그인은 자기 회차를 올리지 않으므로 사실상 (세션, 서브에이전트)마다 한 번이다.
-- 끄기: `HARNESS_OPERATOR_SUBAGENT_BG=off`(`0`, `no` 도 같음). 환경 변수가 이기고, 없으면 harness.env 층(사용자 < 저장소 < 저장소 local)을 본다. 저장소가 꺼도 되는 스위치라 사용자 전용 키가 아니다.
+- 끄기: `HARNESS_OPERATOR_SUBAGENT_BG=off`(`0`, `no` 도 같음, 옵션 `harness_operator_subagent_bg`). 환경 변수가 이기고, 없으면 설정 층(사용자 harness.env < 플러그인 옵션 < 저장소 < 저장소 local)을 본다. 저장소가 꺼도 되는 스위치라 사용자 전용 키가 아니다.
 - 실측(Claude Code 2.1.316, sonnet, `claude -p` 세 번, 합계 약 $0.23):
   - SubagentStop 입력 키: `agent_id`, `agent_transcript_path`, `agent_type`, `background_tasks`, `cwd`, `effort`, `hook_event_name`, `last_assistant_message`, `permission_mode`, `prompt_id`, `session_crons`, `session_id`, `stop_hook_active`, `transcript_path`. 메인 Stop 은 `agent_*` 세 키가 없다.
   - `background_tasks` 항목: 셸은 `{id, type: "shell", status, description, command}`, 서브에이전트는 `{id, type: "subagent", status, description, agent_type}`. 시작 시각, 주인, pid 는 없다.

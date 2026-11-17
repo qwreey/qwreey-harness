@@ -6,7 +6,9 @@
 모델 호출 없음, 다른 uid 로 실행 없음.
 """
 import importlib.util
+import json
 import os
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -121,6 +123,48 @@ class Layers(Env):
         p = self.f.drive("run", "agy", "t1", self.f.prompt, "--mode", "empty")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertIn("model: repo-model", (self.f.out("t1") / "meta.txt").read_text())
+
+
+class PluginOptions(Env):
+    """/plugin configure 가 settings.json 에 쓴 옵션(pluginConfigs)이 드라이버에 닿는지. 드라이버는 Bash 로 부르므로
+    CLAUDE_PLUGIN_OPTION_* 가 아니라 옆 사본의 settings.json 층으로만 받는다."""
+
+    def options(self, **opts):
+        data = {"pluginConfigs": {"qwreey-delegate@test-market": {"options": opts}}}
+        (self.f.cfg / "settings.json").write_text(json.dumps(data))
+
+    def test_options_reach_the_driver(self):
+        own = self.f.tmp / "mine" / "registry.tsv"
+        self.options(harness_delegate_agy_model="opt-model", harness_delegate_registry=str(own),
+                     harness_delegate_state="/undeclared")
+        ctx = delegate.Ctx()
+        self.assertEqual(ctx.registry, str(own), "옵션이 사용자 harness.env 보다 이긴다")
+        self.assertEqual(ctx.cfg["HARNESS_DELEGATE_AGY_MODEL"], "opt-model")
+        self.assertEqual(ctx.cfg["HARNESS_DELEGATE_STATE"], "", "userConfig 에 없는 키는 읽지 않는다")
+        self.repo_layer("HARNESS_DELEGATE_AGY_MODEL=repo-model\n")
+        self.assertEqual(ctx.layers(str(self.f.repo))["HARNESS_DELEGATE_AGY_MODEL"], "repo-model", "모델은 저장소 층이 이긴다")
+
+    def test_register_writes_only_a_registry_the_user_owns(self):
+        shipped = delegate.SHIPPED_REGISTRY.read_bytes()
+        new = self.f.ws / "second"
+        new.mkdir()
+        git_init = subprocess.run(["git", "init", "-q", str(new)], capture_output=True)
+        self.assertEqual(git_init.returncode, 0)
+        # 사용자 harness.env 에서 표 위치를 빼면 플러그인에 든 표가 남는다.
+        self.f.user_env("".join(ln + "\n" for ln in (self.f.cfg / "harness.env").read_text().splitlines()
+                                if not ln.startswith("HARNESS_DELEGATE_REGISTRY=")))
+        p = self.f.drive("register", new)
+        self.assertEqual(p.returncode, ws.EXIT_REFUSED, p.stdout + p.stderr)
+        self.assertIn("read only", p.stderr)
+        self.assertEqual(delegate.SHIPPED_REGISTRY.read_bytes(), shipped, "플러그인에 든 표를 고쳤다")
+        own = self.f.tmp / "mine" / "registry.tsv"
+        self.options(harness_delegate_registry=str(own))
+        p = self.f.drive("register", new)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        text = own.read_text()
+        self.assertTrue(text.startswith("# delegate registry"), "새 표는 머리 설명을 갖고 시작한다")
+        rows = [ln for ln in text.splitlines() if not ln.startswith("#")]
+        self.assertEqual([r.split("\t")[:2] for r in rows], [["second", str(new)]], "플러그인 표의 남의 저장소 줄은 옮기지 않는다")
 
 
 class InstalledModule(Env):
