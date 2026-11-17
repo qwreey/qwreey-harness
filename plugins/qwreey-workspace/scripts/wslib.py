@@ -28,6 +28,8 @@ ABS = re.compile(r"(?:~|\$\{?HOME\}?|/)[^\s'\";|&<>()=]*")
 ENV_DEFAULTS = {
     # stale_worktrees.py: 세션 시작에 알리는 오래된 worktree 의 문턱(일, 손대지 않은 기간). off 나 0 이면 끈다. 저장소 층도 정할 수 있다.
     "HARNESS_WORKSPACE_STALE_WORKTREE_DAYS": "14",
+    # sibling_notice.py: 기록에 형제 저장소 내부 경로를 쓰면 알린다. off 면 끈다. 저장소 층도 정할 수 있다.
+    "HARNESS_WORKSPACE_SIBLING_NOTICE": "on",
 }
 # workspace_gate.py 의 끄기 스위치. 클론한 저장소가 커밋한 파일로 게이트를 끄면 안 된다.
 ENV_USER_ONLY = frozenset({"HARNESS_WORKSPACE_GATE"})

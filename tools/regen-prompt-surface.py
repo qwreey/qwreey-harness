@@ -334,9 +334,12 @@ def guard_notices(sb):
     def pre_bash(script, cmd, sid):
         return sb.run(script, {"session_id": sid, "cwd": "{repo}", "hook_event_name": "PreToolUse", "tool_name": "Bash",
                                "tool_input": {"command": cmd}}).text()
+    sb.write("{ws}/other/src/engine.py", "x = 1\n")
     return {
         "notice.workspace-gate.write-deny": pre_gate("Edit", {"file_path": "{ws}/other/a.txt"}, "wg1"),
         "notice.workspace-gate.read-info": pre_gate("Read", {"file_path": "{ws}/other/CLAUDE.md"}, "wg2"),
+        "notice.sibling-internals.record-path": post_write(sb, "plugins/qwreey-workspace/scripts/sibling_notice.py", ".claude/research/a.md",
+                                                           "The loop lives in `../other/src/engine.py`.\n", "si1", env=ws).text(),
         "notice.self-match-guard.loop-deny": pre_bash(smg, 'until ! pgrep -f "test-x.py" >/dev/null; do sleep 2; done', "sm1"),
         "notice.self-match-guard.notice": pre_bash(smg, 'pgrep -f "test-x.py"; echo done', "sm2"),
     }

@@ -10,8 +10,8 @@
   "ambient.qwreey-operator.SessionStart": 2540,
   "ambient.qwreey-operator.SubagentStart": 690,
   "ambient.qwreey-workspace.PreCompact": 101,
-  "ambient.qwreey-workspace.SessionStart": 548,
-  "ambient.qwreey-workspace.SubagentStart": 548,
+  "ambient.qwreey-workspace.SessionStart": 857,
+  "ambient.qwreey-workspace.SubagentStart": 857,
   "nonce-rule": 301,
   "notice.bash-bypass-reminder.read-info": 851,
   "notice.bash-bypass-reminder.write-warn": 907,
@@ -34,6 +34,7 @@
   "notice.self-match-guard.notice": 639,
   "notice.session-log.commit": 474,
   "notice.session-log.precompact": 1208,
+  "notice.sibling-internals.record-path": 337,
   "notice.stale-work.long-running": 543,
   "notice.stale-work.stalled": 672,
   "notice.subagent-bg-tasks.own-task": 389,
@@ -76,9 +77,9 @@
  },
  "totals": {
   "packs_listings": 4413,
-  "session_start": 12645,
-  "session_start_hooks": 4999,
+  "session_start": 12954,
+  "session_start_hooks": 5308,
   "session_start_listings": 7646,
-  "subagent_start_hooks": 2437
+  "subagent_start_hooks": 2746
  }
 }

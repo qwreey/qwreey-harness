@@ -1,0 +1,71 @@
+{
+ "description": "sibling-internals: files outside .claude/ records (repo docs, .claude/rules, worktree code) are not scanned",
+ "files": {
+  "{ws}/other/src/engine.py": "x = 1\n"
+ },
+ "env": {
+  "HARNESS_WORKSPACE": "{ws}"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-workspace/scripts/sibling_notice.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/docs/a.md",
+     "content": "`../other/src/engine.py`\n"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-workspace/scripts/sibling_notice.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/CLAUDE.md",
+     "content": "`../other/src/engine.py`\n"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-workspace/scripts/sibling_notice.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/.claude/rules/a.md",
+     "content": "`../other/src/engine.py`\n"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-workspace/scripts/sibling_notice.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/.claude/worktrees/w1/src/a.py",
+     "content": "# ../other/src/engine.py\n"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}
