@@ -12,7 +12,8 @@
 #           side without reaching each other's files. Rows without it share the uid column and run one at a time.
 # A new repository gets the next free uids from `delegate.py register <root>`; on a row without the last column the same
 # command adds it. Edit by hand only while no delegation is running.
-# This file is edited in place, so HARNESS_DELEGATE_REGISTRY must point at the git clone copy, not a plugin cache copy.
+# register edits this file in place, so it must be a file the user owns (option harness_delegate_registry, or
+# HARNESS_DELEGATE_REGISTRY): the copy shipped in the plugin folder is read only, since a plugin update replaces it.
 quad	/code/Projects/quad	61000	timeout 300 mise exec -- pesde install	codex records for quad also use 61000
 stl-luau	/code/Projects/stl-luau	61001	-
 table-sim	/code/Projects/table-sim	61002	-	vendor/ is gitignored and absent from the worktree; AGENTS.md states the read exception

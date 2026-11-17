@@ -1,8 +1,55 @@
 {
   "name": "qwreey-advisor",
-  "version": "0.4.17",
+  "version": "0.5.0",
   "description": "정해진 시점의 독립 검토. qwreey-advisor:inherit-advisor 는 대화를 이어받은 fork(표지를 훅이 검토자 후행 프롬프트로 펼친다)로 흐름에서 놓친 것을 짚고, qwreey-advisor:fresh-advisor 는 새 컨텍스트의 읽기 전용 리뷰어가 diff·주장을 반증한다. 훅이 반복 실패·큰 커밋 시점과, 추천안·질문이 든 서브에이전트 보고를 알린다. 내장 advisor 도구는 사용자가 요청할 때만 쓴다.",
-  "author": { "name": "qwreey", "email": "me@qwreey.moe" },
+  "author": {
+    "name": "qwreey",
+    "email": "me@qwreey.moe"
+  },
   "license": "MIT",
-  "keywords": ["review", "qwreey-advisor", "fork", "audit", "advisor-alternative", "subagent"]
+  "keywords": [
+    "review",
+    "qwreey-advisor",
+    "fork",
+    "audit",
+    "advisor-alternative",
+    "subagent"
+  ],
+  "userConfig": {
+    "harness_review_default": {
+      "type": "string",
+      "title": "검토 등급",
+      "description": "검토 시점을 알리는 기준. high 는 작은 커밋(40줄)부터 opus 검토를 권하고 계획 검토도 요구할 수 있다. mid 는 200줄부터, low 는 반복 실패만, off 는 알리지 않는다. 저장소별 등급(HARNESS_REVIEW_TIERS)이 있으면 그것이 이긴다.",
+      "options": [
+        "high",
+        "mid",
+        "low",
+        "off"
+      ],
+      "default": "mid"
+    },
+    "harness_review_stop": {
+      "type": "boolean",
+      "title": "턴 끝 검토 권고",
+      "description": "켜면 커밋하지 않은 변경이 등급 기준보다 클 때 턴이 끝나기 전에 검토를 권한다.",
+      "default": false
+    },
+    "harness_review_plan": {
+      "type": "string",
+      "title": "계획 검토 요구",
+      "description": "high 등급 저장소에서 계획 모드를 나갈 때. warn 은 검토를 권하고, deny 는 검토 표시가 없으면 나가지 못하게 한다.",
+      "options": [
+        "off",
+        "warn",
+        "deny"
+      ],
+      "default": "off"
+    },
+    "harness_review_handback": {
+      "type": "boolean",
+      "title": "서브에이전트 보고 알림",
+      "description": "서브에이전트 보고에 추천안이나 질문이 들어 있으면 메인에게 한 줄로 알린다.",
+      "default": true
+    }
+  }
 }

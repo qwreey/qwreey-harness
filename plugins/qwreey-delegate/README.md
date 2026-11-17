@@ -16,8 +16,14 @@
 ## 요구 사항
 - Linux, root(`setpriv`, 저장소·모델별 uid, `choom`), Python 3.11 이상. Windows·macOS 와 root 가 없는 Linux 에서는 실행을 거절한다(모드와 상관없이). root 없이 도는 판은 계획 중이다(`.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/driver-design.md` M3).
 - `agy` 또는 `codex` CLI 설치와 각자 구독. 저장소 루트에 `AGENTS.md`, uid 표 등록(`python3 -I <스킬>/scripts/delegate.py register <저장소>`, 처음에는 Claude 가 알리고 한다).
-- uid 표 `registry.tsv` 는 고쳐 쓰므로 `HARNESS_DELEGATE_REGISTRY`(`~/.claude/harness.env`)가 이 클론의 `skills/delegate/registry.tsv` 를 가리켜야 한다.
-- 바꿀 만한 설정(`~/.claude/harness.env`, 저장소 파일로는 바꾸지 못함): 동시 실행 수 `HARNESS_DELEGATE_MAX_CONCURRENT`(1), 결과 보존 일수 `HARNESS_DELEGATE_RUNS_DAYS`(14), 상태 폴더 `HARNESS_DELEGATE_STATE`. 전체 목록은 [docs/how-it-works.md](docs/how-it-works.md).
+- uid 표는 등록할 때 고쳐 쓰므로 내가 가진 파일이어야 한다. 아래 설정의 "uid 표 파일" 에 경로를 적으면 처음 등록할 때 만든다. 비워 두면 플러그인에 든 표를 읽기만 하고 등록은 거절한다(플러그인을 갱신하면 그 폴더가 바뀐다).
+
+## 설정
+`/plugin configure qwreey-delegate@claude-doctor-market` 또는 `/config` 의 플러그인 설정에서 바꾼다.
+- uid 표 파일(`harness_delegate_registry`): 비우면 플러그인에 든 표(읽기만).
+- agy 모델(`harness_delegate_agy_model`, 기본 `gemini-3.8-flash-high`), codex 모델(`harness_delegate_codex_model`, 기본 `gpt-6-luna`). 저장소 `.claude/harness.env` 가 바꿀 수 있고 `run --model` 이 이긴다.
+- agy 실행 파일(`harness_delegate_agy_bin`), codex 실행 파일(`harness_delegate_codex_bin`): 비우면 PATH 에서 찾는다.
+- 고급: 동시 실행 수, 결과 보존 일수, 상태 폴더, 격리 스위치는 `~/.claude/harness.env` 키다(저장소 파일로는 바꾸지 못함). 목록은 [docs/how-it-works.md](docs/how-it-works.md).
 
 ## Windows·비개발자 동료
 - 이 delegate 는 Linux root 가 필요해 Windows 동료에게는 맞지 않는다. 현실적인 선택은 OpenAI 공식 플러그인 codex-plugin-cc(Apache-2.0, https://github.com/openai/codex-plugin-cc)다. 설치는 저장소 README 의 줄을 따른다(`claude plugin marketplace add openai/codex-plugin-cc`, `claude plugin install codex@openai-codex`, 그다음 `/codex:setup`).

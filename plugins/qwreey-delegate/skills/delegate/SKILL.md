@@ -36,7 +36,7 @@ Before launching, show the user in one line what you will ask.
 ## Setup
 
 - The repository must be in the registry; the driver refuses otherwise. `$D register <path>` assigns the next free uids (one per agent); tell the user when you do it.
-- `HARNESS_DELEGATE_REGISTRY` (in `~/.claude/harness.env`) points at the registry in the claude-doctor clone. The driver reads it itself; the copy next to this file is only a fallback and goes stale in a plugin cache.
+- The registry is the file the user set in the plugin option `harness_delegate_registry` (`/plugin configure qwreey-delegate@<marketplace>`); the driver reads it itself. Unset, the copy next to this file is read only and `register` refuses (exit 4): ask the user to set the option to a file they own, which `register` then creates.
 - Each repository needs `AGENTS.md` at its root (skeleton: `templates/AGENTS.md.template`). Both models load it; it holds the canonical paths, the check commands and repository-only cautions, so the driver's preamble stays project-neutral. `$D doctor --all` checks the uids, secrets, the work folder path and `AGENTS.md`.
 
 ## Run

@@ -10,6 +10,7 @@ Automatic session log: hooks decide when to summarize, a detached worker summari
 ## Tests
 - `python3 -I tests/test_session_log.py`: unit tests with a fake `claude`, no cost.
 - `python3 -I tests/test_anchors.py`: post-compact anchors on synthetic transcripts, no cost.
+- `python3 -I tests/test_config_options.py`: plugin options (`userConfig` in `.claude-plugin/plugin.json`, saved in `settings.json` `pluginConfigs`) reach `sllib/config.py` and the `session-log` CLI. An option's default must equal `DEFAULTS` in `sllib/config.py`.
 - `tests/e2e.sh [--auto-compact]` calls the real `claude -p` and haiku and costs money; run it only when the user agrees.
 
 ## Rules for this plugin

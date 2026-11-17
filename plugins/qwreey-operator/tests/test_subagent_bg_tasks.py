@@ -163,6 +163,15 @@ class SubagentBgTasks(unittest.TestCase):
             f.write("HARNESS_OPERATOR_SUBAGENT_BG=off\n")
         self.assertEqual(self.stop([task("b1")]), "")
 
+    def test_off_switch_plugin_option(self):
+        # /plugin configure 가 settings.json 에 쓴 boolean 이 off 로 들어온다. 사용자 harness.env 보다 이긴다.
+        with open(os.path.join(self.cfg, "harness.env"), "w") as f:
+            f.write("HARNESS_OPERATOR_SUBAGENT_BG=on\n")
+        with open(os.path.join(self.cfg, "settings.json"), "w") as f:
+            json.dump({"pluginConfigs": {"qwreey-operator@test-market": {"options": {"harness_operator_subagent_bg": False}}}}, f)
+        self.assertEqual(self.stop([task("b1")]), "")
+        self.assertTrue(self.stop([task("b1")], env=dict(self.env, HARNESS_OPERATOR_SUBAGENT_BG="on")), "env var wins")
+
     def test_unwritable_state_fails_open(self):
         blocker = os.path.join(self.tmp.name, "claude-qwreey-operator-subagent-bg")
         with open(blocker, "w") as f:

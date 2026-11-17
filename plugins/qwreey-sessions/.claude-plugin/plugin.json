@@ -1,6 +1,6 @@
 {
   "name": "qwreey-sessions",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "세션 기록 자동화: 훅이 트랜스크립트를 분리 프로세스에서 증분 요약해 저장소 밖 외부 저장소에 기록하고(PreCompact 상기, SessionStart 인계, pending 알림), 스킬 checkpoint·import·recall 로 지금 저장·저장소로 가져오기·옛 논의 찾기를 한다. 요약은 백그라운드 haiku 호출이라 비용이 든다. Linux·macOS 전용(fcntl).",
   "author": {
     "name": "qwreey",
@@ -13,5 +13,37 @@
     "compact",
     "records",
     "recall"
-  ]
+  ],
+  "userConfig": {
+    "session_log_disable": {
+      "type": "boolean",
+      "title": "세션 기록 끄기",
+      "description": "켜면 자동 요약, compact 상기, 인계, pending 알림을 모두 멈춘다.",
+      "default": false
+    },
+    "session_log_model": {
+      "type": "string",
+      "title": "요약 모델",
+      "description": "세션을 요약하는 백그라운드 호출의 모델(claude -p --model 값). 비싼 모델일수록 비용이 크다.",
+      "default": "haiku"
+    },
+    "session_log_home": {
+      "type": "string",
+      "title": "기록 보관 폴더",
+      "description": "세션 기록을 둘 저장소 밖 폴더. 비우면 ~/.local/share/session-log (XDG_DATA_HOME 이 있으면 그 아래).",
+      "default": ""
+    },
+    "session_log_compact_anchors": {
+      "type": "boolean",
+      "title": "compact 뒤 원문 되살리기",
+      "description": "compact 뒤에 방금 요약된 구간의 사용자 말 원문과 바뀐 파일, 커밋 목록을 다시 넣는다(모델 호출 없음, 약 8,000자).",
+      "default": true
+    },
+    "session_log_read_gate": {
+      "type": "boolean",
+      "title": "큰 기록 통째 읽기 막기",
+      "description": "세션 기록이나 .claude 스냅숏을 범위 없이 통째로 읽으려 하면 막고 부분 읽기를 안내한다.",
+      "default": true
+    }
+  }
 }

@@ -13,7 +13,7 @@ Agent(subagent_type="qwreey-advisor:reviewer", model="<opus|sonnet>",
       description="second opinion: <plan|stuck|done>", prompt=<brief>)
 ```
 
-- Always pass `model`, following the repo tier: read `HARNESS_REVIEW_TIERS` in `~/.claude/harness.env` (else `HARNESS_REVIEW_DEFAULT`, else `mid`). Never haiku: the judgment stays in the result.
+- Always pass `model`, following the repo tier: read `HARNESS_REVIEW_TIERS` in `~/.claude/harness.env`; for a repo it does not list, the plugin option `harness_review_default` (`pluginConfigs` in `~/.claude/settings.json`), else `HARNESS_REVIEW_DEFAULT`, else `mid`. Never haiku: the judgment stays in the result.
 
 | kind | high | mid | low |
 |---|---|---|---|

@@ -7,7 +7,8 @@ One skill, `qwreey-delegate:delegate`, and its driver `skills/delegate/scripts/d
 - `delegate_workspace.py` (registry, locations, records, locks, fd-relative reads), `delegate_isolation.py` (uid backend, task environment, processes), `delegate_agents.py` (agy print-mode and codex adapters, agy `--settings` policy), `delegate_results.py` (collect, remove, automatic cleanup, list, gc).
 - `skills/delegate/scripts/delegate.sh`: a wrapper that execs `delegate.py`. Keep the path: older sessions' SKILL text and `qwreey-proc-guard`'s exemption name it.
 - `skills/delegate/templates/`: `tasks.md` (prompt skeleton), `preamble-worktree.md`, `preamble-empty.md` (prepended by the driver), `AGENTS.md.template` (per-repo map).
-- `skills/delegate/registry.tsv`: uid table, edited in place by `register`. Installs read the clone's copy through `HARNESS_DELEGATE_REGISTRY`, so keep that file here as the live one.
+- `skills/delegate/registry.tsv`: the shipped uid table, read only when no registry is set. `register` writes only the file the `harness_delegate_registry` option (or `HARNESS_DELEGATE_REGISTRY`) names and seeds a new one with this file's header, so header edits here reach new users.
+- `.claude-plugin/plugin.json` `userConfig`: the user-facing keys (registry, models, executables). An option key is the env name in lowercase; its default must equal `ENV_DEFAULTS` or the loader's `DEFAULTS` (`tools/tests/test-plugin-userconfig.py`).
 
 ## Tests
 From the repo root (fake agy/codex; nothing calls a vendor):
