@@ -1,6 +1,6 @@
 # qwreey-workspace 동작 상세
 
-네 부분으로 이루어진다: 규약 주입(`scripts/ambient.py`), 게이트(`scripts/workspace_gate.py`), 오래된 worktree 알림(`scripts/stale_worktrees.py`), 스킬 `qwreey-workspace:workspace`.
+다섯 부분으로 이루어진다: 규약 주입(`scripts/ambient.py`), 게이트(`scripts/workspace_gate.py`), 오래된 worktree 알림(`scripts/stale_worktrees.py`), 기록의 형제 경로 알림(`scripts/sibling_notice.py`), 스킬 `qwreey-workspace:workspace`.
 
 ## 작업공간과 형제 저장소
 - 작업공간 루트는 환경 변수 `HARNESS_WORKSPACE`, 없으면 `~/.claude/harness.env`(또는 `$CLAUDE_CONFIG_DIR/harness.env`) 의 같은 키. harness.env 는 옆의 `scripts/harness_env.py` 사본(하네스 로더의 사본)으로 읽는다. 둘 다 비면 게이트와 지도가 꺼진다. `HARNESS_WORKSPACE`(로더의 `USER_ONLY`, 여러 플러그인이 읽는다)와 `HARNESS_WORKSPACE_GATE`(`scripts/wslib.py` 의 `ENV_USER_ONLY`)는 저장소 `.claude/harness.env`·`.claude/harness.local.env` 가 바꾸지 못한다(클론한 저장소가 게이트를 끄지 못하게). `HARNESS_WORKSPACE_AMBIENT` 같은 다른 스위치는 저장소 층(local 이 공유 파일을 이긴다)에 둘 수 있다.
@@ -9,7 +9,7 @@
 
 ## 규약 주입
 - 훅: `SessionStart`(matcher `startup|resume|clear|compact`)와 `SubagentStart` → `scripts/ambient.py`.
-- `context/ambient.md` 세 줄을 `<plugin name="qwreey-workspace">` 로 감싸 `additionalContext` 로 낸다: `*-kb` 먼저, 형제 저장소는 승인 없이 고치지 않음(고치기 전 스킬 로드), `.claude/worktrees/*` 는 잠금·세션 확인 전에 지우지 않음.
+- `context/ambient.md` 네 줄을 `<plugin name="qwreey-workspace">` 로 감싸 `additionalContext` 로 낸다: `*-kb` 먼저, 형제 저장소는 승인 없이 고치지 않음(고치기 전 스킬 로드), `.claude/worktrees/*` 는 잠금·세션 확인 전에 지우지 않음, 형제 저장소의 내부를 이 저장소 기록에 적기 전에 의존과 공개 정도를 확인(모르면 사용자에게 묻기).
 - 서브에이전트에도 싣는 이유: 게이트가 서브에이전트의 쓰기도 막으므로 규약을 알아야 한다. fork(`agent_type == "fork"`)는 부모 맥락을 물려받으므로 건너뛴다.
 - 블록과 게이트의 태그 끝에 이 세션의 `nonce="…"` 속성을 달고, 같은 이벤트의 규칙 줄을 이 훅이 먼저 맡으면 블록 맨 앞에 싣는다(`scripts/harness_nonce.py`, 규약은 `home/.claude/HOOK-MESSAGES.md` 2번).
 - `PreCompact`(manual·auto) → `scripts/ambient.py PreCompact`: 요약기에게 `Omit the <plugin name="qwreey-workspace"> block from the summary; it is re-injected after compaction.` 한 줄을 일반 stdout 으로 낸다. SessionStart(compact) 가 다시 실으므로 요약에 남은 사본은 중복이다. 서브에이전트의 compact(`agent_id` 있음)와 규약 파일이 없을 때는 내지 않는다.
@@ -39,6 +39,15 @@
 - 알림(`<harness-hook name="stale-worktrees" level="info">`, 규칙 줄을 맡으면 맨 앞에): 개수, 오래된 순 3개의 경로(저장소 안이면 상대 경로)·브랜치·일수·변경 여부, prunable 목록, 그리고 "끝난 작업일 수 있다. 정리할 때면 스킬의 worktree 잠금·살아 있는 세션 확인을 거치고 지우기 전에 사용자에게 물어라. 사용자가 두는 것이거나 지금 일과 무관하면 할 것 없다". 지우는 명령은 적지 않는다.
 - 세션마다 한 번: `$TMPDIR/claude-workspace-worktrees/<sid>` 를 O_EXCL 로 만든 경우만 낸다. resume 은 같은 session_id 라 다시 내지 않는다.
 
+## 기록의 형제 경로 알림
+- 훅: `PostToolUse`(matcher `Write|Edit|MultiEdit`) -> `scripts/sibling_notice.py`. 이 저장소가 공개될 때 비공개 형제 저장소의 파일·함수 이름이 기록에 남아 있지 않게, 쓰는 순간 확인을 떠올리게 하는 알림이다. 비공개 목록 같은 설정 없이 판단은 모델이 한다(의존이 있는지, 그 저장소가 이 저장소만큼 공개인지, 모르면 사용자에게).
+- 대상 파일: 기록 뿌리(`CLAUDE_PROJECT_DIR`, 없으면 `cwd`. 그 안 `.claude/worktrees/<이름>/` 아래면 그 worktree)의 `.claude/` 아래. `worktrees`, `rules`, `skills`, `agents`, `commands`, `hooks` 와 `settings*.json`, `harness*.env` 는 기록이 아니라 뺀다.
+- 보는 글: Write 의 `content`, Edit 의 `new_string`, MultiEdit 의 `edits[].new_string`. 파일 전체는 읽지 않는다.
+- 형제 저장소: 지도(`map.py`)와 같이 `HARNESS_WORKSPACE` 아래 `.git` 이 있는 폴더. 이 세션 저장소와 `.git` 의 공통 폴더가 같은 폴더(같은 저장소의 worktree)는 뺀다.
+- 경로 꼴: (1) 형제 뿌리 아래 절대 경로(`~/` 꼴 포함), (2) `../<형제>/<경로>`(`../` 여러 번 가능), (3) 앞이 `/`·글자가 아닌 `<형제>/<경로>`. (3) 은 그 경로가 형제 안에 실제로 있고, 이 저장소 뿌리·`.claude/`·쓴 파일의 폴더 기준으로는 없을 때만 센다. 저장소 이름만 적거나, 같은 이름의 낱말이 우연히 나온 것은 잡지 않는다. 구분자는 `/` 와 `\` 둘 다 받는다.
+- 알림(`<harness-hook name="sibling-internals" level="info">`): 형제마다 형제 안 상대 경로 수와 처음 나온 꼴 하나, 그리고 확인 권고 한 문장. (쓴 파일, 형제)마다 (세션, agent_id, compact 회차)에 한 번. 상태는 `$TMPDIR/claude-workspace-sibling/<sid>.c<회차>[.a<agent_id>].json`.
+- 끄기: `HARNESS_WORKSPACE_SIBLING_NOTICE=off`(환경 변수, 사용자·저장소 harness.env). 어떤 실패든 출력 없이 exit 0.
+
 ## 상태와 로그
 - 게이트 상태: `$TMPDIR/claude-workspace-gate/<sid>.c<회차>[.a<agent_id>].json`(`loaded`, `warned`).
 - deny 기록: `$TMPDIR/claude-workspace-gate/deny.log`.
@@ -54,10 +63,12 @@
 ## 끄기
 - `HARNESS_WORKSPACE_GATE=off`(환경 변수 또는 사용자 harness.env): 게이트만 끈다. 규약 주입은 플러그인이 켜져 있는 한 계속된다.
 - `HARNESS_WORKSPACE_STALE_WORKTREE_DAYS=off`(또는 `0`): 오래된 worktree 알림만 끈다. 저장소 층에서도 끌 수 있다.
+- `HARNESS_WORKSPACE_SIBLING_NOTICE=off`: 기록의 형제 경로 알림만 끈다. 저장소 층에서도 끌 수 있다.
 
 ## 테스트
 ```bash
 python3 -I plugins/qwreey-workspace/tests/test_workspace_gate.py
 python3 -I plugins/qwreey-workspace/tests/test_ambient.py
 python3 -I plugins/qwreey-workspace/tests/test_stale_worktrees.py
+python3 -I plugins/qwreey-workspace/tests/test_sibling_notice.py
 ```

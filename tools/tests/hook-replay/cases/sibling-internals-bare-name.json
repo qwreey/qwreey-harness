@@ -1,0 +1,26 @@
+{
+ "description": "sibling-internals: a bare repo name, a path missing from the sibling, or a URL segment does not fire",
+ "files": {
+  "{ws}/other/src/engine.py": "x = 1\n"
+ },
+ "env": {
+  "HARNESS_WORKSPACE": "{ws}"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-workspace/scripts/sibling_notice.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/.claude/research/a.md",
+     "content": "The other repo and x-kb do this; see `other` and `x-kb`. other/not/there.py and https://example.com/other/src/engine.py\n"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

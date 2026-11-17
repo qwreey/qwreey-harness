@@ -1,0 +1,82 @@
+{
+ "description": "sibling-internals: a .claude/ record that names paths inside a sibling repo gets one info note per (file, sibling, epoch); off switch",
+ "files": {
+  "{ws}/other/src/engine.py": "x = 1\n"
+ },
+ "env": {
+  "HARNESS_WORKSPACE": "{ws}"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-workspace/scripts/sibling_notice.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/.claude/research/a.md",
+     "content": "The loop lives in `../other/src/engine.py`; see also `other/src/engine.py:12` and {ws}/other/docs/x.md.\n"
+    }
+   },
+   "expect": {
+    "tags": [
+     "sibling-internals/info"
+    ],
+    "contains": [
+     "This record names 2 internal paths of sibling repo `other` (e.g. `../other/src/engine.py`)",
+     "at least as public as this repo (remote, LICENSE); if unsure, ask the user"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-workspace/scripts/sibling_notice.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/.claude/research/a.md",
+     "content": "Again `../other/src/engine.py`.\n"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-workspace/scripts/sibling_notice.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/.claude/research/b.md",
+     "content": "`../other/src/engine.py`\n"
+    }
+   },
+   "expect": {
+    "tags": [
+     "sibling-internals/info"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-workspace/scripts/sibling_notice.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/.claude/research/c.md",
+     "content": "`../other/src/engine.py`\n"
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_WORKSPACE_SIBLING_NOTICE": "off"
+   }
+  }
+ ]
+}

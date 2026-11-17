@@ -1,0 +1,3 @@
+<harness-hook name="sibling-internals" level="info" nonce="fa51bb136762">
+This record names 1 internal path of sibling repo `other` (e.g. `../other/src/engine.py`). Check that this repo needs it and that `other` is at least as public as this repo (remote, LICENSE); if unsure, ask the user, else keep only the conclusion.
+</harness-hook>

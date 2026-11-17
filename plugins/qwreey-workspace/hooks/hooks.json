@@ -11,7 +11,8 @@
       { "matcher": "Edit|Write|MultiEdit|NotebookEdit|Read|Grep|Glob|Bash", "hooks": [ { "type": "command", "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/workspace_gate.py\" PreToolUse", "timeout": 10 } ] }
     ],
     "PostToolUse": [
-      { "matcher": "Skill", "hooks": [ { "type": "command", "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/workspace_gate.py\" PostToolUse", "timeout": 10 } ] }
+      { "matcher": "Skill", "hooks": [ { "type": "command", "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/workspace_gate.py\" PostToolUse", "timeout": 10 } ] },
+      { "matcher": "Write|Edit|MultiEdit", "hooks": [ { "type": "command", "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/sibling_notice.py\"", "timeout": 10 } ] }
     ],
     "PreCompact": [
       { "matcher": "manual|auto", "hooks": [ { "type": "command", "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/compact_epoch.py\" qwreey-workspace", "timeout": 5 }, { "type": "command", "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" PreCompact", "timeout": 5 } ] }
