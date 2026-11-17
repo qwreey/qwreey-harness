@@ -1,7 +1,7 @@
 ---
 format: 1
 title: 지금 계획
-description: 책상의 지금 계획 12단계(끝 4), 하는 중 S8 S8 L 공유 기반
+description: 책상의 지금 계획 12단계(끝 5), 하는 중 S9 S9 플러그인별 작업
 status: active
 ---
 
@@ -21,10 +21,10 @@ status: active
   사용자·동료
 - [x] S7 S7 독립 패키지 계획
   .claude/plan/plugin-independence.md, userConfig 저장 모양 실측
-- [~] S8 S8 L 공유 기반
-  harness_env 옵션 층, known_repos, 설치본 조건 시험 (opus 1)
-- [ ] S9 S9 플러그인별 작업
-  A workspace, B q·home, C conventions, D 나머지 (opus 4 병렬)
+- [x] S8 S8 L 공유 기반
+  b9f9a9e 병합. 옵션 층, known_repos(캐시 적중 2.2ms), 설치본 흉내 모드. 테스트 전부 통과
+- [~] S9 S9 플러그인별 작업
+  A·B·C·D 실행 중 (opus 4, 각자 worktree)
 - [ ] S10 S10 병합·스냅숏·설치본 실측
 - [ ] S11 S11 원칙·README·HUMAN_TODO
 - [ ] S12 S12 Q27 저장소 이름 qwreey-harness

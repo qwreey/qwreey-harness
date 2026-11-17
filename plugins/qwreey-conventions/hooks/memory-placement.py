@@ -57,7 +57,8 @@ def message(name, evidence, session_id=None):
 
 
 def main():
-    if os.environ.get("MEMORY_PLACEMENT") == "off":
+    import conv_env  # 끄기 스위치는 harness.env 층과 /config 옵션에서도 읽는다
+    if conv_env.is_off("MEMORY_PLACEMENT"):
         return 0
     try:
         data = json.load(sys.stdin)

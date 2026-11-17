@@ -2,9 +2,20 @@
   "name": "qwreey-conventions",
   "version": "0.13.0",
   "description": "코드 주석과 모델이 읽는 문서(CLAUDE.md, SKILL.md, rules)의 관례. 주석 규약은 comments rule 이, 모델용 문서 규약은 agent-docs rule 이 쓰는 법을 담고, PostToolUse 훅이 방금 추가한 줄(Edit, Write, Bash 로 쓴 것)이 관례를 벗어난 것 같으면 줄과 고치는 법을 한 줄로 알린다(막지 않는다). 턴이 끝날 때 편집한 파일에 남은 기존 주석 문제를 사용자에게 한 줄로 보고만 하고, 정리는 사용자 명령 /qwreey-conventions:comments-cleanup(주석)과 /qwreey-conventions:docs-cleanup(모델용 문서)이 한다. 한 사실의 사본(@copy-of 표시, 문자열 목록 중복)을 검사하는 reuse-check 훅과, 경계를 넘는 사본·라이브러리 선택 절차를 담은 code-reuse 스킬을 둔다. rules/ 의 경로 한정 규칙을 파일을 열 때 훅이 주입하고(읽기 좋은 코드 규약은 설정에서 켤 때만, 쓰거나 키운 함수의 layout 알림과 함께), 답변이 사용자 언어에서 벗어나면 다시 쓰게 한다.",
-  "author": { "name": "qwreey", "email": "me@qwreey.moe" },
+  "author": {
+    "name": "qwreey",
+    "email": "me@qwreey.moe"
+  },
   "license": "MIT",
-  "keywords": ["qwreey", "conventions", "comments", "code-style", "code-reuse", "documentation", "hooks"],
+  "keywords": [
+    "qwreey",
+    "conventions",
+    "comments",
+    "code-style",
+    "code-reuse",
+    "documentation",
+    "hooks"
+  ],
   "userConfig": {
     "harness_readable_code": {
       "type": "boolean",
@@ -22,6 +33,24 @@
       "type": "boolean",
       "title": "답변 언어 지키기",
       "description": "답변이 사용자 언어(Claude Code 설정의 language, 없으면 처음에 물어 저장한 언어)에서 벗어나 영어로 나가면 알리고 다시 쓰게 한다. 끄면 언어를 보지 않는다.",
+      "default": true
+    },
+    "conventions_check": {
+      "type": "boolean",
+      "title": "줄 단위 규약 검사",
+      "description": "파일을 고친 뒤 더한 줄의 주석, 모델용 문서, 사본 표시를 검사해 알린다. 끄면 알림이 나지 않는다.",
+      "default": true
+    },
+    "structure_reminder": {
+      "type": "boolean",
+      "title": "파일 길이·구조 알림",
+      "description": "파일이 길어지거나 폴더가 붐비면 나눌 때를 알린다. 끄면 알리지 않는다.",
+      "default": true
+    },
+    "memory_placement": {
+      "type": "boolean",
+      "title": "memory 자리 알림",
+      "description": "memory 파일에 저장소가 이미 기록하는 내용을 쓰려 하면 알린다. 끄면 알리지 않는다.",
       "default": true
     }
   }

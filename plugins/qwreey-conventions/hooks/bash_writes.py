@@ -234,7 +234,7 @@ def snapshot(data, cmd, cwd, candidates, signal):
     if not signal:
         return
     import conv_env
-    if (os.environ.get("CONVENTIONS_CHECK") or "").lower() == "off" and conv_env.is_off("HARNESS_CONVENTIONS_RULES"):
+    if conv_env.is_off("CONVENTIONS_CHECK") and conv_env.is_off("HARNESS_CONVENTIONS_RULES"):
         return
     root, head = repo(cwd)
     is_git = root is not None
@@ -590,7 +590,8 @@ def main():
 
     # Added-line checks, then copy notes in the room left
     body, out = [], ""
-    if (os.environ.get("CONVENTIONS_CHECK") or "").lower() != "off" and (items or unread):
+    import conv_env
+    if not conv_env.is_off("CONVENTIONS_CHECK") and (items or unread):
         cc = _load_check()
         body, code = notices(cc, data, snap, items, t0, unread)
         for note in reuse_notes(data, code):

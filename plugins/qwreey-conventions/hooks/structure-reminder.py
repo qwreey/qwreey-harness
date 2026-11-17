@@ -348,7 +348,8 @@ def prefix_of(stem):
 
 
 def main():
-    if os.environ.get("STRUCTURE_REMINDER", "").lower() == "off":
+    import conv_env  # 끄기 스위치는 harness.env 층과 /config 옵션에서도 읽는다
+    if conv_env.is_off("STRUCTURE_REMINDER"):
         return 0
     try:
         data = json.load(sys.stdin)

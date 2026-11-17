@@ -624,7 +624,8 @@ def record_report(data, path, rel, dup, differ):
 
 
 def main():
-    if (os.environ.get("CONVENTIONS_CHECK") or "").lower() == "off":
+    import conv_env  # 끄기 스위치는 harness.env 층과 /config 옵션에서도 읽는다
+    if conv_env.is_off("CONVENTIONS_CHECK"):
         return 0
     try:
         data = json.load(sys.stdin)

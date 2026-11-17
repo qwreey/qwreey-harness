@@ -25,11 +25,12 @@
 - 읽기 좋은 코드 규약(`harness_readable_code`): 기본 꺼짐.
 - 규약 자동 주입(`harness_conventions_rules`): 기본 켜짐. 끄면 규약 글은 빠지고 줄 알림은 그대로다.
 - 답변 언어 지키기(`harness_reply_language`): 기본 켜짐.
+- 줄 단위 규약 검사(`conventions_check`), 파일 길이·구조 알림(`structure_reminder`), memory 자리 알림(`memory_placement`): 기본 켜짐.
 
 고급: 같은 키를 대문자로 `~/.claude/harness.env` 나 저장소 `.claude/harness.env` 에 적을 수 있다(저장소 파일이 설정보다 이긴다). luau-kb 팩을 고치는 사람은 `HARNESS_LUAU_KB=<팩 폴더>` 로 설치본 대신 작업 사본의 계획기를 쓴다.
 
 ## 끄기
-- 주석·문서·사본 알림: `CONVENTIONS_CHECK=off`. 파일 길이: `STRUCTURE_REMINDER=off`. 메모 알림: `MEMORY_PLACEMENT=off`. 모두 환경 변수다.
+- 알림 하나씩: 위 설정에서 끈다(환경 변수 `CONVENTIONS_CHECK=off` 등도 된다).
 - 전부: `claude plugin disable qwreey-conventions@claude-doctor-market` (제거는 `uninstall`).
 
 ## 설치
