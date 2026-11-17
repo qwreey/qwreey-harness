@@ -25,9 +25,9 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 
 ## 다른 sandbox 에 설치하기
 
-전제: `git`, `python3`(3.11 이상, `tomllib`), `bash` 4 이상, `jq`. `choom`(util-linux)은 있으면 쓴다.
+전제: `git`, `python3`(3.11 이상, `tomllib`), `bash` 4 이상. `jq` 는 있으면 쓴다(없으면 플러그인 설치 보고만 빠진다). `choom`(util-linux)은 있으면 쓴다. Windows 는 아래 "Windows" 절.
 
-1. **클론**한다. 작업공간 루트 아래에 두면 기본값이 맞는다.
+1. **클론**한다. `~/Projects/claude-doctor` 에 두면 harness.env 를 고칠 것이 없다(형제 저장소도 `~/Projects` 아래).
    ```bash
    cd <작업공간>            # 예: ~/Projects
    git clone <claude-doctor 저장소 URL> claude-doctor
@@ -52,6 +52,31 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 6. **q 플러그인**: `claude plugin marketplace add <claude-doctor 폴더>` 후 `claude plugin install q@claude-doctor-market`(마이그레이션 0002 가 켠다). 옛 `~/.claude/skills/{away,back,harness-doctor}` 는 apply 가 지우지 않는다: `tools/home-sync.sh status` 의 고아 보고를 보고 직접 정리한다.
 7. **진단**: Claude Code 에서 `/q:doctor --user`, 그다음 `/q:doctor <저장소>`.
    스크립트만 돌리려면 `python3 -I <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py --env` 와 `... scan.py <저장소>`. 플러그인 캐시에서 돌 때는 `HARNESS_DOCTOR_ROOT`(harness.env)로 이 폴더를 알려야 정본 검사가 켜진다.
+
+## Windows
+
+Windows(회사 PC)에서도 플러그인과 `home-sync` 가 돌게 짰다. 실제 Windows 기기에서는 아직 확인하지 않았다(확인 순서는 `HUMAN_TODO.md` 의 "회사 Windows PC 첫 실행 확인").
+
+**필요한 것**
+- **Git for Windows**(Git Bash 포함). Claude Code 가 훅과 Bash 도구를 Git Bash 로 돌리고, `tools/home-sync.sh` 도 Git Bash 에서 돌린다. Git Bash 를 못 찾으면 settings 의 `env` 에 `CLAUDE_CODE_GIT_BASH_PATH`(`bash.exe` 경로)를 둔다.
+- **Python 3.11 이상, `python3` 이라는 이름으로.** 훅 명령이 `python3 -I -X utf8 "..."` 이다.
+  - python.org 의 Python install manager(지금 권장 설치 방법)나 Microsoft Store 판은 `python3` 를 준다.
+  - 옛 python.org 설치 관리자(3.13 이하)는 `python`·`py` 만 준다. 설치 폴더(`python.exe` 가 있는 곳)에서 `python.exe` 를 `python3.exe` 로 복사한다.
+  - `python3` 를 쳤을 때 Microsoft Store 가 열리면 그것은 Windows 의 앱 실행 별칭(가짜)이다. 설정 > 앱 > 고급 앱 설정 > 앱 실행 별칭에서 `python3.exe` 를 끈다.
+  - 확인: Git Bash 에서 `python3 -c "import sys; print(sys.executable)"`. `/q:doctor --user` 도 `WIN-PYTHON3`, `WIN-GITBASH` 로 알린다.
+- 클론은 `~/Projects/claude-doctor`(`C:/Users/<이름>/Projects/claude-doctor`)에 두면 harness.env 를 고칠 것이 없다. 다른 곳이면 `home/.claude/harness.env` 의 `HARNESS_WORKSPACE` 를 `/` 구분 경로로 고친다(`HARNESS_ENV` 로 다른 파일을 가리켜도 된다).
+- 설치 순서는 위 "다른 sandbox 에 설치하기"와 같다. 명령은 모두 Git Bash 에서 친다. 마켓 경로는 `home-sync apply` 가 클론 위치로 채운다.
+
+**되는 것**
+- 플러그인 훅 전부(q, qwreey-sessions, qwreey-workspace, qwreey-conventions, qwreey-advisor, qwreey-operator), statusline, `/q:away`·`/q:back`, session-log 요약 워커(파일 잠금은 `msvcrt`, 워커는 분리 프로세스로).
+- `-X utf8` 로 한국어 Windows 의 코드 페이지(cp949)와 상관없이 UTF-8 로 읽고 쓴다.
+- luau-lsp 플러그인은 `.cmd` 런처로 뜬다(카드 `plugins/luau-lsp/README.md` 의 Windows 절).
+
+**안 되는 것**
+- qwreey-delegate(agy·codex 위임): Linux 와 root 가 있어야 한다. Windows 에서는 실행을 거절한다.
+- qwreey-proc-guard 의 무거운 실행 검사(`heavy-proc-guard`): Linux 의 `choom` 일이라 Windows 에서는 아무것도 막지 않는다. `self-match-guard` 는 돈다.
+- `/q:doctor` 의 살아 있는 세션 검사: `/proc` 이 없어 건너뛴다(worktree 정리 전에는 직접 확인한다).
+- luau-kb 의 벤치(`bench/run.sh`)와 스니펫 셸 스크립트는 `choom`·`prlimit` 을 쓰는 Linux 용이다.
 
 ## 새 언어·툴체인
 

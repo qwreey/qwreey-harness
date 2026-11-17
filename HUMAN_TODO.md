@@ -98,6 +98,14 @@
   2. 그 기기에서 돌고 있는 세션을 모두 다시 읽힌다(`/reload-plugins` 또는 새 세션). 하나라도 남으면 그 세션은 옛 플러그인으로 돈다
   3. 그다음 `tools/home-sync.sh diff` 로 `lib/harness_env.py`, `harness.env` 주석을 보고 `apply`
   - 새 lib 의 `LEGACY_USER_ONLY` 가 예전 lib 이 막던 키(위 두 키, `HARNESS_AGENT_PUSH`, `HARNESS_LUAU_KB`, `SESSION_LOG_HOME`, 위임의 실행 파일·인증·격리·상태 키)를 계속 막으므로, 순서가 뒤바뀌어(apply 먼저, 또는 옛 플러그인이 남은 기기) 옛 플러그인이 새 lib 를 읽어도 이 키들은 저장소 층이 바꾸지 못한다
+- [ ] Windows 대응 반영(q 0.10.0, qwreey-sessions 0.4.0, qwreey-advisor 0.4.17, qwreey-conventions 0.12.2, qwreey-delegate 0.2.3, qwreey-operator 0.3.2, qwreey-proc-guard 0.2.1, qwreey-workspace 0.1.11, luau-kb 0.7.2). 이 기기: `claude plugin marketplace update claude-doctor-market` 뒤 위 플러그인 갱신, `/reload-plugins` 또는 새 세션, 그다음 `tools/home-sync.sh diff`(harness.env 가 `~/Projects` 꼴로 바뀌지만 푼 값은 같다, statusline 의 임시 폴더 줄)와 `apply`
+- [ ] 회사 Windows PC 첫 실행 확인(README "Windows" 절). 결과를 알려 주면 남은 위험을 고친다
+  1. Git Bash 에서 `python3 -c "import sys; print(sys.executable)"` 가 진짜 파이썬을 찍는다(Store 안내 창이 뜨거나 9009 로 끝나면 README 의 python3 항목)
+  2. `tools/home-sync.sh diff` 의 settings diff 에서 `claude-doctor-market` 마켓 경로가 클론 위치(`C:/Users/.../claude-doctor` 꼴)이고, `apply` 가 `settings.json JSON OK` 로 끝난다
+  3. 새 세션 첫 화면에 `<plugin name="q">` 블록이 보이고 훅 오류 줄이 없다. `claude --debug` 로그에서 훅 명령이 Git Bash 로 돌고 한국어가 깨지지 않는지 본다
+  4. 아무 파일 하나를 고친 뒤 qwreey-conventions 알림이 뜨고, 다른 형제 저장소 파일을 고치려 하면 workspace 게이트가 뜬다(경로 대소문자·구분자 판정)
+  5. `/q:away` 뒤 `/q:back` 이 오류 없이 요약을 내고, 대화가 몇 번 오간 뒤 `session-log status` 에 기록이 쌓인다(분리 워커)
+  6. `/q:doctor --user` 에 `WIN-PYTHON3`, `WIN-GITBASH` 가 없다
 - 새 정본 변경(rules, settings 마이그레이션 등)이 생기면 다시 `tools/home-sync.sh diff` 로 검토하고 `apply` 한다. 이때도 같은 백업이 생긴다.
 
 ## 다른 세션에 넘길 것
