@@ -87,13 +87,21 @@ def compact_anchors(transcript: str, cwd: str, sid: str):
 
 
 def spawn_flush(store: Store, sid: str, transcript: str, trigger: str, force: bool) -> None:
-    args = [sys.executable, "-I", CLI, "flush", "--session", sid, "--transcript", transcript,
+    args = [sys.executable, "-I", "-X", "utf8", CLI, "flush", "--session", sid, "--transcript", transcript,
             "--project", str(store.root), "--trigger", trigger] + (["--force"] if force else [])
+    io = dict(stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True)
+    if os.name == "nt":
+        # setsid 대신: 콘솔과 프로세스 그룹에서 떼어 훅이 끝나도 남게 한다. 작업 객체 밖으로 못 나가게 막힌 환경이면 그 안에서 돈다.
+        flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+        try:
+            subprocess.Popen(args, creationflags=flags | subprocess.CREATE_BREAKAWAY_FROM_JOB, **io)
+        except OSError:
+            subprocess.Popen(args, creationflags=flags, **io)
+        return
     setsid = shutil.which("setsid")
     if setsid:
         args = [setsid, "-f"] + args
-    subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                     close_fds=True, start_new_session=not setsid, cwd="/")
+    subprocess.Popen(args, start_new_session=not setsid, cwd="/", **io)
 
 
 # ---- compact 회차 ----

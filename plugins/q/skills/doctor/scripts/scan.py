@@ -345,7 +345,11 @@ def claude_sessions():
     """[(pid, cwd, 자기 조상 여부, 실행 파일)]. Claude 와 위임 에이전트(agy, codex)만 센다.
     `pgrep -f claude` 는 셸 스냅숏 경로에 'claude' 가 든 bash 래퍼까지 잡으므로 실행 파일 이름으로 거른다."""
     me, out = self_pids(), []
-    for d in Path("/proc").iterdir():
+    try:
+        procs = list(Path("/proc").iterdir())
+    except OSError:  # /proc 이 없는 플랫폼(Windows, macOS): 살아 있는 세션 검사를 건너뛴다
+        return out
+    for d in procs:
         if not d.name.isdigit():
             continue
         try:
@@ -490,6 +494,25 @@ TITLES = {10: "메모리 이식성", 0: "실행 중인 세션", 1: "상시 로�
           5: "공유 지식 쏠림(툴킷 KB)", 6: "복제본 표류", 7: "설정", 8: "툴체인(툴킷)", 9: "worktree 위생"}
 
 
+def check_windows():
+    """Windows 에서 플러그인 훅이 도는 전제: hooks.json 이 `python3 -I -X utf8 ...` 을 부르고, Git Bash(없으면 PowerShell)가 돌린다."""
+    import shutil
+    py3 = shutil.which("python3")
+    if not py3:
+        add(7, "오류", "WIN-PYTHON3", "PATH",
+            "python3 가 PATH 에 없어 플러그인 훅이 모두 실패한다. python.org 의 Python install manager 나 Microsoft Store 판을 "
+            "설치하거나(둘 다 python3 를 준다), 옛 설치 관리자로 깔았으면 설치 폴더의 python.exe 를 python3.exe 로 복사한다.")
+    elif "windowsapps" in py3.lower() and "windowsapps" not in sys.executable.lower():
+        add(7, "경고", "WIN-PYTHON3", py3,
+            f"python3 가 앱 실행 별칭({py3})이고 이 스캔은 다른 파이썬({sys.executable})으로 돈다. 별칭이 Store 설치 안내만 띄우는 "
+            "가짜면 훅이 모두 실패한다. 설정 > 앱 실행 별칭에서 python3 를 끄고 진짜 python3 를 PATH 에 둔다.")
+    bash = os.environ.get("CLAUDE_CODE_GIT_BASH_PATH") or shutil.which("bash")
+    if not bash or not os.path.isfile(bash):
+        add(7, "경고", "WIN-GITBASH", "PATH",
+            "Git Bash 가 없다. 훅은 PowerShell 로 돌아 동작하지만 tools/home-sync.sh 와 Bash 도구가 Git for Windows 를 요구한다. "
+            "설치했는데 못 찾으면 settings env 의 CLAUDE_CODE_GIT_BASH_PATH 에 bash.exe 경로를 둔다.")
+
+
 def render(target, extra, today):
     out = [f"# harness-doctor 진단: {target}", "",
            f"- scan.py v{VERSION}, {today}. 읽기 전용 검사. 판단이 필요한 항목은 경고·정보로 냈다.",
@@ -578,6 +601,8 @@ def main():
                     if sc and not os.path.isfile(script_path(sc)):
                         add(7, "오류", "SET-HOOKPATH", p, f"{ev} 훅 스크립트가 없다: {sc}")
             add(7, "정보", "SET-SYNC", "tools/home-sync.sh", "정본과 실제의 차이는 `tools/home-sync.sh status` 로 본다.")
+            if os.name == "nt":
+                check_windows()
     else:
         if not a.repo:
             ap.error("저장소 경로가 필요하다 (또는 --user)")

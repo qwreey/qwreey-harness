@@ -15,7 +15,7 @@
 - `/q:start`, `/q:doctor` 는 실행할 때 보통 대화만큼 든다.
 
 ## 요구 사항
-- `python3`. Linux·macOS(`/q:away` 기록이 파일 잠금 `fcntl` 을 써서 Windows 에서는 동작하지 않는다).
+- `python3`. Linux·macOS·Windows(Windows 는 claude-doctor README 의 Windows 절).
 - 구독 한도 %로 예산을 걸려면 claude-doctor 의 statusline 이 한도 값을 기록해야 한다. 없으면 달러 기준으로 바뀐다.
 
 ## 끄기

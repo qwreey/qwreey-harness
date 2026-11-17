@@ -46,7 +46,7 @@
 결정적 검사(`skills/doctor/scripts/scan.py` 와 `scan_*.py`, 기록 규약 검사 `scripts/records_check.py`, 팩 검사 `pack_checks.py`)를 돌리고 모델이 판단을 더한다. claude-doctor 정본과 비교하려면 `HARNESS_DOCTOR_ROOT`(`~/.claude/harness.env`)가 claude-doctor 폴더를 가리켜야 한다. 툴킷별 검사는 `skills/doctor/references/toolkits/`.
 
 ## 플랫폼
-훅은 표준 라이브러리 Python 3 이다. 원장(`subagent_ledger.py`)이 `fcntl` 잠금을 써서 away 와 규모 고지는 Linux·macOS 에서만 돈다(Windows 에서는 훅이 조용히 통과한다).
+훅은 표준 라이브러리 Python 3 이다. 원장(`subagent_ledger.py`)의 잠금은 `scripts/file_lock.py`(POSIX `fcntl.flock`, Windows `msvcrt.locking`)라 Linux·macOS·Windows 에서 돈다.
 
 ## 테스트
 ```bash

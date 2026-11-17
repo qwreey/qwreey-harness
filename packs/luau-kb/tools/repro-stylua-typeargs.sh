@@ -6,7 +6,7 @@
 # 판정이 기대와 같으면 rc=0, 다르면 rc=1(= stylua 동작이 바뀜 -> luau-verify references/tooling.md 갱신).
 # 사용: tools/repro-stylua-typeargs.sh [stylua 경로]
 set -u
-S=${1:-${MISE_DATA_DIR:-/code/.local/share/mise}/installs/stylua/2.5.2/stylua}
+S=${1:-${MISE_DATA_DIR:-$HOME/.local/share/mise}/installs/stylua/2.5.2/stylua}
 D=$(mktemp -d)
 trap 'rm -rf "$D"' EXIT
 src='local function id<T>(x: T): T

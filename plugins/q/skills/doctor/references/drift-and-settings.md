@@ -57,6 +57,8 @@ agy 위임 도구는 4벌이다(quad, stl-luau, tbox, table-sim). 지금은 고�
 | `SET-WTIGNORE` | 경고: `.claude/worktrees/`가 무시되지 않는다. 정보: `.git/info/exclude`(이 기기 전용)로만 무시한다 | `.gitignore`에 `/.claude/worktrees/` 한 줄 |
 | `SET-UNTRACKED` | `.claude/`와 CLAUDE.md가 한 번도 커밋되지 않았다 | 사용자 결정 → HUMAN_TODO |
 | `SET-DIRTY` | 에이전트 문서에 미추적이나 미커밋 변경이 있다 | 정보. 세션이 작업 중일 수 있다 |
+| `WIN-PYTHON3` | (`--user`, Windows) 오류: `python3` 가 PATH 에 없어 플러그인 훅이 모두 실패한다. 경고: `python3` 가 앱 실행 별칭이라 Store 설치 안내만 띄우는 가짜일 수 있다 | 사용자에게 메시지의 설치 방법을 안내한다 |
+| `WIN-GITBASH` | (`--user`, Windows) Git Bash 를 못 찾는다. 훅은 PowerShell 로 돌지만 `home-sync.sh` 와 Bash 도구가 못 돈다 | Git for Windows 설치 또는 `CLAUDE_CODE_GIT_BASH_PATH` |
 | `SET-NOGIT` | 경고: git 저장소가 아니다. 정보: 다른 저장소 안의 하위 디렉터리다(반입 사본 `intake/<이름>/`이면 정상, git 기반 검사는 건너뜀) | 반입 사본이면 없음 |
 
 **판단 근거**

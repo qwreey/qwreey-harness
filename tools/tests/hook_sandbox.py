@@ -1,7 +1,7 @@
 """이 저장소의 훅 스크립트를 하위 프로세스로 돌리는 버리는 샌드박스. tools/regen-prompt-surface.py 와
 tools/tests/test-hook-replay.py 가 함께 쓴다. 표준 라이브러리만 쓴다.
 
-훅은 hooks.json 처럼 늘 `python3 -I <스크립트>` 에 stdin JSON 으로 부른다. 그래서 스크립트 경로와 출력을 지키는 리팩터(파일 나누기 등)는
+훅은 hooks.json 처럼 늘 `python3 -I -X utf8 <스크립트>` 에 stdin JSON 으로 부른다(HOOK_SANDBOX_SIMWIN=1 이면 simwin.py 를 거쳐 Windows 흉내로). 그래서 스크립트 경로와 출력을 지키는 리팩터(파일 나누기 등)는
 이 호출을 깨지 않는다. 훅이 닿는 상태 위치는 모두 샌드박스 안으로 돌린다: TMPDIR, HOME, CLAUDE_CONFIG_DIR, XDG 폴더, session-log 저장소,
 nonce salt(고정 값이라 태그의 nonce 가 실행마다 같다).
 
@@ -187,6 +187,7 @@ class Sandbox:
         """훅 스크립트(이 저장소 기준 상대 경로 또는 절대 경로)를 payload 를 stdin 으로 주어 돌린다. Result 를 돌려준다."""
         path = Path(script) if os.path.isabs(script) else ROOT / script
         stdin = payload if isinstance(payload, str) else json.dumps(self.subst(payload), ensure_ascii=False)
-        p = subprocess.run([sys.executable, "-I", str(path), *[self.subst(a) for a in argv]], input=stdin, capture_output=True,
+        shim = [str(Path(__file__).resolve().with_name("simwin.py"))] if os.environ.get("HOOK_SANDBOX_SIMWIN") == "1" else []
+        p = subprocess.run([sys.executable, "-I", "-X", "utf8", *shim, str(path), *[self.subst(a) for a in argv]], input=stdin, capture_output=True,
                            text=True, env=self.env(env), cwd=str(cwd or self.repo), timeout=timeout)
         return Result(p.returncode, p.stdout, p.stderr)

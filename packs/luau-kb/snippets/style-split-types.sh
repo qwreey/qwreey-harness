@@ -28,7 +28,7 @@
 # 근거: stl-luau src/Collections/Arr.luau(머리 주석: 메타테이블 없는 네임스페이스 함수), quad 4ddb9c5a(Slot 의 `S`), claude-doctor .claude/audit/12 3 원인 5.
 # 기대와 어긋나면 rc=1. 사용: bash snippets/style-split-types.sh [버전...]   (기본 0.734 0.742 0.746)
 set -u
-MISE=${MISE_DATA_DIR:-/code/.local/share/mise}
+MISE=${MISE_DATA_DIR:-$HOME/.local/share/mise}
 vers=("$@"); [ $# -eq 0 ] && vers=(0.734 0.742 0.746)
 d=$(mktemp -d /tmp/luau-kb-split.XXXXXX)
 trap 'rm -rf "$d"' EXIT

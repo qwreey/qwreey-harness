@@ -47,8 +47,8 @@
 - 기록 밖으로 나가는 글(절 요약, 기록 파일, index·pending 설명, 알림 큐, compact 요약, import 사본, 인계)은 쓰는 순간 `sllib/redact.py` 가 nonce 를 지운다: `nonce="<hex>"` 는 `nonce="redacted"`, 규칙 줄은 통째로, 그 세션의 nonce 값 자체도. 세션은 며칠 이어지므로 커밋된 기록의 값이 아직 살아 있을 수 있어서다.
 
 ## 플랫폼
-- 외부 저장소 잠금에 `fcntl.flock` 을 써서 Windows 에서는 돌지 않는다. Linux·macOS.
-- `setsid` 가 없으면 `start_new_session` 으로 분리한다. `python3`(표준 라이브러리만), `claude` CLI, `git`(선택, import 커밋 조회).
+- 외부 저장소 잠금은 `scripts/sllib/file_lock.py`(POSIX `fcntl.flock`, Windows `msvcrt.locking`)다. Linux·macOS·Windows.
+- 워커 분리: `setsid -f`, 없으면 `start_new_session`. Windows 는 `DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP`(작업 객체가 허락하면 `CREATE_BREAKAWAY_FROM_JOB` 도)로 띄운다. `python3`(표준 라이브러리만), `claude` CLI, `git`(선택, import 커밋 조회).
 
 ## 테스트
 ```bash

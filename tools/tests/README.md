@@ -6,7 +6,10 @@
 |---|---|
 | `test-prompt-surface.py` | 모델이 보는 글(rule 본문, 상시 규약 블록, 서브에이전트 글, 스킬과 에이전트 목록 줄, desk 도구 설명, 훅 알림 대표)이 스냅숏 `prompt-surface/*.txt` 와 같은지, 항목 크기가 `prompt-surface/sizes.json` 보다 늘지 않았는지, 훅 출력 하나가 9,000자 아래인지. 세션 시작 합계를 찍는다 |
 | `test-hook-replay.py` | `hook-replay/cases/*.json` 사례마다 임시 저장소를 만들고 훅을 하위 프로세스로 돌려 판정(exit, decision, `<harness-hook name level>` 태그와 nonce, 핵심 문구)을 본다 |
-| `hook_sandbox.py` | 위 둘과 `tools/regen-prompt-surface.py` 가 쓰는 샌드박스(TMPDIR, HOME, 설정 폴더, session-log 저장소, 고정 salt 를 모두 임시 폴더로) |
+| `hook_sandbox.py` | 위 둘과 `tools/regen-prompt-surface.py` 가 쓰는 샌드박스(TMPDIR, HOME, 설정 폴더, session-log 저장소, 고정 salt 를 모두 임시 폴더로). `HOOK_SANDBOX_SIMWIN=1` 이면 훅을 `simwin.py` 로 돈다 |
+| `simwin.py` | Windows 흉내: fcntl·pwd 를 막고 getuid·setsid·`/proc`·choom 을 지운 채 스크립트를 돈다. `HOOK_SANDBOX_SIMWIN=1 python3 -I tools/tests/test-hook-replay.py` 로 훅 재생을 그대로 흉내 낸다(경로 구분자, 셸, 코드 페이지, `os.name` 분기는 못 본다) |
+| `test-hooks-simwin.py` | `hooks.json` 의 모든 훅을 `simwin.py` 로 한 번씩 돌려 죽지 않는지(exit 0 또는 2, Traceback 없음) |
+| `test-hook-commands.py` | `hooks.json` 의 command 가 모두 `python3 -I -X utf8 "${CLAUDE_PLUGIN_ROOT}/...py"` 꼴인지(Windows 의 Git Bash·PowerShell 에서도 도는 꼴, 머리 주석에 이유) |
 | `test-ambient-lib.py`, `test-vendored-copies.py`, `test-sync-copies.py` | `lib/` 정본과 사본 |
 | `test-harness-env.py`, `test-harness-env-owners.py`, `test-settings-migrate.py` | `home/` 의 harness.env 로더와 settings 마이그레이션 |
 | `test-coderag-rules-parity.py`, `test-coderag-skip-dirs.py` | coderag 와의 대조(`CODERAG_SRC`, `CODERAG_BIN` 이 있어야 돈다) |

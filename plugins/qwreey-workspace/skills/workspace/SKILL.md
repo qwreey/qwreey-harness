@@ -15,7 +15,7 @@ The repos in the workspace are siblings run by one person; several sessions may 
 - Do not work around a hook deny with another tool (Grep, a script) to read or write the same path; load this skill and follow the steps.
 
 ## Map (generated now)
-!`python3 -I "${CLAUDE_SKILL_DIR}/scripts/map.py"`
+!`python3 -I -X utf8 "${CLAUDE_SKILL_DIR}/scripts/map.py"`
 
 If the line above is only the command, run it once. If it says `HARNESS_WORKSPACE not configured`, tell the user to set it in harness.env (from claude-doctor: `home/.claude/harness.env`, then `home-sync.sh apply`; without claude-doctor, just tell the user). Do not edit `~/.claude/harness.env` yourself; the map and the gate are off until then.
 

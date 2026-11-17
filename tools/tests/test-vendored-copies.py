@@ -21,6 +21,7 @@ EXPECTED = {
     "lib/memory_signals.py": ["plugins/qwreey-conventions/hooks/memory_signals.py", "plugins/q/skills/doctor/scripts/memory_signals.py"],
     "lib/harness_nonce.py": ["plugins/q/scripts/harness_nonce.py", "plugins/qwreey-advisor/hooks/harness_nonce.py", "plugins/qwreey-conventions/hooks/harness_nonce.py", "plugins/qwreey-operator/hooks/harness_nonce.py", "plugins/qwreey-proc-guard/hooks/harness_nonce.py", "plugins/qwreey-sessions/scripts/harness_nonce.py", "plugins/qwreey-workspace/scripts/harness_nonce.py"],
     "lib/copy_regions.py": ["plugins/qwreey-conventions/hooks/copy_regions.py"],
+    "lib/file_lock.py": ["plugins/q/scripts/file_lock.py", "plugins/qwreey-sessions/scripts/sllib/file_lock.py"],
     "home/.claude/lib/harness_env.py": ["plugins/q/scripts/harness_env.py", "plugins/q/skills/doctor/scripts/harness_env.py", "plugins/qwreey-advisor/hooks/harness_env.py", "plugins/qwreey-conventions/hooks/harness_env.py", "plugins/qwreey-delegate/skills/delegate/scripts/harness_env.py", "plugins/qwreey-operator/hooks/harness_env.py", "plugins/qwreey-proc-guard/hooks/harness_env.py", "plugins/qwreey-sessions/scripts/harness_env.py", "plugins/qwreey-workspace/scripts/harness_env.py"],
     "lib/ambient.py": ["plugins/q/scripts/ambient.py", "plugins/qwreey-advisor/hooks/ambient.py", "plugins/qwreey-operator/hooks/ambient.py", "plugins/qwreey-workspace/scripts/ambient.py"],
 }

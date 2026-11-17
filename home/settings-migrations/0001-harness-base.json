@@ -115,7 +115,7 @@
       "value": {
         "source": {
           "source": "directory",
-          "path": "/code/Projects/claude-doctor"
+          "path": "${HARNESS_DOCTOR_ROOT}"
         }
       }
     },

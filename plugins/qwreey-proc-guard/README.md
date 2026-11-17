@@ -14,7 +14,7 @@
 - 늘 드는 것: 없다. 모델을 부르지 않는 가벼운 훅 하나가 Claude 의 셸 명령마다 돈다.
 
 ## 요구 사항
-- 무거운 실행 검사: Linux, `choom`(util-linux), `python3`.
+- 무거운 실행 검사: Linux, `choom`(util-linux), `python3`. Windows 에서는 설정과 상관없이 아무것도 막지 않는다.
 - `pgrep -f` 검사: `python3` 만.
 
 ## 끄기

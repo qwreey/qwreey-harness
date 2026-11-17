@@ -14,7 +14,6 @@
 from __future__ import annotations
 
 import contextlib
-import fcntl
 import json
 import os
 import re
@@ -24,7 +23,7 @@ import time
 from datetime import date, datetime
 from pathlib import Path
 
-from . import config
+from . import config, file_lock
 from .paths import project_key, short_home
 from .redact import redact
 
@@ -61,12 +60,13 @@ def flocked(path: Path, blocking: bool = True):
     path.parent.mkdir(parents=True, exist_ok=True)
     f = open(path, "a+")
     try:
-        try:
-            fcntl.flock(f, fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB))
-        except BlockingIOError:
+        if not file_lock.lock(f, blocking):
             yield False
             return
-        yield True
+        try:
+            yield True
+        finally:
+            file_lock.unlock(f)
     finally:
         f.close()
 

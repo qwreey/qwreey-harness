@@ -8,7 +8,7 @@
 # 근거: decisions D-01 2, stl-luau/.claude/conventions.md:94-95, stl-luau/.claude/archive/question-resolved.md:1764-1768. 후보 S-130, S-131
 # 기대와 어긋나면 rc=1(= stylua 동작이 바뀜 -> luau-style references/quality.md 3 갱신). 사용: bash snippets/style-stylua-pitfalls.sh [stylua] [luau]
 set -u
-MISE=${MISE_DATA_DIR:-/code/.local/share/mise}
+MISE=${MISE_DATA_DIR:-$HOME/.local/share/mise}
 S=${1:-$MISE/installs/stylua/2.5.2/stylua}
 L=${2:-$MISE/installs/luau/0.742/luau}
 d=$(mktemp -d /tmp/luau-kb-sty.XXXXXX)

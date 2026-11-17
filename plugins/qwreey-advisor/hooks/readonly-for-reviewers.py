@@ -21,7 +21,7 @@ except ValueError:
 if agent not in REVIEWERS:
     sys.exit(0)
 guard = os.path.join(os.path.dirname(os.path.abspath(__file__)), "auditor-readonly-guard.py")
-r = subprocess.run([sys.executable, "-I", guard], input=raw, text=True, capture_output=True)
+r = subprocess.run([sys.executable, "-I", "-X", "utf8", guard], input=raw, text=True, capture_output=True)
 sys.stdout.write(r.stdout)
 sys.stderr.write(r.stderr)
 sys.exit(r.returncode)

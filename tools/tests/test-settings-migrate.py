@@ -167,6 +167,28 @@ class T(unittest.TestCase):
         e.run("--dry-run", "--out", out)
         self.assertEqual(e.get(), {}); self.assertEqual(e.recs(), []); self.assertEqual(json.load(open(out)), {"x": 1})
 
+    def test_doctor_root_expanded(self):
+        src = {"source": "directory", "path": "${HARNESS_DOCTOR_ROOT}"}
+        m = mig("0001-a", {"op": "set", "path": ["extraKnownMarketplaces", "m"], "value": {"source": src}},
+                {"op": "set", "path": "cmd", "value": "python3 ${HOME}/x ${OTHER}"})
+        e = Env(self, {}, [m])
+        e.run()
+        root = os.path.dirname(os.path.dirname(os.path.abspath(MOD))).replace(os.sep, "/")
+        self.assertEqual(e.get()["extraKnownMarketplaces"]["m"]["source"]["path"], root)
+        self.assertEqual(e.get()["cmd"], "python3 ${HOME}/x ${OTHER}")  # 모르는 변수는 그대로
+        e2 = Env(self, {}, [m])
+        e2.run("--var", "HARNESS_DOCTOR_ROOT=C:/Users/u/Projects/claude-doctor")
+        self.assertEqual(e2.get()["extraKnownMarketplaces"]["m"]["source"]["path"], "C:/Users/u/Projects/claude-doctor")
+        with self.assertRaises(SystemExit):
+            Env(self, {}, [m]).run("--var", "HOME=/x")
+
+    def test_repo_migrations_carry_no_machine_path(self):
+        d = os.path.join(HERE, "..", "..", "home", "settings-migrations")
+        for f in sorted(os.listdir(d)):
+            with open(os.path.join(d, f), encoding="utf-8") as fh:
+                text = fh.read()
+            self.assertNotIn("/code/", text, f)
+
     def test_backup_made(self):
         e = Env(self, {"k": 1}, [mig("0001-a", {"op": "set", "path": "x", "value": 1})])
         e.run()

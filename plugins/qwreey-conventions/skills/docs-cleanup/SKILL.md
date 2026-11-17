@@ -10,7 +10,7 @@ allowed-tools: Bash(python3 *conventions-scan.py *)
 
 Below is the scan summary of model documents for the paths the user gave (the whole repo when none), capped at 30 seconds. If output is already there, do not run it again.
 
-!`python3 -I "${CLAUDE_SKILL_DIR}/../../scripts/conventions-scan.py" scan --kind doc --summary --top 15 --budget 30 --exit-zero $ARGUMENTS`
+!`python3 -I -X utf8 "${CLAUDE_SKILL_DIR}/../../scripts/conventions-scan.py" scan --kind doc --summary --top 15 --budget 30 --exit-zero $ARGUMENTS`
 
 ## What to do
 SCAN is `python3 -I "${CLAUDE_SKILL_DIR}/../../scripts/conventions-scan.py"`; pass `--kind doc` and the same paths as above.

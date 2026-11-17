@@ -34,7 +34,11 @@ def section_head(entries: list[ex.Entry], trigger: str) -> str:
 def machine_slot(wait_s: float):
     """기계 전체 동시 요약 상한(SESSION_LOG_MAX_PARALLEL). 못 잡으면 기다린다."""
     n = max(1, int(config.num("SESSION_LOG_MAX_PARALLEL")))
-    base = Path(os.environ.get("XDG_RUNTIME_DIR") or "/tmp") / f"session-log-{os.getuid()}"
+    if hasattr(os, "getuid"):
+        base = Path(os.environ.get("XDG_RUNTIME_DIR") or "/tmp") / f"session-log-{os.getuid()}"
+    else:  # Windows: 사용자별 임시 폴더라 uid 가 필요 없다
+        import tempfile
+        base = Path(tempfile.gettempdir()) / "session-log"
     deadline = time.time() + wait_s
     while True:
         for i in range(n):

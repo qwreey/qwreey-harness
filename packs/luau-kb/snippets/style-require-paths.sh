@@ -12,7 +12,7 @@
 #       mrow-rv:1183-1187. 후보 Q-101, S-123, X-02, X-04. Studio 쪽 규칙(접두 필수 등)은 roblox-engine require-in-roblox.md 담당.
 # 기대와 어긋나면 rc=1. 사용: bash snippets/style-require-paths.sh [버전...]   (기본 0.734 0.742)
 set -u
-MISE=${MISE_DATA_DIR:-/code/.local/share/mise}
+MISE=${MISE_DATA_DIR:-$HOME/.local/share/mise}
 vers=("$@"); [ $# -eq 0 ] && vers=(0.734 0.742)
 d=$(mktemp -d /tmp/luau-kb-req.XXXXXX)
 trap 'rm -rf "$d"' EXIT

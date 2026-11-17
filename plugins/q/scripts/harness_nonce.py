@@ -111,7 +111,8 @@ def claim_path(session_id, agent_id=None, source=None, now=None):
     sid_hash = hashlib.sha256(str(session_id).encode()).hexdigest()[:16]
     bucket = int((time.time() if now is None else now) // BUCKET_SEC)
     name = "%s-%s-%s-%d" % (sid_hash, agent_id or "main", source or "subagent", bucket)
-    return os.path.join(os.environ.get("TMPDIR") or "/tmp", CLAIM_DIR, name)
+    tmp = os.environ.get("TMPDIR") or os.environ.get("TEMP") or os.environ.get("TMP") or "/tmp"  # tempfile.gettempdir() 와 같은 순서
+    return os.path.join(tmp, CLAIM_DIR, name)
 
 
 def _prune(directory, now):
