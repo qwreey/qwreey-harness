@@ -22,3 +22,6 @@ usernotes/
 
 # qwreey-desk: 엔진이 mod 를 실을 때 만드는 타입 폴더
 plugins/qwreey-desk/.claude-plugin/types/
+
+# agent worktrees (Claude Code isolation)
+.claude/worktrees/
