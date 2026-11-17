@@ -2,7 +2,7 @@
 format: 1
 title: 플러그인 독립 패키지화 (Q28 a, Q29 a)
 description: 플러그인은 설치본만으로 동작, 설정은 각자 userConfig(settings.json pluginConfigs 층), HARNESS_WORKSPACE·DOCTOR_ROOT 제거, 저장소 찾기는 lib/known_repos.py 자동 수집
-status: active
+status: landed in .claude/base/harness-principles.md
 ---
 
 # 플러그인 독립 패키지화
