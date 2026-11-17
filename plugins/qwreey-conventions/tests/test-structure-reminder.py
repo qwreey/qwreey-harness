@@ -18,8 +18,11 @@ open(os.path.join(T, "salt"), "w").write("00" * 32)
 os.environ["QWREEY_HARNESS_SALT_FILE"] = os.path.join(T, "salt")
 REPO = os.path.join(T, "repo")
 STATE = os.path.join(T, "state")
+# Claude Code 설정 폴더 흉내: 실제 ~/.claude 의 harness.env 나 설치된 luau-kb 가 계획기 안내를 바꾸지 않게
+CFG = os.path.join(T, "cfg")
 os.makedirs(os.path.join(REPO, ".git"))
 os.makedirs(STATE)
+os.makedirs(os.path.join(CFG, "plugins"))
 
 
 LAST = {}
@@ -38,8 +41,9 @@ def run(tool, path, sid="s1", ti_extra=None, resp=None, env_extra=None, raw=None
     ti.update(ti_extra or {})
     data = {"session_id": sid, "cwd": REPO, "hook_event_name": "PostToolUse", "tool_name": tool,
             "tool_input": ti, "tool_response": resp or {}}
-    env = dict(os.environ, TMPDIR=STATE, CLAUDE_PROJECT_DIR=REPO)
-    env.pop("STRUCTURE_REMINDER", None)
+    env = dict(os.environ, TMPDIR=STATE, CLAUDE_PROJECT_DIR=REPO, CLAUDE_CONFIG_DIR=CFG)
+    for k in ("STRUCTURE_REMINDER", "HARNESS_ENV", "HARNESS_LUAU_KB", "HARNESS_TOOLKITS"):
+        env.pop(k, None)
     env.update(env_extra or {})
     p = subprocess.run([sys.executable, "-I", HOOK], input=raw if raw is not None else json.dumps(data),
                        capture_output=True, text=True, env=env, timeout=10)
@@ -182,8 +186,53 @@ case("structure.json exempt → 예외 사유", run("Edit", d1, sid="e6", ti_ext
 d2 = mk("src/blank/Big.luau", 1800)
 case("structure.json 빈 reason → 무효", run("Edit", d2, sid="e7", ti_extra=edit(1)), "invalid")
 os.remove(os.path.join(REPO, ".claude", "structure.json"))
+
+
+def fake_pack(where):
+    """where 아래에 luau-kb 팩 흉내(계획기 파일 하나)를 만들고 계획기 경로를 돌려준다."""
+    planner = os.path.join(where, "skills", "luau-style", "scripts", "split-plan.py")
+    os.makedirs(os.path.dirname(planner), exist_ok=True)
+    open(planner, "w").write("# planner\n")
+    return planner
+
+
+def install(plugins, markets=None):
+    """설정 폴더의 installed_plugins.json, known_marketplaces.json 을 쓴다(None 이면 지운다)."""
+    for name, data in (("installed_plugins.json", plugins), ("known_marketplaces.json", markets)):
+        f = os.path.join(CFG, "plugins", name)
+        if data is None:
+            if os.path.exists(f):
+                os.remove(f)
+        else:
+            json.dump(data, open(f, "w"))
+
+
+# 폴더 마켓: installPath 가 옛 캐시여도 마켓 정의가 가리키는 팩을 쓴다
+mkt = os.path.join(T, "mkt")
+mkt_planner = fake_pack(os.path.join(mkt, "packs", "luau-kb"))
+os.makedirs(os.path.join(mkt, ".claude-plugin"))
+json.dump({"name": "m", "plugins": [{"name": "luau-kb", "source": "./packs/luau-kb"}]}, open(os.path.join(mkt, ".claude-plugin", "marketplace.json"), "w"))
+install({"version": 2, "plugins": {"luau-kb@m": [{"installPath": os.path.join(T, "cache", "stale")}]}},
+        {"m": {"source": {"source": "directory", "path": mkt}, "installLocation": mkt}})
 hp = mk("src/plan/Huge.luau", 1700)
-case("강제 기준 .luau → 분리 계획기 안내", run("Edit", hp, sid="p1", ti_extra=edit(1)), "split-plan.py")
+case("강제 기준 .luau, 폴더 마켓의 luau-kb → 분리 계획기 안내", run("Edit", hp, sid="p1", ti_extra=edit(1)), f"python3 -I {mkt_planner} ")
+# GitHub 마켓 설치본: 마켓 정의가 없으면 installPath(cache 사본)
+cache_planner = fake_pack(os.path.join(T, "cache", "luau-kb", "0.7.2"))
+install({"version": 2, "plugins": {"luau-kb@gh": [{"installPath": os.path.join(T, "cache", "luau-kb", "0.7.2")}]}}, None)
+case("luau-kb 설치본(cache) → 그 계획기", run("Edit", mk("src/plan/Huge2.luau", 1700), sid="p1b", ti_extra=edit(1)), f"python3 -I {cache_planner} ")
+# HARNESS_LUAU_KB(팩 작업 사본)가 설치본보다 앞선다
+kb_planner = fake_pack(os.path.join(T, "kb"))
+case("HARNESS_LUAU_KB → 설치본보다 앞선다", run("Edit", mk("src/plan/Huge3.luau", 1700), sid="p1c", ti_extra=edit(1),
+     env_extra={"HARNESS_LUAU_KB": os.path.join(T, "kb")}), f"python3 -I {kb_planner} ")
+open(os.path.join(CFG, "harness.env"), "w").write("HARNESS_LUAU_KB=%s\n" % os.path.join(T, "kb"))
+case("사용자 harness.env 의 HARNESS_LUAU_KB → 그 계획기", run("Edit", mk("src/plan/Huge4.luau", 1700), sid="p1d", ti_extra=edit(1)), f"python3 -I {kb_planner} ")
+os.remove(os.path.join(CFG, "harness.env"))
+os.makedirs(os.path.join(REPO, ".claude"), exist_ok=True)
+open(os.path.join(REPO, ".claude", "harness.env"), "w").write("HARNESS_LUAU_KB=%s\n" % os.path.join(T, "kb"))
+case("저장소 harness.env 의 HARNESS_LUAU_KB 는 무시(사용자 전용)", run("Edit", mk("src/plan/Huge5.luau", 1700), sid="p1e", ti_extra=edit(1)),
+     f"python3 -I {cache_planner} ")
+os.remove(os.path.join(REPO, ".claude", "harness.env"))
+install(None, None)
 hts = os.path.join(REPO, "src/plan/huge.ts")
 open(hts, "w").write("const x = 1;\n" * 1700)
 case("강제 기준 .ts → 계획기 안내 없음", run("Edit", hts, sid="p2", ti_extra=edit(1)), "hard limit", not_sub="split-plan.py")
@@ -248,8 +297,10 @@ case("HARNESS_TOOLKITS=luau → luau 는 봄", run("Edit", mk("src/F2.luau", 900
      env_extra={"HARNESS_TOOLKITS": "luau"}), "warn limit")
 # 계획기를 못 찾으면 안내 생략
 nohome = os.path.join(T, "nohome"); os.makedirs(nohome)
-case("계획기 없음 → 안내 생략", run("Edit", mk("src/NoPlan.luau", 1700), sid="n1", ti_extra=edit(1),
-     env_extra={"HOME": nohome, "HARNESS_WORKSPACE": nohome, "HARNESS_LUAU_KB": nohome}), "hard limit", not_sub="split-plan.py")
+case("luau-kb 미설치, HARNESS_LUAU_KB 없음 → 안내 생략", run("Edit", mk("src/NoPlan.luau", 1700), sid="n1", ti_extra=edit(1),
+     env_extra={"HOME": nohome}), "hard limit", not_sub="split-plan.py")
+case("HARNESS_LUAU_KB 에 계획기가 없음 → 안내 생략", run("Edit", mk("src/NoPlan2.luau", 1700), sid="n2", ti_extra=edit(1),
+     env_extra={"HOME": nohome, "HARNESS_LUAU_KB": nohome}), "hard limit", not_sub="split-plan.py")
 
 import time
 _t = []

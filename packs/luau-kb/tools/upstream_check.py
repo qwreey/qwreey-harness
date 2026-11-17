@@ -7,6 +7,10 @@
   python3 -I tools/upstream_check.py --offline           # 네트워크 없이 핀과 설치본만
   python3 -I tools/upstream_check.py --bug-scan 0.746    # 스니펫을 기준 버전과 새 버전으로 돌려 셋으로 분류
   python3 -I tools/upstream_check.py --bug-scan 0.746 --base 0.742
+  python3 -I tools/upstream_check.py --projects-root ~/Documents/repos   # 핀을 읽을 저장소들의 부모 폴더
+
+핀 표는 --projects-root(없으면 환경 변수 PROJECTS_ROOT, 그것도 없으면 ~/Projects) 바로 아래 저장소의 mise.toml 을 읽는다.
+프로젝트를 두는 곳은 사람과 OS 마다 달라 기본값은 짐작일 뿐이다. 그 폴더가 없으면 핀 없이 표를 내고 stderr 에 한 줄 알린다.
 
 --bug-scan 분류:
   뒤집힘   새 버전에서 'bug-present 인데 진단 발생' (기준 버전엔 없던 것) -> 고쳐짐 후보
@@ -31,6 +35,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 KB = os.path.dirname(HERE)
 MISE = os.environ.get("MISE_DATA_DIR") or os.path.expanduser("~/.local/share/mise")
 UA = {"User-Agent": "luau-kb-upstream-check"}
+DEFAULT_PROJECTS_ROOT = "~/Projects"
 
 # 표의 도구 -> (GitHub 저장소, mise.toml 에 나올 수 있는 키들, mise installs 디렉터리 이름들)
 TOOLS = {
@@ -259,13 +264,17 @@ def bug_scan(args):
 
 def main():
     ap = argparse.ArgumentParser(description="mise 핀 vs 업스트림 최신, 그리고 스니펫 bug-scan")
-    ap.add_argument("--projects-root", default=os.environ.get("PROJECTS_ROOT") or os.environ.get("HARNESS_WORKSPACE") or os.path.expanduser("~/Projects"))
+    ap.add_argument("--projects-root", default=os.environ.get("PROJECTS_ROOT") or DEFAULT_PROJECTS_ROOT,
+                    help="핀을 읽을 저장소들의 부모 폴더(기본: $PROJECTS_ROOT, 없으면 %(default)s)")
     ap.add_argument("--offline", action="store_true")
     ap.add_argument("--notes", action="store_true", help="가장 낡은 luau 핀 이후 릴리스 목록")
     ap.add_argument("--bug-scan", metavar="VER")
     ap.add_argument("--base", metavar="VER", help="bug-scan 기준 버전(기본: 설치된 것 중 VER 바로 아래)")
     ap.add_argument("files", nargs="*", help="bug-scan 대상(기본 snippets/*.luau)")
     args = ap.parse_args()
+    args.projects_root = os.path.expanduser(args.projects_root)
+    if not args.bug_scan and not os.path.isdir(args.projects_root):
+        print(f"[경고] 저장소 폴더 {args.projects_root} 가 없어 핀을 읽지 않았다. --projects-root <저장소들의 부모 폴더> 로 준다.", file=sys.stderr)
     if args.bug_scan:
         bug_scan(args)
     else:
