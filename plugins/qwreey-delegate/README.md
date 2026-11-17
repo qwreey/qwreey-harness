@@ -19,6 +19,13 @@
 - uid 표 `registry.tsv` 는 고쳐 쓰므로 `HARNESS_DELEGATE_REGISTRY`(`~/.claude/harness.env`)가 이 클론의 `skills/delegate/registry.tsv` 를 가리켜야 한다.
 - 바꿀 만한 설정(`~/.claude/harness.env`, 저장소 파일로는 바꾸지 못함): 동시 실행 수 `HARNESS_DELEGATE_MAX_CONCURRENT`(1), 결과 보존 일수 `HARNESS_DELEGATE_RUNS_DAYS`(14), 상태 폴더 `HARNESS_DELEGATE_STATE`. 전체 목록은 [docs/how-it-works.md](docs/how-it-works.md).
 
+## Windows·비개발자 동료
+- 이 delegate 는 Linux root 가 필요해 Windows 동료에게는 맞지 않는다. 현실적인 선택은 OpenAI 공식 플러그인 codex-plugin-cc(Apache-2.0, https://github.com/openai/codex-plugin-cc)다. 설치는 저장소 README 의 줄을 따른다(`claude plugin marketplace add openai/codex-plugin-cc`, `claude plugin install codex@openai-codex`, 그다음 `/codex:setup`).
+- Stop-gate(리뷰 게이트)는 켜지 않는다. 턴마다 Codex 를 불러 비용이 계속 나간다.
+- `/codex:rescue` 는 기본으로 저장소에 직접 쓴다. 쓰면 안 되는 일이면 읽기 전용으로 시키거나 `/codex:review` 를 쓴다.
+- 결과는 검증 없이 원문 그대로 나온다. Claude 에게 "이 결과 확인해줘" 라고 따로 시켜야 한다.
+- 둘은 함께 설치할 수 있다. 겹치는 점: 같은 Codex 사용 한도를 나눠 쓰고, "코덱스한테 물어봐" 에 양쪽이 다 후보가 된다. 격리와 검증이 필요하면 delegate, 읽기 전용 리뷰는 공식 플러그인으로 나누면 된다.
+
 ## 끄기
 - `claude plugin disable qwreey-delegate@claude-doctor-market` (제거는 `uninstall`). 훅이 없어 끄면 바로 멈춘다. 상태 폴더에 남은 결과는 지우지 않으니 필요 없으면 손으로 지운다.
 
