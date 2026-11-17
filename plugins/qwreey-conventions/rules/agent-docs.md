@@ -8,4 +8,5 @@ paths: ["**/CLAUDE.md", "**/SKILL.md", "**/agents/*.md", "**/.claude/rules/*.md"
 - References (`skills/**/references/*.md`) may keep dates, ids and old-pattern notes; the always-loaded entry documents stay lean.
 - State a principle once and let the model generalize; do not list cases it would infer.
 - Why it is built this way, for maintainers, goes in the skill's `references/rationale.md` (linked in one line) or a `docs/` folder, not in the entry document.
+- Fix only lines you add or touch; old problems in a file are reported to the user at turn end, not cleaned up unprompted.
 - A repo's own rules win.
