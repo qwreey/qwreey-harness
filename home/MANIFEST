@@ -6,6 +6,6 @@ lib/harness_env.py
 statusline/harness-status.py
 
 # 심볼릭 링크: link <~/.claude 기준 경로> <대상>
-# 대상에는 ${HARNESS_WORKSPACE}, ${HARNESS_DOCTOR_ROOT} 같은 harness.env 변수를 쓴다(home-sync 가 푼다).
-# 기본값: HARNESS_DOCTOR_ROOT = 이 클론, HARNESS_WORKSPACE = 그 부모. 대상이 없으면 status 에 보이고 apply 는 건너뛴다.
+# 대상에는 ${HARNESS_DOCTOR_ROOT}(늘 이 클론, home-sync 가 자기 위치로 정한다)나 정본 harness.env 에 적은 변수를 쓴다.
+# 정의 안 된 변수나 없는 대상은 status 에 보이고 apply 는 건너뛴다. 다른 저장소의 위치는 짐작하지 않는다.
 

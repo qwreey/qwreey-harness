@@ -52,6 +52,8 @@ DEFAULTS = {
     "HARNESS_TOOLKITS": "",
     # 위임(agy, codex) uid 표 위치(위임 드라이버, /q:doctor 의 uid 충돌 검사). 비면 저장소 안의 사본.
     "HARNESS_DELEGATE_REGISTRY": "",
+    # coderag 실행 파일(/q:doctor 팩 검사, qwreey-sessions:recall). 이름이면 PATH 에서 찾고, 절대 경로도 된다.
+    "HARNESS_CODERAG": "coderag",
 }
 
 _KEY = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$")

@@ -18,9 +18,15 @@
 - `python3`. Linux·macOS·Windows(Windows 는 claude-doctor README 의 Windows 절).
 - 구독 한도 %로 예산을 걸려면 claude-doctor 의 statusline 이 한도 값을 기록해야 한다. 없으면 달러 기준으로 바뀐다.
 
-## 끄기
-- 하나씩: `HARNESS_SUBAGENT_SLOTS=off`(규모 알림과 away), `HARNESS_Q_STALE=off`(방치 작업), `HARNESS_Q_DRIFT=off`(설치 어긋남), `HARNESS_Q_AMBIENT=off`(규약). 모두 환경 변수다.
-- 전부: `claude plugin disable q@claude-doctor-market` (제거는 `uninstall`).
+## 설정
+`/plugin configure q@claude-doctor-market` 또는 `/config` 에서 고른다. 모두 기본 켜짐이다.
+- 서브에이전트 고지와 자리 비움 슬롯(`harness_subagent_slots`): 끄면 규모 알림과 `/q:away` 제한이 모두 멈춘다.
+- 설치 어긋남 알림(`harness_q_drift`)
+- 방치된 백그라운드 작업 알림(`harness_q_stale`)
+
+고급: 문턱과 예산 기본값, 규약 끄기(`HARNESS_Q_AMBIENT=off`)는 `~/.claude/harness.env` 나 저장소 `.claude/harness.env` 에 둔다([docs/how-it-works.md](docs/how-it-works.md)).
+
+전부 끄기: `claude plugin disable q@claude-doctor-market` (제거는 `uninstall`).
 
 ## 설치
 ```bash

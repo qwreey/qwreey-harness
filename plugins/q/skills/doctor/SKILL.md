@@ -1,19 +1,20 @@
 ---
 name: doctor
 description: 하네스 진단 — 저장소의 CLAUDE.md·rules·스킬·설정·훅을 점검하고, 승인한 항목만 고친다
-argument-hint: "[repo path | name | intake/<name> | all | --user]"
+argument-hint: "[repo path | intake/<name> | --user]"
 disable-model-invocation: true
 ---
 
 # /q:doctor (harness-doctor)
 
-Diagnose first, like the built-in Claude Code `/doctor`. The target is the agent documents and settings of workspace repos and intake copies.
+Diagnose first, like the built-in Claude Code `/doctor`. The target is the agent documents and settings of a repo (or an intake copy).
 Deterministic checks are done by `scripts/scan.py` (read-only). Linguistic judgment is yours, following this file and `references/`.
 Reply and write new documents in Korean.
 
 - The **core** is language-independent. A **toolkit** (`scripts/toolkits/<name>.py` + `references/toolkits/<name>.md`) turns on only when the repo has its detection marker.
-- Environment-specific values (workspace root, claude-doctor location, heavy-run wrapper, delegation uid table, push policy) live in `~/.claude/harness.env`.
-  Read the resolved values with `python3 -I ${CLAUDE_SKILL_DIR}/scripts/scan.py --env`. Below, `<작업공간>` and `<doctor>` are its `WORKSPACE` and `DOCTOR_ROOT`.
+- Environment-specific values (heavy-run wrapper, delegation uid table, push policy) come from the harness.env layers.
+  Read the resolved values with `python3 -I ${CLAUDE_SKILL_DIR}/scripts/scan.py --env`. Below, `<doctor>` is its `DOCTOR_ROOT`: the harness repo, set only when this session's project is that repo or `HARNESS_DOCTOR_ROOT` is set; the scan skips canonical-source checks without it.
+  When `DOCTOR_ROOT` is empty: put handoffs and HUMAN_TODO items in the report as text for the user instead of files, and for D-xx and canonical-source questions ask the user.
 
 ## Principles (no exceptions)
 
@@ -27,10 +28,9 @@ Reply and write new documents in Korean.
 ## Procedure
 
 1. **Pick the target** (`$ARGUMENTS`)
-   - One path or name (`table-sim` -> `<작업공간>/table-sim`)
-   - `intake/<name>`: an external project copy (`<doctor>/intake/README.md`). Skip git-based checks.
-   - `all`: every repo under `<작업공간>` that has CLAUDE.md or `.claude/`. Exclude directories ending in `-agy`, `-scratch`, `-codex`, `-proto`, `-doctor`.
-   - `--user`: user level (canonical `home/.claude` and the real `~/.claude`)
+   - One path (relative to the current directory). For another repo, ask the user for its path if it is not given.
+   - `intake/<name>`: an external project copy (`<doctor>/intake/README.md`, only with `<doctor>`). Skip git-based checks.
+   - `--user`: user level (the real `~/.claude`, and canonical `<doctor>/home/.claude` when `<doctor>` is set)
    - Empty: the current working directory.
 2. **Check sessions**: `python3 -I ${CLAUDE_SKILL_DIR}/scripts/scan.py --sessions <path>`
    - If `SESSION-LIVE` (error) appears, classify every fix of this diagnosis as "인계" (handoff).

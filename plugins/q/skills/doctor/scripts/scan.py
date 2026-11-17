@@ -31,9 +31,6 @@ from pathlib import Path
 VERSION = "2"
 HERE = Path(__file__).resolve()
 USER_HOME = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
-# 이 파일은 <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py 다. 플러그인 캐시(~/.claude/plugins/...)로 설치되면
-# claude-doctor 위치를 모르므로 HARNESS_DOCTOR_ROOT 환경 변수나 harness.env 로 알려야 정본 관련 검사가 켜진다.
-_PATH_ROOT = HERE.parents[5] if (HERE.parents[4].name == "plugins" and (HERE.parents[5] / "home" / "MANIFEST").is_file()) else None
 
 
 # /q:doctor 만 읽는 harness.env 키 가운데 저장소 층이 바꾸지 못하는 것.
@@ -44,24 +41,43 @@ ENV_USER_ONLY = frozenset({"HARNESS_AGENT_PUSH"})
 
 def _load_env():
     """harness.env 층(옆의 harness_env.py 사본의 load_layers)과 그 모듈. 설치된 ~/.claude/lib 판은 옛 판일 수 있어 쓰지 않는다.
-    사용자 층은 ~/.claude/harness.env, 없으면 클론의 정본 home/.claude/harness.env. 저장소 층은 $CLAUDE_PROJECT_DIR, 없으면 cwd
+    사용자 층은 ~/.claude/harness.env(없으면 기본값만). 저장소 층은 $CLAUDE_PROJECT_DIR, 없으면 cwd
     (검사 대상 저장소 인자가 아니다: ENV 는 인자를 읽기 전에 정한다)."""
     try:
         sys.path.insert(0, str(HERE.parent))
         import harness_env as mod
-        cands = [USER_HOME / "harness.env"] + ([_PATH_ROOT / "home" / ".claude" / "harness.env"] if _PATH_ROOT else [])
-        return mod.load_layers(mod.project_dir(os.getcwd()), candidates=cands, user_only=ENV_USER_ONLY), mod
+        return mod.load_layers(mod.project_dir(os.getcwd()), user_only=ENV_USER_ONLY), mod
     except Exception:
         return {}, None
 
 
 ENV, ENVLIB = _load_env()
-# 우선순위: 환경 변수 > 이 파일의 위치 > harness.env. 셋 다 없으면 정본 관련 검사(MANIFEST, 훅 사본)를 건너뛴다.
-_root = os.environ.get("HARNESS_DOCTOR_ROOT") or (str(_PATH_ROOT) if _PATH_ROOT else ENV.get("HARNESS_DOCTOR_ROOT"))
-DOCTOR_ROOT = Path(_root) if _root else None
+# 정본 검사(MANIFEST 링크, 정본 home/.claude 대조, 정본 훅 사본, uid 표의 저장소 사본)는 하네스 저장소가 있어야 돈다.
+# 위치는 짐작하지 않는다: 설치본은 저장소 밖 사본이라 스크립트 위치로 알 수 없고, harness.env 에 적은 경로는 기기마다 다르다.
+# 그래서 환경 변수 HARNESS_DOCTOR_ROOT(저자가 다른 저장소에서 돌릴 때)나, 지금 프로젝트가 하네스 저장소일 때 그 저장소만 쓴다.
+HARNESS_MARKERS = (("home", "MANIFEST"), (".claude-plugin", "marketplace.json"))
+
+
+def is_harness_repo(d):
+    return all(Path(d, *m).is_file() for m in HARNESS_MARKERS)
+
+
+def find_doctor_root():
+    """하네스 저장소 루트 또는 None. 프로젝트($CLAUDE_PROJECT_DIR, 없으면 cwd)에서 위로 그 git 작업 트리 루트까지만 본다."""
+    if os.environ.get("HARNESS_DOCTOR_ROOT"):
+        return Path(os.environ["HARNESS_DOCTOR_ROOT"])
+    start = Path(os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()).resolve()
+    for d in (start, *start.parents):
+        if is_harness_repo(d):
+            return d
+        if (d / ".git").exists():
+            break
+    return None
+
+
+DOCTOR_ROOT = find_doctor_root()
 CANON_HOME = DOCTOR_ROOT / "home" / ".claude" if DOCTOR_ROOT else USER_HOME
-WORKSPACE = Path(ENV.get("HARNESS_WORKSPACE") or (DOCTOR_ROOT.parent if DOCTOR_ROOT else Path.cwd()))
-# 위임 작업공간, 초안 사본 접미(<repo>-<접미>). 형제 비교와 `all` 에서 뺀다.
+# 위임 작업공간, 초안 사본 접미(<repo>-<접미>). 형제 비교에서 뺀다.
 COPY_SUFFIXES = ("-agy", "-scratch", "-codex", "-proto", "-doctor")
 DESC_LIMIT = 1536
 SKILL_MAX_LINES = 500
@@ -546,13 +562,14 @@ def main():
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--today", help="YYYY-MM-DD (기본: 오늘)")
     ap.add_argument("--projects", help="형제 저장소 루트 (기본: 저장소의 부모)")
-    ap.add_argument("--kb", help="툴킷 공유 지식 저장소 경로 (기본: <projects>/<툴킷>-kb, 없으면 <doctor>/packs/<툴킷>-kb, 그것도 없으면 <작업공간>/<툴킷>-kb)")
+    ap.add_argument("--kb", help="툴킷 공유 지식 저장소 경로 (기본: <projects>/<툴킷>-kb, 없으면 <doctor>/packs/<툴킷>-kb, 그것도 없으면 설치된 <툴킷>-kb 플러그인)")
     ap.add_argument("--toolkits", help="켤 툴킷을 감지와 무관하게 지정 (예: luau,web / none)")
     ap.add_argument("--env", action="store_true", help="harness.env 값과 툴킷 목록만 보인다")
     a = ap.parse_args()
     if a.env:
         print(f"# harness.env 층(낮은 층부터): {ENV.get('_files') or '(없음 - 기본값)'}")
-        print(f"DOCTOR_ROOT={DOCTOR_ROOT or '(모름)'}\nWORKSPACE={WORKSPACE}\nCANON_HOME={CANON_HOME}\nUSER_HOME={USER_HOME}")
+        print(f"DOCTOR_ROOT={DOCTOR_ROOT or '(없음: 하네스 저장소 밖이라 정본 검사를 건너뛴다)'}\n"
+              f"PROJECT={os.environ.get('CLAUDE_PROJECT_DIR') or os.getcwd()}\nCANON_HOME={CANON_HOME}\nUSER_HOME={USER_HOME}")
         for k, v in sorted(ENV.items()):
             if not k.startswith("_"):
                 print(f"{k}={v}")
@@ -581,8 +598,9 @@ def main():
             check_memory(None, user=True)
         manifest = DOCTOR_ROOT / "home" / "MANIFEST" if DOCTOR_ROOT else None
         if manifest and manifest.is_file():
-            scope = {"HARNESS_DOCTOR_ROOT": str(DOCTOR_ROOT), "HARNESS_WORKSPACE": str(WORKSPACE)}
-            scope.update({k: v for k, v in ENV.items() if v and not k.startswith("_")})
+            # tools/home-sync.sh 와 같다: HARNESS_DOCTOR_ROOT 는 이 저장소, 그 밖의 변수는 harness.env 에 적은 것만 풀린다.
+            scope = {k: v for k, v in ENV.items() if v and not k.startswith("_")}
+            scope["HARNESS_DOCTOR_ROOT"] = str(DOCTOR_ROOT)
             for line in (read(manifest) or "").split("\n"):
                 parts = line.split()
                 if len(parts) == 3 and parts[0] == "link":
@@ -600,7 +618,8 @@ def main():
                     sc = script_of(cmd)
                     if sc and not os.path.isfile(script_path(sc)):
                         add(7, "오류", "SET-HOOKPATH", p, f"{ev} 훅 스크립트가 없다: {sc}")
-            add(7, "정보", "SET-SYNC", "tools/home-sync.sh", "정본과 실제의 차이는 `tools/home-sync.sh status` 로 본다.")
+            if DOCTOR_ROOT:
+                add(7, "정보", "SET-SYNC", "tools/home-sync.sh", "정본과 실제의 차이는 `tools/home-sync.sh status` 로 본다.")
             if os.name == "nt":
                 check_windows()
     else:

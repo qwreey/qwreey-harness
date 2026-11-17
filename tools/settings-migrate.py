@@ -16,7 +16,8 @@
   hook-remove  event, command   그 command 의 훅 제거(빈 그룹·이벤트도 정리)
 
 기계 값: op 안 문자열의 ${HARNESS_DOCTOR_ROOT} 는 적용할 때 이 클론의 절대 경로(이 스크립트의 부모의 부모, Windows 는 / 구분)로 푼다.
-  --var HARNESS_DOCTOR_ROOT=<경로> 로 바꿀 수 있다. 그 밖의 ${...}, $HOME 은 그대로 둔다(훅 command 는 셸이 푼다).
+  --var HARNESS_DOCTOR_ROOT=<경로> 로만 바꿀 수 있다(같은 이름의 환경 변수나 harness.env 값은 읽지 않는다: 적용하는 클론이 정본이다).
+  그 밖의 ${...}, $HOME 은 그대로 둔다(훅 command 는 셸이 푼다).
 
 태그(소유 판별, 보고용): 훅 command 가 $HOME/.claude/hooks/ 나 $CLAUDE_HOME/hooks/ 아래면 관리 훅,
   플러그인 이름이 @<관리 마켓> 으로 끝나면 관리 플러그인(HOME_SYNC_MARKETS, 기본 claude-doctor-market).

@@ -18,7 +18,8 @@
 #   상태 파일이 없으면(첫 실행) git 이력(git log -p home/MANIFEST)에서 옛 항목을 모아 실제에 남아 있는 것만 후보로 쓴다.
 # 관리 대상 목록은 home/MANIFEST 에 있다. 링크 대상의 ${VAR} 는 harness.env 로 푼다.
 #   harness.env 위치: $HARNESS_ENV, 없으면 정본 home/.claude/harness.env. 같은 이름의 환경 변수가 이긴다.
-#   기본값: HARNESS_DOCTOR_ROOT = 이 클론, HARNESS_WORKSPACE = 그 부모.
+#   HARNESS_DOCTOR_ROOT 는 늘 이 스크립트가 있는 클론이다(환경 변수나 harness.env 로 바꾸지 않는다): 정본을 다른 클론의 것으로
+#   착각해 ~/.claude 에 덮어쓰지 않게. 작업공간 위치는 짐작하지 않으므로 다른 저장소를 가리키는 링크는 harness.env 에 변수를 적는다.
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 SRC="$ROOT/home/.claude"
@@ -39,7 +40,8 @@ json_sorted() {
 mapfile -t LINKS < <(grep '^link ' "$ROOT/home/MANIFEST" | cut -d' ' -f2-)
 
 # --- harness.env (lib/harness_env.py 와 같은 규칙: KEY=VALUE, source 하지 않음, 환경 변수 우선)
-declare -A HENV=([HARNESS_DOCTOR_ROOT]="$ROOT" [HARNESS_WORKSPACE]="$(dirname "$ROOT")")
+declare -A HENV=([HARNESS_DOCTOR_ROOT]="$ROOT")
+FIXED=HARNESS_DOCTOR_ROOT  # 자기 위치로 정한 값. 환경 변수와 harness.env 줄이 바꾸지 못한다
 ENVFILE=${HARNESS_ENV:-$SRC/harness.env}
 MISSING=""
 henv_get() { # $1 이름 -> 값(harness.env 키, 없으면 환경 변수, 둘 다 없으면 빈 값)
@@ -57,11 +59,11 @@ henv_expand() { # $1 문자열 -> EXPANDED. ${NAME}, $NAME, 맨 앞 ~
   done
   EXPANDED="$out$s"
 }
-for k in "${!HENV[@]}"; do [[ -n "${!k+x}" ]] && HENV[$k]=${!k}; done
 if [[ -f "$ENVFILE" ]]; then
   while IFS= read -r line || [[ -n "$line" ]]; do
     [[ $line =~ ^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=(.*)$ ]] || continue
     k=${BASH_REMATCH[2]}; v=${BASH_REMATCH[3]}
+    [[ $k == "$FIXED" ]] && continue
     if [[ -n "${!k+x}" ]]; then HENV[$k]=${!k}; continue; fi
     v="${v#"${v%%[![:space:]]*}"}"
     if [[ $v == \"* || $v == \'* ]]; then q=${v:0:1}; v=${v:1}; v=${v%%"$q"*}

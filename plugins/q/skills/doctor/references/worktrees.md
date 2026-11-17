@@ -24,7 +24,7 @@
 - table-sim-agy/trial-query: scan을 돌리던 그 순간 agy가 그 안에서 실행 중이었다(`WT-ACTIVE`, antigravity 프로세스).
   - 그 worktree는 다른 uid 소유라 git이 "dubious ownership"으로 거부한다. scan은 `-c safe.directory=*`로 읽기만 한다.
 
-**고치는 법**: 지우지 않는다. `WT-CANDIDATE`와 `WT-ORPHAN`은 `<doctor>/HUMAN_TODO.md` "삭제와 정리" 절에 올린다(`<doctor>` = `scan.py --env`의 `DOCTOR_ROOT`).
+**고치는 법**: 지우지 않는다. `WT-CANDIDATE`와 `WT-ORPHAN`은 `<doctor>/HUMAN_TODO.md` "삭제와 정리" 절에 올린다(`<doctor>` = `scan.py --env`의 `DOCTOR_ROOT`, 비면 보고에 적는다).
 - 항목에 적을 것: 경로, 브랜치, 미커밋 수, 메인에 없는 커밋 수, 크기(`du -sh`, 사용자가 원할 때만 잰다), 확인 시각
 - 명령: `git -C <메인> worktree remove <경로>`. 브랜치는 남는다고 명시한다.
 - 미병합 커밋이 있으면 브랜치 보존과 백업 위치를 제안한다. 백업은 작업공간 밖 사용자 백업 디렉터리에 둔다(이 환경의 선례: `/code/backups/claude-doctor-<날짜>/`).

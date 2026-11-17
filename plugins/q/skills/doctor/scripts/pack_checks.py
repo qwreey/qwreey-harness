@@ -53,13 +53,15 @@ def _known_markets(user_home):
 
 
 def _coderag_ok(coderag_bin):
-    """harness.env 의 HARNESS_CODERAG, 없으면 PATH 의 coderag 가 실행 가능한가."""
-    cand = coderag_bin or shutil.which("coderag")
+    """harness.env 의 HARNESS_CODERAG(기본 coderag) 가 실행 가능한가. 경로가 아닌 이름은 PATH 에서 찾는다."""
+    cand = coderag_bin or "coderag"
+    if not os.path.dirname(cand):
+        cand = shutil.which(cand)
     return bool(cand) and os.access(cand, os.X_OK)
 
 
 def run(add, repo, active, user_home, coderag_bin=None, coderag_home=None):
-    """active 는 {툴킷 이름: 표식}. add 는 scan.add 와 같은 시그니처. coderag_bin 은 harness.env HARNESS_CODERAG 값.
+    """active 는 {툴킷 이름: 표식}. add 는 scan.add 와 같은 시그니처. coderag_bin 은 harness.env HARNESS_CODERAG 값(기본 coderag).
     coderag_home 이 없으면 $CODERAG_HOME, 그것도 없으면 ~/.coderag."""
     repo, user_home = Path(repo), Path(user_home)
     coderag_home = Path(coderag_home or os.environ.get("CODERAG_HOME") or Path.home() / ".coderag")
@@ -113,10 +115,10 @@ def run(add, repo, active, user_home, coderag_bin=None, coderag_home=None):
     coderag_on = proj["coderag"] if "coderag" in proj else user.get("coderag", False)
     if in_use and not _coderag_ok(coderag_bin):
         add(7, "경고", "PACK-NO-CODERAG", repo / "coderag.toml",
-            "도메인 팩이 켜져 있는데 coderag 바이너리가 없거나 실행할 수 없다(harness.env 의 HARNESS_CODERAG, 없으면 PATH). "
+            "도메인 팩이 켜져 있는데 coderag 바이너리가 없거나 실행할 수 없다(PATH 의 coderag, 또는 harness.env 의 HARNESS_CODERAG). "
             "팩 rule 이 주입되지 않는다. coderag 를 빌드하고 coderag 플러그인을 설치한다.", REF)
     elif coderag_on and not _coderag_ok(coderag_bin):
         # 팩과 무관: 기록 규약 rule(coderag:agent-records)도 coderag 훅이 싣는다. 래퍼는 바이너리가 없으면 훅에서 조용히 0 으로 끝난다.
         add(7, "경고", "SET-CODERAG-BINARY", user_home / "settings.json",
-            "coderag 플러그인이 켜져 있는데 coderag 바이너리가 없거나 실행할 수 없다(harness.env 의 HARNESS_CODERAG, 없으면 PATH). "
+            "coderag 플러그인이 켜져 있는데 coderag 바이너리가 없거나 실행할 수 없다(PATH 의 coderag, 또는 harness.env 의 HARNESS_CODERAG). "
             "훅이 조용히 끝나 기록 규약 rule 이 실리지 않는다. coderag 를 빌드한다.", REF)

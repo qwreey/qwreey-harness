@@ -76,6 +76,7 @@ LAYERS_ALLOW = frozenset({
     "lib/ambient.py", "plugins/q/scripts/ambient.py", "plugins/qwreey-advisor/hooks/ambient.py",
     "plugins/qwreey-operator/hooks/ambient.py", "plugins/qwreey-workspace/scripts/ambient.py",
     "plugins/qwreey-advisor/hooks/second-opinion-nudge.py", "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+    "plugins/q/scripts/drift.py", "plugins/q/scripts/stale_work.py",
 })
 
 RUNNER = """

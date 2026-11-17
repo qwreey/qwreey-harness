@@ -18,7 +18,7 @@ Claude Code 가 쓰는 <tmp>/claude-<uid>/<프로젝트 키>/<sid>/tasks/<id>.ou
 "필요할 때만 언급" 알림 하나로 묻힌 적이 있다. dedup 은 (세션, task id, 상태)마다 1회.
 
 전달: Stop·SubagentStop 이 판정해 상태 파일($TMPDIR/claude-q-stale/<sid>.json)에 쌓고, Stop(메인)이 사용자 줄을 systemMessage 로 내고,
-UserPromptSubmit 이 모델 문구를 additionalContext 로 준다. 실패는 삼킨다(fail-open). 끄기: HARNESS_Q_STALE=off.
+UserPromptSubmit 이 모델 문구를 additionalContext 로 준다. 실패는 삼킨다(fail-open). 끄기: q 옵션 harness_q_stale(/config), 또는 harness.env 나 환경 변수의 HARNESS_Q_STALE=off.
 """
 import glob
 import json
@@ -33,6 +33,22 @@ FINISHED_HINT = ("If it belongs to work that already finished or loops waiting o
                  "and stop it (TaskStop) or tell the user")
 STALLED_HINT = FINISHED_HINT + "; otherwise check its output or ask the user before stopping it."
 LONG_HINT = FINISHED_HINT + "; otherwise mention it to the user in one line."
+
+
+STALE_DEFAULTS = {"HARNESS_Q_STALE": "on"}  # 끄기 스위치. q 옵션(/config) 이름은 harness_q_stale
+
+
+def switched_off():
+    """끄기 스위치: 환경 변수가 이기고, 없으면 harness.env 층(q 옵션 포함). 로더를 못 읽으면 켠 채로 둔다."""
+    v = os.environ.get("HARNESS_Q_STALE")
+    if v is None:
+        try:
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
+            import harness_env
+            v = harness_env.load_layers(defaults=STALE_DEFAULTS).get("HARNESS_Q_STALE")
+        except Exception:
+            v = None
+    return str(v or "").strip().lower() in ("off", "0", "no")
 
 
 def env_min(name, default):
@@ -179,7 +195,7 @@ def wrap(items, session_id=None):
 
 
 def main():
-    if os.environ.get("HARNESS_Q_STALE", "").lower() in ("off", "0", "no"):
+    if switched_off():
         return
     try:
         data = json.load(sys.stdin)

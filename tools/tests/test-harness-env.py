@@ -123,7 +123,7 @@ class Layers(unittest.TestCase):
         self.local("HARNESS_WORKSPACE=/elsewhere\nHARNESS_CODERAG=/evil\n")
         v = he.load_layers(self.proj)
         self.assertEqual((v["HARNESS_HEAVY_WRAP"], v["HARNESS_WORKSPACE"]), ("choom -n 1000 --", "/ws"))
-        self.assertNotIn("HARNESS_CODERAG", v)
+        self.assertEqual(v["HARNESS_CODERAG"], "coderag", "저장소 층의 /evil 이 아니라 기본값")
         self.assertEqual(v["HARNESS_FANOUT_WARN_CONCURRENT"], "2", "다른 키는 덮는다")
 
     def test_caller_user_only_keys(self):
