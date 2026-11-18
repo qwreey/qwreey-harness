@@ -1,6 +1,6 @@
 {
   "id": "0010-qwreey-harness-market",
-  "why": "저장소와 마켓 이름이 qwreey-harness 가 됐다(Q27 a, Q34 a). 옛 마켓 선언을 지우고 새 이름으로 이 클론 위치를 선언하며, 옛 마켓의 플러그인 키(enabledPlugins, pluginConfigs)를 값 그대로 새 이름으로 옮긴다(사용자가 끈 false 도 그대로). 0001 은 이미 적용돼 다시 돌지 않으므로 새 번호다. 설치본(installed_plugins.json)과 데이터 폴더는 settings 밖이라 tools/rename-cutover.sh 가 맡는다: 모든 세션을 닫고 그 스크립트로 적용한다",
+  "why": "저장소와 마켓 이름이 qwreey-harness 가 됐다(Q27 a, Q34 a). 옛 마켓 선언을 지우고 새 이름으로 이 클론 위치를 선언하며, 옛 마켓의 플러그인 키(enabledPlugins, pluginConfigs)를 값 그대로 새 이름으로 옮긴다(사용자가 끈 false 도 그대로). 0001 은 이미 적용돼 다시 돌지 않으므로 새 번호다. 설치본(installed_plugins.json)과 데이터 폴더는 settings 밖이라 tools/rename-cutover.sh 가 맡는다: 모든 세션을 닫고 그 스크립트로 적용한다. 옛 마켓 설치본이 없는 기계(새로 설치)에서는 home-sync apply 로 적용돼도 해가 없고, 옛 설치본이 있는 기계는 그 스크립트를 쓴다",
   "ops": [
     {
       "op": "delete",

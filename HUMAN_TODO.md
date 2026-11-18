@@ -4,12 +4,12 @@
 
 ## S12 전환: 폴더와 마켓 이름 qwreey-harness (모든 세션을 닫은 뒤, 사용자)
 - [ ] S12 전환. 계획 `.claude/plan/rename-qwreey-harness.md`. 스크립트가 병합, 껍데기 삭제 커밋, 데이터 폴더, 저장소 폴더, `~/.claude/projects`·session-log 폴더, home-sync apply, 마켓 remove·add·플러그인 재설치, `~/.coderag/coderag.toml` 팩 경로를 한 번에 한다. 지우는 일은 보이기만 한다
-  1. 이 기기의 Claude Code 세션을 모두 닫는다(돌고 있는 위임도). 터미널에서 `pgrep -x claude -a` 가 아무것도 찍지 않을 때까지 기다린다(daemon, bg-spare 도 막는 조건이다)
-  2. `git -C /code/Projects/claude-doctor show rename-qwreey-harness:tools/rename-cutover.sh > /tmp/rename-cutover.sh` (스크립트는 병합 전이라 브랜치에만 있다)
-  3. `bash /tmp/rename-cutover.sh`: 바꾸지 않고 단계마다 할 일과 settings diff 를 보인다. "막는 것" 이 있으면 먼저 푼다
-  4. `bash /tmp/rename-cutover.sh --apply`. 중간에 멈추면 원인을 풀고 같은 명령을 다시 돌린다(끝난 단계는 건너뛴다)
+  1. 이 기기의 Claude Code 세션을 모두 닫는다(돌고 있는 위임도). 터미널에서 `pgrep -x claude -a` 가 아무것도 찍지 않을 때까지 기다린다(daemon, bg-spare 도 막는 조건이다). `daemon run --origin transient --spawned-by {..."pid":N}` 가 남았는데 pid N 이 없으면 닫힌 세션이 남긴 것이다: `claude daemon stop --any`(안 되면 그 daemon 을 kill). 스크립트가 부르는 `claude plugin ...` 은 프로세스를 남기지 않는다(실측), 그래도 다시 돌릴 때 막히면 같은 방법으로 끝낸다
+  2. `git -C /code/Projects/claude-doctor show rename-qwreey-harness:tools/rename-cutover.sh > ~/rename-cutover.sh` (스크립트는 병합 전이라 브랜치에만 있다. `/tmp` 에 두면 다시 돌리기 전에 `/tmp` 를 비울 때 같이 사라진다)
+  3. `bash ~/rename-cutover.sh`: 바꾸지 않고 단계마다 할 일과 settings diff 를 보인다. "막는 것" 이 있으면 먼저 푼다
+  4. `bash ~/rename-cutover.sh --apply`. 중간에 멈추면 원인을 풀고 같은 명령을 다시 돌린다(끝난 단계는 건너뛴다). g 가 바꾸기 전 `settings.json`, `plugins/installed_plugins.json`, `plugins/known_marketplaces.json` 의 `*.bak-<시각>` 을 남긴다
   5. `cd /code/Projects/qwreey-harness && claude` 로 새 세션을 열고 계획 3절대로 확인한다
-  6. 스크립트 h 단계가 보인 것: `/code/Projects/claude-doctor.old-*`, `~/.local/share/claude-doctor-history-cleanup`, `~/.claude/plugins/cache/claude-doctor-market` 삭제(확인 뒤), settings.json autoMode 글의 옛 경로, 형제 저장소마다 그 세션에서 `coderag adapt --harness claude`
+  6. 스크립트 h 단계가 보인 것: `/code/Projects/claude-doctor.old-*`, `~/.local/share/claude-doctor-history-cleanup`, `~/.claude/plugins/cache/claude-doctor-market` 삭제(확인 뒤), 옛 경로를 가리키는 `~/.claude/dev-mods/*/qwreey-desk` 링크 삭제, settings.json autoMode 글의 옛 경로, 형제 저장소마다 그 세션에서 `coderag adapt --harness claude`. 새 폴더에서 처음 열 때 신뢰 대화가 한 번 뜬다(`~/.claude.json` 의 옛 경로 항목은 둬도 된다). 끝나면 `rm ~/rename-cutover.sh`, `/tmp` 는 이제 비워도 된다
   7. 확인이 끝나면 main 을 push 한다(전환 전에는 push 하지 않는다)
 
 ## 삭제와 정리 (사용자 승인 사항, 에이전트는 하지 않음)
