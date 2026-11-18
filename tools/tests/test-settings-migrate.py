@@ -44,22 +44,22 @@ def enable(p, v=True, **kw):
 
 class T(unittest.TestCase):
     def test_user_plugin_preserved_managed_added(self):
-        e = Env(self, {"enabledPlugins": {"mine@x": True}}, [mig("0001-a", enable("m@claude-doctor-market"))])
+        e = Env(self, {"enabledPlugins": {"mine@x": True}}, [mig("0001-a", enable("m@qwreey-harness"))])
         self.assertEqual(e.run(), 0)
-        self.assertEqual(e.get()["enabledPlugins"], {"mine@x": True, "m@claude-doctor-market": True})
+        self.assertEqual(e.get()["enabledPlugins"], {"mine@x": True, "m@qwreey-harness": True})
 
     def test_user_disabled_not_reenabled(self):
-        e = Env(self, {}, [mig("0001-a", enable("m@claude-doctor-market"))])
+        e = Env(self, {}, [mig("0001-a", enable("m@qwreey-harness"))])
         e.run()
-        s = e.get(); s["enabledPlugins"]["m@claude-doctor-market"] = False
+        s = e.get(); s["enabledPlugins"]["m@qwreey-harness"] = False
         open(e.s, "w").write(json.dumps(s))
         self.assertEqual(e.run(), 0)  # 이미 적용됨
-        self.assertFalse(e.get()["enabledPlugins"]["m@claude-doctor-market"])
+        self.assertFalse(e.get()["enabledPlugins"]["m@qwreey-harness"])
         # 새 마이그레이션이 다른 항목을 건드려도 꺼둔 값은 그대로
-        e.add(mig("0002-b", enable("n@claude-doctor-market")))
+        e.add(mig("0002-b", enable("n@qwreey-harness")))
         e.run()
-        self.assertFalse(e.get()["enabledPlugins"]["m@claude-doctor-market"])
-        self.assertTrue(e.get()["enabledPlugins"]["n@claude-doctor-market"])
+        self.assertFalse(e.get()["enabledPlugins"]["m@qwreey-harness"])
+        self.assertTrue(e.get()["enabledPlugins"]["n@qwreey-harness"])
 
     def test_permissions_add_remove(self):
         e = Env(self, {"permissions": {"allow": ["Bash(ls)", "Old"], "defaultMode": "auto"}},
@@ -98,12 +98,12 @@ class T(unittest.TestCase):
              "statusLine": {"type": "command", "command": "python3 $HOME/.claude/statusline/harness-status.py"}}
         e = Env(self, s, [mig("0006-a", {"op": "hook-remove", "event": "PostToolUse", "command": sub},
                               {"op": "hook-remove", "event": "Stop", "command": sub},
-                              {"op": "set", "path": ["enabledPlugins", "p@claude-doctor-market"], "value": True, "keep_existing": True})])
+                              {"op": "set", "path": ["enabledPlugins", "p@qwreey-harness"], "value": True, "keep_existing": True})])
         e.run()
         out = e.get()
         self.assertEqual(out["hooks"], {"PostToolUse": [{"matcher": "Agent|Workflow", "hooks": [mine]}]})  # 같은 command 는 모든 그룹에서 빠지고 남의 훅, 빈 그룹 정리
         self.assertEqual(out["statusLine"], s["statusLine"])
-        self.assertTrue(out["enabledPlugins"]["p@claude-doctor-market"])
+        self.assertTrue(out["enabledPlugins"]["p@qwreey-harness"])
 
     def test_unmanaged_top_keys_kept(self):
         auto = {"environment": ["x"]}
@@ -128,7 +128,7 @@ class T(unittest.TestCase):
         self.assertEqual(e.run(), 0)
 
     def test_idempotent_and_records(self):
-        ms = [mig("0001-a", enable("m@claude-doctor-market"), {"op": "hook-upsert", "event": "Stop", "command": HOOK})]
+        ms = [mig("0001-a", enable("m@qwreey-harness"), {"op": "hook-upsert", "event": "Stop", "command": HOOK})]
         e = Env(self, {}, ms)
         e.run(); first = open(e.s).read()
         self.assertEqual(e.recs(), ["0001-a"])
@@ -182,8 +182,8 @@ class T(unittest.TestCase):
             e3.run()
         self.assertEqual(e3.get()["extraKnownMarketplaces"]["m"]["source"]["path"], root)
         e2 = Env(self, {}, [m])
-        e2.run("--var", "HARNESS_DOCTOR_ROOT=C:/Users/u/Projects/claude-doctor")
-        self.assertEqual(e2.get()["extraKnownMarketplaces"]["m"]["source"]["path"], "C:/Users/u/Projects/claude-doctor")
+        e2.run("--var", "HARNESS_DOCTOR_ROOT=C:/Users/u/Projects/qwreey-harness")
+        self.assertEqual(e2.get()["extraKnownMarketplaces"]["m"]["source"]["path"], "C:/Users/u/Projects/qwreey-harness")
         with self.assertRaises(SystemExit):
             Env(self, {}, [m]).run("--var", "HOME=/x")
 
@@ -193,6 +193,44 @@ class T(unittest.TestCase):
             with open(os.path.join(d, f), encoding="utf-8") as fh:
                 text = fh.read()
             self.assertNotIn("/code/", text, f)
+
+    def test_rename_keys(self):
+        ren = {"op": "rename-keys", "path": "enabledPlugins", "from": "@old", "to": "@new"}
+        s = {"enabledPlugins": {"a@old": True, "mine@x": True, "b@old": False, "c@old": True, "c@new": False}}
+        e = Env(self, s, [mig("0001-a", ren)])
+        e.run()
+        ep = e.get()["enabledPlugins"]
+        # 값(false 포함)과 순서는 그대로, 이미 있는 새 키는 그 값을 둔다
+        self.assertEqual(list(ep.items()), [("a@new", True), ("mine@x", True), ("b@new", False), ("c@new", False)])
+
+        # 다시 돌려도(같은 op 를 새 id 로) 바뀌는 것이 없다
+        before = e.get()
+        e.add(mig("0002-b", ren)); e.run()
+        self.assertEqual(e.get(), before)
+
+        # 객체가 없으면 no-op, 객체가 아니면 그 마이그레이션만 실패
+        e2 = Env(self, {"k": 1}, [mig("0001-a", ren)])
+        e2.run(); self.assertEqual(e2.get(), {"k": 1})
+        e3 = Env(self, {"enabledPlugins": []}, [mig("0001-a", ren)])
+        self.assertEqual(e3.run(), 1); self.assertEqual(e3.get(), {"enabledPlugins": []})
+        e4 = Env(self, {"enabledPlugins": {}}, [mig("0001-a", dict(ren, to="@old"))])
+        self.assertEqual(e4.run(), 1)
+
+    def test_repo_market_rename_migration(self):
+        """저장소의 마켓 이름 바꾸기 마이그레이션: 옛 선언 삭제, 새 선언, 플러그인 키와 옵션을 값 그대로 옮김."""
+        d = os.path.join(HERE, "..", "..", "home", "settings-migrations")
+        m = json.load(open(os.path.join(d, "0010-qwreey-harness-market.json"), encoding="utf-8"))
+        old = {"extraKnownMarketplaces": {"qwreey-harness": {"source": {"source": "directory", "path": "/old"}},
+                                          "other": {"source": {"source": "github", "repo": "o/r"}}},
+               "enabledPlugins": {"q@qwreey-harness": True, "web-security@qwreey-harness": False, "x@other": True},
+               "pluginConfigs": {"qwreey-advisor@qwreey-harness": {"options": {"k": "v"}}}}
+        e = Env(self, old, [m])
+        e.run("--var", "HARNESS_DOCTOR_ROOT=/new/qwreey-harness")
+        s = e.get()
+        self.assertEqual(s["extraKnownMarketplaces"], {"other": {"source": {"source": "github", "repo": "o/r"}},
+                                                       "qwreey-harness": {"source": {"source": "directory", "path": "/new/qwreey-harness"}}})
+        self.assertEqual(s["enabledPlugins"], {"q@qwreey-harness": True, "web-security@qwreey-harness": False, "x@other": True})
+        self.assertEqual(s["pluginConfigs"], {"qwreey-advisor@qwreey-harness": {"options": {"k": "v"}}})
 
     def test_backup_made(self):
         e = Env(self, {"k": 1}, [mig("0001-a", {"op": "set", "path": "x", "value": 1})])

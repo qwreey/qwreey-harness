@@ -14,13 +14,16 @@
   hook-upsert  event, command [, matcher, fields]  같은 command 의 훅이 있으면 교체, 없으면 추가
                훅 = {"type":"command","command":command, **fields}. command 의 $HOME 은 풀어 같은지 본다
   hook-remove  event, command   그 command 의 훅 제거(빈 그룹·이벤트도 정리)
+  rename-keys  path, from, to   path 의 객체에서 이름이 from 으로 끝나는 키를 끝만 to 로 바꾼다(값과 순서 유지).
+               새 이름이 이미 있으면 그 값을 두고 옛 키만 지운다(두 값을 합치지 않는다). 객체가 없으면 no-op
+               예: 마켓 이름을 바꿀 때 enabledPlugins, pluginConfigs 의 "<p>@옛마켓" -> "<p>@새마켓"
 
 기계 값: op 안 문자열의 ${HARNESS_DOCTOR_ROOT} 는 적용할 때 이 클론의 절대 경로(이 스크립트의 부모의 부모, Windows 는 / 구분)로 푼다.
   --var HARNESS_DOCTOR_ROOT=<경로> 로만 바꿀 수 있다(같은 이름의 환경 변수나 harness.env 값은 읽지 않는다: 적용하는 클론이 정본이다).
   그 밖의 ${...}, $HOME 은 그대로 둔다(훅 command 는 셸이 푼다).
 
 태그(소유 판별, 보고용): 훅 command 가 $HOME/.claude/hooks/ 나 $CLAUDE_HOME/hooks/ 아래면 관리 훅,
-  플러그인 이름이 @<관리 마켓> 으로 끝나면 관리 플러그인(HOME_SYNC_MARKETS, 기본 claude-doctor-market).
+  플러그인 이름이 @<관리 마켓> 으로 끝나면 관리 플러그인(HOME_SYNC_MARKETS, 기본 qwreey-harness).
 
 사용:
   settings-migrate.py run    --settings S --dir D --records R [--dry-run] [--out O] [--quiet] [--var NAME=VALUE]
@@ -188,16 +191,45 @@ def op_hook_remove(d, o, ctx):
     prune(d, ev)
 
 
+def op_rename_keys(d, o, ctx):
+    """path 의 객체에서 끝이 from 인 키를 끝이 to 인 키로 옮긴다(값과 순서 유지)."""
+    parts = split_path(o["path"])
+    par = parent(d, parts, False)
+    obj = None if par is None else par.get(parts[-1])
+    if obj is None:
+        return
+    if not isinstance(obj, dict):
+        raise OpError(f"{'.'.join(parts)}: 객체가 아니다")
+
+    # 인자 확인
+    old, new = o["from"], o["to"]
+    if not isinstance(old, str) or not isinstance(new, str) or not old or old == new:
+        raise OpError("from, to 는 서로 다른 빈 아닌 문자열")
+
+    # 같은 자리에 새 이름으로 다시 쌓기
+    out = {}
+    for k, v in obj.items():
+        if k.endswith(old):
+            nk = k[: -len(old)] + new
+            if nk in obj:
+                continue  # 새 이름이 이미 있다: 그 값을 그 자리에 둔다
+            out[nk] = v
+        else:
+            out[k] = v
+
+    par[parts[-1]] = out
+
+
 OPS = {"set": op_set, "add": op_add, "remove": op_remove, "delete": op_delete,
-       "hook-upsert": op_hook_upsert, "hook-remove": op_hook_remove}
+       "hook-upsert": op_hook_upsert, "hook-remove": op_hook_remove, "rename-keys": op_rename_keys}
 REQ = {"set": ("path", "value"), "add": ("path", "items"), "remove": ("path", "items"), "delete": ("path",),
-       "hook-upsert": ("event", "command"), "hook-remove": ("event", "command")}
+       "hook-upsert": ("event", "command"), "hook-remove": ("event", "command"), "rename-keys": ("path", "from", "to")}
 
 
 def describe(o):
     t = o.get("path") or f"{o.get('event')}:{o.get('command')}"
     t = ".".join(t) if isinstance(t, list) else t
-    extra = f" {o['items']}" if "items" in o else ""
+    extra = f" {o['items']}" if "items" in o else (f" *{o['from']} -> *{o['to']}" if "from" in o else "")
     return f"{o.get('op')} {t}{extra}"
 
 
@@ -278,7 +310,7 @@ def read_records(p):
 
 
 def ownership(settings, home, claude_home):
-    markets = [m for m in os.environ.get("HOME_SYNC_MARKETS", "claude-doctor-market").split(",") if m]
+    markets = [m for m in os.environ.get("HOME_SYNC_MARKETS", "qwreey-harness").split(",") if m]
     mh = tuple(cmd_key(x, home) for x in ("$HOME/.claude/hooks/", ))+ (claude_home.rstrip("/") + "/hooks/",)
     hm = hu = 0
     for groups in (settings.get("hooks") or {}).values():
