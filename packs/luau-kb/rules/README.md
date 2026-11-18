@@ -5,7 +5,7 @@ This directory holds the `paths:`-scoped rule files shared by several Luau repos
 | File | paths | Lines | Rationale and examples |
 |---|---|---|---|
 | `luau-core.md` | `**/*.luau` | 40 | `skills/luau-style/references/` (link at the end of each line) |
-| `code-structure.md` | `**/*.{luau,lua}` | 11 | **Pointer only.** The structure rules (D-13, decided) are toolkit-independent, so their canonical copy moved to user level `~/.claude/rules/code-structure.md` (claude-doctor `home/.claude/rules/code-structure.md`, a MANIFEST-managed file). This file is not linked by MANIFEST. It only tells agents that do not read the plugin where the canonical rules are and where the Luau details live (`skills/luau-style/references/structure.md`, `splitting.md`, entry `init.luau`) |
+| `code-structure.md` | `**/*.{luau,lua}` | 11 | **Pointer only.** The structure rules (D-13, decided) are toolkit-independent, so their canonical copy moved to user level `~/.claude/rules/code-structure.md` (qwreey-harness `home/.claude/rules/code-structure.md`, a MANIFEST-managed file). This file is not linked by MANIFEST. It only tells agents that do not read the plugin where the canonical rules are and where the Luau details live (`skills/luau-style/references/structure.md`, `splitting.md`, entry `init.luau`) |
 
 ## Writing rules
 - Every rule file has frontmatter with `paths` (required; without it the file loads in every session at full cost) and a one-line `description` in Korean.
@@ -15,7 +15,7 @@ This directory holds the `paths:`-scoped rule files shared by several Luau repos
 - Do not turn a contested policy into a rule before the user decides. Only the undisputed common part goes in (below).
 
 ## Where each line of `luau-core.md` comes from (2026-11-10)
-Only lines that do not conflict with the user's decisions (claude-doctor `.claude/base/decisions/README.md`, "사용자 결정 현황") are included.
+Only lines that do not conflict with the user's decisions (qwreey-harness `.claude/base/decisions/README.md`, "사용자 결정 현황") are included.
 - **Decided**: using `const` and staying consistent within a file (D-01), running stylua from the root and diffing `<<` files (D-02), gate exit code and stderr (D-06).
 - **Common ground the seven repos already share**: the five naming rules (undisputed part of D-09), English identifiers and error messages plus "follow the file's comment language" (undisputed part of D-08), literal error messages, `@self`, literal paths, entry names, and real `require` tests (undisputed part of D-12).
 - **Lines that come from language facts** (reproduced in snippets): `local const`, statements starting with `(`, `and/or` ternaries, bare `function`, `error(e, 0)` rethrow, `pcall(f(x))`.
@@ -39,7 +39,7 @@ Four temporary projects, each told to Read `mod.luau`; we checked whether the ru
 |---|---|
 | Real file (copy) | **Loaded** (system reminder right after the Read; the model quoted the first line verbatim) |
 | Symlink to a file **inside** the project (`../../shared/luau-core.md`) | **Loaded** (the reminder shows the link target path `shared/luau-core.md`) |
-| Symlink to a file **outside** the project (`/code/Projects/claude-doctor/packs/luau-kb/rules/luau-core.md`) | **Not loaded** (model answered "NONE") |
+| Symlink to a file **outside** the project (`<qwreey-harness 클론>/packs/luau-kb/rules/luau-core.md`) | **Not loaded** (model answered "NONE") |
 | No rule (control) | Not loaded |
 
 This matches the official docs (code.claude.com/docs/en/memory, checked 2026-11-10).

@@ -25,16 +25,16 @@
 - 훅이 `python3` 를 부른다(표준 라이브러리만). Linux, macOS, Windows(Git Bash) 에서 쓴다.
 
 ## 설정
-`/plugin configure qwreey-reply-language@claude-doctor-market` 나 `/config` 의 플러그인 옵션에서 고른다. 다음 답부터 적용된다.
+`/plugin configure qwreey-reply-language@qwreey-harness` 나 `/config` 의 플러그인 옵션에서 고른다. 다음 답부터 적용된다.
 - 답변 언어 지키기(`harness_reply_language`): 기본 켜짐. 끄면 언어를 보지 않는다.
 
 고급: 같은 키를 대문자로 `~/.claude/harness.env` 나 저장소 `.claude/harness.env` 에 `HARNESS_REPLY_LANGUAGE=off` 로 적을 수 있다(저장소 파일이 설정보다 이긴다).
 
 ## 설치와 끄기
 ```bash
-claude plugin marketplace add <claude-doctor 폴더>   # 마켓을 처음 쓸 때 한 번
-claude plugin install qwreey-reply-language@claude-doctor-market
+claude plugin marketplace add <qwreey-harness 폴더>   # 마켓을 처음 쓸 때 한 번
+claude plugin install qwreey-reply-language@qwreey-harness
 ```
-- 끄기: 위 설정에서 끄거나 `claude plugin disable qwreey-reply-language@claude-doctor-market` (제거는 `uninstall`).
+- 끄기: 위 설정에서 끄거나 `claude plugin disable qwreey-reply-language@qwreey-harness` (제거는 `uninstall`).
 
 자세한 동작(훅 구성, 판정 문턱, 언어 출처, 기록, 테스트): [docs/how-it-works.md](docs/how-it-works.md)

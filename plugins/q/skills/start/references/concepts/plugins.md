@@ -25,9 +25,9 @@
 ## 회사 마켓 (지금 있는 것)
 | 마켓 | 플러그인 | 누구에게 |
 |---|---|---|
-| claude-doctor-market | `q` (사람이 치는 명령 모음: `/q:start` 온보딩, `/q:doctor` 진단, `/q:away`·`/q:back` 자리 비움) | 모두 |
-| claude-doctor-market | `qwreey-sessions`(세션 기록 훅과 `/qwreey-sessions:checkpoint`·`import`·`recall`), `qwreey-workspace`(형제 저장소 읽기 전용 게이트) | 긴 작업을 하는 개발자, 저장소를 여럿 두는 개발자 |
-| claude-doctor-market (팩) | `luau-kb` (Luau·Roblox 지식 스킬 12개) | Luau 개발자. 기본 꺼짐 팩이라 Luau 저장소에서만 켠다 |
+| qwreey-harness | `q` (사람이 치는 명령 모음: `/q:start` 온보딩, `/q:doctor` 진단, `/q:away`·`/q:back` 자리 비움) | 모두 |
+| qwreey-harness | `qwreey-sessions`(세션 기록 훅과 `/qwreey-sessions:checkpoint`·`import`·`recall`), `qwreey-workspace`(형제 저장소 읽기 전용 게이트) | 긴 작업을 하는 개발자, 저장소를 여럿 두는 개발자 |
+| qwreey-harness (팩) | `luau-kb` (Luau·Roblox 지식 스킬 12개) | Luau 개발자. 기본 꺼짐 팩이라 Luau 저장소에서만 켠다 |
 
 ## 주의
 - 플러그인의 훅·스크립트는 **내 권한으로 실행**된다. 회사 마켓이 아닌 곳의 플러그인은 담당자에게 먼저 묻는다.

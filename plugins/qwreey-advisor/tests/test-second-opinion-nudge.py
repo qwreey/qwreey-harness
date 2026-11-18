@@ -2,7 +2,7 @@
 """second-opinion-nudge 회귀. 실행: python3 -I test-second-opinion-nudge.py (exit 0 = 통과)
 
 임시 HOME(.claude/{lib,harness.env})과 임시 git 저장소를 만들고 플러그인의 훅(hooks/second-opinion-nudge.py)에 이벤트 JSON 을 넣어 본다.
-lib 는 claude-doctor 정본(home/.claude/lib)을 복사해 쓴다. 하네스가 없는 환경(lib·harness.env 없음)도 따로 본다.
+lib 는 qwreey-harness 정본(home/.claude/lib)을 복사해 쓴다. 하네스가 없는 환경(lib·harness.env 없음)도 따로 본다.
 """
 import json
 import os

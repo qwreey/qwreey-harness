@@ -11,8 +11,8 @@ Claude Code 에서 `/q:start` 를 입력한다. 다른 형태:
 
 ## 설치
 ```bash
-claude plugin marketplace add <claude-doctor 저장소 주소 또는 폴더>
-claude plugin install q@claude-doctor-market
+claude plugin marketplace add <qwreey-harness 저장소 주소 또는 폴더>
+claude plugin install q@qwreey-harness
 ```
 
 ## 구성

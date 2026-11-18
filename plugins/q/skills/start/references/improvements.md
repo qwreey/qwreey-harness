@@ -2,7 +2,7 @@
 
 진단 결과와 역할에 맞는 것을 최대 3개 고른다. 한 번에 하나씩 SKILL.md 5단계 틀로 제안하고, "예" 를 받은 것만 적용한다.
 **공통 규칙**
-- 진단 11번에서 사내 하네스(claude-doctor 정본)가 보이면 `~/.claude` 를 직접 고치지 않는다. "정본 담당자에게 이 내용을 요청" 으로 바꿔 제안하고, 요청 문안만 보여 준다.
+- 진단 11번에서 사내 하네스(qwreey-harness 정본)가 보이면 `~/.claude` 를 직접 고치지 않는다. "정본 담당자에게 이 내용을 요청" 으로 바꿔 제안하고, 요청 문안만 보여 준다.
 - 기존 파일을 고칠 때는 먼저 `<파일>.bak-<YYYYMMDD>` 백업을 만든다고 제안 단계에서 미리 말한다.
 - 사용자가 직접 해야 하는 일(Studio 설정, `/statusline`, `Shift+Tab`)은 "이렇게 해 보세요" 로 안내만 한다. 대신 실행하지 않는다.
 
@@ -48,7 +48,7 @@
 
 ## F. luau-kb 플러그인
 - 명령(동의 후):
-  `claude plugin marketplace add <claude-doctor 폴더>`(이미 있으면 생략) → `claude plugin install luau-kb@claude-doctor-market --scope project`
+  `claude plugin marketplace add <qwreey-harness 폴더>`(이미 있으면 생략) → `claude plugin install luau-kb@qwreey-harness --scope project`
 - `--scope project` 는 이 프로젝트 설정(`.claude/settings.json`)에 기록되어 팀원에게도 권장된다. 나만 쓰려면 `--scope local`. 어느 쪽인지 묻는다.
 - 저장소 주소를 모르면 담당자에게 물으라고 한다(추측하지 않는다).
 
@@ -68,4 +68,4 @@
 ## J. 세션 기록 (qwreey-sessions 플러그인)
 - 하는 일: 세션을 백그라운드에서 요약해 저장소 밖에 쌓고, 다음 세션에서 이어받게 한다.
 - 비용·주의: 요약에 별도 모델 호출(haiku)이 든다. 기록은 이 컴퓨터에 남는다.
-- 명령(동의 후): qwreey-sessions 가 이미 켜져 있으면 따로 깔 것이 없다. 끄려면 `/config` 의 qwreey-sessions 옵션 `session_log`, 환경 변수 `SESSION_LOG=off` 나 `claude plugin disable qwreey-sessions@claude-doctor-market`. 없으면 `claude plugin marketplace add <claude-doctor 저장소 주소>` → `claude plugin install qwreey-sessions@claude-doctor-market`
+- 명령(동의 후): qwreey-sessions 가 이미 켜져 있으면 따로 깔 것이 없다. 끄려면 `/config` 의 qwreey-sessions 옵션 `session_log`, 환경 변수 `SESSION_LOG=off` 나 `claude plugin disable qwreey-sessions@qwreey-harness`. 없으면 `claude plugin marketplace add <qwreey-harness 저장소 주소>` → `claude plugin install qwreey-sessions@qwreey-harness`

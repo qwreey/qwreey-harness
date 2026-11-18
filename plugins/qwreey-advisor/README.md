@@ -19,7 +19,7 @@
 - 훅이 `python3` 와 `git` 을 부른다. Linux·macOS 에서 쓴다.
 
 ## 설정
-`/plugin configure qwreey-advisor@claude-doctor-market` 또는 `/config` 의 플러그인 설정에서 바꾼다.
+`/plugin configure qwreey-advisor@qwreey-harness` 또는 `/config` 의 플러그인 설정에서 바꾼다.
 - 검토 등급(`harness_review_default`, 기본 `mid`): high, mid, low, off 가운데. 저장소별 등급이 없는 저장소에 쓴다.
 - 턴 끝 검토 권고(`harness_review_stop`, 기본 켜짐): 커밋하지 않은 변경이 등급 기준보다 크면 턴을 끝내기 전에 검토를 권한다. 같은 변경에는 한 번만, 권한 뒤 90분은 다시 권하지 않는다.
 - 계획 검토(`harness_review_plan`, 기본 `warn`): high 등급 저장소에서만 쓰인다. `warn` 은 권하고, `deny` 는 검토 표시 없이 계획 모드를 나가지 못하게 한다(막는 쪽이라 저장소가 고른다), `off` 는 끈다.
@@ -28,12 +28,12 @@
 
 ## 끄기
 - 알림만: 설정의 검토 등급을 `off` 로. 한 저장소만이면 `HARNESS_REVIEW_TIERS` 에서 그 저장소를 `off` 로.
-- 전부: `claude plugin disable qwreey-advisor@claude-doctor-market` (제거는 `uninstall`).
+- 전부: `claude plugin disable qwreey-advisor@qwreey-harness` (제거는 `uninstall`).
 
 ## 설치
 ```bash
-claude plugin marketplace add <claude-doctor 폴더>   # 마켓을 처음 쓸 때 한 번
-claude plugin install qwreey-advisor@claude-doctor-market
+claude plugin marketplace add <qwreey-harness 폴더>   # 마켓을 처음 쓸 때 한 번
+claude plugin install qwreey-advisor@qwreey-harness
 ```
 
 자세한 동작(훅 구성, 알림 조건과 설정, 읽기 전용 가드, 기록, 테스트): [docs/how-it-works.md](docs/how-it-works.md). 설계 근거와 비용 실측: [docs/rationale-fresh-advisor.md](docs/rationale-fresh-advisor.md), [docs/rationale-inherit-advisor.md](docs/rationale-inherit-advisor.md)

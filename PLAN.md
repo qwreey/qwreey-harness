@@ -1,4 +1,4 @@
-# claude-doctor 계획
+# qwreey-harness 계획
 
 목표와 지금 할 일, 열린 질문만 둔다. 끝난 일은 지우고(경과는 git log), 정해진 원칙은 `.claude/base/harness-principles.md` 로 옮긴다.
 

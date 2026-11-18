@@ -93,7 +93,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/
 - 결론: 라이브러리 경계를 넘는 뜨거운 루프에서는 클로저 콜백보다 직접 루프나 특화 함수(`Contains`)가 낫다. 같은 파일 안이면 `-O2` 가 상당 부분 걷어낸다.
 
 ## §4 가변 인자
-status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/call-varargs.luau`, 후보 S-P08, S-P09, claude-doctor .claude/scopes/packs/luau-kb/audit/09 §6 모순 18·20
+status: verified · last-confirmed: luau 0.742 (0.734 대조) · 근거: `bench/call-varargs.luau`, 후보 S-P08, S-P09, qwreey-harness .claude/scopes/packs/luau-kb/audit/09 §6 모순 18·20
 
 | 비교 (기준) | 0.734 `-O1` | 0.742 `-O1` | 0.742 `-O2` | 0.742 native | 원천 |
 |---|---|---|---|---|---|
@@ -146,7 +146,7 @@ status: described · 원천: tbox/docs/api-normalization.md:20, error-path-desig
 ## §7 정정과 조건 차이
 | 원천 | 원래 서술 | 이번 측정 | 처리 |
 |---|---|---|---|
-| stl perf 55절 (`perf-measurements.md:1519-1531`), claude-doctor .claude/scopes/packs/luau-kb/audit/09 S-P27 | "업밸류로 값을 든 클로저 판이 지역 함수 판보다 5~8 ns 비싸다" | `-O1` 에서는 차이 없음(0.95~0.97). `-O2` 3.5x·native 6.3x 는 지역 함수가 **인라인된** 결과 | **정정(원인)**: 비용은 업밸류가 아니라 인라인 여부다. 결론 "벤치에서 한쪽만 업밸류면 거짓 차이가 난다"는 유지 |
+| stl perf 55절 (`perf-measurements.md:1519-1531`), qwreey-harness .claude/scopes/packs/luau-kb/audit/09 S-P27 | "업밸류로 값을 든 클로저 판이 지역 함수 판보다 5~8 ns 비싸다" | `-O1` 에서는 차이 없음(0.95~0.97). `-O2` 3.5x·native 6.3x 는 지역 함수가 **인라인된** 결과 | **정정(원인)**: 비용은 업밸류가 아니라 인라인 여부다. 결론 "벤치에서 한쪽만 업밸류면 거짓 차이가 난다"는 유지 |
 | stl perf 7절 (`:129`) | select 루프가 table.pack 보다 1.6~2.3 배 빠름(방향 모호) | 인자 4 개에서만 select 가 빠름(0.63~0.89x). 32 개부터 1.2~4.4 배 느림 | 조건 명시(인자 수) |
 | stl perf 13절 (`:289-293`) | pcall 0.037 µs(평범한 호출의 3 배) | 0.734 2.85x, **0.742 1.83x** | 버전 차이 명시 |
 | stl perf 54절 (`:1508`) | 가변 인자는 원인 아님(±2 ns) | 고정 인자 대비 13~28%(인터프리터), 66~79%(native) | 53절 쪽이 맞다. 54절은 무거운 진입점에 묻힌 값 |

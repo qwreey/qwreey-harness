@@ -42,7 +42,7 @@ last_confirmed:
 ---
 
 ## §1 공통 다섯 규칙
-status: described (관례) · last-confirmed: 2026-11-10 저장소 7곳 문서·코드 실태 · 근거: claude-doctor `.claude/base/decisions/D-09-naming-casing.md` §1–2
+status: described (관례) · last-confirmed: 2026-11-10 저장소 7곳 문서·코드 실태 · 근거: qwreey-harness `.claude/base/decisions/D-09-naming-casing.md` §1–2
 
 일곱 저장소(quad, stl-luau, tbox, table-sim, devplorer, rbvm, moonwave-luau)가 문서와 코드에서 모두 따르는 규칙이다. 그래서 공통 rules 에 넣었다.
 

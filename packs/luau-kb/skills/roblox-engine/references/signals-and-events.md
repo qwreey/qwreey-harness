@@ -52,7 +52,7 @@ last_verified: 2026-11-10
 ## §0 읽는 법: 측정 조건과 mock 약어
 
 - **이 저장소가 Studio 에서 다시 잰 것은 없다.** 아래 Studio 사실은 원천 저장소의 실측 기록을 옮긴 것이라 `status: described` 다. 각 절에 원천의 Studio 버전, 날짜, DataModel, 신호 모드를 적었다.
-- **신호 순서·시점에 관한 원천 실측은 모두 Deferred 플레이스에서 했다**(claude-doctor .claude/scopes/packs/luau-kb/audit/09 §7). Immediate 에서 신호 동작을 잰 기록은 없다. Immediate 에 대한 서술은 Roblox 문서 인용이거나 CLI 심 결과다(§7). 예외 하나: quad `kit-studio-2026-10-15` 은 Immediate 플레이스였다(GUI 레이아웃·입력 관측, `REPORT.md:4`). 그 보고서에서 온 사실에는 Immediate 라고 적었다.
+- **신호 순서·시점에 관한 원천 실측은 모두 Deferred 플레이스에서 했다**(qwreey-harness .claude/scopes/packs/luau-kb/audit/09 §7). Immediate 에서 신호 동작을 잰 기록은 없다. Immediate 에 대한 서술은 Roblox 문서 인용이거나 CLI 심 결과다(§7). 예외 하나: quad `kit-studio-2026-10-15` 은 Immediate 플레이스였다(GUI 레이아웃·입력 관측, `REPORT.md:4`). 그 보고서에서 온 사실에는 Immediate 라고 적었다.
 - mock 약어
   - **quad-mock**: quad `quad-base/test/mock.luau`. 동기 Signal. `Fire` 는 연결 목록 스냅샷을 **역순**으로 돈다. 속성 대입마다(같은 값이어도) 바로 발화한다.
   - **E79 심**: quad `.claude/audit/round13-e79-deferred-signals/env.luau`. quad-mock 위에 Deferred 를 흉내 낸 연구용 심. 같은 값 무발화, 연결별 큐, `flush()` 가 FIFO 로 비운다. 엔진 실측이 아니다.
@@ -166,11 +166,11 @@ status: described · 근거: §2~§6 각 절, quad `.claude/archive/post-impleme
 
 | # | 내용 | 판정 |
 |---|---|---|
-| claude-doctor .claude/scopes/packs/luau-kb/audit/09 §6 #9 | Destroying 핸들러 순서: quad "비결정적"(구현 전 추정) 대 rbvm "연결 역순"(실측) | **판정**: 조건 차이가 아니다. quad 쪽은 실측 없는 추정이었고, quad 도 뒤에 Completed 연결에서 역순을 관측했다(Q-027). 사실은 "Deferred 0.742 에서 역순 관측, 문서 보장 없음 → 기대지 말 것" 하나다 |
-| claude-doctor .claude/scopes/packs/luau-kb/audit/09 §6 #11 | 대기 배달: quad "Disconnect 하면 취소" 대 rbvm "Destroy 로 끊겨도 Destroying 1회" | **판정**: 끊는 길이 다르다(조건 차이). 문서가 둘을 명시적으로 구분한다(§4). 모순 아님 |
-| claude-doctor .claude/scopes/packs/luau-kb/audit/08 M-06 | Q-018(Destroy 절단은 1회 배달) 대 Q-019(Disconnect 는 드롭) | 위와 같다. 한 표(§4)에 같이 둔다 |
-| claude-doctor .claude/scopes/packs/luau-kb/audit/08 M-04 | `Parent` 대입이 ChildAdded 를 동기 발화한다(모드 조건 없음) | **판정**: Immediate 에서만(문서). Deferred 실측은 다음 재개 지점이다. 모드 조건을 붙인다(§7) |
-| claude-doctor .claude/scopes/packs/luau-kb/audit/09 §6 #16 | devplorer "SignalBehavior Deferred 미실측" | **판정**: devplorer 서술만 낡았다. 같은 저장소가 BindableEvent 로 실측했고(D-R40) quad·rbvm 실측과 같다 |
+| qwreey-harness .claude/scopes/packs/luau-kb/audit/09 §6 #9 | Destroying 핸들러 순서: quad "비결정적"(구현 전 추정) 대 rbvm "연결 역순"(실측) | **판정**: 조건 차이가 아니다. quad 쪽은 실측 없는 추정이었고, quad 도 뒤에 Completed 연결에서 역순을 관측했다(Q-027). 사실은 "Deferred 0.742 에서 역순 관측, 문서 보장 없음 → 기대지 말 것" 하나다 |
+| qwreey-harness .claude/scopes/packs/luau-kb/audit/09 §6 #11 | 대기 배달: quad "Disconnect 하면 취소" 대 rbvm "Destroy 로 끊겨도 Destroying 1회" | **판정**: 끊는 길이 다르다(조건 차이). 문서가 둘을 명시적으로 구분한다(§4). 모순 아님 |
+| qwreey-harness .claude/scopes/packs/luau-kb/audit/08 M-06 | Q-018(Destroy 절단은 1회 배달) 대 Q-019(Disconnect 는 드롭) | 위와 같다. 한 표(§4)에 같이 둔다 |
+| qwreey-harness .claude/scopes/packs/luau-kb/audit/08 M-04 | `Parent` 대입이 ChildAdded 를 동기 발화한다(모드 조건 없음) | **판정**: Immediate 에서만(문서). Deferred 실측은 다음 재개 지점이다. 모드 조건을 붙인다(§7) |
+| qwreey-harness .claude/scopes/packs/luau-kb/audit/09 §6 #16 | devplorer "SignalBehavior Deferred 미실측" | **판정**: devplorer 서술만 낡았다. 같은 저장소가 BindableEvent 로 실측했고(D-R40) quad·rbvm 실측과 같다 |
 
 ## 정정
 원천 저장소 세션에 전달할 것. 이 저장소가 재현한 것이 아니라 더 새 실측·문서와 대조해 판정했다.
@@ -179,7 +179,7 @@ status: described · 근거: §2~§6 각 절, quad `.claude/archive/post-impleme
 |---|---|---|---|
 | quad `.claude/base/slot-plan.md:3390` | Parent 대입이 ChildAdded 를 동기로 발화한다(모드 조건 없음) | Immediate 에서만. Deferred 는 다음 재개 지점 | 문서 deferred.md, quad m5-unit1 실측 |
 | quad `.claude/archive/surveys/2026-08-06-pre-implementation-audit.md:218` | Destroying 핸들러 순서는 비결정적 | Deferred 0.742 에서 역순 관측(보장은 없음) | rbvm engine-behavior:46 |
-| devplorer `.claude/review/2026-10-20-client-palette-copy.md:50` | SignalBehavior Deferred 는 미실측 | 같은 저장소 bindable-watch:85 와 quad·rbvm 이 실측 | claude-doctor .claude/scopes/packs/luau-kb/audit/09 §6 #16 |
+| devplorer `.claude/review/2026-10-20-client-palette-copy.md:50` | SignalBehavior Deferred 는 미실측 | 같은 저장소 bindable-watch:85 와 quad·rbvm 이 실측 | qwreey-harness .claude/scopes/packs/luau-kb/audit/09 §6 #16 |
 | rbvm `.claude/design/gc-and-lifecycle.md:87-92` | 시그널을 쥐고 있으면 같은 userdata | 쥔 채로도 `rawequal` false | rbvm engine-behavior:22 (같은 저장소) |
 | quad `.claude/base/event-plan.md:84-85`(옛 헤더) | 엔진은 `Connect(비함수)` 에서 raise | 던지지 않고 경고만 | quad round8 2026-09-08 |
 

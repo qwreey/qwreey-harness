@@ -73,7 +73,7 @@ qwreey-delegate 는 대역 하나(기본 `61100-61115`)에서 실행마다 비�
 - **push deny**: 정책은 환경마다 다르다. `harness.env`의 `HARNESS_AGENT_PUSH`를 본다.
   - `normal`(이 sandbox): git 계정이 에이전트 전용이라 에이전트 push가 정상 흐름이고, 사용자가 pull해서 업스트림에 올린다. push deny를 권하지 않고, 걷는 것도 사용자 판단이다. `<doctor>/HUMAN_TODO.md` "권한" 절에 이미 있는지만 확인한다.
   - `deny`: deny가 정책과 맞다. 고칠 것이 없다. 값이 없으면 사용자에게 묻는다.
-- **`.gitignore` 보강**: 실행 중인 세션이 있는 저장소에서는 보류한다(claude-doctor `.claude/base/harness-principles.md`). 그런 저장소는 인계 문서에 넣는다.
+- **`.gitignore` 보강**: 실행 중인 세션이 있는 저장소에서는 보류한다(qwreey-harness `.claude/base/harness-principles.md`). 그런 저장소는 인계 문서에 넣는다.
 - **미커밋 문서**: 에이전트가 대신 커밋하지 않는다. 사례: moonwave-luau의 `.claude/`가 한 번도 커밋되지 않았다.
 - **넓은 allow**: `fewer-permission-prompts` 스킬처럼 실제로 쓰인 읽기 전용 명령만 남기는 안을 낸다.
 

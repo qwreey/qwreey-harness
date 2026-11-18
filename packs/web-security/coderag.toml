@@ -2,14 +2,14 @@
 #   등록 예(~/.coderag/coderag.toml):
 #     [[packs]]
 #     name = "web-security"
-#     path = "/code/Projects/claude-doctor/packs/web-security"
+#     path = "<qwreey-harness 클론>/packs/web-security"
 #   쓰는 저장소는 자기 coderag.toml 에 `[[packs]] name = "web-security"` 만 적는다(이 팩의 단 하나의 스위치).
 
 [pack]
 format = 1
 name = "web-security"
 description = "웹·서버·인프라 보안 하드닝 체크리스트 (hardening 스킬의 references 13개)"
-claude_plugin = "web-security@claude-doctor-market"
+claude_plugin = "web-security@qwreey-harness"
 
 [[contexts.knowledge]]
 provider = ["markdown-frontmatter"]

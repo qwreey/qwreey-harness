@@ -25,7 +25,7 @@
 #     등록을 빠뜨리면 타입은 0건이고 런타임에 "attempt to call a nil value" - init 이 모든 묶음을 require 하는지 테스트로 지킨다.
 # 성능 메모(측정은 luau-perf): 소비자 -> Arr 호출은 원래 다른 모듈이라 나눠도 같다. 다만 `-O2` 는 **같은 파일의** 지역 함수만 인라인하므로,
 #   Arr 안의 작은 내부 헬퍼(구간 정규화 등)를 공용 모듈로 옮기면 인라인이 사라진다(luau-perf calls-and-closures 3, `opt-inline-rules.luau`).
-# 근거: stl-luau src/Collections/Arr.luau(머리 주석: 메타테이블 없는 네임스페이스 함수), quad 4ddb9c5a(Slot 의 `S`), claude-doctor .claude/audit/12 3 원인 5.
+# 근거: stl-luau src/Collections/Arr.luau(머리 주석: 메타테이블 없는 네임스페이스 함수), quad 4ddb9c5a(Slot 의 `S`), qwreey-harness .claude/audit/12 3 원인 5.
 # 기대와 어긋나면 rc=1. 사용: bash snippets/style-split-types.sh [버전...]   (기본 0.734 0.742 0.746)
 set -u
 MISE=${MISE_DATA_DIR:-$HOME/.local/share/mise}

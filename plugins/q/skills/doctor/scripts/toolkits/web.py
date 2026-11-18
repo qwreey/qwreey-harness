@@ -1,6 +1,6 @@
 """harness-doctor 툴킷: web (JS/TS 웹 — astro, react, vite 등). **골격만 있다.**
 
-감지만 하고 검사는 아직 내지 않는다. 실제 프로젝트(블로그 react/astro, vitrine)를 claude-doctor 로 가져와
+감지만 하고 검사는 아직 내지 않는다. 실제 프로젝트(블로그 react/astro, vitrine)를 qwreey-harness 로 가져와
 감사한 뒤 CANDIDATES 를 하나씩 검사로 옮긴다. 판정 기준 자리는 references/toolkits/web.md.
 """
 import json

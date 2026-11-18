@@ -42,5 +42,5 @@
 ## 근거
 - 공식: code.claude.com/docs/en/context-window ("What survives compaction", "When your context fills up")
 - 공식: code.claude.com/docs/en/costs ("Compaction: /compact reads the conversation...", "# Compact instructions" 예시)
-- 공식: settings-reference `idleCompaction` (기본 true, v2.1.290 이상) — claude-doctor .claude/audit/19-external/05 #4 에서 확인
+- 공식: settings-reference `idleCompaction` (기본 true, v2.1.290 이상) — qwreey-harness .claude/audit/19-external/05 #4 에서 확인
 - 미확인: 자동 compact 가 시작되는 정확한 비율(모델·설정마다 다름, model-config 문서 참고)

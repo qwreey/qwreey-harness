@@ -161,7 +161,7 @@ status: described · last-confirmed: 원천 실측 2026-10-08(Luau CLI·Lune·St
 | quad 커밋 `9bb7bfa3` 메시지 | "카드 Active = true 로 스크림 관통을 고침" | 그 수정은 효과가 없었다(같은 파일 `:316` "9bb7bfa3 의 카드 Active 가 듣지 않은 이유") | 위와 같음 |
 | `/code/Projects/quad/.claude/base/onchange-plan.md:50-52` (M-07) | 붙인 직후 `AbsoluteSize` 는 계산이 보장되지 않는다 | Immediate 한 구성에서는 그 자리에서 계산됐다. Deferred 는 미측정이라 "조건부"로만 고친다 | `/code/Projects/quad/.claude/audit/kit-studio-2026-10-15/REPORT.md:45` |
 
-claude-doctor .claude/scopes/packs/luau-kb/audit/09 §6 #7("Active Frame 이 클릭을 막는가")은 조건 차이가 아니었다. quad 의 초기 서술이 틀렸고, quad 자신의 재측·devplorer·table-sim·문서가 모두 §1 규칙과 맞는다. table-sim T-33 의 "투명 표시"는 카드 **버튼**이었으므로 같은 규칙(첫 GuiButton 에서 멈춤)으로 설명된다.
+qwreey-harness .claude/scopes/packs/luau-kb/audit/09 §6 #7("Active Frame 이 클릭을 막는가")은 조건 차이가 아니었다. quad 의 초기 서술이 틀렸고, quad 자신의 재측·devplorer·table-sim·문서가 모두 §1 규칙과 맞는다. table-sim T-33 의 "투명 표시"는 카드 **버튼**이었으므로 같은 규칙(첫 GuiButton 에서 멈춤)으로 설명된다.
 
 ## 미판정
 **InputSink 속성.** 문서(GuiObject.md, last_updated 2026-11-10)는 `GuiObject.InputSink`(None/Activate/All)가 뒤의 객체로 가는 입력을 막는다고 쓴다(GuiButton 기본 Activate). quad 실측(2026-10-08, 클라이언트 0.742)은 Frame 에 세 값을 다 줘도 아래 스크림 `Activated` 를 막지 못했다. 기능 플래그가 그때 꺼져 있었을 수 있다. 재현 절차:

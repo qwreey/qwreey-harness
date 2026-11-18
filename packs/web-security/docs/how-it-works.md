@@ -4,7 +4,7 @@
 
 ## 켜는 길
 - 플러그인은 `"defaultEnabled": false` 라 어디서도 저절로 켜지지 않는다.
-- 저장소 `coderag.toml` 에 `[[packs]] name = "web-security"` 를 적고 `coderag adapt --harness claude` 를 돌리면 `.claude/settings.json` 의 `enabledPlugins` 에 `"web-security@claude-doctor-market": true` 가 생긴다(명시한 `false` 는 덮어쓰지 않는다). 이것으로 스킬이 실린다.
+- 저장소 `coderag.toml` 에 `[[packs]] name = "web-security"` 를 적고 `coderag adapt --harness claude` 를 돌리면 `.claude/settings.json` 의 `enabledPlugins` 에 `"web-security@qwreey-harness": true` 가 생긴다(명시한 `false` 는 덮어쓰지 않는다). 이것으로 스킬이 실린다.
 - coderag 는 팩 이름을 사용자 설정(`~/.coderag/coderag.toml`, 또는 `$CODERAG_HOME`)의 `[[packs]] name = "web-security"`, `path = "<이 폴더>"` 로 찾는다. 등록되지 않은 이름은 조용히 건너뛰므로 `/q:doctor` 가 알린다.
 
 ## 규칙 주입

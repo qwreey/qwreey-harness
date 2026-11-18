@@ -51,7 +51,7 @@ last_verified: 2026-11-10
 ---
 
 ## §1 왜 이 문서가 있나
-status: described · 근거: claude-doctor `.claude/audit/12-code-structure.md` 사례 표(2026-11-10). 다섯 건 모두 사용자가 직접 코드를 열어 보고 지적했다. 모델이 먼저 나누자고 한 경우는 table-sim 한 번뿐이다.
+status: described · 근거: qwreey-harness `.claude/audit/12-code-structure.md` 사례 표(2026-11-10). 다섯 건 모두 사용자가 직접 코드를 열어 보고 지적했다. 모델이 먼저 나누자고 한 경우는 table-sim 한 번뿐이다.
 
 | 언제 | 저장소 | 지적 (요지) | 그때 크기 |
 |---|---|---|---|
@@ -66,7 +66,7 @@ status: described · 근거: claude-doctor `.claude/audit/12-code-structure.md` 
 - **새 모듈을 부르는 쪽 옆에 둔다.** 폴더 대신 이름 접두로 묶는다(`ExplorerActions`, `ExplorerControl`, `BookmarkMenu`).
 
 ## §2 기준 수치와 예외 (D-13 확정)
-status: described · 근거: claude-doctor `.claude/base/decisions/D-13-file-structure.md` §1–3 과 "사용자 결정 (2026-11-10)", `scripts/structure-scan.py` 로 10개 저장소를 읽기만 해서 잰 분포
+status: described · 근거: qwreey-harness `.claude/base/decisions/D-13-file-structure.md` §1–3 과 "사용자 결정 (2026-11-10)", `scripts/structure-scan.py` 로 10개 저장소를 읽기만 해서 잰 분포
 > 정책: 확정(D-13, 2026-11-10). 수치는 저장소 `.claude/structure.json`(`warn`, `hard`, `flat`, `ignore`, `exempt`)으로 덮어쓸 수 있다.
 
 수치는 실측 분포에서 잡았다. 비테스트 Luau 파일의 p90 은 quad 443, devplorer 594, table-sim 834 줄이다. 사용자가 "너무 길다"고 한 가장 작은 파일은 1,194줄이었다.
@@ -90,7 +90,7 @@ status: described · 근거: claude-doctor `.claude/base/decisions/D-13-file-str
 **타입 하나라는 것만으로는 예외가 아니다.** stl `Arr.luau`(3,030줄, 함수 145)도 예외로 두지 않는다(사용자 결정). 3,000줄이 넘으면 사람이 함수를 찾고 하나씩 확인하기 어렵다. 네임스페이스 모듈은 재수출로 나눠도 타입 손실이 없다(`splitting.md` §2, 실측).
 
 ## §2a 예외 표식과 "확실한 이유"
-status: verified (표식 처리) / described (이유 판단) · last-confirmed: 2026-11-10 · 근거: claude-doctor `.claude/scopes/plugins/qwreey-conventions/archive/research/drafts/hooks/test-structure-reminder.py`(예외 12건 포함 44/44), `scripts/structure-scan.py`, `snippets/style-split-types.sh`
+status: verified (표식 처리) / described (이유 판단) · last-confirmed: 2026-11-10 · 근거: qwreey-harness `.claude/scopes/plugins/qwreey-conventions/archive/research/drafts/hooks/test-structure-reminder.py`(예외 12건 포함 44/44), `scripts/structure-scan.py`, `snippets/style-split-types.sh`
 
 에이전트는 확실한 이유가 있으면 기준을 넘겨도 된다. **이유는 반드시 남긴다. 이유 없는 예외는 두지 않는다.**
 
@@ -115,8 +115,8 @@ status: verified (표식 처리) / described (이유 판단) · last-confirmed: 
 | 무거운 생성 타입 표면을 쓰는 코드 | 무거운 표면을 export 하면 too complex 이고, 같은 양을 모듈 안에서만 쓰면 통과한다. Studio 는 표시도 없이 검사를 끈다 | luau-types `type-functions-limits.md` L6, `recursion-and-limits.md` §5 |
 | 정의 모듈이 type function 을 프라이밍해야 함 | 정의 모듈이 한 번도 인스턴스화하지 않은 `export type function` 은 소비자에서 조용히 `*error-type*` 이다(lsp 1.69.0). 정의와 프라이밍 별칭을 같은 파일에 둔다 | luau-types `type-functions-limits.md` X1 |
 | 생성물 | 다시 만들 수 있고 손으로 고치지 않는다. 머리 생성 표시가 있으면 표식 없이도 빠진다 | §2 제외 |
-| 순수 데이터 표 | 로직이 없다. 길이보다 "로직이 섞였나"를 본다 | §6, claude-doctor .claude/audit/12 §2.5 (문자열 표 모듈 리터럴 90%, `ClassIcons.luau` 94%) |
-| 단일 파일 배포가 계약인 라이브러리 | 사용자가 파일 하나를 복사해 쓰는 것이 배포 방식이다(moonwave-luau `init.luau`) | claude-doctor .claude/audit/12 §5.3 |
+| 순수 데이터 표 | 로직이 없다. 길이보다 "로직이 섞였나"를 본다 | §6, qwreey-harness .claude/audit/12 §2.5 (문자열 표 모듈 리터럴 90%, `ClassIcons.luau` 94%) |
+| 단일 파일 배포가 계약인 라이브러리 | 사용자가 파일 하나를 복사해 쓰는 것이 배포 방식이다(moonwave-luau `init.luau`) | qwreey-harness .claude/audit/12 §5.3 |
 
 **반례 (사유가 아니다)**
 - "귀찮아서", "나중에 나눔", "일단" — 미루기다. 무효로 처리된다.
@@ -150,7 +150,7 @@ status: described · 근거: quad `.claude/archive/surveys/2026-09-07-source-lay
 8. **층 규칙은 `require` 를 grep 해서 확인한 뒤에 적는다.** 아래층이 위층을 부르지 않게 한다. devplorer 는 처음 적은 층 규칙이 실제 코드와 달라 거짓이었다.
 
 ## §5 폴더 구성 — 일반 관례
-status: described · 근거: claude-doctor `.claude/base/decisions/D-13-file-structure.md` §3 과 사용자 결정 2, devplorer `.claude/conventions.md:62-68`, `audit/12-code-structure.md`
+status: described · 근거: qwreey-harness `.claude/base/decisions/D-13-file-structure.md` §3 과 사용자 결정 2, devplorer `.claude/conventions.md:62-68`, `audit/12-code-structure.md`
 
 **폴더 대분류는 저장소가 정한다**(사용자 결정 2026-11-10). 아래는 어느 저장소에서나 통한 일반 관례와, 세 저장소가 각자 고른 대분류 방식이다.
 

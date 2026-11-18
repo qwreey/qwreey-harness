@@ -16,7 +16,7 @@ The rules originate below; if this file disagrees, they win.
 - `CLAUDE.md` and the files it imports with `@`: <`.claude/conventions.md`, ...>
 - `.claude/rules/*.md`: follow the rule whose `paths:` header matches the file you touch.
 - Design sources: <`.claude/base/` etc.; one line on source priority>
-- Shared Luau knowledge (read-only): `<claude-doctor clone>/packs/luau-kb/AGENTS.md` (absolute path on this machine)
+- Shared Luau knowledge (read-only): `<qwreey-harness clone>/packs/luau-kb/AGENTS.md` (absolute path on this machine)
 
 ## Already known - do not raise again
 

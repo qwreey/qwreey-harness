@@ -45,7 +45,7 @@ last_verified: 2026-11-10
 ---
 
 ## §1 언제 부르나
-status: described · 원천: 사용자 결정 claude-doctor `.claude/base/decisions/D-03-runner.md`
+status: described · 원천: 사용자 결정 qwreey-harness `.claude/base/decisions/D-03-runner.md`
 
 - **mock 이 실제와 맞는지 확인할 때**(`mocks.md` §6), **mock 으로 재현할 수 없는 동작을 볼 때**(`env-dependence.md` §2 의 "Studio 가 필요한 경우" 열). 이 둘뿐이다.
 - 반복 실행하는 테스트 게이트를 Studio 에 기대지 않는다. Studio 는 사람이 띄워 둔 창이고 다른 세션과 공유되므로 기계적으로 돌릴 수 없다.
@@ -72,7 +72,7 @@ status: verified (도구 목록과 설명) · last-confirmed: 2026-11-10, 이 �
 | **상태 변경** | `multi_edit`, `insert_asset`, `generate_*`, `user_keyboard_input`, `user_mouse_input`, `character_navigation`, `create_skill`, `edit_skill`, `upload_image`, `store_image`, `open_cloud_invoke` 등 | 스크립트·에셋·입력·클라우드 자원을 바꾼다 |
 
 - 상태를 바꾸는 도구는 그 Studio 를 쓰는 사람이나 다른 에이전트 세션이 없을 때만 쓴다. `list_roblox_studios` 설명도 "사용자의 게임을 바꾸기 전에 사용자에게 확인하라"고 한다. 잘 모르면 읽기 도구만 쓰고 사람에게 묻는다.
-- 공식 문서(`create.roblox.com/docs/studio/mcp.md`)에 없는 도구(`create_skill`, `edit_skill`, `open_cloud_invoke`, `subagent`, `rojo_sync_guide`)도 이 서버에는 있다(claude-doctor audit 02).
+- 공식 문서(`create.roblox.com/docs/studio/mcp.md`)에 없는 도구(`create_skill`, `edit_skill`, `open_cloud_invoke`, `subagent`, `rojo_sync_guide`)도 이 서버에는 있다(qwreey-harness audit 02).
 
 ## §3 여러 Studio 중 대상 고르기
 status: verified · last-confirmed: 2026-11-10 (`list_roblox_studios`: `devplorer (placeId: 130663469983583)`, `quad-test (placeId: 105962699098904)` 두 개 연결)
@@ -97,7 +97,7 @@ studio-sync --release                         # 내 AgentOwner 표시 해제 (In
 ```
 
 - **소유권**: 동기화한 최상위 Instance(서비스 바로 아래)마다 `AgentOwner` attribute 에 owner 이름이 붙는다. 다른 owner 가 쥔 Instance 를 바꾸는 동기화는 거부된다(exit 1). 동시 동기화는 차례로 돈다. 끝나면 `--release` 로 표시를 풀어 다른 사람이 바꿀 수 있게 한다(`--release` 도 `--place` 를 받는다).
-- **여러 Studio**: `list_roblox_studios` 가 둘 이상을 보이면 `--place` 가 필요하다(`studio_id` 는 받지 않는다). 없으면 거부하고 열린 플레이스를 나열한다. **단 프로젝트의 `servePlaceIds` 가 정확히 하나와 맞으면 자동으로 고른다.** 그래서 Studio 연동 프로젝트는 `default.project.json` 에 `servePlaceIds` 를 넣어 두는 것이 좋다(claude-doctor audit 02: table-sim, devplorer 는 있고 quad 는 없다). 이름이 같고 placeId 가 없는 두 Studio 는 `--studio <studio-sync --list 의 id>`.
+- **여러 Studio**: `list_roblox_studios` 가 둘 이상을 보이면 `--place` 가 필요하다(`studio_id` 는 받지 않는다). 없으면 거부하고 열린 플레이스를 나열한다. **단 프로젝트의 `servePlaceIds` 가 정확히 하나와 맞으면 자동으로 고른다.** 그래서 Studio 연동 프로젝트는 `default.project.json` 에 `servePlaceIds` 를 넣어 두는 것이 좋다(qwreey-harness audit 02: table-sim, devplorer 는 있고 quad 는 없다). 이름이 같고 placeId 가 없는 두 Studio 는 `--studio <studio-sync --list 의 id>`.
 - **필요 조건**: Studio 가 플레이스를 연 채 실행 중이어야 한다. 동기화 플러그인은 studio 컨테이너가 뜰 때 설치되고 Studio 는 시작할 때만 플러그인을 읽으므로, 그보다 먼저 뜬 Studio 는 사람이 재시작해야 한다.
 - **확인**: MCP `search_game_tree`, `inspect_instance` 나 code-docker 의 `studio-output -n 100 --no-follow`(모든 사람의 Output).
 - code-docker 에 보이는 `rojo sourcemap --watch` 는 luau-lsp 에디터 확장의 것이고, 살아 있는 `rojo serve` 는 사람의 라이브 세션이다. 건드리지 않는다. 라이브 동기화(`rojo serve --address 0.0.0.0`, 포트 34872–34879, 호스트 `roblox-studio-front`)는 Studio 클릭이 필요하므로 사람 몫이다.
@@ -132,4 +132,4 @@ status: verified (목록과 설명) · last-confirmed: 2026-11-10 (`skill` 도�
 | `rbx-configs-experimentation` | ConfigService 로 재시작 없는 값 조정, 기능 플래그, A/B 실험을 할 때 |
 | `rbx-instrument-analytics` | AnalyticsService 이벤트 계측을 감사하거나 넣을 때 |
 | `rbx-import-asset` | 외부 3D 도구의 모델을 Open Cloud 로 올려 넣을 때 |
-| `rbx-create-skill` | Studio 쪽 skill 을 만들거나 고칠 때. 프로젝트 지식은 이식성 때문에 Claude Code 쪽 SKILL.md 가 낫다(claude-doctor audit 02) |
+| `rbx-create-skill` | Studio 쪽 skill 을 만들거나 고칠 때. 프로젝트 지식은 이식성 때문에 Claude Code 쪽 SKILL.md 가 낫다(qwreey-harness audit 02) |

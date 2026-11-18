@@ -37,7 +37,7 @@ done
 ```markdown
 # <repo> 세션에게 — <한 줄 요지>
 
-claude-doctor 의 harness-doctor 가 <날짜>에 이 저장소를 진단했습니다. 진행 중인 작업과 충돌하지 않도록 **반영은 이 세션이 직접** 해 주세요. 지금 작업이 끝난 뒤에 해도 됩니다.
+qwreey-harness 의 harness-doctor 가 <날짜>에 이 저장소를 진단했습니다. 진행 중인 작업과 충돌하지 않도록 **반영은 이 세션이 직접** 해 주세요. 지금 작업이 끝난 뒤에 해도 됩니다.
 
 ## 발견 (scan 코드와 위치)
 1. `<코드>` `<파일:줄>` — <무엇이 문제인지 한두 줄>
@@ -46,7 +46,7 @@ claude-doctor 의 harness-doctor 가 <날짜>에 이 저장소를 진단했습�
 ## 하지 말 것
 - <예: indent 값은 D-02 상 저장소 소유라 바꾸지 않음, 삭제는 HUMAN_TODO 에 있음>
 ## 반영 뒤 확인
-- `python3 -I <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py <경로> --only <항목>` 에서 해당 코드가 사라지는지
+- `python3 -I <qwreey-harness>/plugins/q/skills/doctor/scripts/scan.py <경로> --only <항목>` 에서 해당 코드가 사라지는지
 - 다 끝나면 사용자에게 알려 주세요.
 ```
 인계 문서를 만들었으면 `<doctor>/HUMAN_TODO.md` "다른 세션에 넘길 것" 절에 "<repo> 세션에 `.claude/handoff/<repo>.md` 전달" 항목을 더한다.

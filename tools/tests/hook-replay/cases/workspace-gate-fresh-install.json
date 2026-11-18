@@ -30,7 +30,7 @@
    "expect": {"empty": true}
   },
   {
-   "write": {"{cfg}/settings.json": "{\"pluginConfigs\": {\"qwreey-workspace@claude-doctor-market\": {\"options\": {\"harness_workspace_exclude\": \"{sandbox}/Documents\"}}}}\n"}
+   "write": {"{cfg}/settings.json": "{\"pluginConfigs\": {\"qwreey-workspace@qwreey-harness\": {\"options\": {\"harness_workspace_exclude\": \"{sandbox}/Documents\"}}}}\n"}
   },
   {
    "hook": "plugins/qwreey-workspace/scripts/workspace_gate.py",
@@ -45,7 +45,7 @@
    "expect": {"decision": "deny"}
   },
   {
-   "write": {"{cfg}/settings.json": "{\"pluginConfigs\": {\"qwreey-workspace@claude-doctor-market\": {\"options\": {\"harness_workspace_gate\": false}}}}\n"}
+   "write": {"{cfg}/settings.json": "{\"pluginConfigs\": {\"qwreey-workspace@qwreey-harness\": {\"options\": {\"harness_workspace_gate\": false}}}}\n"}
   },
   {
    "hook": "plugins/qwreey-workspace/scripts/workspace_gate.py",

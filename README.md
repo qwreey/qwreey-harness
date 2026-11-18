@@ -1,4 +1,4 @@
-# claude-doctor
+# qwreey-harness
 
 Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, 감사 에이전트 초안, 규약 합의안)를 관리하는 저장소다.
 특정 언어나 sandbox 에 묶이지 않게 짰다. 언어별 검사는 **툴킷**(지금 luau, web 골격)에 둔다. 플러그인은 하나씩 골라 설치하고 설치본만으로 돈다. 설정은 각 플러그인의 `/config` 옵션(userConfig)이고, `home/.claude/harness.env` 는 저장소 층과 튜닝 값을 위한 고급용 선택 파일이다.
@@ -30,9 +30,9 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 동료처럼 필요한 플러그인만 쓰는 경우. 클론, harness.env, `home-sync` 는 필요 없다.
 
 1. 마켓을 한 번 더한다: `claude plugin marketplace add <GitHub 저장소>`.
-2. `plugins/*/README.md` 카드를 보고 고른 것을 설치한다: `claude plugin install <이름>@claude-doctor-market`. 설치본(`~/.claude/plugins/cache/` 의 사본)만으로 돈다.
-3. 설정은 `/plugin configure <이름>@claude-doctor-market` 나 `/config` 의 플러그인 옵션에서 고른다. 다른 저장소는 qwreey-workspace 가 세션 기록에서 자동으로 찾고, 빠진 곳은 그 옵션으로 더한다.
-4. 갱신: 공식이 아닌 마켓은 자동 갱신이 기본으로 꺼져 있다. `/plugin` 의 Marketplaces 에서 자동 갱신을 켜거나, `claude plugin marketplace update claude-doctor-market` 뒤 `claude plugin update <이름>@claude-doctor-market`, 그다음 `/reload-plugins`.
+2. `plugins/*/README.md` 카드를 보고 고른 것을 설치한다: `claude plugin install <이름>@qwreey-harness`. 설치본(`~/.claude/plugins/cache/` 의 사본)만으로 돈다.
+3. 설정은 `/plugin configure <이름>@qwreey-harness` 나 `/config` 의 플러그인 옵션에서 고른다. 다른 저장소는 qwreey-workspace 가 세션 기록에서 자동으로 찾고, 빠진 곳은 그 옵션으로 더한다.
+4. 갱신: 공식이 아닌 마켓은 자동 갱신이 기본으로 꺼져 있다. `/plugin` 의 Marketplaces 에서 자동 갱신을 켜거나, `claude plugin marketplace update qwreey-harness` 뒤 `claude plugin update <이름>@qwreey-harness`, 그다음 `/reload-plugins`.
 
 ## 하네스 전체를 sandbox 에 설치하기
 
@@ -43,7 +43,7 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 1. **클론**한다. 위치는 상관없다(`home-sync` 와 마켓 경로는 클론 위치에서 정해진다).
    ```bash
    cd <작업공간>            # 예: ~/Projects
-   git clone <claude-doctor 저장소 URL> claude-doctor
+   git clone <qwreey-harness 저장소 URL> qwreey-harness
    ```
 2. **환경 설정**(선택): 보통의 설정은 각 플러그인의 `/config` 옵션이다. `home/.claude/harness.env` 는 그 밖의 고급 값만 이 sandbox 에 맞게 고친다. 키 설명은 이 파일의 주석에 있다. 기본값은 여러 플러그인이 읽는 키면 `home/.claude/lib/harness_env.py` 의 `DEFAULTS`, 한 플러그인만 읽는 키면 그 플러그인의 `docs/how-it-works.md` 와 읽는 코드(`ENV_DEFAULTS` 등).
    - `HARNESS_TOOL_INSTALLS`: 툴체인 설치 경로(mise 기본은 `~/.local/share/mise/installs`)
@@ -60,10 +60,10 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
      **적용된 마이그레이션은 고치지 않는다.** 한 번이라도 apply 한 id 는 다시 돌지 않으므로, 바꿀 것은 새 번호(0002, 0003 …)로 추가한다. 0001 은 첫 apply 전까지만 고칠 수 있다.
    - **플러그인:** 마이그레이션은 `extraKnownMarketplaces`·`enabledPlugins` 로 "무엇을 켤지" 만 선언한다(공식 배포 방식과 같음). 실제 설치는 Claude Code 가 세션을 시작할 때 한다(사용자 레벨 settings 에서도 확인, 2026-11-11: apply 뒤 새 세션에서 q·qwreey-advisor 이 손으로 설치하지 않았는데 설치되고 쓰였다). `status`/`apply` 끝에 설치 안 된 것과 설치 명령을 보여 준다. 바로 설치하려면 `HOME_SYNC_INSTALL_PLUGINS=1 tools/home-sync.sh apply`.
    - 훅은 플러그인(`q`, `qwreey-advisor`, `qwreey-conventions`, `qwreey-proc-guard`)이 등록하므로 settings.json 에 훅 명령이 없다(옛 user-level 훅 등록은 마이그레이션 0006 이 걷는다). 남는 것은 statusLine 의 `$HOME/.claude/statusline/harness-status.py` 뿐이라 `CLAUDE_CONFIG_DIR` 로 설정 디렉터리를 옮겼다면 그 경로만 고친다. 훅은 사용자 설정을 `$CLAUDE_CONFIG_DIR`(기본 `~/.claude`)에서 읽는다.
-5. **luau 팩**(luau 툴킷): luau-kb 는 이 저장소의 도메인 팩(`packs/luau-kb`, 기본 꺼짐)이다. Luau 저장소의 `.claude/settings.json` 에 `"enabledPlugins": {"luau-kb@claude-doctor-market": true}` 를 더한다(6번의 마켓 등록이 먼저). 예전 `~/.claude/skills/luau-*`·`~/.claude/rules/luau-core.md` 심볼릭 링크는 지운다(둘 다 두면 겹친다).
-6. **q 플러그인**: `claude plugin marketplace add <claude-doctor 폴더>` 후 `claude plugin install q@claude-doctor-market`(마이그레이션 0002 가 켠다). 옛 `~/.claude/skills/{away,back,harness-doctor}` 는 apply 가 지우지 않는다: `tools/home-sync.sh status` 의 고아 보고를 보고 직접 정리한다.
+5. **luau 팩**(luau 툴킷): luau-kb 는 이 저장소의 도메인 팩(`packs/luau-kb`, 기본 꺼짐)이다. Luau 저장소의 `.claude/settings.json` 에 `"enabledPlugins": {"luau-kb@qwreey-harness": true}` 를 더한다(6번의 마켓 등록이 먼저). 예전 `~/.claude/skills/luau-*`·`~/.claude/rules/luau-core.md` 심볼릭 링크는 지운다(둘 다 두면 겹친다).
+6. **q 플러그인**: `claude plugin marketplace add <qwreey-harness 폴더>` 후 `claude plugin install q@qwreey-harness`(마이그레이션 0002 가 켠다). 옛 `~/.claude/skills/{away,back,harness-doctor}` 는 apply 가 지우지 않는다: `tools/home-sync.sh status` 의 고아 보고를 보고 직접 정리한다.
 7. **진단**: Claude Code 에서 `/q:doctor --user`, 그다음 `/q:doctor <저장소>`.
-   스크립트만 돌리려면 `python3 -I <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py --env` 와 `... scan.py <저장소>`. 정본 검사(`home/` 대조, 설치 어긋남)는 이 저장소에서 연 세션에서만 돈다. 다른 곳에서 돌리려면 환경 변수 `HARNESS_DOCTOR_ROOT` 로 이 폴더를 알린다.
+   스크립트만 돌리려면 `python3 -I <qwreey-harness>/plugins/q/skills/doctor/scripts/scan.py --env` 와 `... scan.py <저장소>`. 정본 검사(`home/` 대조, 설치 어긋남)는 이 저장소에서 연 세션에서만 돈다. 다른 곳에서 돌리려면 환경 변수 `HARNESS_DOCTOR_ROOT` 로 이 폴더를 알린다.
 
 ## Windows
 

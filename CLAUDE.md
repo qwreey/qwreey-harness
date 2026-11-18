@@ -1,4 +1,4 @@
-# claude-doctor
+# qwreey-harness
 
 Source of truth for the Claude Code harness. Pointers only; read the target, not everything.
 

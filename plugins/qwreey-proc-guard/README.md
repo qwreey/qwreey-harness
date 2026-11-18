@@ -18,12 +18,12 @@
 - `pgrep -f` 검사: `python3` 만.
 
 ## 끄기
-- `claude plugin disable qwreey-proc-guard@claude-doctor-market` (제거는 `uninstall`).
+- `claude plugin disable qwreey-proc-guard@qwreey-harness` (제거는 `uninstall`).
 
 ## 설치
 ```bash
-claude plugin marketplace add <claude-doctor 폴더>   # 마켓을 처음 쓸 때 한 번
-claude plugin install qwreey-proc-guard@claude-doctor-market
+claude plugin marketplace add <qwreey-harness 폴더>   # 마켓을 처음 쓸 때 한 번
+claude plugin install qwreey-proc-guard@qwreey-harness
 ```
 
 자세한 동작(판정 규칙, 설정, 테스트): [docs/how-it-works.md](docs/how-it-works.md)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# claude-doctor/home/.claude (정본) <-> ~/.claude (실제) 동기화 도우미.
+# qwreey-harness/home/.claude (정본) <-> ~/.claude (실제) 동기화 도우미.
 #
 #   tools/home-sync.sh status   관리 대상 파일마다 같음/다름/한쪽에만 있음을 표시한다 (기본 동작)
 #   tools/home-sync.sh diff     정본에서 실제로 가는 diff 를 보여준다 (apply 하면 바뀔 내용)

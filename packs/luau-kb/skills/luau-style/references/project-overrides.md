@@ -36,7 +36,7 @@ last_verified: 2026-11-10
 ---
 
 ## §1 결정 상태
-status: described · 근거: claude-doctor `.claude/base/decisions/README.md` "사용자 결정 현황 (2026-11-10)"
+status: described · 근거: qwreey-harness `.claude/base/decisions/README.md` "사용자 결정 현황 (2026-11-10)"
 
 | ID | 주제 | 상태 | 이 스킬에서 |
 |---|---|---|---|

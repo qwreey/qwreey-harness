@@ -1,6 +1,6 @@
 # D-04 type function — 결정 (2026-11-10)
 
-원문: `claude-doctor .claude/base/decisions/D-04-type-functions.md` 끝의 "사용자 결정" 절. 이 파일은 요약이다.
+원문: `qwreey-harness .claude/base/decisions/D-04-type-functions.md` 끝의 "사용자 결정" 절. 이 파일은 요약이다.
 
 ## 맥락
 quad 는 '진단 전용'(결과 타입 합성 금지), stl 페이퍼는 '쓰지 않는다', stl 규약은 '주의해서, 시제품으로 재고 사용자에게', tbox 는 핵심 API(`Static`/`Merge`/`Union`/`Tuple`)에 쓴다.

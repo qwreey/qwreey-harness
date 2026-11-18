@@ -104,7 +104,7 @@
 | type function 모듈 경계·무한 루프 | `bash snippets/tf-cross-module.sh` rc=0, 16개 확인 전부 ok. 프라이밍 문제는 luau-lsp 1.69.0(모든 FFlag 켬)만이다. 1.70.1 에서는 `LuauDoNotExportBrokenTypeFunction` 이 "Unknown FFlag" 다. 무한 루프는 0.734·0.742·lsp 1.70.1 analyze 를 멈춘다(timeout 5초에 rc=124) | `snippets/tf-cross-module.sh` |
 | type function hover·자동완성 | 1.69.0·1.70.1 같음. 시그니처 hover 는 `StripNil<T>` 를 그대로 보여 주고, 호출 결과는 `number` 다. `index<Map, K>` 무주석 콜백은 `v: unknown`, 구체 시그니처는 `number` 다. type function 이 만든 테이블은 키 자동완성이 된다 | `python3 -I tools/lsp_probe.py snippets/tf-dx-hover.luau --lsp <ver> --hover 33:16 --hover 36:7 --hover 40:8 --hover 45:8 --complete 49:19` |
 | quad 실물 `Quad` 패스스루 | quad-types 패키지를 `/tmp` 로 복사해 `Pass<QuadTypes.Quad>` 뒤 `:AddPlugin` 을 불렀다. 0.742 는 "Type functions do not currently support types of the form 'CheckReservedKeys<keyof<T>>'" 를 내고 `AddPlugin` 키가 사라졌다. 0.734 는 메시지 없이 키만 사라졌다. 직접 쓴 `Quad` 는 정상 검사됐다 | 수동(quad 원본은 읽기만 함) |
-| mise shim | 프로젝트 `mise.toml` 밖에서 `luau-analyze --help` 를 부르면 `mise ERROR No version is set for shim` 을 내면서도 **rc=0** 이다 | `/code/Projects/claude-doctor` 에서 실행 |
+| mise shim | 프로젝트 `mise.toml` 밖에서 `luau-analyze --help` 를 부르면 `mise ERROR No version is set for shim` 을 내면서도 **rc=0** 이다 | `<qwreey-harness 클론>` 에서 실행 |
 | Roblox 정의 파일 | `luau-analyze` 는 `Instance`, `game` 을 모른다(정의 파일 옵션 없음). `luau-lsp 1.70.1 analyze --platform=roblox --definitions=typedefs/globalTypes.d.luau` 는 `Instance.new("Part").Name` 을 `number` 에 넣는 줄을 잡는다. 정의 파일 없이 `--platform=roblox` 를 주면 경고 후 `Unknown global 'Instance'` | 수동 |
 | `const` | `lune 0.10.5 run` 은 `const x = 1` 에서 "Incomplete statement" 로 실패한다. `luau 0.734` 는 실행한다. `luau-analyze 0.742` 는 재대입을 `SyntaxError: Variable 'x' is constant…` 로 잡는다. `stylua 2.5.2 --syntax luau --check` 는 통과한다 | 수동 |
 
@@ -160,10 +160,10 @@
 ### 정정 (references 의 '정정' 절에 원천 경로와 함께 있음)
 | 원래 주장 | 원천 | 실측 | 처리 |
 |---|---|---|---|
-| `local const x = 1` 은 린트 경고만 난다 | claude-doctor `.claude/base/decisions/D-01-const.md` §2 | `--!strict` 에서는 `Unknown global 'x'` TypeError. 린트만은 nonstrict 한정 | 정정(`idioms.md`) |
+| `local const x = 1` 은 린트 경고만 난다 | qwreey-harness `.claude/base/decisions/D-01-const.md` §2 | `--!strict` 에서는 `Unknown global 'x'` TypeError. 린트만은 nonstrict 한정 | 정정(`idioms.md`) |
 | 맨 `function name()` 에 `GlobalUsedAsLocal` 린트가 난다 | quad `scripts/test.sh:33-35`(후보 Q-082) | 모듈 스코프 선언을 여러 곳에서 쓰면 진단·린트 0건 | 범위 좁힘(`idioms.md`) |
 | require 경로 오류는 정적 검사가 못 잡는다 | `decisions/D-12-require-paths.md` | strict 는 없는 경로를 잡는다. 못 잡는 건 nonstrict 와 오배선 | 정정(`modules.md`) |
-| 동적 require 경로는 `ambiguous` 에러 | `claude-doctor .claude/scopes/packs/luau-kb/archive/research/drafts/style` 초안 `modules.md:315` | CLI 런타임은 실행, strict analyze 만 거부 | 정정(`modules.md`) |
+| 동적 require 경로는 `ambiguous` 에러 | `qwreey-harness .claude/scopes/packs/luau-kb/archive/research/drafts/style` 초안 `modules.md:315` | CLI 런타임은 실행, strict analyze 만 거부 | 정정(`modules.md`) |
 | `tests/init.luau` 의 ambiguous 는 `src/init.luau` 와 이름이 겹쳐서 | tbox `CLAUDE.md:141-147` | 실제 함정은 `./` 가 루트를 가리키는 것. ambiguous 는 `X.luau`+`X/` 형제 | 정정(`modules.md`, 후보 X-04 판정) |
 | `table.insert(t, f())` 는 타입 검사가 못 잡는다 | moonwave `conventions.md:122-123`(후보 M-14) | 값 0개 경우는 strict 가 잡는다. 2개 경우만 못 잡음 | 범위 좁힘(`pitfalls.md`) |
 
@@ -233,7 +233,7 @@
 - 명령: `python3 -I tools/check_snippets.py --luau 0.734,0.742 --lsp 1.70.1 --table <아래 파일>` → **rc=0**. 이 절의 스니펫 60개(`test-` 11, `pack-` 13, `opt-` 7, `native-` 6, `verify-` 2, 타입 행 재현 `generics-`·`solver-`·`unions-`·`variance-` 21) 전부 통과. Roblox 모드 1개는 luau-lsp 1.70.1·1.69.0 두 버전으로 검사했다.
 - 전체 회귀: `snippets/*.luau` 138개 × 두 버전 rc=0, `bash snippets/tf-cross-module.sh` rc=0, `bash snippets/verify-require.sh` rc=0(34개 확인).
 - 칸의 `X<n>` 은 실행 머리(`--@run-opt`, `--@run-with`, `--@compile`, `--@inline-remarks`, `--@codegen`) 검사 수다(`skills/luau-verify/references/snippet-markers.md` §2a). `solver-ipairs-single-var` 는 0.746 에서도 통과했다(위양성이 남아 있음).
-- 하네스 통합: claude-doctor `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/tools/check_roblox.py` 는 `--mode roblox`/`--@lsp-roblox`(+`--@sourcemap`, `--rbx-lsp`, `--defs`)로, `claude-doctor .claude/scopes/packs/luau-kb/archive/research/drafts/gaps/tools/run_opt.sh` 의 29개 확인은 위 실행 머리로 옮겼다. 초안 Roblox 스니펫 13개(`roblox-*`, `parallel-*`)도 `--mode roblox` 로 26/26 ok.
+- 하네스 통합: qwreey-harness `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/tools/check_roblox.py` 는 `--mode roblox`/`--@lsp-roblox`(+`--@sourcemap`, `--rbx-lsp`, `--defs`)로, `qwreey-harness .claude/scopes/packs/luau-kb/archive/research/drafts/gaps/tools/run_opt.sh` 의 29개 확인은 위 실행 머리로 옮겼다. 초안 Roblox 스니펫 13개(`roblox-*`, `parallel-*`)도 `--mode roblox` 로 26/26 ok.
 
 | 스니펫 | luau 0.734 | luau 0.742 | luau-lsp 1.70.1 (참고) |
 |---|---|---|---|
@@ -346,7 +346,7 @@
 
 - 명령: `python3 -I tools/check_snippets.py --luau 0.734,0.742 --table snippets/rbx-*.luau` → **17개 전부 통과, rc=0**. 머리 `--@lsp-roblox` 인 14개는 하네스 Roblox 모드(luau-lsp 1.70.1·1.69.0, `--platform=roblox`, `typedefs/globalTypes.d.luau`, 새 솔버)로, 나머지 3개(`rbx-gc-*`)는 luau-analyze + `luau` 실행으로 돈다.
 - 여러 파일이 필요한 require 주장: `bash snippets/rbx-require-cli.sh` → 51개 확인 전부 ok, rc=0(luau 0.734·0.742, luau-lsp 1.70.1).
-- `rbx-types-*`·`rbx-parallel-*` 13개는 claude-doctor `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/snippets/` 의 `roblox-*`·`parallel-*` 를 이름만 바꿔 옮겼다. `rbx-types-engine-calls.luau` 는 새로 썼다.
+- `rbx-types-*`·`rbx-parallel-*` 13개는 qwreey-harness `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/snippets/` 의 `roblox-*`·`parallel-*` 를 이름만 바꿔 옮겼다. `rbx-types-engine-calls.luau` 는 새로 썼다.
 - Studio 런타임 동작(신호, Destroy, 트윈, 엔진 GC)은 스니펫으로 만들지 않았다. references 에서 `status: described` + 원천 Studio 실측 경로로 둔다(Studio MCP 미사용).
 
 | 스니펫 | luau 0.734 | luau 0.742 |
@@ -405,8 +405,8 @@
 
 | 원래 주장 | 원천 | 재측정(0.742, 모드 셋 + 0.734 `-O1`) | 처리 |
 |---|---|---|---|
-| 글자마다 도는 Luau 파서는 `gmatch`+`tonumber` 보다 약 40 배 느리다 | claude-doctor .claude/scopes/packs/luau-kb/audit/09 M-05 요약(원문 mrow REVIEW:809-813 은 컴비네이터 라이브러리 값) | `string.byte` 손 파서가 0.69~0.74x(인터프리터), 0.25x(native) | **방향 뒤집힘**. `strings.md` §5 |
-| 정렬 병합은 해싱을 못 이긴다(Union 5.9 배 느림) | stl perf 9절, claude-doctor .claude/scopes/packs/luau-kb/audit/09 S-P14·S-P47 | 이미 정렬된 배열 병합이 해시의 0.27~0.38x(비교자 함수를 거쳐도 0.39~0.57x). 정렬부터 하면 해시가 1.16~1.24 배 이김 | **방향 뒤집힘(일반화 범위)**. `algorithms-and-structures.md` §8 |
+| 글자마다 도는 Luau 파서는 `gmatch`+`tonumber` 보다 약 40 배 느리다 | qwreey-harness .claude/scopes/packs/luau-kb/audit/09 M-05 요약(원문 mrow REVIEW:809-813 은 컴비네이터 라이브러리 값) | `string.byte` 손 파서가 0.69~0.74x(인터프리터), 0.25x(native) | **방향 뒤집힘**. `strings.md` §5 |
+| 정렬 병합은 해싱을 못 이긴다(Union 5.9 배 느림) | stl perf 9절, qwreey-harness .claude/scopes/packs/luau-kb/audit/09 S-P14·S-P47 | 이미 정렬된 배열 병합이 해시의 0.27~0.38x(비교자 함수를 거쳐도 0.39~0.57x). 정렬부터 하면 해시가 1.16~1.24 배 이김 | **방향 뒤집힘(일반화 범위)**. `algorithms-and-structures.md` §8 |
 | 업밸류를 든 클로저가 지역 함수보다 5~8 ns 비싸다 | stl perf 55절, S-P27 | `-O1` 차이 없음(0.95~0.97). `-O2` 3.5x·native 6.3x 는 지역 함수 인라인 때문 | **원인 정정**. `calls-and-closures.md` §7 |
 | `#` 는 O(log n), 20만에서 약 90 ns | stl perf 17절, S-P33 | 경계 캐시로 반복 호출은 필드 읽기의 0.83~1.03 배 | 조건 정정. `tables.md` §8 |
 | 숫자 키 조회가 테이블 키보다 싸다(9.1 대 14.8 ns) | stl perf 39절, S-P23 | 배열부 정수만 0.49~0.76x. 해시부 정수·실수 키는 1.16~1.43x 로 더 느림 | 범위 정정. `tables.md` §8 |

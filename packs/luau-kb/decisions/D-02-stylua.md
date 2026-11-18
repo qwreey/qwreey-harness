@@ -1,6 +1,6 @@
 # D-02 stylua — 결정 (2026-11-10)
 
-원문: `claude-doctor .claude/base/decisions/D-02-stylua.md` 끝의 "사용자 결정" 절. 이 파일은 요약이다.
+원문: `qwreey-harness .claude/base/decisions/D-02-stylua.md` 끝의 "사용자 결정" 절. 이 파일은 요약이다.
 
 ## 맥락
 들여쓰기는 Tabs 5곳 / Spaces 2곳, `call_parentheses` 는 Always 2곳 / Input 4곳으로 갈렸고 quad 는 설정 파일이 없다. 들여쓰기를 바꾸면 3천~3만 3천 줄이 바뀐다. 하위 폴더에서 돌리거나 `syntax` 가 없으면 `f<<T>>(x)` 가 rc=0 인 채 시프트 연산으로 바뀐다.

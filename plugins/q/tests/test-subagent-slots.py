@@ -22,7 +22,7 @@ CFG = os.path.join(T, "cfg")
 os.makedirs(os.path.join(CFG, "plugins"))
 os.symlink(os.path.join(HOME, "lib"), os.path.join(CFG, "lib"))
 os.symlink(os.path.join(HOME, "harness.env"), os.path.join(CFG, "harness.env"))
-json.dump({"version": 2, "plugins": {"q@claude-doctor-market": [{"scope": "user", "installPath": Q, "lastUpdated": "2026-01-01T00:00:00Z"}]}},
+json.dump({"version": 2, "plugins": {"q@qwreey-harness": [{"scope": "user", "installPath": Q, "lastUpdated": "2026-01-01T00:00:00Z"}]}},
           open(os.path.join(CFG, "plugins", "installed_plugins.json"), "w"))
 PROJ = os.path.join(T, "proj")
 os.makedirs(os.path.join(PROJ, ".claude"))
@@ -536,7 +536,7 @@ check("off switch -> no output", hook({"session_id": "off", "hook_event_name": "
                                       dict(ENV, HARNESS_SUBAGENT_SLOTS="off")) is None)
 # /config 의 q 옵션(settings.json pluginConfigs)도 같은 스위치다. 옵션 키는 환경 변수 이름의 소문자.
 _opt = os.path.join(CFG, "settings.json")
-json.dump({"pluginConfigs": {"q@claude-doctor-market": {"options": {"harness_subagent_slots": False}}}}, open(_opt, "w"))
+json.dump({"pluginConfigs": {"q@qwreey-harness": {"options": {"harness_subagent_slots": False}}}}, open(_opt, "w"))
 po = S("opt-off")
 check("plugin option off -> no fan-out warn", [ctx(po.launch("opus")[0]) for _ in range(2)] == ["", ""])
 os.remove(_opt)
@@ -602,7 +602,7 @@ def sl_out(cfg_dir):
 def registry(entries):
     d = os.path.join(T, "cfg2")
     os.makedirs(os.path.join(d, "plugins"), exist_ok=True)
-    json.dump({"version": 2, "plugins": {"q@claude-doctor-market": entries}}, open(os.path.join(d, "plugins", "installed_plugins.json"), "w"))
+    json.dump({"version": 2, "plugins": {"q@qwreey-harness": entries}}, open(os.path.join(d, "plugins", "installed_plugins.json"), "w"))
     return d
 
 

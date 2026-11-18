@@ -1,11 +1,11 @@
 # Packs
 
-A pack is a domain-knowledge plugin in the `claude-doctor-market` marketplace with `"defaultEnabled": false`,
+A pack is a domain-knowledge plugin in the `qwreey-harness` marketplace with `"defaultEnabled": false`,
 so it stays off everywhere until a repo turns it on. Skill `paths` do not hide a skill's description, so
 scoping by project settings is what keeps a pack out of unrelated repos.
 
 A repo turns a pack on in its `coderag.toml`: `[[packs]]` with `name = "<pack>"`. Then `coderag adapt --harness claude` adds
-`"<pack>@claude-doctor-market": true` to `enabledPlugins` in `.claude/settings.json` (skills load) and never overrides an explicit `false`.
+`"<pack>@qwreey-harness": true` to `enabledPlugins` in `.claude/settings.json` (skills load) and never overrides an explicit `false`.
 The pack's path-scoped `rules/*.md` are injected by the coderag plugin (`coderag@coderag-market`, PostToolUse `hook post-tool`) only for packs the
 project lists; a pack ships no hooks of its own, so enabling the plugin alone injects nothing.
 coderag resolves a listed name through the user's coderag config (`~/.coderag/coderag.toml`, or `$CODERAG_HOME`): each machine registers

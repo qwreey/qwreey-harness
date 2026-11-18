@@ -14,7 +14,7 @@
 모든 훅은 모델을 부르지 않고, 실패하면 조용히 통과한다.
 
 ## 규약 주입 (`ambient.py`)
-- `context/ambient.md`(훅 알림의 위상과 info·warn·action 의 뜻, `~/.claude` 는 claude-doctor `home/` 에서 고친다는 줄, mise shim 우회 줄. 영어 다섯 줄)를 `<plugin name="q" nonce="…">` 로 감싸 `additionalContext` 로 낸다. 다른 플러그인의 훅 메시지는 이 배경을 전제로 쓰인다(`home/.claude/HOOK-MESSAGES.md`).
+- `context/ambient.md`(훅 알림의 위상과 info·warn·action 의 뜻, `~/.claude` 는 qwreey-harness `home/` 에서 고친다는 줄, mise shim 우회 줄. 영어 다섯 줄)를 `<plugin name="q" nonce="…">` 로 감싸 `additionalContext` 로 낸다. 다른 플러그인의 훅 메시지는 이 배경을 전제로 쓰인다(`home/.claude/HOOK-MESSAGES.md`).
 - SessionStart 는 메인에, SubagentStart 는 서브에이전트에 싣는다. fork 는 부모 맥락을 물려받으므로 건너뛴다.
 - UserPromptSubmit 은 세션 중간에 플러그인을 켠 경우의 보충으로, (세션, compact 회차)당 한 번만 싣는다.
 - 끄기: `HARNESS_Q_AMBIENT=off`(환경 변수 또는 harness.env 층: 사용자 `~/.claude/harness.env` < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`. 층 규칙은 `home/.claude/lib/harness_env.py` 머리, 플러그인은 늘 옆의 `scripts/harness_env.py` 사본을 쓴다).
@@ -27,7 +27,7 @@
 - 세는 법: PreToolUse 에서 예약(+1), PostToolUse(`async_launched`)·SubagentStart 에서 실행 중, SubagentStop 에서 −1. 어긋나면 `background_tasks`, 트랜스크립트 mtime, 예약 TTL 로 복구하고, 수동으로는 `/q:away reset`.
 - 평소에는 PostToolUse 마다 상태 파일의 `away.on` 만 보고 끝난다(원장 모듈을 읽지 않는다).
 - 상태: `$TMPDIR/claude-subagent-slots/<sid>.json`. 설정 우선순위: 환경 변수 > 저장소 `.claude/harness.local.env` > 저장소 `.claude/harness.env` > q 옵션(`/config`) > `~/.claude/harness.env` > 기본값(`subagent_ledger.py` 의 `CFG_DEFAULTS`). 원장은 자기 키(`HARNESS_SUBAGENT_`·`HARNESS_FANOUT_`·`HARNESS_AWAY_`·`HARNESS_SLOTS_` 접두)만 낸다. 저장소 층이 실행 경로 같은 하네스 값을 바꾸지 못하게 하는 것은 로더의 `USER_ONLY` 다.
-- claude-doctor 의 statusline 은 설치된 q 의 원장을 읽어 away 상태와 서브에이전트 수를 보인다. q 가 없으면 그 항목만 뺀다.
+- qwreey-harness 의 statusline 은 설치된 q 의 원장을 읽어 away 상태와 서브에이전트 수를 보인다. q 가 없으면 그 항목만 뺀다.
 - 끄기: q 옵션 `harness_subagent_slots`(`/config`), 또는 `HARNESS_SUBAGENT_SLOTS=off`(환경 변수, harness.env 층).
 
 ## 방치된 작업 알림 (`stale_work.py`)
@@ -39,7 +39,7 @@
 ## 설치 어긋남 고지 (`drift.py`)
 - SessionStart 에서 사용자에게만 한 줄(`systemMessage`)을 보인다. 모델에는 주지 않는다.
 - 플러그인: 켜 둔 마켓 플러그인의 설치 버전이 마켓의 `plugin.json` 버전보다 낮으면 `claude plugin update <name>@<market>` 을 보인다. 원격 마켓은 로컬 사본이 `marketplace update` 될 때까지의 비교다.
-- home: 저장소 루트에 `tools/home-sync.sh` 가 있으면(claude-doctor) `home-sync.sh status` 를 돌려 어긋남을 한 줄로.
+- home: 저장소 루트에 `tools/home-sync.sh` 가 있으면(qwreey-harness) `home-sync.sh status` 를 돌려 어긋남을 한 줄로.
 - 같은 내용은 하루 한 번(바뀌면 바로). compact 로 다시 시작한 세션은 건너뛴다. 상태: `$TMPDIR/claude-q-drift/state.json`. 끄기: q 옵션 `harness_q_drift`(`/config`), 또는 `HARNESS_Q_DRIFT=off`(환경 변수, harness.env 층. 기본값은 `drift.py` 의 `DRIFT_DEFAULTS`).
 
 ## /q:doctor

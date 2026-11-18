@@ -11,7 +11,7 @@ status: active
 
 ## 결정하는 법
 - 규약이 저장소마다 갈리면 한쪽으로 통일하지 않는다. 항목마다 근거를 붙인 합의안을 `.claude/base/decisions/D-xx` 로 쓰고 사용자 확인을 받는다. 정책이 갈리면 선택지와 근거를 낸다.
-- 새 규약은 새 저장소와 claude-doctor 에만 적용한다. 형제 저장소의 옛 형태는 소급해 고치지 않고, 검사기는 인정만 한다.
+- 새 규약은 새 저장소와 qwreey-harness 에만 적용한다. 형제 저장소의 옛 형태는 소급해 고치지 않고, 검사기는 인정만 한다.
 - 다른 세션이 도는 저장소는 손대지 않는다(2026-11-10 quad 의 14GB worktree 는 lock 이 걸린 채 쓰이는 중이었고, 감사 보고의 "지워도 됨" 판단이 틀렸다). 고칠 것은 `.claude/handoff/<저장소>.md` 에 쓰고 전달은 사용자가 한다.
 - 상시로 실리는 문구는 기본 시스템 지시와 겹치는지 먼저 보고, 토론(`qwreey-debate:debate`)을 거쳐 정한다.
 
@@ -25,7 +25,7 @@ status: active
 - 규약(qwreey-conventions)과 coderag 는 잇지 않는다. 사용자: "컨벤션은 늘 필요하기도 하고. 또 무언가를 강제화 하기 위한 도구라서…stale 이 되는 도구도 아니고…coderag 는 처음부터 '컨벤션' 을 다루는 도구는 아닌것 같아서". qwreey-conventions 는 자기 주입기와 판정 훅을 가진 플러그인으로 남는다.
 
 ## 배포와 켜고 끄기
-- 공유와 배포는 플러그인으로 한다(마켓 `claude-doctor-market`).
+- 공유와 배포는 플러그인으로 한다(마켓 `qwreey-harness`).
 - 전역 CLAUDE.md 는 두지 않는다. 사용자: "끄고 켜거나 하는 유연성도 적고 이식성이 적어서. 없는게 나아보이기도 하더라. 하나를 정본으로 두고 끄고 켜는 방법을 선호". 상시 규약은 플러그인의 SessionStart·SubagentStart 주입(`lib/ambient.py`, 글은 `plugins/<p>/context/`)으로 싣고 플러그인마다 끈다(`.claude/audit/32-plugin-ambient-context.md`).
 - memory 줄은 상시 주입에 넣지 않는다. 사용자: "메모리 쓰는건 소수 경우고 그 때 알려주는게 일반적으로 싼것 같아". memory 파일을 쓸 때 실리는 memory rule 과 memory-placement 훅이 맡는다.
 - 플러그인은 독립 패키지다(Q28 a): 설치본만으로 돌고 자기 폴더, `CLAUDE_PLUGIN_DATA`, `CLAUDE_PROJECT_DIR`, Claude Code 자신의 파일만 본다. 이 저장소의 클론 위치, 작업공간 폴더, 다른 플러그인 설치 여부에 기대지 않고, 다른 플러그인은 있을 때만 쓴다. 기반 플러그인과 묶음 플러그인은 두지 않는다. 사용자: "딱 하나의 plugins/*/readme.md 를 보고 필요한걸 까는 구조", "윈도우면 문서함에 프로젝트가 있기도, desktop 에 프로젝트가 있기도 다 다르고". 확인은 `HOOK_SANDBOX_PLUGIN_COPY=1 python3 -I tools/tests/test-hook-replay.py`. 계획 `.claude/archive/plan/plugin-independence.md`.

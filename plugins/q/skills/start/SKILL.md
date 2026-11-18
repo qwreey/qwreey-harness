@@ -111,7 +111,7 @@ Propose **one at a time** in this frame:
 - **Do not call Write, Edit, settings changes, or install commands before getting "예".**
 - On "예": when editing an existing file, first copy it to `<file>.bak-<YYYYMMDD>` in the same folder (covered by the consent just given; mention it in the proposal). Then change exactly what was proposed and show the changed part.
 - If circumstances require something different from the proposal, stop and ask again.
-- If an improvement requires editing a company canonical source or shared repo (e.g. claude-doctor `home/`), do not edit it; turn it into a proposal of "who to ask for what".
+- If an improvement requires editing a company canonical source or shared repo (e.g. qwreey-harness `home/`), do not edit it; turn it into a proposal of "who to ask for what".
 
 ### Step 6. Wrap up
 

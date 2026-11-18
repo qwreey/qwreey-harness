@@ -65,7 +65,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippe
 - 새 솔버의 nonstrict 는 거의 아무것도 보고하지 않는다(quad doc-snippets.py 머리 설명, 위 스니펫과 일치).
 
 ## §2 러너 (결정: D-03)
-status: described (정책) / verified (lune 의 const 파싱 실패) · 원천: 사용자 결정 claude-doctor `.claude/base/decisions/D-03-runner.md` (2026-11-10), 이 저장소 `decisions/D-03-runner.md`; 결정 전 입장: stl-luau/.claude/base/architecture.md "런타임: 순수 luau", stl/moonwave-luau/table-sim/devplorer mise.toml 머리 주석, tbox/mise.toml `[tasks.test]`
+status: described (정책) / verified (lune 의 const 파싱 실패) · 원천: 사용자 결정 qwreey-harness `.claude/base/decisions/D-03-runner.md` (2026-11-10), 이 저장소 `decisions/D-03-runner.md`; 결정 전 입장: stl-luau/.claude/base/architecture.md "런타임: 순수 luau", stl/moonwave-luau/table-sim/devplorer mise.toml 머리 주석, tbox/mise.toml `[tasks.test]`
 
 **결정**: 기본 러너는 `luau` CLI 다. lune 은 쓰지 않는다.
 - Roblox 서비스·환경에 기대는 동작(`task`, 이벤트 등)은 **필요한 부분만 mock 을 만들어** `luau` 로 돌리는 것이 기본이다. 항상 Studio 를 부르면 기계적으로 테스트할 수 없기 때문이다.
@@ -88,7 +88,7 @@ status: described (정책) / verified (lune 의 const 파싱 실패) · 원천: 
 - `pesde run` 은 스크립트를 lune 으로 돌리고 엔진을 `~/.pesde/bin` 에서 찾는다. 그 경로가 PATH 에 없으면 `failed to replace process` 로 패닉한다(described, 후보 X-09, `tbox/CLAUDE.md:134-137`). 스크립트는 mise task 로 luau·lute 를 직접 부른다.
 
 ## §3 `const` (결정: D-01)
-status: described (정책) / verified (언어·도구 동작) · 원천: 사용자 결정 claude-doctor `.claude/base/decisions/D-01-const.md` (2026-11-10), 이 저장소 `decisions/D-01-const.md`; 결정 전 입장: rbvm/.claude/conventions.md "const 를 쓰지 말 것", stl-luau/.claude/conventions.md "const 바인딩", tbox/quad mise.toml 의 pesde 핀 주석
+status: described (정책) / verified (언어·도구 동작) · 원천: 사용자 결정 qwreey-harness `.claude/base/decisions/D-01-const.md` (2026-11-10), 이 저장소 `decisions/D-01-const.md`; 결정 전 입장: rbvm/.claude/conventions.md "const 를 쓰지 말 것", stl-luau/.claude/conventions.md "const 바인딩", tbox/quad mise.toml 의 pesde 핀 주석
 
 **결정**: `const` 를 써도 된다. Roblox 라이브(게시) 코드까지 포함한다. rbvm 의 금지 근거(pesde 0.7.3)는 0.7.4 에서 사라졌다. 새 파일은 `const`, 기존 파일은 그 파일 관행을 따르고, 한 파일 안에서 `const` 와 재대입 없는 `local` 을 섞지 않는다. 결정 전 "정책 미정" 표시는 2026-11-10 에 걷었다.
 
@@ -101,7 +101,7 @@ status: described (정책) / verified (언어·도구 동작) · 원천: 사용�
 
 사실:
 - `luau-analyze` 는 `const` 재대입을 `SyntaxError: Variable 'x' is constant and may not be reassigned` 로 잡는다. stylua 2.5.2(`syntax = "Luau"`)는 `const` 를 포맷한다(이 저장소 수동 실측).
-- lune 0.10.5 와 selene 은 `const` 를 파싱하지 못한다. pesde 0.7.3 은 `const` 를 거부했고 0.7.4 는 받는다(quad·tbox mise.toml 주석, claude-doctor D-01 확인). pesde 0.7.3 이하의 `install` 은 `const` 파일에서 "failed to parse file to extract types" 경고를 내지만 설치는 된다(described, 후보 X-10, `tbox/CLAUDE.md:56-62`).
+- lune 0.10.5 와 selene 은 `const` 를 파싱하지 못한다. pesde 0.7.3 은 `const` 를 거부했고 0.7.4 는 받는다(quad·tbox mise.toml 주석, qwreey-harness D-01 확인). pesde 0.7.3 이하의 `install` 은 `const` 파일에서 "failed to parse file to extract types" 경고를 내지만 설치는 된다(described, 후보 X-10, `tbox/CLAUDE.md:56-62`).
 - `const` 를 모르는 도구는 조용히 틀린다. 정규식으로 Luau 를 고친 마이그레이션 스크립트가 `local` 만 보고 `const` 선언 25곳을 놓친 기록이 있다(described, 후보 D-F34, `devplorer/.claude/feedback/devui.md:149-150`). 선언을 찾는 스크립트는 `local` 과 `const` 를 둘 다 본다.
 - 함정: `local const x = 1` 은 `const` 라는 지역변수와 **전역 대입** `x = 1` 이 된다. 주석이 없으면 문법 에러도 나지 않는다(stl conventions, described).
 - stylua 의 `sort_requires` 는 `local X = require(...)` 꼴만 인식한다(rbvm 기록, described).
@@ -112,7 +112,7 @@ status: verified · last-confirmed: stylua 2.5.2 · 근거: `tools/repro-stylua-
 - **오염 조건은 "Luau 문법 설정이 없을 때"다.** stylua 가 `stylua.toml` 을 찾지 못하면 기본 문법으로 파싱하고, `id<<number>>(1)` 을 `id << number >> 1` 로, `T.Unsafe<<number>>({ a = 1 })` 를 `T.Unsafe << number >> { a = 1 }` 로 **rc=0 인 채** 바꾼다. 인자가 여럿이라 시프트로 파싱되지 않는 꼴(`f<<A, B>>(…)`)은 파싱 에러로 멈춘다.
 - `syntax = "Luau"` 가 설정에 있거나 `--syntax luau` 를 주면 그대로 보존된다. tbox 문서의 "syntax = Luau 에서도 오염" 은 재현되지 않았다. tbox 문서 스스로 "stylua 는 현재 디렉터리의 설정만 찾는다, 하위 디렉터리에서 돌리면 기본 설정으로 포매팅된다"고 적었는데, 그것이 실제 조건으로 보인다.
 - 규칙: stylua 는 **설정 파일이 있는 루트에서** 실행하거나 `--syntax luau` 를 명시한다. 포맷 뒤 `git diff` 에서 `<< ` 나 ` >>` 가 생겼는지 본다. stylua 를 올릴 때는 재현 스크립트를 먼저 돌린다.
-- 여러 저장소가 같은 모양의 `stylua.toml`(syntax Luau, column_width 120, Tabs, AutoPreferDouble, call_parentheses Always, collapse_simple_statement Never)을 쓴다. 들여쓰기(Tabs/Spaces)와 `call_parentheses`(Always/Input)는 저장소마다 갈린다(claude-doctor `.claude/base/decisions/D-02-stylua.md`).
+- 여러 저장소가 같은 모양의 `stylua.toml`(syntax Luau, column_width 120, Tabs, AutoPreferDouble, call_parentheses Always, collapse_simple_statement Never)을 쓴다. 들여쓰기(Tabs/Spaces)와 `call_parentheses`(Always/Input)는 저장소마다 갈린다(qwreey-harness `.claude/base/decisions/D-02-stylua.md`).
 - stylua 가 하위 디렉터리에서 기본 설정으로 포맷하는 같은 함정을 두 저장소가 따로 기록했다(후보 X-13, `tbox/CLAUDE.md:80-82`, `moonwave-luau/.claude/conventions.md:57-58`).
 
 > 결정: D-02 — 값(들여쓰기, `call_parentheses`)은 저장소 `stylua.toml` 이 소유한다. 공통 규칙은 '루트에서 실행, `syntax = "Luau"`, 포맷 뒤 `<<` diff 확인' 셋이다(`decisions/D-02-stylua.md`).

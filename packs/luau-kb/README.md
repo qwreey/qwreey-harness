@@ -23,10 +23,10 @@ Luau·Roblox 저장소에서 켜는 지식 팩이다. 켜 두면 Claude 가 Luau
 
 ## 설치
 ```bash
-claude plugin marketplace add <claude-doctor 폴더>   # 마켓을 처음 쓸 때 한 번
+claude plugin marketplace add <qwreey-harness 폴더>   # 마켓을 처음 쓸 때 한 번
 claude plugin marketplace add <coderag 폴더>
 claude plugin install coderag@coderag-market
-claude plugin install luau-kb@claude-doctor-market
+claude plugin install luau-kb@qwreey-harness
 ```
 기계마다 한 번 `~/.coderag/coderag.toml` 에 팩 위치를 등록하고, Luau 저장소의 `coderag.toml` 에 아래를 적은 뒤 `coderag adapt --harness claude` 를 돌린다.
 ```toml

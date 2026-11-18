@@ -2,7 +2,7 @@
 #   등록 예(소비자 쪽 coderag.toml 또는 ~/.coderag/coderag.toml):
 #     [[packs]]
 #     name = "luau-kb"
-#     path = "/code/Projects/claude-doctor/packs/luau-kb"
+#     path = "<qwreey-harness 클론>/packs/luau-kb"
 # 모듈 = 스킬 디렉터리 하나(SKILL.md + references/). 문서 ID 는 `pack:luau-kb/<스킬>` 이름공간을 쓴다(§14).
 # 캐시는 pack 안에 쓰지 않는다(소비자의 $CODERAG_HOME/cache/packs/). 분류 어휘는 taxonomy.toml(§16).
 
@@ -11,7 +11,7 @@ format = 1
 name = "luau-kb"
 description = "Luau 타입 한계·검증·테스트·성능·스타일·런타임·Roblox 엔진·업스트림 지식 (스킬 12개의 references)"
 taxonomy = "taxonomy.toml"
-claude_plugin = "luau-kb@claude-doctor-market"
+claude_plugin = "luau-kb@qwreey-harness"
 
 # 정책 값(coderag 코어에는 생태계 이름이 없다). 이 pack 을 등록한 프로젝트만 받는다.
 # [versions] known: mise.toml·rokit.toml 등의 핀에서 저장소 이름이 이 목록에 있으면 그 이름을 도구로 읽는다.

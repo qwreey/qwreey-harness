@@ -6,7 +6,7 @@
 --   테스트 함의: mock 을 getfenv 로 주입하는 스펙 파일은 -O2 로 돌려도 그 파일 자신의 인라인 경로를 재현하지 못한다.
 --   (인라이닝은 모듈 단위라, require 한 라이브러리 모듈은 여전히 인라인된다.)
 -- 근거: luau.org performance 가이드 "inlining is completely disabled for modules that use getfenv/setfenv"(luau-lang/site
---   src/content/docs/guides/performance.md 66-68행), 원천 claude-doctor .claude/scopes/packs/luau-kb/archive/research/drafts/gaps/testing.md 6, 후보 Q-118, D-R19
+--   src/content/docs/guides/performance.md 66-68행), 원천 qwreey-harness .claude/scopes/packs/luau-kb/archive/research/drafts/gaps/testing.md 6, 후보 Q-118, D-R19
 local _ = getfenv
 local function curline(): number
 	return (debug.info(2, "l") :: any) :: number

@@ -60,4 +60,4 @@ claude plugin validate plugins/luau-lsp
 `.cmd` 는 Linux 에서 돌릴 수 없어 모양만 본다(CRLF, PowerShell 호출 꼴, 서버 경로 앞에 stdout 출력 없음). `.ps1` 은 pwsh 7 로 돌려 sh 와 같은 기대값을 맞추지만, Windows PowerShell 5.1 과 cmd.exe 의 실제 동작은 Windows 기기에서 봐야 한다.
 
 ## 실측
-Claude Code 2.1.316 에서 잰 기동 시간, 진단이 붙는 시점, 모델이 LSP 도구를 쓰는 경우는 claude-doctor 의 `.claude/scopes/packs/luau-kb/audit/63-luau-lsp-probe/summary.md` 에 있다.
+Claude Code 2.1.316 에서 잰 기동 시간, 진단이 붙는 시점, 모델이 LSP 도구를 쓰는 경우는 qwreey-harness 의 `.claude/scopes/packs/luau-kb/audit/63-luau-lsp-probe/summary.md` 에 있다.

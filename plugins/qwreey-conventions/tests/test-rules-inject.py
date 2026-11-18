@@ -481,14 +481,14 @@ class SwitchedRule(unittest.TestCase):
     def test_plugin_option_on_repo_layer_off(self):
         """/config 의 플러그인 옵션(settings.json pluginConfigs)이 사용자 harness.env 를 이기고, 저장소 층이 그 위에서 끈다."""
         self.write(os.path.join(CFG, "harness.env"), "HARNESS_READABLE_CODE=off\n")
-        self.write(os.path.join(CFG, "settings.json"), json.dumps({"pluginConfigs": {"qwreey-conventions@claude-doctor-market": {
+        self.write(os.path.join(CFG, "settings.json"), json.dumps({"pluginConfigs": {"qwreey-conventions@qwreey-harness": {
             "options": {"harness_readable_code": True}}}}))
         try:
             self.assertIn(RC, ctx(run("PostToolUse", "Read", X + "/a.py", fresh())))
             self.write(os.path.join(PROJ, ".claude", "harness.env"), "HARNESS_READABLE_CODE=off\n")
             self.assertNotIn(RC, ctx(run("PostToolUse", "Read", X + "/a.py", fresh())))
             os.remove(os.path.join(PROJ, ".claude", "harness.env"))
-            self.write(os.path.join(CFG, "settings.json"), json.dumps({"pluginConfigs": {"qwreey-conventions@claude-doctor-market": {
+            self.write(os.path.join(CFG, "settings.json"), json.dumps({"pluginConfigs": {"qwreey-conventions@qwreey-harness": {
                 "options": {"harness_readable_code": False}}}}))
             self.assertNotIn(RC, ctx(run("PostToolUse", "Read", X + "/a.py", fresh())))
         finally:

@@ -12,7 +12,7 @@
 #  R5 Foo/init.luau 안의 "./Bar" 는 Foo 의 형제(폴더 밖)를 가리킨다. 폴더 안 Foo/Bar.luau 는 "@self/Bar" 로 부른다.
 #     일반 파일에서 "@self/x" 는 실패한다.
 #  R6 `luau-analyze src tests` 처럼 같은 모듈이 두 경로로 열리면 같은 진단이 './src/X.luau' 와 절대 경로로 두 번 보고된다.
-# 근거(후보): Q-102, Q-103, Q-104, S-123, S-124, S-126, S-128 (claude-doctor .claude/scopes/packs/luau-kb/audit/08, claude-doctor .claude/scopes/packs/luau-kb/audit/09). 원천 서술 Q-104 "커스텀 alias 는
+# 근거(후보): Q-102, Q-103, Q-104, S-123, S-124, S-126, S-128 (qwreey-harness .claude/scopes/packs/luau-kb/audit/08, qwreey-harness .claude/scopes/packs/luau-kb/audit/09). 원천 서술 Q-104 "커스텀 alias 는
 #   CLI 런타임에서 실패"는 alias 값에 ./ 가 없을 때만 맞다(quad .luaurc 가 "quad-base/src" 꼴).
 set -u
 MISE=${MISE_DATA_DIR:-$HOME/.local/share/mise}

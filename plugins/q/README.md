@@ -15,23 +15,23 @@
 - `/q:start`, `/q:doctor` 는 실행할 때 보통 대화만큼 든다.
 
 ## 요구 사항
-- `python3`. Linux·macOS·Windows(Windows 는 claude-doctor README 의 Windows 절).
-- 구독 한도 %로 예산을 걸려면 claude-doctor 의 statusline 이 한도 값을 기록해야 한다. 없으면 달러 기준으로 바뀐다.
+- `python3`. Linux·macOS·Windows(Windows 는 qwreey-harness README 의 Windows 절).
+- 구독 한도 %로 예산을 걸려면 qwreey-harness 의 statusline 이 한도 값을 기록해야 한다. 없으면 달러 기준으로 바뀐다.
 
 ## 설정
-`/plugin configure q@claude-doctor-market` 또는 `/config` 에서 고른다. 모두 기본 켜짐이다.
+`/plugin configure q@qwreey-harness` 또는 `/config` 에서 고른다. 모두 기본 켜짐이다.
 - 서브에이전트 고지와 자리 비움 슬롯(`harness_subagent_slots`): 끄면 규모 알림과 `/q:away` 제한이 모두 멈춘다.
 - 설치 어긋남 알림(`harness_q_drift`)
 - 방치된 백그라운드 작업 알림(`harness_q_stale`)
 
 고급: 문턱과 예산 기본값, 규약 끄기(`HARNESS_Q_AMBIENT=off`)는 `~/.claude/harness.env` 나 저장소 `.claude/harness.env` 에 둔다([docs/how-it-works.md](docs/how-it-works.md)).
 
-전부 끄기: `claude plugin disable q@claude-doctor-market` (제거는 `uninstall`).
+전부 끄기: `claude plugin disable q@qwreey-harness` (제거는 `uninstall`).
 
 ## 설치
 ```bash
-claude plugin marketplace add <claude-doctor 폴더>   # 마켓을 처음 쓸 때 한 번
-claude plugin install q@claude-doctor-market
+claude plugin marketplace add <qwreey-harness 폴더>   # 마켓을 처음 쓸 때 한 번
+claude plugin install q@qwreey-harness
 ```
 
 자세한 동작(훅 구성, 알림 조건과 설정, away 단계, 테스트): [docs/how-it-works.md](docs/how-it-works.md). 온보딩 구성: [docs/onboarding.md](docs/onboarding.md)

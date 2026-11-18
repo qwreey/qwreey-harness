@@ -1,6 +1,6 @@
 # decisions — 정책 결정 기록
 
-저장소마다 정책이 갈린 항목을 모아 둔다. 이 저장소는 한쪽을 고르지 않는다. 사용자가 원하는 것은 통일이 아니라 합의점이다. 결정이 나면 `D-NN-제목.md` 로 요약을 남기고(맥락, 결정, 반영한 곳, 되돌릴 조건), 해당 references 의 `> 정책: 미정` 표시를 결정 링크로 바꾼다. 원문(입장, 근거, 합의안)은 `claude-doctor .claude/base/decisions/D-NN-*.md` 에 있고, 그쪽 `README.md` 끝의 "사용자 결정 현황" 표가 권위 있는 상태다.
+저장소마다 정책이 갈린 항목을 모아 둔다. 이 저장소는 한쪽을 고르지 않는다. 사용자가 원하는 것은 통일이 아니라 합의점이다. 결정이 나면 `D-NN-제목.md` 로 요약을 남기고(맥락, 결정, 반영한 곳, 되돌릴 조건), 해당 references 의 `> 정책: 미정` 표시를 결정 링크로 바꾼다. 원문(입장, 근거, 합의안)은 `qwreey-harness .claude/base/decisions/D-NN-*.md` 에 있고, 그쪽 `README.md` 끝의 "사용자 결정 현황" 표가 권위 있는 상태다.
 
 ## 미결 목록
 
@@ -8,7 +8,7 @@
 |---|---|---|---|
 | D-05 | luau 버전 핀 | 0.742(stl-luau) / 0.734(quad, tbox, table-sim, moonwave-luau, devplorer). 제안: "수치·결함 서술에 버전 명시, 0.734 비정상 종료는 실패" 공통, 0.742 통일은 프로젝트별 목표 | `skills/luau-verify/references/toolchain.md` §3, `snippets/RESULTS.md` (두 버전 차이 칸) |
 
-D-07~D-12(끝난 할 일, 주석 언어, 네이밍, 에러, 객체 모양, require 경로)는 claude-doctor 에서 제안 상태다. 이 저장소의 references 는 그중 사실 부분만 싣고 정책은 `> 정책: 제안(D-xx)` 으로 표시한다. 사실 부분의 정본:
+D-07~D-12(끝난 할 일, 주석 언어, 네이밍, 에러, 객체 모양, require 경로)는 qwreey-harness 에서 제안 상태다. 이 저장소의 references 는 그중 사실 부분만 싣고 정책은 `> 정책: 제안(D-xx)` 으로 표시한다. 사실 부분의 정본:
 - D-10(에러): `-O2` 위치 소실의 경우별 표 `skills/luau-testing/references/optimize-levels.md` §2, raise 헬퍼 `skills/luau-style/references/errors.md` §2.
 - D-11(필드 읽기): `skills/luau-style/references/modules.md` §5.
 - D-12(require 경로): 경로 해석 `skills/luau-runtime/references/require-by-string.md` §1–§4·§9(Studio 쪽은 `skills/roblox-engine/references/require-in-roblox.md`), 검사기 대 런타임 `skills/luau-verify/references/checkers.md` §7.
@@ -23,7 +23,7 @@ D-07~D-12(끝난 할 일, 주석 언어, 네이밍, 에러, 객체 모양, requi
 | D-03 | 러너 | `luau` CLI 기본, lune 안 씀. 엔진 의존 동작은 필요한 부분만 mock, Studio MCP 는 mock 충실도 확인과 재현 불가 동작에만 | `D-03-runner.md` |
 | D-04 | type function 사용 범위 | 사안별 판단. 기본 금지도 '진단 전용' 구분도 아니다. "부작용이 이득보다 큰가" 대 "이것 없이는 표현할 수 없는가"로 정하고, 부작용이 크면 스파이크와 사용자 승인 | `D-04-type-functions.md` |
 | D-06 | 기준 검사기 | 정확성: 순수 Luau 는 luau-analyze, Roblox 전역은 luau-lsp + 정의 파일. DX: 공개 API 라이브러리는 luau-lsp 로 hover·자동완성·추론 타입 확인 | `D-06-type-checker.md` |
-| D-13 | 파일 길이·폴더·데이터 | 800·1,500줄(테스트 두 배)은 알림만, 이유를 기록하면 예외. 대분류는 저장소가 정하고 관례·성공 사례를 제시. 분리 계획기 | 이 저장소에 요약 파일 없음. 원문 claude-doctor `.claude/base/decisions/D-13-file-structure.md`, 반영 `skills/luau-style/references/structure.md`, `rules/code-structure.md`(luau-style 담당이 갱신 중) |
+| D-13 | 파일 길이·폴더·데이터 | 800·1,500줄(테스트 두 배)은 알림만, 이유를 기록하면 예외. 대분류는 저장소가 정하고 관례·성공 사례를 제시. 분리 계획기 | 이 저장소에 요약 파일 없음. 원문 qwreey-harness `.claude/base/decisions/D-13-file-structure.md`, 반영 `skills/luau-style/references/structure.md`, `rules/code-structure.md`(luau-style 담당이 갱신 중) |
 
 ## 합의된 공통 분모 (결정 없이 references 에 반영함)
 
@@ -34,4 +34,4 @@ D-07~D-12(끝난 할 일, 주석 언어, 네이밍, 에러, 객체 모양, requi
 - 테스트는 `-O1` 과 `-O2` 로 두 번 돌리고, 에러 테스트는 메시지와 사용자 줄을 같이 단언한다(stl-luau 실천과 D-10 의 사실 부분. `skills/luau-testing/`). Roblox 문서도 `--!optimize` 기본값을 Studio 테스트 1, 라이브 2 로 적는다(`skills/roblox-engine/references/perf.md` §6).
 
 ## 원천 정정의 전달
-각 references 의 '정정' 절에 모은 원천 저장소의 틀린 서술은 저장소별로 claude-doctor `.claude/handoff/<repo>-corrections.md`(quad 는 `handoff/quad.md`)에 묶어 각 세션에 넘긴다.
+각 references 의 '정정' 절에 모은 원천 저장소의 틀린 서술은 저장소별로 qwreey-harness `.claude/handoff/<repo>-corrections.md`(quad 는 `handoff/quad.md`)에 묶어 각 세션에 넘긴다.

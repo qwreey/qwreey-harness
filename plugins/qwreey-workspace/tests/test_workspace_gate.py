@@ -24,8 +24,8 @@ import wslib  # noqa: E402
 # 분류기 시험의 가짜 작업 폴더. 아래 명령의 /code/Projects 를 이 폴더로 바꿔 돌린다.
 FAKE = Path(tempfile.mkdtemp(prefix="ws-classify-")).resolve()
 WS = str(FAKE / "work")
-PROJ = WS + "/claude-doctor"
-for _n in ("claude-doctor", "quad", "stl-luau", "rbvm", "tbox", "mrow", "coderag", "luau-kb", "vitrine"):
+PROJ = WS + "/qwreey-harness"
+for _n in ("qwreey-harness", "quad", "stl-luau", "rbvm", "tbox", "mrow", "coderag", "luau-kb", "vitrine"):
     os.makedirs(os.path.join(WS, _n, ".git"), exist_ok=True)
 
 # 쓰기 10개, 읽기 10개, 다른 저장소와 무관한 5개(오탐 후보)
@@ -52,12 +52,12 @@ READS = [
     "sed -n 1,20p /code/Projects/rbvm/x.luau",
     "python3 /code/Projects/luau-kb/tools/x.py --list",
     # cwd is a sibling but the only write target is an absolute path in our own repo
-    "cd /code/Projects/quad && rm /code/Projects/claude-doctor/tmp.txt",
+    "cd /code/Projects/quad && rm /code/Projects/qwreey-harness/tmp.txt",
 ]
 NONE = [
     "cat README.md | head",
     "sed -i 's/a/b/' plugins/q/README.md",
-    "cd /code/Projects/claude-doctor && git commit -am x",
+    "cd /code/Projects/qwreey-harness && git commit -am x",
     "echo hi > /tmp/x.txt",
     "ls ~/.claude/rules/luau-core.md",
 ]

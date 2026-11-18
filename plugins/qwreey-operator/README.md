@@ -19,7 +19,7 @@
 - 훅이 `python3` 를 부른다. Windows 는 Python 3 설치가 필요하다.
 
 ## 설정
-`/plugin configure qwreey-operator@claude-doctor-market` 또는 `/config` 의 플러그인 설정에서 바꾼다.
+`/plugin configure qwreey-operator@qwreey-harness` 또는 `/config` 의 플러그인 설정에서 바꾼다.
 - 위임 권유 알림(`harness_operator_nudge`, 기본 켜짐).
 - 서브에이전트 남은 작업 알림(`harness_operator_subagent_bg`, 기본 켜짐).
 - 고급: 규약 주입 스위치 `HARNESS_OPERATOR_AMBIENT=off` 는 `~/.claude/harness.env` 키, 알림 문턱 `HARNESS_OPERATOR_NUDGE_WRITES`, `HARNESS_OPERATOR_NUDGE_FILES` 는 환경 변수다. 목록은 [docs/how-it-works.md](docs/how-it-works.md).
@@ -28,12 +28,12 @@
 - 알림만: 위 설정에서 끈다.
 - 규약 주입만: `HARNESS_OPERATOR_AMBIENT=off`.
 - 한 프로젝트에서만: 그 저장소 `.claude/settings.json` 의 `enabledPlugins` 로 끄거나, 스위치를 그 저장소 `.claude/harness.env`(팀 공유, 커밋)나 `.claude/harness.local.env`(나만, `.gitignore` 에 넣는다), 또는 settings 의 `env` 에 둔다. local 이 공유 파일을 이기고 환경 변수가 둘 다 이긴다.
-- 전부: `claude plugin disable qwreey-operator@claude-doctor-market` (제거는 `uninstall`).
+- 전부: `claude plugin disable qwreey-operator@qwreey-harness` (제거는 `uninstall`).
 
 ## 설치
 ```bash
-claude plugin marketplace add <claude-doctor 폴더>   # 마켓을 처음 쓸 때 한 번
-claude plugin install qwreey-operator@claude-doctor-market
+claude plugin marketplace add <qwreey-harness 폴더>   # 마켓을 처음 쓸 때 한 번
+claude plugin install qwreey-operator@qwreey-harness
 ```
 
 자세한 동작(넣는 규약, 알림 조건과 문턱, 실측 근거, 테스트): [docs/how-it-works.md](docs/how-it-works.md)

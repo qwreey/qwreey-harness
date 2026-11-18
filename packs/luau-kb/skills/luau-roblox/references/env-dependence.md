@@ -37,7 +37,7 @@ last_verified: 2026-11-10
 ---
 
 ## §1 판정 원칙
-status: described · 원천: 사용자 결정 claude-doctor `.claude/base/decisions/D-03-runner.md` (2026-11-10), quad `.claude/audit/m10-events-studio-2026-09-03.md` 머리말, quad `quad-base/test/mock.luau` 머리 주석
+status: described · 원천: 사용자 결정 qwreey-harness `.claude/base/decisions/D-03-runner.md` (2026-11-10), quad `.claude/audit/m10-events-studio-2026-09-03.md` 머리말, quad `quad-base/test/mock.luau` 머리 주석
 
 - **mock 으로 보는 것**: "내 코드가 엔진 API 에 대해 가정한 계약대로 동작하는가". 계약이 명확하면 mock 은 그 계약만 흉내 내면 된다.
 - **Studio 로 보는 것**: "그 가정이 실제 엔진과 맞는가", 그리고 엔진만 만들 수 있는 현상(렌더링, 물리, 복제, GC, 프레임 타이밍).

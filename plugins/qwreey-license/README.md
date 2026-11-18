@@ -20,10 +20,10 @@
 - 인터넷(api.github.com 또는 raw.githubusercontent.com). GitHub API 는 인증 없이 시간당 60번이라 넘으면 SPDX 로 넘어간다.
 
 ## 끄기
-- `claude plugin disable qwreey-license@claude-doctor-market` (제거는 `uninstall`). 훅이 없어 끄면 바로 멈춘다.
+- `claude plugin disable qwreey-license@qwreey-harness` (제거는 `uninstall`). 훅이 없어 끄면 바로 멈춘다.
 
 ## 설치
 ```bash
-claude plugin marketplace add <claude-doctor 폴더>   # 마켓을 처음 쓸 때 한 번
-claude plugin install qwreey-license@claude-doctor-market
+claude plugin marketplace add <qwreey-harness 폴더>   # 마켓을 처음 쓸 때 한 번
+claude plugin install qwreey-license@qwreey-harness
 ```

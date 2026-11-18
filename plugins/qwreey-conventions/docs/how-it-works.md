@@ -47,7 +47,7 @@
 
 코드 파일의 주석 줄(확장자별 간이 렉서라 문자열 안의 `--`, `//`, `#` 는 주석이 아니다):
 - history marker: 원장 번호, 날짜, 라운드, 작업 이력 경로, 결정 문구, 변경 서술. 같은 주석 덩어리에 이유 문장이 있는 `Ref:` 꼬리는 통과.
-  - 변경 서술은 정밀도 쪽으로 좁혔다. 절 머리(주석 시작, `.;:!?` 와 공백 뒤, 여는 괄호 뒤)의 `Previously`(쉼표나 낱말이 뒤따름, `Previously-seen` 은 아님)와 `It`/`This`/`We`/`They used to`, 어디서나 `예전에는`/`예전엔`, 절 머리(쉼표 뒤 포함)의 `이전에는`/`이전엔`, `기존에는`/`기존엔` 뒤 같은 문장의 과거 어미(있, 겠을 뺀 받침 ㅆ 음절 다음 `다`, `습니다`, `어요`, `죠`, `던`, `지만`, `는데`). `the previously selected item`, `the buffer it used to hold`, `초기화 이전에는`, `Start() 이전엔`, `기존엔 키가 있을 수 있다` 처럼 코드가 하는 일을 말하는 꼴은 걸리지 않는다. quad, tbox, stl-luau, coderag, claude-doctor 의 추적 파일에서 걸리는 주석 줄은 32, 20, 156, 0, 0 이고(앞 패턴은 36, 20, 156, 0, 0; 빠진 넷은 명사 뒤 `it used to` 와 `이 파일 이전엔`), 둘러본 줄은 모두 변경 서술이었다.
+  - 변경 서술은 정밀도 쪽으로 좁혔다. 절 머리(주석 시작, `.;:!?` 와 공백 뒤, 여는 괄호 뒤)의 `Previously`(쉼표나 낱말이 뒤따름, `Previously-seen` 은 아님)와 `It`/`This`/`We`/`They used to`, 어디서나 `예전에는`/`예전엔`, 절 머리(쉼표 뒤 포함)의 `이전에는`/`이전엔`, `기존에는`/`기존엔` 뒤 같은 문장의 과거 어미(있, 겠을 뺀 받침 ㅆ 음절 다음 `다`, `습니다`, `어요`, `죠`, `던`, `지만`, `는데`). `the previously selected item`, `the buffer it used to hold`, `초기화 이전에는`, `Start() 이전엔`, `기존엔 키가 있을 수 있다` 처럼 코드가 하는 일을 말하는 꼴은 걸리지 않는다. quad, tbox, stl-luau, coderag, qwreey-harness 의 추적 파일에서 걸리는 주석 줄은 32, 20, 156, 0, 0 이고(앞 패턴은 36, 20, 156, 0, 0; 빠진 넷은 명사 뒤 `it used to` 와 `이 파일 이전엔`), 둘러본 줄은 모두 변경 서술이었다.
 - non-keyboard symbol: 키보드로 치지 않는 기호(가운뎃점 포함), 곡선 따옴표, 전각, 이모지. 모든 문자 체계의 글자와 숫자는 통과.
 - escaped character: 주석 안의 `\uXXXX` 류 이스케이프.
 - invisible character: 보이지 않는 문자와 방향 제어 문자. 코드 줄까지 본다.
@@ -61,7 +61,7 @@
   - skill description: `SKILL.md` frontmatter 의 `description` 이 끝의 한국어 계기 문구(한국어가 라틴 낱말보다 많거나 `트리거` 로 시작하는 끝 문장들, 따옴표 안은 세지 않음)를 빼고도 한국어 낱말이 3개 이상, 언제 쓰는지(`when`, `before`, `Use for` 등)가 없음, 1·2인칭(`I can`, `you can`). `disable-model-invocation: true` 면 메뉴 줄이라 보지 않는다. description 줄을 고친 편집에서만 본다.
   - language mismatch: 본문 줄(따옴표, 인라인 코드, URL 제외)의 한국어 낱말이 3개 이상이고 라틴 낱말 이상. 고치지 않은 줄 중 한국어 줄이 3개 이상이고 10% 를 넘는 문서는 이미 한국어로 쓴 것으로 보고 따른다(luau-kb 스킬, q 의 사용자 안내 문서).
   - ledger id path: 입구 문서에서 원장 id 와 `.md` 경로가 같은 줄에 있는데, 그 경로가 문서 폴더, 플러그인 루트(`.claude-plugin` 이 있는 가장 가까운 폴더, 없으면 저장소), 저장소 루트 어디에서 풀어도 플러그인 안의 있는 파일이 아님.
-  - 이 저장소와 coderag 의 추적 파일 전체를 한 줄씩 추가한 것으로 놓고 돌린 결과: claude-doctor 는 description 5(모두 `.claude/` 초안), 언어 8줄(4파일; 살아 있는 파일은 `q` doctor 의 사용자용 표 머리 1줄), 원장 경로 0. coderag 는 description 10(모두 `experiments/team-audit/corpus/` 시험 자료), 언어 0, 원장 경로 0.
+  - 이 저장소와 coderag 의 추적 파일 전체를 한 줄씩 추가한 것으로 놓고 돌린 결과: qwreey-harness 는 description 5(모두 `.claude/` 초안), 언어 8줄(4파일; 살아 있는 파일은 `q` doctor 의 사용자용 표 머리 1줄), 원장 경로 0. coderag 는 description 10(모두 `experiments/team-audit/corpus/` 시험 자료), 언어 0, 원장 경로 0.
 
 제외: 확장자 표 밖, 생성 파일(머리 6줄 표시), 픽스처, testdata, `node_modules`, 설정의 `exclude`.
 
@@ -136,7 +136,7 @@ python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py fix [경로...
   - 파이썬 머리 10줄 밖 독스트링의 `@copy-of`: 읽히지 않는다.
   - 형제 저장소 꼴이 섞임: `@copy-of: ../repo:path`(→ `repo:path`), `@start-replace: repo:path` 나 `../repo:path`(→ `../repo/path`). 저장소를 찾았는지와 무관하게 알리고, 같은 줄의 "does not resolve" 알림은 내지 않는다.
   - `.json`, `.jsonc` 의 추가 줄에 경로 꼴 표시가 있음: JSON 은 표시를 둘 주석이 없고 아무도 읽지 않는다(파일당 한 번). Edit·Write 만 본다(Bash 경로는 코드 파일만 reuse-check 에 넘긴다).
-  - 이 저장소와 coderag 의 추적 파일 전체를 한 줄씩 추가한 것으로 놓고 돌린 결과: 둘 다 0(검사 대상 코드 파일에서 표시 낱말이 든 줄 claude-doctor 114, coderag 4).
+  - 이 저장소와 coderag 의 추적 파일 전체를 한 줄씩 추가한 것으로 놓고 돌린 결과: 둘 다 0(검사 대상 코드 파일에서 표시 낱말이 든 줄 qwreey-harness 114, coderag 4).
 - H1: 추가한 문자열 묶음(따옴표 문자열 3개 이상의 목록이나 `"a" | "b"` 합집합)이 저장소의 다른 정의와 겹침. 기본은 그림자 모드라 알리지 않고 `${CLAUDE_PLUGIN_DATA}/reuse-shadow.jsonl`(없으면 `$TMPDIR/claude-qwreey-reuse/shadow.jsonl`)에 남긴다.
 - 모드: `REUSE_CHECK=off|shadow|on` 이 저장소 `.claude/conventions.json` 의 `reuse.mode` 를 이긴다. 기본 `shadow`. `CONVENTIONS_CHECK=off` 도 이 훅을 끈다.
 - 색인: `$TMPDIR/claude-qwreey-reuse/<저장소 해시>.json`, 바뀐 파일만 다시 읽는다. 첫 색인은 300ms 에서 끊고 다음 편집에서 이어 만든다.

@@ -23,12 +23,12 @@
 - 다른 모델 계열은 선택. 쓰려면 그 도구(예: qwreey-delegate 플러그인과 agy·codex 구독)를 따로 갖춰야 한다.
 
 ## 끄기
-- `claude plugin disable qwreey-debate@claude-doctor-market` (제거는 `uninstall`). 훅이 없어 끄면 바로 멈춘다.
+- `claude plugin disable qwreey-debate@qwreey-harness` (제거는 `uninstall`). 훅이 없어 끄면 바로 멈춘다.
 
 ## 설치
 ```bash
-claude plugin marketplace add <claude-doctor 폴더>   # 마켓을 처음 쓸 때 한 번
-claude plugin install qwreey-debate@claude-doctor-market
+claude plugin marketplace add <qwreey-harness 폴더>   # 마켓을 처음 쓸 때 한 번
+claude plugin install qwreey-debate@qwreey-harness
 ```
 
 자세한 동작(입장 고르기, 브리프, 라운드, 종합, 기록, 실패 꼴, 근거): [docs/how-it-works.md](docs/how-it-works.md)

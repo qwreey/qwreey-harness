@@ -53,7 +53,7 @@ last_confirmed:
 ---
 
 ## §1 `const` 와 `local` (결정 D-01)
-status: verified · last-confirmed: luau 0.742 (0.734 동일), stylua 2.5.2 · 근거: `snippets/style-const-reassign.luau`, `snippets/style-const-local-const-global.luau`, `snippets/style-stylua-pitfalls.sh` P1 · 결정: claude-doctor `.claude/base/decisions/D-01-const.md` (2026-11-10 확정) · 후보 S-131
+status: verified · last-confirmed: luau 0.742 (0.734 동일), stylua 2.5.2 · 근거: `snippets/style-const-reassign.luau`, `snippets/style-const-local-const-global.luau`, `snippets/style-stylua-pitfalls.sh` P1 · 결정: qwreey-harness `.claude/base/decisions/D-01-const.md` (2026-11-10 확정) · 후보 S-131
 
 **결정(확정)**: `const` 를 써도 된다. 한 파일 안에서 `const` 와 `local` 을 섞지 않는다.
 - 기존 파일은 그 파일의 관행을 따른다. 새 파일은 저장소 규칙을 따르고, 규칙이 없으면 재대입하지 않는 바인딩에 `const` 를 쓴다.
@@ -153,7 +153,7 @@ status: verified (①②③) / described (나머지) · last-confirmed: luau 0.7
 - 자기 참조 메서드 시그니처를 솔버가 놓치는 문제와 우회법은 `luau-types` 에 있다.
 
 ## §8 객체 모양 (결정 D-11)
-status: described · 근거: claude-doctor `.claude/base/decisions/D-11-object-shape-and-field-access.md`
+status: described · 근거: qwreey-harness `.claude/base/decisions/D-11-object-shape-and-field-access.md`
 > 정책: 결정(D-11, 2026-11-11). 객체 모양(메타테이블 메서드 대 네임스페이스 함수)은 저장소 설계로 둔다. 저장소 rules 와 본보기 파일이 이긴다. stl 의 BI 전환이 끝나면 새 저장소 기본값으로 권할지 그때 다시 정한다.
 
 - 저장소에 본보기 파일이 있으면 그 모양을 따른다. 공통 규칙은 모양을 정하지 않는다.
@@ -166,5 +166,5 @@ status: described · 근거: tbox 사용자 줄의 `:: any` 2/42, 에이전트 �
 - 한 번 쓰면 쓰는 자리에서 캐스트한다. 같은 값을 여러 번 쓰면 이름 붙인 뷰 지역을 한 번 만든다(`local typedNs = ns :: TypedNamespace`). 쓰는 곳마다 `(x :: any).field` 를 되풀이하지 않는다.
 
 ## 정정 (원천 서술이 재현과 다른 것, 각 저장소 세션에 전달)
-- `local const x = 1` 은 "린트 경고만 난다"(claude-doctor `.claude/base/decisions/D-01-const.md` §2, `claude-doctor .claude/scopes/packs/luau-kb/archive/research/drafts/style` 초안)는 nonstrict 에서만 맞다. `--!strict` 에서는 luau-analyze 0.734·0.742 가 `TypeError: Unknown global 'x'` 를 낸다(`snippets/style-const-local-const-global.luau`). 실행은 두 모드 모두 된다.
+- `local const x = 1` 은 "린트 경고만 난다"(qwreey-harness `.claude/base/decisions/D-01-const.md` §2, `qwreey-harness .claude/scopes/packs/luau-kb/archive/research/drafts/style` 초안)는 nonstrict 에서만 맞다. `--!strict` 에서는 luau-analyze 0.734·0.742 가 `TypeError: Unknown global 'x'` 를 낸다(`snippets/style-const-local-const-global.luau`). 실행은 두 모드 모두 된다.
 - "`luau-analyze` 는 맨 `function name()` 에 `GlobalUsedAsLocal` 린트를 낸다"(후보 Q-082, quad `scripts/test.sh:33-35`)는 그 전역을 한 함수 안에서만 쓸 때만 맞다. 모듈 스코프에서 선언하고 여러 곳에서 부르면 타입 진단도 린트도 0건이다(`snippets/style-bare-function-global.luau`).

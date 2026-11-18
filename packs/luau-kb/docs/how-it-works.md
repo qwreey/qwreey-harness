@@ -73,8 +73,8 @@ python3 -I tools/tests/test-pack-policy.py
 
 ## 원천과 범위
 - 원천(읽기 전용): quad·stl-luau 의 `.claude/base/typing-limits.md`, `stl-luau/.claude/audit/luau-solver-issues/`, `stl-luau/.claude/tools/{spike-diff.py,mutate.sh}`, `quad/scripts/doc-snippets.py`, 각 저장소의 `mise.toml`, `conventions.md`. `quad-changelog-check` 는 낡은 사본이라 근거로 쓰지 않는다.
-- testing, perf, style, Roblox, upstream 쪽 원천은 claude-doctor 의 후보표 `.claude/scopes/packs/luau-kb/audit/08-quad-knowledge-mine.md`(ID `Q-`), `09-other-knowledge-mine.md`(ID `S- R- T- D- X- M- O-`), `11-knowledge-gaps.md` 와 `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/`, `style/` 이다. references 의 근거 칸에 후보 ID 가 남아 있다.
-- 원문을 옮기지 않고 다시 썼다. 다시 재 보니 원천 서술이 틀린 것은 각 references 의 '정정' 절에 있고, 저장소별 전달본은 claude-doctor `.claude/handoff/<repo>-corrections.md`(quad 는 `handoff/quad.md`)다. 재현하지 못한 주장은 `described` 로 두고 목록은 `snippets/RESULTS.md` 끝에 있다.
+- testing, perf, style, Roblox, upstream 쪽 원천은 qwreey-harness 의 후보표 `.claude/scopes/packs/luau-kb/audit/08-quad-knowledge-mine.md`(ID `Q-`), `09-other-knowledge-mine.md`(ID `S- R- T- D- X- M- O-`), `11-knowledge-gaps.md` 와 `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/`, `style/` 이다. references 의 근거 칸에 후보 ID 가 남아 있다.
+- 원문을 옮기지 않고 다시 썼다. 다시 재 보니 원천 서술이 틀린 것은 각 references 의 '정정' 절에 있고, 저장소별 전달본은 qwreey-harness `.claude/handoff/<repo>-corrections.md`(quad 는 `handoff/quad.md`)다. 재현하지 못한 주장은 `described` 로 두고 목록은 `snippets/RESULTS.md` 끝에 있다.
 - 아직 없는 것: 업스트림 보고용 `luau-solver-bug-triage`, `luau-recheck`.
 
 ## 기여 규칙

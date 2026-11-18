@@ -33,7 +33,7 @@ The two copy markers write a sibling repo differently. A mix such as `../statusl
 | Marker | Same repo | Sibling repo |
 |---|---|---|
 | `@copy-of` | `# @copy-of: src/statuses.py#STATUSES` | `# @copy-of: statuslib:src/statuses.py#STATUSES` (repo name, colon, path in that repo; found beside this repo, else among repos opened in Claude Code on this machine; not compared when not found) |
-| `@start-replace` | `# @start-replace: lib/harness_texts.py#OMIT_LINE` | `// @start-replace: ../claude-doctor/lib/harness_texts.py#OMIT_LINE` (a plain path from this repo's root; no colon form) |
+| `@start-replace` | `# @start-replace: lib/harness_texts.py#OMIT_LINE` | `// @start-replace: ../qwreey-harness/lib/harness_texts.py#OMIT_LINE` (a plain path from this repo's root; no colon form) |
 
 The hook checks that `@copy-of` and `@start-replace` resolve; a file copy must be byte-identical to its source, a value copy must hold the same strings as `NAME` there, a region copy must equal what the canon region renders to. Editing a source (or the lines inside a canon region) lists its copies. `#NAME` is the name as written at the definition (a Luau table key, a module field, a `const`). A copy that is meant to hold fewer strings is not a copy: use `@dup-ok`.
 
@@ -67,14 +67,14 @@ OMIT_LINE = "Omit the {block} block from the summary; it is re-injected after co
 # @end-replace
 
 copy in another repo, Rust:
-// @start-replace: ../claude-doctor/lib/harness_texts.py#OMIT_LINE value=string template="pub const OMIT_LINE: &str = {value};"
+// @start-replace: ../qwreey-harness/lib/harness_texts.py#OMIT_LINE value=string template="pub const OMIT_LINE: &str = {value};"
 pub const OMIT_LINE: &str = "Omit the {block} block from the summary; it is re-injected after compaction.";
 // @end-replace
 ```
 
 ### Syncing
 
-- A repo with `tools/sync-copies.py` (claude-doctor): shared canon lives in `lib/`. Edit the canon, then run `python3 -I tools/sync-copies.py --apply`; `--check` (in its tests) fails on drift, and with no flag it prints the diff. Never edit text between region markers in a copy by hand.
+- A repo with `tools/sync-copies.py` (qwreey-harness): shared canon lives in `lib/`. Edit the canon, then run `python3 -I tools/sync-copies.py --apply`; `--check` (in its tests) fails on drift, and with no flag it prints the diff. Never edit text between region markers in a copy by hand.
 - A repo without the tool: compare each copy with its source in a test, or generate one from the other.
 
 ### Comparing a copy in a test

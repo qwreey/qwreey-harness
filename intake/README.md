@@ -49,8 +49,8 @@ intake/<이름>/            # 소문자-하이픈. 예: blog, vitrine-web
 1. **반입 확인**: 위 2절의 비밀 검사, `INTAKE.md` 작성.
 2. **환경과 툴킷 감지**:
    ```bash
-   python3 -I <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py --env
-   python3 -I <claude-doctor>/plugins/q/skills/doctor/scripts/scan.py intake/<이름> --only 1      # 머리의 "툴킷:" 줄 확인
+   python3 -I <qwreey-harness>/plugins/q/skills/doctor/scripts/scan.py --env
+   python3 -I <qwreey-harness>/plugins/q/skills/doctor/scripts/scan.py intake/<이름> --only 1      # 머리의 "툴킷:" 줄 확인
    ```
    감지가 틀리면 `--toolkits web` 처럼 강제하고, 감지 표식이 빠진 이유(설정 파일을 안 가져옴 등)를 `INTAKE.md` 에 적는다.
 3. **/q:doctor**: `/q:doctor intake/<이름>`.

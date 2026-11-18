@@ -51,5 +51,5 @@ my-skill/
 
 ## 근거
 - 공식: code.claude.com/docs/en/skills (frontmatter 표, 1,536자, `disable-model-invocation`, compact 뒤 재주입), commands (`/skills`, `/skill-doctor`)
-- 외부: Vercel 평가 "56% 미호출" 은 자사 Next.js 16 과제 한정, 조건 비공개 (claude-doctor .claude/audit/19-external/05 #2)
+- 외부: Vercel 평가 "56% 미호출" 은 자사 Next.js 16 과제 한정, 조건 비공개 (qwreey-harness .claude/audit/19-external/05 #2)
 - 이 프로젝트 실측: luau-kb 스킬 발동 sonnet 47/50 (n 작음, 메인 모델로는 미측정)

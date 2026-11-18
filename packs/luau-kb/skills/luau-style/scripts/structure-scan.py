@@ -4,7 +4,7 @@
 사용:
   python3 -I structure-scan.py /code/Projects/table-sim [다른 저장소 …] [--warn 800] [--hard 1500] [--flat 15] [--history 5] [--json]
 
-판정 기준과 근거: luau-style references/structure.md, claude-doctor .claude/audit/12-code-structure.md.
+판정 기준과 근거: luau-style references/structure.md, qwreey-harness .claude/audit/12-code-structure.md.
 저장소 루트에 .claude/structure.json 이 있으면 그 값(warn, hard, flat, ignore 글롭 목록)이 기본값을 덮는다.
 예외(사용자 결정 D-13): 파일 머리 10줄 안 `--@structure-exempt: <사유>`(TS·Go `//`, Python `#`) 또는
 structure.json "exempt": [{"path": 글롭, "reason": 사유}]. 사유가 비었거나 "나중에"·"귀찮"·"TODO" 같은 말이면 무효로 보고한다.

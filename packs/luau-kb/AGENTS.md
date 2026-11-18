@@ -1,7 +1,7 @@
 # AGENTS.md — luau-kb (codex, agy 등 Claude Code 플러그인을 읽지 않는 에이전트용)
 
 이 저장소는 여러 Luau 저장소에 흩어져 있던 일반 Luau·Roblox 지식(타입 시스템의 한계, 검증 절차, 테스트, 성능, 스타일, Roblox 엔진 동작, 업스트림 변화)의 정본이다. 스킬 12개(문서 조회 도구 `tools/roblox_docs.py` 포함)와 경로 조건부 rules 2개로 나뉜다. Claude Code 는 플러그인(`.claude-plugin/`)으로 읽고, 다른 에이전트는 아래 평문 경로를 직접 읽는다. 내용은 같다.
-아래 경로는 모두 이 파일이 있는 폴더(luau-kb 팩 루트, 보통 `<claude-doctor 클론>/packs/luau-kb`) 기준이다.
+아래 경로는 모두 이 파일이 있는 폴더(luau-kb 팩 루트, 보통 `<qwreey-harness 클론>/packs/luau-kb`) 기준이다.
 
 ## 언제 무엇을 읽나
 
@@ -21,7 +21,7 @@
 | luau·luau-lsp·stylua 를 올릴지, 새 문법·RFC 를 지금 써도 되는지, 알려진 결함이 상류에서 고쳐지는지 | `skills/luau-upstream/SKILL.md` |
 | 공개 API 의 hover·자동완성·추론 타입(DX) 확인 | `skills/luau-verify/references/checkers.md` §6, `tools/lsp_probe.py` |
 | `.luau` 파일을 쓸 때 항상 지킬 짧은 규칙 | `rules/luau-core.md` (경로 조건부 규칙, `rules/README.md`) |
-| 파일 길이·분리·폴더 묶음 같은 코드 구조 규칙 | 정본은 사용자 레벨 `~/.claude/rules/code-structure.md`(claude-doctor `home/.claude/rules/code-structure.md`, 툴킷 공통). Luau 세부는 `skills/luau-style/references/structure.md`·`splitting.md`. `rules/code-structure.md` 는 이 안내만 둔다 |
+| 파일 길이·분리·폴더 묶음 같은 코드 구조 규칙 | 정본은 사용자 레벨 `~/.claude/rules/code-structure.md`(qwreey-harness `home/.claude/rules/code-structure.md`, 툴킷 공통). Luau 세부는 `skills/luau-style/references/structure.md`·`splitting.md`. `rules/code-structure.md` 는 이 안내만 둔다 |
 
 ### 주제가 여러 스킬에 걸칠 때의 정본
 - weak 표: 의미론(ephemeron 없음, `__mode`)·누수 판정은 luau-runtime `gc-and-weak-tables.md`, Roblox 안 GC 관찰·Instance weak 키는 roblox-engine `gc-in-roblox.md`·`instance-lifecycle.md` §4, 비용·객체 크기·클로저 캐시는 luau-perf `gc-and-memory.md`, 누수 판정 하네스·프로브 함정은 luau-testing `gc-and-time.md`.

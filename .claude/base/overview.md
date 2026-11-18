@@ -1,11 +1,11 @@
 ---
 format: 1
-title: claude-doctor 개요(목표와 구조)
-description: claude-doctor 의 목표(공통 지식을 상시 로드 문서에서 켜고 끄는 플러그인·팩·기록으로)와 지금 구조: 세 층(사용자 home/, 플러그인·팩, 프로젝트), 저장소 배치, 상시 로드 목표
+title: qwreey-harness 개요(목표와 구조)
+description: qwreey-harness 의 목표(공통 지식을 상시 로드 문서에서 켜고 끄는 플러그인·팩·기록으로)와 지금 구조: 세 층(사용자 home/, 플러그인·팩, 프로젝트), 저장소 배치, 상시 로드 목표
 status: active
 ---
 
-# claude-doctor 개요
+# qwreey-harness 개요
 
 원칙과 사용자 결정은 [harness-principles.md](harness-principles.md), 지금 할 일과 열린 질문은 루트 `PLAN.md`.
 
@@ -17,7 +17,7 @@ status: active
 
 ## 세 층
 1. 사용자 레벨 `~/.claude`: 정본은 `home/`, 관리 목록은 `home/MANIFEST`(harness.env, lib/harness_env.py, statusline). settings.json 은 복사하지 않고 `home/settings-migrations/` 마이그레이션으로 반영한다. 전역 CLAUDE.md, 사용자 레벨 rules, 사용자 레벨 훅은 두지 않는다. 상시 규약과 훅은 플러그인이 싣는다.
-2. 플러그인과 팩: 마켓 `.claude-plugin/marketplace.json`(`claude-doctor-market`).
+2. 플러그인과 팩: 마켓 `.claude-plugin/marketplace.json`(`qwreey-harness`).
    - `plugins/`: `q`(사람이 치는 명령), `qwreey-*`(sessions, workspace, operator, delegate, debate, advisor, conventions, reply-language, proc-guard, desk, license), `luau-lsp`. 저자는 로컬 폴더 마켓으로 저장소에서 바로 싣고, 동료는 GitHub 마켓에서 설치본을 받는다.
    - `packs/`: 도메인 팩 `luau-kb`, `web-security`. 기본 꺼짐이고, 쓰는 저장소가 `coderag.toml` 의 `[[packs]]` 와 `coderag adapt --harness claude` 로 켠다. 팩 rule 주입은 coderag 플러그인이 한다. luau-kb 는 LSP 를 싣지 않는다(`plugins/luau-lsp`).
 3. 프로젝트(각 저장소): CLAUDE.md 는 정체성, 넘지 않는 선, 빌드·검사 명령만. 경로 조건 rules, 프로젝트 고유 스킬, 기록 `.claude/`(import 하지 않음). 상시 로드되는 할 일 문서에서는 끝난 항목을 지운다(`.claude/base/decisions/D-07-finished-todos.md`).

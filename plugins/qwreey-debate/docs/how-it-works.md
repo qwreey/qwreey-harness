@@ -37,7 +37,7 @@ qwreey-advisor 의 검토는 이미 정하거나 생각해 둔 것을 다른 눈
 - 표결이 비기고, 사용자가 다수를 뒤집은 적도 있다. 이유가 정한다.
 
 ## 근거
-claude-doctor 저장소에서 실제로 돌린 토론에서 꼴을 정리했다.
+qwreey-harness 저장소에서 실제로 돌린 토론에서 꼴을 정리했다.
 - P/Q 토론: `.claude/audit/` 의 25, 26, 29, 31, 38, 41, 48, 49, 50. 48·49·50 은 1라운드로 결정이 났다. 25(judge-run), 26(replay), 29(measure), 31(probes)은 갈림을 2라운드 대신 재서 갈랐고, 25 는 재도 0/10 대 0/10 으로 비겨 사용자 선호를 따랐다.
 - 이름 토론(quad 저장소의 `naming-table-review-2026-10-16`, `naming-marker-helper-2026-11-06`, `qa-request/code-quality-review-round15.md`): 메인이 정한 이름의 나쁜 근거, 대안, 대안별 장단점이 분명히 나왔다. codex·Gemini 가 `asState` 로 수렴했지만 메인 grep 이 반증했고, Gemini 가 기각된 안을 다시 냈고, 표결이 6·6·6 으로 비겼다.
 - 41 의 1라운드 측정이 엉뚱한 루트를 쟀다가 2라운드에서 상대가 잡았고, 48 은 경로에서 `src/` 가 빠졌다.

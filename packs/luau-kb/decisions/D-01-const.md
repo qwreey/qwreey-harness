@@ -1,6 +1,6 @@
 # D-01 `const` — 결정 (2026-11-10)
 
-원문: `claude-doctor .claude/base/decisions/D-01-const.md` 끝의 "사용자 결정" 절. 이 파일은 요약이다.
+원문: `qwreey-harness .claude/base/decisions/D-01-const.md` 끝의 "사용자 결정" 절. 이 파일은 요약이다.
 
 ## 맥락
 rbvm 은 `const` 를 금지했다(2026-08-24, 당시 pesde 0.7.3 이 `const` 선언에서 자동 타입 익스포트를 못 함). stl-luau·quad·tbox·moonwave-luau 는 재대입 없는 바인딩에 `const` 를 쓴다(quad 는 문서상 채택, 게시 소스 0줄). pesde 0.7.4 는 `const` 를 받는다.
@@ -13,7 +13,7 @@ rbvm 은 `const` 를 금지했다(2026-08-24, 당시 pesde 0.7.3 이 `const` 선
 
 ## 알아 둘 사실 (`skills/luau-verify/references/tooling.md` §3)
 - lune 0.10.5 와 selene 은 `const` 를 파싱하지 못한다. 그래서 D-03 이 lune 을 쓰지 않는다.
-- stylua 2.5.2 는 `const` 뒤 `(` 로 시작하는 문장의 `;` 를 지워 파싱 에러를 만든다(claude-doctor D-01 실측, luau-style 스킬).
+- stylua 2.5.2 는 `const` 뒤 `(` 로 시작하는 문장의 `;` 를 지워 파싱 에러를 만든다(qwreey-harness D-01 실측, luau-style 스킬).
 - `local const x = 1` 은 `const` 라는 지역과 전역 대입 `x = 1` 이 된다.
 
 ## 반영한 곳

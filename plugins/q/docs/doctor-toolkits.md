@@ -45,7 +45,7 @@
 5. **주변 장치**
    - 무거운 실행: `plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py`의 `TOOLKIT_EXECUTORS`에 실행기를 더한다(rust: `cargo` — 이미 있음).
    - 공유 지식 저장소(`rust-kb`)가 생기면 팩(`packs/rust-kb`)으로 두거나, 형제 저장소면 정본 harness.env 에 그 위치 변수를 적고 `home/MANIFEST`에 `link ... ${<변수>}/...` 줄을 더한다(home-sync 는 작업공간 위치를 짐작하지 않는다).
-   - 감사자: 관점별 공통 감사자에 그 툴킷 지식 스킬을 프리로드하는 방식은 claude-doctor `.claude/research/drafts/agents/README.md` §9 제안.
+   - 감사자: 관점별 공통 감사자에 그 툴킷 지식 스킬을 프리로드하는 방식은 qwreey-harness `.claude/research/drafts/agents/README.md` §9 제안.
 6. **확인**: 그 언어 저장소 하나와 무관한 저장소 하나에 `scan.py --json`을 돌려 감지가 맞는지, 다른 저장소의 결과가 바뀌지 않았는지 본다.
    `claude plugin validate`로 스킬 형식도 본다.
 
@@ -55,7 +55,7 @@
 
 ### 도입 후보 플러그인 (실측 후)
 
-- typescript-lsp, gopls-lsp(vitrine Go), rust-analyzer-lsp(Rust 저장소): 바이너리 설치 후 실측(claude-doctor `.claude/audit/16` §7-5)을 거쳐 `WEB-PLUGINS` 목록에 더한다.
+- typescript-lsp, gopls-lsp(vitrine Go), rust-analyzer-lsp(Rust 저장소): 바이너리 설치 후 실측(qwreey-harness `.claude/audit/16` §7-5)을 거쳐 `WEB-PLUGINS` 목록에 더한다.
 - modern-web-guidance, axe-accessibility: 참고. web-kb 후보.
 
 ### 예약 검사 코드
@@ -75,8 +75,8 @@
 
 ### 채우는 순서
 
-1. 프로젝트를 `intake/<이름>/`로 반입한다(claude-doctor `intake/README.md`).
+1. 프로젝트를 `intake/<이름>/`로 반입한다(qwreey-harness `intake/README.md`).
 2. `scan.py intake/<이름>`으로 감지와 코어 결과를 본다.
-3. 위 후보를 그 프로젝트에 손으로 적용해 보고, 참 발견과 오탐을 claude-doctor `.claude/audit/intake/<이름>-<날짜>.md`에 적는다.
+3. 위 후보를 그 프로젝트에 손으로 적용해 보고, 참 발견과 오탐을 qwreey-harness `.claude/audit/intake/<이름>-<날짜>.md`에 적는다.
 4. 참 발견이 있던 후보부터 `web.py`의 `check()`에 옮기고, `references/toolkits/web.md`에 "검사" 표로 더한다(형식은 `luau.md`의 툴체인 표).
 5. 옮긴 뒤 반입 사본과 vitrine에 다시 돌려 결과를 확인한다.

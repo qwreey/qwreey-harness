@@ -21,7 +21,7 @@
 - 훅은 순수 Python 3 이라 OS 무관. 스킬의 살아 있는 세션 확인 명령은 Linux `/proc`, macOS `lsof`.
 
 ## 설정
-`/plugin configure qwreey-workspace@claude-doctor-market` 또는 `/config` 의 플러그인 옵션에서 고친다.
+`/plugin configure qwreey-workspace@qwreey-harness` 또는 `/config` 의 플러그인 옵션에서 고친다.
 
 | 옵션 | 기본 | 뜻 |
 |---|---|---|
@@ -33,13 +33,13 @@
 
 - 게이트와 저장소 목록 옵션은 클론한 저장소의 파일로 바꿀 수 없다(남의 저장소가 게이트를 끄지 못하게).
 - 한 프로젝트에서만 끄려면: 그 저장소 `.claude/settings.json` 의 `enabledPlugins` 로 끈다.
-- 전부 끄기: `claude plugin disable qwreey-workspace@claude-doctor-market`.
+- 전부 끄기: `claude plugin disable qwreey-workspace@qwreey-harness`.
 - 고급: harness.env(`~/.claude/harness.env`, 저장소 `.claude/harness.env`) 에 같은 이름의 대문자 키(`HARNESS_WORKSPACE_GATE=off` 등)와 튜닝 값(`HARNESS_WORKSPACE_STALE_WORKTREE_DAYS`, 상시 안내 `HARNESS_WORKSPACE_AMBIENT=off`)을 둘 수 있다. 옛 `HARNESS_WORKSPACE`(작업공간 폴더)는 그 아래 저장소를 목록에 더하는 데만 쓰인다.
 
 ## 설치
 ```bash
-claude plugin marketplace add <claude-doctor 폴더>   # 마켓을 처음 쓸 때 한 번
-claude plugin install qwreey-workspace@claude-doctor-market
+claude plugin marketplace add <qwreey-harness 폴더>   # 마켓을 처음 쓸 때 한 번
+claude plugin install qwreey-workspace@qwreey-harness
 ```
 
 자세한 동작(넣는 규약, 쓰기 판정, 상태 파일, 테스트): [docs/how-it-works.md](docs/how-it-works.md)

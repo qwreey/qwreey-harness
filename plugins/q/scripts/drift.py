@@ -6,7 +6,7 @@
    `claude plugin update <name>@<market>` 을 보인다. 설치된 것은 installed_plugins.json, 켠 것은 settings 의 enabledPlugins,
    마켓 위치는 known_marketplaces.json 의 installLocation(directory·github·git 모두 로컬 사본이라 같은 방식으로 읽는다).
    읽기만 한다. 원격 마켓은 로컬 사본이 `marketplace update` 때만 새로워지므로 그 시점까지의 비교다.
-2. home 어긋남(저장소 루트에 tools/home-sync.sh 가 있을 때만 = claude-doctor): `home-sync.sh status`(실측 약 0.8초, 읽기 전용)를
+2. home 어긋남(저장소 루트에 tools/home-sync.sh 가 있을 때만 = qwreey-harness): `home-sync.sh status`(실측 약 0.8초, 읽기 전용)를
    돌려 다른 파일·미적용 마이그레이션·고아가 있으면 한 줄.
 
 같은 내용(해시)이면 하루에 한 번만 낸다(바뀌면 바로). 상태는 $TMPDIR/claude-q-drift/state.json. compact 로 다시 시작한 세션은 건너뛴다.

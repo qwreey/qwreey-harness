@@ -32,8 +32,8 @@ Luau·Roblox 지식(타입 한계, 테스트, 성능, Roblox API)은 별도 팩 
 
 ## 설치
 ```bash
-claude plugin marketplace add <claude-doctor 폴더>   # 마켓을 처음 쓸 때 한 번
-claude plugin install luau-lsp@claude-doctor-market
+claude plugin marketplace add <qwreey-harness 폴더>   # 마켓을 처음 쓸 때 한 번
+claude plugin install luau-lsp@qwreey-harness
 ```
 설치한 뒤 새 세션을 연다.
 
@@ -41,7 +41,7 @@ claude plugin install luau-lsp@claude-doctor-market
 1. 프로젝트 폴더에서 플러그인 폴더의 런처에 `--which` 를 붙여 실행한다. 쓸 바이너리와 인자가 한 줄로 나오면 된다.
    - Linux·macOS: `<플러그인 폴더>/launcher/luau-lsp --which`
    - Windows: `<플러그인 폴더>\launcher\luau-lsp.cmd --which`
-   - 플러그인 폴더는 `claude plugin list` 나 `/plugin` 에서 본다. 마켓을 폴더로 추가했으면 claude-doctor 의 `plugins/luau-lsp` 다.
+   - 플러그인 폴더는 `claude plugin list` 나 `/plugin` 에서 본다. 마켓을 폴더로 추가했으면 qwreey-harness 의 `plugins/luau-lsp` 다.
 2. Claude 에게 "아무 `.luau` 파일에 타입 오류를 일부러 넣었다가 고쳐 줘" 라고 한다. 대화에 `Found N new diagnostic issues` 줄이 보이면 붙은 것이다(ctrl+o 로 내용).
 
 ## Rojo 프로젝트
@@ -95,6 +95,6 @@ claude plugin install luau-lsp@claude-doctor-market
 - `LUAU_LSP_LOG` 는 Windows 에서 동작하지 않는다.
 
 ## 끄기
-- `claude plugin disable luau-lsp@claude-doctor-market` (제거는 `uninstall`).
+- `claude plugin disable luau-lsp@qwreey-harness` (제거는 `uninstall`).
 
 자세한 동작(찾는 순서의 세부, 인자, 시험): [docs/how-it-works.md](docs/how-it-works.md)

@@ -1,10 +1,10 @@
 {
-  "name": "claude-doctor-market",
+  "name": "qwreey-harness",
   "owner": {
     "name": "qwreey",
     "email": "me@qwreey.moe"
   },
-  "description": "툴킷 무관 하네스 플러그인 마켓 (claude-doctor). 도메인 팩(web-security, luau-kb)은 기본 꺼짐이라 저장소가 coderag.toml 의 [[packs]] 로 켠다.",
+  "description": "툴킷 무관 하네스 플러그인 마켓 (qwreey-harness). 도메인 팩(web-security, luau-kb)은 기본 꺼짐이라 저장소가 coderag.toml 의 [[packs]] 로 켠다.",
   "plugins": [
     {
       "name": "q",

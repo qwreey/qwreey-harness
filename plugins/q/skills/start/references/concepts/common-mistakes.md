@@ -43,5 +43,5 @@
 
 ## 근거
 - 공식: best-practices (구체적 요청, 검증 수단 주기, `/clear`), costs, sessions (트랜스크립트 저장), permission-modes
-- 이 프로젝트 운영 경험: claude-doctor .claude/audit/10-harness-usage-mine.md, .claude/audit/19-external/02-community.md
+- 이 프로젝트 운영 경험: qwreey-harness .claude/audit/10-harness-usage-mine.md, .claude/audit/19-external/02-community.md
 - `Esc` 로 멈추기: interactive-mode 문서 기준. 버전·화면(데스크톱 앱 등)마다 다를 수 있음(미확인)

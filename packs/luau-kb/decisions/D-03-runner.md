@@ -1,6 +1,6 @@
 # D-03 러너 — 결정 (2026-11-10)
 
-원문: `claude-doctor .claude/base/decisions/D-03-runner.md` 끝의 "사용자 결정" 절. 이 파일은 요약이다.
+원문: `qwreey-harness .claude/base/decisions/D-03-runner.md` 끝의 "사용자 결정" 절. 이 파일은 요약이다.
 
 ## 맥락
 stl-luau·moonwave-luau·quad 는 `luau` CLI 만, tbox 는 `luau` + `lute` 이중 실행, table-sim·devplorer 는 lune 을 넣지 않았다. lune 0.10.5 는 `const` 를 파싱하지 못한다(실측).

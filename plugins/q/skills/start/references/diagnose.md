@@ -19,11 +19,11 @@
 | 4 | rules | `~/.claude/rules/*.md`, `./.claude/rules/*.md` | 개수, 각 파일 맨 위 `paths:` 유무. paths 없는 것은 늘 읽힌다 |
 | 5 | auto memory | `~/.claude/projects/*/memory/MEMORY.md` 중 지금 프로젝트에 해당하는 것(폴더 이름 = 프로젝트 경로의 영숫자 아닌 글자를 `-` 로 바꾼 것) | 줄 수, 크기. 160줄 또는 20KB 넘으면 주의, 200줄 또는 25KB 넘으면 문제(뒤가 안 읽힘). 날짜가 지난 "이번 주", "마감" 같은 줄이 있는지 |
 | 6 | 설정 | `~/.claude/settings.json`, `./.claude/settings.json`, `./.claude/settings.local.json` | `permissions.defaultMode` 값, allow 규칙 수, `hooks` 의 이벤트 이름과 개수, `enabledPlugins`, `env` 키 개수(값은 보지 않음). `bypassPermissions` 면 문제 |
-| 7 | 플러그인 | settings.json 의 `enabledPlugins` 먼저. 더 필요하면 `claude plugin list` (조회 명령, 허락 창이 뜰 수 있음) | 설치·켜짐 목록. luau-kb, q(`q@claude-doctor-market`) 유무 |
+| 7 | 플러그인 | settings.json 의 `enabledPlugins` 먼저. 더 필요하면 `claude plugin list` (조회 명령, 허락 창이 뜰 수 있음) | 설치·켜짐 목록. luau-kb, q(`q@qwreey-harness`) 유무 |
 | 8 | 스킬 | `~/.claude/skills/*/SKILL.md`, `./.claude/skills/*/SKILL.md` | 개수. 30개 넘으면 주의(설명이 늘 읽힘) |
 | 9 | subagent 정의 | `~/.claude/agents/*.md`, `./.claude/agents/*.md` | 개수, `model:` 값 |
 | 10 | MCP | `./.mcp.json` 의 서버 이름 | 개수, `Roblox_Studio` 류 연결 유무. 다른 범위 설정은 `claude mcp list` (조회 명령) |
-| 11 | 사내 하네스 | `~/.claude/harness.env`, `q` 플러그인의 `/q:doctor` 와 `~/.claude/lib/harness_env.py`, `~/.claude/HOOK-MESSAGES.md`, 또는 내 CLAUDE.md 나 맥락의 `<plugin name="q">` 규약이 "정본" 위치를 따로 밝힘 | 하나라도 있으면 `~/.claude` 를 다른 곳(claude-doctor `home/` 등)에서 관리하는 환경이다 → 고칠 것은 정본 쪽 요청으로 바꾼다. 표의 상태 칸에도 그렇게 적는다 |
+| 11 | 사내 하네스 | `~/.claude/harness.env`, `q` 플러그인의 `/q:doctor` 와 `~/.claude/lib/harness_env.py`, `~/.claude/HOOK-MESSAGES.md`, 또는 내 CLAUDE.md 나 맥락의 `<plugin name="q">` 규약이 "정본" 위치를 따로 밝힘 | 하나라도 있으면 `~/.claude` 를 다른 곳(qwreey-harness `home/` 등)에서 관리하는 환경이다 → 고칠 것은 정본 쪽 요청으로 바꾼다. 표의 상태 칸에도 그렇게 적는다 |
 | 12 | 작업 폴더 | 현재 폴더 | git 저장소인지(`.git`), 홈·바탕화면·다운로드 같은 넓은 폴더인지 |
 
 ## 사용자에게 부탁할 것 (Claude 가 실행할 수 없는 명령)

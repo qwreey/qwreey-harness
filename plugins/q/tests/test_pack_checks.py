@@ -18,7 +18,7 @@ pc = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(pc)
 WEB = {"web": ["web/package.json: react"]}
 LUAU = {"luau": ["*.luau 3개"]}
-KEY = "web-security@claude-doctor-market"
+KEY = "web-security@qwreey-harness"
 
 
 def listing(repo, *names):
@@ -38,7 +38,7 @@ class Packs(unittest.TestCase):
         self.repo.mkdir()
         self.home.mkdir()
         (self.home / "plugins").mkdir()
-        (self.home / "plugins" / "known_marketplaces.json").write_text(json.dumps({"claude-doctor-market": {}}))
+        (self.home / "plugins" / "known_marketplaces.json").write_text(json.dumps({"qwreey-harness": {}}))
         self.bin = Path(self.tmp.name) / "coderag"
         self.bin.write_text("#!/bin/sh\n")
         self.bin.chmod(0o755)
@@ -129,7 +129,7 @@ class Packs(unittest.TestCase):
         self.assertIn('name = "luau-kb"', self.got[0][2])
         self.got.clear()
         listing(self.repo, "luau-kb")
-        settings(self.repo / ".claude" / "settings.json", {"luau-kb@claude-doctor-market": True})
+        settings(self.repo / ".claude" / "settings.json", {"luau-kb@qwreey-harness": True})
         self.assertEqual(self.run_check(LUAU), [])
 
     def test_broken_json_and_toml_are_ignored(self):
@@ -141,7 +141,7 @@ class Packs(unittest.TestCase):
 
     def test_no_coderag_warns_once(self):
         listing(self.repo, "web-security", "luau-kb")
-        settings(self.repo / ".claude" / "settings.json", {KEY: True, "luau-kb@claude-doctor-market": True})
+        settings(self.repo / ".claude" / "settings.json", {KEY: True, "luau-kb@qwreey-harness": True})
         self.assertEqual(self.run_check({"web": ["x"], "luau": ["y"]}, coderag_bin=False), ["PACK-NO-CODERAG"])
 
     def test_coderag_plugin_without_binary_warns_without_packs(self):

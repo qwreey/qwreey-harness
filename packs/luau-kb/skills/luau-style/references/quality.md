@@ -49,7 +49,7 @@ last_confirmed:
 ---
 
 ## §1 주석과 문서화 (결정 D-08)
-status: described (언어·내용) / verified (`---` hover, stylua ignore 는 §3) · 근거: claude-doctor `.claude/base/decisions/D-08-comment-language.md`, quad `.claude/conventions.md:345`, quad `.claude/audit/deprecated-props-spike-2026-09-09/REPORT.md:13-17`(luau 0.734 / luau-lsp 1.69.0) · 후보 Q-116
+status: described (언어·내용) / verified (`---` hover, stylua ignore 는 §3) · 근거: qwreey-harness `.claude/base/decisions/D-08-comment-language.md`, quad `.claude/conventions.md:345`, quad `.claude/audit/deprecated-props-spike-2026-09-09/REPORT.md:13-17`(luau 0.734 / luau-lsp 1.69.0) · 후보 Q-116
 
 **공통(일곱 저장소 일치)**: 식별자와 에러 메시지는 영어다. 주석은 **그 파일에 이미 쓰인 언어**를 따른다.
 > 정책: 결정(D-08, 2026-11-11). 식별자·에러 메시지는 영어, 주석은 그 파일의 기존 언어, 새 파일의 주석 언어는 저장소 rules 가 정한다(영어 쓰는 저장소, 한국어 쓰는 저장소, "짧은 건 영어·긴 이유는 한국어" 저장소가 있다). 공개 패키지의 새 파일 언어를 따로 영어로 통일하지는 않는다.
@@ -69,7 +69,7 @@ status: described (언어·내용) / verified (`---` hover, stylua ignore 는 §
 - 지금 동작을 고정한 서술에는 **"관측 — 계약 아님"** 을 붙인다. 나중에 바꿔도 호환성 파괴가 아니게 하려는 것이다.
 
 ## §2 코드 `TODO` 마커 (결정 D-07)
-status: described · 근거: claude-doctor `.claude/base/decisions/D-07-finished-todos.md` §4, rbvm `src/signal.luau:54`(나쁜 예의 실례)
+status: described · 근거: qwreey-harness `.claude/base/decisions/D-07-finished-todos.md` §4, rbvm `src/signal.luau:54`(나쁜 예의 실례)
 > 정책: 결정(D-07, 2026-11-11). D-07 의 본론(끝난 할 일 목록을 지울지 보존할지)은 `.luau` 편집 규칙이 아니라서 이 스킬 밖이다. 여기에는 코드 마커 한 줄만 둔다.
 
 ```lua
@@ -125,7 +125,7 @@ status: described · 근거: quad `.claude/conventions.md:348-355`(줄 세기로
 - 게이트 스크립트를 고쳤으면 일부러 한 번 깨뜨려 실패하는지 본다.
 
 ## §6 성능 주장 (결정 D-05)
-status: described · 근거: stl-luau `.claude/base/perf-measurements.md` 운영 방식, quad `.claude/conventions.md:50-58`, claude-doctor `.claude/base/decisions/D-05-toolchain-pins.md`
+status: described · 근거: stl-luau `.claude/base/perf-measurements.md` 운영 방식, quad `.claude/conventions.md:50-58`, qwreey-harness `.claude/base/decisions/D-05-toolchain-pins.md`
 > 정책: 결정(D-05, 2026-11-11). "수치·결함 서술에는 Luau 버전을 적는다"를 공통 규칙으로 둔다. 버전 핀 값은 저장소가 정하고, 0.742 로 맞추는 것은 프로젝트별 권고 목표다.
 
 - 성능 주장은 **실측으로** 한다. 숫자는 저장소의 한 문서에 모으고, 측정한 Luau 버전과 모드(`-O1`/`-O2`/native)를 적는다.

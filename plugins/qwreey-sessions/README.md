@@ -17,7 +17,7 @@
 - Linux·macOS(`fcntl` 을 쓴다. Windows 불가). `python3`, `claude` CLI(요약 호출).
 
 ## 설정
-`/plugin configure qwreey-sessions@claude-doctor-market` 또는 `/config` 의 플러그인 설정에서 바꾼다.
+`/plugin configure qwreey-sessions@qwreey-harness` 또는 `/config` 의 플러그인 설정에서 바꾼다.
 - 세션 기록(`session_log`, 기본 켜짐): 끄면 훅이 모두 아무것도 하지 않는다. 옛 키 `SESSION_LOG_DISABLE=1` 도 harness.env 와 환경 변수에서 그대로 끈다.
 - 요약 모델(`session_log_model`, 기본 `haiku`).
 - 기록 보관 폴더(`session_log_home`): 비우면 `~/.local/share/session-log`.
@@ -27,12 +27,12 @@
 
 ## 끄기
 - 기록만: 위 설정의 "세션 기록 끄기".
-- 전부: `claude plugin disable qwreey-sessions@claude-doctor-market`.
+- 전부: `claude plugin disable qwreey-sessions@qwreey-harness`.
 
 ## 설치
 ```bash
-claude plugin marketplace add <claude-doctor 폴더>   # 마켓을 처음 쓸 때 한 번
-claude plugin install qwreey-sessions@claude-doctor-market
+claude plugin marketplace add <qwreey-harness 폴더>   # 마켓을 처음 쓸 때 한 번
+claude plugin install qwreey-sessions@qwreey-harness
 ```
 
 자세한 동작: [docs/how-it-works.md](docs/how-it-works.md)(훅 구성, compact 처리, 플랫폼, 테스트), [docs/session-log.md](docs/session-log.md)(요약 흐름, 저장 위치, 알림 표, 명령, 설정 키)

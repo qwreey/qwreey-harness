@@ -1,6 +1,6 @@
 """harness.env 읽기. 하네스 훅, 플러그인, /q:doctor, statusline 이 같이 쓴다(표준 라이브러리만).
 @copy-of: home/.claude/lib/harness_env.py
-정본은 claude-doctor 의 home/.claude/lib/harness_env.py(설치되면 ~/.claude/lib/harness_env.py)다. 플러그인은 늘 자기 옆의 바이트 같은
+정본은 qwreey-harness 의 home/.claude/lib/harness_env.py(설치되면 ~/.claude/lib/harness_env.py)다. 플러그인은 늘 자기 옆의 바이트 같은
 사본을 쓴다: 설치본은 home-sync apply 때만 바뀌어 플러그인보다 옛 판일 수 있고, 옛 판은 플러그인의 user_only 를 모른다.
 설치본은 같은 home/ 에서 함께 설치되는 스크립트(statusline)만 읽는다. 사본은 정본만 고친 뒤 python3 -I tools/sync-copies.py --apply 로 맞춘다.
 

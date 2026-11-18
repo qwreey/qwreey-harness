@@ -102,10 +102,10 @@ status: verified · last-confirmed: luau 0.734·0.742 (x64) · 근거: `snippets
 - `asmSize` 는 아키텍처(x64/a64)와 버전마다 다르다. 바이트 수를 적지 말고 **비율과 대소**로만 단언한다.
 - 실행 머리는 줄 번호를 바꾼다. 줄 번호를 단언하는 스니펫은 머리를 먼저 쓰고 번호를 센다(또는 `debug.info(1, "l")` 로 잰다).
 - 실행은 `ulimit -v` 2 GB, `--codegen` 실행은 주소 공간 예약 때문에 상한 없이 시간 한도(60초)만 둔다.
-- 옛 `claude-doctor .claude/scopes/packs/luau-kb/archive/research/drafts/gaps/tools/run_opt.sh` 의 29개 확인(A 지시어 우선, B CLI 수준, C codegen, D `-g0`, E 인라인, F 접기·펼치기, G 주석과 codegen 크기, H `@native` 범위)은 모두 이 머리로 옮겼다(`opt-*`, `native-*`).
+- 옛 `qwreey-harness .claude/scopes/packs/luau-kb/archive/research/drafts/gaps/tools/run_opt.sh` 의 29개 확인(A 지시어 우선, B CLI 수준, C codegen, D `-g0`, E 인라인, F 접기·펼치기, G 주석과 codegen 크기, H `@native` 범위)은 모두 이 머리로 옮겼다(`opt-*`, `native-*`).
 
 ## §2b Roblox 모드 (luau-lsp + 정의 파일)
-status: verified · last-confirmed: luau-lsp 1.69.0·1.70.1 · 근거: `tools/check_snippets.py analyze_roblox`, claude-doctor `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/snippets/{roblox,parallel}-*.luau` 13개 × 2 버전 통과(2026-11-10)
+status: verified · last-confirmed: luau-lsp 1.69.0·1.70.1 · 근거: `tools/check_snippets.py analyze_roblox`, qwreey-harness `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/snippets/{roblox,parallel}-*.luau` 13개 × 2 버전 통과(2026-11-10)
 
 - 머리 `--@lsp-roblox` 가 있거나 명령행 `--mode roblox` 면 `luau-lsp analyze --platform=roblox --definitions=typedefs/globalTypes.d.luau --flag:LuauSolverV2=true` 로 검사한다. 버전은 `--rbx-lsp 1.70.1,1.69.0`(기본: 둘 중 설치된 것), 정의 파일은 `--defs`.
 - `--@args` 는 luau-lsp 에 붙고 **기본값보다 앞에** 온다. luau-lsp 함정 둘을 하네스가 처리한다(1.70.1 실측):
@@ -130,7 +130,7 @@ status: verified · 근거: 돌연변이 검사 4종(`snippets/RESULTS.md`)
 status: verified
 
 ```bash
-cd /code/Projects/claude-doctor/packs/luau-kb
+cd <qwreey-harness 클론>/packs/luau-kb
 python3 -I tools/check_snippets.py snippets/*.luau                         # 기본 0.746 (LUAU_VER 로 변경)
 python3 -I tools/check_snippets.py --luau 0.734,0.742,0.746 snippets/*.luau      # 행렬, 하나라도 실패면 rc=1
 python3 -I tools/check_snippets.py --luau 0.734,0.742,0.746 --lsp 1.70.1 --table snippets/*.luau > /tmp/t.md

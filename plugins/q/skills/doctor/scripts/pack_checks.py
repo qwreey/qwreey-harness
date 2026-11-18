@@ -15,8 +15,8 @@ from pathlib import Path
 
 # 팩 이름 -> (툴킷, 마켓). 팩 이름은 마켓과 무관하게 맞춘다(마켓이 옮겨져도 켜진 것으로 본다). 마켓은 안내 줄에만 쓴다.
 PACKS = {
-    "web-security": ("web", "claude-doctor-market"),
-    "luau-kb": ("luau", "claude-doctor-market"),
+    "web-security": ("web", "qwreey-harness"),
+    "luau-kb": ("luau", "qwreey-harness"),
 }
 REF = "plugins/q/skills/doctor/references/drift-and-settings.md#도메인-팩"
 

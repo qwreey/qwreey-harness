@@ -17,7 +17,7 @@ The repos on this machine are siblings run by one person; several sessions may b
 ## Map (generated now)
 !`python3 -I -X utf8 "${CLAUDE_SKILL_DIR}/scripts/map.py"`
 
-If the line above is only the command, run it once. The list comes from this machine's Claude Code sessions. If a repo the user means is missing (or should not be listed), tell the user to add it to the `harness_workspace_extra` option (or `harness_workspace_exclude`) with `/plugin configure qwreey-workspace@claude-doctor-market`; do not edit settings files yourself. The gate does not need the list: any git repo outside this session's repo counts.
+If the line above is only the command, run it once. The list comes from this machine's Claude Code sessions. If a repo the user means is missing (or should not be listed), tell the user to add it to the `harness_workspace_extra` option (or `harness_workspace_exclude`) with `/plugin configure qwreey-workspace@qwreey-harness`; do not edit settings files yourself. The gate does not need the list: any git repo outside this session's repo counts.
 
 ## Live sessions
 Which repos have a session running (do not use `pgrep -f`; it matches shell wrappers):

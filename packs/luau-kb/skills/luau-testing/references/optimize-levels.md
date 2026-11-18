@@ -86,7 +86,7 @@ status: verified · last-confirmed: luau 0.742 (0.734 동일) · 근거: `snippe
 - 주입을 생성자 인자나 모듈 테이블 필드로 받으면 `getfenv` 가 필요 없다(`roblox-boundary.md` §2).
 
 ## §5 실례: quad 스펙 3개가 `-O2` 에서만 실패
-status: verified · last-confirmed: luau 0.734 (quad 의 핀), 2026-11-10 · 근거: 원천 claude-doctor `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/testing.md` §12(quad 테스트를 `luau -O2` 로 읽기 전용 실행, 64/67 통과), `quad/scripts/test.sh:7,81-84`, `quad/quad-base/test/spec.errorutil.luau:21-23`, `quad/quad-base/src/Relate.luau:28-29`
+status: verified · last-confirmed: luau 0.734 (quad 의 핀), 2026-11-10 · 근거: 원천 qwreey-harness `.claude/scopes/packs/luau-kb/archive/research/drafts/gaps/testing.md` §12(quad 테스트를 `luau -O2` 로 읽기 전용 실행, 64/67 통과), `quad/scripts/test.sh:7,81-84`, `quad/quad-base/test/spec.errorutil.luau:21-23`, `quad/quad-base/src/Relate.luau:28-29`
 
 | 스펙 | 실패 | 분류 |
 |---|---|---|
@@ -107,4 +107,4 @@ status: verified (이 저장소 하네스) / described (원천 게이트) · 근
 - `quad/scripts/test.sh:81-84` — 스펙을 `luau "$f"`(기본 -O1)로만 돌린다. `-O2` 에서 3개 실패(§5). 게이트에 `-O2` 실행이 없다.
 - `quad/quad-base/test/spec.errorutil.luau:21-23` — 기대 줄을 헬퍼 `curline()`(`debug.info(2, "l")`)로 잰다. `-O2` 에서 -1.
 - `quad/quad-base/src/Relate.luau:28-29` — 손으로 센 `error(…, 3)`. `-O2` 에서 사용자 줄을 가리키지 않는다.
-- D-10 본문 "테이블 필드 경유 호출은 `-O2` 에서 안전" — 대입 필드에만 맞다(이미 claude-doctor `.claude/base/decisions/D-10-error-handling.md` "정정" 절에 반영).
+- D-10 본문 "테이블 필드 경유 호출은 `-O2` 에서 안전" — 대입 필드에만 맞다(이미 qwreey-harness `.claude/base/decisions/D-10-error-handling.md` "정정" 절에 반영).

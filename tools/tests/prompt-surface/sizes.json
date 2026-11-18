@@ -2,8 +2,8 @@
  "items": {
   "agent.qwreey-advisor.reviewer": 432,
   "ambient.q.PreCompact": 86,
-  "ambient.q.SessionStart": 898,
-  "ambient.q.SubagentStart": 898,
+  "ambient.q.SessionStart": 900,
+  "ambient.q.SubagentStart": 900,
   "ambient.qwreey-advisor.PreCompact": 99,
   "ambient.qwreey-advisor.SessionStart": 712,
   "ambient.qwreey-operator.PreCompact": 100,
@@ -40,7 +40,7 @@
   "notice.subagent-bg-tasks.own-task": 389,
   "notice.workspace-gate.read-info": 210,
   "notice.workspace-gate.write-deny": 512,
-  "rule.pack.luau-kb.code-structure": 1023,
+  "rule.pack.luau-kb.code-structure": 1024,
   "rule.pack.luau-kb.luau-core": 6957,
   "rule.pack.web-security.web-security": 3020,
   "rule.qwreey-conventions.agent-docs": 1089,
@@ -78,9 +78,9 @@
  },
  "totals": {
   "packs_listings": 4413,
-  "session_start": 13429,
-  "session_start_hooks": 5308,
+  "session_start": 13431,
+  "session_start_hooks": 5310,
   "session_start_listings": 8121,
-  "subagent_start_hooks": 2746
+  "subagent_start_hooks": 2748
  }
 }

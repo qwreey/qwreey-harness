@@ -71,7 +71,7 @@ class PluginRules(unittest.TestCase):
             f.write('---\npaths: ["**/*.ts"]\n---\n# body\n')
         os.makedirs(os.path.join(CFG, "plugins"), exist_ok=True)
         with open(os.path.join(CFG, "plugins", "installed_plugins.json"), "w", encoding="utf-8") as f:
-            json.dump({"version": 2, "plugins": {"web-security@claude-doctor-market": [{"installPath": inst}]}}, f)
+            json.dump({"version": 2, "plugins": {"web-security@qwreey-harness": [{"installPath": inst}]}}, f)
         try:
             c = run("cat src/a.ts | python3 -c 'import sys'")
             self.assertIn("web-security (web-security rule:", c)

@@ -19,7 +19,7 @@
 - 저장소마다 할 설정은 없다. 위임은 원본 저장소를 읽을 수 있고(쓰기는 못 함), worktree 에 없는 설치된 의존(패키지 등)은 원본에서 복사해 쓴다. 고급: 새 worktree 에서 먼저 돌 명령이 꼭 필요한 저장소만 `.claude/harness.env` 에 `HARNESS_DELEGATE_SETUP=<명령>`(작업 uid 로 그 worktree 안에서만 돈다).
 
 ## 설정
-`/plugin configure qwreey-delegate@claude-doctor-market` 또는 `/config` 의 플러그인 설정에서 바꾼다.
+`/plugin configure qwreey-delegate@qwreey-harness` 또는 `/config` 의 플러그인 설정에서 바꾼다.
 - 위임 uid 대역(`harness_delegate_uids`, 기본 `61100-61115`): 실행마다 이 범위에서 비어 있는 첫 uid 를 쓴다. 범위의 크기가 동시에 돌 수 있는 작업 수다. 실제 계정과 겹치는 uid 는 건너뛰고 `doctor` 가 알린다. 저장소 파일로는 바꾸지 못한다.
 - agy 모델(`harness_delegate_agy_model`, 기본 `gemini-3.8-flash-high`), codex 모델(`harness_delegate_codex_model`, 기본 `gpt-6-luna`). 저장소 `.claude/harness.env` 가 바꿀 수 있고 `run --model` 이 이긴다.
 - agy 실행 파일(`harness_delegate_agy_bin`), codex 실행 파일(`harness_delegate_codex_bin`): 비우면 PATH 에서 찾는다.
@@ -33,12 +33,12 @@
 - 둘은 함께 설치할 수 있다. 겹치는 점: 같은 Codex 사용 한도를 나눠 쓰고, "코덱스한테 물어봐" 에 양쪽이 다 후보가 된다. 격리와 검증이 필요하면 delegate, 읽기 전용 리뷰는 공식 플러그인으로 나누면 된다.
 
 ## 끄기
-- `claude plugin disable qwreey-delegate@claude-doctor-market` (제거는 `uninstall`). 훅이 없어 끄면 바로 멈춘다. 상태 폴더에 남은 결과는 지우지 않으니 필요 없으면 손으로 지운다.
+- `claude plugin disable qwreey-delegate@qwreey-harness` (제거는 `uninstall`). 훅이 없어 끄면 바로 멈춘다. 상태 폴더에 남은 결과는 지우지 않으니 필요 없으면 손으로 지운다.
 
 ## 설치
 ```bash
-claude plugin marketplace add <claude-doctor 폴더>   # 마켓을 처음 쓸 때 한 번
-claude plugin install qwreey-delegate@claude-doctor-market
+claude plugin marketplace add <qwreey-harness 폴더>   # 마켓을 처음 쓸 때 한 번
+claude plugin install qwreey-delegate@qwreey-harness
 ```
 
 자세한 동작(격리 방식, 실행 흐름, 설정 변수, 작업 폴더): [docs/how-it-works.md](docs/how-it-works.md)

@@ -26,7 +26,7 @@
 
 ## luau-kb
 - 회사 Luau·Roblox 지식 정본. 스킬 12개: 타입(luau-types), 검증, 테스트, 성능, 스타일, 런타임, Roblox 타입·mock·Studio MCP(luau-roblox), 엔진·네트워크·월드 동작, Roblox 문서 조회, 업스트림 변화.
-- 설치: `claude plugin marketplace add <claude-doctor 폴더>`(이미 있으면 생략) → Luau 저장소 `.claude/settings.json` 의 `enabledPlugins` 에 `"luau-kb@claude-doctor-market": true` (사용자 동의 후).
+- 설치: `claude plugin marketplace add <qwreey-harness 폴더>`(이미 있으면 생략) → Luau 저장소 `.claude/settings.json` 의 `enabledPlugins` 에 `"luau-kb@qwreey-harness": true` (사용자 동의 후).
 - **Luau 저장소에서만 켜기**를 권한다. 다른 프로젝트에서는 스킬 설명이 상시 비용만 늘린다.
 - 쓰는 법: Luau 질문이면 "luau-kb 스킬 먼저 봐" 라고 한 줄 붙인다. 자동 발동은 보장되지 않는다. → `skills.md`
 
@@ -41,6 +41,6 @@
 
 ## 근거
 - 공식(Roblox): create.roblox.com/docs/studio/mcp (내장 서버, 켜는 법, 도구 표, 경로, studio_id, 2026-11-10 확인)
-- 공식(Roblox): create.roblox.com/docs/reference/engine/deprecated (claude-doctor .claude/audit/19-external/05 #7)
+- 공식(Roblox): create.roblox.com/docs/reference/engine/deprecated (qwreey-harness .claude/audit/19-external/05 #7)
 - 사내: luau-kb `skills/luau-roblox/references/studio-mcp.md`
 - 미확인: 회사 PC 에서 Studio MCP 사용 허용 여부, Team Create 플레이스에서 바꾸는 도구의 영향, Open Cloud 연동 권한

@@ -42,10 +42,10 @@ last_verified: 2026-11-10
 ---
 
 ## §1 mise shim 함정
-status: verified · last-confirmed: 2026-11-10 (`/code/Projects/claude-doctor` 에서 실행, `snippets/RESULTS.md`)
+status: verified · last-confirmed: 2026-11-10 (`<qwreey-harness 클론>` 에서 실행, `snippets/RESULTS.md`)
 
 - PATH 의 `luau`, `luau-analyze` 는 mise shim 이다. 버전을 정하는 `mise.toml` 이 있는 프로젝트 **밖**(전역 기본 버전이 없는 곳)에서 부르면 `mise ERROR No version is set for shim: luau-analyze` 를 낸다.
-- 함정: 이때 `luau-analyze --help` 의 **종료 코드가 0** 이다. "도구가 있는지" 를 `--help` 의 rc 로 판정하는 스크립트는 shim 을 정상으로 오판한다. 초안 하네스가 실제로 이 버그를 밟았다(claude-doctor audit 05 §1).
+- 함정: 이때 `luau-analyze --help` 의 **종료 코드가 0** 이다. "도구가 있는지" 를 `--help` 의 rc 로 판정하는 스크립트는 shim 을 정상으로 오판한다. 초안 하네스가 실제로 이 버그를 밟았다(qwreey-harness audit 05 §1).
 - 다른 프로젝트의 `mise.toml` 아래에서 부르면 **그 프로젝트의 핀 버전**이 쓰인다. 같은 명령이 디렉터리에 따라 다른 luau 로 돈다.
 
 ## §2 직접 호출 경로

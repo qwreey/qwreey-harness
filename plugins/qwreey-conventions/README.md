@@ -22,7 +22,7 @@
 - 훅이 `python3` 를 부른다(표준 라이브러리만). Linux·macOS 에서 쓴다.
 
 ## 설정
-`/plugin configure qwreey-conventions@claude-doctor-market` 나 `/config` 의 플러그인 옵션에서 고른다. 다음 파일을 열거나 다음 답부터 적용된다.
+`/plugin configure qwreey-conventions@qwreey-harness` 나 `/config` 의 플러그인 옵션에서 고른다. 다음 파일을 열거나 다음 답부터 적용된다.
 - 읽기 좋은 코드 규약(`harness_readable_code`): 기본 켜짐. 저장소는 `.claude/harness.env` 의 `HARNESS_READABLE_CODE=off` 로 끈다.
 - 규약 자동 주입(`harness_conventions_rules`): 기본 켜짐. 끄면 규약 글은 빠지고 줄 알림은 그대로다.
 - 줄 단위 규약 검사(`conventions_check`), 파일 길이·구조 알림(`structure_reminder`), memory 자리 알림(`memory_placement`): 기본 켜짐.
@@ -31,12 +31,12 @@
 
 ## 끄기
 - 알림 하나씩: 위 설정에서 끈다(환경 변수 `CONVENTIONS_CHECK=off` 등도 된다).
-- 전부: `claude plugin disable qwreey-conventions@claude-doctor-market` (제거는 `uninstall`).
+- 전부: `claude plugin disable qwreey-conventions@qwreey-harness` (제거는 `uninstall`).
 
 ## 설치
 ```bash
-claude plugin marketplace add <claude-doctor 폴더>   # 마켓을 처음 쓸 때 한 번
-claude plugin install qwreey-conventions@claude-doctor-market
+claude plugin marketplace add <qwreey-harness 폴더>   # 마켓을 처음 쓸 때 한 번
+claude plugin install qwreey-conventions@qwreey-harness
 ```
 
 자세한 동작(훅 구성, 검사 항목, 남은 문제 보고, 테스트): [docs/how-it-works.md](docs/how-it-works.md). 주석 알림의 뜻, 기호 대체 표, 저장소 설정(`.claude/conventions.json`), 기존 주석 정리: [docs/comments.md](docs/comments.md). 모델용 문서에 남길 것과 옮길 것, 문서 알림, 기존 문서 정리: [docs/agent-docs.md](docs/agent-docs.md). 값의 정책·불변식 표와 사본 검사 설정(`reuse`): [docs/code-reuse.md](docs/code-reuse.md)

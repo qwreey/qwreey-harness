@@ -37,4 +37,4 @@ quad 원본을 빼고 작업 트리 밖에 있는 복제본은 7개다.
 
 ## 단일 원천으로 쓰는 법 (제안, 미적용)
 
-각 프로젝트의 사본은 이 파일을 가리키게 바꿀 수 있다(심볼릭 링크 또는 `--definitions=/code/Projects/claude-doctor/packs/luau-kb/typedefs/globalTypes.d.luau`). 다른 저장소는 수정하지 않았다. 판을 올릴 때는 이 README 의 md5 와 날짜를 갱신하고, Roblox 코드를 검사하는 각 프로젝트의 게이트를 다시 돌린다.
+각 프로젝트의 사본은 이 파일을 가리키게 바꿀 수 있다(심볼릭 링크 또는 `--definitions=<qwreey-harness 클론>/packs/luau-kb/typedefs/globalTypes.d.luau`). 다른 저장소는 수정하지 않았다. 판을 올릴 때는 이 README 의 md5 와 날짜를 갱신하고, Roblox 코드를 검사하는 각 프로젝트의 게이트를 다시 돌린다.

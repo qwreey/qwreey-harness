@@ -9,7 +9,7 @@
 --       파라미터 주석 자리에 쓰면 선언 줄에 한 번 뜨고, 호출마다 두 건씩 다시 뜬다.
 -- 근거: quad/.claude/base/typing-limits.md 0 "error()가 아니라 print + types.never",
 --       quad/.claude/luau-test/done/23 머리 주석 1번, stl-luau/.claude/papers/03-tuple.md:23,
---       stl-luau/.claude/conventions.md:84 3), claude-doctor .claude/base/decisions/D-04-type-functions.md 2
+--       stl-luau/.claude/conventions.md:84 3), qwreey-harness .claude/base/decisions/D-04-type-functions.md 2
 type function PrintOnly(t: type): type
 	print("debug: " .. t.tag)
 	return t

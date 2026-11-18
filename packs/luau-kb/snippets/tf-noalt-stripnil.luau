@@ -8,7 +8,7 @@
 --   - `number?` 는 `number`, `(number | string)?` 는 `number | string` 이 되고, nil 없는 타입은 그대로다.
 --   - 새 솔버는 type function 본문도 검사하므로 지역 테이블에 `{ type }` 주석이 필요하다.
 -- 근거: quad/.claude/base/typing-limits.md 8.14, quad/quad-types/src/init.luau:122 (StripNil, Ref:Unwrap),
---       claude-doctor .claude/base/decisions/D-04-type-functions.md "사용자 결정"(strip-nil 예)
+--       qwreey-harness .claude/base/decisions/D-04-type-functions.md "사용자 결정"(strip-nil 예)
 type function StripNil(t: type): type
 	if t:is("union") then
 		local comps: { type } = {}
