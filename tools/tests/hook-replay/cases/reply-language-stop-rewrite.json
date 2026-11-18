@@ -1,0 +1,46 @@
+{
+ "description": "reply-language: an English reply to a Korean user is blocked once for a rewrite; stop_hook_active passes; the old qwreey-conventions path is a silent no-op",
+ "files": {
+  ".claude/settings.json": "{\"language\": \"Korean\"}\n"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-reply-language/hooks/reply_language.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "Stop",
+    "last_assistant_message": "I read the file and added the function. The tests pass and nothing else needs attention.",
+    "stop_hook_active": false
+   },
+   "expect": {
+    "decision": "block",
+    "tags": ["reply-language/action"],
+    "contains": ["the same content in Korean"]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-reply-language/hooks/reply_language.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "Stop",
+    "last_assistant_message": "I read the file and added the function. The tests pass and nothing else needs attention.",
+    "stop_hook_active": true
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reply_language.py",
+   "payload": {
+    "session_id": "s2",
+    "hook_event_name": "Stop",
+    "last_assistant_message": "I read the file and added the function. The tests pass and nothing else needs attention.",
+    "stop_hook_active": false
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

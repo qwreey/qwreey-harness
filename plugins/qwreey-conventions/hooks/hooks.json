@@ -95,15 +95,6 @@
             "timeout": 10
           }
         ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/reply_language.py\"",
-            "timeout": 5
-          }
-        ]
       }
     ],
     "PreToolUse": [
@@ -114,28 +105,6 @@
             "type": "command",
             "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/bash-bypass-reminder.py\"",
             "timeout": 10
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/reply_language.py\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostToolBatch": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/reply_language.py\"",
-            "timeout": 5
           }
         ]
       }

@@ -47,7 +47,7 @@ MANIFEST 대상 아님. 근거 실측: `.claude/scopes/home/.claude/audit/17-hoo
 | | 유효한 예외 사유 안내, 접두 묶음 제안, 폴더 파일 과다(관련 파일이 묶이면 폴더 제안 고려, 의도된 평면 구성이면 할 것 없음) | info |
 | rules-inject | (플러그인 `qwreey-conventions`, `web-security` 도 같은 훅) PostToolUse. Read 뒤 경로가 맞는 rule 본문을 `<rule>` 태그 안에 주입. 이 키로 처음인 Edit·Write 뒤에는 "방금 쓴 것을 대조하고 어긋나는 것만 고쳐라" 한 문장(`Check what you wrote against them and fix only what conflicts.`, coderag `rules/mod.rs` 와 같은 문장)을 더함. deny 는 없음 | info |
 | | (qwreey-conventions 의 `bash_writes.py`, PostToolUse·PostToolUseFailure:Bash) Bash 명령이 바꾼 파일에 맞는 rule 중 이 맥락에 아직 안 넣은 것을 같은 마커·같은 문장으로. 같은 출력의 주석 알림 태그 뒤에 9,000자 안에 드는 것만, 나머지는 다음 Read·Edit | info |
-| reply-language | (플러그인 `qwreey-conventions`) 답변 언어 미설정: 요청에 먼저 답하고 답 끝에서 어느 언어로 답할지 물어 저장 명령 실행(첫 요청을 막지 않는다) | info |
+| reply-language | (플러그인 `qwreey-reply-language`) 답변 언어 미설정: 요청에 먼저 답하고 답 끝에서 어느 언어로 답할지 물어 저장 명령 실행(첫 요청을 막지 않는다) | info |
 | reply-language | (같은 훅) Stop 에서 마지막 답변이 사용자 언어가 아님: 다시 쓰라는 block(글자 비율 검사라 코드·인용 출력에 걸릴 수 있다고 밝힌다. 코드·인용을 둘러싼 사용자 언어 산문이거나 사용자가 이번 턴에 다른 언어를 명시했으면 그대로 두고, 아니면 다시 쓴 답만 내며 언어·알림 언급과 사과 금지). 마지막 사용자 프롬프트 자체가 사용자 언어가 아니면 block 하지 않는다 | action |
 | reply-language | (같은 훅) 도구 호출 사이 텍스트가 사용자 언어가 아닌 듯함(진행 메모는 포함, 인용 출력·식별자는 제외. 알림 자체는 사용자에게 언급하지 않는다) | info |
 | reply-language | (같은 훅) 긴 턴(도구 10회, 이후 15회마다) 한 줄 상기 | info |
@@ -98,7 +98,7 @@ MANIFEST 대상 아님. 근거 실측: `.claude/scopes/home/.claude/audit/17-hoo
 3. 훅마다 횟수 상한을 둔다(같은 사유는 회차당 한 번, 쿨다운 등). Claude Code 의 상한(연속 8회, `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`)은 도구 호출마다 다시 세므로 훅의 상한을 대신하지 못한다.
 4. 마지막 답이 사용자에게 묻고 있으면 일을 더 시키지 않는다. 사용자의 답을 기다리는 턴을 이어 가면 모델이 혼자 정한다. 같은 답을 고쳐 쓰게 하는 것(reply-language)은 질문이 남으므로 괜찮다.
 
-지금 이어 가게 하는 출력을 내는 훅: reply-language(qwreey-conventions, 언어 이탈 다시 쓰기 block), qwreey-advisor(Stop additionalContext, 기본 켜짐, 끄기 `HARNESS_REVIEW_STOP=off`. 같은 diff 해시는 회차당 한 번, 알림 뒤 `HARNESS_REVIEW_FRESH_MIN` 쿨다운), subagent-bg-tasks(qwreey-operator, SubagentStop additionalContext. 4번의 질문 예외는 두지 않는다: 서브에이전트의 질문은 보고에 실려 호출한 쪽에 가고 다시 쓰는 보고에도 남는다). q 의 stale-work, qwreey-conventions 의 conventions-check 는 Stop 에서 `systemMessage` 만 낸다.
+지금 이어 가게 하는 출력을 내는 훅: reply-language(qwreey-reply-language, 언어 이탈 다시 쓰기 block), qwreey-advisor(Stop additionalContext, 기본 켜짐, 끄기 `HARNESS_REVIEW_STOP=off`. 같은 diff 해시는 회차당 한 번, 알림 뒤 `HARNESS_REVIEW_FRESH_MIN` 쿨다운), subagent-bg-tasks(qwreey-operator, SubagentStop additionalContext. 4번의 질문 예외는 두지 않는다: 서브에이전트의 질문은 보고에 실려 호출한 쪽에 가고 다시 쓰는 보고에도 남는다). q 의 stale-work, qwreey-conventions 의 conventions-check 는 Stop 에서 `systemMessage` 만 낸다.
 
 ## dedup 단위 = session_id + 호출한 쪽(agent_id 또는 main) + compact 회차
 "세션당 한 번" 알림은 session_id 만 키로 쓰면 안 된다. `/compact` 는 session_id 를 유지하는데 요약 과정에서 이전 알림이 맥락에서 사라진다(실측).

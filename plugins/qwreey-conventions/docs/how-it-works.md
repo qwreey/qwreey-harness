@@ -1,6 +1,6 @@
 # qwreey-conventions 동작 상세
 
-구성: 모델이 부르는 스킬 하나(`code-reuse`), 사용자 명령 둘(`comments-cleanup`, `docs-cleanup`), 경로 한정 규칙 여섯(`rules/*.md`, 맞는 파일을 열 때 훅이 주입, 하나는 켜기 스위치가 있다), 알림 훅(`hooks/hooks.json`). 훅은 막지 않는다. 예외는 답변 언어 이탈의 Stop `decision: block` 하나다. `.claude/` 기록 규약은 이 플러그인에 없고 coderag 플러그인의 `coderag:agent-records` 가 맡는다.
+구성: 모델이 부르는 스킬 하나(`code-reuse`), 사용자 명령 둘(`comments-cleanup`, `docs-cleanup`), 경로 한정 규칙 여섯(`rules/*.md`, 맞는 파일을 열 때 훅이 주입, 하나는 켜기 스위치가 있다), 알림 훅(`hooks/hooks.json`). 훅은 막지 않는다. 답변 언어 지키기는 [qwreey-reply-language](../../qwreey-reply-language/docs/how-it-works.md) 플러그인이 한다. `.claude/` 기록 규약은 이 플러그인에 없고 coderag 플러그인의 `coderag:agent-records` 가 맡는다.
 
 ## 스킬과 규칙
 | 이름 | 다루는 것 |
@@ -27,7 +27,6 @@
 | PostToolUse(Write·Edit·MultiEdit) | `memory-placement.py` | auto memory 에 쓴 저장소 지식 |
 | PreToolUse(Bash) | `bash-bypass-reminder.py` | 셸·인터프리터로 파일을 바꾸면 Edit·Write 훅과 저장소 rules 를 비껴간다는 알림, 쓰기 신호가 있으면 Bash 검사용 스냅숏 |
 | PostToolUse(Bash), PostToolUseFailure(Bash) | `bash_writes.py` | 명령이 바꾼 파일의 추가 줄에 `conventions-check.py` 와 같은 검사, 사본 검사, 아직 안 보인 규칙 주입 |
-| UserPromptSubmit, Stop, PostToolBatch | `reply_language.py` | 답변 언어 이탈 |
 | PreCompact(manual·auto) | `compact_epoch.py qwreey-conventions` | 이 플러그인의 compact 회차를 올린다. 알림 dedup 이 회차 단위라 compact 뒤 다시 알린다 |
 
 모든 훅은 모델을 부르지 않고, 실패하면 조용히 통과한다. 메시지는 영어 `<harness-hook name="…" level="…">`.
@@ -156,13 +155,6 @@ python3 -I plugins/qwreey-conventions/scripts/conventions-scan.py fix [경로...
 ## 메모 배치 (`memory-placement.py`)
 auto memory 디렉터리(`<config>/projects/*/memory/` 또는 `autoMemoryDirectory`)에 쓴 `MEMORY.md` 가 아닌 파일을 `memory_signals.py` 로 분류해, 경로·빌드 명령·규약·함정 같은 저장소 지식으로 보이면 저장소로 옮기라고 알린다(level=warn). `type: user` 는 알리지 않는다. 같은 파일은 (세션, 호출자, compact 회차)당 한 번. 끄기: `MEMORY_PLACEMENT=off`.
 
-## 답변 언어 (`reply_language.py`)
-메인 대화만 본다.
-- 언어 출처(좁은 쪽이 이김): 프로젝트 `.claude/settings.local.json` > `.claude/settings.json` > 사용자 `settings.json` 의 `language`, 없으면 `${CLAUDE_PLUGIN_DATA}/language.json`. 둘 다 없으면 UserPromptSubmit 이 세션당 한 번 "요청에 먼저 답하고 끝에서 언어를 물어 `reply_language.py set <language>` 로 저장하라" 고 알린다.
-- Stop: 마지막 답의 목표 문자 비율이 0.25 미만이고 라틴 글자가 20자 이상이면 `decision: block` 으로 다시 쓰게 한다. 사용자가 이번 턴에 영어로만 썼으면 통과하고, `stop_hook_active` 면 통과한다(루프 방지). 라틴 문자 언어는 감지하지 않는다.
-- PostToolBatch: 도구 호출 사이 텍스트가 이탈이면 info(쿨다운), 한 요청의 도구 호출이 10회, 이후 15회마다 info 한 줄.
-- 기록: `${CLAUDE_PLUGIN_DATA}/drift.jsonl`(본문 없음). 끄기: 옵션 `harness_reply_language`(= `HARNESS_REPLY_LANGUAGE=off`, 환경 변수나 harness.env 층도 된다).
-
 ## 저장소 설정
 `<프로젝트>/.claude/conventions.json`(없으면 예전 이름 `.claude/comments.json`): `comment_language`, `allow_chars`, `public_ids`, `exclude`, `patterns`, `allow_ref_tail`, `min_reason_words`, `label_language`, `layout`(형식은 [comments.md](comments.md)), `reuse`(`mode`, `allow`, `vocab_ok`, `min_shared`, 형식은 [code-reuse.md](code-reuse.md)), `rules_exclude`. 파일 길이는 `.claude/structure.json`. 사용자 설정 위치는 `$CLAUDE_CONFIG_DIR`(기본 `~/.claude`).
 
@@ -177,7 +169,6 @@ python3 -I plugins/qwreey-conventions/tests/test-structure-reminder.py
 python3 -I plugins/qwreey-conventions/tests/test-reuse-check.py
 python3 -I plugins/qwreey-conventions/tests/test-memory-placement.py
 python3 -I plugins/qwreey-conventions/tests/test-rules-inject.py
-python3 -I plugins/qwreey-conventions/tests/test-reply-language.py
 python3 -I plugins/qwreey-conventions/tests/test-bash-bypass-reminder.py
 python3 -I plugins/qwreey-conventions/tests/test-bash-writes.py
 ```

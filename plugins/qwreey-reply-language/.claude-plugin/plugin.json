@@ -1,0 +1,25 @@
+{
+  "name": "qwreey-reply-language",
+  "version": "0.1.0",
+  "description": "답변이 사용자 언어(Claude Code 설정의 language, 없으면 처음에 물어 저장한 언어)에서 벗어나 영어로 나가면 다시 쓰게 한다. 턴 끝(Stop)의 마지막 답은 다시 쓰게 막고, 도구 호출 사이 글이 새거나 턴이 길어지면 한 줄로 알린다. 한글·일본어·중국어·키릴 문자처럼 라틴 문자가 아닌 언어만 본다. 메인 대화만, 모델을 부르지 않는다.",
+  "author": {
+    "name": "qwreey",
+    "email": "me@qwreey.moe"
+  },
+  "license": "MIT",
+  "keywords": [
+    "qwreey",
+    "language",
+    "reply-language",
+    "korean",
+    "hooks"
+  ],
+  "userConfig": {
+    "harness_reply_language": {
+      "type": "boolean",
+      "title": "답변 언어 지키기",
+      "description": "답변이 사용자 언어(Claude Code 설정의 language, 없으면 처음에 물어 저장한 언어)에서 벗어나 영어로 나가면 알리고 다시 쓰게 한다. 기본은 켜짐이다. 끄면 언어를 보지 않는다. 저장소는 .claude/harness.env 에 HARNESS_REPLY_LANGUAGE=off 를 두어 그 저장소에서만 끈다.",
+      "default": true
+    }
+  }
+}

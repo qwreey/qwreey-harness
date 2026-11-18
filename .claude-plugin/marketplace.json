@@ -19,7 +19,12 @@
     {
       "name": "qwreey-conventions",
       "source": "./plugins/qwreey-conventions",
-      "description": "주석·모델용 문서 관례: comments rule(코드 주석: 이유만, 이력은 커밋으로, 키보드로 치는 문자, 파일 언어, 기존 주석 정리는 /qwreey-conventions:comments-cleanup), agent-docs rule(CLAUDE.md·SKILL.md·rules: 지금의 지시만, 이력은 옮긴다, 기존 문서 정리는 /qwreey-conventions:docs-cleanup), code-reuse 스킬(경계를 넘는 사본, 라이브러리 선택). 추가한 줄(Bash 로 쓴 것 포함)이 벗어나면 한 줄로 알리는 훅 포함. 구조 한도·셸 우회 쓰기·auto memory 배치 알림 훅, 경로 한정 rules 주입 훅(comments·agent-docs·code-structure·code-reuse·memory, 켜면 readable-code 와 layout 알림), 답변 언어 이탈 감지 훅도 포함"
+      "description": "주석·모델용 문서 관례: comments rule(코드 주석: 이유만, 이력은 커밋으로, 키보드로 치는 문자, 파일 언어, 기존 주석 정리는 /qwreey-conventions:comments-cleanup), agent-docs rule(CLAUDE.md·SKILL.md·rules: 지금의 지시만, 이력은 옮긴다, 기존 문서 정리는 /qwreey-conventions:docs-cleanup), code-reuse 스킬(경계를 넘는 사본, 라이브러리 선택). 추가한 줄(Bash 로 쓴 것 포함)이 벗어나면 한 줄로 알리는 훅 포함. 구조 한도·셸 우회 쓰기·auto memory 배치 알림 훅, 경로 한정 rules 주입 훅(comments·agent-docs·code-structure·code-reuse·memory, 켜면 readable-code 와 layout 알림) 포함. 답변 언어 지키기는 qwreey-reply-language"
+    },
+    {
+      "name": "qwreey-reply-language",
+      "source": "./plugins/qwreey-reply-language",
+      "description": "답변이 사용자 언어(Claude Code 설정의 language, 없으면 처음에 물어 저장)에서 영어로 새면 턴 끝에서 다시 쓰게 하고, 도구 호출 사이 글이 새거나 턴이 길어지면 한 줄로 상기시키는 훅. 라틴 문자가 아닌 언어(한글, 일본어, 중국어, 키릴 등)만 본다. 모델을 부르지 않음, 모든 OS(python3)"
     },
     {
       "name": "web-security",

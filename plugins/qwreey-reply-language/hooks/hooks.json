@@ -1,0 +1,38 @@
+{
+  "description": "reply-language: 답변이 사용자 언어에서 벗어나면 Stop 에서 다시 쓰게 막고(decision: block), 도구 호출 사이 글이 새거나 턴이 길어지면 알린다. 언어가 정해지지 않았으면 처음 한 번 묻게 한다.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/reply_language.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/reply_language.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolBatch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/reply_language.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

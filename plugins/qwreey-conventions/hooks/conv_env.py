@@ -19,8 +19,6 @@ ENV_DEFAULTS = {
     "HARNESS_READABLE_CODE": "on",
     # rules/ 주입(rules_inject, bash_writes). `off` 일 때만 꺼진다.
     "HARNESS_CONVENTIONS_RULES": "on",
-    # 답변 언어 이탈 감지(reply_language). `off` 일 때만 꺼진다.
-    "HARNESS_REPLY_LANGUAGE": "on",
     # 훅별 끄기 스위치. `off` 일 때만 꺼진다.
     "CONVENTIONS_CHECK": "on",  # conventions-check, reuse-check, bash_writes 의 줄 검사
     "STRUCTURE_REMINDER": "on",

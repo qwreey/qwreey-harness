@@ -12,6 +12,7 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 | `plugins/qwreey-workspace/` | 다른 저장소 읽기 전용 게이트(`workspace_gate.py`)와 `qwreey-workspace:workspace` 스킬(지도, 살아 있는 세션, worktree 잠금), 규약 주입. 카드 `plugins/qwreey-workspace/README.md` |
 | `plugins/qwreey-advisor/` | 모델이 부르는 독립 검토(별도 플러그인). luau 지식은 `luau-kb` 플러그인 |
 | `plugins/qwreey-conventions/` | 코드 주석·모델용 문서 관례(둘 다 rule, 기존 주석·문서 정리 명령 `comments-cleanup`·`docs-cleanup`)와 추가한 줄을 한 줄로 알리는 훅, 구조 한도(`structure-reminder`)·셸 우회 쓰기(`bash-bypass-reminder`)·auto memory 배치(`memory-placement`) 알림 훅. 옛 user-level 훅들을 대체 |
+| `plugins/qwreey-reply-language/` | 답이 사용자 언어에서 영어로 새면 턴 끝에서 다시 쓰게 하는 훅(`reply-language`, 모든 플랫폼). 카드 `plugins/qwreey-reply-language/README.md` |
 | `plugins/luau-lsp/` | `.luau` 에 luau-lsp 언어 서버를 붙이는 플러그인(진단, hover, 정의 찾기, Rojo 면 Roblox 정의 파일). 바이너리는 따로 설치하고 런처가 찾는다. luau-kb 팩은 LSP 를 싣지 않는다. 카드 `plugins/luau-lsp/README.md` |
 | `plugins/qwreey-proc-guard/` | 무거운 실행(벤치·퍼저)이 choom 없이 나가면 거절하는 PreToolUse 훅(`heavy-proc-guard`, Linux 전용)과 자기 셸에 걸리는 `pgrep -f` 대기 루프를 거절하는 훅(`self-match-guard`, 모든 플랫폼) |
 | `plugins/qwreey-license/` | 라이선스 파일을 정본에서 받아 쓰고 대조하는 스킬 `qwreey-license:license`(고르기 주의점, GitHub API·SPDX 에서 받아 연도·소유자 채우기, LICENSE·manifest 대조, 서드파티 고지). 훅 없음. 카드 `plugins/qwreey-license/README.md` |
@@ -79,7 +80,7 @@ Windows(회사 PC)에서도 플러그인과 `home-sync` 가 돌게 짰다. 실�
 - 설치 순서는 위 "다른 sandbox 에 설치하기"와 같다. 명령은 모두 Git Bash 에서 친다. 마켓 경로는 `home-sync apply` 가 클론 위치로 채운다.
 
 **되는 것**
-- 플러그인 훅 전부(q, qwreey-sessions, qwreey-workspace, qwreey-conventions, qwreey-advisor, qwreey-operator), statusline, `/q:away`·`/q:back`, session-log 요약 워커(파일 잠금은 `msvcrt`, 워커는 분리 프로세스로).
+- 플러그인 훅 전부(q, qwreey-sessions, qwreey-workspace, qwreey-conventions, qwreey-reply-language, qwreey-advisor, qwreey-operator), statusline, `/q:away`·`/q:back`, session-log 요약 워커(파일 잠금은 `msvcrt`, 워커는 분리 프로세스로).
 - `-X utf8` 로 한국어 Windows 의 코드 페이지(cp949)와 상관없이 UTF-8 로 읽고 쓴다.
 - luau-lsp 플러그인은 `.cmd` 런처로 뜬다(카드 `plugins/luau-lsp/README.md` 의 Windows 절).
 

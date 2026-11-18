@@ -58,6 +58,8 @@ ENTRIES = [
     ("qwreey-conventions conv_env", "plugins/qwreey-conventions/hooks", "import conv_env; out = conv_env._layers()",
      "plugins/qwreey-conventions/hooks/conv_env.py",
      "plugins/qwreey-conventions/hooks/conv_env.py"),
+    ("qwreey-reply-language", "plugins/qwreey-reply-language/hooks", "import reply_env; out = reply_env._layers()",
+     "plugins/qwreey-reply-language/hooks/reply_env.py", "plugins/qwreey-reply-language/hooks/reply_env.py"),
     ("qwreey-sessions", "plugins/qwreey-sessions/scripts", "from sllib import config; out = config.load()",
      "plugins/qwreey-sessions/scripts/sllib/config.py", "plugins/qwreey-sessions/scripts/sllib/config.py"),
     ("q doctor", "plugins/q/skills/doctor/scripts", "import scan; out = scan.ENV", "plugins/q/skills/doctor/scripts/scan.py",

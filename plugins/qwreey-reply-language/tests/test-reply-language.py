@@ -133,8 +133,8 @@ class Resolution(Base):
         self.assertEqual(out.returncode, 0)
         with open(os.path.join(DATA, "language.json"), encoding="utf-8") as f:
             self.assertEqual(json.load(f)["language"], "Korean")
-        # CLAUDE_PLUGIN_DATA 가 없는 Bash: <config>/plugins/data/qwreey-conventions-* 를 찾는다
-        d2 = os.path.join(CFG, "plugins", "data", "qwreey-conventions-market")
+        # CLAUDE_PLUGIN_DATA 가 없는 Bash: <config>/plugins/data/qwreey-reply-language-* 를 찾는다
+        d2 = os.path.join(CFG, "plugins", "data", "qwreey-reply-language-market")
         os.makedirs(d2)
         e = env()
         e.pop("CLAUDE_PLUGIN_DATA")
@@ -200,6 +200,22 @@ class StopBlock(Base):
         set_language("user", "Korean")
         self.assertIsNone(stop(fresh(), EN, agent="sub1"))
         self.assertIsNone(hook("Stop", fresh(), e=env({"HARNESS_REPLY_LANGUAGE": "off"}), last_assistant_message=EN, stop_hook_active=False))
+
+    def test_off_through_option_and_repo_layer(self):
+        # /config 옵션(settings.json pluginConfigs)과 저장소 harness.env 층도 끈다. 환경 변수가 둘 다 이긴다.
+        opt = {"language": "Korean", "pluginConfigs": {"qwreey-reply-language@m": {"options": {"harness_reply_language": False}}}}
+        write_json(os.path.join(CFG, "settings.json"), opt)
+        self.assertIsNone(stop(fresh(), EN))
+        self.assertEqual(stop(fresh(), EN, e=env({"HARNESS_REPLY_LANGUAGE": "on"}))["decision"], "block")
+        set_language("user", "Korean")
+        repo_env = os.path.join(PROJ, ".claude", "harness.env")
+        with open(repo_env, "w", encoding="utf-8") as f:
+            f.write("HARNESS_REPLY_LANGUAGE=off\n")
+        try:
+            self.assertIsNone(stop(fresh(), EN))
+        finally:
+            os.remove(repo_env)
+        self.assertEqual(stop(fresh(), EN)["decision"], "block")
 
 
 def user_line(text, tool_result=False):
