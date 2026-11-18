@@ -12,6 +12,7 @@
 | `test-hook-commands.py` | `hooks.json` 의 command 가 모두 `python3 -I -X utf8 "${CLAUDE_PLUGIN_ROOT}/...py"` 꼴인지(Windows 의 Git Bash·PowerShell 에서도 도는 꼴, 머리 주석에 이유) |
 | `test-ambient-lib.py`, `test-vendored-copies.py`, `test-sync-copies.py` | `lib/` 정본과 사본 |
 | `test-harness-env.py`, `test-harness-env-owners.py`, `test-settings-migrate.py` | `home/` 의 harness.env 로더(플러그인 옵션 층 포함)와 settings 마이그레이션 |
+| `test-rename-cutover.py` | `tools/rename-cutover.sh`(폴더·마켓 이름 전환): 가짜 저장소, 설정 폴더, session-log, coderag 설정과 `claude` 흉내로 dry-run 무변경, apply 와 재실행, main 이 움직였을 때 merge, 막는 조건마다 아무것도 바뀌지 않음 |
 | `test-known-repos.py` | `lib/known_repos.py`: 세션 기록 cwd 로 저장소 모으기, worktree 합치기, extra, exclude, 기본 제외, 옛 `HARNESS_WORKSPACE`, 캐시 |
 | `test-plugin-userconfig.py` | 모든 plugin.json 의 `userConfig`: 필수 필드, 키의 대문자를 그 플러그인 코드가 읽는지, `default` 가 코드 기본값(`*DEFAULTS`)과 같은지. `claude` 가 PATH 에 있으면 플러그인마다 `claude plugin validate` |
 | `test-coderag-rules-parity.py`, `test-coderag-skip-dirs.py` | coderag 와의 대조(`CODERAG_SRC`, `CODERAG_BIN` 이 있어야 돈다) |
