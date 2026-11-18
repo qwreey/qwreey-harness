@@ -144,7 +144,7 @@ ACP 는 쓰지 않는다(사용자 "acp 없이 하는게 맞겠다"). ACP 에서
 
 | 항목 | 설계 |
 |---|---|
-| worktree 모드 | 지금과 같이 `git worktree add --detach <사본> <commit>`. uid 백엔드면 사본·admin dir·task_home 을 그 에이전트의 uid 로 chown(fd 기반 `os.fwalk`, 링크는 따라가지 않음). registry 의 setup 줄은 작업 uid 로, 작업의 빈 환경 + mise(자기 폴더를 PATH 에, `MISE_DATA_DIR` = `HARNESS_TOOL_INSTALLS` 의 부모)로 돈다. 공유 clone 도 검토했으나 agy 파일 도구가 풀려 있으면 어느 쪽이든 메인에 쓸 수 있고, `git worktree list` 로 찾는 장점을 잃어 택하지 않음 |
+| worktree 모드 | 지금과 같이 `git worktree add --detach <사본> <commit>`. uid 백엔드면 사본·admin dir·task_home 을 그 실행의 uid 로 chown(fd 기반 `os.fwalk`, 링크는 따라가지 않음). 저장소 층의 setup 줄(`HARNESS_DELEGATE_SETUP`)은 작업 uid 로, 작업의 빈 환경 + mise(자기 폴더를 PATH 에, `MISE_DATA_DIR` = `HARNESS_TOOL_INSTALLS` 의 부모)로 돈다. 공유 clone 도 검토했으나 agy 파일 도구가 풀려 있으면 어느 쪽이든 메인에 쓸 수 있고, `git worktree list` 로 찾는 장점을 잃어 택하지 않음 |
 | empty 모드 | 빈 폴더(지금과 같음). `--files` 를 주면 `--ref` 커밋의 **추적 파일만** `git ls-tree`·`git cat-file --batch` 로 복사(추적 안 되는 `.env` 는 처음부터 안 들어감). 비밀 이름 거름: 기본 `.env*`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `id_rsa*`, `id_ed25519*`, `.npmrc`, `.pypirc`, `.netrc`, `.git-credentials`, `*credentials*.json`, `.claude/harness.local.env`, `.claude/settings.local.json` + `HARNESS_DELEGATE_SECRET_GLOBS` |
 | 실행 기록 | `<작업 폴더>/.runs/<name>/`(root 소유, 폴더 0700·파일 0600): state.json, run.lock, prompt.md, meta.txt, stdout.txt, guard.txt, exit, 보고서 사본 report.md. 작업 uid 가 쓰는 곳은 `<name>/.delegate/`(report.md, codex `-o`)와 `<name>/REPORT.md` 뿐이고, root 는 chown 뒤 작업 쪽 폴더(`<name>/`, `.homes/<name>/`)에 쓰지 않는다. 거기서 읽을 때는 root 소유 작업 폴더에서 연 fd 로 한 단계씩 O_NOFOLLOW(링크·FIFO 거절, 크기 상한). 끝난 뒤 보고서를 기록으로 복사하고 `run` 은 그 사본 경로를 알린다 |
 | 수집 | `collect` 가 `<상태>/runs/<key>/<YYYYMMDD-HHMM>-<name>/`(0700, 파일 0600)에 기록의 prompt, report, guard, meta, stdout, state, exit, worktree 면 `diff.patch`(새 파일 포함, 참고용. git 은 작업 uid 로, 새 객체는 작업 HOME 의 객체 폴더에, 메인 `.git/objects` 는 alternate 로 읽기만), agy 의 `brain/*/scratch` 와 transcript(fd 로 걸어 링크 제외, "이후" 기준은 기록의 시작 시각). empty 는 diff 없음(변경은 버림). 쓴 파일마다 sha256 을 남기고 다 쓴 뒤 다시 읽어 맞춘다 |
@@ -152,10 +152,10 @@ ACP 는 쓰지 않는다(사용자 "acp 없이 하는게 맞겠다"). ACP 에서
 | 정리 | `remove`(실행 중·collect 전 거절, `--discard`): 사본을 `shutil.rmtree`(작업 쪽 트리 안에서 git 을 돌리지 않음), 기록의 admin 경로가 `<root>/.git/worktrees/` 아래면 지운 뒤 `git worktree prune`, HOME 과 기록 폴더 삭제. collect·remove 전과 실행이 끝난 직후에 그 uid 의 남은 프로세스를 `/proc` 로 찾아 끝낸다(그 uid 의 실행 잠금이 비어 있을 때만). `gc`(미리보기 기본): 새 자리의 실행 중이 아닌 작업 폴더는 모으지 않은 것이면 먼저 모으고(실패하면 남김) 지운다, 주인 없는 HOME 도. `<상태>/runs/` 의 결과는 `HARNESS_DELEGATE_RUNS_DAYS`(기본 14일, `--days` 가 이김)보다 오래되면 지운다. 저장소 옆 옛 자리(`<dirname(ROOT)>/<key>-<agent>/`)는 목록만 보이고 지우지 않는다(지우는 것은 사용자 몫, `remove` 나 손으로). "프로세스가 사본 안에서 도는지" 는 Linux `/proc/*/cwd` 만, 다른 OS 는 실행 잠금으로 판단 |
 | 실행 잠금 | 기록의 `run.lock` 을 실행 내내 잡는다(POSIX `fcntl.flock`, Windows `msvcrt.locking`). 잡을 수 없으면 running. pid 재사용과 남은 잠금 파일 문제가 없다(`O_EXCL` 대신) |
 | 동시 실행 | 상태 폴더 `slots/<agent>-<n>.lock` N 개 중 빈 것을 비차단으로 잡음(N = `HARNESS_DELEGATE_MAX_CONCURRENT`, 저장소 합계). 그와 별개로 `uids/<uid>.lock` 으로 uid 하나에 작업 하나 |
-| uid | uid 백엔드는 (저장소, 에이전트)마다 uid 하나. registry.tsv 여섯째 열 `codex=<uid>`(쉼표로 여럿)이 그 에이전트의 uid 이고, agy 와 여섯째 열에 없는 에이전트는 셋째 열. 그래서 같은 저장소의 agy·codex 가 서로의 사본·HOME·인증 사본에 닿지 않고 나란히 돈다. 여섯째 열이 없는 옛 줄은 둘이 셋째 열을 나눠 하나씩 돌고(`doctor` WARN), `register <root>` 가 빠진 uid 를 채운다. delegate.sh 는 넷째 열까지만 읽으므로 옛 동작 그대로 |
+| uid | 대역 하나(`HARNESS_DELEGATE_UIDS`, 기본 `61000-61015`, USER_ONLY)에서 실행마다 비어 있는 첫 uid 를 쓴다(Q31 a). 비어 있음: `/etc/passwd`·`/etc/group` 에 그 번호가 없음(작업은 그 번호를 gid 로도 쓴다), `uids/<uid>.lock` 을 잡을 수 있음, 모으지 않은 작업 폴더의 기록이 그 uid 가 아님(메인이 읽기 전에 새 작업이 고치지 못하게). 없으면 exit 5, 대역이 실제 계정뿐이면 exit 4, 값이 잘못되면 exit 2. 대역 크기가 동시 실행 수. 지키는 것은 메인 작업 트리, `.git/objects`, 인증 정보, push 이고, 위임 작업 폴더끼리의 격리는 사용자 위협 모델에서 필요 없다(같은 uid 를 다른 저장소의 위임이 나중에 받는다). uid 가 실행마다 달라 남은 것을 다시 쓰지 않는다: 같은 이름의 작업 폴더·기록은 거절, 같은 이름의 HOME 은 root 가 지우고 새로 만든다. collect·remove·gc 는 기록의 uid 를 쓴다(기록이 없는 delegate.sh 작업은 작업 폴더 주인) |
 | 프로세스 트리 | POSIX `start_new_session` + `killpg`, Windows Job Object(ctypes, 닫히면 종료) [추정, 미측] |
 | 상태 폴더 | `HARNESS_DELEGATE_STATE`, 없으면 Linux `$XDG_STATE_HOME/qwreey-delegate`(기본 `~/.local/state`), macOS `~/Library/Application Support/qwreey-delegate`, Windows `%LOCALAPPDATA%\qwreey-delegate`(동기화되지 않는 로컬 폴더). 슬롯·uid·시작 잠금, 미끼 파일, `work/`, `runs/` 를 둔다 |
-| 작업 폴더 위치 | 모든 백엔드: `<상태>/work/<key>-<agent>/{<name>/, .homes/, .hooks/, .runs/}`, 결과 `<상태>/runs/<key>/`. 모두 root 소유. 작업 uid 가 지나가야 하는 폴더(상태 폴더, `work/`, `<key>-<agent>/`, `.homes/`, `.hooks/`)는 0711(지나가되 목록은 못 봄), 기록·`runs/`·잠금 폴더는 0700, 파일 0600. 상태 폴더의 부모들은 작업 uid 가 지나갈 수 있어야 한다(`doctor` 확인). `/tmp` 가 아닌 까닭: agy 정책이 `/tmp` 를 deny 하므로 그 아래 작업 폴더는 deny 를 빼야 한다(§5.1). 저장소 키가 같은 두 저장소는 registry 가 키 중복을 막으므로 해시를 붙이지 않는다(registry 없는 비uid 환경은 M3 에서 `<key>-<ROOT 해시 8자>` 를 다시 본다). 저장소 옆 옛 자리는 `list`·`collect`·`remove` 가 계속 찾는다 |
+| 작업 폴더 위치 | 모든 백엔드: `<상태>/work/<key>-<agent>/{<name>/, .homes/, .hooks/, .runs/}`, 결과 `<상태>/runs/<key>/`. 모두 root 소유. 작업 uid 가 지나가야 하는 폴더(상태 폴더, `work/`, `<key>-<agent>/`, `.homes/`, `.hooks/`)는 0711(지나가되 목록은 못 봄), 기록·`runs/`·잠금 폴더는 0700, 파일 0600. 상태 폴더의 부모들은 작업 uid 가 지나갈 수 있어야 한다(`doctor` 확인). `/tmp` 가 아닌 까닭: agy 정책이 `/tmp` 를 deny 하므로 그 아래 작업 폴더는 deny 를 빼야 한다(§5.1). 저장소 키는 `<ROOT 폴더 이름>-<ROOT 경로 sha256 앞 8자>` 라 폴더 이름이 같은 두 저장소가 겹치지 않는다. 한 번 돈 저장소는 `<상태>/repos/<key>`(root 소유 0700/0600)에 ROOT 가 남아 `--repo <key 또는 폴더 이름>` 과 `--all` 이 찾는다(`--all` 에는 지금 저장소도 든다). 아는 키가 아닌 `work/`·`runs/` 폴더는 목록만 보이고 그 결과는 보존 기간으로 지운다. 저장소 옆 옛 자리(`<dirname(ROOT)>/<폴더 이름>-<agent>/`)는 `list`·`collect`·`remove` 가 계속 찾는다 |
 | state.json | 기록 폴더 안, 원자적 쓰기(임시 파일 + `os.replace`). 필드: agent, mode, isolation 백엔드, repo, root, uid, commit, ref, model, effort, pid, started/started_ts/finished, rc, admin, collected, token_refreshed. 기록이 있는 실행은 작업 쪽 `.delegate/` 의 pid·exit·collected 를 보지 않는다(작업이 무엇이든 쓸 수 있다). delegate.sh 의 옛 작업은 그 파일들을 fd 로 읽기만 하고 쓰지 않는다. `delegate.sh` 는 이제 `delegate.py` 를 부르는 셈이다. 플러그인 캐시에 남은 옛 본문(갱신 전 설치본)은 새 자리를 모르므로 이 드라이버의 실행을 세지 않는다. 드라이버는 옛 본문의 시작 잠금과 살아 있는 pid 를 세므로 한쪽 방향은 막힌다 |
 
 ## 7. 설정
@@ -164,7 +164,7 @@ harness.env 층(`load_layers(ROOT)`) 하나로 읽는다. 옛 `DELEGATE_*` 이�
 
 | 키 | 기본 | USER_ONLY | 옛 이름 |
 |---|---|---|---|
-| `HARNESS_DELEGATE_REGISTRY` | 스킬 옆 사본(읽기만, `register` 는 거절) | 예(기존) | `DELEGATE_REGISTRY` |
+| `HARNESS_DELEGATE_UIDS` | `61000-61015` | 예(작업이 어느 uid 로 도는지) | `DELEGATE_REGISTRY`(저장소별 uid 표, Q31 a 로 대역 하나로 바뀜) |
 | `HARNESS_TOOL_INSTALLS`, `HARNESS_HEAVY_WRAP` | 기존 | 예(기존) | - |
 | `HARNESS_DELEGATE_AGY_BIN`, `HARNESS_DELEGATE_CODEX_BIN` | PATH 의 `agy`/`codex`, 없으면 `HARNESS_TOOL_INSTALLS` 아래 | 예(실행 파일) | `DELEGATE_AGY_BIN`, `DELEGATE_CODEX_BIN` |
 | `HARNESS_DELEGATE_AGY_HOME` | `~/.gemini` | 예(인증 위치) | `DELEGATE_GEMINI_SRC` |
@@ -178,17 +178,18 @@ harness.env 층(`load_layers(ROOT)`) 하나로 읽는다. 옛 `DELEGATE_*` 이�
 | `HARNESS_DELEGATE_RUNS_DAYS` | 14(결과는 끝나자마자 읽고, 남길 보고서는 저장소 `.claude/audit/` 로 옮기므로 놓친 읽기와 주말을 덮는 두 주) | 예(모든 저장소의 결과를 지움) | 새 키 |
 | `HARNESS_DELEGATE_AGY_MODEL`, `HARNESS_DELEGATE_CODEX_MODEL` | `gemini-3.8-flash-high`, `gpt-6-luna` | 아니오(저장소가 정해도 무해) | 스크립트 고정값 |
 | `HARNESS_DELEGATE_SECRET_GLOBS` | 빈 값(기본 목록에 더함) | 아니오(더하기만 됨, 더 엄격해질 뿐) | - |
+| `HARNESS_DELEGATE_SETUP` | 빈 값 | 아니오(worktree 모드의 에이전트가 같은 uid 로 거기서 셸을 이미 쓰므로 더 할 수 있는 일이 없음). `$NAME` 을 드라이버 환경으로 풀지 않고 적힌 그대로 읽는다(드라이버 환경의 토큰이 저장소가 쓴 명령에 들어가지 않게) | uid 표의 setup 열 |
 
-- 위임 키는 `delegate.py` 의 `ENV_DEFAULTS`·`ENV_USER_ONLY` 에 넣고 `load_layers(defaults=, user_only=)` 로 넘긴다. `HARNESS_DELEGATE_REGISTRY`, `HARNESS_TOOL_INSTALLS`, `HARNESS_HEAVY_WRAP` 은 다른 플러그인도 읽어 로더(`home/.claude/lib/harness_env.py`)가 정한다. 위 표는 `tools/tests/test-delegate-config.py` 의 `USER_ONLY_YES`·`USER_ONLY_NO` 와 맞춘다.
-- 사람이 고르는 다섯 키(표 위치, 두 모델, 두 실행 파일)는 `plugin.json` 의 `userConfig` 에도 두어 `/config` 에서 바꾼다(설정 층의 플러그인 옵션, 사용자 harness.env 위, 저장소 층 아래). 격리 게이트, 상태 폴더, 한도는 harness.env 에만 둔다.
+- 위임 키는 `delegate.py` 의 `ENV_DEFAULTS`·`ENV_USER_ONLY` 에 넣고 `load_layers(defaults=, user_only=)` 로 넘긴다. `HARNESS_DELEGATE_UIDS`(/q:doctor 의 DRIFT-UID 도 읽음), `HARNESS_TOOL_INSTALLS`, `HARNESS_HEAVY_WRAP` 은 다른 플러그인도 읽어 로더(`home/.claude/lib/harness_env.py`)가 정한다. 위 표는 `tools/tests/test-delegate-config.py` 의 `USER_ONLY_YES`·`USER_ONLY_NO` 와 맞춘다.
+- 사람이 고르는 다섯 키(uid 대역, 두 모델, 두 실행 파일)는 `plugin.json` 의 `userConfig` 에도 두어 `/config` 에서 바꾼다(설정 층의 플러그인 옵션, 사용자 harness.env 위, 저장소 층 아래). 격리 게이트, 상태 폴더, 한도는 harness.env 에만 둔다.
 - 설치된 `~/.claude/lib/harness_env.py` 는 옛 판일 수 있어 새 USER_ONLY 키를 모를 수 있다. 그래서 드라이버는 늘 자기 옆 사본을 쓴다(`tools/tests/test-harness-env-owners.py` 가 옛 설치본으로 확인).
 - `DELEGATE_AGY_FULL_HOME` 은 없앤다(토큰 하나로 인증됨 [실측]).
-- `registry.tsv`: uid 백엔드 전용으로 남긴다. 에이전트별 uid 열(§6 uid 행)을 더했고 `register` 는 에이전트마다 uid 를 준다. uid 가 없는 환경은 등록 없이 돈다: key = `basename(ROOT)`, setup 없음(registry 에 줄이 있으면 setup 을 쓰되 사용자 권한으로). setup 은 명령 실행이므로 저장소 층으로 옮기지 않는다.
+- uid 표(`registry.tsv`)와 `register` 는 없앴다(Q31 a). 등록 없이 모든 git 저장소에서 돈다. `register` 는 더는 필요 없다는 말만 찍고 exit 0(옛 SKILL 본문을 읽은 세션을 위해). setup 은 저장소 층 `HARNESS_DELEGATE_SETUP` 으로 옮겼다: 위 표의 이유대로 저장소가 정해도 격리가 줄지 않는다. uid 가 없는 환경(M3)도 같은 키와 setup 을 쓰되 사용자 권한으로 돈다.
 
 ## 8. Python 제약
 
 - 표준 라이브러리만, 진입은 `python3 -I <skill>/scripts/delegate.py`. 하한 3.11(저장소 README 전제). `-I` 는 3.11 부터 `-P` 를 포함해 스크립트 폴더가 `sys.path` 에 없으므로 드라이버가 자기 폴더를 직접 넣는다(지금 `harness_value()` 와 같은 방식).
-- 파일: `delegate.py`(CLI, run, doctor, register), `delegate_results.py`(collect, remove, 자동 정리, list, gc), `delegate_agents.py`(agy·codex 어댑터, agy 정책), `delegate_isolation.py`(uid 백엔드, 환경, 프로세스), `delegate_workspace.py`(registry, 자리, 기록, 잠금, fd 기준 읽기), 그리고 `harness_env.py` 사본(`@copy-of`, 지금 그대로). 모든 import 는 시작에(실행 중 플러그인 파일이 바뀌어도 돌던 작업이 깨지지 않게).
+- 파일: `delegate.py`(CLI, run, doctor), `delegate_results.py`(collect, remove, 자동 정리, list, gc), `delegate_agents.py`(agy·codex 어댑터, agy 정책), `delegate_isolation.py`(uid 백엔드, 환경, 프로세스), `delegate_workspace.py`(저장소 키, uid 대역과 고르기, 자리, 기록, 잠금, fd 기준 읽기), 그리고 `harness_env.py` 사본(`@copy-of`, 지금 그대로). 모든 import 는 시작에(실행 중 플러그인 파일이 바뀌어도 돌던 작업이 깨지지 않게).
 - 정책 값(비밀 이름 목록, 시간 제한, 모델, 결과 보존 일수)은 `DEFAULT_*` 상수 + 설정 키, 불변 값(종료 코드, 폴더 모드)은 상수.
 - Windows 의 `python3` 이름(py 런처, Store 스텁)은 미측. `doctor` 가 인터프리터 경로를 출력.
 

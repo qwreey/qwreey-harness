@@ -4,6 +4,7 @@
 - [6. 복제본 표류](#6-복제본-표류)
   - [훅 중복](#훅-중복)
   - [위임 사본](#위임-사본)
+  - [위임 uid 대역](#위임-uid-대역)
 - [7. 설정](#7-설정)
   - [도메인 팩](#도메인-팩)
 
@@ -17,7 +18,7 @@
 | `DRIFT-HOOK` | `heavy-proc-guard.py` 사본 | `<doctor>/plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py` |
 | `DRIFT-HOOKDUP` | 사용자 레벨과 같은 훅을 프로젝트 settings가 또 등록 | 사용자 레벨 `settings.json` |
 | `DRIFT-DELEGATE` | `agy-delegate.sh`, `skills/delegate-agy` 사본 | `<doctor>/plugins/qwreey-delegate/` (초안: `<doctor>/.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/`) |
-| `DRIFT-UID` | 서로 다른 저장소가 같은 위임 uid를 쓴다. 저장소 안의 사본과 uid 표(`harness.env`의 `HARNESS_DELEGATE_REGISTRY`, 없으면 `<doctor>`의 표, 하네스 저장소 밖에서는 없음)를 함께 본다 | uid 표 |
+| `DRIFT-UID` | 위임 uid 대역(`HARNESS_DELEGATE_UIDS`, qwreey-delegate 옵션 `harness_delegate_uids`)이 잘못됐거나, 실제 계정(`/etc/passwd`, `/etc/group`)과 겹치거나, 저장소의 옛 위임 사본이 대역 안 uid 를 쓴다. 하네스 저장소를 알거나 qwreey-delegate 가 설치됐을 때만 본다 | 사용자 층의 대역 |
 | `DRIFT-SKILLCOPY` | 같은 이름 스킬이 다른 저장소나 사용자 레벨에 있는데 내용이 다르다 | 원본 쪽(사례마다 확인) |
 
 같은 git 저장소의 다른 worktree(stl-luau ↔ stl-luau-doctor)는 사본으로 치지 않는다.
@@ -40,10 +41,17 @@
 
 agy 위임 도구는 4벌이다(quad, stl-luau, tbox, table-sim). 지금은 고치지 않는다.
 - 통합안과 걷어내기 순서는 `<doctor>/.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/README.md`와 `migration.md`에 있다.
-- uid 충돌(`DRIFT-UID`)은 격리 보장을 깨므로 보고에 꼭 넣는다. 사례: quad와 tbox가 모두 61000.
+- 옛 사본의 uid 가 위임 uid 대역 안이면(`DRIFT-UID`) 대역의 위임과 같은 uid 로 돌아 격리가 깨지므로 보고에 꼭 넣는다.
   - 고치는 일은 P4 통합 때 한다. 대상 저장소에 세션이 있으면 인계한다.
 - `DRIFT-SKILLCOPY`는 어느 쪽이 정본인지부터 확인한다. CLAUDE.md의 "사본" 서술과 git log를 본다.
   - 사본 갱신은 사본을 가진 저장소의 일이다. 그 저장소에 세션이 있으면 인계한다.
+
+### 위임 uid 대역
+
+qwreey-delegate 는 대역 하나(기본 `61000-61015`)에서 실행마다 비어 있는 첫 uid 로 위임 작업을 돌린다. 대역 크기가 동시에 돌 수 있는 작업 수다.
+- 잘못된 값(예: `abc`, `5-2`, `0-3`, 4096개 넘는 대역): 위임 실행이 모두 거절된다(exit 2). 사용자에게 옵션 값을 고치도록 안내한다.
+- 실제 계정과 겹치는 uid: 드라이버가 건너뛴다. 남는 uid 가 있으면 동시 실행 수만 줄고, 없으면 실행이 모두 거절된다(exit 4). 계정이 없는 다른 대역을 고르도록 안내한다.
+- 대역 바꾸기는 `/plugin configure qwreey-delegate@<마켓>` 이나 사용자 `~/.claude/harness.env` 의 `HARNESS_DELEGATE_UIDS` 다. 저장소 `.claude/harness.env` 로는 바뀌지 않는다.
 
 ## 7. 설정
 

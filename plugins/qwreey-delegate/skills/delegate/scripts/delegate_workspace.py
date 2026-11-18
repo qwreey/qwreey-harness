@@ -1,4 +1,4 @@
-"""Registry, work folders, run records and locks of the delegate driver (delegate.py).
+"""Repositories, task uids, work folders, run records and locks of the delegate driver (delegate.py).
 
 Layout:
   <state>/work/<key>-<agent>/               root-owned base (work_base)
@@ -29,6 +29,7 @@ from pathlib import Path
 
 if os.name == "posix":
     import fcntl
+    import grp
     import pwd
 
 PROG = "delegate.py"  # the name messages tell the user to run
@@ -37,7 +38,6 @@ NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 STATE_FILE = "state.json"
 RECORDS = ".runs"     # record folder under the base; a dot name, so delegate.sh's `*/` globs skip it
 TASK_OUT = ".delegate"  # inside the task copy: what the task writes for the driver
-FIRST_UID = 61000  # registry.tsv header: uids start here; register picks the next free one
 # Record files collect keeps.
 RUN_FILES = ("prompt.md", "meta.txt", "guard.txt", "stdout.txt", "stderr.txt", "report.md", "exit", STATE_FILE)
 # delegate.sh's files inside <name>/.delegate/, read for its runs only.
@@ -77,73 +77,25 @@ def now_iso():
     return datetime.datetime.now().astimezone().isoformat(timespec="seconds")
 
 
-# ---------- registry ----------
-# registry.tsv columns: key, root, uid, setup, note, agent uids. The sixth column ("codex=61004", comma-separated
-# agent=uid) gives an agent its own uid so agy and codex of one repository can run side by side without reaching
-# each other's files. The first agent (agy), and any agent the sixth column does not name, uses the third column:
-# rows written before the sixth column existed keep one uid for both, exactly as delegate.sh reads them
-# (delegate.sh reads only the first four columns).
+# ---------- repositories ----------
+# The key names a repository's folders in the state folder: the root folder's name for people, plus a hash of the full
+# path so two repositories with one folder name never share <state>/work/<key>-<agent>/ or <state>/runs/<key>/.
+KEY_HASH_CHARS = 8
+_KEY_UNSAFE = re.compile(r"[^A-Za-z0-9._-]")
+
+
 class Repo:
-    def __init__(self, key, root, uid, setup, uids=None):
-        self.key, self.root, self.uid, self.setup = key, root, uid, setup
-        self.uids = dict(uids or {})
-
-    def uid_for(self, agent):
-        return self.uids.get(agent, self.uid)
-
-    def shares_uid(self, agent):
-        """Agents of this repository whose tasks run as the same uid as agent's (agent itself included)."""
-        return [a for a in AGENTS if self.uid_for(a) == self.uid_for(agent)]
+    def __init__(self, root):
+        self.root = str(root)
+        self.name = os.path.basename(self.root.rstrip(os.sep)) or "repo"
+        digest = hashlib.sha256(self.root.encode("utf-8", "surrogateescape")).hexdigest()[:KEY_HASH_CHARS]
+        self.key = f"{_KEY_UNSAFE.sub('_', self.name)}-{digest}"
 
     def legacy_base(self, agent):
-        """Where delegate.sh and the first driver runs kept workspaces: beside the repository."""
-        return Path(os.path.dirname(self.root)) / f"{self.key}-{agent}"
+        """Where delegate.sh and the first driver runs kept workspaces, beside the repository.
 
-
-def registry_rows(registry):
-    """[(key, root, uid, setup, agent uids, raw line)] of the registry; comments and blank lines skipped.
-    A missing file is empty."""
-    try:
-        text = Path(registry).read_text(encoding="utf-8")
-    except OSError:
-        return []
-    rows = []
-    for line in text.splitlines():
-        if not line.strip() or line.lstrip().startswith("#"):
-            continue
-        cols = line.split("\t") + [""] * 6
-        rows.append((cols[0], cols[1], cols[2], cols[3], cols[5], line))
-    return rows
-
-
-def parse_agent_uids(text, line):
-    out = {}
-    for part in (p.strip() for p in text.split(",")):
-        if not part or part == "-":
-            continue
-        agent, sep, uid = part.partition("=")
-        if not sep or agent not in AGENTS or not uid.isdigit():
-            die(f"malformed agent uid {part!r} (want agent=uid): {line}")
-        out[agent] = int(uid)
-    return out
-
-
-def _repo_of(row):
-    key, root, uid, setup, agent_uids, line = row
-    if not uid.isdigit():
-        die(f"malformed uid: {line}")
-    return Repo(key, root, int(uid), setup, parse_agent_uids(agent_uids, line))
-
-
-def row_uids(row):
-    """Every uid a registry row names (third column and agent uids)."""
-    key, root, uid, setup, agent_uids, line = row
-    out = [int(uid)] if uid.isdigit() else []
-    try:
-        out += list(parse_agent_uids(agent_uids, line).values())
-    except DelegateError:
-        pass
-    return out
+        The old table's key there was the root folder's name."""
+        return Path(os.path.dirname(self.root)) / f"{self.name}-{agent}"
 
 
 def git_common_root(path):
@@ -153,25 +105,74 @@ def git_common_root(path):
     return os.path.dirname(p.stdout.strip()) if p.returncode == 0 and p.stdout.strip() else None
 
 
-def resolve_repo(registry, arg=""):
-    """Repo for a registry key, a path, or (empty) the current directory."""
-    rows = registry_rows(registry)
+def repos_dir(state_dir):
+    """<state>/repos/: one file per repository that ran here, named by its key, holding its root."""
+    return Path(state_dir) / "repos"
+
+
+def remember_repo(state_dir, repo):
+    """Note the repository in <state>/repos/<key>, so `--all` and `--repo <key>` find it later."""
+    folder = root_dir(repos_dir(state_dir), PRIVATE_MODE)
+    entry = folder / repo.key
+    try:
+        if entry.read_text(encoding="utf-8").strip() == repo.root:
+            return
+    except OSError:
+        pass
+    write_safe(entry, repo.root + "\n")
+
+
+def known_repos(state_dir):
+    """Repositories that ran a delegation with this state folder, sorted by key."""
+    folder = repos_dir(state_dir)
+    try:
+        names = sorted(os.listdir(folder))
+    except OSError:
+        return []
+    out = []
+    for n in names:
+        data = read_under(folder, n, limit=4096)
+        root = data.decode("utf-8", "surrogateescape").strip() if data else ""
+        if root and os.path.isabs(root) and Repo(root).key == n:
+            out.append(Repo(root))
+    return out
+
+
+def resolve_repo(state_dir, arg=""):
+    """Repo for a path, a known key or folder name, or (empty) the current directory.
+
+    A key or a root folder name resolves only for a repository that ran with this state folder before."""
     if arg and "/" not in arg:
-        hit = [r for r in rows if r[0] == arg]
-    else:
-        where = arg or os.getcwd()
-        root = git_common_root(where)
-        if root is None:
-            die(f"{where} is not a git repository")
-        hit = [r for r in rows if r[1] == root]
-    if not hit:
-        die(f"repository not in the registry ({registry}): {arg or os.getcwd()} - register it first with "
-            f"'delegate.py register <path>'")
-    return _repo_of(hit[0])
+        hit = [r for r in known_repos(state_dir) if arg in (r.key, r.name)]
+        if len(hit) == 1:
+            return hit[0]
+        if len(hit) > 1:
+            die(f"{arg} names several repositories ({', '.join(r.key for r in hit)}); pass the key or the path")
+        if not os.path.isdir(arg):
+            die(f"unknown repository {arg}: pass its path (a key or folder name works once it has run here)")
+    where = arg or os.getcwd()
+    root = git_common_root(where)
+    if root is None:
+        die(f"{where} is not a git repository")
+    return Repo(root)
 
 
-def all_repos(registry):
-    return [_repo_of(r) for r in registry_rows(registry)]
+# ---------- task uids ----------
+# HARNESS_DELEGATE_UIDS is one range ("61000-61015"); each run takes the first free uid in it. Its size is the number
+# of tasks that can run at once. The bound keeps a typo such as 1-4000000000 from making doctor walk billions of ids.
+MAX_UID_RANGE = 4096
+_UID_RANGE = re.compile(r"^\s*(\d+)\s*-\s*(\d+)\s*$")
+MAX_UID = 2 ** 32 - 2  # (uid_t)-1 means "unchanged" to setreuid
+
+
+def parse_uid_range(text):
+    """(first, last) of a HARNESS_DELEGATE_UIDS value; dies with exit 2 on anything else."""
+    m = _UID_RANGE.match(text or "")
+    first, last = (int(m.group(1)), int(m.group(2))) if m else (0, -1)
+    if not m or not 0 < first <= last <= MAX_UID or last - first + 1 > MAX_UID_RANGE:
+        die(f"HARNESS_DELEGATE_UIDS must be a range of unused ids like 61000-61015 (first above 0, at most "
+            f"{MAX_UID_RANGE} ids): {text!r}")
+    return first, last
 
 
 def uid_in_passwd(uid):
@@ -182,71 +183,71 @@ def uid_in_passwd(uid):
         return False
 
 
-def _next_uid(used):
-    uid = FIRST_UID
-    while uid in used or uid_in_passwd(uid):
-        uid += 1
-    used.add(uid)
-    return uid
+def id_taken(uid):
+    """'user' or 'group' when uid is a real account id, else ''.
 
-
-def _rewrite_registry(reg, lines):
-    """Replace the registry file atomically (it is read by running scripts)."""
-    reg = Path(os.path.realpath(reg))
-    fd, tmp = tempfile.mkstemp(prefix=f".{reg.name}.", dir=reg.parent)
+    The task runs with that number as uid and gid, so a real group of that number would hand it the group's files."""
+    if uid_in_passwd(uid):
+        return "user"
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write("".join(lines))
-        os.chmod(tmp, stat.S_IMODE(os.stat(reg).st_mode))
-        os.replace(tmp, reg)
-    except BaseException:
+        grp.getgrgid(uid)
+        return "group"
+    except KeyError:
+        return ""
+
+
+def kept_uids(state_dir):
+    """uids of finished or dead runs whose work folder nobody collected yet.
+
+    Such a folder is left by --keep, a failed automatic collect or a run that died. A new task on that uid could change
+    those files before main reads them, so a run skips these uids until collect, remove or gc."""
+    out = set()
+    work = Path(state_dir) / "work"
+    try:
+        bases = sorted(os.listdir(work))
+    except OSError:
+        return out
+
+    for b in bases:
+        recs = work / b / RECORDS
         try:
-            os.unlink(tmp)
+            names = os.listdir(recs)
         except OSError:
-            pass
-        raise
+            continue
+        for n in names:
+            st = read_state(recs / n)
+            # A running task holds its uid lock; take_uid counts it as busy
+            if isinstance(st.get("uid"), int) and not st.get("collected") and not lock_held(recs / n / "run.lock"):
+                out.add(st["uid"])
+    return out
 
 
-def register(registry, path, key=None):
-    """Add a repository with a uid per agent, or give an already registered one the agent uids its row lacks.
-    Returns (key, root, {agent: uid} added)."""
-    root = os.path.realpath(path)
-    if git_common_root(root) is None:
-        die(f"not a git repository: {root}")
-    rows = registry_rows(registry)
-    used = {u for r in rows for u in row_uids(r)}
-    reg = Path(registry)
-    old = reg.read_text(encoding="utf-8") if reg.is_file() else ""
-    hit = [r for r in rows if r[1] == root]
-    if hit:
-        repo = _repo_of(hit[0])
-        missing = [a for a in AGENTS[1:] if a not in repo.uids]
-        if not missing:
-            die(f"already registered: {root}")
-        added = {a: _next_uid(used) for a in missing}
-        cols = hit[0][-1].split("\t")
-        cols += ["-"] * (5 - len(cols)) if len(cols) < 5 else []
-        cols[3] = cols[3] or "-"
-        cols[4] = cols[4] or "-"
-        merged = dict(repo.uids, **added)
-        cols[5:6] = [",".join(f"{a}={u}" for a, u in merged.items())]
-        lines = old.splitlines(keepends=True)
-        for i, ln in enumerate(lines):
-            if ln.rstrip("\n") == hit[0][-1]:
-                lines[i] = "\t".join(cols) + "\n"
-                break
-        _rewrite_registry(reg, lines)
-        return repo.key, root, added
-    key = key or os.path.basename(root)
-    if any(r[0] == key for r in rows):
-        die(f"key already exists: {key}")
-    added = {a: _next_uid(used) for a in AGENTS}
-    first, rest = AGENTS[0], AGENTS[1:]
-    sep = "" if not old or old.endswith("\n") else "\n"
-    with open(reg, "a", encoding="utf-8") as f:
-        f.write(f"{sep}{key}\t{root}\t{added[first]}\t-\tregistered {datetime.date.today().isoformat()}\t"
-                f"{','.join(f'{a}={added[a]}' for a in rest)}\n")
-    return key, root, added
+def take_uid(state_dir, first, last):
+    """(uid, lock fd) of the first free uid in first..last; dies when none is free.
+
+    Free: not a real user or group, not locked by a running task, not owning an uncollected work folder. Exit 5 when
+    tasks hold them (wait), 4 when the range holds only real accounts (the setting is wrong)."""
+    taken, kept, busy = [], [], []
+    held = kept_uids(state_dir)
+
+    # First free uid wins
+    for uid in range(first, last + 1):
+        if id_taken(uid):
+            taken.append(uid)
+            continue
+        if uid in held:
+            kept.append(uid)
+            continue
+        fd = take_lock(uid_lock_path(state_dir, uid))
+        if fd is not None:
+            return uid, fd
+        busy.append(uid)
+
+    # None free: say what holds them
+    parts = [f"{len(busy)} running" if busy else "", f"{len(kept)} hold uncollected work folders (collect/remove "
+             f"them or run gc)" if kept else "", f"{len(taken)} are real users or groups" if taken else ""]
+    why = f"no free uid in HARNESS_DELEGATE_UIDS {first}-{last}: " + ", ".join(p for p in parts if p)
+    die(why, EXIT_BUSY if busy or kept else EXIT_REFUSED)
 
 
 def check_agent(agent):

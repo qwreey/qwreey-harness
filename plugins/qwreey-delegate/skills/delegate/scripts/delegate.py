@@ -7,8 +7,9 @@
   delegate.py list    [--repo ...|--all]                  # both backends
   delegate.py gc      [--repo ...|--all] [--days N] [--apply]   # preview only unless --apply
   delegate.py doctor  [--repo ...|--all]
-  delegate.py register <repository path> [key]
 
+--repo takes a path, or the key or folder name of a repository that ran here before; it defaults to the current one.
+Each run takes the first free uid of HARNESS_DELEGATE_UIDS.
 Lifecycle: run -> (main reads and verifies) -> collect -> remove. gc finds what is left.
 Exit: 0 done (the model's own exit code is in guard.txt), 2 usage, 3 agent or credentials missing,
 4 refused by isolation policy, 5 concurrency limit.
@@ -25,6 +26,7 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, HERE)
 
 import json  # noqa: E402
+import re  # noqa: E402
 import time  # noqa: E402
 import shutil  # noqa: E402
 import subprocess  # noqa: E402
@@ -39,19 +41,18 @@ import harness_env  # noqa: E402
 PROG = ws.PROG
 SKILL_DIR = Path(HERE).parent
 TEMPLATES = SKILL_DIR / "templates"
-SHIPPED_REGISTRY = SKILL_DIR / "registry.tsv"
 DEFAULT_EFFORT = "medium"
 DEFAULT_TIMEOUT_SECONDS = 3600
 START_LOCK_SECONDS = 120     # wait for another start of the same agent (seconds of git and copying) before giving up
 LEGACY_LOCK_SECONDS = 30
-SETUP_TIMEOUT_SECONDS = 900  # the registry's setup line, run once in a new worktree
+SETUP_TIMEOUT_SECONDS = 900  # the repository's setup line (HARNESS_DELEGATE_SETUP), run once in a new worktree
 # delegate.sh serializes its start (existence check, live count, pid file) on this lock; taking it too keeps a
 # run of either script from slipping past the other's count.
 LEGACY_LOCK = "/tmp/delegate-{agent}.lock"
 MODES = ("worktree", "empty")
 PRE_PUSH = '#!/bin/sh\necho "push refused: delegate workspace" >&2\nexit 1\n'
 
-# harness.env keys only this driver reads, with their defaults. It also reads the shared HARNESS_DELEGATE_REGISTRY,
+# harness.env keys only this driver reads, with their defaults. It also reads the shared HARNESS_DELEGATE_UIDS,
 # HARNESS_TOOL_INSTALLS and HARNESS_HEAVY_WRAP, whose defaults and user-only status are in harness_env.py.
 ENV_DEFAULTS = {
     # Agent executables. Empty: agy/codex on PATH (mise shims are skipped: they fail in the empty task environment),
@@ -81,6 +82,10 @@ ENV_DEFAULTS = {
     "HARNESS_DELEGATE_CODEX_MODEL": "gpt-6-luna",
     # Extra names (space-separated globs) kept out of empty-mode files. It only adds to the built-in list, so a repository may set it.
     "HARNESS_DELEGATE_SECRET_GLOBS": "",
+    # Command run once in a new worktree before the agent (e.g. `timeout 300 mise exec -- pesde install`), as the task
+    # uid with the task's environment plus mise. A repository sets it: in worktree mode the agent itself gets a shell
+    # as that uid there, so the line can do nothing the task could not. setup_line reads it unexpanded.
+    "HARNESS_DELEGATE_SETUP": "",
 }
 # A repository's committed harness.env must not change what runs, where credentials come from, the isolation gates,
 # or limits that span every repository. Only the user layer and the environment set these.
@@ -89,7 +94,9 @@ ENV_USER_ONLY = frozenset({
     "HARNESS_DELEGATE_AGY_WORKTREE", "HARNESS_DELEGATE_AGY_UNISOLATED", "HARNESS_DELEGATE_CODEX_SANDBOX",
     "HARNESS_DELEGATE_KEEP_ENV", "HARNESS_DELEGATE_STATE", "HARNESS_DELEGATE_MAX_CONCURRENT", "HARNESS_DELEGATE_RUNS_DAYS",
 })
-SHARED_KEYS = ("HARNESS_DELEGATE_REGISTRY", "HARNESS_TOOL_INSTALLS", "HARNESS_HEAVY_WRAP")
+SETUP_KEY = "HARNESS_DELEGATE_SETUP"
+_SETUP_LINE = re.compile(rf"^\s*(?:export\s+)?{SETUP_KEY}\s*=(.*)$")
+SHARED_KEYS = ("HARNESS_DELEGATE_UIDS", "HARNESS_TOOL_INSTALLS", "HARNESS_HEAVY_WRAP")
 KEYS = SHARED_KEYS + tuple(ENV_DEFAULTS)
 die = ws.die
 note = ws.note
@@ -102,25 +109,54 @@ def config(project):
     return harness_env.load_layers(project, defaults=ENV_DEFAULTS, user_only=ENV_USER_ONLY)
 
 
+def setup_line(project):
+    """HARNESS_DELEGATE_SETUP of project as written in its layers, without $NAME expansion.
+
+    The loader expands $NAME from the driver's environment, which would put root's variables (tokens) into a command
+    a repository wrote and the task runs. bash expands the line later, in the task's own environment."""
+    if SETUP_KEY in os.environ:
+        return os.environ[SETUP_KEY].strip()
+    user, repo_files = harness_env.layer_files(project)
+    value = ""
+    for f in ([user] if user else []) + repo_files:
+        try:
+            lines = f.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeDecodeError):
+            continue
+        for line in lines:
+            m = _SETUP_LINE.match(line)
+            if m:
+                value = harness_env._value(m.group(1))
+    return value.strip()
+
+
 class Ctx:
     def __init__(self):
         self.cfg = self.layers("")
-        # Empty: the table shipped in the plugin, read only (a plugin update replaces the folder). register needs a
-        # file the user owns, named by the harness_delegate_registry option or HARNESS_DELEGATE_REGISTRY.
-        own = self.cfg["HARNESS_DELEGATE_REGISTRY"].strip()
-        self.registry = os.path.expanduser(own) if own else str(SHIPPED_REGISTRY)
-        self.registry_shipped = not own
         # USER_ONLY, so the user layer decides for every repository.
         self.state_dir = Path(self.cfg["HARNESS_DELEGATE_STATE"] or ws.default_state_dir())
 
     def layers(self, project):
         return config(project)
 
+    def uid_range(self):
+        # Read without repository layers: a repository must not pick the uids its task runs as.
+        return ws.parse_uid_range(self.cfg["HARNESS_DELEGATE_UIDS"])
+
     def repo(self, arg):
-        return ws.resolve_repo(self.registry, arg or "")
+        return ws.resolve_repo(self.state_dir, arg or "")
 
     def repos(self, sel):
-        return ws.all_repos(self.registry) if sel == "--all" else [self.repo(sel)]
+        """Repositories for --all (those that ran here, plus the current one), else the one named.
+
+        The current repository is added because a first doctor runs before any delegation."""
+        if sel != "--all":
+            return [self.repo(sel)]
+        known = ws.known_repos(self.state_dir)
+        here = ws.git_common_root(os.getcwd())
+        if here and all(r.root != here for r in known):
+            known.append(ws.Repo(here))
+        return known
 
 
 def parse(args, spec, npos, usage, max_pos=None):
@@ -205,8 +241,8 @@ def cmd_run(ctx, args):
     creds = adapter.credentials(cfg)
     if not creds.exists():
         die(f"{agent} credentials not found: {creds} ({adapter.home_key} sets the folder)", ws.EXIT_NO_AGENT)
-    backend = iso.select_backend(repo, agent)
-    uid = repo.uid_for(agent)
+    first_uid, last_uid = ctx.uid_range()
+    backend = iso.select_backend()
     adapter.check_mode(mode, cfg, backend)
     preamble = (TEMPLATES / f"preamble-{mode}.md").read_text(encoding="utf-8")
     task = prompt_path.read_text(encoding="utf-8", errors="replace")
@@ -219,6 +255,7 @@ def cmd_run(ctx, args):
             f"HARNESS_DELEGATE_STATE (user layer) moves it", ws.EXIT_REFUSED)
     state_dir.parent.mkdir(parents=True, exist_ok=True)
     base = ws.make_work_base(state_dir, repo, agent)
+    ws.remember_repo(state_dir, repo)
     homes, hooks = ws.root_dir(base / ".homes", ws.PASS_MODE), ws.root_dir(base / ".hooks", ws.PASS_MODE)
     ws.root_dir(base / ws.RECORDS, ws.PRIVATE_MODE)
     wt, home, rec = base / name, homes / name, ws.record_dir(base, name)
@@ -231,13 +268,14 @@ def cmd_run(ctx, args):
     try:
         if os.path.lexists(wt) or os.path.lexists(rec):
             die(f"{wt} already exists - use another name, or collect/remove it")
-        uid_lock = ws.take_lock(ws.uid_lock_path(state_dir, uid))
-        if uid_lock is None or results.legacy_runs_of_uid(repo, uid):
-            sharing = repo.shares_uid(agent)
-            hint = (f"; {' and '.join(sharing)} of {repo.key} share it - '{PROG} register {repo.root}' gives each "
-                    f"agent its own uid" if len(sharing) > 1 else "")
-            die(f"another task of uid {uid} ({repo.key}) is running; one task per uid at a time{hint}", ws.EXIT_BUSY)
-        slot, live = ws.acquire_slot(state_dir, agent, limit, ws.live_legacy_runs(ws.all_repos(ctx.registry), [agent]))
+        # Per run, not per repository: the work folder and HOME below are always new, so nothing carries over
+        uid, uid_lock = ws.take_uid(state_dir, first_uid, last_uid)
+        backend = backend.for_uid(uid)
+        why = backend.unavailable()
+        if why:
+            die(why, ws.EXIT_REFUSED)
+        known = {r.key: r for r in ws.known_repos(state_dir) + [repo]}
+        slot, live = ws.acquire_slot(state_dir, agent, limit, ws.live_legacy_runs(list(known.values()), [agent]))
         if slot is None:
             die(f"{live} {agent} task(s) already running (limit {limit}, HARNESS_DELEGATE_MAX_CONCURRENT adjusts it - "
                 f"the token limit is the user's)", ws.EXIT_BUSY)
@@ -294,13 +332,14 @@ def cmd_run(ctx, args):
     backend.give(*(p for p in (wt, home, admin) if p))
     env = iso.task_env(home, iso.tool_path(repo.root), hooks, bool(cfg["HARNESS_DELEGATE_KEEP_ENV"]),
                        adapter.extra_env(home))
+    setup = setup_line(repo.root)
     with iso.StopSignals() as stop:
-        if mode == "worktree" and repo.setup and repo.setup != "-":
-            # The setup line comes from the registry; it runs with the task's rights and environment, not root's.
-            rc, _, err = backend.run(["bash", "-c", repo.setup], iso.setup_env(env, cfg["HARNESS_TOOL_INSTALLS"]),
+        if mode == "worktree" and setup:
+            # The repository's line runs with the task's rights and environment, never root's.
+            rc, _, err = backend.run(["bash", "-c", setup], iso.setup_env(env, cfg["HARNESS_TOOL_INSTALLS"]),
                                      cwd=wt, timeout=SETUP_TIMEOUT_SECONDS)
             if rc != 0:
-                note(f"warning: setup failed ({'timeout' if rc is None else 'exit ' + str(rc)}): {repo.setup}"
+                note(f"warning: setup failed ({'timeout' if rc is None else 'exit ' + str(rc)}): {setup}"
                      f"{': ' + err.strip().splitlines()[-1] if err.strip() else ''}")
         before = ws.main_snapshot(repo.root)
         note(f"start {agent}/{name} ({model}, {mode}) {ws.now_iso()} - {wt}")
@@ -400,7 +439,7 @@ def cmd_collect(ctx, args):
     place = located(ctx, agent, name, opts.get("--repo"))
     if ws.is_running(place.base, name):
         die(f"still running: {agent}/{name}")
-    results.end_leftovers(ctx.state_dir, place.repo, agent)
+    results.end_leftovers(ctx.state_dir, place.task_uid())
     st = ws.read_state(place.rec)
     if not st.get("finished") and not ws.exists_under(place.base, name, ws.TASK_OUT, "exit", kind="file"):
         note("warning: no exit record (abnormal end, or a workspace from an older script); collecting what exists")
@@ -420,7 +459,7 @@ def cmd_remove(ctx, args):
     place = located(ctx, agent, name, opts.get("--repo"))
     if ws.is_running(place.base, name):
         die(f"still running: {agent}/{name}")
-    results.end_leftovers(ctx.state_dir, place.repo, agent)
+    results.end_leftovers(ctx.state_dir, place.task_uid())
     results.remove_workspace(place, bool(opts.get("--discard")), bool(opts.get("--delete-branch")))
     print(f"removed: {place.wt}")
     return 0
@@ -428,8 +467,11 @@ def cmd_remove(ctx, args):
 
 def cmd_list(ctx, args):
     _, opts = parse(args, {"--repo": 1, "--all": 0}, 0, "list [--repo R|--all]")
-    for repo in ctx.repos(selection(opts)):
+    repos = ctx.repos(selection(opts))
+    for repo in repos:
         results.list_repo(ctx.state_dir, repo)
+    if opts.get("--all"):
+        results.list_unknown(ctx.state_dir, repos)
     return 0
 
 
@@ -443,75 +485,132 @@ def cmd_gc(ctx, args):
     days = int(days)
     if not opts.get("--apply"):
         print("(preview - pass --apply to delete)")
-    for repo in ctx.repos(selection(opts)):
+    repos = ctx.repos(selection(opts))
+    for repo in repos:
         results.gc_repo(ctx.state_dir, repo, days, bool(opts.get("--apply")))
+    if opts.get("--all"):
+        results.gc_unknown(ctx.state_dir, repos, days, bool(opts.get("--apply")))
     return 0
 
 
 # ---------- doctor / register ----------
-def dup(values):
-    seen, out = set(), []
-    for v in values:
-        if v in seen and v not in out:
-            out.append(v)
-        seen.add(v)
-    return " ".join(out)
+MAX_LISTED_IDS = 10  # doctor names this many colliding uids, then counts the rest
+MAX_LISTED_PATHS = 3
+
+
+def doctor_uids(ctx):
+    """Check the HARNESS_DELEGATE_UIDS range and return the uid doctor probes as, or None."""
+    try:
+        first, last = ctx.uid_range()
+    except ws.DelegateError as e:
+        print(f"  FAIL {e}")
+        return None
+    taken = [(u, ws.id_taken(u)) for u in range(first, last + 1)]
+    taken = [(u, kind) for u, kind in taken if kind]
+    usable = [u for u in range(first, last + 1) if u not in dict(taken)]
+    print(f"  INFO task uids {first}-{last} (HARNESS_DELEGATE_UIDS): {len(usable)} usable, so at most {len(usable)} "
+          f"tasks at once")
+
+    # Collisions only shrink the range; a range with nothing left refuses every run
+    if taken:
+        shown = ", ".join(f"{u} ({kind})" for u, kind in taken[:MAX_LISTED_IDS])
+        more = f" and {len(taken) - MAX_LISTED_IDS} more" if len(taken) > MAX_LISTED_IDS else ""
+        print(f"  {'FAIL' if not usable else 'WARN'} real accounts in the range, skipped: {shown}{more}")
+    else:
+        print("  ok   no uid in the range is in /etc/passwd or /etc/group")
+    kept = sorted(ws.kept_uids(ctx.state_dir) & set(usable))
+    if kept:
+        print(f"  INFO held by uncollected work folders until collect/remove or gc: {' '.join(map(str, kept))}")
+    return usable[0] if usable else None
 
 
 def doctor_global(ctx):
-    print(f"== registry {ctx.registry}")
+    """Print the checks shared by every repository; the backend bound to the probed uid, or None."""
+    print(f"== delegate  state={ctx.state_dir}")
     print(f"  INFO python {sys.executable} {sys.version.split()[0]}")
     print(f"  INFO harness_env {harness_env.__file__}")
-    if not Path(ctx.registry).is_file():
-        print("  FAIL registry file missing")
-        return
-    rows = ws.registry_rows(ctx.registry)
-    # A uid belongs to one repository; inside a row two agents may share it only through the third-column fallback.
-    d = dup(str(u) for r in rows for u in set(ws.row_uids(r)))
-    print("  ok   no duplicate uid" if not d else f"  FAIL duplicate uid: {d}")
-    for col, what in ((0, "key"), (1, "root")):
-        d = dup(r[col] for r in rows)
-        print(f"  ok   no duplicate {what}" if not d else f"  FAIL duplicate {what}: {d}")
+    uid = doctor_uids(ctx)
     for agent, adapter in agents.ADAPTERS.items():
         cfg = ctx.cfg
         found = agents.find_bin(cfg[adapter.bin_key], agent, cfg["HARNESS_TOOL_INSTALLS"], adapter.install_rel)
         print(f"  ok   {agent} {found}" if found else f"  WARN {agent} not found: {cfg[adapter.bin_key] or 'PATH, ' + cfg['HARNESS_TOOL_INSTALLS']}")
+    if uid is None:
+        return None
+
+    # Probes as one uid of the range: every uid there is an id with no account, so one stands for all
+    print(f"  -- uid {uid}")
+    backend = iso.UidBackend(uid)
+    why = backend.unavailable()
+    if why:
+        print(f"  FAIL {why}")
+        return None
+    print(f"  ok   setpriv {backend.setpriv} {' '.join(iso.SETPRIV_HARDENING)}")
+    for s in iso.secret_paths(Path.home(), harness_env.config_dir()):
+        if os.path.exists(s):
+            print(f"  FAIL uid can read a secret: {s}" if backend.can("r", s) else f"  ok   cannot read: {s}")
+
+    # The work folder sits in the state folder (0711, set by run); everything above it must let the uid pass
+    above = ctx.state_dir.parent
+    while not above.exists():
+        above = above.parent
+    print(f"  ok   uid can pass through {above}" if backend.can("x", above)
+          else f"  FAIL uid cannot pass through {above}, so it cannot reach its work folder under {ctx.state_dir}")
+    return backend
 
 
-def doctor_one(ctx, repo):
+def range_owned(root, uids):
+    """(count, first few paths) of entries under root owned by a task uid.
+
+    .git/worktrees/ is skipped: the admin dirs of task worktrees belong to their uids by design."""
+    found, sample = 0, []
+    for top, dirs, files in os.walk(root):
+        if os.path.basename(top) == ".git":
+            dirs[:] = [d for d in dirs if d != "worktrees"]
+
+        for n in dirs + files:
+            path = os.path.join(top, n)
+            try:
+                owner = os.lstat(path).st_uid
+            except OSError:
+                continue
+            if owner in uids:
+                found += 1
+                if len(sample) < MAX_LISTED_PATHS:
+                    sample.append(path)
+    return found, sample
+
+
+def doctor_one(ctx, repo, backend):
+    """Print one repository's checks; backend (from doctor_global) probes the main working tree."""
     root = Path(repo.root)
-    print(f"== {repo.key}  root={repo.root}  " + "  ".join(f"{a}={repo.uid_for(a)}" for a in ws.AGENTS))
+    print(f"== {repo.key}  root={repo.root}")
     print("  ok   git repository" if os.path.lexists(root / ".git") else "  FAIL not a git repository")
-    shared = [a for a in ws.AGENTS if len(repo.shares_uid(a)) > 1]
-    if shared:
-        print(f"  WARN {' and '.join(shared)} share uid {repo.uid_for(shared[0])}, so they run one at a time and can "
-              f"reach each other's files; '{PROG} register {repo.root}' gives each agent its own uid")
-    for uid in sorted({repo.uid_for(a) for a in ws.AGENTS}):
-        print(f"  -- uid {uid}")
-        print(f"  FAIL uid {uid} collides with a real user" if ws.uid_in_passwd(uid) else "  ok   uid is not in /etc/passwd")
-        backend = iso.UidBackend(uid)
-        why = backend.unavailable()
-        if why:
-            print(f"  FAIL {why}")
-            continue
-        print(f"  ok   setpriv {backend.setpriv} {' '.join(iso.SETPRIV_HARDENING)}")
+    if backend is not None:
         print("  FAIL uid can write the main working tree" if backend.can("w", root) else "  ok   uid cannot write the main working tree")
-        for s in iso.secret_paths(Path.home(), harness_env.config_dir()):
-            if os.path.exists(s):
-                print(f"  FAIL uid can read a secret: {s}" if backend.can("r", s) else f"  ok   cannot read: {s}")
-        # The work folder sits in the state folder (0711, set by run); everything above it must let the uid pass.
-        above = ctx.state_dir.parent
-        while not above.exists():
-            above = above.parent
-        print(f"  ok   uid can pass through {above}" if backend.can("x", above)
-              else f"  FAIL uid cannot pass through {above}, so it cannot reach its work folder under {ctx.state_dir}")
+
+    # A file a task uid owns stays writable to it (chmod), and any delegation may get that uid next
+    try:
+        first, last = ctx.uid_range()
+    except ws.DelegateError:
+        first, last = 1, 0
+    count, sample = range_owned(repo.root, set(range(first, last + 1)))
+    if count:
+        print(f"  FAIL {count} file(s) in the main working tree belong to a task uid, so a delegation can change them: "
+              f"{' '.join(sample)}{' ...' if count > len(sample) else ''} - chown them back (hard links share the owner "
+              f"with their other names, e.g. a package store)")
+    elif first <= last:
+        print("  ok   no file in the main working tree belongs to a task uid")
+
+    # Work folders and the agy policy over them
     work = ws.work_base(ctx.state_dir, repo, "agy")
-    settings, notes = agents.ADAPTERS["agy"].policy("worktree", iso.UidBackend(repo.uid_for("agy")), work / "workspace")
+    settings, notes = agents.ADAPTERS["agy"].policy("worktree", iso.UidBackend(), work / "workspace")
     temp = [r[len("read_file("):-1] for r in settings["permissions"]["deny"] if r.startswith("read_file(")]
     print(f"  INFO work folders {ctx.state_dir / 'work' / (repo.key + '-<agent>')}, results {ws.runs_dir(ctx.state_dir, repo)}")
     print(f"  INFO agy file tools denied in temp folders: {' '.join(temp) or '(none)'}")
     for n in notes:
         print(f"  FAIL agy {n}; agy runs are refused until HARNESS_DELEGATE_STATE (user layer) points elsewhere")
+
+    # What the repository gives the external models
     print("  ok   AGENTS.md present" if (root / "AGENTS.md").is_file()
           else "  WARN no AGENTS.md (entry point for external models; see templates/AGENTS.md.template)")
     if (root / "GEMINI.md").is_file() and (root / "AGENTS.md").is_file():
@@ -520,31 +619,23 @@ def doctor_one(ctx, repo):
         print("  INFO old per-repository copy left: .claude/tools/agy-delegate.sh (superseded by this script)")
     cfg = ctx.layers(repo.root)
     print(f"  config: {cfg.get('_files') or '(no harness.env files)'}")
+    print(f"  setup: {setup_line(repo.root) or '(none - HARNESS_DELEGATE_SETUP in the repository layer)'}")
     print(f"  PATH tools: {iso.tool_path(repo.root) or '(none - no pins in mise.toml)'}")
 
 
 def cmd_doctor(ctx, args):
     _, opts = parse(args, {"--repo": 1, "--all": 0}, 0, "doctor [--repo R|--all]")
-    doctor_global(ctx)
+    backend = doctor_global(ctx)
     for repo in ctx.repos(selection(opts)):
-        doctor_one(ctx, repo)
+        doctor_one(ctx, repo, backend)
     return 0
 
 
 def cmd_register(ctx, args):
-    (path, *key), _ = parse(args, {}, 1, "register <repository path> [key]", max_pos=2)
-    if ctx.registry_shipped:
-        die(f"the registry shipped in the plugin ({ctx.registry}) is read only: a plugin update replaces it. Set the "
-            f"harness_delegate_registry option to a file you own ('/plugin configure qwreey-delegate@<marketplace>', or "
-            f"HARNESS_DELEGATE_REGISTRY in ~/.claude/harness.env); register creates it with the shipped header", ws.EXIT_REFUSED)
-    reg = Path(ctx.registry)
-    if not reg.exists():
-        # The header explains the columns; the shipped rows are another user's repositories, so they stay behind.
-        reg.parent.mkdir(parents=True, exist_ok=True)
-        head = [ln for ln in SHIPPED_REGISTRY.read_text(encoding="utf-8").splitlines(keepends=True) if ln.startswith("#")]
-        reg.write_text("".join(head), encoding="utf-8")
-    key, root, added = ws.register(ctx.registry, path, key[0] if key else None)
-    print(f"registered: {key} {root} " + " ".join(f"{a}={u}" for a, u in added.items()))
+    # Older SKILL text in running sessions still says to register a repository first; tell it once and go on.
+    print("register is no longer needed: each run takes a free uid from HARNESS_DELEGATE_UIDS (option "
+          "harness_delegate_uids). A repository's setup command goes in its .claude/harness.env as "
+          "HARNESS_DELEGATE_SETUP.")
     return 0
 
 

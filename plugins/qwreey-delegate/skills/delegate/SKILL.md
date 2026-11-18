@@ -6,11 +6,11 @@ argument-hint: "<agy|codex> <name> <prompt file> [--mode worktree|empty] [--ref 
 
 # delegate - a narrow question to another model family
 
-The driver is `python3 -I ${CLAUDE_SKILL_DIR}/scripts/delegate.py`; below `D` means that command. The uid table is `registry.tsv` (location: see Setup), prompt skeletons are `templates/tasks.md`.
+The driver is `python3 -I ${CLAUDE_SKILL_DIR}/scripts/delegate.py`; below `D` means that command. Prompt skeletons are `templates/tasks.md`.
 
-**Requirements:** Linux as root (`setpriv`, an unprivileged uid per repository and agent, `choom`), Python 3.11 or newer, the `agy` and/or `codex` CLI logged in with the user's own subscription. Without root uid isolation the driver refuses every run (exit 4); on Windows, macOS or without those CLIs use a Claude subagent instead.
+**Requirements:** Linux as root (`setpriv`, unprivileged uids from the range in the plugin option `harness_delegate_uids`, `choom`), Python 3.11 or newer, the `agy` and/or `codex` CLI logged in with the user's own subscription. Without root uid isolation the driver refuses every run (exit 4); on Windows, macOS or without those CLIs use a Claude subagent instead.
 
-Exit codes: 0 the run finished (the model's own exit code is in `guard.txt`), 2 usage, 3 agent or its credentials missing, 4 refused by isolation policy, 5 concurrency limit (another task of the same agent or uid is running; wait for it, do not retry in a loop).
+Exit codes: 0 the run finished (the model's own exit code is in `guard.txt`), 2 usage, 3 agent or its credentials missing, 4 refused by isolation policy, 5 concurrency limit (another task of the same agent is running, or no uid of the range is free; wait for it, do not retry in a loop).
 
 ## Why and when
 
@@ -28,16 +28,15 @@ Before launching, show the user in one line what you will ask.
 ## Cost and concurrency
 
 - At most one task per agent at a time, summed over all repositories (`HARNESS_DELEGATE_MAX_CONCURRENT=1`), because the token limit is per user. Widen it only when the user says there is room. Put priorities in one task instead of splitting it into overlapping ones.
-- agy and codex can run side by side when the repository's registry row gives each agent its own uid; a row with one uid runs them one at a time (`doctor` warns, `$D register <path>` adds the missing uid).
+- agy and codex can run side by side: each run takes its own free uid from the range.
 - agy uses only `gemini-3.8-flash-high`; treat pro as absent.
 - codex runs on a ChatGPT Plus quota, which is small; the user checks usage. Model `gpt-6-luna`, `--effort medium`.
 - `--timeout` defaults to 3600 s. Run with Bash `run_in_background` and wait for the notification.
 
 ## Setup
 
-- The repository must be in the registry; the driver refuses otherwise. `$D register <path>` assigns the next free uids (one per agent); tell the user when you do it.
-- The registry is the file the user set in the plugin option `harness_delegate_registry` (`/plugin configure qwreey-delegate@<marketplace>`); the driver reads it itself. Unset, the copy next to this file is read only and `register` refuses (exit 4): ask the user to set the option to a file they own, which `register` then creates.
-- Each repository needs `AGENTS.md` at its root (skeleton: `templates/AGENTS.md.template`). Both models load it; it holds the canonical paths, the check commands and repository-only cautions, so the driver's preamble stays project-neutral. `$D doctor --all` checks the uids, secrets, the work folder path and `AGENTS.md`.
+- Any git repository works; there is no registration. If a fresh worktree needs a command first (installing dependencies), the repository sets `HARNESS_DELEGATE_SETUP=<command>` in its `.claude/harness.env`; it runs once as the task uid inside the new worktree.
+- Each repository needs `AGENTS.md` at its root (skeleton: `templates/AGENTS.md.template`). Both models load it; it holds the canonical paths, the check commands and repository-only cautions, so the driver's preamble stays project-neutral. `$D doctor --all` checks the uid range, secrets, the work folder path and `AGENTS.md`.
 
 ## Run
 
@@ -54,13 +53,13 @@ Before launching, show the user in one line what you will ask.
    - agy defaults to `worktree`: a detached worktree it may edit and run checks in (shell allowed).
    - agy `empty` is a restricted copy: an empty folder, everything it needs in the prompt, shell refused, file tools refused outside the folder and in the temp folders. Those refusals are agy's own permission rules, not an OS boundary; the uid is the boundary.
    - codex defaults to `empty`. codex `worktree` is refused (exit 4): its bubblewrap sandbox cannot make a namespace under an unprivileged uid, so no shell runs. Turning the sandbox off (`HARNESS_DELEGATE_CODEX_SANDBOX=danger-full-access`, user layer) leaves the uid as the only isolation and is the user's decision.
-3. **Read.** When the run ends the driver collects everything into `<state>/runs/<key>/<date>-<name>/`, checks the copy byte for byte, removes the work folder, and prints `collected: <folder>` and `report: <folder>/report.md`. The folder also holds `guard.txt` (exit code, whether the main repository changed, worktree HEAD, files the task edited, tools agy was denied), `stdout.txt`, `stderr.txt` (agy), `meta.txt`, `state.json`, `diff.patch` (worktree mode) and `agy/<conversation>/` (agy's scratch probes and transcript). `<state>` is `~/.local/state/qwreey-delegate` unless `HARNESS_DELEGATE_STATE` moves it.
+3. **Read.** When the run ends the driver collects everything into `<state>/runs/<key>/<date>-<name>/` (`<key>` is the repository folder name plus a path hash), checks the copy byte for byte, removes the work folder, and prints `collected: <folder>` and `report: <folder>/report.md`. The folder also holds `guard.txt` (exit code, whether the main repository changed, worktree HEAD, files the task edited, tools agy was denied), `stdout.txt`, `stderr.txt` (agy), `meta.txt`, `state.json`, `diff.patch` (worktree mode) and `agy/<conversation>/` (agy's scratch probes and transcript). `<state>` is `~/.local/state/qwreey-delegate` unless `HARNESS_DELEGATE_STATE` moves it.
    - `report: MISSING` after `agy denied: ...`: agy was refused a tool it is not allowed in headless mode and ended the turn with an empty answer. Rewrite the task so it stays inside its folder (or put the material in the prompt) and run again under a new name.
    - `kept: <work folder> - automatic collect failed`: nothing was deleted; read the record the line names, then `$D collect` and `$D remove` by hand. `--keep` on `run` skips the automatic collect the same way.
    - If the main repository shows CHANGED, check whether the main session or the user did it in the meantime.
 4. **Verify and apply** (next section).
 5. **Keep.** Move a report worth citing into the project's `.claude/audit/<backend>/<date>-<name>.md` with the main session's verification on top and commit it. `runs/` is outside the repository and `gc` deletes it after `HARNESS_DELEGATE_RUNS_DAYS` (14) days, so never cite it as evidence.
-6. **Clean up.** `$D list --all`, then `$D gc --all` (preview) and `$D gc --all --apply`. gc collects and removes work folders left without a live run, deletes HOMEs without an owner and results older than the retention (`--days N` overrides it), and skips a work folder with a live process. Old workspaces beside a repository (`<dirname(repo)>/<key>-<agent>/`) are only listed; removing them is the user's call (`$D remove`, or by hand).
+6. **Clean up.** `$D list --all`, then `$D gc --all` (preview) and `$D gc --all --apply`. gc collects and removes work folders left without a live run, deletes HOMEs without an owner and results older than the retention (`--days N` overrides it), and skips a work folder with a live process. Old workspaces beside a repository (`<dirname(repo)>/<folder name>-<agent>/`) and state folders of no known repository are only listed; removing them is the user's call (`$D remove`, or by hand).
 
 ## Verify before applying
 
@@ -76,7 +75,7 @@ Before launching, show the user in one line what you will ask.
 
 On this host `agy --sandbox` and codex `-s read-only` do not stop access outside the cwd and `unshare -m` is not permitted, so these hold the line:
 
-1. An unprivileged uid per repository and agent via `setpriv` (no new privileges, no capabilities); only the task folder, its `.git/worktrees/<id>` and the task HOME belong to it. The main working tree and `.git/objects` are unwritable, so no commit and nothing to push; a pre-push hook refuses anyway. One task per uid at a time. `doctor` checks this and that the uid cannot read `~/.claude/.credentials.json`, `.git-credentials` or `.ssh`.
+1. An unprivileged uid via `setpriv` (no new privileges, no capabilities), taken per run from the range; only the task folder, its `.git/worktrees/<id>` and the task HOME belong to it. The main working tree and `.git/objects` are unwritable, so no commit and nothing to push; a pre-push hook refuses anyway. One task per uid at a time. `doctor` checks this and that the uid cannot read `~/.claude/.credentials.json`, `.git-credentials` or `.ssh`.
 2. agy runs in print mode without `--dangerously-skip-permissions`. Its `--settings` deny file tools in the temp folders, allow them in the task folder, and allow the shell only in a uid worktree; anything else is refused headless and listed in `guard.txt` as `agy denied`. A task folder under a denied temp folder is refused (exit 4; `doctor` shows FAIL), which is why work folders live in the state folder.
 3. An empty environment; PATH is the repository's mise-pinned tools plus `/usr/bin:/bin` (not `/usr/local/bin`, where the Studio tools are), `TMPDIR` is inside the task HOME. If an agent cannot find something, `HARNESS_DELEGATE_KEEP_ENV=1` (user layer) passes the current environment, tokens included.
 4. `choom -n 1000`: on OOM the task dies before claude, because agy's own Bash is invisible to the PreToolUse hooks.

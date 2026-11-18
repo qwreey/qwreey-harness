@@ -7,6 +7,12 @@ import os
 import re
 from pathlib import Path
 
+try:
+    import grp
+    import pwd
+except ImportError:  # Windows: 위임 드라이버가 돌지 않는 곳이라 uid 대역 검사도 계정을 보지 않는다
+    grp = pwd = None
+
 C = None
 
 
@@ -57,19 +63,71 @@ def common_dir(path):
     return out.strip() if out else None
 
 
-REGISTRY_IN_REPO = ("plugins", "qwreey-delegate", "skills", "delegate", "registry.tsv")
+UID_RANGE = re.compile(r"^\s*(\d+)\s*-\s*(\d+)\s*$")
+# 위임 드라이버(qwreey-delegate 의 delegate_workspace.py MAX_UID_RANGE)가 받는 대역의 최대 크기. 다른 플러그인이라
+# import 하지 않고 tests/test-delegate-uids.py 가 두 값을 맞춰 본다.
+MAX_UID_RANGE = 4096
+MAX_LISTED_UIDS = 10
 
 
-def registry_uids():
-    """위임 uid 표(key<TAB>root<TAB>uid...) -> {uid: {저장소 이름}}. 사용자가 정한 HARNESS_DELEGATE_REGISTRY, 없으면 하네스 저장소의 표,
-    둘 다 없으면 빈 dict."""
-    reg = C.ENV.get("HARNESS_DELEGATE_REGISTRY") or (str(C.DOCTOR_ROOT.joinpath(*REGISTRY_IN_REPO)) if C.DOCTOR_ROOT else "")
-    out = {}
-    for line in (C.read(reg) or "").split("\n") if reg else []:
-        cols = line.split("\t")
-        if len(cols) >= 3 and not line.startswith("#") and cols[2].strip().isdigit():
-            out.setdefault(cols[2].strip(), set()).add(Path(cols[1].strip()).name)
-    return out
+def account_of(uid):
+    """uid 가 실제 계정 번호면 'user' 나 'group', 아니면 ''. 위임 작업은 그 번호를 uid 와 gid 로 함께 쓴다."""
+    if pwd is None:
+        return ""
+    try:
+        pwd.getpwuid(uid)
+        return "user"
+    except KeyError:
+        pass
+
+    try:
+        grp.getgrgid(uid)
+        return "group"
+    except KeyError:
+        return ""
+
+
+def delegate_uid_range():
+    """(첫 uid, 끝 uid) 또는 잘못된 값이면 None. HARNESS_DELEGATE_UIDS(사용자 층과 qwreey-delegate 옵션)."""
+    m = UID_RANGE.match(C.ENV.get("HARNESS_DELEGATE_UIDS") or "")
+    if not m:
+        return None
+    first, last = int(m.group(1)), int(m.group(2))
+    return (first, last) if 0 < first <= last and last - first + 1 <= MAX_UID_RANGE else None
+
+
+def check_delegate_uids(repo, projects):
+    """위임 uid 대역 검사(DRIFT-UID): 대역이 잘못됐거나 비었는지, 실제 계정과 겹치는지, 옛 저장소 사본이 대역 안 uid 를 쓰는지."""
+    if not (C.DOCTOR_ROOT or C.installed_plugin("qwreey-delegate")):
+        return
+    value = C.ENV.get("HARNESS_DELEGATE_UIDS") or ""
+    rng = delegate_uid_range()
+    if rng is None:
+        C.add(6, "경고", "DRIFT-UID", "HARNESS_DELEGATE_UIDS",
+              f"위임 uid 대역 {value!r} 이 잘못됐다(예: 61000-61015, 0 보다 크고 {MAX_UID_RANGE}개 이하). 위임 실행이 모두 거절된다.",
+              "references/drift-and-settings.md#위임-uid-대역")
+        return
+
+    # 실제 계정과 겹치는 uid 는 드라이버가 건너뛴다. 모두 겹치면 위임이 돌 uid 가 없다
+    first, last = rng
+    taken = [(u, account_of(u)) for u in range(first, last + 1)]
+    taken = [(u, kind) for u, kind in taken if kind]
+    if taken:
+        shown = ", ".join(f"{u}({kind})" for u, kind in taken[:MAX_LISTED_UIDS])
+        more = f" 외 {len(taken) - MAX_LISTED_UIDS}개" if len(taken) > MAX_LISTED_UIDS else ""
+        left = last - first + 1 - len(taken)
+        C.add(6, "경고", "DRIFT-UID", "HARNESS_DELEGATE_UIDS",
+              f"위임 uid 대역 {first}-{last} 에 실제 계정 번호가 있다: {shown}{more}. "
+              + (f"드라이버가 건너뛰어 동시에 {left}개까지 돈다." if left else "남는 uid 가 없어 위임 실행이 모두 거절된다."),
+              "references/drift-and-settings.md#위임-uid-대역")
+
+    # 옛 저장소 사본(agy-delegate.sh)이 고정 uid 를 쓰면 대역의 위임과 같은 uid 로 돈다
+    for sh in projects.glob("*/.claude/tools/agy-delegate.sh"):
+        m = re.search(r"AGY_UID[:=]-?\$?\{?[\w:-]*?(\d{4,6})", C.read(sh) or "")
+        if m and first <= int(m.group(1)) <= last and sh.parts[-4] == repo.name:
+            C.add(6, "경고", "DRIFT-UID", C.rel(sh, repo),
+                  f"옛 위임 사본이 uid {m.group(1)} 를 쓴다. 위임 uid 대역 {first}-{last} 안이라 대역의 위임과 같은 uid 로 돈다(격리 깨짐).",
+                  "references/drift-and-settings.md#위임-uid-대역")
 
 
 def check_drift(repo, files, projects):
@@ -84,17 +142,7 @@ def check_drift(repo, files, projects):
         if name == "agy-delegate.sh" or f.endswith("skills/delegate-agy/SKILL.md"):
             C.add(6, "정보", "DRIFT-DELEGATE", f, "agy 위임 사본. 통합안 claude-doctor/.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate (P4) 로 대체 예정.",
                 "references/drift-and-settings.md#위임-사본")
-    # uid 충돌: 저장소 안의 위임 사본 + 환경의 중앙 uid 표
-    uids = registry_uids()
-    for sh in projects.glob("*/.claude/tools/agy-delegate.sh"):
-        m = re.search(r"AGY_UID[:=]-?\$?\{?[\w:-]*?(\d{4,6})", C.read(sh) or "")
-        if m:
-            uids.setdefault(m.group(1), set()).add(sh.parts[-4])
-    mycd = common_dir(repo)
-    for uid, owners in uids.items():
-        owners = {o for o in owners if o == repo.name or common_dir(projects / o) != mycd}  # 같은 저장소의 worktree 는 하나로
-        if len(owners) > 1 and repo.name in owners:
-            C.add(6, "경고", "DRIFT-UID", repo, f"agy uid {uid} 를 {', '.join(sorted(owners))} 가 함께 쓴다(격리 깨짐).")
+    check_delegate_uids(repo, projects)
     # 사용자 레벨과 같은 훅을 프로젝트가 또 등록
     ukeys = {}
     for p, s in user_settings():

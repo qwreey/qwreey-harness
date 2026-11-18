@@ -3,12 +3,12 @@
 One skill, `qwreey-delegate:delegate`, and its driver `skills/delegate/scripts/delegate.py` (stdlib Python 3.11+, run as `python3 -I`), which runs Gemini `agy` or OpenAI `codex` as an unprivileged uid in an isolated work folder. No hooks, no ambient. The procedure the model follows is `skills/delegate/SKILL.md`; isolation, run flow, settings and work folders: `docs/how-it-works.md`. Design and open milestones: `.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/driver-design.md` (repo root).
 
 ## Where things are
-- `skills/delegate/scripts/delegate.py`: CLI, `run`, `doctor`, `register` (subcommands also `collect`, `remove`, `list`, `gc`).
-- `delegate_workspace.py` (registry, locations, records, locks, fd-relative reads), `delegate_isolation.py` (uid backend, task environment, processes), `delegate_agents.py` (agy print-mode and codex adapters, agy `--settings` policy), `delegate_results.py` (collect, remove, automatic cleanup, list, gc).
+- `skills/delegate/scripts/delegate.py`: CLI, `run`, `doctor` (subcommands also `collect`, `remove`, `list`, `gc`; `register` only says it is no longer needed, for older SKILL text).
+- `delegate_workspace.py` (repository keys, the uid range and its selection, locations, records, locks, fd-relative reads), `delegate_isolation.py` (uid backend, task environment, processes), `delegate_agents.py` (agy print-mode and codex adapters, agy `--settings` policy), `delegate_results.py` (collect, remove, automatic cleanup, list, gc).
 - `skills/delegate/scripts/delegate.sh`: a wrapper that execs `delegate.py`. Keep the path: older sessions' SKILL text and `qwreey-proc-guard`'s exemption name it.
 - `skills/delegate/templates/`: `tasks.md` (prompt skeleton), `preamble-worktree.md`, `preamble-empty.md` (prepended by the driver), `AGENTS.md.template` (per-repo map).
-- `skills/delegate/registry.tsv`: the shipped uid table, read only when no registry is set. `register` writes only the file the `harness_delegate_registry` option (or `HARNESS_DELEGATE_REGISTRY`) names and seeds a new one with this file's header, so header edits here reach new users.
-- `.claude-plugin/plugin.json` `userConfig`: the user-facing keys (registry, models, executables). An option key is the env name in lowercase; its default must equal `ENV_DEFAULTS` or the loader's `DEFAULTS` (`tools/tests/test-plugin-userconfig.py`).
+- Task uids: one range, option `harness_delegate_uids` (`HARNESS_DELEGATE_UIDS`, default `61000-61015`, user layer only); each run takes the first free uid (`ws.take_uid`). A repository's setup command is `HARNESS_DELEGATE_SETUP` in its own layers, read unexpanded (`delegate.setup_line`).
+- `.claude-plugin/plugin.json` `userConfig`: the user-facing keys (uid range, models, executables). An option key is the env name in lowercase; its default must equal `ENV_DEFAULTS` or the loader's `DEFAULTS` (`tools/tests/test-plugin-userconfig.py`).
 
 ## Tests
 From the repo root (fake agy/codex; nothing calls a vendor):

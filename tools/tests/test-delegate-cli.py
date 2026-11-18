@@ -1,8 +1,9 @@
 """qwreey-delegate 드라이버(delegate.py)의 명령 시험. 실행: python3 -I tools/tests/test-delegate-cli.py
 
 가짜 agy·codex·setpriv 로 run -> collect -> remove -> gc, list, 동시 실행 거절(에이전트 슬롯, uid 하나에 작업 하나), 인자 오류,
-doctor 의 비밀 경로 점검, 작업 uid 가 심은 링크, 시간 초과와 신호, HARNESS_HEAVY_WRAP 를 본다. 모델 호출 없음.
-RealUid 는 root 일 때만 진짜 setpriv 로 registry 에 없는 빈 uid 아래 가짜 에이전트를 돌려 권한 문제를 드러낸다.
+uid 대역(HARNESS_DELEGATE_UIDS)에서 빈 uid 고르기, 저장소 층의 setup, doctor 의 비밀 경로와 대역 점검, 작업 uid 가 심은 링크,
+시간 초과와 신호, HARNESS_HEAVY_WRAP 를 본다. 모델 호출 없음.
+RealUid 는 root 일 때만 진짜 setpriv 로 계정이 없는 시험 대역의 uid 아래 가짜 에이전트를 돌려 권한 문제를 드러낸다.
 root 가 아니면 나머지는 uid 백엔드의 chown 단계만 빼고 돈다(delegate_fixture.launcher).
 """
 import json
@@ -18,10 +19,11 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from delegate_fixture import IS_ROOT, SCRIPTS, Fixture, git  # noqa: E402
+from delegate_fixture import IS_ROOT, SCRIPTS, Fixture, git, is_account, key_of  # noqa: E402
 
 sys.path.insert(0, str(SCRIPTS))
 import delegate_isolation as iso  # noqa: E402
+import delegate_workspace as ws  # noqa: E402
 
 
 class Base(unittest.TestCase):
@@ -61,12 +63,11 @@ class Arguments(Base):
             (("run", "agy", "x", f.prompt, "--repo"), "--repo needs a value"),
             (("run", "agy", "x", f.prompt, "--mode", "both"), "--mode must be worktree|empty"),
             (("run", "agy", "x", f.prompt, "--timeout", "0"), "--timeout must be a positive integer"),
-            (("run", "agy", "x", f.prompt, "--repo", "nokey"), "repository not in the registry"),
+            (("run", "agy", "x", f.prompt, "--repo", "nokey"), "unknown repository nokey"),
             (("run", "agy", "x", f.prompt, "--ref", "no-such-ref"), "commit not found"),
             (("collect", "agy", "nope"), "not found:"),
             (("remove", "codex", "nope", "--frob"), "unknown option"),
             (("gc", "--days", "x"), "--days must be a number"),
-            (("register",), "usage: register"),
         ]
         for args, msg in cases:
             with self.subTest(args=args):
@@ -75,12 +76,14 @@ class Arguments(Base):
         self.assertFalse(f.base("agy").joinpath("x").exists(), "실패한 run 은 작업 사본을 남기지 않는다")
         self.assertFalse(f.rec("agy", "x").exists())
 
-    def test_outside_a_registered_repo(self):
+    def test_any_git_repository_without_registration(self):
         other = self.f.tmp / "other"
         other.mkdir()
         git("init", "-q", cwd=other)
-        p = self.fails(2, "list", cwd=other)
-        self.assertIn("repository not in the registry", p.stderr)
+        self.ok("list", cwd=other)
+        plain = self.f.tmp / "plain"
+        plain.mkdir()
+        self.assertIn("is not a git repository", self.fails(2, "list", cwd=plain).stderr)
 
     def test_missing_agent_or_credentials_is_3(self):
         f = self.f
@@ -107,37 +110,11 @@ class Arguments(Base):
         p = self.fails(4, "run", "agy", "x", f.prompt)
         self.assertIn("must be a folder owned by uid 0", p.stderr)
 
-    def test_register(self):
-        f = self.f
-        new = f.ws / "second"
-        new.mkdir()
-        git("init", "-q", cwd=new)
-        p = self.ok("register", new)
-        line = f.registry.read_text().splitlines()[-1].split("\t")
-        self.assertEqual(line[:2], ["second", str(new)])
-        self.assertEqual(line[3], "-")
-        codex = int(line[5].removeprefix("codex="))
-        self.assertGreaterEqual(int(line[2]), 61000)
-        self.assertEqual(len({int(line[2]), codex, f.uid, f.codex_uid}), 4, "uid 는 저장소와 에이전트마다 하나")
-        self.assertIn(f"registered: second {new} agy={line[2]} codex={codex}", p.stdout)
-        self.assertIn("already registered", self.fails(2, "register", new).stderr)
-        # 옛 꼴(uid 하나) 줄은 register 가 codex uid 를 채운다. 다른 줄과 메모는 그대로.
-        old = f.add_repo("old", per_agent=False)
-        before = f.registry.read_text().splitlines()
-        p = self.ok("register", old)
-        after = f.registry.read_text().splitlines()
-        self.assertEqual(before[:-1], after[:-1])
-        cols = after[-1].split("\t")
-        self.assertEqual(cols[:4], before[-1].split("\t")[:4])
-        self.assertEqual(cols[4], "-")
-        self.assertRegex(cols[5], r"^codex=\d+$")
-        self.assertIn(f"registered: old {old} {cols[5]}", p.stdout)
-        self.assertIn("already registered", self.fails(2, "register", old).stderr)
-        third = f.ws / "third"
-        third.mkdir()
-        git("init", "-q", cwd=third)
-        self.assertIn("key already exists", self.fails(2, "register", third, "proj").stderr)
-        self.assertIn("not a git repository", self.fails(2, "register", f.tmp).stderr)
+    def test_register_is_a_no_op(self):
+        # 세션이 읽은 SKILL 본문이 register 를 시킬 수 있다: 알리고 성공으로 끝낸다.
+        p = self.ok("register", self.f.repo)
+        self.assertIn("register is no longer needed", p.stdout)
+        self.assertIn("HARNESS_DELEGATE_SETUP", p.stdout)
 
 
 class LifecycleChecks:
@@ -154,7 +131,7 @@ class LifecycleChecks:
         self.assertNotIn("REPORT.md", p.stdout.split("worktree changes:")[1].split("report:")[0])
         self.assertIn(f"report: {rec / 'report.md'}", p.stdout, "읽을 보고서는 root 소유 기록 안의 사본")
         self.assertEqual((rec / "report.md").read_text(), "agy worktree report\n")
-        self.assertIn("next: main reads and verifies -> delegate.py collect agy t1 --repo proj", p.stdout)
+        self.assertIn(f"next: main reads and verifies -> delegate.py collect agy t1 --repo {f.key}", p.stdout)
 
         (call,) = f.calls("agy")
         argv = call["argv"]
@@ -284,16 +261,39 @@ class LifecycleChecks:
             self.assertEqual((f.base("agy") / "t1" / "link-to-secret").lstat().st_uid, f.uid)
 
 
+    def check_leftover_home_is_replaced(self):
+        # uid 는 실행마다 다르다. 같은 이름의 HOME 이 다른 uid 소유로 남아 있어도 새 작업은 새로 만든 HOME 만 받는다.
+        f = self.f
+        old = f.base("agy") / ".homes" / "t1"
+        old.mkdir(parents=True)
+        (old / "stale").write_text("left by another uid\n")
+        os.symlink(f.secret, old / "link-to-secret")
+        if IS_ROOT:
+            for p in (old, old / "stale"):
+                os.chown(p, f.uid2, f.uid2)
+
+        self.ok("run", "agy", "t1", f.prompt, "--keep")
+        self.assertFalse((old / "stale").exists(), "남은 HOME 은 지우고 새로 만든다")
+        self.assertFalse(os.path.lexists(old / "link-to-secret"))
+        self.assertEqual(f.secret.read_text(), "ROOTSECRET\n")
+        if IS_ROOT:
+            self.assertEqual(old.lstat().st_uid, f.uid, "새 HOME 은 이번 작업 uid 소유")
+            self.assertEqual(f.secret.lstat().st_uid, 0)
+
     def check_setup_runs_as_the_task(self):
         f = self.f
-        f.registry.write_text(f.registry.read_text().replace(
-            "\t-\ttest", '\tid -u > setup-uid; env > setup-env; echo "$SECRET_SETUP" > setup-secret\ttest'))
+        # 저장소 층(커밋되는 .claude/harness.env)의 줄. $SECRET_SETUP 은 드라이버 환경에서 풀리지 않고 작업의 빈 환경에서 풀린다.
+        f.repo_env('HARNESS_DELEGATE_SETUP=id -u > setup-uid; env > setup-env; echo "$SECRET_SETUP" > setup-secret\n')
         p = self.ok("run", "agy", "t1", f.prompt, "--keep", env=f.env(SECRET_SETUP="leak"))
         self.assertNotIn("setup failed", p.stderr)
         wt = f.base("agy") / "t1"
         if self.real:
             self.assertEqual((wt / "setup-uid").read_text().strip(), str(f.uid), "setup 은 작업 uid 로 돈다")
-        self.assertEqual((wt / "setup-secret").read_text(), "\n", "setup 은 빈 환경에서 돈다")
+        self.assertEqual((wt / "setup-secret").read_text(), "\n", "setup 은 빈 환경에서 돌고 드라이버 환경으로 풀지 않는다")
+        self.assertIn("main repo: unchanged", p.stdout)
+        # empty 모드에는 setup 이 없다
+        self.ok("run", "agy", "e1", f.prompt, "--mode", "empty", "--keep")
+        self.assertFalse((f.base("agy") / "e1" / "setup-uid").exists())
         self.assertIn(f"HOME={f.base('agy') / '.homes' / 't1'}", (wt / "setup-env").read_text())
 
 
@@ -301,7 +301,7 @@ class LifecycleChecks:
         f = self.f
         misebin, tools, data = f.fake_mise()
         f.user_env((f.cfg / "harness.env").read_text() + f"HARNESS_TOOL_INSTALLS={data / 'installs'}\n")
-        f.registry.write_text(f.registry.read_text().replace("\t-\ttest", "\ttimeout 300 mise exec -- pesde install\ttest"))
+        f.repo_env("HARNESS_DELEGATE_SETUP=timeout 300 mise exec -- pesde install\n", local=True)
         env = f.env(PATH=f"{f.bin}:{misebin}:/usr/bin:/bin" + (":/usr/sbin:/sbin" if self.real else ""))
         p = self.ok("run", "agy", "t1", f.prompt, "--keep", env=env)
         self.assertNotIn("setup failed", p.stderr)
@@ -317,6 +317,9 @@ class LifecycleChecks:
 
 
 class Lifecycle(Base, LifecycleChecks):
+    def test_leftover_home_is_replaced(self):
+        self.check_leftover_home_is_replaced()
+
     def test_setup_runs_as_the_task(self):
         self.check_setup_runs_as_the_task()
 
@@ -372,15 +375,15 @@ class Lifecycle(Base, LifecycleChecks):
         os.utime(old, (month_ago, month_ago))
         p = self.ok("gc")
         self.assertIn("(preview", p.stdout)
-        self.assertIn("delete     work/proj-codex/c1 (finished, collected first)", p.stdout)
-        self.assertIn("delete     work/proj-codex/.homes/orphan", p.stdout)
-        self.assertIn("delete     runs/proj/20200101-0000-old (results, 30d old; older than 14d)", p.stdout)
+        self.assertIn(f"delete     work/{f.key}-codex/c1 (finished, collected first)", p.stdout)
+        self.assertIn(f"delete     work/{f.key}-codex/.homes/orphan", p.stdout)
+        self.assertIn(f"delete     runs/{f.key}/20200101-0000-old (results, 30d old; older than 14d)", p.stdout)
         self.assertTrue(wt.exists() and old.exists(), "미리보기는 지우지 않는다")
         self.assertNotIn("20200101-0000-old", self.ok("gc", "--days", "60").stdout)
         f.user_env((f.cfg / "harness.env").read_text() + "HARNESS_DELEGATE_RUNS_DAYS=60\n")
         self.assertNotIn("20200101-0000-old", self.ok("gc").stdout, "HARNESS_DELEGATE_RUNS_DAYS 가 기본 14일을 바꾼다")
         p = self.ok("gc", "--apply", "--days", "14")
-        self.assertIn("collected  work/proj-codex/c1 -> ", p.stdout)
+        self.assertIn(f"collected  work/{f.key}-codex/c1 -> ", p.stdout)
         self.assertFalse(wt.exists())
         self.assertFalse(rec.exists())
         self.assertFalse((base / ".homes" / "orphan").exists())
@@ -457,7 +460,7 @@ class Lifecycle(Base, LifecycleChecks):
         self.assertIn('agy-settings: {"permissions":{"deny":["read_file(/tmp)"', (f.out("e1") / "meta.txt").read_text())
         p = self.ok("doctor", env=env)
         self.assertIn(f"  INFO agy file tools denied in temp folders: /tmp {systmp}", p.stdout)
-        self.assertIn(f"  INFO work folders {f.state / 'work' / 'proj-<agent>'}, results {f.runs}", p.stdout)
+        self.assertIn(f"  INFO work folders {f.state / 'work' / (f.key + '-<agent>')}, results {f.runs}", p.stdout)
 
     def test_work_folder_under_a_denied_temp_folder_is_refused(self):
         f = self.f
@@ -493,7 +496,7 @@ class Lifecycle(Base, LifecycleChecks):
         self.assertEqual(f.calls("codex")[0]["env"]["TMPDIR"], str(home / ".tmp"))
         self.assertTrue((home / ".tmp").is_dir())
         if IS_ROOT:
-            self.assertEqual((home / ".tmp").lstat().st_uid, f.codex_uid)
+            self.assertEqual((home / ".tmp").lstat().st_uid, f.uid)
         self.assertNotIn("--settings", f.calls("codex")[0]["argv"])
 
     def test_existing_name_refused(self):
@@ -568,7 +571,8 @@ class Lifecycle(Base, LifecycleChecks):
 class Concurrency(Base):
     def test_live_shell_run_counts(self):
         f = self.f
-        other = f.add_repo("proj2", per_agent=False)
+        other = f.add_repo("proj2")
+        self.ok("run", "codex", "z", f.prompt, cwd=other)  # 한 번 돈 저장소만 셈에 든다(<상태>/repos/)
         # delegate.sh 의 살아 있는 작업: pid 파일만 있고 기록 폴더가 없음. 이 시험 프로세스의 pid 로 흉내.
         live = f.ws / "proj2-agy" / "sh-run" / ".delegate"
         live.mkdir(parents=True)
@@ -578,36 +582,31 @@ class Concurrency(Base):
         self.assertFalse((f.base("agy") / "x").exists())
         self.assertRegex(self.ok("list", "--repo", "proj2").stdout, r"\n  sh-run +running ")
         self.ok("run", "codex", "x", f.prompt)  # 한도는 에이전트마다
-        p = self.fails(5, "run", "codex", "y", f.prompt, cwd=other)
-        self.assertIn("another task of uid", p.stderr, "옛 꼴 줄: delegate.sh 의 agy 작업과 codex 가 uid 를 나눈다")
-        self.assertIn(f"register {other}' gives each agent its own uid", p.stderr)
 
-    def test_running_driver_holds_a_slot_and_the_uid(self):
+    def test_running_driver_holds_a_slot_and_its_uid(self):
         f = self.f
-        f.add_repo("proj2")
+        other = f.add_repo("proj2")
         (f.ctl / "block").write_text("1")
         a = f.start("run", "agy", "a1", f.prompt)
         try:
             self.assertTrue(f.wait_for(f.ctl / "started"), "가짜 agy 가 시작하지 않았다")
-            p = self.fails(5, "run", "agy", "a2", f.prompt, "--repo", "proj2")
+            p = self.fails(5, "run", "agy", "a2", f.prompt, "--repo", other)
             self.assertIn("1 agy task(s) already running", p.stderr)
-            p = self.fails(5, "run", "agy", "a3", f.prompt, env=f.env(HARNESS_DELEGATE_MAX_CONCURRENT="2"))
-            self.assertIn(f"another task of uid {f.uid} (proj) is running; one task per uid at a time", p.stderr,
-                          "같은 저장소의 같은 에이전트는 한도가 남아도 uid 하나에 작업 하나")
-            self.ok("run", "codex", "c1", f.prompt)  # 같은 저장소의 codex 는 자기 uid 로 나란히 돈다
-            self.assertIn(f"--reuid={f.codex_uid} ", (f.ctl / "setpriv.log").read_text())
+            self.ok("run", "codex", "c1", f.prompt)  # 다른 에이전트는 대역의 다음 uid 로 나란히 돈다
+            self.assertEqual(f.setpriv_uids()[-1], f.uid2)
             self.assertRegex(self.ok("list").stdout, r"\n  a1 +running ")
             self.assertIn("still running: agy/a1", self.fails(2, "collect", "agy", "a1").stderr)
             self.assertIn("still running", self.fails(2, "remove", "agy", "a1", "--discard").stderr)
             (f.ctl / "started").unlink()
-            # 한도 2 면 다른 저장소의 둘째가 돈다(첫째는 아직 막혀 있다).
+            # 한도 2 면 다른 저장소의 둘째가 첫째와 다른 uid 로 돈다(첫째는 아직 막혀 있을 수 있다).
             (f.ctl / "release").write_text("1")
-            b = f.drive("run", "agy", "a2", f.prompt, "--repo", "proj2", env=f.env(HARNESS_DELEGATE_MAX_CONCURRENT="2"))
+            b = f.drive("run", "agy", "a2", f.prompt, "--repo", other, env=f.env(HARNESS_DELEGATE_MAX_CONCURRENT="2"))
             self.assertEqual(b.returncode, 0, b.stderr)
         finally:
             (f.ctl / "release").write_text("1")
             out, err = a.communicate(timeout=60)
         self.assertEqual(a.returncode, 0, out + err)
+        self.assertEqual(f.setpriv_uids()[0], f.uid, "첫 작업은 대역의 첫 uid")
         self.assertTrue((f.out("a1") / "report.md").is_file(), "끝난 뒤 스스로 모으고 정리했다")
         self.assertNotRegex(self.ok("list").stdout, r"\n  a1 +")
 
@@ -622,19 +621,144 @@ class Concurrency(Base):
         self.ok("run", "codex", "c2", f.prompt)
 
 
-    def test_old_row_shares_one_uid(self):
+def account_then_free(kind):
+    """(계정 번호, 그다음 빈 번호): kind 'user' 는 /etc/passwd, 'group' 은 /etc/group 에만 있는 번호. 없으면 None."""
+    import grp
+    import pwd
+    ids = sorted({e.pw_uid for e in pwd.getpwall()} if kind == "user"
+                 else {g.gr_gid for g in grp.getgrall()} - {e.pw_uid for e in pwd.getpwall()})
+    for u in ids:
+        if u > 0 and not is_account(u + 1):
+            return u, u + 1
+    return None
+
+
+class UidRange(Base):
+    """HARNESS_DELEGATE_UIDS: 실행마다 대역에서 비어 있는 첫 uid 를 쓴다."""
+
+    def hold(self, *uids):
+        """이 시험 프로세스가 uid 잠금을 쥔다(살아 있는 다른 작업 흉내). 잠금 fd 목록."""
+        uids_dir = self.f.state / "uids"
+        uids_dir.mkdir(parents=True, exist_ok=True)
+        return [ws.take_lock(uids_dir / f"{u}.lock") for u in uids]
+
+    def test_first_free_uid_and_locked_uid_skipped(self):
         f = self.f
-        f.add_repo("shared", per_agent=False)
-        (f.ctl / "block").write_text("1")
-        a = f.start("run", "agy", "a1", f.prompt, "--repo", "shared")
+        self.ok("run", "codex", "c1", f.prompt)
+        self.assertEqual(f.setpriv_uids()[-1], f.uid, "대역의 첫 uid")
+        fds = self.hold(f.uid)
         try:
-            self.assertTrue(f.wait_for(f.ctl / "started"))
-            p = self.fails(5, "run", "codex", "c1", f.prompt, "--repo", "shared")
-            self.assertIn("agy and codex of shared share it", p.stderr)
+            self.ok("run", "codex", "c2", f.prompt)
+            self.assertEqual(f.setpriv_uids()[-1], f.uid2, "다른 작업이 잠근 uid 는 건너뛴다")
         finally:
-            (f.ctl / "release").write_text("1")
-            a.communicate(timeout=60)
-        self.assertIn("WARN agy and codex share uid", self.ok("doctor", "--repo", "shared").stdout)
+            for fd in fds:
+                os.close(fd)
+        self.ok("run", "codex", "c3", f.prompt)
+        self.assertEqual(f.setpriv_uids()[-1], f.uid, "끝난 작업의 uid 는 다시 쓴다")
+
+    def test_range_exhausted_is_5(self):
+        f = self.f
+        fds = self.hold(*range(f.first_uid, f.last_uid + 1))
+        try:
+            p = self.fails(5, "run", "codex", "c1", f.prompt)
+            self.assertIn(f"no free uid in HARNESS_DELEGATE_UIDS {f.first_uid}-{f.last_uid}: 4 running", p.stderr)
+            self.assertFalse((f.base("codex") / "c1").exists())
+            self.assertFalse(f.rec("codex", "c1").exists())
+        finally:
+            for fd in fds:
+                os.close(fd)
+
+    def test_account_ids_skipped(self):
+        f = self.f
+        for kind in ("user", "group"):
+            pair = account_then_free(kind)
+            if pair is None:
+                continue
+            with self.subTest(kind=kind):
+                taken, free = pair
+                env = f.env()
+
+                # The account id is skipped
+                f.user_env((f.cfg / "harness.env").read_text() + f"HARNESS_DELEGATE_UIDS={taken}-{free}\n")
+                self.ok("run", "codex", f"c-{kind}", f.prompt, env=env)
+                self.assertEqual(f.setpriv_uids()[-1], free, f"실제 {kind} 번호는 건너뛴다")
+
+                # A range of accounts only is refused
+                f.user_env((f.cfg / "harness.env").read_text() + f"HARNESS_DELEGATE_UIDS={taken}-{taken}\n")
+                p = self.fails(4, "run", "codex", f"d-{kind}", f.prompt, env=env)
+                self.assertIn("1 are real users or groups", p.stderr)
+                doc = self.ok("doctor", env=env).stdout
+                self.assertIn(f"  FAIL real accounts in the range, skipped: {taken} ({kind})", doc)
+
+    def test_invalid_range_is_2(self):
+        f = self.f
+        for bad in ("abc", "", "5-2", "0-3", "61000-", f"1-{ws.MAX_UID_RANGE + 1}"):
+            with self.subTest(bad=bad):
+                p = self.fails(2, "run", "codex", "c1", f.prompt, env=f.env(HARNESS_DELEGATE_UIDS=bad))
+                self.assertIn("HARNESS_DELEGATE_UIDS must be a range of unused ids like 61000-61015", p.stderr)
+                doc = self.ok("doctor", env=f.env(HARNESS_DELEGATE_UIDS=bad)).stdout
+                self.assertIn("  FAIL HARNESS_DELEGATE_UIDS must be a range", doc)
+        self.assertFalse(f.base("codex").exists(), "거절 전에는 작업 폴더를 만들지 않는다")
+
+    def test_repo_layer_cannot_change_the_range(self):
+        f = self.f
+        f.repo_env(f"HARNESS_DELEGATE_UIDS={f.last_uid}-{f.last_uid}\n")
+        f.repo_env("HARNESS_DELEGATE_UIDS=abc\n", local=True)
+        self.ok("run", "codex", "c1", f.prompt)
+        self.assertEqual(f.setpriv_uids()[-1], f.uid)
+
+    def test_uncollected_work_folder_holds_its_uid(self):
+        f = self.f
+        self.ok("run", "codex", "c1", f.prompt, "--keep")
+        self.ok("run", "codex", "c2", f.prompt)
+        self.assertEqual(f.setpriv_uids()[-1], f.uid2, "모으지 않은 작업 폴더의 uid 는 새 작업에 주지 않는다")
+        self.assertIn(f"  INFO held by uncollected work folders until collect/remove or gc: {f.uid}", self.ok("doctor").stdout)
+        self.ok("collect", "codex", "c1")
+        self.ok("run", "codex", "c3", f.prompt)
+        self.assertEqual(f.setpriv_uids()[-1], f.uid, "모은 뒤에는 다시 쓴다")
+        self.ok("remove", "codex", "c1")
+
+    def test_repo_by_key_and_name(self):
+        f = self.f
+        self.ok("run", "codex", "c1", f.prompt)
+        for sel in (f.key, "proj", str(f.repo)):
+            with self.subTest(sel=sel):
+                self.assertIn(f"== {f.runs} (", self.ok("list", "--repo", sel).stdout)
+
+        # Another repository with the same folder name
+        twin = f.tmp / "elsewhere" / "proj"
+        twin.mkdir(parents=True)
+        git("init", "-q", cwd=twin)
+        git("-c", "commit.gpgsign=false", "commit", "-q", "--allow-empty", "-m", "base", cwd=twin)
+        self.ok("run", "codex", "c2", f.prompt, cwd=twin)
+        self.assertNotEqual(key_of(twin), f.key, "같은 폴더 이름의 두 저장소는 키가 다르다")
+
+        self.assertIn("names several repositories", self.fails(2, "list", "--repo", "proj").stderr)
+        self.assertIn(f"== {f.state / 'runs' / key_of(twin)} (", self.ok("list", "--repo", key_of(twin)).stdout)
+        listing = self.ok("list", "--all").stdout
+        self.assertIn(f"== {f.runs} (", listing)
+        self.assertIn(f"== {f.state / 'runs' / key_of(twin)} (", listing)
+
+    def test_folders_of_no_known_repository(self):
+        f = self.f
+        self.ok("run", "codex", "c1", f.prompt)
+        old_work = f.state / "work" / "proj-agy" / "w1"  # 폴더 이름만인 키: 아는 저장소의 키가 아니다
+        old_work.mkdir(parents=True)
+        old_runs = f.state / "runs" / "proj" / "20200101-0000-r"
+        old_runs.mkdir(parents=True)
+        month_ago = time.time() - 30 * 86400
+        os.utime(old_runs, (month_ago, month_ago))
+
+        listing = self.ok("list", "--all").stdout
+        self.assertIn(f"== {f.state / 'work' / 'proj-agy'} (", listing)
+        self.assertIn("no known repository)", listing)
+
+        p = self.ok("gc", "--all", "--apply")
+        self.assertIn("unknown    work/proj-agy (no known repository", p.stdout)
+        self.assertIn("delete     runs/proj/20200101-0000-r (results, 30d old; older than 14d)", p.stdout)
+        self.assertTrue(old_work.is_dir(), "알 수 없는 작업 폴더는 지우지 않는다")
+        self.assertFalse(old_runs.exists(), "보존 기간이 지난 결과는 지운다")
+        self.assertTrue(f.out("c1").is_dir())
 
 
 class Signals(Base):
@@ -700,21 +824,36 @@ class Doctor(Base):
             self.assertIn(f"  FAIL uid can read a secret: {s}", p.stdout)
         self.assertIn("  FAIL uid can write the main working tree", p.stdout)
         self.assertIn(f"  ok   agy {f.bin / 'agy'}", p.stdout)
-        self.assertIn("  ok   no duplicate uid", p.stdout)
+        self.assertIn("  ok   no uid in the range is in /etc/passwd or /etc/group", p.stdout)
+        self.assertIn(f"  INFO task uids {f.first_uid}-{f.last_uid} (HARNESS_DELEGATE_UIDS): 4 usable", p.stdout)
+        self.assertIn(f"  -- uid {f.uid}", p.stdout)
         self.assertIn("  ok   AGENTS.md present", p.stdout)
 
-    def test_duplicates_reported(self):
+    def test_main_tree_file_owned_by_a_task_uid(self):
+        if not IS_ROOT:
+            self.skipTest("chown 이 필요하다")
         f = self.f
-        other = f.add_repo("proj3")
-        f.registry.write_text(f.registry.read_text() + f"proj4\t{other}x\t62990\t-\t-\tcodex={f.codex_uid}\n")
-        p = self.ok("doctor", "--repo", "proj")
-        self.assertIn(f"  FAIL duplicate uid: {f.codex_uid}", p.stdout, "여섯째 열의 uid 도 센다")
-        self.assertIn(f"== proj  root={f.repo}  agy={f.uid}  codex={f.codex_uid}", p.stdout)
-        self.assertNotIn("WARN agy and codex share", p.stdout)
-        f.registry.write_text(f.registry.read_text() + f"proj2\t{f.repo}\t{f.uid}\t-\n")
-        p = self.ok("doctor", "--repo", "proj")
-        self.assertRegex(p.stdout, rf"  FAIL duplicate uid: .*\b{f.uid}\b")
-        self.assertIn(f"  FAIL duplicate root: {f.repo}", p.stdout)
+        self.assertIn("  ok   no file in the main working tree belongs to a task uid", self.ok("doctor").stdout)
+        # 작업 uid 로 깐 패키지가 하드 링크로 메인 트리에 남은 경우를 흉내
+        planted = f.repo / "pkg" / "dep.luau"
+        planted.parent.mkdir()
+        planted.write_text("x\n")
+        os.chown(planted, f.last_uid, f.last_uid)
+        p = self.ok("doctor")
+        self.assertIn(f"  FAIL 1 file(s) in the main working tree belong to a task uid, so a delegation can change them: {planted}",
+                      p.stdout)
+
+    def test_setup_and_collisions_reported(self):
+        f = self.f
+        self.assertIn("  setup: (none - HARNESS_DELEGATE_SETUP in the repository layer)", self.ok("doctor").stdout)
+        f.repo_env("HARNESS_DELEGATE_SETUP=make deps\n")
+        self.assertIn("  setup: make deps", self.ok("doctor").stdout)
+        pair = account_then_free("user")
+        if pair:
+            taken, free = pair
+            p = self.ok("doctor", env=f.env(HARNESS_DELEGATE_UIDS=f"{taken}-{free}"))
+            self.assertIn(f"  WARN real accounts in the range, skipped: {taken} (user)", p.stdout)
+            self.assertIn(f"  -- uid {free}", p.stdout, "건너뛴 uid 가 아닌 첫 빈 uid 로 잰다")
 
 
 @unittest.skipUnless(IS_ROOT, "진짜 setpriv 로 다른 uid 아래 돌리려면 root 가 필요하다")
@@ -739,11 +878,14 @@ class RealUid(Base, LifecycleChecks):
     def test_setup_gets_mise(self):
         self.check_setup_with_mise()
 
-    def test_codex_empty_runs_as_its_own_uid(self):
+    def test_leftover_home_is_replaced(self):
+        self.check_leftover_home_is_replaced()
+
+    def test_codex_empty_runs_as_the_task_uid(self):
         p = self.ok("run", "codex", "c1", self.f.prompt, "--keep")
         self.assertIn("codex answer", (self.f.rec("codex", "c1") / "report.md").read_text(), p.stdout)
-        self.assertEqual(self.f.calls("codex")[0]["uid"], self.f.codex_uid)
-        self.assertEqual((self.f.base("codex") / "c1").lstat().st_uid, self.f.codex_uid)
+        self.assertEqual(self.f.calls("codex")[0]["uid"], self.f.uid)
+        self.assertEqual((self.f.base("codex") / "c1").lstat().st_uid, self.f.uid)
         self.ok("collect", "codex", "c1")
         self.ok("remove", "codex", "c1")
 
@@ -758,7 +900,7 @@ class RealUid(Base, LifecycleChecks):
             (f.ctl / "release").write_text("1")
             out, err = a.communicate(timeout=60)
         self.assertEqual(a.returncode, 0, out + err)
-        self.assertEqual({c["uid"] for c in f.calls("agy") + f.calls("codex")}, {f.uid, f.codex_uid})
+        self.assertEqual({c["uid"] for c in f.calls("agy") + f.calls("codex")}, {f.uid, f.uid2})
 
     def test_process_that_left_the_group_is_killed(self):
         f = self.f

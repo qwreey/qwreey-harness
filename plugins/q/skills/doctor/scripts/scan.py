@@ -46,15 +46,15 @@ def _load_env():
     try:
         sys.path.insert(0, str(HERE.parent))
         import harness_env as mod
-        # 위임 uid 표 경로는 qwreey-delegate 의 /config 옵션으로도 정한다(DRIFT-UID 검사가 같은 표를 보게).
+        # 위임 uid 대역은 qwreey-delegate 의 /config 옵션으로도 정한다(DRIFT-UID 검사가 드라이버와 같은 대역을 보게).
         return mod.load_layers(mod.project_dir(os.getcwd()), user_only=ENV_USER_ONLY,
-                               options={"qwreey-delegate": {"HARNESS_DELEGATE_REGISTRY"}}), mod
+                               options={"qwreey-delegate": {"HARNESS_DELEGATE_UIDS"}}), mod
     except Exception:
         return {}, None
 
 
 ENV, ENVLIB = _load_env()
-# 정본 검사(MANIFEST 링크, 정본 home/.claude 대조, 정본 훅 사본, uid 표의 저장소 사본)는 하네스 저장소가 있어야 돈다.
+# 정본 검사(MANIFEST 링크, 정본 home/.claude 대조, 정본 훅 사본)는 하네스 저장소가 있어야 돈다.
 # 위치는 짐작하지 않는다: 설치본은 저장소 밖 사본이라 스크립트 위치로 알 수 없고, harness.env 에 적은 경로는 기기마다 다르다.
 # 그래서 환경 변수 HARNESS_DOCTOR_ROOT(저자가 다른 저장소에서 돌릴 때)나, 지금 프로젝트가 하네스 저장소일 때 그 저장소만 쓴다.
 HARNESS_MARKERS = (("home", "MANIFEST"), (".claude-plugin", "marketplace.json"))
@@ -434,7 +434,7 @@ def _part(name, *exports):
 _part("scan_load", "rule_files", "check_load", "check_rules", "skill_dirs", "check_skill", "check_skills")
 _part("scan_stale", "check_stale")
 _part("scan_settings", "load_json", "hook_cmds", "script_of", "script_path", "common_dir", "check_drift", "check_settings")
-_part("scan_toolkit", "detect_toolkits", "run_toolkits")
+_part("scan_toolkit", "detect_toolkits", "run_toolkits", "installed_plugin")
 
 
 # ----------------------------------------------------- 10 메모리 이식성 (구현은 memory_checks.py)

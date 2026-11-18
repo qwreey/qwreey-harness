@@ -1,9 +1,9 @@
 """Isolation backends of the delegate driver: what the task process runs as, with which environment.
 
-Only the uid backend exists so far: Linux root runs the task under `setpriv` as an unprivileged uid per repository
-(registry.tsv). The task uid owns only its worktree, the worktree's admin dir and its HOME, so it cannot write the main
-working tree or .git/objects. Other backends (codex sandbox profiles, agy shell sandbox) and the per-agent mode
-policy where no isolation is found plug in at select_backend().
+Only the uid backend exists so far: Linux root runs the task under `setpriv` as an unprivileged uid that the run takes
+from the HARNESS_DELEGATE_UIDS range. The task uid owns only its worktree, the worktree's admin dir and its HOME, so it
+cannot write the main working tree or .git/objects. Other backends (codex sandbox profiles, agy shell sandbox) and the
+per-agent mode policy where no isolation is found plug in at select_backend().
 """
 import json
 import os
@@ -44,22 +44,28 @@ def setpriv_lacks(setpriv):
 
 
 class UidBackend:
+    """Runs task commands as one unprivileged uid; uid None is the backend before a run took its uid."""
     name = "uid"
 
-    def __init__(self, uid):
+    def __init__(self, uid=None):
         self.uid = uid
         self.setpriv = shutil.which("setpriv")
+
+    def for_uid(self, uid):
+        """The same backend bound to the uid a run took."""
+        return UidBackend(uid)
 
     def unavailable(self):
         """Why this backend cannot run here, or ''."""
         if not sys.platform.startswith("linux"):
             return "uid isolation needs Linux"
         if os.geteuid() != 0:
-            return "uid isolation needs root (setpriv to the repository's uid)"
+            return "uid isolation needs root (setpriv to the task uid)"
         if not self.setpriv:
             return "setpriv not found"
-        if self.uid == 0 or ws.uid_in_passwd(self.uid):
-            return f"uid {self.uid} is a real user (registry.tsv must name an unused uid)"
+        if self.uid is not None and (self.uid == 0 or ws.id_taken(self.uid)):
+            return (f"uid {self.uid} is a real {ws.id_taken(self.uid) or 'user'} (HARNESS_DELEGATE_UIDS must name "
+                    f"unused ids)")
         lacks = setpriv_lacks(self.setpriv)
         if lacks:
             return f"setpriv lacks {' '.join(lacks)}"
@@ -138,9 +144,9 @@ def kill_uid(uid):
     return killed
 
 
-def select_backend(repo, agent):
-    """The isolation for a run. Detection of other backends and the fall back to `empty` belong here."""
-    backend = UidBackend(repo.uid_for(agent))
+def select_backend():
+    """The isolation for a run, before it takes its uid. Other backends and the fall back to `empty` belong here."""
+    backend = UidBackend()
     why = backend.unavailable()
     if why:
         ws.die(f"{why}. Without isolation only a Claude subagent is available here", ws.EXIT_REFUSED)
@@ -195,9 +201,11 @@ def task_env(home, tools, hooks, keep_env, extra=None):
 
 
 def setup_env(env, installs):
-    """The task environment for the registry's setup line, plus mise: its own folder on PATH (setup lines such as
-    `mise exec -- pesde install` call it) and MISE_DATA_DIR at the installs HARNESS_TOOL_INSTALLS names. Without the
-    latter mise looks in the task's empty HOME, reports every pinned tool as missing and tries to download it."""
+    """The task environment for the repository's setup line (HARNESS_DELEGATE_SETUP), plus mise.
+
+    mise's own folder goes on PATH (setup lines such as `mise exec -- pesde install` call it) and MISE_DATA_DIR at the
+    installs HARNESS_TOOL_INSTALLS names. Without the latter mise looks in the task's empty HOME, reports every pinned
+    tool as missing and tries to download it."""
     mise = shutil.which("mise")
     if not mise:
         return env

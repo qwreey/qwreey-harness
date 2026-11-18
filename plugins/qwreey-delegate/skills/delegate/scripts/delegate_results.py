@@ -2,13 +2,15 @@
 cleanup at the end of run).
 
 Locations: new runs keep their workspace in <state>/work/<key>-<agent>/ and their results in
-<state>/runs/<key>/<date>-<name>/. Workspaces beside the repository (<dirname(root)>/<key>-<agent>/, from delegate.sh
+<state>/runs/<key>/<date>-<name>/. Workspaces beside the repository (<dirname(root)>/<name>-<agent>/, from delegate.sh
 and earlier driver runs) are still found for list, collect and remove, but gc only lists them: deleting those is the
-user's call.
+user's call. Folders in the state folder that belong to no known repository (older keys) are listed the same way; their
+results still age out.
 """
 import datetime
 import os
 import shutil
+import stat
 import subprocess
 from pathlib import Path
 
@@ -29,6 +31,20 @@ class Place:
         self.rec = ws.record_dir(self.base, name)
         self.home = self.base / ".homes" / name
 
+    def task_uid(self):
+        """The uid the task ran as, or None.
+
+        The record names it. delegate.sh runs keep no record, so their task folder's owner stands in (the task cannot
+        chown its folder to another uid)."""
+        uid = ws.read_state(self.rec).get("uid")
+        if isinstance(uid, int) and uid > 0:
+            return uid
+        try:
+            st = os.lstat(self.wt)
+        except OSError:
+            return None
+        return st.st_uid if stat.S_ISDIR(st.st_mode) and st.st_uid > 0 else None
+
 
 def find(state_dir, repo, agent, name):
     """The task's Place, new location first, or None."""
@@ -38,15 +54,12 @@ def find(state_dir, repo, agent, name):
     return None
 
 
-def legacy_runs_of_uid(repo, uid):
-    """Live delegate.sh runs that use uid: it runs every agent of a repository as the registry's third column."""
-    return ws.live_legacy_runs([repo]) if uid == repo.uid else 0
+def end_leftovers(state_dir, uid):
+    """Kill what still runs as a finished task's uid before root reads or deletes its files.
 
-
-def end_leftovers(state_dir, repo, agent):
-    """Kill what still runs as the agent's uid before root reads or deletes its files, unless a live task of that uid
-    holds its lock (then those processes are that task's)."""
-    uid = repo.uid_for(agent)
+    Skipped while a live task holds that uid's lock: the uid moved on to that task, and those processes are its own."""
+    if not uid:
+        return
     backend = iso.UidBackend(uid)
     if backend.unavailable() or not Path(state_dir).is_dir():
         return
@@ -54,10 +67,9 @@ def end_leftovers(state_dir, repo, agent):
     if fd is None:
         return
     try:
-        if not legacy_runs_of_uid(repo, uid):
-            killed = backend.end_task()
-            if killed:
-                note(f"killed {killed} leftover process(es) of uid {uid}")
+        killed = backend.end_task()
+        if killed:
+            note(f"killed {killed} leftover process(es) of uid {uid}")
     finally:
         os.close(fd)
 
@@ -100,7 +112,10 @@ def copy_probes(place, since, out, manifest):
 def make_diff(place, out, manifest):
     """diff.patch of the worktree, new files included, without .delegate/ and the report; '' or the reason it failed.
     git runs as the task uid (git_as_task) while the task's HOME still exists."""
-    backend = iso.UidBackend(place.repo.uid_for(place.agent))
+    uid = place.task_uid()
+    if uid is None:
+        return "the task uid is unknown (no record, and the task folder is not owned by an unprivileged uid)"
+    backend = iso.UidBackend(uid)
     why = backend.unavailable()
     if why:
         return why
@@ -270,7 +285,7 @@ def gc_work(state_dir, repo, agent, apply):
         print(f"delete     {tag}/{n} ({st}{'' if st == 'collected' else ', collected first'})")
         if not apply:
             continue
-        end_leftovers(state_dir, repo, agent)
+        end_leftovers(state_dir, place.task_uid())
         if st != "collected":
             out, problems = collect_into(state_dir, place, mark=False)
             if problems:
@@ -301,7 +316,7 @@ def gc_legacy(repo, days):
         base = repo.legacy_base(agent)
         if not base.is_dir():
             continue
-        tag = f"{repo.key}-{agent}"
+        tag = base.name
         print(f"legacy     {base} (older location; gc lists it but never deletes there - use remove, or delete by "
               f"hand after reading)")
         for w in ws.workspaces(base):
@@ -324,6 +339,50 @@ def gc_legacy(repo, days):
         for r in sorted(runs.iterdir()) if runs.is_dir() else ():
             if r.is_dir() and ws.age_days(r) > OLD_LEGACY_RUN_DAYS:
                 print(f"  old      {r} ({OLD_LEGACY_RUN_DAYS}d+, kept record - a person decides whether to delete)")
+
+
+def unknown_folders(state_dir, repos):
+    """(work folders, results folders) in the state folder that belong to none of repos, sorted.
+
+    They come from an older key (the table's key, the root folder's name) or from a repository whose entry in
+    <state>/repos/ is gone."""
+    work_names = {f"{r.key}-{a}" for r in repos for a in ws.AGENTS}
+    runs_names = {r.key for r in repos}
+    out = []
+    for top, names in ((Path(state_dir) / "work", work_names), (Path(state_dir) / "runs", runs_names)):
+        try:
+            entries = sorted(os.listdir(top))
+        except OSError:
+            entries = []
+        out.append([top / n for n in entries if n not in names and (top / n).is_dir() and not (top / n).is_symlink()])
+    return out[0], out[1]
+
+
+def list_unknown(state_dir, repos):
+    """Print the state folder's work and results folders that belong to none of repos."""
+    work, runs = unknown_folders(state_dir, repos)
+    for base in work:
+        print(f"== {base} ({ws.du_h(base)}, no known repository)")
+        for w in ws.workspaces(base):
+            print(f"  {w.name:<28} {ws.state_of(base, w.name):<10} {ws.du_h(w):>6}  {ws.mtime_str(w)}")
+    for r in runs:
+        print(f"== {r} ({ws.du_h(r)}, no known repository)")
+        for d in sorted(p for p in r.iterdir() if p.is_dir()):
+            print(f"  {d.name:<40} {ws.du_h(d):>6}  {ws.mtime_str(d)}")
+
+
+def gc_unknown(state_dir, repos, days, apply):
+    """Work folders of no known repository are listed only; their results age out like any other results."""
+    work, runs = unknown_folders(state_dir, repos)
+    for base in work:
+        print(f"unknown    work/{base.name} (no known repository; gc lists it but never deletes there - read it, "
+              f"then delete by hand)")
+    for top in runs:
+        for r in sorted(top.iterdir()):
+            if r.is_dir() and not r.is_symlink() and ws.age_days(r) > days:
+                print(f"delete     runs/{top.name}/{r.name} (results, {ws.age_days(r)}d old; older than {days}d)")
+                if apply:
+                    shutil.rmtree(r)
 
 
 def gc_repo(state_dir, repo, days, apply):

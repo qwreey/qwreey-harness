@@ -41,7 +41,8 @@ MAIN_USER_ONLY = frozenset({
     "HARNESS_DELEGATE_STATE", "HARNESS_DELEGATE_MAX_CONCURRENT", "HARNESS_DELEGATE_RUNS_DAYS",
 })
 # 로더를 부르는 곳이 없는 키: packs/luau-kb/tools/roblox_docs.py 가 사용자 harness.env 만 자기 파서로 읽어 저장소 층이 애초에 없다.
-NO_LOADER_CALLER = frozenset({"HARNESS_ROBLOX_DOCS_CACHE"})
+# HARNESS_DELEGATE_REGISTRY 는 읽는 곳이 없다(위임은 uid 대역 HARNESS_DELEGATE_UIDS 를 쓴다). 옛 플러그인을 위해 LEGACY_USER_ONLY 가 막는다.
+NO_LOADER_CALLER = frozenset({"HARNESS_ROBLOX_DOCS_CACHE", "HARNESS_DELEGATE_REGISTRY"})
 
 # 플러그인마다 harness.env 를 읽는 입구:
 # (이름, 스크립트 디렉터리, out 을 만드는 코드, 사용자 전용 키를 선언한 파일 또는 None, load_layers 를 부르는 파일).

@@ -4,7 +4,7 @@
 
 ## 무엇이 달라지나
 - 맡기기 전에 무엇을 물을지 한 줄로 알린다. 답은 백그라운드로 돌고 끝나면 알림이 온다.
-- 다른 모델은 저장소의 격리된 사본(worktree)이나 빈 폴더에서, 저장소·모델마다 따로 둔 권한 없는 사용자로 돈다. 원래 저장소를 고치거나 커밋할 수 없다.
+- 다른 모델은 저장소의 격리된 사본(worktree)이나 빈 폴더에서, 권한 없는 사용자(uid 대역에서 실행마다 비어 있는 것 하나)로 돈다. 원래 저장소를 고치거나 커밋할 수 없다.
 - 작업 폴더와 결과는 저장소 옆이 아니라 상태 폴더(기본 `~/.local/state/qwreey-delegate`)에 생긴다. 끝나면 보고서·변경분·로그를 결과 폴더(`runs/<저장소>/<날짜>-<이름>/`)에 모아 확인한 뒤 작업 폴더를 지운다. 결과는 14일 뒤 정리 명령(`gc`)이 지우므로, 남길 보고서는 Claude 가 검증을 붙여 저장소 `.claude/audit/` 로 옮긴다.
 - Claude 의 보고는 "다른 모델의 주장 / Claude 가 확인한 것 / 사용자가 정할 것" 으로 나눠 온다. 결함 주장은 재현 테스트부터 쓰고, 재현되지 않으면 그렇게 적는다.
 - 같은 모델에는 동시에 한 건만 맡긴다(각 구독의 사용 한도를 아끼려고). agy 와 codex 는 동시에 돌 수 있다.
@@ -14,13 +14,13 @@
 - 실행: Claude 쪽은 지시문 작성과 검증 정도. 본 비용은 각 벤더 구독 한도에서 나간다(agy 는 flash 만, codex 는 Plus 한도가 작아 사용자가 사용량을 확인).
 
 ## 요구 사항
-- Linux, root(`setpriv`, 저장소·모델별 uid, `choom`), Python 3.11 이상. Windows·macOS 와 root 가 없는 Linux 에서는 실행을 거절한다(모드와 상관없이). root 없이 도는 판은 계획 중이다(`.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/driver-design.md` M3).
-- `agy` 또는 `codex` CLI 설치와 각자 구독. 저장소 루트에 `AGENTS.md`, uid 표 등록(`python3 -I <스킬>/scripts/delegate.py register <저장소>`, 처음에는 Claude 가 알리고 한다).
-- uid 표는 등록할 때 고쳐 쓰므로 내가 가진 파일이어야 한다. 아래 설정의 "uid 표 파일" 에 경로를 적으면 처음 등록할 때 만든다. 비워 두면 플러그인에 든 표를 읽기만 하고 등록은 거절한다(플러그인을 갱신하면 그 폴더가 바뀐다).
+- Linux, root(`setpriv`, 위임용 uid 대역, `choom`), Python 3.11 이상. Windows·macOS 와 root 가 없는 Linux 에서는 실행을 거절한다(모드와 상관없이). root 없이 도는 판은 계획 중이다(`.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/driver-design.md` M3).
+- `agy` 또는 `codex` CLI 설치와 각자 구독. 저장소 루트에 `AGENTS.md`.
+- 새 worktree 에서 먼저 돌 명령(의존성 설치 등)이 있으면 그 저장소 `.claude/harness.env`(또는 `harness.local.env`)에 `HARNESS_DELEGATE_SETUP=<명령>` 을 둔다. 작업 uid 로 그 worktree 안에서만 돈다.
 
 ## 설정
 `/plugin configure qwreey-delegate@claude-doctor-market` 또는 `/config` 의 플러그인 설정에서 바꾼다.
-- uid 표 파일(`harness_delegate_registry`): 비우면 플러그인에 든 표(읽기만).
+- 위임 uid 대역(`harness_delegate_uids`, 기본 `61000-61015`): 실행마다 이 범위에서 비어 있는 첫 uid 를 쓴다. 범위의 크기가 동시에 돌 수 있는 작업 수다. 실제 계정과 겹치는 uid 는 건너뛰고 `doctor` 가 알린다. 저장소 파일로는 바꾸지 못한다.
 - agy 모델(`harness_delegate_agy_model`, 기본 `gemini-3.8-flash-high`), codex 모델(`harness_delegate_codex_model`, 기본 `gpt-6-luna`). 저장소 `.claude/harness.env` 가 바꿀 수 있고 `run --model` 이 이긴다.
 - agy 실행 파일(`harness_delegate_agy_bin`), codex 실행 파일(`harness_delegate_codex_bin`): 비우면 PATH 에서 찾는다.
 - 고급: 동시 실행 수, 결과 보존 일수, 상태 폴더, 격리 스위치는 `~/.claude/harness.env` 키다(저장소 파일로는 바꾸지 못함). 목록은 [docs/how-it-works.md](docs/how-it-works.md).

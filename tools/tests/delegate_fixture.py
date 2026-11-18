@@ -1,6 +1,7 @@
-"""tools/tests/test-delegate-*.py 공용 준비물: 버릴 저장소, registry, 가짜 인증이 든 HOME, 가짜 agy·codex·setpriv.
+"""tools/tests/test-delegate-*.py 공용 준비물: 버릴 저장소, 비어 있는 uid 대역, 가짜 인증이 든 HOME, 가짜 agy·codex·setpriv.
 모델을 부르지 않고 다른 uid 로도 돌리지 않는다. 가짜 setpriv 는 옵션을 버리고 호출한 사용자 그대로 명령을 실행한다.
 """
+import grp
 import json
 import os
 import pwd
@@ -15,6 +16,10 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "plugins" / "qwreey-delegate" / "skills" / "delegate" / "scripts"
 CANON_HE = ROOT / "home" / ".claude" / "lib" / "harness_env.py"
 IS_ROOT = os.geteuid() == 0
+UID_COUNT = 4  # 시험 대역의 크기: 동시에 도는 작업 셋까지와 비는 uid 하나
+
+sys.path.insert(0, str(SCRIPTS))
+import delegate_workspace as ws  # noqa: E402
 
 FAKE_SETPRIV = """#!/bin/sh
 if [ "$1" = --help ]; then echo "--no-new-privs --inh-caps --bounding-set --reuid --regid --clear-groups"; exit 0; fi
@@ -106,14 +111,29 @@ print("codex log line")
 """
 
 
-def free_uid(start=62900):
-    uid = start
-    while True:
+def is_account(uid):
+    """uid 가 실제 사용자나 그룹 번호인지(드라이버가 건너뛰는 것)."""
+    for lookup in (pwd.getpwuid, grp.getgrgid):
         try:
-            pwd.getpwuid(uid)
-            uid += 1
+            lookup(uid)
+            return True
         except KeyError:
-            return uid
+            pass
+    return False
+
+
+def free_uids(count, start=62900):
+    """계정이 없는 연속 uid count 개의 (첫, 끝)."""
+    uid = start
+    while any(is_account(u) for u in range(uid, uid + count)):
+        uid += 1
+    return uid, uid + count - 1
+
+
+def key_of(repo):
+    """드라이버가 저장소에 붙이는 키(폴더 이름과 경로 해시)."""
+    root = git("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=repo).strip()
+    return ws.Repo(os.path.dirname(root)).key
 
 
 def git(*args, cwd):
@@ -135,9 +155,8 @@ class Fixture:
         self.cfg = self.tmp / "cfg"
         self.ws = self.tmp / "ws"
         self.repo = self.ws / "proj"
-        self.registry = self.tmp / "registry.tsv"
-        self.uid = free_uid()
-        self.codex_uid = free_uid(self.uid + 1)
+        self.first_uid, self.last_uid = free_uids(UID_COUNT)
+        self.uid, self.uid2 = self.first_uid, self.first_uid + 1  # 첫 작업과 그와 나란히 도는 둘째 작업의 uid
         for p in (self.ctl, self.bin, self.cfg, self.repo):
             p.mkdir(parents=True)
         self._victims()
@@ -153,8 +172,8 @@ class Fixture:
         (self.repo / "AGENTS.md").write_text("# map\n")
         git("add", ".", cwd=self.repo)
         git("commit", "-q", "-m", "base", cwd=self.repo)
-        self.registry.write_text(f"# test registry\nproj\t{self.repo}\t{self.uid}\t-\ttest\tcodex={self.codex_uid}\n")
-        self.user_env(f"HARNESS_DELEGATE_REGISTRY={self.registry}\nHARNESS_DELEGATE_AGY_BIN={self.bin / 'agy'}\n"
+        self.key = key_of(self.repo)
+        self.user_env(f"HARNESS_DELEGATE_UIDS={self.first_uid}-{self.last_uid}\nHARNESS_DELEGATE_AGY_BIN={self.bin / 'agy'}\n"
                       f"HARNESS_DELEGATE_CODEX_BIN={self.bin / 'codex'}\nHARNESS_HEAVY_WRAP=\n")
         self.prompt = self.tmp / "prompt.md"
         self.prompt.write_text("TASK BODY: say hello\n")
@@ -203,9 +222,21 @@ class Fixture:
     def user_env(self, text):
         (self.cfg / "harness.env").write_text(text)
 
-    def add_repo(self, key, per_agent=True):
-        """registry 에 저장소 하나를 더한다(다른 uid). per_agent=False 는 옛 꼴(agy, codex 가 uid 하나). 그 저장소 경로."""
-        repo = self.ws / key
+    def repo_env(self, text, local=False):
+        """시험 저장소의 저장소 층(.claude/harness.env 또는 harness.local.env)."""
+        p = self.repo / ".claude" / ("harness.local.env" if local else "harness.env")
+        p.parent.mkdir(exist_ok=True)
+        p.write_text(text)
+
+    def setpriv_uids(self):
+        """가짜 setpriv 가 받은 --reuid 값들, 부른 차례대로."""
+        log = self.ctl / "setpriv.log"
+        text = log.read_text() if log.exists() else ""
+        return [int(a.split("=", 1)[1]) for a in text.split() if a.startswith("--reuid=")]
+
+    def add_repo(self, name):
+        """저장소 하나를 더 만든다. 그 저장소 경로."""
+        repo = self.ws / name
         repo.mkdir()
         if self.real:
             repo.chmod(0o755)
@@ -213,12 +244,6 @@ class Fixture:
         (repo / "f.txt").write_text("x\n")
         git("add", ".", cwd=repo)
         git("commit", "-q", "-m", "base", cwd=repo)
-        used = [int(u) for ln in self.registry.read_text().splitlines() if not ln.startswith("#")
-                for u in [ln.split("\t")[2]] + [x.split("=")[1] for x in (ln.split("\t") + [""] * 6)[5].split(",") if x]]
-        uid = free_uid(max(used) + 1)
-        extra = f"\t-\tcodex={free_uid(uid + 1)}" if per_agent else ""
-        with open(self.registry, "a") as f:
-            f.write(f"{key}\t{repo}\t{uid}\t-{extra}\n")
         return repo
 
     def fake_mise(self):
@@ -299,11 +324,12 @@ sys.exit(delegate.main(sys.argv[1:]))
 
     @property
     def runs(self):
-        return self.state / "runs" / "proj"
+        """이 시험 저장소의 결과 폴더(<상태>/runs/<키>)."""
+        return self.state / "runs" / self.key
 
     def base(self, agent):
         """새 실행의 작업 폴더(상태 폴더 아래)."""
-        return self.state / "work" / f"proj-{agent}"
+        return self.state / "work" / f"{self.key}-{agent}"
 
     def legacy_base(self, agent):
         """delegate.sh 와 예전 실행이 쓰던 저장소 옆 자리."""

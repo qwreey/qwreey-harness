@@ -1,6 +1,7 @@
 """qwreey-delegate 드라이버의 설정 층과 USER_ONLY 방어 시험. 실행: python3 -I tools/tests/test-delegate-config.py
 
-- 저장소 층(.claude/harness.env, harness.local.env)은 실행 파일·인증 위치·격리 게이트·동시 실행 한도를 바꾸지 못하고 모델은 바꾼다.
+- 저장소 층(.claude/harness.env, harness.local.env)은 실행 파일·인증 위치·격리 게이트·동시 실행 한도·uid 대역을 바꾸지 못하고
+  모델과 setup 줄은 바꾼다. setup 줄은 드라이버 환경으로 $NAME 을 풀지 않는다.
 - 드라이버는 늘 자기 옆 harness_env.py 사본을 쓴다. 설치된 ~/.claude/lib/harness_env.py 가 드라이버 키를 모르는 옛 판이어도 같다.
 - 비밀 점검 경로와 상태 폴더는 고정 /code 가 아니라 HOME 과 설정 디렉터리에서 나온다.
 모델 호출 없음, 다른 uid 로 실행 없음.
@@ -8,7 +9,6 @@
 import importlib.util
 import json
 import os
-import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -24,12 +24,13 @@ import delegate_workspace as ws  # noqa: E402
 
 # 위임 드라이버 설계 문서 설정 표의 USER_ONLY 열(예, 아니오). 드라이버의 ENV_USER_ONLY 와 공용 USER_ONLY 를 합쳐 맞춰 본다.
 USER_ONLY_YES = {
-    "HARNESS_DELEGATE_REGISTRY", "HARNESS_TOOL_INSTALLS", "HARNESS_HEAVY_WRAP", "HARNESS_DELEGATE_AGY_BIN",
+    "HARNESS_DELEGATE_UIDS", "HARNESS_TOOL_INSTALLS", "HARNESS_HEAVY_WRAP", "HARNESS_DELEGATE_AGY_BIN",
     "HARNESS_DELEGATE_CODEX_BIN", "HARNESS_DELEGATE_AGY_HOME", "HARNESS_DELEGATE_CODEX_HOME",
     "HARNESS_DELEGATE_AGY_WORKTREE", "HARNESS_DELEGATE_AGY_UNISOLATED", "HARNESS_DELEGATE_CODEX_SANDBOX", "HARNESS_DELEGATE_KEEP_ENV",
     "HARNESS_DELEGATE_STATE", "HARNESS_DELEGATE_MAX_CONCURRENT", "HARNESS_DELEGATE_RUNS_DAYS",
 }
-USER_ONLY_NO = {"HARNESS_DELEGATE_AGY_MODEL", "HARNESS_DELEGATE_CODEX_MODEL", "HARNESS_DELEGATE_SECRET_GLOBS"}
+USER_ONLY_NO = {"HARNESS_DELEGATE_AGY_MODEL", "HARNESS_DELEGATE_CODEX_MODEL", "HARNESS_DELEGATE_SECRET_GLOBS",
+                "HARNESS_DELEGATE_SETUP"}
 
 
 def load(path, name):
@@ -83,6 +84,8 @@ class Keys(unittest.TestCase):
         self.assertEqual(d["HARNESS_DELEGATE_AGY_WORKTREE"], "uid")
         self.assertEqual(d["HARNESS_DELEGATE_AGY_HOME"], "~/.gemini")
         self.assertEqual(d["HARNESS_DELEGATE_AGY_UNISOLATED"], "", "격리 없는 agy 는 기본으로 꺼짐")
+        self.assertEqual(canon.DEFAULTS["HARNESS_DELEGATE_UIDS"], "61000-61015")
+        self.assertEqual(ws.parse_uid_range(canon.DEFAULTS["HARNESS_DELEGATE_UIDS"]), (61000, 61015))
 
 
 class Layers(Env):
@@ -90,7 +93,7 @@ class Layers(Env):
         self.repo_layer("HARNESS_DELEGATE_AGY_BIN=/evil/agy\nHARNESS_DELEGATE_CODEX_SANDBOX=danger-full-access\n"
                         "HARNESS_DELEGATE_AGY_MODEL=repo-model\nHARNESS_DELEGATE_SECRET_GLOBS=*.secret\n")
         self.repo_layer("HARNESS_DELEGATE_MAX_CONCURRENT=99\nHARNESS_DELEGATE_KEEP_ENV=1\nHARNESS_DELEGATE_AGY_UNISOLATED=allow\n"
-                        "HARNESS_DELEGATE_AGY_HOME=/evil\nHARNESS_DELEGATE_REGISTRY=/evil.tsv\n", local=True)
+                        "HARNESS_DELEGATE_AGY_HOME=/evil\nHARNESS_DELEGATE_UIDS=0-0\n", local=True)
         ctx = delegate.Ctx()
         cfg = ctx.layers(str(self.f.repo))
         self.assertEqual(cfg["HARNESS_DELEGATE_AGY_BIN"], str(self.f.bin / "agy"))
@@ -99,7 +102,8 @@ class Layers(Env):
         self.assertEqual(cfg["HARNESS_DELEGATE_KEEP_ENV"], "")
         self.assertEqual(cfg["HARNESS_DELEGATE_AGY_UNISOLATED"], "")
         self.assertEqual(cfg["HARNESS_DELEGATE_AGY_HOME"], str(self.f.home / ".gemini"))
-        self.assertEqual(ctx.registry, str(self.f.registry))
+        self.assertEqual(cfg["HARNESS_DELEGATE_UIDS"], f"{self.f.first_uid}-{self.f.last_uid}")
+        self.assertEqual(ctx.uid_range(), (self.f.first_uid, self.f.last_uid))
         self.assertEqual((cfg["HARNESS_DELEGATE_AGY_MODEL"], cfg["HARNESS_DELEGATE_SECRET_GLOBS"]), ("repo-model", "*.secret"))
 
     def test_environment_and_user_layer_win(self):
@@ -109,14 +113,24 @@ class Layers(Env):
         cfg = delegate.Ctx().layers(str(self.f.repo))
         self.assertEqual((cfg["HARNESS_DELEGATE_MAX_CONCURRENT"], cfg["HARNESS_DELEGATE_CODEX_MODEL"]), ("3", "env"))
 
-    def test_registry_is_read_without_repo_layers(self):
-        # registry 는 저장소를 찾기 전에 읽는다. 저장소 층이 USER_ONLY 를 무시하지 않는 판이어도 닿지 않게.
-        self.repo_layer("HARNESS_DELEGATE_REGISTRY=/evil.tsv\n")
+    def test_uid_range_is_read_without_repo_layers(self):
+        # 대역은 저장소를 찾기 전에 사용자 층으로 읽는다. 저장소 층이 USER_ONLY 를 무시하는 판이어도 닿지 않게.
+        self.repo_layer("HARNESS_DELEGATE_UIDS=0-0\n")
         os.chdir(self.f.repo)
         try:
-            self.assertEqual(delegate.Ctx().registry, str(self.f.registry))
+            self.assertEqual(delegate.Ctx().uid_range(), (self.f.first_uid, self.f.last_uid))
         finally:
             os.chdir(self.f.tmp)
+
+    def test_setup_line_from_repo_layers_unexpanded(self):
+        self.assertEqual(delegate.setup_line(str(self.f.repo)), "")
+        self.repo_layer("HARNESS_DELEGATE_SETUP=echo $HOME > a\n")
+        self.assertEqual(delegate.setup_line(str(self.f.repo)), "echo $HOME > a", "드라이버 환경으로 풀지 않는다")
+        self.repo_layer("HARNESS_DELEGATE_SETUP='make deps'  # 주석\n", local=True)
+        self.assertEqual(delegate.setup_line(str(self.f.repo)), "make deps", "harness.local.env 가 이긴다")
+        self.assertEqual(delegate.Ctx().layers(str(self.f.repo))["HARNESS_DELEGATE_SETUP"], "make deps")
+        os.environ["HARNESS_DELEGATE_SETUP"] = "from env"
+        self.assertEqual(delegate.setup_line(str(self.f.repo)), "from env", "환경 변수가 이긴다")
 
     def test_run_end_to_end_uses_user_bin_and_repo_model(self):
         self.repo_layer("HARNESS_DELEGATE_AGY_BIN=/evil/agy\nHARNESS_DELEGATE_AGY_MODEL=repo-model\n")
@@ -134,50 +148,35 @@ class PluginOptions(Env):
         (self.f.cfg / "settings.json").write_text(json.dumps(data))
 
     def test_options_reach_the_driver(self):
-        own = self.f.tmp / "mine" / "registry.tsv"
-        self.options(harness_delegate_agy_model="opt-model", harness_delegate_registry=str(own),
+        self.options(harness_delegate_agy_model="opt-model", harness_delegate_uids="63000-63003",
                      harness_delegate_state="/undeclared")
         ctx = delegate.Ctx()
-        self.assertEqual(ctx.registry, str(own), "옵션이 사용자 harness.env 보다 이긴다")
+        self.assertEqual(ctx.uid_range(), (63000, 63003), "옵션이 사용자 harness.env 보다 이긴다")
         self.assertEqual(ctx.cfg["HARNESS_DELEGATE_AGY_MODEL"], "opt-model")
         self.assertEqual(ctx.cfg["HARNESS_DELEGATE_STATE"], "", "userConfig 에 없는 키는 읽지 않는다")
-        self.repo_layer("HARNESS_DELEGATE_AGY_MODEL=repo-model\n")
-        self.assertEqual(ctx.layers(str(self.f.repo))["HARNESS_DELEGATE_AGY_MODEL"], "repo-model", "모델은 저장소 층이 이긴다")
+        self.repo_layer("HARNESS_DELEGATE_AGY_MODEL=repo-model\nHARNESS_DELEGATE_UIDS=1-2\n")
+        cfg = ctx.layers(str(self.f.repo))
+        self.assertEqual(cfg["HARNESS_DELEGATE_AGY_MODEL"], "repo-model", "모델은 저장소 층이 이긴다")
+        self.assertEqual(cfg["HARNESS_DELEGATE_UIDS"], "63000-63003", "대역은 저장소 층이 바꾸지 못한다")
 
-    def test_register_writes_only_a_registry_the_user_owns(self):
-        shipped = delegate.SHIPPED_REGISTRY.read_bytes()
-        new = self.f.ws / "second"
-        new.mkdir()
-        git_init = subprocess.run(["git", "init", "-q", str(new)], capture_output=True)
-        self.assertEqual(git_init.returncode, 0)
-        # 사용자 harness.env 에서 표 위치를 빼면 플러그인에 든 표가 남는다.
-        self.f.user_env("".join(ln + "\n" for ln in (self.f.cfg / "harness.env").read_text().splitlines()
-                                if not ln.startswith("HARNESS_DELEGATE_REGISTRY=")))
-        p = self.f.drive("register", new)
-        self.assertEqual(p.returncode, ws.EXIT_REFUSED, p.stdout + p.stderr)
-        self.assertIn("read only", p.stderr)
-        self.assertEqual(delegate.SHIPPED_REGISTRY.read_bytes(), shipped, "플러그인에 든 표를 고쳤다")
-        own = self.f.tmp / "mine" / "registry.tsv"
-        self.options(harness_delegate_registry=str(own))
-        p = self.f.drive("register", new)
-        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        text = own.read_text()
-        self.assertTrue(text.startswith("# delegate registry"), "새 표는 머리 설명을 갖고 시작한다")
-        rows = [ln for ln in text.splitlines() if not ln.startswith("#")]
-        self.assertEqual([r.split("\t")[:2] for r in rows], [["second", str(new)]], "플러그인 표의 남의 저장소 줄은 옮기지 않는다")
+    def test_no_table_option_left(self):
+        manifest = json.loads((SCRIPTS.parents[2] / ".claude-plugin" / "plugin.json").read_text())
+        self.assertNotIn("harness_delegate_registry", manifest["userConfig"])
+        self.assertEqual(manifest["userConfig"]["harness_delegate_uids"]["default"], canon.DEFAULTS["HARNESS_DELEGATE_UIDS"])
+        self.assertFalse((SCRIPTS.parent / "registry.tsv").exists(), "uid 표는 없어졌다")
 
 
 class InstalledModule(Env):
     def test_old_installed_module_is_not_used(self):
         # 위임 키를 모르는 옛 정본을 흉내 낸다: 저장소 층을 막지 않는다.
         self.install(CANON_HE.read_text() + "\nUSER_ONLY = frozenset()\nRETIRED_USER_ONLY = frozenset()\nLEGACY_USER_ONLY = frozenset()\n")
-        self.repo_layer("HARNESS_DELEGATE_AGY_BIN=/evil/agy\nHARNESS_DELEGATE_REGISTRY=/evil.tsv\n")
+        self.repo_layer("HARNESS_DELEGATE_AGY_BIN=/evil/agy\nHARNESS_DELEGATE_UIDS=0-0\n")
         old = load(self.f.cfg / "lib" / "harness_env.py", "old_installed")
         self.assertEqual(old.load_layers(str(self.f.repo))["HARNESS_DELEGATE_AGY_BIN"], "/evil/agy",
                          "옛 판만으로는 저장소가 실행 파일을 바꾼다(드라이버가 자기 사본을 쓰는 이유)")
         cfg = delegate.Ctx().layers(str(self.f.repo))
         self.assertEqual(cfg["HARNESS_DELEGATE_AGY_BIN"], str(self.f.bin / "agy"))
-        self.assertEqual(cfg["HARNESS_DELEGATE_REGISTRY"], str(self.f.registry))
+        self.assertEqual(cfg["HARNESS_DELEGATE_UIDS"], f"{self.f.first_uid}-{self.f.last_uid}")
         p = self.f.drive("doctor")
         self.assertIn(f"INFO harness_env {SCRIPTS / 'harness_env.py'}", p.stdout)
 

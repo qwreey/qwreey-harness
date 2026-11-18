@@ -50,8 +50,8 @@ DEFAULTS = {
     "HARNESS_HEAVY_WRAP": "auto",
     # 켤 툴킷(공백 구분). 비면 전부. /q:doctor 는 이 목록 안에서 저장소마다 자동 감지한다.
     "HARNESS_TOOLKITS": "",
-    # 위임(agy, codex) uid 표 위치(위임 드라이버, /q:doctor 의 uid 충돌 검사). 비면 저장소 안의 사본.
-    "HARNESS_DELEGATE_REGISTRY": "",
+    # 위임(agy, codex) 작업이 도는 uid 대역(위임 드라이버, /q:doctor 의 계정 충돌 검사). 실행마다 비어 있는 첫 uid 를 쓴다.
+    "HARNESS_DELEGATE_UIDS": "61000-61015",
     # coderag 실행 파일(/q:doctor 팩 검사, qwreey-sessions:recall). 이름이면 PATH 에서 찾고, 절대 경로도 된다.
     "HARNESS_CODERAG": "coderag",
 }
@@ -94,8 +94,9 @@ PROJECT_FILES = (".claude/harness.env", ".claude/harness.local.env")  # 저장�
 # 저장소 층이 바꾸지 못하는 키 가운데 여러 플러그인이 읽는 것: 실행할 프로그램과 경로, 기기 고유값. 클론한 저장소가 커밋해 둔
 # 파일(harness.local.env 도 커밋될 수 있다)로 남의 하네스가 이것을 바꾸면 안 된다. 사용자 층과 환경 변수만 정한다.
 # HARNESS_CODERAG 는 /q:doctor 가 읽고 qwreey-sessions:recall 이 모델에게 사용자 harness.env 에서 읽게 한다.
+# HARNESS_DELEGATE_UIDS 는 위임 작업이 어느 uid 로 도는지를 정하므로 저장소가 고르면 안 된다(위임 드라이버와 /q:doctor 가 읽는다).
 USER_ONLY = frozenset({
-    "HARNESS_TOOL_INSTALLS", "HARNESS_HEAVY_WRAP", "HARNESS_DELEGATE_REGISTRY",
+    "HARNESS_TOOL_INSTALLS", "HARNESS_HEAVY_WRAP", "HARNESS_DELEGATE_UIDS",
     "HARNESS_CODERAG",
 })
 # 기본값을 두지 않는 옛 위치 키. 플러그인은 이제 이 키 없이 돌지만 옛 설정에 남아 있고 읽는 곳(known_repos 의 옛 출처, 저자 도구)이 있다.
@@ -103,6 +104,7 @@ USER_ONLY = frozenset({
 RETIRED_USER_ONLY = frozenset({"HARNESS_WORKSPACE", "HARNESS_DOCTOR_ROOT"})
 # 이 판보다 옛 플러그인은 installed() 로 이 설치본을 읽고 user_only 를 넘기지 않아, 예전 로더가 막던 키를 여기서 대신 막는다. 설치된 플러그인 가운데 이 판보다 옛것이 없으면 지운다.
 LEGACY_USER_ONLY = frozenset({
+    "HARNESS_DELEGATE_REGISTRY",
     "HARNESS_AGENT_PUSH", "HARNESS_LUAU_KB", "HARNESS_ROBLOX_DOCS_CACHE", "HARNESS_WORKSPACE_GATE",
     "SESSION_LOG_HOME", "SESSION_LOG_CLAUDE",
     "HARNESS_DELEGATE_AGY_BIN", "HARNESS_DELEGATE_CODEX_BIN", "HARNESS_DELEGATE_AGY_HOME", "HARNESS_DELEGATE_CODEX_HOME",

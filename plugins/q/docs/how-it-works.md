@@ -44,7 +44,7 @@
 
 ## /q:doctor
 결정적 검사(`skills/doctor/scripts/scan.py` 와 `scan_*.py`, 기록 규약 검사 `scripts/records_check.py`, 팩 검사 `pack_checks.py`)를 돌리고 모델이 판단을 더한다. 툴킷별 검사는 `skills/doctor/references/toolkits/`.
-- 정본 검사(MANIFEST 링크, 정본 `home/.claude` 대조, 정본 훅 사본, 저장소의 위임 uid 표)는 하네스 저장소를 알 때만 돈다: 지금 프로젝트(`CLAUDE_PROJECT_DIR`, 없으면 cwd, 위로 그 git 루트까지)에 `home/MANIFEST` 와 `.claude-plugin/marketplace.json` 이 있을 때, 또는 환경 변수 `HARNESS_DOCTOR_ROOT` 가 있을 때. 설치본은 저장소 밖 사본이라 스크립트 위치로 짐작하지 않고, harness.env 에 남은 옛 `HARNESS_DOCTOR_ROOT` 도 읽지 않는다. 그 밖에서는 `--user` 가 실제 `~/.claude` 만 본다.
+- 정본 검사(MANIFEST 링크, 정본 `home/.claude` 대조, 정본 훅 사본)는 하네스 저장소를 알 때만 돈다: 지금 프로젝트(`CLAUDE_PROJECT_DIR`, 없으면 cwd, 위로 그 git 루트까지)에 `home/MANIFEST` 와 `.claude-plugin/marketplace.json` 이 있을 때, 또는 환경 변수 `HARNESS_DOCTOR_ROOT` 가 있을 때. 설치본은 저장소 밖 사본이라 스크립트 위치로 짐작하지 않고, harness.env 에 남은 옛 `HARNESS_DOCTOR_ROOT` 도 읽지 않는다. 그 밖에서는 `--user` 가 실제 `~/.claude` 만 본다.
 - 다른 저장소: 대상은 경로로 받는다. 형제 비교(사본 표류, mise 핀)는 대상의 부모 폴더(`--projects` 로 바꾼다)만 본다. 툴킷 공유 지식은 형제 `<툴킷>-kb`, 하네스 저장소의 `packs/<툴킷>-kb`, 설치된 `<툴킷>-kb` 플러그인 순으로 찾는다.
 - coderag: `HARNESS_CODERAG`(기본 PATH 의 `coderag`, 절대 경로도 된다).
 
