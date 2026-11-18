@@ -232,6 +232,17 @@ class T(unittest.TestCase):
         self.assertEqual(s["enabledPlugins"], {"q@qwreey-harness": True, "web-security@qwreey-harness": False, "x@other": True})
         self.assertEqual(s["pluginConfigs"], {"qwreey-advisor@qwreey-harness": {"options": {"k": "v"}}})
 
+    def test_fresh_apply_ends_on_new_market(self):
+        """새 기계(기록 없음)에 저장소 마이그레이션을 모두 적용하면 옛 마켓 이름이 남지 않는다."""
+        d = os.path.join(HERE, "..", "..", "home", "settings-migrations")
+        migs = [json.load(open(os.path.join(d, f), encoding="utf-8")) for f in sorted(os.listdir(d))]
+        e = Env(self, {}, migs)
+        self.assertEqual(e.run("--var", "HARNESS_DOCTOR_ROOT=/new"), 0)
+        s = e.get()
+        self.assertNotIn("claude-doctor-market", json.dumps(s))
+        self.assertEqual(s["extraKnownMarketplaces"]["qwreey-harness"]["source"]["path"], "/new")
+        self.assertTrue(s["enabledPlugins"]["q@qwreey-harness"])
+
     def test_backup_made(self):
         e = Env(self, {"k": 1}, [mig("0001-a", {"op": "set", "path": "x", "value": 1})])
         e.run()
