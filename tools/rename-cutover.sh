@@ -221,6 +221,7 @@ done
 step "f. 새 위치에서 home-sync (마이그레이션 $MIG_ID: 마켓 선언과 플러그인 키 옮기기)"
 if ((APPLY)); then
   (cd "$NEW_ROOT" && CLAUDE_HOME=$CFG tools/home-sync.sh diff && CLAUDE_HOME=$CFG tools/home-sync.sh apply)
+  say "  (위에 '설치 안 됨' 이 보이면 다음 g 단계가 설치한다)"
 else
   # 병합 전이면 브랜치의 마이그레이션으로, 클론 위치는 새 경로로 놓고 settings 결과만 미리 본다
   tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
