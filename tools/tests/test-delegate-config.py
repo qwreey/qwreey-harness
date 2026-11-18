@@ -84,8 +84,11 @@ class Keys(unittest.TestCase):
         self.assertEqual(d["HARNESS_DELEGATE_AGY_WORKTREE"], "uid")
         self.assertEqual(d["HARNESS_DELEGATE_AGY_HOME"], "~/.gemini")
         self.assertEqual(d["HARNESS_DELEGATE_AGY_UNISOLATED"], "", "격리 없는 agy 는 기본으로 꺼짐")
-        self.assertEqual(canon.DEFAULTS["HARNESS_DELEGATE_UIDS"], "61000-61015")
-        self.assertEqual(ws.parse_uid_range(canon.DEFAULTS["HARNESS_DELEGATE_UIDS"]), (61000, 61015))
+        self.assertEqual(canon.DEFAULTS["HARNESS_DELEGATE_UIDS"], "61100-61115")
+        first, last = ws.parse_uid_range(canon.DEFAULTS["HARNESS_DELEGATE_UIDS"])
+        self.assertEqual((first, last), (61100, 61115))
+        # 옛 표의 uid 는 그 실행이 남긴 파일(메인 트리의 패키지 하드 링크 등)을 아직 가질 수 있다
+        self.assertFalse(set(range(first, last + 1)) & set(ws.OLD_TABLE_UIDS), "기본 대역은 옛 표의 uid 를 피한다")
 
 
 class Layers(Env):

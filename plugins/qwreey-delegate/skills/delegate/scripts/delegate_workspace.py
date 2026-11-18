@@ -158,11 +158,14 @@ def resolve_repo(state_dir, arg=""):
 
 
 # ---------- task uids ----------
-# HARNESS_DELEGATE_UIDS is one range ("61000-61015"); each run takes the first free uid in it. Its size is the number
+# HARNESS_DELEGATE_UIDS is one range ("61100-61115"); each run takes the first free uid in it. Its size is the number
 # of tasks that can run at once. The bound keeps a typo such as 1-4000000000 from making doctor walk billions of ids.
 MAX_UID_RANGE = 4096
 _UID_RANGE = re.compile(r"^\s*(\d+)\s*-\s*(\d+)\s*$")
 MAX_UID = 2 ** 32 - 2  # (uid_t)-1 means "unchanged" to setreuid
+# uids the per-repository table gave out before the range. Runs as them left files behind (packages hard-linked into
+# main trees and shared caches, /tmp folders), and any delegation that takes such a uid can change those files.
+OLD_TABLE_UIDS = range(61000, 61006)
 
 
 def parse_uid_range(text):
@@ -170,7 +173,7 @@ def parse_uid_range(text):
     m = _UID_RANGE.match(text or "")
     first, last = (int(m.group(1)), int(m.group(2))) if m else (0, -1)
     if not m or not 0 < first <= last <= MAX_UID or last - first + 1 > MAX_UID_RANGE:
-        die(f"HARNESS_DELEGATE_UIDS must be a range of unused ids like 61000-61015 (first above 0, at most "
+        die(f"HARNESS_DELEGATE_UIDS must be a range of unused ids like 61100-61115 (first above 0, at most "
             f"{MAX_UID_RANGE} ids): {text!r}")
     return first, last
 
@@ -238,10 +241,17 @@ def take_uid(state_dir, first, last):
         if uid in held:
             kept.append(uid)
             continue
-        fd = take_lock(uid_lock_path(state_dir, uid))
-        if fd is not None:
-            return uid, fd
-        busy.append(uid)
+        fd = take_uid_lock(state_dir, uid)
+        if fd is None:
+            busy.append(uid)
+            continue
+
+        # A run that held this uid during the scan may have ended since, keeping its work folder
+        if uid in kept_uids(state_dir):
+            os.close(fd)
+            kept.append(uid)
+            continue
+        return uid, fd
 
     # None free: say what holds them
     parts = [f"{len(busy)} running" if busy else "", f"{len(kept)} hold uncollected work folders (collect/remove "
@@ -587,9 +597,54 @@ def acquire_slot(state_dir, agent, limit, busy_elsewhere):
     return chosen, held + busy_elsewhere
 
 
-def uid_lock_path(state_dir, uid):
-    """One task per uid at a time: two tasks of one uid could reach each other's worktree, HOME and credentials."""
-    return root_dir(Path(state_dir) / "uids", 0o700) / f"{uid}.lock"
+# uids are machine-wide and a run start kills every process of its uid, so their locks must be too: a lock in each
+# state folder would let a run with another HARNESS_DELEGATE_STATE take a live task's uid and kill it. /run is
+# root-owned on Linux; a lock file left there holds nothing once its process ends.
+UID_LOCK_DIR = Path("/run/qwreey-delegate/uids")
+
+
+def machine_uid_lock_dir():
+    """UID_LOCK_DIR made root-owned 0700, or None when /run cannot hold it (not root, no root-owned /run).
+
+    Dies (exit 4) when the folder exists with another owner or open to others: falling back would split the locks."""
+    if os.name != "posix" or os.geteuid() != 0:
+        return None
+    try:
+        st = os.lstat(UID_LOCK_DIR.parent.parent)
+    except OSError:
+        return None
+    if not stat.S_ISDIR(st.st_mode) or st.st_uid != 0 or st.st_mode & 0o022:
+        return None
+    try:
+        root_dir(UID_LOCK_DIR.parent, PRIVATE_MODE)
+        return root_dir(UID_LOCK_DIR, PRIVATE_MODE)
+    except OSError:
+        return None
+
+
+def uid_lock_dir(state_dir):
+    """(folder of the uid locks, whether it is machine-wide). Falls back to <state>/uids/; doctor says so."""
+    folder = machine_uid_lock_dir()
+    if folder is not None:
+        return folder, True
+    return root_dir(Path(state_dir) / "uids", PRIVATE_MODE), False
+
+
+def take_uid_lock(state_dir, uid):
+    """fd holding uid's lock, or None while a run holds it.
+
+    One task per uid at a time: two tasks of one uid could reach each other's worktree, HOME and credentials, and a
+    run start kills every process of its uid."""
+    folder, machine_wide = uid_lock_dir(state_dir)
+    fd = take_lock(folder / f"{uid}.lock")
+    if fd is None or not machine_wide:
+        return fd
+
+    # An older driver that does not know /run keeps its lock in the state folder
+    if lock_held(Path(state_dir) / "uids" / f"{uid}.lock"):
+        os.close(fd)
+        return None
+    return fd
 
 
 def default_state_dir():

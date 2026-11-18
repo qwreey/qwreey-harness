@@ -155,7 +155,8 @@ class Fixture:
         self.cfg = self.tmp / "cfg"
         self.ws = self.tmp / "ws"
         self.repo = self.ws / "proj"
-        self.first_uid, self.last_uid = free_uids(UID_COUNT)
+        # uid 잠금은 기기 전체라 나란히 도는 시험 파일끼리 대역이 겹치면 서로 건너뛴다: 프로세스마다 시작을 흩는다
+        self.first_uid, self.last_uid = free_uids(UID_COUNT, start=62900 + os.getpid() % 256 * UID_COUNT)
         self.uid, self.uid2 = self.first_uid, self.first_uid + 1  # 첫 작업과 그와 나란히 도는 둘째 작업의 uid
         for p in (self.ctl, self.bin, self.cfg, self.repo):
             p.mkdir(parents=True)

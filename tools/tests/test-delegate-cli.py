@@ -1,7 +1,7 @@
 """qwreey-delegate 드라이버(delegate.py)의 명령 시험. 실행: python3 -I tools/tests/test-delegate-cli.py
 
 가짜 agy·codex·setpriv 로 run -> collect -> remove -> gc, list, 동시 실행 거절(에이전트 슬롯, uid 하나에 작업 하나), 인자 오류,
-uid 대역(HARNESS_DELEGATE_UIDS)에서 빈 uid 고르기, 저장소 층의 setup, doctor 의 비밀 경로와 대역 점검, 작업 uid 가 심은 링크,
+uid 대역(HARNESS_DELEGATE_UIDS)에서 빈 uid 고르기와 기기 전체 uid 잠금, 저장소 층의 setup, doctor 의 비밀 경로와 대역 점검, 작업 uid 가 심은 링크,
 시간 초과와 신호, HARNESS_HEAVY_WRAP 를 본다. 모델 호출 없음.
 RealUid 는 root 일 때만 진짜 setpriv 로 계정이 없는 시험 대역의 uid 아래 가짜 에이전트를 돌려 권한 문제를 드러낸다.
 root 가 아니면 나머지는 uid 백엔드의 chown 단계만 빼고 돈다(delegate_fixture.launcher).
@@ -17,6 +17,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from delegate_fixture import IS_ROOT, SCRIPTS, Fixture, git, is_account, key_of  # noqa: E402
@@ -636,11 +637,17 @@ def account_then_free(kind):
 class UidRange(Base):
     """HARNESS_DELEGATE_UIDS: 실행마다 대역에서 비어 있는 첫 uid 를 쓴다."""
 
-    def hold(self, *uids):
+    def hold(self, *uids, state=None):
         """이 시험 프로세스가 uid 잠금을 쥔다(살아 있는 다른 작업 흉내). 잠금 fd 목록."""
-        uids_dir = self.f.state / "uids"
-        uids_dir.mkdir(parents=True, exist_ok=True)
-        return [ws.take_lock(uids_dir / f"{u}.lock") for u in uids]
+        state = state or self.f.state
+        state.mkdir(parents=True, exist_ok=True)
+        fds = [ws.take_uid_lock(state, u) for u in uids]
+        self.assertNotIn(None, fds, "시험 대역의 uid 를 다른 프로세스가 쥐고 있다")
+        return fds
+
+    def release(self, fds):
+        for fd in fds:
+            os.close(fd)
 
     def test_first_free_uid_and_locked_uid_skipped(self):
         f = self.f
@@ -651,8 +658,7 @@ class UidRange(Base):
             self.ok("run", "codex", "c2", f.prompt)
             self.assertEqual(f.setpriv_uids()[-1], f.uid2, "다른 작업이 잠근 uid 는 건너뛴다")
         finally:
-            for fd in fds:
-                os.close(fd)
+            self.release(fds)
         self.ok("run", "codex", "c3", f.prompt)
         self.assertEqual(f.setpriv_uids()[-1], f.uid, "끝난 작업의 uid 는 다시 쓴다")
 
@@ -665,8 +671,7 @@ class UidRange(Base):
             self.assertFalse((f.base("codex") / "c1").exists())
             self.assertFalse(f.rec("codex", "c1").exists())
         finally:
-            for fd in fds:
-                os.close(fd)
+            self.release(fds)
 
     def test_account_ids_skipped(self):
         f = self.f
@@ -695,7 +700,7 @@ class UidRange(Base):
         for bad in ("abc", "", "5-2", "0-3", "61000-", f"1-{ws.MAX_UID_RANGE + 1}"):
             with self.subTest(bad=bad):
                 p = self.fails(2, "run", "codex", "c1", f.prompt, env=f.env(HARNESS_DELEGATE_UIDS=bad))
-                self.assertIn("HARNESS_DELEGATE_UIDS must be a range of unused ids like 61000-61015", p.stderr)
+                self.assertIn("HARNESS_DELEGATE_UIDS must be a range of unused ids like 61100-61115", p.stderr)
                 doc = self.ok("doctor", env=f.env(HARNESS_DELEGATE_UIDS=bad)).stdout
                 self.assertIn("  FAIL HARNESS_DELEGATE_UIDS must be a range", doc)
         self.assertFalse(f.base("codex").exists(), "거절 전에는 작업 폴더를 만들지 않는다")
@@ -717,6 +722,93 @@ class UidRange(Base):
         self.ok("run", "codex", "c3", f.prompt)
         self.assertEqual(f.setpriv_uids()[-1], f.uid, "모은 뒤에는 다시 쓴다")
         self.ok("remove", "codex", "c1")
+
+    def test_record_kept_between_scan_and_lock(self):
+        # 훑은 뒤 잠그기 전에, 그 uid 를 쥐던 실행이 --keep 으로 끝나 모으지 않은 기록을 남기는 순서
+        f = self.f
+        f.state.mkdir(parents=True, exist_ok=True)
+        rec = f.state / "work" / "other-agy" / ws.RECORDS / "kept"
+        real_lock = ws.take_uid_lock
+
+        def keep_then_lock(state_dir, uid):
+            if not rec.exists():
+                rec.mkdir(parents=True)
+                (rec / ws.STATE_FILE).write_text(json.dumps({"uid": uid, "finished": "x", "collected": None}))
+            return real_lock(state_dir, uid)
+
+        with mock.patch.object(ws, "take_uid_lock", keep_then_lock):
+            uid, fd = ws.take_uid(f.state, f.first_uid, f.last_uid)
+        os.close(fd)
+        self.assertEqual(uid, f.uid2, "잠근 뒤 다시 보아 모으지 않은 작업 폴더의 uid 는 놓는다")
+
+    def test_uid_lock_is_machine_wide(self):
+        if not IS_ROOT:
+            self.skipTest("/run 아래 잠금은 root 만 만든다")
+        f = self.f
+        st = os.lstat(ws.UID_LOCK_DIR)
+        self.assertEqual((st.st_uid, stat.S_IMODE(st.st_mode)), (0, 0o700))
+
+        # 상태 폴더가 다른 실행이 쥔 uid 도 건너뛴다(시작할 때 그 uid 의 프로세스를 모두 죽이므로)
+        fds = self.hold(f.uid, state=f.tmp / "other-state")
+        try:
+            self.ok("run", "codex", "c1", f.prompt)
+            self.assertEqual(f.setpriv_uids()[-1], f.uid2)
+        finally:
+            self.release(fds)
+        self.assertFalse((f.state / "uids" / f"{f.uid}.lock").exists(), "잠금은 상태 폴더가 아닌 /run 에 있다")
+        self.assertIn(f"  ok   uid locks in {ws.UID_LOCK_DIR} (machine-wide)", self.ok("doctor").stdout)
+
+    def test_uid_locks_fall_back_to_the_state_folder(self):
+        # /run 을 쓸 수 없으면(남도 쓰는 /run 흉내) 상태 폴더의 uids/ 에 잠근다
+        f = self.f
+        fake_run = f.tmp / "run"
+        fake_run.mkdir(mode=0o777)
+        fake_run.chmod(0o777)
+        f.state.mkdir(parents=True)
+        with mock.patch.object(ws, "UID_LOCK_DIR", fake_run / "qwreey-delegate" / "uids"):
+            self.assertIsNone(ws.machine_uid_lock_dir())
+            fd = ws.take_uid_lock(f.state, f.uid)
+        try:
+            self.assertTrue((f.state / "uids" / f"{f.uid}.lock").is_file())
+            self.assertFalse((fake_run / "qwreey-delegate").exists())
+        finally:
+            os.close(fd)
+
+    def test_state_folder_lock_of_an_older_driver_counts(self):
+        # 잠금이 /run 으로 옮기기 전에 시작한 드라이버는 상태 폴더의 잠금을 쥐고 끝날 때까지 돈다
+        f = self.f
+        (f.state / "uids").mkdir(parents=True)
+        fd = ws.take_lock(f.state / "uids" / f"{f.uid}.lock")
+        try:
+            self.ok("run", "codex", "c1", f.prompt)
+            self.assertEqual(f.setpriv_uids()[-1], f.uid2)
+        finally:
+            os.close(fd)
+
+    def test_collect_and_remove_hold_the_uid(self):
+        # 모으기는 그 uid 로 git 을 돌리고 그 uid 의 프로세스를 끝낸다. 다른 실행이 그 uid 를 쥐는 동안에는 거절한다
+        f = self.f
+        self.ok("run", "agy", "a1", f.prompt, "--keep")
+        calls = len(f.setpriv_uids())
+
+        # Refused while another run holds the uid
+        fds = self.hold(f.uid, state=f.tmp / "other-state")
+        try:
+            for cmd in (("collect", "agy", "a1"), ("remove", "agy", "a1", "--discard")):
+                with self.subTest(cmd=cmd[0]):
+                    p = self.fails(5, *cmd)
+                    self.assertIn(f"uid {f.uid} is in use by a running task", p.stderr)
+            p = self.ok("gc", "--apply")
+            self.assertIn(f"held       work/{f.key}-agy/a1 (uid {f.uid} is in use by a running task", p.stdout)
+            self.assertEqual(len(f.setpriv_uids()), calls, "쥔 uid 로는 아무것도 돌리지 않는다")
+            self.assertTrue((f.base("agy") / "a1").is_dir())
+        finally:
+            self.release(fds)
+
+        # Goes through once the uid is free
+        self.ok("collect", "agy", "a1")
+        self.assertEqual(f.setpriv_uids()[-1], f.uid, "놓인 뒤에는 그 uid 로 diff 를 만든다")
+        self.ok("remove", "agy", "a1")
 
     def test_repo_by_key_and_name(self):
         f = self.f
@@ -842,6 +934,21 @@ class Doctor(Base):
         p = self.ok("doctor")
         self.assertIn(f"  FAIL 1 file(s) in the main working tree belong to a task uid, so a delegation can change them: {planted}",
                       p.stdout)
+
+        # 옛 표의 uid 는 대역 밖이어도 알린다(대역을 넓히면 다시 위임에 넘어간다)
+        os.chown(planted, 61001, 61001)
+        p = self.ok("doctor")
+        self.assertIn("  ok   no file in the main working tree belongs to a task uid", p.stdout)
+        self.assertIn(f"  WARN 1 file(s) in the main working tree belong to uid(s) 61001 of the old per-repository table, "
+                      f"outside the range: {planted} - chown them back", p.stdout)
+
+    def test_range_over_the_old_table_warned(self):
+        f = self.f
+        self.assertNotIn("old per-repository table", self.ok("doctor").stdout)
+        if any(is_account(u) for u in range(61004, 61008)):
+            self.skipTest("61004-61007 에 실제 계정이 있다")
+        p = self.ok("doctor", env=f.env(HARNESS_DELEGATE_UIDS="61004-61007"))
+        self.assertIn("  WARN the range includes uid(s) 61004 61005 of the old per-repository table", p.stdout)
 
     def test_setup_and_collisions_reported(self):
         f = self.f

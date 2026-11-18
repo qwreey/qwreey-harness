@@ -279,9 +279,11 @@ def cmd_run(ctx, args):
         if slot is None:
             die(f"{live} {agent} task(s) already running (limit {limit}, HARNESS_DELEGATE_MAX_CONCURRENT adjusts it - "
                 f"the token limit is the user's)", ws.EXIT_BUSY)
+        # A live process of the uid while its machine-wide lock was free belongs to no run: a driver that died
+        # without ending its task (SIGKILL, crash) left it, so it goes before the new task gets the uid
         leftover = backend.end_task()
         if leftover:
-            note(f"killed {leftover} leftover process(es) of uid {uid}")
+            note(f"killed {leftover} leftover process(es) of uid {uid} (a run that died left them)")
         ws.write_safe(hooks / "pre-push", PRE_PUSH, 0o755)
         commit = (ws.git_out("-C", repo.root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}") or "").strip()
         if not commit:
@@ -439,11 +441,11 @@ def cmd_collect(ctx, args):
     place = located(ctx, agent, name, opts.get("--repo"))
     if ws.is_running(place.base, name):
         die(f"still running: {agent}/{name}")
-    results.end_leftovers(ctx.state_dir, place.task_uid())
     st = ws.read_state(place.rec)
     if not st.get("finished") and not ws.exists_under(place.base, name, ws.TASK_OUT, "exit", kind="file"):
         note("warning: no exit record (abnormal end, or a workspace from an older script); collecting what exists")
-    out, problems = results.collect_into(ctx.state_dir, place)
+    with results.task_uid_held(ctx.state_dir, place.task_uid()):
+        out, problems = results.collect_into(ctx.state_dir, place)
     for p in problems:
         note(f"warning: {p}")
     print(f"collected: {out}")
@@ -459,8 +461,8 @@ def cmd_remove(ctx, args):
     place = located(ctx, agent, name, opts.get("--repo"))
     if ws.is_running(place.base, name):
         die(f"still running: {agent}/{name}")
-    results.end_leftovers(ctx.state_dir, place.task_uid())
-    results.remove_workspace(place, bool(opts.get("--discard")), bool(opts.get("--delete-branch")))
+    with results.task_uid_held(ctx.state_dir, place.task_uid()):
+        results.remove_workspace(place, bool(opts.get("--discard")), bool(opts.get("--delete-branch")))
     print(f"removed: {place.wt}")
     return 0
 
@@ -521,7 +523,31 @@ def doctor_uids(ctx):
     kept = sorted(ws.kept_uids(ctx.state_dir) & set(usable))
     if kept:
         print(f"  INFO held by uncollected work folders until collect/remove or gc: {' '.join(map(str, kept))}")
+
+    # Files the old table's runs left (doctor_one counts those in main trees) belong to these uids
+    old = [u for u in usable if u in ws.OLD_TABLE_UIDS]
+    if old:
+        print(f"  WARN the range includes uid(s) {' '.join(map(str, old))} of the old per-repository table: files its "
+              f"runs left owned by them (packages hard-linked into main trees and package caches, /tmp/codex-*-<uid>) "
+              f"are writable to any delegation that gets one - chown them to root (find / -xdev -uid <uid>) or start "
+              f"the range above {ws.OLD_TABLE_UIDS[-1]}")
+    doctor_uid_locks(ctx)
     return usable[0] if usable else None
+
+
+def doctor_uid_locks(ctx):
+    """Say where the uid locks are: machine-wide in /run, or the state folder fallback."""
+    try:
+        folder = ws.machine_uid_lock_dir()
+    except ws.DelegateError as e:
+        print(f"  FAIL uid locks: {e}")
+        return
+    if folder is not None:
+        print(f"  ok   uid locks in {folder} (machine-wide)")
+    else:
+        print(f"  WARN uid locks in {ctx.state_dir / 'uids'}: {ws.UID_LOCK_DIR} is unusable (needs root and a "
+              f"root-owned /run), so a run with another HARNESS_DELEGATE_STATE cannot see them and may take and kill "
+              f"a running task's uid")
 
 
 def doctor_global(ctx):
@@ -558,11 +584,11 @@ def doctor_global(ctx):
     return backend
 
 
-def range_owned(root, uids):
-    """(count, first few paths) of entries under root owned by a task uid.
+def owned_under(root, groups):
+    """{group: (count, owners, first few paths)} of entries under root whose owner is in groups[group], a set of uids.
 
     .git/worktrees/ is skipped: the admin dirs of task worktrees belong to their uids by design."""
-    found, sample = 0, []
+    found = {g: [0, set(), []] for g in groups}
     for top, dirs, files in os.walk(root):
         if os.path.basename(top) == ".git":
             dirs[:] = [d for d in dirs if d != "worktrees"]
@@ -573,11 +599,14 @@ def range_owned(root, uids):
                 owner = os.lstat(path).st_uid
             except OSError:
                 continue
-            if owner in uids:
-                found += 1
-                if len(sample) < MAX_LISTED_PATHS:
-                    sample.append(path)
-    return found, sample
+            for g, uids in groups.items():
+                if owner in uids:
+                    hit = found[g]
+                    hit[0] += 1
+                    hit[1].add(owner)
+                    if len(hit[2]) < MAX_LISTED_PATHS:
+                        hit[2].append(path)
+    return {g: tuple(v) for g, v in found.items()}
 
 
 def doctor_one(ctx, repo, backend):
@@ -593,13 +622,23 @@ def doctor_one(ctx, repo, backend):
         first, last = ctx.uid_range()
     except ws.DelegateError:
         first, last = 1, 0
-    count, sample = range_owned(repo.root, set(range(first, last + 1)))
+    in_range = set(range(first, last + 1))
+    owned = owned_under(repo.root, {"range": in_range, "old": set(ws.OLD_TABLE_UIDS) - in_range})
+    count, _, sample = owned["range"]
     if count:
         print(f"  FAIL {count} file(s) in the main working tree belong to a task uid, so a delegation can change them: "
               f"{' '.join(sample)}{' ...' if count > len(sample) else ''} - chown them back (hard links share the owner "
               f"with their other names, e.g. a package store)")
     elif first <= last:
         print("  ok   no file in the main working tree belongs to a task uid")
+
+    # Outside the range no run gets these uids, but widening the range back would hand the files over
+    count, owners, sample = owned["old"]
+    if count:
+        print(f"  WARN {count} file(s) in the main working tree belong to uid(s) {' '.join(map(str, sorted(owners)))} "
+              f"of the old per-repository table, outside the range: {' '.join(sample)}"
+              f"{' ...' if count > len(sample) else ''} - chown them back all the same (with their hard links "
+              f"elsewhere, e.g. a package cache)")
 
     # Work folders and the agy policy over them
     work = ws.work_base(ctx.state_dir, repo, "agy")

@@ -7,6 +7,7 @@ and earlier driver runs) are still found for list, collect and remove, but gc on
 user's call. Folders in the state folder that belong to no known repository (older keys) are listed the same way; their
 results still age out.
 """
+import contextlib
 import datetime
 import os
 import shutil
@@ -54,22 +55,29 @@ def find(state_dir, repo, agent, name):
     return None
 
 
-def end_leftovers(state_dir, uid):
-    """Kill what still runs as a finished task's uid before root reads or deletes its files.
+@contextlib.contextmanager
+def task_uid_held(state_dir, uid):
+    """Hold a finished task's uid lock for a collect or remove and kill what still runs as that uid first.
 
-    Skipped while a live task holds that uid's lock: the uid moved on to that task, and those processes are its own."""
-    if not uid:
+    Collect runs git as that uid and kills its processes afterwards, so no new task may take the uid meanwhile. Dies
+    with exit 5 while a run holds it: the uid moved on to that run, and the processes are its own."""
+    if not uid or (ws.machine_uid_lock_dir() is None and not Path(state_dir).is_dir()):
+        # No uid to hold, or a state folder no run ever used
+        yield
         return
-    backend = iso.UidBackend(uid)
-    if backend.unavailable() or not Path(state_dir).is_dir():
-        return
-    fd = ws.take_lock(ws.uid_lock_path(state_dir, uid))
+
+    fd = ws.take_uid_lock(state_dir, uid)
     if fd is None:
-        return
+        die(f"uid {uid} is in use by a running task; retry after it ends", ws.EXIT_BUSY)
+
+    # Leftovers of the finished task, killed while no new task can take the uid
     try:
-        killed = backend.end_task()
-        if killed:
-            note(f"killed {killed} leftover process(es) of uid {uid}")
+        backend = iso.UidBackend(uid)
+        if not backend.unavailable():
+            killed = backend.end_task()
+            if killed:
+                note(f"killed {killed} leftover process(es) of uid {uid}")
+        yield
     finally:
         os.close(fd)
 
@@ -111,7 +119,8 @@ def copy_probes(place, since, out, manifest):
 
 def make_diff(place, out, manifest):
     """diff.patch of the worktree, new files included, without .delegate/ and the report; '' or the reason it failed.
-    git runs as the task uid (git_as_task) while the task's HOME still exists."""
+    git runs as the task uid (git_as_task) while the task's HOME still exists; the caller holds that uid's lock (the
+    run's own, or task_uid_held), since this kills every process of the uid afterwards."""
     uid = place.task_uid()
     if uid is None:
         return "the task uid is unknown (no record, and the task folder is not owned by an unprivileged uid)"
@@ -285,20 +294,30 @@ def gc_work(state_dir, repo, agent, apply):
         print(f"delete     {tag}/{n} ({st}{'' if st == 'collected' else ', collected first'})")
         if not apply:
             continue
-        end_leftovers(state_dir, place.task_uid())
-        if st != "collected":
-            out, problems = collect_into(state_dir, place, mark=False)
-            if problems:
-                print(f"kept       {tag}/{n} (collect into {out} failed: {'; '.join(problems)})")
-                continue
-            print(f"collected  {tag}/{n} -> {out}")
-        remove_workspace(place, check=False)
+        try:
+            with task_uid_held(state_dir, place.task_uid()):
+                gc_one(state_dir, place, st, f"{tag}/{n}")
+        except ws.DelegateError as e:
+            if e.code != ws.EXIT_BUSY:
+                raise
+            print(f"held       {tag}/{n} ({e})")
     homes = base / ".homes"
     for h in sorted(homes.iterdir()) if homes.is_dir() else ():
         if h.is_dir() and h.name not in names:
             print(f"delete     {tag}/.homes/{h.name} (HOME without an owner, {ws.du_h(h)})")
             if apply:
                 shutil.rmtree(h)
+
+
+def gc_one(state_dir, place, st, tag):
+    """Collect (unless done) and delete one workspace; the caller holds its uid."""
+    if st != "collected":
+        out, problems = collect_into(state_dir, place, mark=False)
+        if problems:
+            print(f"kept       {tag} (collect into {out} failed: {'; '.join(problems)})")
+            return
+        print(f"collected  {tag} -> {out}")
+    remove_workspace(place, check=False)
 
 
 def gc_runs(state_dir, repo, days, apply):

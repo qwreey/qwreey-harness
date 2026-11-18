@@ -51,7 +51,7 @@ DEFAULTS = {
     # 켤 툴킷(공백 구분). 비면 전부. /q:doctor 는 이 목록 안에서 저장소마다 자동 감지한다.
     "HARNESS_TOOLKITS": "",
     # 위임(agy, codex) 작업이 도는 uid 대역(위임 드라이버, /q:doctor 의 계정 충돌 검사). 실행마다 비어 있는 첫 uid 를 쓴다.
-    "HARNESS_DELEGATE_UIDS": "61000-61015",
+    "HARNESS_DELEGATE_UIDS": "61100-61115",
     # coderag 실행 파일(/q:doctor 팩 검사, qwreey-sessions:recall). 이름이면 PATH 에서 찾고, 절대 경로도 된다.
     "HARNESS_CODERAG": "coderag",
 }

@@ -20,7 +20,7 @@
 
 ## 설정
 `/plugin configure qwreey-delegate@claude-doctor-market` 또는 `/config` 의 플러그인 설정에서 바꾼다.
-- 위임 uid 대역(`harness_delegate_uids`, 기본 `61000-61015`): 실행마다 이 범위에서 비어 있는 첫 uid 를 쓴다. 범위의 크기가 동시에 돌 수 있는 작업 수다. 실제 계정과 겹치는 uid 는 건너뛰고 `doctor` 가 알린다. 저장소 파일로는 바꾸지 못한다.
+- 위임 uid 대역(`harness_delegate_uids`, 기본 `61100-61115`): 실행마다 이 범위에서 비어 있는 첫 uid 를 쓴다. 범위의 크기가 동시에 돌 수 있는 작업 수다. 실제 계정과 겹치는 uid 는 건너뛰고 `doctor` 가 알린다. 저장소 파일로는 바꾸지 못한다.
 - agy 모델(`harness_delegate_agy_model`, 기본 `gemini-3.8-flash-high`), codex 모델(`harness_delegate_codex_model`, 기본 `gpt-6-luna`). 저장소 `.claude/harness.env` 가 바꿀 수 있고 `run --model` 이 이긴다.
 - agy 실행 파일(`harness_delegate_agy_bin`), codex 실행 파일(`harness_delegate_codex_bin`): 비우면 PATH 에서 찾는다.
 - 고급: 동시 실행 수, 결과 보존 일수, 상태 폴더, 격리 스위치는 `~/.claude/harness.env` 키다(저장소 파일로는 바꾸지 못함). 목록은 [docs/how-it-works.md](docs/how-it-works.md).

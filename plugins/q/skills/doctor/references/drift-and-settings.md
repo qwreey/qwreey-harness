@@ -48,7 +48,7 @@ agy 위임 도구는 4벌이다(quad, stl-luau, tbox, table-sim). 지금은 고�
 
 ### 위임 uid 대역
 
-qwreey-delegate 는 대역 하나(기본 `61000-61015`)에서 실행마다 비어 있는 첫 uid 로 위임 작업을 돌린다. 대역 크기가 동시에 돌 수 있는 작업 수다.
+qwreey-delegate 는 대역 하나(기본 `61100-61115`)에서 실행마다 비어 있는 첫 uid 로 위임 작업을 돌린다. 대역 크기가 동시에 돌 수 있는 작업 수다.
 - 잘못된 값(예: `abc`, `5-2`, `0-3`, 4096개 넘는 대역): 위임 실행이 모두 거절된다(exit 2). 사용자에게 옵션 값을 고치도록 안내한다.
 - 실제 계정과 겹치는 uid: 드라이버가 건너뛴다. 남는 uid 가 있으면 동시 실행 수만 줄고, 없으면 실행이 모두 거절된다(exit 4). 계정이 없는 다른 대역을 고르도록 안내한다.
 - 대역 바꾸기는 `/plugin configure qwreey-delegate@<마켓>` 이나 사용자 `~/.claude/harness.env` 의 `HARNESS_DELEGATE_UIDS` 다. 저장소 `.claude/harness.env` 로는 바뀌지 않는다.

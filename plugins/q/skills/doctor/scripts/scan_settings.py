@@ -104,7 +104,7 @@ def check_delegate_uids(repo, projects):
     rng = delegate_uid_range()
     if rng is None:
         C.add(6, "경고", "DRIFT-UID", "HARNESS_DELEGATE_UIDS",
-              f"위임 uid 대역 {value!r} 이 잘못됐다(예: 61000-61015, 0 보다 크고 {MAX_UID_RANGE}개 이하). 위임 실행이 모두 거절된다.",
+              f"위임 uid 대역 {value!r} 이 잘못됐다(예: 61100-61115, 0 보다 크고 {MAX_UID_RANGE}개 이하). 위임 실행이 모두 거절된다.",
               "references/drift-and-settings.md#위임-uid-대역")
         return
 

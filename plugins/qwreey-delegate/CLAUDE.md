@@ -7,7 +7,7 @@ One skill, `qwreey-delegate:delegate`, and its driver `skills/delegate/scripts/d
 - `delegate_workspace.py` (repository keys, the uid range and its selection, locations, records, locks, fd-relative reads), `delegate_isolation.py` (uid backend, task environment, processes), `delegate_agents.py` (agy print-mode and codex adapters, agy `--settings` policy), `delegate_results.py` (collect, remove, automatic cleanup, list, gc).
 - `skills/delegate/scripts/delegate.sh`: a wrapper that execs `delegate.py`. Keep the path: older sessions' SKILL text and `qwreey-proc-guard`'s exemption name it.
 - `skills/delegate/templates/`: `tasks.md` (prompt skeleton), `preamble-worktree.md`, `preamble-empty.md` (prepended by the driver), `AGENTS.md.template` (per-repo map).
-- Task uids: one range, option `harness_delegate_uids` (`HARNESS_DELEGATE_UIDS`, default `61000-61015`, user layer only); each run takes the first free uid (`ws.take_uid`). A repository's setup command is `HARNESS_DELEGATE_SETUP` in its own layers, read unexpanded (`delegate.setup_line`).
+- Task uids: one range, option `harness_delegate_uids` (`HARNESS_DELEGATE_UIDS`, default `61100-61115`, user layer only); each run takes the first free uid (`ws.take_uid`). A repository's setup command is `HARNESS_DELEGATE_SETUP` in its own layers, read unexpanded (`delegate.setup_line`).
 - `.claude-plugin/plugin.json` `userConfig`: the user-facing keys (uid range, models, executables). An option key is the env name in lowercase; its default must equal `ENV_DEFAULTS` or the loader's `DEFAULTS` (`tools/tests/test-plugin-userconfig.py`).
 
 ## Tests
