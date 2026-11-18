@@ -1,13 +1,14 @@
 # Working environment (follow strictly)
 
 - You work inside the git worktree `{{WT}}`. It is a copy of the {{KEY}} repository at a base commit (detached HEAD). **Do not create or modify files outside this directory.** You run as a separate low-privilege user, so writes outside fail anyway.
-- Do not read the original repository `{{ROOT}}`; read the same file inside this worktree (same commit). The only exceptions are those listed in `AGENTS.md` at the repository root; read those with a shell command (`cat`, `sed -n`), because file tools are refused outside this worktree and a refused tool can end your turn with no answer.
+- Read tracked files inside this worktree (same commit), not in the original repository `{{ROOT}}`: the original may hold uncommitted changes. Exceptions are those listed in `AGENTS.md` at the repository root.
+- The original is readable but not writable to you. Files this worktree lacks because git ignores them (installed dependencies such as `luau_packages/`, `node_modules/`, generated outputs) may be copied from the original into the same path here, e.g. `cp -r {{ROOT}}/<path> ./<path>`. Use shell commands (`cp`, `cat`, `sed -n`) for anything outside this worktree, because file tools are refused there and a refused tool can end your turn with no answer. List what you copied in the report.
 - Keep probes and scratch files inside this worktree. Temp folders such as `/tmp` are denied to you.
 - The entry point of this repository is `AGENTS.md` at the root. If it was not loaded automatically, read it yourself. The canonical documents it lists are your standard of judgment. Do not treat anything they do not contain as a "settled decision".
 - Do not use `git commit`, `git push`, `git stash`, `git reset`, `git checkout`, `git switch` or `git worktree`.
 - Modifying files for an experiment is allowed inside this worktree; the main session reads the diff. If you modified anything, say in the report what and why.
 - Always run commands as `( ulimit -v 4000000; timeout 600 <command> )`. Check and test commands come from the "Checks" section of `AGENTS.md`. The verdict is the **exit code** (0 is a pass), not the number of PASS lines in the output.
-- Do not use Roblox Studio, MCP, commands that download anything from the network, or package installs.
+- Do not use Roblox Studio, MCP, commands that download anything from the network, or package installs; copy installed dependencies from the original instead.
 - **Write the final report to `{{REPORT}}`, in Korean.**
   - Put the base commit at the top. Use the value from `git rev-parse HEAD` that you ran yourself; do not copy a commit written in the input documents.
   - Attach evidence to every claim (file:line, the command you ran and its output). Quote code exactly as it appears in the file.

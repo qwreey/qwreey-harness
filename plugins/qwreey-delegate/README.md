@@ -16,7 +16,7 @@
 ## 요구 사항
 - Linux, root(`setpriv`, 위임용 uid 대역, `choom`), Python 3.11 이상. Windows·macOS 와 root 가 없는 Linux 에서는 실행을 거절한다(모드와 상관없이). root 없이 도는 판은 계획 중이다(`.claude/scopes/plugins/qwreey-delegate/research/drafts/delegate/driver-design.md` M3).
 - `agy` 또는 `codex` CLI 설치와 각자 구독. 저장소 루트에 `AGENTS.md`.
-- 새 worktree 에서 먼저 돌 명령(의존성 설치 등)이 있으면 그 저장소 `.claude/harness.env`(또는 `harness.local.env`)에 `HARNESS_DELEGATE_SETUP=<명령>` 을 둔다. 작업 uid 로 그 worktree 안에서만 돈다.
+- 저장소마다 할 설정은 없다. 위임은 원본 저장소를 읽을 수 있고(쓰기는 못 함), worktree 에 없는 설치된 의존(패키지 등)은 원본에서 복사해 쓴다. 고급: 새 worktree 에서 먼저 돌 명령이 꼭 필요한 저장소만 `.claude/harness.env` 에 `HARNESS_DELEGATE_SETUP=<명령>`(작업 uid 로 그 worktree 안에서만 돈다).
 
 ## 설정
 `/plugin configure qwreey-delegate@claude-doctor-market` 또는 `/config` 의 플러그인 설정에서 바꾼다.

@@ -1,13 +1,15 @@
 ---
 format: 1
 title: 위임 worktree 에 없는 의존 파일(패키지 등)은 어떻게 채울까?
-description: 위임 worktree 에 없는 의존 파일(패키지 등)은 어떻게 채울까? 권장 a) 메인 읽기 허용, 의존은 모델이 복사
-status: active
+description: 위임 worktree 에 없는 의존 파일(패키지 등)은 어떻게 채울까? 답 a) 메인 읽기 허용, 의존은 모델이 복사
+status: archived; answered a) 메인 읽기 허용, 의존은 모델이 복사
 id: Q32
 urgency: soon
 blocks: quad 위임 setup(HUMAN_TODO)
 recommended: a
 created: 2026-11-18T00:32:01.865Z
+answered: 2026-11-18T00:48:59.971Z
+answer: a
 ---
 
 # Q32. 위임 worktree 에 없는 의존 파일(패키지 등)은 어떻게 채울까?
@@ -43,3 +45,7 @@ created: 2026-11-18T00:32:01.865Z
 
 - 2026-11-18T00:36:22.319Z agent: 결정을 다듬음: 질문 고침, 배경 고침, 선택지 a, b, c 고침, 권장 이유 고침
   사용자: SEED 를 알아야만 쓸 수 있는 패턴은 싫다, 메인 읽기만 허용하고 모델이 필요한 걸 복사해 가는 게 맞지 않나
+
+## 답
+
+a

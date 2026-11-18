@@ -35,7 +35,7 @@ Before launching, show the user in one line what you will ask.
 
 ## Setup
 
-- Any git repository works; there is no registration. If a fresh worktree needs a command first (installing dependencies), the repository sets `HARNESS_DELEGATE_SETUP=<command>` in its `.claude/harness.env`; it runs once as the task uid inside the new worktree.
+- Any git repository works; there is no registration and no per-repository setting. The task may read the original repository and copies ignored dependencies it needs (installed packages) from there; the preamble tells it so. An optional `HARNESS_DELEGATE_SETUP=<command>` in the repository's `.claude/harness.env` runs once as the task uid in a new worktree, for the rare repository that needs more.
 - Each repository needs `AGENTS.md` at its root (skeleton: `templates/AGENTS.md.template`). Both models load it; it holds the canonical paths, the check commands and repository-only cautions, so the driver's preamble stays project-neutral. `$D doctor --all` checks the uid range, secrets, the work folder path and `AGENTS.md`.
 
 ## Run

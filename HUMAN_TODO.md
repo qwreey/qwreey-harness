@@ -102,15 +102,14 @@
   3. 그다음 `tools/home-sync.sh diff` 로 `lib/harness_env.py`, `harness.env` 주석을 보고 `apply`
   - 새 lib 의 `LEGACY_USER_ONLY` 가 예전 lib 이 막던 키(위 두 키, `HARNESS_AGENT_PUSH`, `HARNESS_LUAU_KB`, `SESSION_LOG_HOME`, 위임의 실행 파일·인증·격리·상태 키)를 계속 막으므로, 순서가 뒤바뀌어(apply 먼저, 또는 옛 플러그인이 남은 기기) 옛 플러그인이 새 lib 를 읽어도 이 키들은 저장소 층이 바꾸지 못한다
 - [ ] Windows 대응 반영(q 0.10.0, qwreey-sessions 0.4.0, qwreey-advisor 0.4.17, qwreey-conventions 0.12.2, qwreey-delegate 0.2.3, qwreey-operator 0.3.2, qwreey-proc-guard 0.2.1, qwreey-workspace 0.1.11, luau-kb 0.7.2). 이 기기: `claude plugin marketplace update claude-doctor-market` 뒤 위 플러그인 갱신, `/reload-plugins` 또는 새 세션, 그다음 `tools/home-sync.sh diff`(harness.env 가 `~/Projects` 꼴로 바뀌지만 푼 값은 같다, statusline 의 임시 폴더 줄)와 `apply`
-- [ ] 플러그인 독립 패키지화 반영(Q28 a, Q29 a; q 0.12.1, qwreey-sessions 0.5.0, qwreey-workspace 0.3.0, qwreey-conventions 0.13.0, qwreey-advisor 0.5.0, qwreey-operator 0.4.0, qwreey-delegate 0.5.1, qwreey-proc-guard 0.2.2, luau-kb 0.7.3). 순서:
+- [ ] 플러그인 독립 패키지화 반영(Q28 a, Q29 a; q 0.12.1, qwreey-sessions 0.5.0, qwreey-workspace 0.3.0, qwreey-conventions 0.13.0, qwreey-advisor 0.5.0, qwreey-operator 0.4.0, qwreey-delegate 0.5.2, qwreey-proc-guard 0.2.2, luau-kb 0.7.3). 순서:
   1. `claude plugin marketplace update claude-doctor-market` 뒤 위 플러그인을 `claude plugin update <이름>@claude-doctor-market`, 그다음 `/reload-plugins` 나 새 세션
   2. `tools/home-sync.sh diff` 뒤 `apply`: harness.env 정본에서 `HARNESS_WORKSPACE`, `HARNESS_DOCTOR_ROOT`, `HARNESS_DELEGATE_REGISTRY` 줄이 빠지고 `HARNESS_CODERAG` 는 PATH 의 `coderag`(같은 래퍼로 풀림)
   3. 바뀌는 것: `/q:doctor` 정본 검사는 이 저장소 세션에서만; 세션을 한 번도 연 적 없는 저장소는 qwreey-workspace 옵션 `harness_workspace_extra` 에 `/code/Projects` 를 두면 모두 잡힌다
   4. 설정 우선순위: 코드 기본값 < `~/.claude/harness.env` < `/config` 옵션 < 저장소 `.claude/harness.env` < `harness.local.env` < 환경 변수
 - [ ] 위임 uid 대역 전환(Q31 a) 뒤 정리:
   1. **보안:** quad 메인 작업 트리의 `*/luau_packages/*.luau`, `*/roblox_packages/*.luau` 127개와 `/code/.pesde/cas/` 의 12개가 옛 위임 uid 61000 소유다(pesde 하드 링크). 새 기본 대역 61100-61115 에서는 새 위임이 61000 을 받지 않아 지금은 닿지 않지만, 대역을 61000 쪽으로 넓히면 그 uid 를 받은 위임이 고칠 수 있으니 그래도 `chown root:root` 로 돌린다. 확인: `find /code/Projects/quad -path '*/.git' -prune -o -uid 61000 -print | wc -l` 과 `find /code/.pesde -uid 61000 | wc -l` 이 0, 그리고 `python3 -I plugins/qwreey-delegate/skills/delegate/scripts/delegate.py doctor --repo /code/Projects/quad` 에 `old per-repository table` WARN 줄이 없다(`doctor --all` 은 대역 전환 뒤 위임이 돈 저장소만 보아 quad 를 놓친다)
-  2. quad 의 setup 명령을 그 저장소로: quad `.claude/harness.env`(또는 `harness.local.env`)에 `HARNESS_DELEGATE_SETUP=timeout 300 mise exec -- pesde install`(quad 세션 몫)
-  3. 남은 codex 임시 폴더 `/tmp/codex-daemon-61002`, `/tmp/codex-bwrap-synthetic-mount-targets-61002`(uid 61002 소유) 삭제
+  2. 남은 codex 임시 폴더 `/tmp/codex-daemon-61002`, `/tmp/codex-bwrap-synthetic-mount-targets-61002`(uid 61002 소유) 삭제
 - [ ] 회사 Windows PC 첫 실행 확인(README "Windows" 절). 결과를 알려 주면 남은 위험을 고친다
   1. Git Bash 에서 `python3 -c "import sys; print(sys.executable)"` 가 진짜 파이썬을 찍는다(Store 안내 창이 뜨거나 9009 로 끝나면 README 의 python3 항목)
   2. `tools/home-sync.sh diff` 의 settings diff 에서 `claude-doctor-market` 마켓 경로가 클론 위치(`C:/Users/.../claude-doctor` 꼴)이고, `apply` 가 `settings.json JSON OK` 로 끝난다
