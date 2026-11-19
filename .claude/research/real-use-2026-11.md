@@ -25,3 +25,5 @@ keywords: [real use, 실사용, 피드백, 느낀 점, usage-report]
   - 잡음: 1초 넘게 사는 python 을 150초 지켜봐 quad 작업트리 에이전트의 `conventions-scan.py scan --kind comment quad-base/test` 를 잡았다(98.6%).
   - 원인: `conv_lex.lex` 가 글자마다 `open_comment_or_string`(문자열 정규식 `re.match`)을 불렀고(46파일에 454만 번), `sibling_majority` 가 파일마다 형제 파일을 다시 렉싱했다(렉싱 774번, 파일 수의 제곱). Edit 훅(conventions-check)도 같은 함수를 쓴다.
   - 고침: 렉서가 주석, 문자열이 열릴 수 있는 글자까지 한 번에 건너뜀(옛 렉서와 3,550파일 7,096번 결과가 같음, 5.9배), 형제 통계를 프로세스 안에서 다시 쓰고 형제 읽기를 1 MB 로 끊음. quad test 폴더 훑기 CPU 2.36 초 -> 0.36 초.
+- 훅 언어: "rust안과 python안, 둘 다 http 서버를 둔다고 가정하면 얼마나 다른가? ... 만일 유의미하지 않다면 여기서 거르자"
+  - 잼(`.claude/audit/66-hook-server-language/`): 요청당 서버 CPU python 57~670 us, Rust 13~130 us, 지금 방식(매번 띄우기) 약 34,000 us. Rust 의 이득은 도구 한 번에 약 1~2 ms 라 거름. Q38 은 python 데몬 시험을 권장으로.
