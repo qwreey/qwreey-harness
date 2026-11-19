@@ -14,7 +14,7 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 | `plugins/qwreey-conventions/` | 코드 주석·모델용 문서 관례(둘 다 rule, 기존 주석·문서 정리 명령 `comments-cleanup`·`docs-cleanup`)와 추가한 줄을 한 줄로 알리는 훅, 구조 한도(`structure-reminder`)·셸 우회 쓰기(`bash-bypass-reminder`)·auto memory 배치(`memory-placement`) 알림 훅. 옛 user-level 훅들을 대체 |
 | `plugins/qwreey-reply-language/` | 답이 사용자 언어에서 영어로 새면 턴 끝에서 다시 쓰게 하는 훅(`reply-language`, 모든 플랫폼). 카드 `plugins/qwreey-reply-language/README.md` |
 | `plugins/luau-lsp/` | `.luau` 에 luau-lsp 언어 서버를 붙이는 플러그인(진단, hover, 정의 찾기, Rojo 면 Roblox 정의 파일). 바이너리는 따로 설치하고 런처가 찾는다. luau-kb 팩은 LSP 를 싣지 않는다. 카드 `plugins/luau-lsp/README.md` |
-| `plugins/qwreey-proc-guard/` | 무거운 실행(벤치·퍼저)이 choom 없이 나가면 거절하는 PreToolUse 훅(`heavy-proc-guard`, Linux 전용)과 자기 셸에 걸리는 `pgrep -f` 대기 루프를 거절하는 훅(`self-match-guard`, 모든 플랫폼) |
+| `plugins/qwreey-proc-guard/` | 무거운 실행(벤치·퍼저)이 choom 없이 나가면 거절하는 PreToolUse 훅(`heavy-proc-guard`, Linux 전용), 자기 셸에 걸리는 `pgrep -f` 대기 루프를 거절하는 훅(`self-match-guard`, 모든 플랫폼), Bash 명령 앞뒤의 디스크 여유 공간 경고와 명령이 남긴 core dump 정리 알림(`resource-guard`, core 는 Linux 만) |
 | `plugins/qwreey-license/` | 라이선스 파일을 정본에서 받아 쓰고 대조하는 스킬 `qwreey-license:license`(고르기 주의점, GitHub API·SPDX 에서 받아 연도·소유자 채우기, LICENSE·manifest 대조, 서드파티 고지). 훅 없음. 카드 `plugins/qwreey-license/README.md` |
 | `.claude/base/` | 목표와 구조(`overview.md`), 사용자가 정한 하네스 원칙(`harness-principles.md`), 저장소 사이 갈린 규약의 합의안(`decisions/`, D-xx) |
 | `.claude/research/drafts/` | 설치 전 초안(감사 에이전트, 위임, coderag 분류 예시, 분리 계획). 결론이 자리 잡았거나(landed) 접은(rejected) 초안은 `.claude/archive/research/drafts/` 로 옮긴다 |
@@ -86,7 +86,7 @@ Windows(회사 PC)에서도 플러그인과 `home-sync` 가 돌게 짰다. 실�
 
 **안 되는 것**
 - qwreey-delegate(agy·codex 위임): Linux 와 root 가 있어야 한다. Windows 에서는 실행을 거절한다.
-- qwreey-proc-guard 의 무거운 실행 검사(`heavy-proc-guard`): Linux 의 `choom` 일이라 Windows 에서는 아무것도 막지 않는다. `self-match-guard` 는 돈다.
+- qwreey-proc-guard 의 무거운 실행 검사(`heavy-proc-guard`): Linux 의 `choom` 일이라 Windows 에서는 아무것도 막지 않는다. `self-match-guard` 와 `resource-guard` 의 디스크 경고는 돌고, core dump 알림은 Linux 만이다.
 - `/q:doctor` 의 살아 있는 세션 검사: `/proc` 이 없어 건너뛴다(worktree 정리 전에는 직접 확인한다).
 - luau-kb 의 벤치(`bench/run.sh`)와 스니펫 셸 스크립트는 `choom`·`prlimit` 을 쓰는 Linux 용이다.
 

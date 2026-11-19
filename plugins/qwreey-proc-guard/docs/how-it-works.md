@@ -1,6 +1,6 @@
 # qwreey-proc-guard 동작 상세
 
-구성: PreToolUse(Bash) 훅 둘. `hooks/heavy-proc-guard.py`(무거운 실행, 아래 대부분)와 `hooks/self-match-guard.py`(자기 셸에 걸리는 `pgrep -f`, 맨 아래 절). 둘 다 `hooks/shell_segments.py` 로 heredoc 본문을 버리고 구간을 나눈다. 스킬, 규약 주입, 상태 파일은 없다.
+구성: PreToolUse(Bash) 훅 둘. `hooks/heavy-proc-guard.py`(무거운 실행, 아래 대부분)와 `hooks/self-match-guard.py`(자기 셸에 걸리는 `pgrep -f`, 그 아래 절). 둘 다 `hooks/shell_segments.py` 로 heredoc 본문을 버리고 구간을 나눈다. 그리고 PreToolUse·PostToolUse·PostToolUseFailure(Bash) 에 도는 `hooks/resource-guard.py`(디스크 여유 공간과 core dump, 맨 아래 절). 스킬과 규약 주입은 없고, 상태 파일은 resource-guard 만 쓴다.
 
 ## 왜 choom 인가
 컨테이너의 메모리 cgroup 을 모든 Claude 세션이 같이 쓴다. 벤치가 남은 메모리를 다 쓰면 cgroup OOM killer 가 `oom_score` 로 희생자를 고르는데, Claude 프로세스가 고른 적이 있다(exit 137). Claude 의 점수를 낮추려면 권한(CAP_SYS_RESOURCE)이 필요하지만 자식의 점수를 올리는 것은 권한 없이 되고 exec 를 거쳐 상속된다. 그래서 `choom -n 1000 -- <명령>` 으로 무거운 프로세스 트리를 첫 희생자로 만든다.
@@ -35,8 +35,36 @@ Claude Code 는 Bash 명령을 `bash -c '… eval '<명령>' …'` 로 돌려 �
 5. 판정: `while`·`until` 루프의 조건이나 본문 안이면 deny(`level="action"`, 루프가 끝나지 않는 이유와 `pgrep -x <이름>`, 대괄호 꼴, `pgrep -A -f`, run_in_background 로 띄우고 완료 알림을 기다리기). 루프 밖 `pkill -f` 는 warn(자기 셸을 죽여 명령이 끊길 수 있음), `pgrep -f` 는 info. `for` 루프는 대기 루프로 치지 않는다.
 6. 못 잡는 것: `bash -c '…'` 따옴표 안의 루프, 따옴표 안의 `;`·`|` 로 구간이 잘못 나뉜 경우(오탐 쪽).
 
+## 디스크와 core dump (`resource-guard.py`)
+명령을 막지 않는다. 어떤 예외든 아무것도 내지 않고 exit 0, 하위 프로세스는 띄우지 않는다. 0 아닌 종료로 끝난 Bash 는 PostToolUse 가 아니라 PostToolUseFailure 로 오므로 둘 다 등록한다(크래시한 명령은 늘 후자).
+
+디스크:
+1. Pre 와 Post 에서 훅 `cwd` 와 `tempfile.gettempdir()` 의 파일 시스템을 잰다(`st_dev` 로 중복 제거). 여유는 `statvfs` 의 `f_bavail`(권한 없는 사용자가 쓸 수 있는 양), statvfs 가 없는 Windows 는 `shutil.disk_usage`. 마운트 이름은 `st_dev` 가 바뀌기 직전 디렉터리(Windows 는 드라이브 루트).
+2. 낮음: 여유가 `PROC_GUARD_DISK_MIN_FREE_GIB`(기본 10) GiB 또는 전체의 `PROC_GUARD_DISK_MIN_FREE_PCT`(기본 5)% 아래.
+3. 급감: Post 에서 Pre 의 측정보다 `PROC_GUARD_DISK_DROP_GIB`(기본 2) GiB 넘게 줄었다. Pre 측정은 `tool_use_id` 마다 파일 하나로 두고 Post 가 읽고 지운다.
+4. 되풀이 막기: 같은 파일 시스템의 같은 종류는 세션에 한 번. 낮음은 그 뒤 여유가 `DROP_GIB`(최소 0.5) 만큼 더 줄면, 급감은 지난번보다 그만큼 더 크게 줄면 다시 낸다. 여유가 문턱 위로 돌아오면 기록을 지워 다시 떨어질 때 알린다.
+5. 알림(`level="warn"`): 마운트, 여유 GiB, 비율과 문턱, 급감량. 사용자에게 한 줄로 알리라고 하고, 급감이면 이 명령이 쓴 폴더를 `du -sh` 로 보라고(다른 세션이 같은 디스크를 쓴다), 낮음이면 이 세션이 만든 필요 없는 큰 파일은 지우는 것을 고려하되 그 밖은 묻고 지우라고 한다.
+
+core dump(Linux 만, `/proc/sys/kernel/core_pattern` 을 읽지 못하면 건너뛴다):
+1. Post 에서 Pre 시각(2초 여유) 뒤에 바뀐 파일만 본다. Pre 기록이 없으면 입력의 `duration_ms` 로 거꾸로 잡고, 그것도 없으면 보지 않는다.
+2. 이름: core_pattern 의 파일 이름 부분을 정규식으로(`%p` 같은 숫자 지정자는 숫자, `%e` 같은 것은 아무 글자, `core_uses_pid=1` 이고 `%p` 가 없으면 `.PID` 를 더함), 그리고 늘 `core`, `core.<숫자>`. 일반 파일(심볼릭 링크 아님), 내 uid, ELF 헤더의 `e_type` 이 `ET_CORE`(4)인 것만 센다. 그래서 `src/core` 폴더나 `core.py`, 실행 파일은 걸리지 않는다.
+3. 어디를: 늘 Pre 와 Post 의 cwd 맨 위, core_pattern 이 절대 경로면 그 폴더. 크래시 흔적이 있을 때만 cwd 아래를 얕은 것부터 깊이 4, 200 ms 안에서 훑는다(숨은 폴더, `node_modules`, `__pycache__` 는 건너뜀). 크래시 흔적: PostToolUseFailure 의 `error` 첫 줄 `Exit code N` 에서 N-128 이 SIGQUIT·SIGILL·SIGTRAP·SIGABRT·SIGBUS·SIGFPE·SIGSEGV·SIGSYS, 또는 출력 끝 64 KB 에 `core dumped`, `Segmentation fault`, `SIGSEGV` 꼴, `signal: 11` 꼴(cargo).
+4. 알림(`level="action"`): 경로, 크기, 64비트 core 면 NT_PRPSINFO 의 프로그램과 인자, NT_PRSTATUS 의 신호. 의도한 크래시(재현, 크래시 시험)이거나 필요 없으면 지우고, 디버깅에 필요할 수 있으면 남기고 경로와 크기를 사용자에게 알리라고 한다. 이 명령이 만든 덤프만 지우라고, 프로그램이 이 명령과 맞지 않으면(같은 폴더를 쓰는 다른 세션) 남기고 말하라고 한다. 알린 파일(경로와 mtime)은 세션 기록에 남겨 겹쳐 돈 명령이 다시 알리지 않는다.
+5. core_pattern 이 `|` 로 시작하면(systemd-coredump, apport) 파일을 찾지 않는다. 크래시 흔적이 있을 때만 덤프가 그 처리기로 갔다고 알린다(`level="info"`, `coredumpctl list`, `/var/crash`).
+6. 못 잡는 것: `run_in_background` 명령(Post 가 실행 직후라 그 뒤의 크래시를 보지 못한다), 깊이 4 아래나 숨은 폴더의 덤프(크래시 흔적이 있어도), core_pattern 이 상대 경로에 폴더를 담은 경우의 그 폴더(깊이 안이면 훑기가 찾는다).
+
+설정(harness.env 층과 `/plugin` 설정, 옵션 키는 이름의 소문자):
+- `PROC_GUARD_DISK`, `PROC_GUARD_CORE`: 기본 `on`(`on`, `1`, `true`, `yes` 가 켬). 사용자 전용(`ENV_USER_ONLY`): 기계 전체의 안전망이라 클론한 저장소가 커밋한 harness.env 로 끄지 못한다.
+- `PROC_GUARD_DISK_MIN_FREE_GIB`, `PROC_GUARD_DISK_MIN_FREE_PCT`, `PROC_GUARD_DISK_DROP_GIB`: 0 이면 그 검사를 끈다. 저장소 층은 더 엄하게만 바꾼다: 사용자 층(저장소 층 없이 한 번 더 읽은 값)과 비교해 최소 여유는 큰 쪽, 급감은 0 아닌 것 가운데 작은 쪽을 쓴다. 풀 수 있으면 0 으로 꺼진 스위치와 같아지기 때문이다.
+
+상태: `${CLAUDE_PLUGIN_DATA}/resource-guard/`(없으면 `$TMPDIR/claude-qwreey-proc-guard/resource-guard/`). `pre/<세션 해시>-<tool_use_id>.json`(Pre 시각, cwd, 측정)과 `s-<세션 해시>.json`(경고한 값, 알린 core). 하루 지난 Pre 파일과 일주일 지난 세션 파일은 Pre 가 지운다.
+
+비용(2026-11-19, 이 기계): 훅 한 번 중앙값 약 31 ms(빈 python 시작 9 ms, heavy-proc-guard 24 ms). 크래시 뒤 훑기는 이 저장소에서 3 ms 안팎을 더한다.
+
 ## 테스트
 ```bash
 python3 -I plugins/qwreey-proc-guard/tests/test-heavy-proc-guard.py
 python3 -I plugins/qwreey-proc-guard/tests/test-self-match-guard.py
+python3 -I plugins/qwreey-proc-guard/tests/test-resource-guard.py
 ```
+`test-resource-guard.py` 는 훅 모듈의 `disk_usage`, `read_core_pattern` 을 바꿔 끼우고 임시 폴더에 ELF core 헤더를 써서 본다. 이 기계의 기존 core 파일은 건드리지 않는다.
