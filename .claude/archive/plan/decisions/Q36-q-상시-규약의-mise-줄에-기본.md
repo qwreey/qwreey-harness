@@ -1,13 +1,15 @@
 ---
 format: 1
 title: q 상시 규약의 mise 안내를 어디로 옮길까?
-description: q 상시 규약의 mise 안내를 어디로 옮길까? 권장 a) 상시 줄 빼고 오류 때 뜨는 훅
-status: active
+description: q 상시 규약의 mise 안내를 어디로 옮길까? 답 a) 상시 줄 빼고 오류 때 뜨는 훅
+status: archived; answered a) 상시 줄 빼고 오류 때 뜨는 훅
 id: Q36
 urgency: later
 blocks: q ambient 문구 한 줄
 recommended: a
 created: 2026-11-19T06:14:25.567Z
+answered: 2026-11-19T06:17:44.929Z
+answer: a
 ---
 
 # Q36. q 상시 규약의 mise 안내를 어디로 옮길까?
@@ -41,3 +43,7 @@ created: 2026-11-19T06:14:25.567Z
 - 2026-11-19T06:16:04.137Z user: 애초에 mise 를 쓸 수 있게 돕는 스킬로 분리해야하는 기능 아닌가 싶기도 하네. 뭔가 그래
 - 2026-11-19T06:16:19.412Z agent: 맞아요. 이 줄은 shim 이 실패했을 때만 쓸모 있는데 매 세션 실려요. 다만 스킬은 모델이 스스로 골라 불러야 해서, 에러를 보고도 안 부를 수 있어요. 더 확실한 건 훅이에요. Bash 출력에 "No version is set" 이 나올 때만 알리고, 실제로 깔린 버전 경로(`~/.local/share/mise/installs/<tool>/<ver>/`)를 찾아서 바로 적어 줘요. 상시 비용은 0 이고 경로도 정확해요. 그래서 선택지를 이렇게 바꿨어요. 상시 줄을 빼고 오류 때만 뜨는 훅을 두는 게 추천이고, mise 사용법을 더 담고 싶으면 스킬은 그 위에 얹어요.
 - 2026-11-19T06:16:26.468Z agent: 결정을 다듬음: 질문 고침, 배경 고침, 선택지 d 추가, 선택지 a, b, c 고침, 권장 이유 고침
+
+## 답
+
+a

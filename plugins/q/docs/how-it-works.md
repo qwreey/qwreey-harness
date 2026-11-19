@@ -14,7 +14,7 @@
 모든 훅은 모델을 부르지 않고, 실패하면 조용히 통과한다.
 
 ## 규약 주입 (`ambient.py`)
-- `context/ambient.md`(훅 알림의 위상과 info·warn·action 의 뜻, `~/.claude` 는 qwreey-harness `home/` 에서 고친다는 줄, mise shim 우회 줄. 영어 다섯 줄)를 `<plugin name="q" nonce="…">` 로 감싸 `additionalContext` 로 낸다. 다른 플러그인의 훅 메시지는 이 배경을 전제로 쓰인다(`home/.claude/HOOK-MESSAGES.md`).
+- `context/ambient.md`(훅 알림의 위상과 info·warn·action 의 뜻, `~/.claude` 는 qwreey-harness `home/` 에서 고친다는 줄. 영어 네 줄)를 `<plugin name="q" nonce="…">` 로 감싸 `additionalContext` 로 낸다. 다른 플러그인의 훅 메시지는 이 배경을 전제로 쓰인다(`home/.claude/HOOK-MESSAGES.md`).
 - SessionStart 는 메인에, SubagentStart 는 서브에이전트에 싣는다. fork 는 부모 맥락을 물려받으므로 건너뛴다.
 - UserPromptSubmit 은 세션 중간에 플러그인을 켠 경우의 보충으로, (세션, compact 회차)당 한 번만 싣는다.
 - 끄기: 옵션 `harness_q_ambient` 를 끄거나 `HARNESS_Q_AMBIENT=off`(환경 변수 또는 플러그인 옵션 위의 harness.env 층: 사용자 `~/.claude/harness.env` < 저장소 `.claude/harness.env` < 저장소 `.claude/harness.local.env`. 층 규칙은 `home/.claude/lib/harness_env.py` 머리, 플러그인은 늘 옆의 `scripts/harness_env.py` 사본을 쓴다).
@@ -41,6 +41,11 @@
 - 플러그인: 켜 둔 마켓 플러그인의 설치 버전이 마켓의 `plugin.json` 버전보다 낮으면 `claude plugin update <name>@<market>` 을 보인다. 원격 마켓은 로컬 사본이 `marketplace update` 될 때까지의 비교다.
 - home: 저장소 루트에 `tools/home-sync.sh` 가 있으면(qwreey-harness) `home-sync.sh status` 를 돌려 어긋남을 한 줄로.
 - 같은 내용은 하루 한 번(바뀌면 바로). compact 로 다시 시작한 세션은 건너뛴다. 상태: `$TMPDIR/claude-q-drift/state.json`. 끄기: q 옵션 `harness_q_drift`(`/config`), 또는 `HARNESS_Q_DRIFT=off`(환경 변수, harness.env 층. 기본값은 `drift.py` 의 `DRIFT_DEFAULTS`).
+
+## mise shim 안내 (`mise-hint.py`)
+- PostToolUseFailure:Bash 에서만 돈다(성공한 Bash 에는 python 을 띄우지 않는다). 출력에 mise 의 `No version is set for shim: <이름>` 이 있으면 모델에 info 로 설치된 실행 파일 경로(최대 3개)와 `mise exec <도구>@<버전> -- <이름>` 을 알리고, `mise use -g` 는 사용자 전역 설정을 바꾸니 묻고 하라고 적는다.
+- 설치 폴더는 harness.env 층의 `HARNESS_TOOL_INSTALLS`(기본 `~/.local/share/mise/installs`), 비면 `$MISE_DATA_DIR/installs`. `<도구>/<버전>/` 바로 아래나 `bin/` 에서 같은 이름(Windows 는 `.exe`, `.cmd` 도)을 찾고, 별칭 버전 폴더(`7`, `latest` 같은 심볼릭 링크)는 건너뛴다. 오류가 제안한 `mise use -g <도구>@<버전>` 의 것을 앞에 둔다.
+- 예전에는 상시 규약에 한 줄로 두었으나 오류가 났을 때만 필요해 훅으로 옮겼다. 놓치는 것: 파이프 끝이 성공해 Bash 가 exit 0 인 경우.
 
 ## /q:doctor
 결정적 검사(`skills/doctor/scripts/scan.py` 와 `scan_*.py`, 기록 규약 검사 `scripts/records_check.py`, 팩 검사 `pack_checks.py`)를 돌리고 모델이 판단을 더한다. 툴킷별 검사는 `skills/doctor/references/toolkits/`.

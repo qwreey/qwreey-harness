@@ -1,5 +1,5 @@
 {
-  "description": "ambient.py 가 상시 규약(context/ambient.md)을 SessionStart·SubagentStart 로 싣는다. subagent-slots.py 는 서브에이전트 고지·슬롯 훅이다. PreCompact 는 q 자기 compact 회차를 올리고, ambient.py 가 요약기에게 다시 실릴 <plugin name=\"q\"> 블록을 요약에서 빼라고 한 줄 낸다.",
+  "description": "ambient.py 가 상시 규약(context/ambient.md)을 SessionStart·SubagentStart 로 싣는다. subagent-slots.py 는 서브에이전트 고지·슬롯 훅이다. PreCompact 는 q 자기 compact 회차를 올리고, ambient.py 가 요약기에게 다시 실릴 <plugin name=\"q\"> 블록을 요약에서 빼라고 한 줄 낸다. mise-hint.py 는 Bash 가 실패하고 출력에 mise 의 'No version is set for shim' 이 있을 때만 설치된 실행 파일 경로를 알린다.",
   "hooks": {
     "SessionStart": [
       {
@@ -82,6 +82,18 @@
           {
             "type": "command",
             "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/mise-hint.py\"",
             "timeout": 10
           }
         ]

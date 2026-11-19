@@ -53,6 +53,8 @@ ENTRIES = [
      "plugins/qwreey-delegate/skills/delegate/scripts/delegate.py", "plugins/qwreey-delegate/skills/delegate/scripts/delegate.py"),
     ("qwreey-proc-guard", "plugins/qwreey-proc-guard/hooks", "out = load('heavy-proc-guard.py').load_env(PROJ)", None,
      "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py"),
+    ("q mise-hint", "plugins/q/scripts", "out = load('mise-hint.py').load_env(PROJ)", None,
+     "plugins/q/scripts/mise-hint.py"),
     ("qwreey-proc-guard resource-guard", "plugins/qwreey-proc-guard/hooks", "out = load('resource-guard.py').load_env(PROJ)",
      "plugins/qwreey-proc-guard/hooks/resource-guard.py", "plugins/qwreey-proc-guard/hooks/resource-guard.py"),
     ("qwreey-conventions structure-reminder", "plugins/qwreey-conventions/hooks", "out = load('structure-reminder.py').harness_env()",

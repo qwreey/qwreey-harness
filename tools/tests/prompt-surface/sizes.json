@@ -2,8 +2,8 @@
  "items": {
   "agent.qwreey-advisor.reviewer": 432,
   "ambient.q.PreCompact": 86,
-  "ambient.q.SessionStart": 900,
-  "ambient.q.SubagentStart": 900,
+  "ambient.q.SessionStart": 753,
+  "ambient.q.SubagentStart": 753,
   "ambient.qwreey-advisor.PreCompact": 99,
   "ambient.qwreey-advisor.SessionStart": 712,
   "ambient.qwreey-operator.PreCompact": 100,
@@ -78,9 +78,9 @@
  },
  "totals": {
   "packs_listings": 4413,
-  "session_start": 13431,
-  "session_start_hooks": 5310,
+  "session_start": 13284,
+  "session_start_hooks": 5163,
   "session_start_listings": 8121,
-  "subagent_start_hooks": 2748
+  "subagent_start_hooks": 2601
  }
 }

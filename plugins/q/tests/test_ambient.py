@@ -61,7 +61,7 @@ class T(unittest.TestCase):
         for ev, extra in (("SessionStart", {"source": "startup"}), ("SubagentStart", {"agent_type": "general-purpose", "agent_id": "a1"})):
             ctx = self.run_hook(ev, extra)["hookSpecificOutput"]["additionalContext"]
             self.assertIn("edited at their source under qwreey-harness `home/`, never in place", ctx)
-            self.assertIn('If a mise shim fails with "No version is set"', ctx)
+            self.assertNotIn("mise", ctx, "mise 안내는 실패한 Bash 에서만 뜨는 mise-hint.py 로 옮겼다(Q36 a)")
 
     def test_rule_line_once_per_event(self):
         first = self.run_hook("SessionStart", {"source": "resume"})["hookSpecificOutput"]["additionalContext"]

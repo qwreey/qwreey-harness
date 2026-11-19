@@ -1,9 +1,9 @@
 # q (plugin development)
 
-User-invoked commands (`/q:start`, `/q:doctor`, `/q:away`, `/q:back`) plus always-on hooks: ambient (hook-message background, `~/.claude` canonical source, mise shim fallback), subagent fan-out notice and away slots, stale background work, install drift. How it fits together: `docs/how-it-works.md`; onboarding layout: `docs/onboarding.md`.
+User-invoked commands (`/q:start`, `/q:doctor`, `/q:away`, `/q:back`) plus always-on hooks: ambient (hook-message background, `~/.claude` canonical source), mise shim hint on a failed Bash (`scripts/mise-hint.py`), subagent fan-out notice and away slots, stale background work, install drift. How it fits together: `docs/how-it-works.md`; onboarding layout: `docs/onboarding.md`.
 
 ## Where things are
-- `hooks/hooks.json`: every hook registration. Scripts are in `scripts/`: `ambient.py` (injects `context/ambient.md`), `subagent-slots.py` + `subagent_ledger.py` (fan-out notice, away budget; the ledger is also the CLI behind `/q:away` and `/q:back` and is read by the qwreey-harness statusline), `stale_work.py`, `drift.py`, `records_check.py` (used by `/q:doctor`).
+- `hooks/hooks.json`: every hook registration. Scripts are in `scripts/`: `ambient.py` (injects `context/ambient.md`), `subagent-slots.py` + `subagent_ledger.py` (fan-out notice, away budget; the ledger is also the CLI behind `/q:away` and `/q:back` and is read by the qwreey-harness statusline), `stale_work.py`, `drift.py`, `mise-hint.py`, `records_check.py` (used by `/q:doctor`).
 - `skills/<name>/SKILL.md` per command; `/q:doctor` checks live in `skills/doctor/scripts/`, its references in `skills/doctor/references/`.
 - `README.md` is for people deciding whether to install; technical detail goes in `docs/how-it-works.md`.
 
