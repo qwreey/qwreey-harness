@@ -1,6 +1,6 @@
 {
   "name": "qwreey-advisor",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "정해진 시점의 독립 검토. qwreey-advisor:inherit-advisor 는 대화를 이어받은 fork(표지를 훅이 검토자 후행 프롬프트로 펼친다)로 흐름에서 놓친 것을 짚고, qwreey-advisor:fresh-advisor 는 새 컨텍스트의 읽기 전용 리뷰어가 diff·주장을 반증한다. 훅이 반복 실패, 큰 커밋, 커밋 안 한 큰 변경이 남은 턴 끝과, 추천안·질문이 든 서브에이전트 보고를 알린다. 내장 advisor 도구는 사용자가 요청할 때만 쓴다.",
   "author": {
     "name": "qwreey",
@@ -49,6 +49,12 @@
       "type": "boolean",
       "title": "서브에이전트 보고 알림",
       "description": "서브에이전트 보고에 추천안이나 질문이 들어 있으면 메인에게 한 줄로 알린다.",
+      "default": true
+    },
+    "harness_qwreey_advisor_ambient": {
+      "type": "boolean",
+      "title": "상시 규약 싣기",
+      "description": "켜 두면 세션 시작에 '검토는 묻지 않고 한다' 규약을 싣는다. 끄면 그 글만 빠지고 검토 알림 훅은 그대로 돈다.",
       "default": true
     }
   }

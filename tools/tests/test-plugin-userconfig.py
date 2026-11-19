@@ -63,6 +63,13 @@ def code_defaults(plugin):
                 continue
             if d and all(isinstance(k, str) and ENV_KEY.match(k) for k in d):
                 out.update({k: str(v) for k, v in d.items()})
+    # lib/ambient.py 는 플러그인마다 같은 사본이라 스위치 이름을 context/ambient.json 에서 받고, 기본값 on 을 넘긴다.
+    try:
+        sw = json.loads((plugin / "context" / "ambient.json").read_text(encoding="utf-8")).get("off_switch")
+    except (OSError, ValueError, AttributeError):
+        sw = None
+    if isinstance(sw, str) and ENV_KEY.match(sw):
+        out.setdefault(sw, "on")
     return out
 
 

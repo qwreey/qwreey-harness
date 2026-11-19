@@ -3,7 +3,7 @@ title: 세션 기록 자동화 설계 (session-log)
 description: 메인 세션이 아무것도 하지 않아도 PreCompact·SessionEnd·PostToolUse 훅이 백그라운드 요약기로 트랜스크립트를 증분 요약해 .claude/session/auto/ 에 coderag frontmatter 기록을 남기는 설계
 keywords: [session-log, 세션 기록, PreCompact, SessionEnd, transcript_path, 증분 요약, remember, checkpoint, handover, haiku, sonnet]
 kind: plan
-status: landed in plugins/q/docs/session-log.md; 설계 근거로 남김
+status: landed in plugins/qwreey-sessions/docs/session-log.md; 설계 근거로 남김
 last_verified: 2026-11-10
 ---
 # 세션 기록 자동화 설계 (session-log)

@@ -1,6 +1,6 @@
 {
   "name": "qwreey-workspace",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "이 세션 저장소 밖의 다른 git 저장소를 읽기 전용으로 지키는 게이트와 지도. 다른 저장소는 Claude Code 세션 기록에서 자동으로 찾고 옵션으로 더하고 뺀다. 다른 저장소에 쓰기는 스킬 qwreey-workspace:workspace 를 로드하기 전까지 거절하고, 읽기는 compact 회차마다 한 번 알린다. 저장소 목록, 살아 있는 세션 확인, worktree 잠금 확인 절차를 스킬이 갖는다. 규약 네 줄을 세션, 서브에이전트 시작에 주입한다. 세션 시작에 이 저장소의 오래 손대지 않은 worktree 를 한 줄로 알린다(읽기만). 이 저장소 기록(.claude/)에 다른 저장소 내부 경로를 쓰면 의존, 공개 정도를 확인하라고 한 줄 알린다. 설정은 /config 또는 /plugin configure.",
   "author": { "name": "qwreey", "email": "me@qwreey.moe" },
   "license": "MIT",
@@ -34,6 +34,12 @@
       "type": "boolean",
       "title": "오래된 worktree 알림",
       "description": "켜면 세션을 시작할 때 이 저장소에 오래(기본 14일) 손대지 않은 worktree 가 있으면 Claude 에게 한 줄 알린다. 지우는 것은 사용자에게 물은 뒤에만 한다.",
+      "default": true
+    },
+    "harness_workspace_ambient": {
+      "type": "boolean",
+      "title": "상시 규약 싣기",
+      "description": "켜 두면 세션 시작과 서브에이전트에 형제 저장소 규약(다른 저장소는 읽기 전용, worktree 지우기 전 확인)을 싣는다. 끄면 그 글만 빠지고 게이트 훅은 그대로 돈다.",
       "default": true
     }
   }

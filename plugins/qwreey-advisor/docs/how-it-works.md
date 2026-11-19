@@ -61,7 +61,7 @@
 | `HARNESS_REVIEW_STOP` | `on` | `on`(또는 `1`) 이면 Stop 알림을 낸다. `off` 로 끈다(옵션 `harness_review_stop`) |
 | `HARNESS_REVIEW_PLAN` | `warn` | high 등급 계획 검토. `warn` 은 권고, `deny` 는 거절, `off` 는 끔(옵션 `harness_review_plan`) |
 | `HARNESS_REVIEW_HANDBACK` | `on` | `off` 면 서브에이전트 보고 알림을 끈다(옵션 `harness_review_handback`) |
-| `HARNESS_QWREEY_ADVISOR_AMBIENT` | 빈 값 | `off` 면 규약 주입을 끈다 |
+| `HARNESS_QWREEY_ADVISOR_AMBIENT` | `on` | `off` 면 규약 주입을 끈다(옵션 `harness_qwreey_advisor_ambient`) |
 
 `off` 등급은 알림만 멈춘다. 스킬은 여전히 부를 수 있다(inherit-advisor 는 off 저장소에서 사용자가 요청할 때만 부르라고 적혀 있다).
 

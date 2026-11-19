@@ -71,7 +71,7 @@
 - 옵션 `harness_workspace_gate`(`HARNESS_WORKSPACE_GATE=off`, 사용자 harness.env 나 환경 변수): 게이트만 끈다. 규약 주입은 플러그인이 켜져 있는 한 계속된다.
 - 옵션 `harness_workspace_stale_worktrees`(`HARNESS_WORKSPACE_STALE_WORKTREES=off`, 또는 `HARNESS_WORKSPACE_STALE_WORKTREE_DAYS=off`): 오래된 worktree 알림만 끈다. 저장소 층에서도 끌 수 있다.
 - 옵션 `harness_workspace_sibling_notice`(`HARNESS_WORKSPACE_SIBLING_NOTICE=off`): 기록의 형제 경로 알림만 끈다. 저장소 층에서도 끌 수 있다.
-- `HARNESS_WORKSPACE_AMBIENT=off`(harness.env 고급 키): 상시 규약만 끈다.
+- 옵션 "상시 규약 싣기"(`harness_workspace_ambient`, harness.env 의 `HARNESS_WORKSPACE_AMBIENT=off` 도 된다): 상시 규약만 끈다.
 
 ## 테스트
 ```bash

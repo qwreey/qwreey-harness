@@ -24,7 +24,7 @@
 - 설치 어긋남 알림(`harness_q_drift`)
 - 방치된 백그라운드 작업 알림(`harness_q_stale`)
 
-고급: 문턱과 예산 기본값, 규약 끄기(`HARNESS_Q_AMBIENT=off`)는 `~/.claude/harness.env` 나 저장소 `.claude/harness.env` 에 둔다([docs/how-it-works.md](docs/how-it-works.md)).
+규약 끄기는 `/plugin configure q@qwreey-harness` 의 "상시 규약 싣기"(`harness_q_ambient`). 고급: 문턱과 예산 기본값은 `~/.claude/harness.env` 나 저장소 `.claude/harness.env` 에 둔다(`HARNESS_Q_AMBIENT=off` 도 그대로 된다)([docs/how-it-works.md](docs/how-it-works.md)).
 
 전부 끄기: `claude plugin disable q@qwreey-harness` (제거는 `uninstall`).
 

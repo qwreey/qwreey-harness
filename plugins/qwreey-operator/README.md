@@ -22,11 +22,11 @@
 `/plugin configure qwreey-operator@qwreey-harness` 또는 `/config` 의 플러그인 설정에서 바꾼다.
 - 위임 권유 알림(`harness_operator_nudge`, 기본 켜짐).
 - 서브에이전트 남은 작업 알림(`harness_operator_subagent_bg`, 기본 켜짐).
-- 고급: 규약 주입 스위치 `HARNESS_OPERATOR_AMBIENT=off` 는 `~/.claude/harness.env` 키, 알림 문턱 `HARNESS_OPERATOR_NUDGE_WRITES`, `HARNESS_OPERATOR_NUDGE_FILES` 는 환경 변수다. 목록은 [docs/how-it-works.md](docs/how-it-works.md).
+- 규약 주입 스위치는 옵션 "상시 규약 싣기"(`harness_operator_ambient`, harness.env 의 `HARNESS_OPERATOR_AMBIENT=off` 도 된다). 고급: 알림 문턱 `HARNESS_OPERATOR_NUDGE_WRITES`, `HARNESS_OPERATOR_NUDGE_FILES` 는 환경 변수다. 목록은 [docs/how-it-works.md](docs/how-it-works.md).
 
 ## 끄기
 - 알림만: 위 설정에서 끈다.
-- 규약 주입만: `HARNESS_OPERATOR_AMBIENT=off`.
+- 규약 주입만: `/plugin configure qwreey-operator@qwreey-harness` 에서 "상시 규약 싣기"를 끈다.
 - 한 프로젝트에서만: 그 저장소 `.claude/settings.json` 의 `enabledPlugins` 로 끄거나, 스위치를 그 저장소 `.claude/harness.env`(팀 공유, 커밋)나 `.claude/harness.local.env`(나만, `.gitignore` 에 넣는다), 또는 settings 의 `env` 에 둔다. local 이 공유 파일을 이기고 환경 변수가 둘 다 이긴다.
 - 전부: `claude plugin disable qwreey-operator@qwreey-harness` (제거는 `uninstall`).
 

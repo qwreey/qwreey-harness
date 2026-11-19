@@ -185,6 +185,30 @@ class Lib(unittest.TestCase):
         self.assertFalse(on(env=dict(self.env, CLAUDE_PROJECT_DIR=str(proj))), "local 이 저장소 층을 이긴다")
         self.assertTrue(on(env=dict(self.env, CLAUDE_PROJECT_DIR=str(proj), HARNESS_DEMO_AMBIENT="on")), "환경 변수가 이긴다")
 
+    def test_off_switch_plugin_option(self):
+        """userConfig 의 boolean 옵션(소문자 키)이 스위치가 된다: false 면 끄고, 저장소 harness.env 가 그 위에 온다."""
+        cfg, proj = self.tmp / "cfg", self.tmp / "proj"
+        cfg.mkdir()
+        (proj / ".claude").mkdir(parents=True)
+        (self.plug / ".claude-plugin").mkdir()
+        (self.plug / ".claude-plugin" / "plugin.json").write_text(json.dumps(
+            {"name": "demo", "userConfig": {"harness_demo_ambient": {"type": "boolean", "default": True}}}))
+        on = lambda **kw: self.ctx("SessionStart", {"source": "startup"}, **kw) is not None  # noqa: E731
+
+        # Option off, then on
+        for value, want in ((False, False), (True, True)):
+            (cfg / "settings.json").write_text(json.dumps({
+                "enabledPlugins": {"demo@m": True},
+                "pluginConfigs": {"demo@m": {"options": {"harness_demo_ambient": value}}}}))
+            self.assertEqual(on(), want, value)
+
+        # Repo layer still wins over the option
+        (cfg / "settings.json").write_text(json.dumps({
+            "enabledPlugins": {"demo@m": True},
+            "pluginConfigs": {"demo@m": {"options": {"harness_demo_ambient": False}}}}))
+        (proj / ".claude" / "harness.env").write_text("HARNESS_DEMO_AMBIENT=on\n")
+        self.assertTrue(on(env=dict(self.env, CLAUDE_PROJECT_DIR=str(proj))))
+
     def test_fail_silent(self):
         for bad in ("not json", "[]", json.dumps({"events": ["SessionStart"]}), json.dumps(dict(CONFIG, plugin=""))):
             self.write_config(bad)

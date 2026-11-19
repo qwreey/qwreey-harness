@@ -1,6 +1,6 @@
 {
   "name": "q",
-  "version": "0.12.1",
+  "version": "0.12.2",
   "description": "사람이 직접 치는 하네스 명령과 개인 안전장치 모음. /q:start(온보딩), /q:doctor(하네스 진단), /q:away·/q:back(자리 비움 예산). 서브에이전트 고지·슬롯 훅과 statusline 이 읽는 원장, 설치 어긋남·방치 작업 알림, 상시 규약 주입(ambient)을 포함한다. 세션 기록은 qwreey-sessions, 다른 저장소 게이트는 qwreey-workspace 로 나뉘었다. 이름 q 는 사용자명 qwreey 에서 왔다.",
   "author": {
     "name": "qwreey",
@@ -31,6 +31,12 @@
       "type": "boolean",
       "title": "방치된 백그라운드 작업 알림",
       "description": "백그라운드 작업이 오래 출력 없이 멈춰 있거나 아주 오래 돌면 알린다.",
+      "default": true
+    },
+    "harness_q_ambient": {
+      "type": "boolean",
+      "title": "상시 규약 싣기",
+      "description": "켜 두면 세션 시작과 서브에이전트에 q 의 상시 규약(훅 메시지 읽는 법, 환경 메모)을 싣는다. 끄면 그 글만 빠지고 명령과 다른 훅은 그대로 돈다.",
       "default": true
     }
   }
