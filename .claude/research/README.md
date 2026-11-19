@@ -12,4 +12,5 @@ Open investigations and drafts before a decision (living; each folder's README c
 <!-- coderag:begin -->
 | Document | Description | Status |
 |---|---|---|
+| [실사용에서 느낀 점과 고친 것 (2026-11 주간)](real-use-2026-11.md) | 하네스를 평소 작업에 쓰며 사용자가 남긴 느낀 점을 날짜순으로 모으고, 각 항목을 고쳤는지(커밋)·볼 것인지 표시; 주말 돌아보기의 입력, 기준선은 audit 65 | research · active |
 <!-- coderag:end -->

@@ -1,7 +1,7 @@
 ---
 format: 1
 title: 지금 계획
-description: 책상의 지금 계획 9단계(끝 2), 다음 S3 S3 실사용 측정 도구
+description: 책상의 지금 계획 9단계(끝 3), 하는 중 S4 S4 느낀 점 기록 자리
 status: active
 ---
 
@@ -11,10 +11,10 @@ status: active
   20850e4: HUMAN_TODO 끝난 10개 체크(45→35), PLAN 지금 절 갱신
 - [x] S2 S2 coderag 정리와 규약 맞추기
   coderag fa79237 가끔 실패하던 hook 시험 고침, 6037f51 CLAUDE.md 4.4k→1.1k 토큰(Q37 a)
-- [ ] S3 S3 실사용 측정 도구
-  tools/usage-report.py: 세션 기록에서 훅별 알림 수·level·시간·주입 크기, 상시 주입 크기, 서브에이전트 수·모델. 조용한 훅은 표본 입력으로 시간만 잼. 지난주 기준선 한 번
-- [ ] S4 S4 느낀 점 기록 자리
-  주중엔 desk memo 나 채팅 한 줄, 모아서 .claude/research/real-use-2026-11.md
+- [x] S3 S3 실사용 측정 도구
+  523970b: tools/usage-report.py(+ --time-hooks), 기준선 .claude/audit/65-real-use-baseline
+- [~] S4 S4 느낀 점 기록 자리
+  .claude/research/real-use-2026-11.md 를 만들고 오늘 받은 느낀 점 2개(desk 권장 표시, 활성 단계 리마인드)부터 적음
 - [ ] S5 S5 실사용 전 갱신 (사용자)
   q·advisor·operator·proc-guard·workspace 갱신, coderag 0.23.3, 새 세션
 - [ ] S6 S6 실사용 주간 (11-23~)
