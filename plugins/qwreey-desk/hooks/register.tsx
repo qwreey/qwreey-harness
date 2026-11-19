@@ -19,6 +19,8 @@ import {
   fromUi,
   fromV1,
   isUrgency,
+  IDLE_STEP_EVERY,
+  idleStepNote,
   logSince,
   markRead,
   marksOf,
@@ -84,6 +86,8 @@ const seenFrom = atom({ plugin: 'qwreey-desk', key: 'seenFrom' } as const, 0)
 const view = atom({ plugin: 'qwreey-desk', key: 'view' } as const, {})
 const tab = atom({ plugin: 'qwreey-desk', key: 'tab' } as const, 'wait' as DeskTab)
 const fields = atom({ plugin: 'qwreey-desk', key: 'fields' } as const, {} as Record<string, DeskField>)
+// The last idle-step reminder in this session: for which plan, and prompts since.
+const idleNudge = atom({ plugin: 'qwreey-desk', key: 'idleNudge' } as const, { sig: '', prompts: 0 })
 // The validator reads state references off the source, so each family
 // member's atom is written where it is read or written.
 const readOffset = ($: EngineInterface, id: DeskTab) => read($, atom({ plugin: 'qwreey-desk', key: 'offset', id } as const, -1))
@@ -452,6 +456,15 @@ export const register: Register = on => {
     if (discussed) {
       const d = (await deskNow($)).decisions.find(one => one.id === decisionId(discussed))
       if (d) lines.push(`The user wants to discuss this desk decision further; it stays open.\n${decisionBrief(d)}`)
+    }
+
+    // No step doing: remind once per plan, and again every few prompts
+    const idle = idleStepNote(await deskNow($))
+    if (idle) {
+      const last = await read($, idleNudge)
+      const due = last.sig !== idle.sig || last.prompts + 1 >= IDLE_STEP_EVERY
+      if (due) lines.push(idle.text)
+      await update($, idleNudge, () => ({ sig: idle.sig, prompts: due ? 0 : last.prompts + 1 }))
     }
     return lines.length > 0 ? next({ ...e, context: [...(e.context ?? []), ...lines] }) : next(e)
   })

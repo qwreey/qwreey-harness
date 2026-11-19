@@ -456,6 +456,23 @@ export const currentStep = (data: DeskData): DeskStep | undefined =>
   data.plan.find(s => s.state === 'doing') ?? data.plan.find(s => s.state === 'todo')
 export const logSince = (data: DeskData, since: number): DeskLogEntry[] => data.log.filter(l => l.at > since)
 
+/** Prompts between two reminders while the plan stays the same with no step doing. */
+export const IDLE_STEP_EVERY = 8
+
+// `sig` is the plan's ids and states, so the caller reminds again once the plan changes.
+/** A note for the model when the plan has open steps and none is marked doing, else undefined. */
+export const idleStepNote = (data: DeskData): { sig: string; text: string } | undefined => {
+  if (data.plan.some(s => s.state === 'doing')) return undefined
+  const next = data.plan.find(s => s.state === 'todo')
+  if (!next) return undefined
+  const sig = data.plan.map(s => `${s.id}:${s.state}`).join(' ')
+  const text =
+    `No desk plan step is marked doing (next open: ${next.id} "${next.text}"). ` +
+    'If this turn works on a plan step, mark it first with the desk action update_step (state doing), and done when it is finished; ' +
+    'if the work is outside the plan, add a step or leave the plan as it is.'
+  return { sig, text }
+}
+
 export const STEP_WORD: Record<DeskStepState, string> = { todo: '할 일', doing: '하는 중', done: '끝' }
 export const RUN_WORD: Record<DeskRunStatus, string> = {
   running: '도는 중',

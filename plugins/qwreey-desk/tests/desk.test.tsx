@@ -245,6 +245,34 @@ test('a chat line answers a decision and tells the model', async ($, on) => {
   expect(stored().decisions[1].status).toBe('open')
 })
 
+test('with open steps and none doing, the model is reminded once per plan and every few prompts', async ($, on) => {
+  const { submitted } = engine(on)
+  await start($)
+  await $.tool.call(desk({ action: 'set_plan', steps: ['타입 쓰기', '밴드 그리기'] }))
+  const say = async (text: string) => {
+    await $.prompt.submit({ text, wait: false, origin: { kind: 'composer' } })
+    return (submitted.at(-1)?.context ?? []).join('\n')
+  }
+
+  // The first prompt carries the reminder naming the next step; the next does not.
+  expect(await say('시작하자')).toContain('No desk plan step is marked doing (next open: S1 "타입 쓰기")')
+  expect(await say('계속')).not.toContain('marked doing')
+
+  // Eight prompts after the last reminder it comes back.
+  for (let i = 0; i < 6; i++) await say('계속')
+  expect(await say('계속')).toContain('marked doing')
+
+  // A step doing silences it; when that step is done and none doing, the new plan state reminds at once.
+  await $.tool.call(desk({ action: 'update_step', id: 'S1', state: 'doing' }))
+  expect(await say('계속')).not.toContain('marked doing')
+  await $.tool.call(desk({ action: 'update_step', id: 'S1', state: 'done' }))
+  expect(await say('다음')).toContain('next open: S2 "밴드 그리기"')
+
+  // A plan with every step done says nothing.
+  await $.tool.call(desk({ action: 'update_step', id: 'S2', state: 'done' }))
+  expect(await say('끝')).not.toContain('marked doing')
+})
+
 test('the band fits a phone width and hides when there is nothing', async ($, on) => {
   engine(on)
   await start($)

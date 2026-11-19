@@ -202,6 +202,8 @@ declare module 'claude-code' {
       fields: Record<string, DeskField>
       /** Per tab: the first item its list shows, -1 where it opens on its own. */
       offset: StateFamily<number>
+      /** The last "no step doing" reminder: the plan it was for, and prompts since. */
+      idleNudge: { sig: string; prompts: number }
     }
   }
 }
