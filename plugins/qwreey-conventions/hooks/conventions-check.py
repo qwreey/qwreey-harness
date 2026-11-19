@@ -278,6 +278,13 @@ def majority(cnt):
     return script if n / total >= LANG_SHARE else None
 
 
+# 형제 파일 주석 통계: (경로, mtime, 크기) -> Counter. conventions-scan 이 한 프로세스에서 폴더를 훑을 때
+# 파일마다 형제를 다시 렉싱해 파일 수의 제곱으로 늘던 것을 막는다(quad test 폴더 46파일에 렉싱 774번).
+_SIBLING_STATS = {}
+SIBLING_MAX_FILES = 20
+SIBLING_MAX_BYTES = 1_000_000  # 형제 파일을 합쳐 이만큼 읽으면 멈춘다(편집 한 번의 훅이 큰 폴더에서 길어지지 않게)
+
+
 def sibling_majority(path, fam_ext, cfg=None):
     d = os.path.dirname(path)
     cnt = Counter()
@@ -286,14 +293,22 @@ def sibling_majority(path, fam_ext, cfg=None):
     except OSError:
         return None
     fam = FAMILY.get(fam_ext)
-    for n in [n for n in names if os.path.join(d, n) != path][:20]:
+    read = 0
+    for n in [n for n in names if os.path.join(d, n) != path][:SIBLING_MAX_FILES]:
         try:
             p = os.path.join(d, n)
-            if os.path.getsize(p) > 200_000:
+            st = os.stat(p)
+            if st.st_size > 200_000:
                 continue
-            sib = Path(p).read_text(encoding="utf-8")
-            rows = lex(sib, fam)
-            cnt += comment_stats(rows, step_labels(rows, sib.split("\n"), cfg or DEFAULTS))
+            if read + st.st_size > SIBLING_MAX_BYTES:
+                break
+            read += st.st_size
+            key = (p, st.st_mtime_ns, st.st_size)
+            if key not in _SIBLING_STATS:
+                sib = Path(p).read_text(encoding="utf-8")
+                rows = lex(sib, fam)
+                _SIBLING_STATS[key] = comment_stats(rows, step_labels(rows, sib.split("\n"), cfg or DEFAULTS))
+            cnt += _SIBLING_STATS[key]
         except (OSError, UnicodeDecodeError):
             continue
     return majority(cnt)

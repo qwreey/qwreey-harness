@@ -21,3 +21,7 @@ keywords: [real use, 실사용, 피드백, 느낀 점, usage-report]
 - 훅 CPU: "컨벤션 체커, 그런것들이 cpu를 너무 많이 소모하더라 ... 파이썬이 너무 무겁더라 ... 요청 받는 데몬으로 만들어야하나 싶은 느낌", "시간이 문제가 아닌것 같음"
   - 잼(CPU user+sys): 훅 하나 20~60 ms, 대부분 python 켜기(11 ms)와 모듈 불러오기·정규식 컴파일. Bash 한 번 17개 약 0.44 초, Edit 약 0.33 초, Read 약 0.15 초, 사용자 말 약 0.23 초. `-X utf8` 은 차이 없음. 트랜스크립트 62 MB 에서도 훅마다 크게 늘지 않음.
   - 정할 것: desk Q38(다이어트 먼저 / http 데몬 / mod).
+- quad 에서 python 이 한 코어 80%: "quad쪽에서 python 가 뜨고 한 코어 80% 정도 점유시켜버리기도 하더라고"
+  - 잡음: 1초 넘게 사는 python 을 150초 지켜봐 quad 작업트리 에이전트의 `conventions-scan.py scan --kind comment quad-base/test` 를 잡았다(98.6%).
+  - 원인: `conv_lex.lex` 가 글자마다 `open_comment_or_string`(문자열 정규식 `re.match`)을 불렀고(46파일에 454만 번), `sibling_majority` 가 파일마다 형제 파일을 다시 렉싱했다(렉싱 774번, 파일 수의 제곱). Edit 훅(conventions-check)도 같은 함수를 쓴다.
+  - 고침: 렉서가 주석, 문자열이 열릴 수 있는 글자까지 한 번에 건너뜀(옛 렉서와 3,550파일 7,096번 결과가 같음, 5.9배), 형제 통계를 프로세스 안에서 다시 쓰고 형제 읽기를 1 MB 로 끊음. quad test 폴더 훑기 CPU 2.36 초 -> 0.36 초.

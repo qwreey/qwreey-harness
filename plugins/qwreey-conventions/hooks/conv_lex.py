@@ -5,6 +5,20 @@ import re
 FAMILY = {".luau": "lua", ".lua": "lua", ".ts": "c", ".tsx": "c", ".js": "c", ".jsx": "c", ".mjs": "c", ".rs": "rust", ".go": "c", ".kt": "c",
           ".astro": "astro", ".py": "py", ".sh": "py", ".html": "html", ".htm": "html"}
 
+# 계열마다 주석, 문자열이 열릴 수 있는 글자. 그 사이의 코드는 한 번에 건너뛴다.
+# 글자마다 open_comment_or_string 을 부르던 루프가 CPU 를 거의 다 썼다(quad 46파일에 454만 번).
+OPENERS = {
+    "lua": re.compile(r"[-\[\"'`]"),
+    "py": re.compile(r"[#\"']"),
+    "html": re.compile(r"<"),
+    "astro": re.compile(r"[<\/\"'`]"),
+}
+OPENERS_C = re.compile(r"[\/\"'`]")
+WS_TO_SPACE = str.maketrans("\t\r", "  ")
+LUA_BLOCK = re.compile(r"--\[(=*)\[")
+LUA_LONG_STR = re.compile(r"\[(=*)\[")
+RUST_CHAR = re.compile(r"'(?:\\.[^']{0,8}|[^'\\])'")
+
 
 def lex(text, fam, keep_code=False):
     """줄마다 {"c": [주석 조각 문자열...], "s": [조각의 (시작, 끝) 열 위치...], "code": 코드나 문자열이 있는가} 를 돌려준다.
@@ -45,6 +59,17 @@ def lex(text, fam, keep_code=False):
                 else:
                     pos = j + len(state[1])
                     state = None
+                continue
+
+            # Skip plain code to the next opener
+            nxt = (OPENERS.get(fam) or OPENERS_C).search(s, pos)
+            k = nxt.start() if nxt else n
+            if k > pos:
+                span = s[pos:k]
+                row["code"] = row["code"] or span.strip(" \t\r") != ""
+                if code is not None:
+                    code.append(span.translate(WS_TO_SPACE))
+                pos = k
                 continue
 
             # Whitespace and plain code
@@ -104,13 +129,13 @@ def open_comment_or_string(s, pos, fam):
     ch = s[pos]
     if fam == "lua":
         if s.startswith("--", pos):
-            m = re.match(r"--\[(=*)\[", s[pos:])
+            m = LUA_BLOCK.match(s, pos)
             if m:
-                return ("block", "]" + m.group(1) + "]", m.end())
+                return ("block", "]" + m.group(1) + "]", m.end() - pos)
             return ("line", None, 2)
-        m = re.match(r"\[(=*)\[", s[pos:])
+        m = LUA_LONG_STR.match(s, pos)
         if m:
-            return ("str", "]" + m.group(1) + "]", m.end())
+            return ("str", "]" + m.group(1) + "]", m.end() - pos)
         if ch in "\"'":
             return ("strline", ch, 1)
         if ch == "`":
@@ -140,7 +165,7 @@ def open_comment_or_string(s, pos, fam):
         return ("strline", ch, 1)
     if ch == "'":
         if fam == "rust":  # 수명 'a 와 문자 리터럴 'x' 구분: 문자 리터럴 꼴만 문자열로 본다
-            m = re.match(r"'(?:\\.[^']{0,8}|[^'\\])'", s[pos:])
+            m = RUST_CHAR.match(s, pos)
             return ("strline", ch, 1) if m else None
         if fam == "astro":  # 마크업 속 "don't" 를 문자열로 오인하지 않게 짝이 같은 줄에 있을 때만
             return ("strline", ch, 1) if s.find("'", pos + 1) > 0 else None
