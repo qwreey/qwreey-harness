@@ -27,3 +27,4 @@ keywords: [real use, 실사용, 피드백, 느낀 점, usage-report]
   - 고침: 렉서가 주석, 문자열이 열릴 수 있는 글자까지 한 번에 건너뜀(옛 렉서와 3,550파일 7,096번 결과가 같음, 5.9배), 형제 통계를 프로세스 안에서 다시 쓰고 형제 읽기를 1 MB 로 끊음. quad test 폴더 훑기 CPU 2.36 초 -> 0.36 초.
 - 훅 언어: "rust안과 python안, 둘 다 http 서버를 둔다고 가정하면 얼마나 다른가? ... 만일 유의미하지 않다면 여기서 거르자"
   - 잼(`.claude/audit/66-hook-server-language/`): 요청당 서버 CPU python 57~670 us, Rust 13~130 us, 지금 방식(매번 띄우기) 약 34,000 us. Rust 의 이득은 도구 한 번에 약 1~2 ms 라 거름. Q38 은 python 데몬 시험을 권장으로.
+  - 덧붙임: 벤더 중립(사용자: "적어도 qwreey-harness 는 다른 하네스를 고려할 수 있다는 입장") 때문에 mod 를 백엔드로 두는 안은 뺌. Rust 를 매번 띄우면 0.5~0.6 ms 라 데몬 없이 명령 훅만으로 충분(`.claude/audit/66-hook-server-language/one-shot.md`).

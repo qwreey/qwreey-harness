@@ -54,6 +54,16 @@ fn serve(stream: TcpStream) {
 }
 
 fn main() {
+    if std::env::args().nth(1).as_deref() == Some("once") {
+        let mut body = Vec::new();
+        std::io::stdin().read_to_end(&mut body).unwrap();
+        let data: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
+        if data["tool_name"] == "Edit" {
+            let n = check(data["tool_input"]["file_path"].as_str().unwrap_or(""));
+            println!("{}", serde_json::json!({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": format!("hits {n}")}}));
+        }
+        return;
+    }
     let port = std::env::args().nth(1).unwrap_or("47502".into());
     for s in TcpListener::bind(("127.0.0.1", port.parse::<u16>().unwrap())).unwrap().incoming().flatten() {
         std::thread::spawn(move || serve(s));
