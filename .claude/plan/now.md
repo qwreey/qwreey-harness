@@ -1,7 +1,7 @@
 ---
 format: 1
 title: 지금 계획
-description: 책상의 지금 계획 12단계(끝 8), 하는 중 S3 S3 비공개·공개로 올리기
+description: 책상의 지금 계획 12단계(끝 10), 다음 S5 S5 docs-site 팩 starlight 스킬
 status: active
 ---
 
@@ -11,8 +11,8 @@ status: active
   LICENSE 67a529d, 기록 재작성 스크립트 검사 통과
 - [x] S2 S2 기록 재작성 적용
   커밋 402개 유지, .git 48M → 6.2M
-- [~] S3 S3 비공개·공개로 올리기
-  origin(git.qwreey.moe, private)에 main push 끝. GitHub qwreey/qwreey-harness 동기화는 사용자(아직 비어 있음)
+- [x] S3 S3 비공개·공개로 올리기
+  origin(git.qwreey.moe) push, GitHub 은 사용자가 동기화
 - [x] S4 S4 라이선스 도구
   qwreey-license 0.1.0
 - [ ] S5 S5 docs-site 팩 starlight 스킬
@@ -29,4 +29,5 @@ status: active
   설치본 실측 통과, 검토(opus) 지적 5개 반영 365ed53
 - [x] S11 S11 원칙·README·HUMAN_TODO
   e670baa: 원칙·개요·README(플러그인만 설치하기)·HUMAN_TODO 반영 순서
-- [ ] S12 S12 Q27 저장소 이름 qwreey-harness
+- [x] S12 S12 Q27 저장소 이름 qwreey-harness
+  전환 끝(aa46625): 폴더·마켓 qwreey-harness, 데이터·memory 이동, 전체 테스트 통과, coderag 사본 경로 고침(커밋 안 함)
