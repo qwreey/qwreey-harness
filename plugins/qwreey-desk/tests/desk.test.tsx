@@ -381,6 +381,39 @@ test('picks and comments wait in the outbox and go out as one prompt', async ($,
   await ui.unmount()
 })
 
+test('a pick off the recommendation says what was recommended and asks for a reason', async ($, on) => {
+  const { stored } = engine(on)
+  await start($)
+  await seed($)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  const nudge = { type: 'Text', text: /권장과 다른 답인데 이유가 없음/ } as const
+
+  // Q1 recommends b; picking a shows the recommendation and the nudge.
+  await ui.press({ key: 'dec-Q1' })
+  await ui.press({ key: 'opt-a' })
+  expect(stored().decisions[0].pick).toBe('a')
+  expect(await ui.find({ type: 'Text', text: /권장은 b\) 두 줄 이었음/ })).toBeDefined()
+  expect(await ui.find(nudge)).toBeDefined()
+  await ui.press({ key: 'back' })
+
+  // The outbox says the same under the pick.
+  await ui.press({ key: 'outbox' })
+  expect(await ui.find({ type: 'Text', text: /권장은 b\) 두 줄 이었음/ })).toBeDefined()
+  expect(await ui.find(nudge)).toBeDefined()
+  // The outbox note naming the decision counts as its reason.
+  await typeIn(ui, 'outbox-note', 'Q1 은 폰에서 한 줄이 낫다', 'submit')
+  expect(await ui.find(nudge)).toBeUndefined()
+  await ui.press({ key: 'back' })
+
+  // A comment counts too; picking the recommendation clears both rows.
+  await ui.press({ key: 'dec-Q1' })
+  await typeIn(ui, 'comment-Q1', '좁은 화면 우선', 'submit')
+  expect(await ui.find(nudge)).toBeUndefined()
+  await ui.press({ key: 'opt-b' })
+  expect(await ui.find({ type: 'Text', text: /권장은 b\)/ })).toBeUndefined()
+  await ui.unmount()
+})
+
 test('drafts kept in the store come back after a restart', async ($, on) => {
   const value = {
     decisions: [

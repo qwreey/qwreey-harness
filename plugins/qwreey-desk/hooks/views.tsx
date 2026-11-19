@@ -184,6 +184,25 @@ const buttonRows = (buttons: readonly { key: string; label: string; draw: (els: 
   }))
 }
 
+/** The recommended option when the pick differs from it, else undefined. */
+// A recommended key with no matching option still gets a stand-in, so the note shows.
+const passedOver = (one: DeskDecision): { key: string; label: string } | undefined => {
+  if (!one.recommended || !one.pick || one.pick === one.recommended) return undefined
+  return one.options.find(o => o.key === one.recommended) ?? { key: one.recommended, label: '' }
+}
+
+/** Rows naming the passed-over recommendation, plus a nudge when no reason goes with it. */
+const offRecommendation = (one: DeskDecision, note: string, width: number, hang?: { spans: Span[]; width: number }): Piece[] => {
+  const rec = passedOver(one)
+  if (!rec) return []
+  // A comment on this decision, or the outbox note naming it, counts as the reason.
+  const hasReason = unsent(one).some(c => c.text.trim() !== '') || (one.draft ?? '').trim() !== '' || note.includes(one.id)
+  return [
+    ...textPieces(`권장은 ${rec.key})${rec.label ? ` ${rec.label}` : ''} 이었음`, width, 'dim', hang),
+    ...(hasReason ? [] : textPieces('권장과 다른 답인데 이유가 없음: 코멘트로 한 줄 남기면 좋음', width, 'warn', hang)),
+  ]
+}
+
 /** Puts a blank row between groups of pieces, leaving out the empty ones. */
 const sections = (...groups: Piece[][]): Piece[] =>
   groups.filter(g => g.length > 0).flatMap((g, i) => (i === 0 ? g : [BLANK, ...g]))
@@ -237,7 +256,9 @@ export const decisionDetail = (
         width: cells(`권장 ${one.recommended}`) + 2,
       })
     : []
-  const choice = picked ? textPieces(`선택: ${picked.key}) ${picked.label} (보내기 전, 다시 누르면 취소)`, width, 'warn') : []
+  const choice = picked
+    ? [...textPieces(`선택: ${picked.key}) ${picked.label} (보내기 전, 다시 누르면 취소)`, width, 'warn'), ...offRecommendation(one, d.outboxNote ?? '', width)]
+    : []
   const answer = one.status === 'answered' ? textPieces(answerLabel(one), width, 'ok', { spans: [{ text: '답', tone: 'ok' }], width: 3 }) : []
 
   // The thread, oldest first: each comment under a header saying whose and
@@ -332,6 +353,7 @@ export const outboxDetail = (d: DeskData, surface: RenderSurface, columns: numbe
     return [
       ...textPieces(one.question, width, 'plain', { spans: [{ text: one.id, tone: 'strong' }], width: idWidth }),
       ...(one.pick ? textPieces(`→ ${one.pick})${option ? ` ${option.label}` : ''}`, width, 'warn', hang) : []),
+      ...offRecommendation(one, overall, width, hang),
       ...unsent(one).flatMap(c => textPieces(`코멘트: ${c.text.trim().split('\n')[0] ?? ''}`, width, 'dim', hang)),
       leadRow(idWidth, width, [], ({ Button }) => (
         <Button key={`cancel-${one.id}`} plain dimColor onPress={() => act.cancelDraft(one.id)}>
