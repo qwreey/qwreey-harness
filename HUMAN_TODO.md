@@ -131,24 +131,16 @@
 - 새 정본 변경(rules, settings 마이그레이션 등)이 생기면 다시 `tools/home-sync.sh diff` 로 검토하고 `apply` 한다. 이때도 같은 백업이 생긴다.
 
 ## 다른 세션에 넘길 것
-- [ ] stl-luau 세션에 `.claude/handoff/stl-luau.md` 전달
-  - 내용: doctor/diet 를 그 세션이 직접 반영하고, todos 를 BI 기준으로 갱신한다.
-- [ ] vitrine 세션에 `.claude/handoff/vitrine.md` 전달 (웹 플러그인 4개 enabledPlugins 조각, env, CLAUDE.md 한 줄)
-- [ ] rbvm 세션(또는 다음 rbvm 작업 때): `const` 금지 규약을 해제한다.
-  - 위치: `rbvm/.claude/conventions.md:28-37`
-  - 근거: D-01 확정(금지 근거였던 pesde 0.7.3 은 이미 해소)
-- [ ] quad 세션에 `.claude/handoff/quad.md` 전달 (Relate.luau error level, runshim 정렬, 낡은 주석)
-- [ ] table-sim 세션에 `.claude/handoff/table-sim.md` 전달 (서버 파일 구조 제안)
-- [ ] 각 저장소의 낡은 서술 8건 정정
-  - 목록: `.claude/base/decisions/README.md` 끝 "이번에 발견한 낡은 서술"
-  - 2026-11-10: 아래 저장소별 정정 파일에 합쳤다. 그 파일들을 전달하면 이 항목도 끝난다.
-- [ ] quad 세션에 `.claude/handoff/quad.md` 의 "luau-kb 증류에서 나온 정정" 절 전달 (36건: 행동 16, 표현 20. `-O2` 게이트·에러 위치·태깅 지점, type function 제약, alias, 엔진 동작)
-- [ ] stl-luau 세션에 `.claude/handoff/stl-luau-corrections.md` 전달 (28건: 행동 6, 표현 22. perf-measurements 수치 정정 중심, `.claude/handoff/stl-luau.md` 와 별개)
-- [ ] tbox 세션에 `.claude/handoff/tbox-corrections.md` 전달 (6건: 행동 2, 표현 4. stylua 오염 원인, analyze FFlag 확인 무효)
-- [ ] devplorer 세션에 `.claude/handoff/devplorer-corrections.md` 전달 (5건: 행동 2, 표현 3. DataStore 예산, weak 표 Instance 수거)
-- [ ] rbvm 세션에 `.claude/handoff/rbvm-corrections.md` 전달 (4건: 행동 2, 표현 2. 접두 없는 require, 시그널 userdata 신원. 위 `const` 항목 포함)
-- [ ] table-sim 세션에 `.claude/handoff/table-sim-corrections.md` 전달 (2건: 표현 2)
-- [ ] moonwave-luau 세션에 `.claude/handoff/moonwave-luau-corrections.md` 전달 (2건: 표현 2)
-- [x] 메인(qwreey-harness)이 `.claude/handoff/claude-doctor-corrections.md` 반영 (8건: 행동 2, 표현 6. D-01 §2, .claude/scopes/packs/luau-kb/audit/09 M-05)
-- [ ] moonwave-luau 의 `.claude/`, `CLAUDE.md` 가 한 번도 커밋되지 않았다. 커밋할지 결정한다.
+- 2026-11-19: 옛 인계(`.claude/handoff/*`, 11-10~11 작성)를 저장소마다 지금 파일과 다시 대조해, 각 저장소 루트의 `HANDOFF-qwreey-harness.md` 하나로 다시 썼다. 커밋하지 않았고 각 저장소의 `.git/info/exclude` 에 넣어 `git status` 에 안 보인다. 그 저장소 세션에서 "HANDOFF-qwreey-harness.md 읽고 처리한 뒤 지워" 라고 하면 된다.
+- [ ] stl-luau (에이전트 문서 다이어트 반영, 팩 켜기, 낡은 서술 정정, Arr 분리, 메모리)
+- [ ] quad (`-O2` 실패 스펙 3개, 태깅 지점, runshim 정렬, 타입·require·엔진 서술, Manager 분리, 메모리)
+- [ ] tbox (stylua 경고, analyze FFlag 검증 무효, 팩 켜기, 원인 정정)
+- [ ] devplorer (팩 켜기, DataStore 예산, weak 표, 메모리)
+- [ ] table-sim (팩 켜기, 서버 파일 구조 제안을 지금 코드로 다시 셈)
+- [ ] rbvm (require, 시그널 신원 정정, 팩 켜기, `const` 규약, `git push` deny)
+- [ ] moonwave-luau (서술 범위 2건, 팩 켜기, `.claude/` 커밋 여부)
+- [ ] vitrine (하네스 변경 3건 커밋, rule 한 번 확인, 웹 플러그인 남은 선택)
+- [ ] mrow, nekolog (팩 켜기, settings 커밋 여부)
+- [ ] VideoSync (낡은 메모리 하나 정리)
+- [ ] luau-kb 플러그인(팩의 스킬)이 이 기기에 설치돼 있지 않다. 규칙은 각 저장소 `coderag.toml` 의 `[[packs]]` 로 coderag 가 싣지만, 스킬은 설치가 필요하다. `claude plugin install luau-kb@qwreey-harness` 뒤 `claude plugin disable luau-kb@qwreey-harness --scope user`(설치가 사용자 설정에서도 켜므로, 팩은 저장소별로만 켜 둔다. web-security 도 이 모양이다)
 - [ ] 비개발자·Windows 동료 배포 안내문에 qwreey-delegate README "Windows·비개발자 동료" 절(공식 codex-plugin-cc 설치, Stop-gate 끔, rescue 쓰기 주의)을 넣는다
