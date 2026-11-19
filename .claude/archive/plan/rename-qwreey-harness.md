@@ -2,7 +2,7 @@
 format: 1
 title: 저장소 이름 바꾸기 claude-doctor -> qwreey-harness (S12, Q27 a)
 description: 폴더와 마켓 이름을 qwreey-harness 로(Q27 a, Q34 a): 준비는 브랜치에서, 전환은 세션을 모두 닫고 tools/rename-cutover.sh 한 번(폴더, 프로젝트 기록, 데이터 폴더, 설정 키, 마켓), 그다음 확인
-status: active
+status: landed in tools/rename-cutover.sh; 전환 끝 aa46625, coderag 49d7923
 ---
 
 # 저장소 이름 바꾸기 (S12)

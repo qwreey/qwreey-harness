@@ -3,7 +3,7 @@
 에이전트가 하지 않기로 한 일만 모았다. 삭제, 권한, 다른 세션 소관이 여기 해당한다. 처리했으면 줄을 지운다.
 
 ## S12 전환: 폴더와 마켓 이름 qwreey-harness (모든 세션을 닫은 뒤, 사용자)
-- [ ] S12 전환. 계획 `.claude/plan/rename-qwreey-harness.md`. 스크립트가 병합, 껍데기 삭제 커밋, 데이터 폴더, 저장소 폴더, `~/.claude/projects`·session-log 폴더, home-sync apply, 마켓 remove·add·플러그인 재설치, `~/.coderag/coderag.toml` 팩 경로를 한 번에 한다. 지우는 일은 보이기만 한다
+- [x] S12 전환(2026-11-19 확인 끝). 계획 `.claude/archive/plan/rename-qwreey-harness.md`. 스크립트가 병합, 껍데기 삭제 커밋, 데이터 폴더, 저장소 폴더, `~/.claude/projects`·session-log 폴더, home-sync apply, 마켓 remove·add·플러그인 재설치, `~/.coderag/coderag.toml` 팩 경로를 한 번에 한다. 지우는 일은 보이기만 한다
   1. 이 기기의 Claude Code 세션을 모두 닫는다(돌고 있는 위임도). 터미널에서 `pgrep -x claude -a` 가 아무것도 찍지 않을 때까지 기다린다(daemon, bg-spare 도 막는 조건이다). `daemon run --origin transient --spawned-by {..."pid":N}` 가 남았는데 pid N 이 없으면 닫힌 세션이 남긴 것이다: `claude daemon stop --any`(안 되면 그 daemon 을 kill). 스크립트가 부르는 `claude plugin ...` 은 프로세스를 남기지 않는다(실측), 그래도 다시 돌릴 때 막히면 같은 방법으로 끝낸다
   2. `git -C /code/Projects/claude-doctor show rename-qwreey-harness:tools/rename-cutover.sh > ~/rename-cutover.sh` (스크립트는 병합 전이라 브랜치에만 있다. `/tmp` 에 두면 다시 돌리기 전에 `/tmp` 를 비울 때 같이 사라진다)
   3. `bash ~/rename-cutover.sh`: 바꾸지 않고 단계마다 할 일과 settings diff 를 보인다. "막는 것" 이 있으면 먼저 푼다
@@ -21,7 +21,7 @@
 - [ ] 백업 `/code/backups/claude-doctor-2026-11-10/` (248MB)
   - 내용: 정리한 worktree 와 quad-changelog-check 의 tgz
   - 확인한 뒤 지운다. quad-changelog-check 의 미커밋 CHANGELOG 수정은 `quad-changelog-check.CHANGELOG.diff` 에 있다.
-- [ ] `quad/.claude/worktrees/` 14GB
+- [ ] `quad/.claude/worktrees/` 761M (2026-11-19: core dump 13 GiB 는 지움)
   - quad 세션이 쓰고 있었다(lock). 그 세션이 끝난 뒤 정리한다.
 - [ ] `/code/Projects/stl-luau-doctor` worktree
   - stl-luau 세션이 `doctor/diet` 를 반영하고 나면 지운다: `git -C /code/Projects/stl-luau worktree remove ../stl-luau-doctor`
