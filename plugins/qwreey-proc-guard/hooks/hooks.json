@@ -1,5 +1,5 @@
 {
-  "description": "heavy-proc-guard: 벤치·퍼저·성능 실측을 choom 으로 감싸지 않았으면 deny(Linux 전용, choom 이 없으면 아무것도 막지 않는다). self-match-guard: pgrep -f·pkill -f 패턴이 자기 셸 명령줄에 걸리면 while/until 루프 안은 deny, 밖은 알림(모든 플랫폼).",
+  "description": "heavy-proc-guard: 벤치·퍼저·성능 실측을 choom 으로 감싸지 않았으면 deny(Linux 전용, choom 이 없으면 아무것도 막지 않는다). self-match-guard: pgrep -f·pkill -f 패턴이 자기 셸 명령줄에 걸리면 while/until 루프 안은 deny, 밖은 알림(모든 플랫폼). resource-guard: Bash 명령 앞뒤로 디스크 여유 공간을 재어 낮거나 급감하면 알리고(모든 플랫폼), 명령 중 생긴 core dump 를 알린다(Linux). 막지 않는다.",
   "hooks": {
     "PreToolUse": [
       {
@@ -13,6 +13,35 @@
           {
             "type": "command",
             "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/self-match-guard.py\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/resource-guard.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/resource-guard.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/resource-guard.py\"",
             "timeout": 10
           }
         ]
