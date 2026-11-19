@@ -61,9 +61,9 @@ def new_dir(name):
     return d
 
 
-def event(kind, sid, tid, cwd, **extra):
+def event(kind, sid, tid, cwd, command="./run", **extra):
     """Bash 훅 이벤트로 handle() 을 불러 알림 글을 돌려준다."""
-    data = {"session_id": sid, "hook_event_name": kind, "tool_name": "Bash", "tool_input": {"command": "./run"},
+    data = {"session_id": sid, "hook_event_name": kind, "tool_name": "Bash", "tool_input": {"command": command},
             "tool_use_id": tid, "cwd": cwd}
     if kind == "PostToolUse":
         data["tool_response"] = {"stdout": extra.pop("stdout", ""), "stderr": extra.pop("stderr", ""), "interrupted": False}
@@ -183,15 +183,68 @@ del os.environ["PROC_GUARD_DISK"]
 
 # core dump: 실제 ELF core 헤더를 cwd 맨 위에서
 cw = new_dir("core-top")
-check("pre with no dumps is quiet", event("PreToolUse", "c1", "k1", cw) == "")
+check("pre with no dumps is quiet", event("PreToolUse", "c1", "k1", cw, command="./crashy --boom") == "")
 elf_core(os.path.join(cw, "core.12345"))
-out = event("PostToolUse", "c1", "k1", cw)
-check("a new ELF core is an action", level(out, "action") and os.path.join(cw, "core.12345") in out)
-check("core action names program, args and signal", "`./crashy --boom`" in out and "SIGSEGV" in out and "KiB" in out)
+out = event("PostToolUse", "c1", "k1", cw, command="./crashy --boom")
+check("a core whose program is in the command is an action", level(out, "action") and os.path.join(cw, "core.12345") in out)
+check("core action names program, args and signal", "program `./crashy --boom`" in out and "SIGSEGV" in out and "KiB" in out)
 check("core action says delete if intended, keep and tell if needed",
-      "delete these files now" in out and "tell the user the path and size" in out and "Delete only dumps this command created" in out)
+      "delete these files now" in out and "tell the user the path and size" in out)
 event("PreToolUse", "c1", "k2", cw)
 check("the same core is reported once per session", event("PostToolUse", "c1", "k2", cw) == "")
+
+# 명령에 없는 프로그램의 core: 지우라고 하지 않는다
+cm = new_dir("core-mismatch")
+event("PreToolUse", "m1", "m1", cm, command="cargo test")
+elf_core(os.path.join(cm, "core.9"), program=b"luau-lsp", args=b"/usr/bin/luau-lsp lsp")
+out = event("PostToolUseFailure", "m1", "m1", cm, command="cargo test", error="Exit code 101\n")
+check("a core from a program not in the command is a warn, not an action", level(out, "warn") and not level(out, "action"))
+check("the warn says it may not be from this command and names the program",
+      "may not be from this command" in out and "program `/usr/bin/luau-lsp lsp`" in out and "delete these files now" not in out
+      and "Keep these files and tell the user each path and size" in out)
+check("an interpreter path in args matches the command", rg.program_in_command(
+    {"program": "python3", "args": "/usr/bin/python3 x.py"}, "python3 x.py"))
+check("sh does not match bash", not rg.program_in_command({"program": "sh", "args": ""}, "bash run.sh"))
+
+# 두 세션이 같은 폴더에서 Pre 를 가진 채 남의 core 가 생김(재현 B)
+cb = new_dir("core-two-sessions")
+event("PreToolUse", "b1", "b1", cb, command="make test")
+event("PreToolUse", "b2", "b2", cb, command="npm test")
+elf_core(os.path.join(cb, "core.31"), program=b"luau-lsp", args=b"luau-lsp lsp")
+for sid in ("b1", "b2"):
+    out = event("PostToolUse", sid, sid, cb, command="make test" if sid == "b1" else "npm test")
+    check("session %s gets no delete for a third-party core" % sid, level(out, "warn") and not level(out, "action"))
+
+# 프로그램을 읽지 못한 core(재현 C)
+cu = new_dir("core-unknown")
+event("PreToolUse", "u1", "u1", cu)
+elf_core(os.path.join(cu, "core.1"), program=b"", args=b"")
+out = event("PostToolUse", "u1", "u1", cu)
+check("an unknown program without a crash is a warn that says program unknown",
+      level(out, "warn") and not level(out, "action") and "program unknown" in out)
+cu2 = new_dir("core-unknown-crash")
+event("PreToolUse", "u2", "u2", cu2)
+elf_core(os.path.join(cu2, "core.2"), program=b"", args=b"")
+out = event("PostToolUseFailure", "u2", "u2", cu2, error="Exit code 134\n")
+check("an unknown program with a crash of this command is an action", level(out, "action") and "program unknown" in out)
+
+# mtime 경계: 여유 없음, 초 단위 mtime 만 같은 초부터(재현 A)
+ct = new_dir("core-mtime")
+event("PreToolUse", "a1", "a1", ct)
+t_ns = rg.read_json(rg.pre_path({"session_id": "a1", "tool_use_id": "a1"}))["t_ns"]
+elf_core(os.path.join(ct, "core.1"))
+os.utime(os.path.join(ct, "core.1"), ns=(t_ns - 1500000000 + 1234, t_ns - 1500000000 + 1234))
+check("a core 1.5 s before Pre is ignored", event("PostToolUseFailure", "a1", "a1", ct, error="Exit code 139\n") == "")
+event("PreToolUse", "a2", "a2", ct)
+t_ns = rg.read_json(rg.pre_path({"session_id": "a2", "tool_use_id": "a2"}))["t_ns"]
+whole = t_ns - t_ns % 10 ** 9
+elf_core(os.path.join(ct, "core.2"))
+os.utime(os.path.join(ct, "core.2"), ns=(whole, whole))
+elf_core(os.path.join(ct, "core.3"))
+os.utime(os.path.join(ct, "core.3"), ns=(whole - 10 ** 9, whole - 10 ** 9))
+out = event("PostToolUseFailure", "a2", "a2", ct, error="Exit code 139\n")
+check("a whole-second mtime in the Pre second counts (coarse timestamps)", os.path.join(ct, "core.2") in (out or ""))
+check("a whole-second mtime before the Pre second does not", os.path.join(ct, "core.3") not in (out or ""))
 
 # core 가 아닌 것
 cn = new_dir("core-not")
@@ -221,8 +274,10 @@ elf_core(os.path.join(cs, "crates", "a", "core.4242"))
 elf_core(os.path.join(cs, ".cache", "core.4243"))
 check("without crash evidence the subdir is not walked", event("PostToolUse", "c4", "s1", cs) == "")
 event("PreToolUse", "c4", "s2", cs)
+elf_core(os.path.join(cs, "crates", "a", "core.4244"))
 out = event("PostToolUseFailure", "c4", "s2", cs, error="Exit code 139\n")
-check("exit code 139 walks subdirs and finds the core", os.path.join(cs, "crates", "a", "core.4242") in (out or ""))
+check("exit code 139 walks subdirs and finds the core", os.path.join(cs, "crates", "a", "core.4244") in (out or ""))
+check("a core older than this Pre in the subdir is not listed", "core.4242" not in (out or ""))
 check("hidden dirs are skipped", ".cache" not in (out or ""))
 cs2 = new_dir("core-sub2")
 event("PreToolUse", "c5", "s3", cs2)
@@ -235,7 +290,7 @@ check("SIGSEGV in the output walks subdirs", os.path.join(cs2, "b", "core") in (
 cd = new_dir("core-dur")
 elf_core(os.path.join(cd, "core.5"))
 check("no pre record and no duration means no core check", event("PostToolUse", "c6", "x1", cd) == "")
-check("duration_ms stands in for the pre record", level(event("PostToolUse", "c6", "x2", cd, duration_ms=5000), "action"))
+check("duration_ms stands in for the pre record", "core.5" in (event("PostToolUse", "c6", "x2", cd, duration_ms=5000) or ""))
 
 # core_pattern: 처리기와 절대 경로
 cp = new_dir("core-pipe")
@@ -283,6 +338,76 @@ check("both off writes no pre record", set(os.listdir(pre_dir)) == before)
 del os.environ["PROC_GUARD_CORE"], os.environ["PROC_GUARD_DISK"]
 free(500)
 
+
+# 넓은 훑기의 시한: 큰 나무에서도 0.5 초 안, 가짜 시계로 시한이 걷기 중간에 끊는지
+big = new_dir("big-tree")
+for a in range(60):
+    for b in range(40):
+        os.makedirs(os.path.join(big, "a%02d" % a, "b%02d" % b))
+event("PreToolUse", "w1", "w1", big)
+elf_core(os.path.join(big, "a59", "b39", "core.77"))
+t0 = time.perf_counter()
+out = event("PostToolUseFailure", "w1", "w1", big, error="Exit code 139\n")
+spent = time.perf_counter() - t0
+print("wide search over 2460 dirs: %.3f s" % spent)
+check("wide search on a 2,460-dir tree stays under 0.5 s", spent < 0.5)
+check("wide search finds the deepest-listed core", os.path.join(big, "a59", "b39", "core.77") in (out or ""))
+ticks = {"n": 0}
+
+
+def fake_clock():
+    """부를 때마다 1 ms 가는 시계."""
+    ticks["n"] += 1
+    return ticks["n"] / 1000.0
+
+
+rg.clock = fake_clock
+event("PreToolUse", "w2", "w2", big)
+elf_core(os.path.join(big, "a59", "b39", "core.78"))
+out = event("PostToolUseFailure", "w2", "w2", big, error="Exit code 139\n")
+rg.clock = time.monotonic
+check("the deadline stops the walk part-way (fake clock)", "core.78" not in (out or "") and ticks["n"] < 2000)
+
+# 세션 기록 잠금: 같은 core 를 여러 Post 가 함께 봐도 한 번만 알린다
+cl = new_dir("core-lock")
+elf_core(os.path.join(cl, "core.5"), program=b"crashy", args=b"./crashy")
+raw = json.dumps({"session_id": "lk", "hook_event_name": "PostToolUseFailure", "tool_name": "Bash", "cwd": cl,
+                  "tool_input": {"command": "./crashy"}, "error": "Exit code 139\n", "duration_ms": 60000})
+env = dict(os.environ, PROC_GUARD_DISK="off")
+# stdin 은 파일로: PIPE 와 communicate 를 차례로 부르면 하위 프로세스가 하나씩 돌아 겹치지 않는다
+with open(os.path.join(T, "lock-in.json"), "w") as f:
+    f.write(raw)
+procs = [subprocess.Popen([sys.executable, "-I", "-X", "utf8", HOOK], stdin=open(os.path.join(T, "lock-in.json")),
+                          stdout=subprocess.PIPE, text=True, env=env) for _ in range(8)]
+outs = [p.communicate(timeout=20)[0] for p in procs]
+check("8 parallel posts report one core once", sum("core.5" in o for o in outs) == 1)
+if hasattr(os, "getuid"):
+    import fcntl
+    held = os.open(os.path.join(rg.state_dir(), "s-%s.json.lock" % rg.session_key({"session_id": "held"})), os.O_RDWR | os.O_CREAT)
+    fcntl.flock(held, fcntl.LOCK_EX)
+    t0 = time.perf_counter()
+    free(1, 100)
+    out = event("PreToolUse", "held", "h1", cw)
+    free(500)
+    check("a held lock is waited on briefly, then the hook goes on", time.perf_counter() - t0 < 2 and level(out, "warn"))
+    os.close(held)
+
+# 상태 폴더: 대체 위치는 사용자마다, 남이 쓸 수 있으면 core 를 보지 않는다
+saved = os.environ.pop("CLAUDE_PLUGIN_DATA")
+check("the temp fallback is per user", os.path.basename(os.path.dirname(rg.state_dir())) == "claude-qwreey-proc-guard-" + rg.my_uid())
+os.environ["CLAUDE_PLUGIN_DATA"] = os.path.join(T, "data-open")
+os.makedirs(rg.state_dir())
+os.chmod(rg.state_dir(), 0o777)
+cx = new_dir("core-untrusted")
+event("PreToolUse", "x1", "x1", cx, command="./crashy")
+elf_core(os.path.join(cx, "core.6"))
+check("a writable-by-others state dir skips the core check",
+      event("PostToolUseFailure", "x1", "x1", cx, command="./crashy", error="Exit code 139\n") == "")
+os.environ["CLAUDE_PLUGIN_DATA"] = os.path.join(T, "data-new")
+event("PreToolUse", "x2", "x2", cx)
+check("new state dirs are 0700", os.stat(rg.state_dir()).st_mode & 0o777 == 0o700
+      and os.stat(os.path.dirname(rg.state_dir())).st_mode & 0o777 == 0o700)
+os.environ["CLAUDE_PLUGIN_DATA"] = saved
 
 # 하위 프로세스: 깨진 입력은 조용히 exit 0
 def run(raw, env=None):

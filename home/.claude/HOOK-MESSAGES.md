@@ -38,8 +38,9 @@ MANIFEST 대상 아님. 근거 실측: `.claude/scopes/home/.claude/audit/17-hoo
 | self-match-guard | (플러그인 `qwreey-proc-guard`) `pgrep -f`·`pkill -f` 패턴이 자기 셸의 명령줄에 걸리고 while/until 루프 안: deny(끝나지 않는 이유, `pgrep -x`, 대괄호 꼴, `-A`, run_in_background 완료 알림) | action |
 | | 루프 밖 `pkill -f`: 자기 셸을 죽일 수 있음 | warn |
 | | 루프 밖 `pgrep -f`: 자기 셸도 찾음 | info |
-| resource-guard | (플러그인 `qwreey-proc-guard`, PreToolUse·PostToolUse·PostToolUseFailure:Bash) 명령 중 생긴 core dump 파일: 의도한 크래시이거나 필요 없으면 지우고, 필요할 수 있으면 남기고 경로·크기를 사용자에게. 이 명령이 만든 것만 지움(Linux) | action |
+| resource-guard | (플러그인 `qwreey-proc-guard`, PreToolUse·PostToolUse·PostToolUseFailure:Bash) Pre 뒤 mtime 의 core dump 파일이고 그 프로그램이 명령에 있음(또는 명령이 크래시했고 프로그램을 못 읽음): 의도한 크래시이거나 필요 없으면 지우고, 필요할 수 있으면 남기고 경로·크기를 사용자에게(Linux) | action |
 | | 디스크 여유 공간이 문턱 아래, 또는 명령 중 급감: 사용자에게 한 줄(마운트, 여유 GiB), 급감이면 쓴 곳 짐작. 같은 경고는 세션에 한 번, 더 나빠지면 다시 | warn |
+| | Pre 뒤 mtime 의 core 인데 프로그램이 명령에 없거나 모름: 이 명령 것이 아닐 수 있다는 관찰, 남기고 경로·크기를 사용자에게, 동의할 때만 지움 | warn |
 | | 크래시가 보였고 core_pattern 이 처리기(`\|systemd-coredump` 등): 덤프가 거기로 갔다는 안내 | info |
 | bash-bypass-reminder | (플러그인 `qwreey-conventions`) 셸로 파일 변경(sed -i, 리다이렉트 등): Edit\|Write 훅과 저장소 rules 는 안 돌고 qwreey-conventions 의 검사와 rules 는 명령 뒤에 온다는 것, 포맷터·검사기는 직접 | warn |
 | | 해당 rules 파일 안내(설치된 모든 플러그인의 `rules/` 포함, 쓰는 명령이면 먼저 읽고 읽기만 하면 할 것 없음): 쓰기 신호가 있으면 | warn |

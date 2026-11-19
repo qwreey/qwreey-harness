@@ -46,10 +46,13 @@ Claude Code 는 Bash 명령을 `bash -c '… eval '<명령>' …'` 로 돌려 �
 5. 알림(`level="warn"`): 마운트, 여유 GiB, 비율과 문턱, 급감량. 사용자에게 한 줄로 알리라고 하고, 급감이면 이 명령이 쓴 폴더를 `du -sh` 로 보라고(다른 세션이 같은 디스크를 쓴다), 낮음이면 이 세션이 만든 필요 없는 큰 파일은 지우는 것을 고려하되 그 밖은 묻고 지우라고 한다.
 
 core dump(Linux 만, `/proc/sys/kernel/core_pattern` 을 읽지 못하면 건너뛴다):
-1. Post 에서 Pre 시각(2초 여유) 뒤에 바뀐 파일만 본다. Pre 기록이 없으면 입력의 `duration_ms` 로 거꾸로 잡고, 그것도 없으면 보지 않는다.
+1. Post 에서 mtime 이 Pre 시각(ns) 이후인 파일만 본다. 여유는 없다. 다만 mtime 이 정확히 초 단위인 파일(초만 남기는 파일 시스템)은 Pre 의 초부터 받는다. Pre 기록이 없으면 입력의 `duration_ms` 로 거꾸로 잡고, 그것도 없으면 보지 않는다. 상태 폴더나 그 부모가 내 것이 아니거나 남이 쓸 수 있으면 Pre 기록을 믿을 수 없어 core 를 보지 않는다.
 2. 이름: core_pattern 의 파일 이름 부분을 정규식으로(`%p` 같은 숫자 지정자는 숫자, `%e` 같은 것은 아무 글자, `core_uses_pid=1` 이고 `%p` 가 없으면 `.PID` 를 더함), 그리고 늘 `core`, `core.<숫자>`. 일반 파일(심볼릭 링크 아님), 내 uid, ELF 헤더의 `e_type` 이 `ET_CORE`(4)인 것만 센다. 그래서 `src/core` 폴더나 `core.py`, 실행 파일은 걸리지 않는다.
-3. 어디를: 늘 Pre 와 Post 의 cwd 맨 위, core_pattern 이 절대 경로면 그 폴더. 크래시 흔적이 있을 때만 cwd 아래를 얕은 것부터 깊이 4, 200 ms 안에서 훑는다(숨은 폴더, `node_modules`, `__pycache__` 는 건너뜀). 크래시 흔적: PostToolUseFailure 의 `error` 첫 줄 `Exit code N` 에서 N-128 이 SIGQUIT·SIGILL·SIGTRAP·SIGABRT·SIGBUS·SIGFPE·SIGSEGV·SIGSYS, 또는 출력 끝 64 KB 에 `core dumped`, `Segmentation fault`, `SIGSEGV` 꼴, `signal: 11` 꼴(cargo).
-4. 알림(`level="action"`): 경로, 크기, 64비트 core 면 NT_PRPSINFO 의 프로그램과 인자, NT_PRSTATUS 의 신호. 의도한 크래시(재현, 크래시 시험)이거나 필요 없으면 지우고, 디버깅에 필요할 수 있으면 남기고 경로와 크기를 사용자에게 알리라고 한다. 이 명령이 만든 덤프만 지우라고, 프로그램이 이 명령과 맞지 않으면(같은 폴더를 쓰는 다른 세션) 남기고 말하라고 한다. 알린 파일(경로와 mtime)은 세션 기록에 남겨 겹쳐 돈 명령이 다시 알리지 않는다.
+3. 어디를: 늘 Pre 와 Post 의 cwd 맨 위, core_pattern 이 절대 경로면 그 폴더. 크래시 흔적이 있을 때만 cwd 아래를 얕은 것부터 깊이 4 까지 훑는다. 폴더마다 scandir 한 번으로 이름 맞추기와 하위 폴더 모으기를 함께 하고, 본 폴더는 집합으로 거른다. 걷기, stat, ELF 읽기를 합쳐 200 ms 시한 하나다(101,101 폴더 나무에서 0.2 초에 멈춤). 숨은 폴더, `node_modules`, `__pycache__`, 다른 장치(`st_dev` 가 cwd 와 다른 마운트, 멈춘 NFS)에는 들어가지 않는다. 크래시 흔적: PostToolUseFailure 의 `error` 첫 줄 `Exit code N` 에서 N-128 이 SIGQUIT·SIGILL·SIGTRAP·SIGABRT·SIGBUS·SIGFPE·SIGSEGV·SIGSYS, 또는 출력 끝 64 KB 에 `core dumped`, `Segmentation fault`, `SIGSEGV` 꼴, `signal: 11` 꼴(cargo).
+4. 알림: 경로, 크기, 64비트 core 면 NT_PRPSINFO 의 프로그램과 인자(못 읽으면 `program unknown`), NT_PRSTATUS 의 신호. Pre 는 권한 확인 전에 돌아 사용자가 고르는 동안의 다른 크래시(언어 서버 등)도 시간 창에 든다. 그래서 둘로 나눈다.
+   - `level="action"`: core 의 프로그램 이름(pr_fname, 또는 인자 첫 낱말의 basename)이 명령 글에 있거나(왼쪽 낱말 경계만 본다, pr_fname 이 15자에서 잘리므로), 명령에 크래시 흔적이 있고 프로그램을 못 읽었다. 의도한 크래시(재현, 크래시 시험)이거나 필요 없으면 지우고, 디버깅에 필요할 수 있으면 남기고 경로와 크기를 사용자에게 알리라고 한다.
+   - `level="warn"`(디스크 경고와 같은 태그): 그 밖의 모두(프로그램이 명령에 없음, 또는 크래시 흔적 없이 프로그램을 못 읽음). 이 명령의 것이 아닐 수 있다는 관찰만 적고, 남긴 채 경로와 크기를 사용자에게 알리고 사용자가 동의할 때만 지우라고 한다.
+   - 알린 파일(경로와 mtime)은 세션 기록에 남겨 겹쳐 돈 명령이 다시 알리지 않는다. 기록의 읽기-고치기-쓰기는 `fcntl.flock`(LOCK_NB 를 10 ms 간격으로 50 번, 못 잡으면 잠금 없이 진행, Windows 는 잠금 없음) 안에서 한다. 측정과 core 찾기는 잠금 밖이다.
 5. core_pattern 이 `|` 로 시작하면(systemd-coredump, apport) 파일을 찾지 않는다. 크래시 흔적이 있을 때만 덤프가 그 처리기로 갔다고 알린다(`level="info"`, `coredumpctl list`, `/var/crash`).
 6. 못 잡는 것: `run_in_background` 명령(Post 가 실행 직후라 그 뒤의 크래시를 보지 못한다), 깊이 4 아래나 숨은 폴더의 덤프(크래시 흔적이 있어도), core_pattern 이 상대 경로에 폴더를 담은 경우의 그 폴더(깊이 안이면 훑기가 찾는다).
 
@@ -57,7 +60,7 @@ core dump(Linux 만, `/proc/sys/kernel/core_pattern` 을 읽지 못하면 건너
 - `PROC_GUARD_DISK`, `PROC_GUARD_CORE`: 기본 `on`(`on`, `1`, `true`, `yes` 가 켬). 사용자 전용(`ENV_USER_ONLY`): 기계 전체의 안전망이라 클론한 저장소가 커밋한 harness.env 로 끄지 못한다.
 - `PROC_GUARD_DISK_MIN_FREE_GIB`, `PROC_GUARD_DISK_MIN_FREE_PCT`, `PROC_GUARD_DISK_DROP_GIB`: 0 이면 그 검사를 끈다. 저장소 층은 더 엄하게만 바꾼다: 사용자 층(저장소 층 없이 한 번 더 읽은 값)과 비교해 최소 여유는 큰 쪽, 급감은 0 아닌 것 가운데 작은 쪽을 쓴다. 풀 수 있으면 0 으로 꺼진 스위치와 같아지기 때문이다.
 
-상태: `${CLAUDE_PLUGIN_DATA}/resource-guard/`(없으면 `$TMPDIR/claude-qwreey-proc-guard/resource-guard/`). `pre/<세션 해시>-<tool_use_id>.json`(Pre 시각, cwd, 측정)과 `s-<세션 해시>.json`(경고한 값, 알린 core). 하루 지난 Pre 파일과 일주일 지난 세션 파일은 Pre 가 지운다.
+상태: `${CLAUDE_PLUGIN_DATA}/resource-guard/`(없으면 `$TMPDIR/claude-qwreey-proc-guard-<uid>/resource-guard/`, Windows 는 uid 대신 사용자 이름). 새로 만드는 폴더는 0700. `pre/<세션 해시>-<tool_use_id>.json`(Pre 시각 `t_ns`, cwd, 측정), `s-<세션 해시>.json`(경고한 값, 알린 core)과 그 잠금 파일 `.lock`. 하루 지난 Pre 파일과 일주일 지난 세션 파일은 Pre 가 지운다.
 
 비용(2026-11-19, 이 기계): 훅 한 번 중앙값 약 31 ms(빈 python 시작 9 ms, heavy-proc-guard 24 ms). 크래시 뒤 훑기는 이 저장소에서 3 ms 안팎을 더한다.
 

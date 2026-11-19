@@ -9,15 +9,18 @@
   전체의 PROC_GUARD_DISK_MIN_FREE_PCT % 아래면 warn. 전후 차이가 PROC_GUARD_DISK_DROP_GIB 를 넘으면 warn.
   같은 파일 시스템의 같은 종류 경고는 세션에 한 번, 그 뒤에는 DROP_GIB 만큼 더 나빠졌을 때만 다시 낸다.
 core dump(PROC_GUARD_CORE, Linux 만):
-  명령 뒤에 Pre 시각 이후 생긴 core 파일을 찾는다. 이름이 core_pattern 꼴(또는 core, core.<숫자>)이고, 일반 파일이고, 내 uid 이고,
+  명령 뒤에 Pre 시각 이후 mtime 의 core 파일을 찾는다. 이름이 core_pattern 꼴(또는 core, core.<숫자>)이고, 일반 파일이고, 내 uid 이고,
   ELF 헤더의 e_type 이 ET_CORE 인 것만 센다(src/core 같은 폴더나 다른 파일은 걸리지 않는다).
   늘 보는 곳은 cwd 맨 위(그리고 core_pattern 이 절대 경로면 그 폴더). 출력에 크래시 흔적(core dumped, SIGSEGV 꼴, 종료 코드 128+신호)이
-  있을 때만 cwd 아래를 깊이 4, 200 ms 안에서 넓게 훑는다. core_pattern 이 `|` 로 시작하면(systemd-coredump, apport) 파일을 찾지 않고
-  크래시가 보였을 때 덤프가 처리기로 갔다고만 알린다.
+  있을 때만 cwd 아래를 같은 장치 안에서 깊이 4 까지 넓게 훑는다. 걷기, stat, ELF 읽기를 합쳐 200 ms 시한 하나다.
+  Pre 는 권한 확인 전에 돌아 그 사이 다른 프로세스(언어 서버)의 크래시도 걸린다. 그래서 지우라는 말(action)은 core 의 프로그램 이름이
+  명령에 있거나, 명령이 크래시했고 프로그램을 읽지 못한 경우만이고, 나머지는 남기고 사용자에게 알리라는 warn 이다.
+  core_pattern 이 `|` 로 시작하면(systemd-coredump, apport) 파일을 찾지 않고 크래시가 보였을 때 덤프가 처리기로 갔다고만 알린다.
 
 명령을 막지 않는다. 어떤 예외든 아무것도 내지 않고 exit 0. 하위 프로세스를 띄우지 않는다.
-상태: ${CLAUDE_PLUGIN_DATA}/resource-guard/(없으면 임시 디렉터리 아래). Pre 측정은 tool_use_id 마다 파일 하나(Post 가 읽고 지운다),
-세션마다 경고 기록 파일 하나. 하루 지난 Pre 파일과 일주일 지난 세션 파일은 Pre 가 지운다.
+상태: ${CLAUDE_PLUGIN_DATA}/resource-guard/(없으면 임시 디렉터리의 claude-qwreey-proc-guard-<uid>/ 아래, 0700). Pre 측정은 tool_use_id
+마다 파일 하나(Post 가 읽고 지운다), 세션마다 경고 기록 파일 하나(flock 안에서 읽고 고치고 쓴다). 하루 지난 Pre 파일과 일주일 지난
+세션 파일은 Pre 가 지운다. 상태 폴더가 내 것이 아니거나 남이 쓸 수 있으면 core 는 보지 않는다.
 """
 import hashlib
 import json
@@ -52,11 +55,13 @@ OUTPUT_TAIL = 65536
 WALK_DEPTH = 4
 WALK_BUDGET_SEC = 0.2
 WALK_SKIP = {"node_modules", "__pycache__"}
-# 파일 시스템 시각 단위가 거친 곳(초 단위)에서 Pre 직후 생긴 덤프를 놓치지 않게 둔 여유.
-MTIME_SLACK_SEC = 2
+NS = 10 ** 9
+LOCK_TRIES = 50
+LOCK_WAIT_SEC = 0.01
 PRE_TTL_SEC = 86400
 SESSION_TTL_SEC = 7 * 86400
 REPORTED_KEEP = 50
+clock = time.monotonic  # 시험이 바꿔 끼워 시한을 본다
 
 
 def load_env(cwd=None, repo=True):
@@ -302,107 +307,144 @@ def crash_evidence(data):
     return "output says `%s`" % hit.group(0) if hit else ""
 
 
-def candidates(directory, names, since, uid):
-    """directory 맨 위에서 이름이 맞고, 일반 파일이고, since 뒤에 바뀐 파일 [(경로, stat)]."""
-    out = []
-    try:
-        with os.scandir(directory) as it:
-            for e in it:
-                if not names.match(e.name):
-                    continue
-
-                # Regular files only, never through a symlink
-                try:
-                    if not e.is_file(follow_symlinks=False):
-                        continue
-                    st = e.stat(follow_symlinks=False)
-                except OSError:
-                    continue
-
-                if st.st_mtime >= since and (uid is None or st.st_uid == uid):
-                    out.append((e.path, st))
-    except OSError:
-        pass
-    return out
+def mtime_after(st, since_ns):
+    """파일이 since_ns 뒤에 바뀌었는가. 여유는 두지 않는다.
+    mtime 이 정확히 초 단위면(초만 남기는 파일 시스템) 같은 초 안의 시각이 잘렸을 수 있어 since 의 초부터 받는다."""
+    m = st.st_mtime_ns
+    if m % NS == 0:
+        return m >= since_ns - since_ns % NS
+    return m >= since_ns
 
 
-def walk_dirs(root):
-    """root 아래 디렉터리를 얕은 것부터(깊이 WALK_DEPTH, 숨은 폴더와 node_modules 는 건너뜀, 시간 WALK_BUDGET_SEC 안)."""
-    deadline = time.monotonic() + WALK_BUDGET_SEC
-    level = [root]
-    for _ in range(WALK_DEPTH):
+class Search:
+    """한 번의 core 찾기. 하나의 시한이 걷기, stat, ELF 읽기를 모두 덮는다."""
 
-        # Collect the next level, stopping at the deadline
-        nxt = []
-        for d in level:
-            if time.monotonic() > deadline:
+    def __init__(self, names, since_ns, uid):
+        self.names = names
+        self.since_ns = since_ns
+        self.uid = uid
+        self.deadline = clock() + WALK_BUDGET_SEC
+        self.found = []
+        self.files = set()
+        self.dirs = set()
+
+    def expired(self):
+        return clock() > self.deadline
+
+    def consider(self, e):
+        """이름이 맞는 항목 하나: 일반 파일(심볼릭 링크 아님), 내 uid, Pre 뒤 mtime, ELF core 면 found 에 더한다."""
+        try:
+            if not e.is_file(follow_symlinks=False):
                 return
-            try:
-                with os.scandir(d) as it:
-                    for e in it:
-                        if e.name.startswith(".") or e.name in WALK_SKIP:
-                            continue
-                        try:
-                            if e.is_dir(follow_symlinks=False):
-                                nxt.append(e.path)
-                        except OSError:
-                            continue
-            except OSError:
-                continue
+            st = e.stat(follow_symlinks=False)
+        except OSError:
+            return
+        if e.path in self.files or not mtime_after(st, self.since_ns) or (self.uid is not None and st.st_uid != self.uid):
+            return
+        self.files.add(e.path)
+        info = core_info(e.path)
+        if info is not None:
+            self.found.append((e.path, st, info))
 
-        for d in nxt:
-            yield d
-        level = nxt
+    def scan(self, directory, dev=None):
+        """directory 를 한 번 훑어 core 를 찾고, dev 가 있으면 같은 장치의 하위 폴더 목록을 돌려준다."""
+        if directory in self.dirs:
+            return []
+        self.dirs.add(directory)
+        subdirs = []
+        try:
+            with os.scandir(directory) as it:
+                for e in it:
+                    if self.expired():
+                        break
+                    if self.names.match(e.name):
+                        self.consider(e)
+                    if dev is None or e.name.startswith(".") or e.name in WALK_SKIP:
+                        continue
+
+                    # Same device only: another mount may be slow or hung (NFS)
+                    try:
+                        if e.is_dir(follow_symlinks=False) and e.stat(follow_symlinks=False).st_dev == dev:
+                            subdirs.append(e.path)
+                    except OSError:
+                        continue
+        except OSError:
+            pass
+        return subdirs
+
+    def walk(self, root):
+        """root 아래를 얕은 것부터 깊이 WALK_DEPTH 까지 훑는다(숨은 폴더, node_modules, 다른 장치는 건너뜀)."""
+        try:
+            dev = os.stat(root).st_dev
+        except OSError:
+            return
+        level = self.scan(root, dev)
+        for depth in range(1, WALK_DEPTH + 1):
+            nxt = []
+            for d in level:
+                if self.expired():
+                    return
+                nxt.extend(self.scan(d, dev if depth < WALK_DEPTH else None))
+            level = nxt
 
 
-def find_cores(roots, pattern, uses_pid, since, wide):
-    """since 뒤에 생긴 ELF core [(경로, 크기, info)]. core_pattern 이 절대 경로면 그 폴더도 본다."""
-    uid = os.getuid() if hasattr(os, "getuid") else None
-    dirs = []
+def find_cores(roots, pattern, uses_pid, since_ns, wide):
+    """since_ns 뒤에 생긴 ELF core [(경로, stat, info)]. core_pattern 이 절대 경로면 그 폴더도 본다."""
     if pattern.startswith("/"):
         where, template = os.path.split(pattern)
-        if "%" not in where:
-            dirs.append(where)
     else:
-        template = os.path.basename(pattern)
-    names = name_regex(template or "core", uses_pid)
-    for r in roots:
-        if r and r not in dirs:
-            dirs.append(r)
-    if wide:
-        for r in roots:
-            dirs.extend(d for d in walk_dirs(r) if d not in dirs)
+        where, template = "", os.path.basename(pattern)
+    search = Search(name_regex(template or "core", uses_pid), since_ns, os.getuid() if hasattr(os, "getuid") else None)
 
-    found, seen = [], set()
-    for d in dirs:
-        for path, st in candidates(d, names, since, uid):
-            if path in seen:
-                continue
-            seen.add(path)
-            info = core_info(path)
-            if info is not None:
-                found.append((path, st, info))
-    return found
+    # Cheap path: the pattern's directory and the top of each cwd
+    if where and "%" not in where:
+        search.scan(where)
+    for r in roots:
+        if wide:
+            search.walk(r)
+        else:
+            search.scan(r)
+    return search.found
+
+
+def program_in_command(info, command):
+    """core 의 프로그램 이름(pr_fname 또는 인자 첫 낱말의 basename)이 명령 글에 있는가."""
+    names = {info["program"]}
+    if info["args"]:
+        names.add(os.path.basename(info["args"].split()[0]))
+    # pr_fname 은 15자에서 잘리므로 오른쪽 경계는 보지 않는다. 왼쪽 경계는 sh 가 bash 에 걸리지 않게
+    return any(n and re.search(r"(?<![A-Za-z0-9_.-])" + re.escape(n), command) for n in names)
 
 
 def size_text(n):
     return "%s GiB" % gib(n) if n >= GIB else "%.1f MiB" % (n / (1 << 20)) if n >= 1 << 20 else "%d KiB" % max(1, n // 1024)
 
 
-def core_message(found):
-    lines = ["Core dump file(s) appeared while this command ran:"]
+def core_lines(found):
+    lines = []
     for path, st, info in found:
-        what = [size_text(st.st_size)]
-        if info["program"]:
-            what.append("from `%s`" % (info["args"] or info["program"]))
+        what = [size_text(st.st_size), "program `%s`" % (info["args"] or info["program"]) if info["program"] or info["args"]
+                else "program unknown"]
         if info["signal"]:
             what.append(info["signal"])
         lines.append("- `%s` (%s)" % (path, ", ".join(what)))
-    lines.append("If the crash was intended (a repro, a crash test) or the dump is not needed, delete these files now. "
-                 "If it may be needed for debugging, keep it and tell the user the path and size. "
-                 "Delete only dumps this command created: if the program does not fit this command (another session may share "
-                 "the directory), leave it and mention it.")
-    return "\n".join(lines)
+    return lines
+
+
+def core_action(found):
+    return "\n".join(
+        ["Core dump file(s) appeared after this command started, and the crashed program appears in the command "
+         "(or the command crashed and the program is unknown):"] + core_lines(found) +
+        ["If the crash was intended (a repro, a crash test) or the dump is not needed, delete these files now. "
+         "If it may be needed for debugging, keep it and tell the user the path and size."])
+
+
+def core_notice(found):
+    return "\n".join(
+        ["Core dump file(s) appeared after this command started, but the crashed program does not appear in the command "
+         "or is unknown, so it may not be from this command (another session, a language server, or a crash while a "
+         "permission prompt was open):"] + core_lines(found) +
+        ["Keep these files and tell the user each path and size; delete them only if the user agrees."])
 
 
 def handler_message(pattern, evidence):
@@ -412,9 +454,32 @@ def handler_message(pattern, evidence):
             "/var/crash for apport); there is no file here to clean up." % (evidence, os.path.basename(handler)))
 
 
+def my_uid():
+    if hasattr(os, "getuid"):
+        return str(os.getuid())
+    import getpass  # Windows: uid 가 없다
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", getpass.getuser())
+
+
 def state_dir():
-    base = os.environ.get("CLAUDE_PLUGIN_DATA") or os.path.join(tempfile.gettempdir(), "claude-qwreey-proc-guard")
+    # 임시 폴더는 여러 사용자가 같이 쓴다. 사용자마다 따로 두어 남이 만든 Pre 기록을 읽지 않게 한다
+    base = os.environ.get("CLAUDE_PLUGIN_DATA") or os.path.join(tempfile.gettempdir(), "claude-qwreey-proc-guard-" + my_uid())
     return os.path.join(base, "resource-guard")
+
+
+def state_trusted():
+    """상태 폴더와 그 부모가 내 것이고 남이 쓸 수 없는가(아직 없으면 True). Pre 기록이 core 를 지우라는 근거가 되기 때문이다."""
+    if not hasattr(os, "getuid"):
+        return True
+    d = state_dir()
+    for p in (d, os.path.dirname(d)):
+        try:
+            st = os.stat(p)
+        except FileNotFoundError:
+            continue
+        if st.st_uid != os.getuid() or st.st_mode & 0o022:
+            return False
+    return True
 
 
 def session_key(data):
@@ -435,15 +500,55 @@ def read_json(path):
         return {}
 
 
+def ensure_dir(path):
+    """path 와 없는 부모를 0700 으로 만든다(os.makedirs 의 mode 는 맨 끝 폴더에만 걸린다)."""
+    if os.path.isdir(path):
+        return
+    parent = os.path.dirname(path)
+    if parent and parent != path:
+        ensure_dir(parent)
+    try:
+        os.mkdir(path, 0o700)
+    except FileExistsError:
+        pass
+
+
 def write_json(path, value):
     try:
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        ensure_dir(os.path.dirname(path))
         tmp = "%s.%d.tmp" % (path, os.getpid())
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(value, f)
         os.replace(tmp, path)
     except OSError:
         pass
+
+
+def lock(path):
+    """세션 기록의 읽기-고치기-쓰기를 감싸는 flock. 잡은 fd 또는 None(fcntl 이 없는 Windows, 실패, 시간 초과면 잠금 없이 간다)."""
+    try:
+        import fcntl
+    except ImportError:
+        return None
+
+    try:
+        ensure_dir(os.path.dirname(path))
+        fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
+    except OSError:
+        return None
+
+    # Bounded wait: holders keep it for a few ms
+    for _ in range(LOCK_TRIES):
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return fd
+        except BlockingIOError:
+            time.sleep(LOCK_WAIT_SEC)
+        except OSError:
+            break
+
+    os.close(fd)
+    return None
 
 
 def prune(directory, ttl, now):
@@ -472,24 +577,20 @@ def handle(data):
     if not (disk_on or core_on):
         return ""
 
-    # Measure and load this session's warning record
+    # Measure, outside the lock
     limits = thresholds(env, load_env(cwd, repo=False))
-    now = time.time()
-    spath = os.path.join(state_dir(), "s-%s.json" % session_key(data))
-    state = read_json(spath)
-    loaded = json.dumps(state, sort_keys=True)
     disk = measure([cwd, tempfile.gettempdir()]) if disk_on else {}
     pp = pre_path(data)
-    warn, action, info = [], [], []
+    info, cores = [], []
 
     # Before: keep the reading for the post event
     if event == "PreToolUse":
         if pp:
-            write_json(pp, {"t": now, "cwd": cwd, "disk": disk})
+            write_json(pp, {"t_ns": time.time_ns(), "cwd": cwd, "disk": disk})
+            now = time.time()
             prune(os.path.dirname(pp), PRE_TTL_SEC, now)
             prune(state_dir(), SESSION_TTL_SEC, now)
-        before = None
-        when = "before this command"
+        before, when = None, "before this command"
 
     # After: compare with the reading, then look for dumps
     else:
@@ -499,16 +600,31 @@ def handle(data):
                 os.unlink(pp)
             except OSError:
                 pass
-        before = pre.get("disk")
-        when = "after this command"
-        if core_on:
-            core_notes(data, pre, cwd, now, state, action, info)
+        before, when = pre.get("disk"), "after this command"
+        if core_on and state_trusted():
+            cores = core_scan(data, pre, cwd, info)
 
-    lines, kinds = disk_findings(disk, before, limits, state, when)
-    if lines:
-        warn = lines + [disk_advice(kinds)]
-    if json.dumps(state, sort_keys=True) != loaded:
-        write_json(spath, state)
+    # Dedupe against this session's record, under the lock
+    spath = os.path.join(state_dir(), "s-%s.json" % session_key(data))
+    fd = lock(spath + ".lock")
+    try:
+        state = read_json(spath)
+        loaded = json.dumps(state, sort_keys=True)
+        lines, kinds = disk_findings(disk, before, limits, state, when)
+        cores = unreported(cores, state)
+        if json.dumps(state, sort_keys=True) != loaded:
+            write_json(spath, state)
+    finally:
+        if fd is not None:
+            os.close(fd)
+
+    # Split dumps by what ties them to this command
+    command = str((data.get("tool_input") or {}).get("command") or "")
+    crashed = bool(crash_evidence(data))
+    mine = [c for c in cores if program_in_command(c[2], command) or (crashed and not (c[2]["program"] or c[2]["args"]))]
+    others = [c for c in cores if c not in mine]
+    action = [core_action(mine)] if mine else []
+    warn = (lines + [disk_advice(kinds)] if lines else []) + ([core_notice(others)] if others else [])
     if not (warn or action or info):
         return ""
 
@@ -521,36 +637,41 @@ def handle(data):
     return "\n".join(tags)
 
 
-def core_notes(data, pre, cwd, now, state, action, info):
-    """Pre 이후 생긴 core 파일(action)이나 처리기로 간 덤프(info)를 알린다."""
+def core_scan(data, pre, cwd, info):
+    """Pre 이후 생긴 core 파일 목록. core_pattern 이 처리기면 info 에 안내를 더하고 []."""
     cp = read_core_pattern()
     if cp is None:
-        return
+        return []
     pattern, uses_pid = cp
-    since = pre.get("t")
-    if not isinstance(since, (int, float)):
+    since_ns = pre.get("t_ns")
+    if not isinstance(since_ns, int):
         dur = data.get("duration_ms")
         if not isinstance(dur, (int, float)):
-            return
-        since = now - dur / 1000.0
+            return []
+        since_ns = time.time_ns() - int(dur * 1e6)
     evidence = crash_evidence(data)
 
     if pattern.startswith("|"):
         if evidence:
             info.append(handler_message(pattern, evidence))
-        return
+        return []
 
     roots = [cwd] + ([pre["cwd"]] if isinstance(pre.get("cwd"), str) and pre["cwd"] != cwd else [])
+    return find_cores(roots, pattern, uses_pid, since_ns, bool(evidence))
+
+
+def unreported(cores, state):
+    """이 세션이 아직 알리지 않은 core 만. 알린 것은 state["cores"] 에 경로와 mtime 으로 남긴다."""
     reported = list(state.get("cores") or [])
-    found = []
-    for path, st, ci in find_cores(roots, pattern, uses_pid, since - MTIME_SLACK_SEC, bool(evidence)):
+    out = []
+    for path, st, ci in cores:
         key = "%s:%d" % (path, st.st_mtime_ns)
         if key not in reported:
             reported.append(key)
-            found.append((path, st, ci))
-    if found:
+            out.append((path, st, ci))
+    if out:
         state["cores"] = reported[-REPORTED_KEEP:]  # 겹쳐 돈 다른 명령의 Post 가 같은 파일을 다시 알리지 않게
-        action.append(core_message(found))
+    return out
 
 
 def main():
