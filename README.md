@@ -20,6 +20,7 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 | `.claude/research/drafts/` | 설치 전 초안(감사 에이전트, 위임, coderag 분류 예시, 분리 계획). 결론이 자리 잡았거나(landed) 접은(rejected) 초안은 `.claude/archive/research/drafts/` 로 옮긴다 |
 | `lib/` | 플러그인(과 coderag)이 함께 쓰는 코드·문구의 정본. 설치되지 않고, 플러그인은 사본을 든다. 정본을 고친 뒤 `tools/sync-copies.py --apply`. 설명 `lib/README.md` |
 | `tools/sync-copies.py` | `@copy-of`(파일)·`@start-replace`/`@end-replace`(영역) 표시를 따라 사본을 정본에 맞춘다(기본 diff, `--apply`, `--check`) |
+| `tools/usage-report.py` | 훅 비용과 쓰임 측정(읽기만): 세션 트랜스크립트에서 훅마다 횟수·수준·글자 수·실행 시간·거부, 상시 주입, 서브에이전트, 토큰을 Markdown(`--json`)으로. `--time-hooks` 는 도구 호출마다 도는 훅을 임시 샌드박스에서 돌려 시간을 잰다. 도움 모듈 `usage_scan.py`, `usage_bench.py` |
 | `tools/tests/` | 저장소 전체 테스트. 모델이 보는 글의 스냅숏과 크기 래칫(`tools/regen-prompt-surface.py` 로 다시 만든다), 훅 판정 재생 묶음(`hook-replay/cases/*.json`). 설명 `tools/tests/README.md` |
 | `intake/` | 외부 프로젝트 반입 자리(사본은 git 에서 제외). 절차 `intake/README.md` |
 | `.claude/audit/` | 조사·감사 보고서. 반입 프로젝트 감사는 `.claude/audit/intake/` |

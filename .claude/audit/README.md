@@ -41,6 +41,7 @@ Multi-file audits:
 - [60-skill-hint-probe/](60-skill-hint-probe/) - prompt-time skill hint on our skills: small gain (sonnet 27/32 to 32/32, loads earlier), 0 false fires; worth a small hook for luau-kb pack skills, not for advisor
 - [62-skill-miss-causes/](62-skill-miss-causes/) - convention skills almost never load in real work (comments 0/79); the rule arrives after the first write or never (Bash writes); notices do the enforcing, so must-holds go into rules and hooks, skills keep procedures
 - [64-plan-md-alternatives/](64-plan-md-alternatives/) - one growing markdown plan goes stale in every sibling repo; outside tools close per-item state and leave progress to git; recommends splitting PLAN.md by lifetime and backing desk decisions and steps with .claude/plan item files
+- [65-real-use-baseline/](65-real-use-baseline/) - pre-real-use baseline (harness dev week): rules-inject 712k chars/week is the biggest injector, bash-bypass-reminder spoke 584 times (442 warn), a Bash call runs 18 hooks (~140 ms felt), session start p50 6.1k chars
 
 Audits about one plugin, pack or `home/` part live in that part's scope, `../scopes/<repo path>/audit/`, with the same numbers:
 - [scopes/packs/luau-kb/audit/](../scopes/packs/luau-kb/audit/) - 05, 08, 09, 11, 13 (Luau knowledge map, mines, gaps, upstream), 52-luau-kb-skill-descriptions/ (descriptions can shrink to 57% without losing triggers), drafts/ (drafts written during audits)

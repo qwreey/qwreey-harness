@@ -17,6 +17,7 @@
 | `test-plugin-userconfig.py` | 모든 plugin.json 의 `userConfig`: 필수 필드, 키의 대문자를 그 플러그인 코드가 읽는지, `default` 가 코드 기본값(`*DEFAULTS`)과 같은지. `claude` 가 PATH 에 있으면 플러그인마다 `claude plugin validate` |
 | `test-coderag-rules-parity.py`, `test-coderag-skip-dirs.py` | coderag 와의 대조(`CODERAG_SRC`, `CODERAG_BIN` 이 있어야 돈다) |
 | `test-delegate-cli.py`, `test-delegate-config.py` | qwreey-delegate |
+| `test-usage-report.py` | `tools/usage-report.py`: 가짜 트랜스크립트로 훅 목소리와 수준, 거부, 실행 시간(Stop 은 stop summary 에서만), 상시 주입, 서브에이전트, 토큰(message.id 마다 한 번), 시험 키 빼기, 창 거르기, 보고서에 내용이 새지 않음. 가짜 플러그인으로 `--time-hooks` 한 번 |
 
 ## prompt surface 스냅숏
 
