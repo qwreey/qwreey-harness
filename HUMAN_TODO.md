@@ -29,7 +29,7 @@
   - coderag 쪽 병합과 그 저장소의 `raw/`(gitignore) 를 확인한 뒤: `git rm -r .claude/audit/{37,42,43,44,45,46,47,49,53}-*/ .claude/research/coderag-format-and-levels.md`, 남는 미추적 `raw/` 폴더도 지운다
   - 함께 고칠 것: `.claude/audit/README.md` 의 해당 표·목록 줄과 "moved to coderag" 줄, `.claude/research/README.md` 의 그 줄(`coderag gen && coderag static-gen --dir .claude/audit --dir .claude/handoff`)
 
-- [ ] 훅을 플러그인으로 옮긴 뒤 `~/.claude` 에 남는 옛 파일(home-sync 는 MANIFEST 에서 빠진 파일을 지우지 않고 status 가 고아로 보고만 한다). apply 와 마이그레이션 0006 뒤에 지운다
+- [x] 훅을 플러그인으로 옮긴 뒤 `~/.claude` 에 남는 옛 파일(home-sync 는 MANIFEST 에서 빠진 파일을 지우지 않고 status 가 고아로 보고만 한다). apply 와 마이그레이션 0006 뒤에 지운다 (2026-11-19 확인: home-sync status 고아 없음)
   - `~/.claude/hooks/{heavy-proc-guard,bash-bypass-reminder,structure-reminder,memory-placement,subagent-slots,rearm-on-compact}.py`
   - `~/.claude/lib/{compact_epoch,memory_signals,subagent_ledger}.py` (`lib/harness_env.py` 는 남긴다)
   - 옛 훅이 settings 에 남아 있는 채로 파일만 지우면 훅 오류가 나므로 마이그레이션 0006 을 먼저 적용한다
@@ -39,7 +39,7 @@
     3. `tools/home-sync.sh diff` 로 검토한 뒤 `apply`(0006 이 옛 훅 등록을 걷고 qwreey-proc-guard 를 켠다)
     4. 위 고아 파일을 지운다
     5. 새 세션을 시작한다
-- [ ] qwreey-conventions 0.4.0 으로 갱신한 뒤 `~/.claude/rules/{comments,agent-docs,code-structure,memory,web-security}.md` 를 지운다(플러그인 `rules_inject` 가 같은 본문을 넣으므로 두 곳에서 로드되는 것을 막는다. 갱신 전에 지우면 그 사이 규칙이 없다). `tools/home-sync.sh status` 에 고아로 보인다
+- [x] qwreey-conventions 0.4.0 으로 갱신한 뒤 `~/.claude/rules/{comments,agent-docs,code-structure,memory,web-security}.md` 를 지운다(플러그인 `rules_inject` 가 같은 본문을 넣으므로 두 곳에서 로드되는 것을 막는다. 갱신 전에 지우면 그 사이 규칙이 없다). `tools/home-sync.sh status` 에 고아로 보인다 (2026-11-19 확인: ~/.claude/rules 에 옛 파일 없음)
 - [ ] luau-kb 는 qwreey-harness 의 도메인 팩(`packs/luau-kb`, 기본 꺼짐)이 됐다. 순서: (1) `claude plugin marketplace update qwreey-harness` (2) 각 Luau 저장소의 `coderag.toml` 에 `[[packs]]` `name = "luau-kb"` 를 적고 `coderag adapt --harness claude` 를 실행한다(저장소별 승인) (3) 켠 뒤 `~/.claude/rules/luau-core.md` symlink 와 `~/.claude/skills/luau-*` 링크를 지운다(옛 luau-kb 저장소를 가리키며 그 저장소는 없어질 예정이다. 켜기 전에 지우면 그 사이 규칙이 없고, 둘 다 있으면 규칙이 두 번 로드된다) (4) 옛 `luau-kb@luau-kb-market` 이 설치돼 있으면 `claude plugin uninstall` 로 지우고 `claude plugin marketplace remove luau-kb-market`. 이 sandbox 에서는 아직 설치·활성화돼 있지 않다
 
 - [x] qwreey-operator 0.3.1(서브에이전트 마무리 규범 한 줄, 백그라운드 작업을 남긴 채 끝나려는 서브에이전트에게 한 번 알리는 SubagentStop 훅 `subagent-bg-tasks`, 끄기 `HARNESS_OPERATOR_SUBAGENT_BG=off`)과 qwreey-advisor 0.4.16(Stop 훅 통과 조건) 갱신: `claude plugin marketplace update qwreey-harness` 뒤 `claude plugin update qwreey-operator@qwreey-harness`, `claude plugin update qwreey-advisor@qwreey-harness`, 그다음 `/reload-plugins` 나 새 세션. `home/.claude/HOOK-MESSAGES.md` 에 Stop 절과 subagent-bg-tasks 행이 더해졌으니 `tools/home-sync.sh diff` 뒤 `apply`
@@ -85,11 +85,11 @@
   - 이 호스트에서 codex 샌드박스가 bwrap 네임스페이스를 만들지 못해 셸 실행이 안 된다.
   - 열려면 `~/.claude/harness.env` 에 `HARNESS_DELEGATE_CODEX_SANDBOX=danger-full-access` 를 써야 한다. 그대로 두면 empty 모드만 쓴다.
 - [ ] stl-luau, tbox: `.claude/worktrees` 를 `.git/info/exclude` 로만 무시 중이다. `.gitignore` 로 옮길지 결정한다(각 세션 몫).
-- [ ] .claude/scopes/plugins/qwreey-conventions/audit/34 프로브가 남긴 `~/.claude/plugins/data/probe-inline/`(빈 폴더)와 `~/.claude/projects/-tmp-probe-conv-*` 정리
+- [x] .claude/scopes/plugins/qwreey-conventions/audit/34 프로브가 남긴 `~/.claude/plugins/data/probe-inline/`(빈 폴더)와 `~/.claude/projects/-tmp-probe-conv-*` 정리 (2026-11-19 확인: probe-inline 없음; -tmp-probe-conv-* 는 아래 -tmp-* 정리에 포함)
 - [ ] 세션 기록 실측이 남긴 `~/.claude/projects/-tmp-sl-hookproj-omyV*` 디렉터리 2개 정리
 - [ ] 훅 형식 실측이 남긴 `~/.claude/projects/-tmp-hookfmt`, `-tmp-cmp`, `-tmp-effect-*` (6개) 정리
-- [ ] 실측용 임시 프로젝트 기록 `~/.claude/projects/-tmp-*` 정리 (2026-11-10 기준 307개; 이번 작업의 claude -p 실측분이 대부분. `ls -d ~/.claude/projects/-tmp-*` 로 확인 후 삭제)
-- [ ] 위임 시범의 임시 산출물 `/tmp/dtrial/` 정리
+- [ ] 실측용 임시 프로젝트 기록 `~/.claude/projects/-tmp-*` 정리 (2026-11-19 기준 557개, 4.3G 중 일부; 이번 작업의 claude -p 실측분이 대부분. `ls -d ~/.claude/projects/-tmp-*` 로 확인 후 삭제)
+- [x] 위임 시범의 임시 산출물 `/tmp/dtrial/` 정리 (2026-11-19 확인: 없음)
 
 ## ~/.claude 반영 (정본 → 실제)
 - 2026-11-11 17:58 기준 apply 를 마쳤다. `tools/home-sync.sh status` 가 모든 파일을 "같음", settings 를 "4/4 적용"(0001, 0002, 0004, 0005)으로 보인다. 고아도 없다. 켜 둔 플러그인은 q, qwreey-advisor, qwreey-conventions 이고 모두 설치돼 있다.
@@ -97,28 +97,28 @@
   - 목록: `ls ~/.claude/*.bak-* ~/.claude/{hooks,lib,rules}/*.bak-*`
   - 지우기: `rm ~/.claude/*.bak-* ~/.claude/{hooks,lib,rules}/*.bak-*`
   - 되돌릴 일이 없다고 확인한 뒤에만 지운다. 현재 19개 있다(2026-11-10 16:00 ~ 2026-11-11 17:58).
-- [ ] q 나누기 반영(q 0.9.8 이상, 새 qwreey-sessions·qwreey-workspace·qwreey-operator·qwreey-delegate·qwreey-debate, coderag 0.22.4 이상). 순서:
+- [x] q 나누기 반영(q 0.9.8 이상, 새 qwreey-sessions·qwreey-workspace·qwreey-operator·qwreey-delegate·qwreey-debate, coderag 0.22.4 이상). 순서: (2026-11-19 확인: 설치본이 더 새 버전, home-sync 9/9 적용)
   1. `claude plugin marketplace update qwreey-harness` (coderag 마켓도 갱신)
   2. q 를 최신으로 갱신하고 켠다(꺼 두었다면). qwreey-sessions, qwreey-workspace, qwreey-operator, qwreey-debate 를 설치한다. qwreey-delegate 는 agy·codex 위임을 쓸 때만 설치한다
   3. `tools/home-sync.sh diff` 로 검토한 뒤 `apply` (0009 가 세 플러그인을 켠다. `HARNESS_DELEGATE_REGISTRY` 경로도 바뀐다)
   4. `/reload-plugins` 또는 새 세션. 확인: `/qwreey-sessions:checkpoint` 가 보이고, 다른 저장소 파일을 고치려 할 때 workspace 게이트가 뜬다
-- [ ] qwreey-delegate 0.2.0(Python 드라이버로 전환: SKILL 이 `delegate.py` 를 부르고, 작업 폴더·결과가 `~/.local/state/qwreey-delegate` 로)과 qwreey-proc-guard 0.1.6(`delegate.py` 명령도 통과) 갱신. 갱신 전 세션은 옛 버전의 스킬 문구를 들고 있을 수 있다. 순서:
+- [x] qwreey-delegate 0.2.0(Python 드라이버로 전환: SKILL 이 `delegate.py` 를 부르고, 작업 폴더·결과가 `~/.local/state/qwreey-delegate` 로)과 qwreey-proc-guard 0.1.6(`delegate.py` 명령도 통과) 갱신. 갱신 전 세션은 옛 버전의 스킬 문구를 들고 있을 수 있다. 순서: (2026-11-19 확인: 설치본이 더 새 버전)
   1. `claude plugin marketplace update qwreey-harness`
   2. qwreey-proc-guard 를 먼저, 그다음 qwreey-delegate 를 갱신한다(거꾸로 하면 그 사이 무거운 낱말이 든 `delegate.py` 명령을 옛 proc-guard 가 막을 수 있다)
   3. 돌고 있는 위임이 없을 때 `/reload-plugins` 또는 새 세션. 확인: `python3 -I <스킬>/scripts/delegate.py doctor --all` 에 FAIL 이 없다
   4. `tools/home-sync.sh diff` 로 harness.env 의 위임 주석 예시를 보고 `apply`(값은 바뀌지 않는다)
-- [ ] harness_env 키 주인 나누기(q 0.9.10, qwreey-advisor 0.4.14, qwreey-conventions 0.8.7, qwreey-delegate 0.2.1, qwreey-operator 0.2.9, qwreey-proc-guard 0.1.7, qwreey-sessions 0.1.6, qwreey-workspace 0.1.10). 새 플러그인은 플러그인 하나만 읽는 키(`HARNESS_WORKSPACE_GATE`, `SESSION_LOG_CLAUDE` 등)를 자기 사본으로 막고, 옛 플러그인은 설치된 `~/.claude/lib/harness_env.py` 를 읽는다. 순서:
+- [x] harness_env 키 주인 나누기(q 0.9.10, qwreey-advisor 0.4.14, qwreey-conventions 0.8.7, qwreey-delegate 0.2.1, qwreey-operator 0.2.9, qwreey-proc-guard 0.1.7, qwreey-sessions 0.1.6, qwreey-workspace 0.1.10). 새 플러그인은 플러그인 하나만 읽는 키(`HARNESS_WORKSPACE_GATE`, `SESSION_LOG_CLAUDE` 등)를 자기 사본으로 막고, 옛 플러그인은 설치된 `~/.claude/lib/harness_env.py` 를 읽는다. 순서: (2026-11-19 확인: 설치본이 더 새 버전, home-sync 같음)
   1. 모든 기기에서 먼저 플러그인: `claude plugin marketplace update qwreey-harness`, 위 플러그인을 모두 갱신
   2. 그 기기에서 돌고 있는 세션을 모두 다시 읽힌다(`/reload-plugins` 또는 새 세션). 하나라도 남으면 그 세션은 옛 플러그인으로 돈다
   3. 그다음 `tools/home-sync.sh diff` 로 `lib/harness_env.py`, `harness.env` 주석을 보고 `apply`
   - 새 lib 의 `LEGACY_USER_ONLY` 가 예전 lib 이 막던 키(위 두 키, `HARNESS_AGENT_PUSH`, `HARNESS_LUAU_KB`, `SESSION_LOG_HOME`, 위임의 실행 파일·인증·격리·상태 키)를 계속 막으므로, 순서가 뒤바뀌어(apply 먼저, 또는 옛 플러그인이 남은 기기) 옛 플러그인이 새 lib 를 읽어도 이 키들은 저장소 층이 바꾸지 못한다
-- [ ] Windows 대응 반영(q 0.10.0, qwreey-sessions 0.4.0, qwreey-advisor 0.4.17, qwreey-conventions 0.12.2, qwreey-delegate 0.2.3, qwreey-operator 0.3.2, qwreey-proc-guard 0.2.1, qwreey-workspace 0.1.11, luau-kb 0.7.2). 이 기기: `claude plugin marketplace update qwreey-harness` 뒤 위 플러그인 갱신, `/reload-plugins` 또는 새 세션, 그다음 `tools/home-sync.sh diff`(harness.env 가 `~/Projects` 꼴로 바뀌지만 푼 값은 같다, statusline 의 임시 폴더 줄)와 `apply`
-- [ ] 플러그인 독립 패키지화 반영(Q28 a, Q29 a; q 0.12.1, qwreey-sessions 0.5.0, qwreey-workspace 0.3.0, qwreey-conventions 0.13.0, qwreey-advisor 0.5.0, qwreey-operator 0.4.0, qwreey-delegate 0.5.2, qwreey-proc-guard 0.2.2, luau-kb 0.7.3). 순서:
+- [x] Windows 대응 반영(q 0.10.0, qwreey-sessions 0.4.0, qwreey-advisor 0.4.17, qwreey-conventions 0.12.2, qwreey-delegate 0.2.3, qwreey-operator 0.3.2, qwreey-proc-guard 0.2.1, qwreey-workspace 0.1.11, luau-kb 0.7.2). 이 기기: `claude plugin marketplace update qwreey-harness` 뒤 위 플러그인 갱신, `/reload-plugins` 또는 새 세션, 그다음 `tools/home-sync.sh diff`(harness.env 가 `~/Projects` 꼴로 바뀌지만 푼 값은 같다, statusline 의 임시 폴더 줄)와 `apply` (2026-11-19 확인: 설치본이 더 새 버전)
+- [x] 플러그인 독립 패키지화 반영(Q28 a, Q29 a; q 0.12.1, qwreey-sessions 0.5.0, qwreey-workspace 0.3.0, qwreey-conventions 0.13.0, qwreey-advisor 0.5.0, qwreey-operator 0.4.0, qwreey-delegate 0.5.2, qwreey-proc-guard 0.2.2, luau-kb 0.7.3). 순서: (2026-11-19 확인: 설치본 0.12.1 이상, home-sync 같음)
   1. `claude plugin marketplace update qwreey-harness` 뒤 위 플러그인을 `claude plugin update <이름>@qwreey-harness`, 그다음 `/reload-plugins` 나 새 세션
   2. `tools/home-sync.sh diff` 뒤 `apply`: harness.env 정본에서 `HARNESS_WORKSPACE`, `HARNESS_DOCTOR_ROOT`, `HARNESS_DELEGATE_REGISTRY` 줄이 빠지고 `HARNESS_CODERAG` 는 PATH 의 `coderag`(같은 래퍼로 풀림)
   3. 바뀌는 것: `/q:doctor` 정본 검사는 이 저장소 세션에서만; 세션을 한 번도 연 적 없는 저장소는 qwreey-workspace 옵션 `harness_workspace_extra` 에 `/code/Projects` 를 두면 모두 잡힌다
   4. 설정 우선순위: 코드 기본값 < `~/.claude/harness.env` < `/config` 옵션 < 저장소 `.claude/harness.env` < `harness.local.env` < 환경 변수
-- [ ] 위임 uid 대역 전환(Q31 a) 뒤 정리:
+- [x] 위임 uid 대역 전환(Q31 a) 뒤 정리: (2026-11-19 확인: uid 61000 파일 0개, /tmp/codex-*-61002 없음)
   1. **보안:** quad 메인 작업 트리의 `*/luau_packages/*.luau`, `*/roblox_packages/*.luau` 127개와 `/code/.pesde/cas/` 의 12개가 옛 위임 uid 61000 소유다(pesde 하드 링크). 새 기본 대역 61100-61115 에서는 새 위임이 61000 을 받지 않아 지금은 닿지 않지만, 대역을 61000 쪽으로 넓히면 그 uid 를 받은 위임이 고칠 수 있으니 그래도 `chown root:root` 로 돌린다. 확인: `find /code/Projects/quad -path '*/.git' -prune -o -uid 61000 -print | wc -l` 과 `find /code/.pesde -uid 61000 | wc -l` 이 0, 그리고 `python3 -I plugins/qwreey-delegate/skills/delegate/scripts/delegate.py doctor --repo /code/Projects/quad` 에 `old per-repository table` WARN 줄이 없다(`doctor --all` 은 대역 전환 뒤 위임이 돈 저장소만 보아 quad 를 놓친다)
   2. 남은 codex 임시 폴더 `/tmp/codex-daemon-61002`, `/tmp/codex-bwrap-synthetic-mount-targets-61002`(uid 61002 소유) 삭제
 - [ ] 회사 Windows PC 첫 실행 확인(README "Windows" 절). 결과를 알려 주면 남은 위험을 고친다

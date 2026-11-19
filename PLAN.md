@@ -7,13 +7,11 @@
 - 언어나 sandbox 에 묶이지 않고, 동료(비프로그래머 포함)가 무엇을 얻고 얼마를 쓰는지 보고 플러그인을 골라 설치하게 한다.
 - 구조와 층: `.claude/base/overview.md`. 원칙과 사용자 결정: `.claude/base/harness-principles.md`.
 
-## 지금 (2026-11-17)
-초점: 계획과 결정의 자리를 git 안으로 옮긴다(desk D17 a, 근거 `.claude/audit/64-plan-md-alternatives/summary.md`).
-1. qwreey-desk 패널이 열린 결정을 `.claude/plan/decisions/` 항목 파일에, 계획 단계를 `.claude/plan/now.md` 에 쓰게 바꾼다(D18 a: 번호는 Q<n>, 옛 D1~D18 도 같은 번호로 옮김).
-2. 사용자 몫(`HUMAN_TODO.md`): qwreey-conventions 0.11·0.12 갱신, luau-lsp 설치와 Windows 동료 확인, qwreey-desk 설치, Luau·웹 저장소마다 `coderag.toml` 로 팩 켜기.
-
-열린 결정과 계획 단계는 desk 패널이 `.claude/plan/` 파일에 쓰게 옮길 예정이다. 그때까지는 패널(`/desk`)이 원천이다.
-커밋 메시지의 `D<n> a` 꼴(D1~D18)은 desk 패널 결정이고, `.claude/base/decisions/` 의 `D-xx` 와 다르다.
+## 지금 (2026-11-19)
+초점: 다음 주(11-23~) 실사용을 준비한다. 평소 작업에 하네스를 쓰면서 느낀 점과 잰 값을 모아, 주말에 고칠 것·끌 것·정할 것을 고른다.
+- 단계는 `.claude/plan/now.md`(desk 의 지금 계획): 남은 일 정리, coderag 정리와 규약 맞추기, 측정 도구(`tools/usage-report.py`), 느낀 점 기록 자리, 사용자 갱신, 실사용 주간, 돌아보기.
+- 열린 결정은 `.claude/plan/decisions/`, 답한 것은 `.claude/archive/plan/decisions/`. 커밋 메시지의 `D<n> a` 꼴(D1~D18)은 같은 번호의 Q 이고, `.claude/base/decisions/` 의 `D-xx` 와 다르다.
+- 사용자 몫은 `HUMAN_TODO.md`.
 
 ## 열린 질문
 - 저장소 `.claude/harness.local.env` 가 `USER_ONLY` 키를 바꿀 수 있게 할지. 추천: 실제로 바꾸고 싶은 키가 생길 때 허용 목록과 에이전트 쓰기 deny 훅을 함께(`home/.claude/lib/harness_env.py`).
@@ -35,5 +33,5 @@
 - `.claude/base/harness-principles.md`: 사용자가 정한 원칙(원문 인용).
 - `.claude/base/decisions/`: Luau 저장소 사이 규약 합의안 D-01~D-13.
 - `HUMAN_TODO.md`: 사용자만 하는 일(삭제, 갱신, apply, 인계 전달).
-- desk 패널(`/desk`): 열린 결정과 계획 단계, 작업 기록. 지금은 git 밖 플러그인 저장소에 있다.
+- desk 패널(`/desk`): 열린 결정과 계획 단계, 작업 기록. 파일은 `.claude/plan/`(결정 `decisions/`, 계획 `now.md`).
 - `.claude/archive/plan/PLAN-2026-11.md`: 2026-11-10~16 의 옛 PLAN 전문(실행 로그, 결정 경과, 사용자 원문). 그 전 기록이 말하는 `PLAN.md §N`, `PLAN.md:줄` 은 이 파일이다. 줄 번호는 앞에 붙은 frontmatter 만큼 6 을 더한다.
