@@ -2,7 +2,7 @@
 tools/tests/test-hook-replay.py 가 함께 쓴다. 표준 라이브러리만 쓴다.
 
 훅은 hooks.json 처럼 늘 `python3 -I -X utf8 <스크립트>` 에 stdin JSON 으로 부른다(HOOK_SANDBOX_SIMWIN=1 이면 simwin.py 를 거쳐 Windows 흉내로). 그래서 스크립트 경로와 출력을 지키는 리팩터(파일 나누기 등)는
-이 호출을 깨지 않는다. 훅이 닿는 상태 위치는 모두 샌드박스 안으로 돌린다: TMPDIR, HOME, CLAUDE_CONFIG_DIR, XDG 폴더, session-log 저장소,
+이 호출을 깨지 않는다. Rust 바이너리처럼 실행 형식(command + args)으로 부를 훅은 run_argv() 로 같은 환경, stdin, 정규화에서 돌린다. 훅이 닿는 상태 위치는 모두 샌드박스 안으로 돌린다: TMPDIR, HOME, CLAUDE_CONFIG_DIR, XDG 폴더, session-log 저장소,
 nonce salt(고정 값이라 태그의 nonce 가 실행마다 같다).
 
 샌드박스 배치:
@@ -19,6 +19,7 @@ import atexit
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -30,6 +31,8 @@ ROOT = Path(__file__).resolve().parents[2]
 SALT = "00" * 32
 GIT_ENV = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t",
            "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+# hooks.json 의 파이썬 꼴 command. 1: 플러그인 안 스크립트 경로, 2: 뒤의 인자(앞 공백 포함). 이유는 test-hook-commands.py 머리.
+PYTHON_HOOK = re.compile(r'^python3 -I -X utf8 "\$\{CLAUDE_PLUGIN_ROOT\}/([^"]+\.py)"((?: [\w.-]+)*)$')
 # 훅 JSON 출력에서 모델(systemMessage 는 사용자)에게 가는 칸, 보이는 순서대로.
 TEXT_FIELDS = (("hookSpecificOutput", "additionalContext"), ("hookSpecificOutput", "permissionDecisionReason"),
                (None, "reason"), (None, "systemMessage"))
@@ -43,16 +46,27 @@ PLUGIN_COPY = os.environ.get("HOOK_SANDBOX_PLUGIN_COPY") == "1"
 _INSTALL = {}
 
 
+def market_name():
+    """이 저장소 마켓의 이름(marketplace.json), 읽지 못하면 "local"."""
+    try:
+        return json.loads((ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))["name"]
+    except (OSError, ValueError, KeyError):
+        return "local"
+
+
+def plugin_of(script):
+    """저장소 기준 스크립트 경로가 든 플러그인 폴더("plugins/<이름>" 또는 "packs/<이름>"). 플러그인 밖이거나 절대 경로면 None."""
+    parts = Path(script).as_posix().split("/")
+    return "/".join(parts[:2]) if not os.path.isabs(script) and len(parts) > 2 and parts[0] in ("plugins", "packs") else None
+
+
 def plugin_install():
     """설치본 흉내: {"base": 임시 폴더, "market": 마켓 이름, "dirs": {"plugins/<이름>": (사본 폴더, 이름)}}. 한 프로세스에 한 번 복사한다."""
     if _INSTALL:
         return _INSTALL
     base = Path(tempfile.mkdtemp(prefix="hook-sandbox-install-")).resolve()
     atexit.register(shutil.rmtree, str(base), True)
-    try:
-        market = json.loads((ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))["name"]
-    except (OSError, ValueError, KeyError):
-        market = "local"
+    market = market_name()
     dirs = {}
     for manifest in sorted(ROOT.glob("plugins/*/.claude-plugin/plugin.json")) + sorted(ROOT.glob("packs/*/.claude-plugin/plugin.json")):
         src = manifest.parent.parent
@@ -71,6 +85,39 @@ def installed_script(script):
         if rel.startswith(prefix + "/"):
             return dst / rel[len(prefix) + 1:], dst, name
     return None
+
+
+class SetupFailed(Exception):
+    """사례의 준비 명령이 실패했다. 글은 "setup '<명령>' failed: <stderr 끝>"."""
+
+
+def replay(case, sb):
+    """hook-replay 사례 하나(형식은 test-hook-replay.py 머리)를 sb 에 차례로 놓으며 단계마다 (번호, 단계, payload, env) 를 내준다.
+
+    파일과 준비 명령을 놓은 뒤, 단계마다 write 와 sh 를 하고 내준다. 훅 단계면 payload(session_id 없으면 "s1", cwd 없으면 "{repo}")와
+    env(사례 env 위에 단계 env)를, 아니면 None 둘을 준다. 훅은 받는 쪽이 돌린다. 그래서 다음 단계는 그 훅이 남긴 상태를 본다.
+    준비 명령이 실패하면 첫 단계 전에 SetupFailed 를 낸다. 번호는 1 부터.
+    """
+    for rel, content in (case.get("files") or {}).items():
+        sb.write(rel, content)
+    for cmd in case.get("setup") or []:
+        r = sb.sh(cmd, env=case.get("env"))
+        if r.returncode:
+            raise SetupFailed("setup %r failed: %s" % (cmd, r.stderr[-400:]))
+
+    for i, step in enumerate(case["steps"], 1):
+        for rel, content in (step.get("write") or {}).items():
+            sb.write(rel, content)
+        if "sh" in step:
+            sb.sh(step["sh"], env=case.get("env"))
+        if "hook" not in step:
+            yield i, step, None, None
+            continue
+
+        payload = dict(step.get("payload") or {})
+        payload.setdefault("session_id", "s1")
+        payload.setdefault("cwd", "{repo}")
+        yield i, step, payload, dict(case.get("env") or {}, **(step.get("env") or {}))
 
 
 class Result:
@@ -232,11 +279,56 @@ class Sandbox:
         env = dict(env or {})
         hit = installed_script(script) if PLUGIN_COPY and not os.path.isabs(script) else None
         if hit:
-            path, plugin_root, name = hit
-            env.setdefault("CLAUDE_PLUGIN_ROOT", str(plugin_root))
-            env.setdefault("CLAUDE_PLUGIN_DATA", str(self.cfg / "plugins" / "data" / ("%s-%s" % (name, plugin_install()["market"]))))
-        stdin = payload if isinstance(payload, str) else json.dumps(self.subst(payload), ensure_ascii=False)
+            path = hit[0]
+            env = self.plugin_env(plugin_of(script), env)
         shim = [str(Path(__file__).resolve().with_name("simwin.py"))] if os.environ.get("HOOK_SANDBOX_SIMWIN") == "1" else []
-        p = subprocess.run([sys.executable, "-I", "-X", "utf8", *shim, str(path), *[self.subst(a) for a in argv]], input=stdin, capture_output=True,
-                           text=True, env=self.env(env), cwd=str(cwd or self.repo), timeout=timeout)
+        return self._spawn([sys.executable, "-I", "-X", "utf8", *shim, str(path), *[self.subst(a) for a in argv]], payload, env, cwd, timeout)
+
+    def run_argv(self, argv, payload, plugin, env=None, cwd=None, timeout=30):
+        """hooks.json 의 실행 형식(command + args, 셸 없이)처럼 argv 를 그대로 띄운다. Result 를 돌려준다.
+
+        plugin 은 저장소 기준 플러그인 폴더("plugins/<이름>"). Claude Code 처럼 환경 변수 CLAUDE_PLUGIN_ROOT, CLAUDE_PLUGIN_DATA 를
+        늘 달고(plugin_env), argv 의 ${CLAUDE_PLUGIN_ROOT}, ${CLAUDE_PLUGIN_DATA}, ${CLAUDE_PROJECT_DIR} 를 글자로 바꾼다.
+        argv[0] 은 샌드박스 PATH 로 찾는다. simwin 은 거치지 않는다. 띄우지 못하면(바이너리가 없는 등) exit 127 과 stderr 의 까닭을 돌려준다.
+        """
+        env = self.plugin_env(plugin, env)
+
+        # Claude Code 처럼 변수를 글자로 펼치기
+        full = self.env(env)
+        names = {"CLAUDE_PLUGIN_ROOT": str(self.plugin_root(plugin)[0]), "CLAUDE_PLUGIN_DATA": full["CLAUDE_PLUGIN_DATA"],
+                 "CLAUDE_PROJECT_DIR": full["CLAUDE_PROJECT_DIR"]}
+        expanded = []
+        for arg in argv:
+            arg = self.subst(arg)
+            for k, v in names.items():
+                arg = arg.replace("${%s}" % k, v)
+            expanded.append(arg)
+
+        try:
+            return self._spawn(expanded, payload, env, cwd, timeout)
+        except OSError as e:
+            return Result(127, "", "hook_sandbox: cannot start %s: %s\n" % (expanded[0] if expanded else "(empty argv)", e))
+
+    def plugin_root(self, plugin):
+        """(플러그인 폴더, 이름): 설치본 흉내면 사본 폴더, 아니면 이 저장소의 그 폴더."""
+        if PLUGIN_COPY:
+            return plugin_install()["dirs"][Path(plugin).as_posix()]
+        manifest = json.loads((ROOT / plugin / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        return ROOT / plugin, manifest["name"]
+
+    def plugin_env(self, plugin, env=None):
+        """env 에 Claude Code 가 훅에 다는 플러그인 환경 변수를 더한 새 사전.
+
+        CLAUDE_PLUGIN_ROOT 는 plugin_root(), CLAUDE_PLUGIN_DATA 는 <cfg>/plugins/data/<이름>-<마켓>. 사례가 정한 값은 그대로 둔다.
+        CLAUDE_PROJECT_DIR 은 env() 가 늘 단다.
+        """
+        env = dict(env or {})
+        root, name = self.plugin_root(plugin)
+        env.setdefault("CLAUDE_PLUGIN_ROOT", str(root))
+        env.setdefault("CLAUDE_PLUGIN_DATA", str(self.cfg / "plugins" / "data" / ("%s-%s" % (name, market_name()))))
+        return env
+
+    def _spawn(self, cmd, payload, env, cwd, timeout):
+        stdin = payload if isinstance(payload, str) else json.dumps(self.subst(payload), ensure_ascii=False)
+        p = subprocess.run(cmd, input=stdin, capture_output=True, text=True, env=self.env(env), cwd=str(cwd or self.repo), timeout=timeout)
         return Result(p.returncode, p.stdout, p.stderr)

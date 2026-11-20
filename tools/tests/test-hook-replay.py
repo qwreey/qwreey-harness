@@ -24,7 +24,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
-from hook_sandbox import ROOT, Sandbox, nonce  # noqa: E402
+from hook_sandbox import ROOT, Sandbox, SetupFailed, nonce, replay  # noqa: E402
 
 CASES = Path(__file__).resolve().parent / "hook-replay" / "cases"
 CASE_KEYS = {"description", "files", "setup", "env", "steps"}
@@ -76,33 +76,22 @@ def run_case(path):
     if not case.get("description") or not case.get("steps"):
         errors.append("a case needs description and steps")
     with Sandbox(prefix="hook-replay-") as sb:
-        for rel, content in (case.get("files") or {}).items():
-            sb.write(rel, content)
-        for cmd in case.get("setup") or []:
-            r = sb.sh(cmd, env=case.get("env"))
-            if r.returncode:
-                return errors + ["setup %r failed: %s" % (cmd, r.stderr[-400:])]
-        for i, step in enumerate(case["steps"]):
-            where = "step %d" % (i + 1)
-            errors += ["%s: unknown key %s" % (where, k) for k in set(step) - STEP_KEYS]
-            errors += ["%s: unknown expect key %s" % (where, k) for k in set(step.get("expect") or {}) - EXPECT_KEYS]
-            if "write" in step:
-                for rel, content in step["write"].items():
-                    sb.write(rel, content)
-            if "sh" in step:
-                sb.sh(step["sh"], env=case.get("env"))
-            if "hook" in step:
+        try:
+            for i, step, payload, env in replay(case, sb):
+                where = "step %d" % i
+                errors += ["%s: unknown key %s" % (where, k) for k in set(step) - STEP_KEYS]
+                errors += ["%s: unknown expect key %s" % (where, k) for k in set(step.get("expect") or {}) - EXPECT_KEYS]
+                if payload is None:
+                    continue
                 if not (ROOT / step["hook"]).is_file():
                     errors.append("%s: no hook script %s" % (where, step["hook"]))
                     continue
-                payload = dict(step.get("payload") or {})
-                payload.setdefault("session_id", "s1")
-                payload.setdefault("cwd", "{repo}")
-                env = dict(case.get("env") or {}, **(step.get("env") or {}))
                 result = sb.run(step["hook"], payload, argv=step.get("argv") or (), env=env)
                 for msg in check(result, step.get("expect") or {}, payload["session_id"], sb):
                     errors.append("%s (%s): %s\n    output: %s" % (where, step["hook"].rsplit("/", 1)[-1], msg,
                                                                    sb.normalize(result.text())[:600].replace("\n", "\n    ")))
+        except SetupFailed as e:
+            return errors + [str(e)]
     return errors
 
 

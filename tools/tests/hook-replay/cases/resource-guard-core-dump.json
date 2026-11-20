@@ -1,0 +1,41 @@
+{
+ "description": "resource-guard core dumps, for hook-parity: a core left by a crashed command gets an action to delete it, a core not tied to the command a keep-and-tell warn, and a reported core is not reported again. The hook reads the host's /proc/sys/kernel/core_pattern with no override, so what it prints depends on the host (a file pattern like `core` finds the files, a `|handler` pattern prints a handler note, simwin and non-Linux print nothing); the steps therefore check only the exit code, and the text is compared byte for byte by hook-parity.py on one host. The core is a 64-byte ELF header with e_type ET_CORE (program unknown)",
+ "env": {"PROC_GUARD_DISK": "off", "CLAUDE_PLUGIN_DATA": "{sandbox}/rgdata"},
+ "steps": [
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_use_id": "t1", "tool_input": {"command": "./crashy"}},
+   "expect": {"exit": 0, "empty": true}
+  },
+  {
+   "note": "crashed (exit 139) and the core's program is unknown: delete it (action) when core_pattern writes files",
+   "sh": "{ printf '\\177ELF\\002\\001\\001'; head -c 9 /dev/zero; printf '\\004\\000'; head -c 46 /dev/zero; } > {repo}/core",
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": {"hook_event_name": "PostToolUseFailure", "tool_name": "Bash", "tool_use_id": "t1", "tool_input": {"command": "./crashy"},
+               "error": "Exit code 139\nSegmentation fault (core dumped)", "is_interrupt": false},
+   "expect": {"exit": 0}
+  },
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_use_id": "t2", "tool_input": {"command": "make test"}},
+   "expect": {"exit": 0, "empty": true}
+  },
+  {
+   "note": "a new core while a command that did not crash ran: keep and tell (warn); the first core is not reported again",
+   "sh": "{ printf '\\177ELF\\002\\001\\001'; head -c 9 /dev/zero; printf '\\004\\000'; head -c 46 /dev/zero; } > {repo}/core.4242",
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": {"hook_event_name": "PostToolUse", "tool_name": "Bash", "tool_use_id": "t2", "tool_input": {"command": "make test"},
+               "tool_response": {"stdout": "ok\n", "stderr": "", "interrupted": false, "isImage": false}},
+   "expect": {"exit": 0}
+  },
+  {
+   "note": "a file named core that is not an ELF core is ignored",
+   "sh": "echo text > {repo}/core.77",
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": {"hook_event_name": "PostToolUse", "tool_name": "Bash", "tool_use_id": "t3", "tool_input": {"command": "make test"},
+               "tool_response": {"stdout": "Segmentation fault\n", "stderr": "", "interrupted": false, "isImage": false},
+               "duration_ms": 60000},
+   "expect": {"exit": 0}
+  }
+ ]
+}

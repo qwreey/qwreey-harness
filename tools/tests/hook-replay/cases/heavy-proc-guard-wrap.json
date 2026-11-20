@@ -1,0 +1,73 @@
+{
+ "description": "heavy-proc-guard: with a wrapper program installed, an unwrapped bench/fuzz run is denied with how to re-run; wrapped runs, git commands, plain runs and a cd into a bench dir followed by an interpreter pass; an empty or missing wrapper allows everything. The wrapper is a stub in the sandbox, not choom, so the case does not depend on the host (choom on PATH, or the simwin shim that hides it)",
+ "files": {
+  "{sandbox}/bin/oomwrap": "#!/bin/sh\nexec \"$@\"\n"
+ },
+ "setup": ["chmod +x {sandbox}/bin/oomwrap"],
+ "env": {"HARNESS_HEAVY_WRAP": "{sandbox}/bin/oomwrap -n 1000 --"},
+ "steps": [
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "bash run-bench.sh"}},
+   "expect": {
+    "decision": "deny",
+    "tags": ["heavy-proc-guard/action"],
+    "contains": ["Re-run wrapped as `{sandbox}/bin/oomwrap -n 1000 -- <command>`.", "If this is a false positive, wrapping the same way passes."]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py",
+   "payload": {"session_id": "s2", "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "python3 fuzz.py --rounds 10"}},
+   "expect": {"decision": "deny", "tags": ["heavy-proc-guard/action"]}
+  },
+  {
+   "note": "a cd into a keyword dir carries over to scripts",
+   "hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "cd bench && ./run.sh"}},
+   "expect": {"decision": "deny", "tags": ["heavy-proc-guard/action"]}
+  },
+  {
+   "note": "a variable holding a keyword path counts where it is expanded",
+   "hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "F=tests/fuzz.luau; luau $F"}},
+   "expect": {"decision": "deny", "tags": ["heavy-proc-guard/action"]}
+  },
+  {
+   "note": "already wrapped",
+   "hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "{sandbox}/bin/oomwrap -n 1000 -- bash run-bench.sh"}},
+   "expect": {"empty": true}
+  },
+  {
+   "note": "commit messages mention these words",
+   "hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "git commit -m 'add bench'"}},
+   "expect": {"empty": true}
+  },
+  {
+   "note": "interpreters in a bench dir mostly aggregate results",
+   "hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "cd bench && python3 summarize.py"}},
+   "expect": {"empty": true}
+  },
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "python3 build.py && echo bench"}},
+   "expect": {"empty": true}
+  },
+  {
+   "note": "an empty wrapper turns the guard off",
+   "hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py",
+   "env": {"HARNESS_HEAVY_WRAP": ""},
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "bash run-bench.sh"}},
+   "expect": {"empty": true}
+  },
+  {
+   "note": "a wrapper program that is not installed allows everything (no choom: macOS, Windows, sandboxes)",
+   "hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py",
+   "env": {"HARNESS_HEAVY_WRAP": "{sandbox}/bin/not-installed -n 1000 --"},
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "bash run-bench.sh"}},
+   "expect": {"empty": true}
+  }
+ ]
+}

@@ -1,0 +1,49 @@
+{
+ "description": "resource-guard: a drop in free space between Pre and Post is warned, and repeated only when it grows by another DROP_GIB. The cwd is /proc (always 0 free), and the Pre reading is edited to say 5 or 10 GiB were free, standing in for a command that filled the disk; thresholds come from the environment",
+ "env": {"PROC_GUARD_DISK_MIN_FREE_GIB": "0", "PROC_GUARD_DISK_MIN_FREE_PCT": "0", "PROC_GUARD_DISK_DROP_GIB": "4", "PROC_GUARD_CORE": "off",
+         "CLAUDE_PLUGIN_DATA": "{sandbox}/rgdata"},
+ "steps": [
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_use_id": "t1", "cwd": "/proc", "tool_input": {"command": "make big"}},
+   "expect": {"empty": true}
+  },
+  {
+   "sh": "sed -i 's|\"mount\": \"/proc\", \"free\": 0,|\"mount\": \"/proc\", \"free\": 5368709120,|' {sandbox}/rgdata/resource-guard/pre/*-t1.json",
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": {"hook_event_name": "PostToolUse", "tool_name": "Bash", "tool_use_id": "t1", "cwd": "/proc", "tool_input": {"command": "make big"},
+               "tool_response": {"stdout": "", "stderr": "", "interrupted": false, "isImage": false}},
+   "expect": {
+    "tags": ["resource-guard/warn"],
+    "contains": ["Free space on /proc fell by 5.0 GiB while this command ran (now 0.0 GiB free).", "If the drop came from this command"],
+    "not_contains": ["Low disk space"]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_use_id": "t2", "cwd": "/proc", "tool_input": {"command": "make big"}},
+   "expect": {"empty": true}
+  },
+  {
+   "note": "the same drop again is not repeated",
+   "sh": "sed -i 's|\"mount\": \"/proc\", \"free\": 0,|\"mount\": \"/proc\", \"free\": 5368709120,|' {sandbox}/rgdata/resource-guard/pre/*-t2.json",
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": {"hook_event_name": "PostToolUse", "tool_name": "Bash", "tool_use_id": "t2", "cwd": "/proc", "tool_input": {"command": "make big"},
+               "tool_response": {"stdout": "", "stderr": "", "interrupted": false, "isImage": false}},
+   "expect": {"empty": true}
+  },
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_use_id": "t3", "cwd": "/proc", "tool_input": {"command": "make bigger"}},
+   "expect": {"empty": true}
+  },
+  {
+   "note": "a drop larger by another DROP_GIB is warned again, here through PostToolUseFailure",
+   "sh": "sed -i 's|\"mount\": \"/proc\", \"free\": 0,|\"mount\": \"/proc\", \"free\": 10737418240,|' {sandbox}/rgdata/resource-guard/pre/*-t3.json",
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": {"hook_event_name": "PostToolUseFailure", "tool_name": "Bash", "tool_use_id": "t3", "cwd": "/proc", "tool_input": {"command": "make bigger"},
+               "error": "Exit code 2\nmake: *** [all] Error 2", "is_interrupt": false},
+   "expect": {"tags": ["resource-guard/warn"], "contains": ["Free space on /proc fell by 10.0 GiB while this command ran (now 0.0 GiB free)."]}
+  }
+ ]
+}
