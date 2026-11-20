@@ -93,6 +93,7 @@
 
 ## ~/.claude 반영 (정본 → 실제)
 - 2026-11-11 17:58 기준 apply 를 마쳤다. `tools/home-sync.sh status` 가 모든 파일을 "같음", settings 를 "4/4 적용"(0001, 0002, 0004, 0005)으로 보인다. 고아도 없다. 켜 둔 플러그인은 q, qwreey-advisor, qwreey-conventions 이고 모두 설치돼 있다.
+- [ ] `home/.claude/lib/harness_env.py` 가 바뀌었다(bbfc686: 저장소 층의 막힌 사용자 전용 값이 `$NAME` 으로 새지 않음). `tools/home-sync.sh diff` 로 보고 `apply`
 - [ ] apply 가 남긴 백업 `*.bak-<시각>` 정리(확인한 뒤 직접 지운다)
   - 목록: `ls ~/.claude/*.bak-* ~/.claude/{hooks,lib,rules}/*.bak-*`
   - 지우기: `rm ~/.claude/*.bak-* ~/.claude/{hooks,lib,rules}/*.bak-*`
