@@ -8,7 +8,6 @@
 //!   claim 디렉터리가 이 사용자 소유의 진짜 디렉터리가 아니면 조율하지 않고 싣는다([`claim`]).
 //!
 //! python 판과 다른 점: 프로세스 안 캐시가 없다(바이너리는 한 번 뜨고 끝나므로 호출한 쪽이 [`Nonce`] 를 들고 쓴다).
-//! claim 디렉터리 소유자와 견줄 자기 uid 를 python 은 `os.getuid()` 로, Rust 는 시험 파일의 소유자로 안다([`claim`]).
 
 use std::fs::{self, DirBuilder, File, Metadata, OpenOptions};
 use std::io::{ErrorKind, Read, Write};
@@ -173,6 +172,7 @@ fn make_private_dir(dir: &Path) -> std::io::Result<()> {
         fs::create_dir_all(parent)?;
     }
 
+    #[cfg_attr(not(unix), allow(unused_mut))]
     let mut builder = DirBuilder::new();
     #[cfg(unix)]
     std::os::unix::fs::DirBuilderExt::mode(&mut builder, 0o700);
@@ -266,33 +266,22 @@ pub fn claim(
 // 남의 진짜 디렉터리도 받지 않는다: 그 주인은 lstat 뒤에 그것을 링크로 바꿔 칠 수 있고, claim 이름을 미리 만들어 규칙 줄을 막을 수 있다.
 fn own_dir(dir: &Path) -> bool {
     match fs::symlink_metadata(dir) {
-        Ok(meta) if meta.file_type().is_dir() => owned_by_me(dir, &meta),
+        Ok(meta) if meta.file_type().is_dir() => owned_by_me(&meta),
         _ => false,
     }
 }
 
-// std 에 getuid 가 없고 unsafe 는 금지라, 디렉터리 안에 이름이 겹치지 않는 시험 파일을 만들어 그 소유자(유효 uid)와 견준다.
-// 남의 디렉터리라 쓸 수 없으면 만들지 못해 false 다. 링크로 바꿔 쳐져 내 디렉터리에 만들어져도 소유자가 lstat 때와 달라 false 다.
+// python 처럼 실제 uid(os.getuid)와 견준다
 #[cfg(unix)]
-fn owned_by_me(dir: &Path, meta: &Metadata) -> bool {
+fn owned_by_me(meta: &Metadata) -> bool {
     use std::os::unix::fs::MetadataExt;
 
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_or(0, |d| d.subsec_nanos());
-    let probe = dir.join(format!(".uid-probe-{}-{nanos}", std::process::id()));
-    let Ok(file) = create_private_file(&probe) else {
-        return false;
-    };
-    let mine = file.metadata().map(|m| m.uid());
-    drop(file);
-    let _ = fs::remove_file(&probe);
-    mine.is_ok_and(|uid| uid == meta.uid())
+    meta.uid() == rustix::process::getuid().as_raw()
 }
 
 // Windows 의 임시 폴더는 사용자마다 따로 있어 소유자를 보지 않는다(python 도 os.getuid 가 없어 보지 않는다)
 #[cfg(not(unix))]
-fn owned_by_me(_dir: &Path, _meta: &Metadata) -> bool {
+fn owned_by_me(_meta: &Metadata) -> bool {
     true
 }
 

@@ -6,4 +6,9 @@
 pub mod json;
 pub mod num;
 pub mod path;
+pub mod re;
+pub mod tempfile;
 pub mod text;
+pub mod unicode;
+mod unicode_tables;
+pub mod value;

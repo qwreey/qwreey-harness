@@ -1,13 +1,15 @@
 ---
 format: 1
 title: Rust 훅에 rustix 의존성을 더할까?
-description: Rust 훅에 rustix 의존성을 더할까? 권장 a) rustix 더함 (feature process, fs)
-status: active
+description: Rust 훅에 rustix 의존성을 더할까? 답 a) rustix 더함 (feature process, fs)
+status: archived; answered a) rustix 더함 (feature process, fs)
 id: Q41
 urgency: soon
 blocks: proc-guard 바이너리(resource-guard)
 recommended: a
 created: 2026-11-20T03:45:12.554Z
+answered: 2026-11-20T04:30:37.558Z
+answer: a
 ---
 
 # Q41. Rust 훅에 rustix 의존성을 더할까?
@@ -31,3 +33,7 @@ created: 2026-11-20T03:45:12.554Z
 
 **권장 a) rustix 더함 (feature process, fs)**
 resource-guard 를 옮기려면 statvfs 가 필요해서 어차피 들어오고, unsafe 를 이 저장소에 두지 않아도 됨
+
+## 답
+
+a

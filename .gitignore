@@ -28,3 +28,6 @@ plugins/qwreey-desk/.claude-plugin/types/
 
 # Cargo 빌드 출력(Cargo.toml 워크스페이스)
 /target/
+
+# 플러그인 Rust 훅 바이너리(crates/<플러그인>, release 빌드를 복사한다). 배포는 release 로 한다(.claude/plan/rust-hook-backend.md)
+plugins/*/native/

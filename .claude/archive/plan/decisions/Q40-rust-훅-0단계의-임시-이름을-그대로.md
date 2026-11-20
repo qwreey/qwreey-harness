@@ -1,13 +1,15 @@
 ---
 format: 1
 title: Rust 훅 0단계의 임시 이름을 그대로 둘까?
-description: Rust 훅 0단계의 임시 이름을 그대로 둘까? 권장 a) 그대로 둠
-status: active
+description: Rust 훅 0단계의 임시 이름을 그대로 둘까? 답 a) 그대로 둠
+status: archived; answered a) 그대로 둠
 id: Q40
 urgency: soon
 blocks: proc-guard 바이너리 이름
 recommended: a
 created: 2026-11-20T03:35:02.102Z
+answered: 2026-11-20T04:30:37.558Z
+answer: a
 ---
 
 # Q40. Rust 훅 0단계의 임시 이름을 그대로 둘까?
@@ -32,3 +34,7 @@ created: 2026-11-20T03:35:02.102Z
 
 **권장 a) 그대로 둠**
 관례에 맞고 아직 쓰는 곳이 적어 나중에 바꿔도 되지만, proc-guard 바이너리를 만들기 전에 정하면 이름 바꾸기가 한 번으로 끝남
+
+## 답
+
+a

@@ -355,7 +355,7 @@ pub fn heavy_wrap(layers: &Layers, env: &Env) -> Vec<String> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
 

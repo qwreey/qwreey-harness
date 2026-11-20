@@ -18,6 +18,10 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 HOOKS = os.path.join(os.path.dirname(HERE), "hooks")
 HOOK = os.path.join(HOOKS, "resource-guard.py")
+# HOOK_TEST_BIN=<바이너리> 면 python 스크립트 대신 `<바이너리> hook resource-guard` 를 하위 프로세스로 돌린다(Rust 판, crates/qwreey-proc-guard)
+BIN = os.environ.get("HOOK_TEST_BIN")
+# 이 시험의 대부분은 python 모듈을 이 프로세스에 적재해 부른다. 바이너리로 도는 것은 하위 프로세스 묶음(동시 Post, 깨진 입력, e2e)뿐이다
+CMD = [BIN, "hook", "resource-guard"] if BIN else [sys.executable, "-I", "-X", "utf8", HOOK]
 T = tempfile.mkdtemp(prefix="resource-guard-")
 GIB = 1 << 30
 
@@ -377,7 +381,7 @@ env = dict(os.environ, PROC_GUARD_DISK="off")
 # stdin 은 파일로: PIPE 와 communicate 를 차례로 부르면 하위 프로세스가 하나씩 돌아 겹치지 않는다
 with open(os.path.join(T, "lock-in.json"), "w") as f:
     f.write(raw)
-procs = [subprocess.Popen([sys.executable, "-I", "-X", "utf8", HOOK], stdin=open(os.path.join(T, "lock-in.json")),
+procs = [subprocess.Popen(CMD, stdin=open(os.path.join(T, "lock-in.json")),
                           stdout=subprocess.PIPE, text=True, env=env) for _ in range(8)]
 outs = [p.communicate(timeout=20)[0] for p in procs]
 check("8 parallel posts report one core once", sum("core.5" in o for o in outs) == 1)
@@ -413,7 +417,7 @@ os.environ["CLAUDE_PLUGIN_DATA"] = saved
 def run(raw, env=None):
     """훅을 하위 프로세스로 돌려 (종료 코드, stdout, stderr)."""
     e = dict(os.environ, **(env or {}))
-    p = subprocess.run([sys.executable, "-I", "-X", "utf8", HOOK], input=raw, capture_output=True, text=True, timeout=20, env=e)
+    p = subprocess.run(CMD, input=raw, capture_output=True, text=True, timeout=20, env=e)
     return p.returncode, p.stdout, p.stderr
 
 

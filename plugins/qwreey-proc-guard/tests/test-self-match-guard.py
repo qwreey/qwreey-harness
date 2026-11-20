@@ -12,6 +12,9 @@ import sys
 import tempfile
 
 HOOK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks", "self-match-guard.py")
+# HOOK_TEST_BIN=<바이너리> 면 python 스크립트 대신 `<바이너리> hook self-match-guard` 를 하위 프로세스로 돌린다(Rust 판, crates/qwreey-proc-guard)
+BIN = os.environ.get("HOOK_TEST_BIN")
+CMD = [BIN, "hook", "self-match-guard"] if BIN else [sys.executable, "-I", HOOK]
 T = tempfile.mkdtemp(prefix="selfmatch-")
 # nonce 는 고정 salt 로(실제 ~/.local/share 의 salt 를 쓰지 않게). salt "00"*32 + 세션 "abc" 의 nonce 는 39596342ed0e
 open(os.path.join(T, "salt"), "w").write("00" * 32)
@@ -29,7 +32,7 @@ def check(name, cond):
 
 
 def run(cmd, raw=None):
-    p = subprocess.run([sys.executable, "-I", HOOK], capture_output=True, text=True, timeout=10,
+    p = subprocess.run(CMD, capture_output=True, text=True, timeout=10,
                        input=raw if raw is not None else json.dumps({"session_id": "abc", "tool_input": {"command": cmd}}))
     assert p.returncode == 0, p.stderr
     return json.loads(p.stdout) if p.stdout.strip() else None

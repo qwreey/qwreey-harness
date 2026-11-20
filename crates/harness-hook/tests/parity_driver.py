@@ -23,6 +23,24 @@ def from_bits(bits):
     return struct.unpack("<d", struct.pack("<Q", bits))[0]
 
 
+def re_case(pattern, flags, text):
+    """정규식 하나를 글 하나에: 오류 종류, 또는 search 의 (시작, 끝), fullmatch 여부, finditer 의 (시작, 끝) 목록. 위치는 글자 단위."""
+    import re
+    fl = (re.I if flags & 1 else 0) | (re.M if flags & 2 else 0) | (re.S if flags & 4 else 0)
+    try:
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            rx = re.compile(pattern, fl)
+    except re.error:
+        return "error"
+    except OverflowError:
+        return "overflow"
+    m = rx.search(text)
+    return {"search": [m.start(), m.end()] if m else None, "full": rx.fullmatch(text) is not None,
+            "iter": [[m.start(), m.end()] for m in rx.finditer(text) if m.end() > m.start()]}
+
+
 def run(nonce_mod, env_mod, case):
     os.environ.clear()
     os.environ.update(case.get("env") or {})
@@ -48,6 +66,15 @@ def run(nonce_mod, env_mod, case):
     if op == "pathlib":
         import pathlib
         return [str(pathlib.PurePosixPath(p)) for p in a["paths"]]
+
+    if op == "re":
+        return [re_case(*c) for c in a["cases"]]
+    if op == "normpath":
+        return [os.path.normpath(p) for p in a["paths"]]
+    if op == "gettempdir":
+        import tempfile
+        tempfile.tempdir = None
+        return tempfile.gettempdir()
 
     # nonce
     if op == "nonce":

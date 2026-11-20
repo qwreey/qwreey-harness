@@ -124,9 +124,105 @@ pub fn floor_div(a: f64, b: f64) -> f64 {
     floor
 }
 
+/// python `float(text)`. 읽지 못하면 `None`(python 은 ValueError).
+///
+/// 앞뒤 공백을 떼고, Unicode 십진 숫자를 ASCII 로 바꾸고, 숫자 사이의 `_` 를 받는다. `inf`, `infinity`, `nan` 은 대소문자와 부호를 가리지 않는다.
+pub fn parse_float(text: &str) -> Option<f64> {
+    let text = crate::py::text::strip(text);
+    let chars: Vec<char> = text
+        .chars()
+        .map(|c| match crate::py::unicode::decimal_value(c) {
+            Some(d) => char::from_digit(d, 10).expect("decimal digit"),
+            None => c,
+        })
+        .collect();
+
+    // `_` 는 숫자 사이에만
+    let mut plain = String::with_capacity(chars.len());
+    for (i, &c) in chars.iter().enumerate() {
+        if c != '_' {
+            plain.push(c);
+            continue;
+        }
+        let digit_at = |j: Option<usize>| {
+            j.and_then(|j| chars.get(j))
+                .is_some_and(char::is_ascii_digit)
+        };
+        if !digit_at(i.checked_sub(1)) || !digit_at(Some(i + 1)) {
+            return None;
+        }
+    }
+
+    // Rust 가 python 과 달리 받는 꼴은 없다(둘 다 `1.`, `.5`, `1e5`, `inf`, `nan` 을 받는다)
+    plain.parse::<f64>().ok()
+}
+
+/// python `"%g" % x`: 유효 숫자 6자리, 지수가 -4 미만이거나 6 이상이면 지수 꼴, 끝의 0 은 뗀다.
+pub fn format_g(x: f64) -> String {
+    if x.is_nan() {
+        return "nan".to_owned();
+    }
+    if x.is_infinite() {
+        return if x > 0.0 { "inf" } else { "-inf" }.to_owned();
+    }
+
+    // 6자리로 반올림한 지수
+    let sci = format!("{x:.5e}");
+    let (mantissa, exp) = sci.split_once('e').expect("{:e} writes an exponent");
+    let exp: i32 = exp.parse().expect("{:e} writes an integer exponent");
+
+    let trim = |s: &str| -> String {
+        if s.contains('.') {
+            s.trim_end_matches('0').trim_end_matches('.').to_owned()
+        } else {
+            s.to_owned()
+        }
+    };
+    if !(-4..6).contains(&exp) {
+        let sign = if exp < 0 { '-' } else { '+' };
+        return format!("{}e{sign}{:02}", trim(mantissa), exp.abs());
+    }
+    trim(&format!("{x:.prec$}", prec = (5 - exp) as usize))
+}
+
+/// python `int(digits)` 의 값. 십진 숫자(Unicode 포함)만 받고, u128 을 넘으면 `None`.
+pub fn parse_decimal(digits: &str) -> Option<u128> {
+    if digits.is_empty() {
+        return None;
+    }
+    digits.chars().try_fold(0u128, |acc, c| {
+        let d = crate::py::unicode::decimal_value(c)?;
+        acc.checked_mul(10)?.checked_add(u128::from(d))
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn float_parsing_and_g_follow_python() {
+        assert_eq!(parse_float(" 1_000.5 "), Some(1000.5));
+        assert_eq!(parse_float("\u{663}"), Some(3.0));
+        assert_eq!(parse_float("1__0"), None);
+        assert_eq!(parse_float("_1"), None);
+        assert_eq!(parse_float("x"), None);
+        assert!(parse_float("-Infinity").is_some_and(|f| f.is_infinite()));
+        for (x, want) in [
+            (10.0, "10"),
+            (0.001, "0.001"),
+            (1e-5, "1e-05"),
+            (1234567.0, "1.23457e+06"),
+            (0.5, "0.5"),
+            (0.0, "0"),
+            (100000.0, "100000"),
+            (f64::INFINITY, "inf"),
+        ] {
+            assert_eq!(format_g(x), want, "{x}");
+        }
+        assert_eq!(parse_decimal("139"), Some(139));
+        assert_eq!(parse_decimal("\u{661}\u{663}\u{669}"), Some(139));
+    }
 
     #[test]
     fn repr_matches_python_examples() {

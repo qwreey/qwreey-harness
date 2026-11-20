@@ -1,0 +1,5 @@
+[
+ {"hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-proc-guard", "hook", "heavy-proc-guard"]},
+ {"hook": "plugins/qwreey-proc-guard/hooks/self-match-guard.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-proc-guard", "hook", "self-match-guard"]},
+ {"hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-proc-guard", "hook", "resource-guard"]}
+]

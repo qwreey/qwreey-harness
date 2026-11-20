@@ -10,6 +10,9 @@ import sys
 import tempfile
 
 HOOK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks", "heavy-proc-guard.py")
+# HOOK_TEST_BIN=<바이너리> 면 python 스크립트 대신 `<바이너리> hook heavy-proc-guard` 를 하위 프로세스로 돌린다(Rust 판, crates/qwreey-proc-guard)
+BIN = os.environ.get("HOOK_TEST_BIN")
+CMD = [BIN, "hook", "heavy-proc-guard"] if BIN else [sys.executable, "-I", HOOK]
 T = tempfile.mkdtemp(prefix="procguard-")
 # nonce 는 고정 salt 로(실제 ~/.local/share 의 salt 를 쓰지 않게). salt "00"*32 + 세션 "abc" 의 nonce 는 39596342ed0e
 open(os.path.join(T, "salt"), "w").write("00" * 32)
@@ -37,7 +40,7 @@ def run(cmd, wrap="choom -n 1000 --", raw=None, proj=None):
     env.pop("CLAUDE_PROJECT_DIR", None)
     if proj:
         env["CLAUDE_PROJECT_DIR"] = proj
-    p = subprocess.run([sys.executable, "-I", HOOK], input=raw if raw is not None else json.dumps({"tool_input": {"command": cmd}}),
+    p = subprocess.run(CMD, input=raw if raw is not None else json.dumps({"tool_input": {"command": cmd}}),
                        capture_output=True, text=True, env=env, timeout=10)
     assert p.returncode == 0, p.stderr
     return json.loads(p.stdout) if p.stdout.strip() else None

@@ -103,6 +103,63 @@ pub fn pathlib_str(path: &str) -> String {
     }
 }
 
+/// python `posixpath.normpath(path)`: 겹친 `/`, `.` 을 지우고 `..` 를 글자로 푼다(링크를 보지 않는다). 빈 경로는 `.`.
+pub fn normpath(path: &str) -> String {
+    if path.is_empty() {
+        return ".".to_owned();
+    }
+    let slashes = if path.starts_with("//") && !path.starts_with("///") {
+        2
+    } else {
+        usize::from(path.starts_with('/'))
+    };
+
+    // 조각마다 `..` 는 앞 조각을 지운다(맨 위에서는 버리고, 상대 경로 맨 앞에서는 남긴다)
+    let mut parts: Vec<&str> = Vec::new();
+    for part in path.split('/') {
+        if part.is_empty() || part == "." {
+            continue;
+        }
+        if part != ".." || (slashes == 0 && parts.is_empty()) || parts.last() == Some(&"..") {
+            parts.push(part);
+        } else {
+            parts.pop();
+        }
+    }
+
+    let joined = format!("{}{}", "/".repeat(slashes), parts.join("/"));
+    if joined.is_empty() {
+        ".".to_owned()
+    } else {
+        joined
+    }
+}
+
+/// python `os.path.abspath(path)`. 현재 디렉터리를 읽지 못하면 `None`.
+///
+/// POSIX 는 현재 디렉터리에 이어 [`normpath`], Windows 는 `std::path::absolute`(python 도 GetFullPathNameW 다).
+pub fn abspath(path: &str) -> Option<String> {
+    if cfg!(windows) {
+        return std::path::absolute(path)
+            .ok()
+            .and_then(|p| p.into_os_string().into_string().ok());
+    }
+    if path.starts_with('/') {
+        return Some(normpath(path));
+    }
+    let cwd = std::env::current_dir()
+        .ok()?
+        .into_os_string()
+        .into_string()
+        .ok()?;
+    let joined = if cwd.ends_with('/') {
+        format!("{cwd}{path}")
+    } else {
+        format!("{cwd}/{path}")
+    };
+    Some(normpath(&joined))
+}
+
 /// [`pathlib_str`] 를 `PathBuf` 로.
 pub fn pathlib(path: &str) -> PathBuf {
     PathBuf::from(pathlib_str(path))
