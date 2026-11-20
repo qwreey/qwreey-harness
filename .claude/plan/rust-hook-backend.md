@@ -53,7 +53,7 @@ Q38 b(사용자): 계획만 먼저 쓰고 debate 로 확정한다. debate 종합
 
 1. **qwreey-proc-guard** (1.6k 줄): Bash 앞에 3개, 뒤에 1개. 작고 막는 훅이 있어 첫 시범으로 알맞다(어댑터, 막기, 시험 대조를 다 거친다). 이 기기에서 0단계와 나란히 한다. 끝(aaf316a, e96f75d): python 과 대조 모두 같음, Bash 한 번 훅 CPU 약 94 ms -> 2.5 ms, 0.4.0 에서 hooks.json 을 바이너리로(Q43 a, 실사용 주간 전에). 정규식은 직접 짠 python re 호환 엔진, conventions 때 fancy-regex 와 다시 잰다(Q42 c). Windows 는 거치지 않으므로(heavy-proc-guard 는 Linux 에서만 막음) Windows 확인은 0단계 몫이다.
    - 그 다음 막는 훅은 **qwreey-workspace** 의 workspace-gate 를 앞당긴다. 모든 OS 에서 돈다.
-2. **qwreey-sessions** `hook.py`, `records_read.py` (3.6k 줄 중 훅 부분): 도구 앞뒤마다 45~55 ms. 요약 작업자(`cli.py flush`)는 백그라운드라 나중.
+2. **qwreey-sessions** `hook.py`, `records_read.py` (3.6k 줄 중 훅 부분): 도구 앞뒤마다 45~55 ms. 요약 작업자(`cli.py flush`)는 백그라운드라 나중. 끝(962ee77, 1af251b): PostToolUse, PreToolUse, UserPromptSubmit, records-read 를 0.7.0 에서 바이너리로(Q46 a). 도구 한 번 약 80 ms -> 1~1.5 ms. SessionStart, compact, SessionEnd, 작업자는 python. 공통 crate 에 python json 호환 파서, jiff(Q44 a), close_fds(Q45 a).
 3. **qwreey-advisor** (2.7k 줄): Bash 앞, PostToolBatch, Stop, 사용자 말.
 4. **qwreey-conventions** (6.6k 줄): 가장 크다. bash-bypass-reminder, bash_writes, structure-reminder, rules_inject, conventions-check, reuse-check, memory-placement, 그리고 conventions-scan. rules_inject 는 coderag 와 바이트 대조 시험이 있으니 그 시험을 그대로 쓴다.
 5. **qwreey-workspace** (2.0k 줄), **qwreey-operator** (1.0k 줄), **q** (5.4k 줄 중 훅), **qwreey-reply-language** (0.9k 줄).

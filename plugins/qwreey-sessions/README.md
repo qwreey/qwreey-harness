@@ -15,6 +15,7 @@
 
 ## 요구 사항
 - Linux·macOS(`fcntl` 을 쓴다. Windows 불가). `python3`, `claude` CLI(요약 호출).
+- 도구마다·말마다 도는 훅은 Rust 바이너리 `native/qwreey-sessions` 를 부른다. 지금은 저장소에서 `cargo build --release -p qwreey-sessions` 로 만들어 그 자리에 복사해야 하고, 없으면 그 훅들이 아무것도 하지 않는다(막지 않는 오류). 세션 시작, compact, 세션 끝, 요약 작업자는 python 이다.
 
 ## 설정
 `/plugin configure qwreey-sessions@qwreey-harness` 또는 `/config` 의 플러그인 설정에서 바꾼다.

@@ -17,7 +17,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" UserPromptSubmit",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-sessions",
+            "args": [
+              "hook",
+              "session-log",
+              "UserPromptSubmit"
+            ],
             "timeout": 10
           }
         ]
@@ -29,7 +34,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" PreToolUse",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-sessions",
+            "args": [
+              "hook",
+              "session-log",
+              "PreToolUse"
+            ],
             "timeout": 10
           }
         ]
@@ -39,7 +49,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/records_read.py\" PreToolUse",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-sessions",
+            "args": [
+              "hook",
+              "records-read",
+              "PreToolUse"
+            ],
             "timeout": 10
           }
         ]
@@ -50,7 +65,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" PostToolUse",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-sessions",
+            "args": [
+              "hook",
+              "session-log",
+              "PostToolUse"
+            ],
             "timeout": 10
           }
         ]
@@ -60,7 +80,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/records_read.py\" PostToolUse",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-sessions",
+            "args": [
+              "hook",
+              "records-read",
+              "PostToolUse"
+            ],
             "timeout": 10
           }
         ]
