@@ -44,8 +44,8 @@ Q38 b(사용자): 계획만 먼저 쓰고 debate 로 확정한다. debate 종합
 - **하네스 어댑터:** Claude Code 는 플러그인 `hooks/hooks.json`. codex, agy 는 그 하네스의 훅 설정(나중, 있으면).
 
 ## 0단계 (시범과 나란히)
-1. **대조 실행기:** 같은 입력을 python 훅과 바이너리에 넣어 stdout, 종료 코드를 바이트로 비교한다. `hook_sandbox.py` 와 `tools/tests/test-hook-commands.py` 의 `FORM` 이 실행 형식(`command` + `args`)도 받게 고친다.
-2. Cargo 워크스페이스와 공통 crate(훅 입출력, nonce, 설정 층).
+1. **대조 실행기:** 같은 입력을 python 훅과 바이너리에 넣어 stdout, 종료 코드를 바이트로 비교한다. `hook_sandbox.py` 와 `tools/tests/test-hook-commands.py` 의 `FORM` 이 실행 형식(`command` + `args`)도 받게 고친다. 끝(9dbb5e5): `tools/tests/hook-parity.py`, `--identity all` 122 입력 모두 같음.
+2. Cargo 워크스페이스와 공통 crate(훅 입출력, nonce, 설정 층). 끝(761224d, bbfc686): `crates/harness-hook`, 검토에서 python 에도 있던 결함(claim 폴더 링크를 따라 지움 등)을 양쪽에서 고침. 이름은 Q40, rustix 의존성은 Q41.
 3. **배포 경로:** 빈 바이너리 하나로 CI -> release(사용자 GPG 서명) -> OS별 배포 ref -> 설치본까지 실기기에서 통과한다. 확인할 것: `/plugin marketplace add <repo>#<ref>` 설치, Windows 의 `.exe` 실행 형식, macOS 격리 속성. 시험 훅은 workspace-gate 처럼 모든 OS 에서 도는 것으로.
 
 ## 옮기는 순서 (매 도구마다 뜨는 것, CPU 큰 것부터)
