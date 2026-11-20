@@ -93,7 +93,7 @@
 
 ## ~/.claude 반영 (정본 → 실제)
 - 2026-11-11 17:58 기준 apply 를 마쳤다. `tools/home-sync.sh status` 가 모든 파일을 "같음", settings 를 "4/4 적용"(0001, 0002, 0004, 0005)으로 보인다. 고아도 없다. 켜 둔 플러그인은 q, qwreey-advisor, qwreey-conventions 이고 모두 설치돼 있다.
-- [ ] qwreey-proc-guard 0.4.0(훅이 Rust 바이너리, Q43 a): 실사용 주간(11-23) 전에 `claude plugin marketplace update qwreey-harness` 뒤 `claude plugin update qwreey-proc-guard@qwreey-harness`, 그다음 `/reload-plugins` 나 새 세션. 설치본에 `native/qwreey-proc-guard` 가 들어갔는지 `ls ~/.claude/plugins/cache/qwreey-harness/qwreey-proc-guard/0.4.0/native/` 로 확인. 문제가 보이면 알려 주면 hooks.json 만 되돌린다
+- [ ] qwreey-proc-guard 0.4.0(훅이 Rust 바이너리, Q43 a): 이 기기는 플러그인을 저장소 폴더에서 바로 읽어 `/reload-plugins` 만으로 켜진다(2026-11-20 이 세션에서 확인: heavy-proc-guard 가 바이너리로 막음). 남은 것: 다른 세션(quad, stl-luau, tbox)에서도 `/reload-plugins` 나 새 세션. 문제가 보이면 알려 주면 hooks.json 만 되돌린다
 - [ ] `home/.claude/lib/harness_env.py` 가 바뀌었다(bbfc686: 저장소 층의 막힌 사용자 전용 값이 `$NAME` 으로 새지 않음). `tools/home-sync.sh diff` 로 보고 `apply`
 - [ ] apply 가 남긴 백업 `*.bak-<시각>` 정리(확인한 뒤 직접 지운다)
   - 목록: `ls ~/.claude/*.bak-* ~/.claude/{hooks,lib,rules}/*.bak-*`
