@@ -11,6 +11,7 @@ use harness_hook::py::json_load::loads;
 use harness_hook::py::path::{dirname, join, normpath};
 use harness_hook::py::re::{Flags, Regex, escape};
 use harness_hook::py::value::Value;
+use harness_hook::rx;
 
 use crate::halt::{Halt, Result};
 use crate::reuse::files::{ext_of, lang};
@@ -27,15 +28,14 @@ const MANIFESTS: &[&str] = &[
 /// `name = "..."` 를 읽는 매니페스트(python `pkg_names` 의 차례).
 const NAMED: &[&str] = &["Cargo.toml", "pesde.toml", "wally.toml", "pyproject.toml"];
 
-static NAME_LINE: LazyLock<Regex> = LazyLock::new(|| {
+static NAME_LINE: LazyLock<rx::Regex> = LazyLock::new(|| {
     let flags = Flags {
         multiline: true,
         ..Flags::NONE
     };
-    Regex::with_flags(r#"^name\s*=\s*"([^"]+)""#, flags).expect("constant pattern")
+    rx::Regex::with_flags(r#"^name\s*=\s*"([^"]+)""#, flags)
 });
-static PATH_DEP: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"path\s*=\s*"([^"]+)""#).expect("constant pattern"));
+static PATH_DEP: LazyLock<rx::Regex> = LazyLock::new(|| rx::Regex::new(r#"path\s*=\s*"([^"]+)""#));
 
 /// 폴더 -> 패키지 루트(python 의 `cache`). 한 번 실행하는 동안 쓴다.
 #[derive(Debug, Default)]
@@ -205,5 +205,12 @@ mod tests {
         // A name match needs the same language too
         assert!(!pk.importable("web/a.ts", "two/src/lib.rs").unwrap());
         std::fs::remove_dir_all(&base).unwrap();
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        NAME_LINE.check();
+        PATH_DEP.check();
     }
 }

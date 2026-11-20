@@ -17,13 +17,11 @@ mod state;
 mod toolkit;
 
 use std::cell::OnceCell;
-use std::io::Write;
 
 use harness_hook::HookInput;
 use harness_hook::output::{EnsureAscii, HookOutput};
 use harness_hook::py::fs;
 use harness_hook::py::path::{abspath, expanduser, pathlib_join};
-use harness_hook::py::surrogate::{encode_os, unit_of};
 use harness_hook::py::text::strip;
 use harness_hook::py::value::{Dict, Value};
 use harness_hook::settings::Values;
@@ -155,7 +153,7 @@ pub fn run(ctx: &Context, input: &HookInput) -> Result<Option<String>> {
 
     let nonce = ctx.nonce_attr(input.get("session_id"))?;
     let out = HookOutput::context("PostToolUse", render(&notes, &nonce)).render(EnsureAscii::No);
-    stdout_text(out)
+    Ok(Some(out))
 }
 
 // Write, Edit, MultiEdit 은 file_path 하나, Bash 는 명령이 바꿨을 법한 경로들. python 에서 거짓인 값은 뺀다
@@ -199,25 +197,5 @@ fn created(resp: Option<&Dict>, path: &str, ledger: &Ledger) -> Result<Option<Cr
             Ok((!ledger.knows_file(&path)?).then_some(Created::Guess))
         }
         Some(_) => Ok(None),
-    }
-}
-
-/// python `json.dump` 이 additionalContext 값 앞까지 조각으로 쓰는 글.
-const OUTPUT_HEAD: &str =
-    r#"{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "#;
-
-// python 은 stdout 을 surrogateescape 로 쓴다: UTF-8 이 아닌 파일 이름의 바이트는 그 바이트로 나간다.
-// 다른 짝 없는 서로게이트(structure.json 글의 high 서로게이트 escape)는 그 값의 조각에서 UnicodeEncodeError 로 끝나 앞 조각만 나간다
-fn stdout_text(out: String) -> Result<Option<String>> {
-    if !out.chars().any(|c| unit_of(c).is_some()) {
-        return Ok(Some(out));
-    }
-    let encoded = encode_os(&out);
-    let bytes = encoded.as_deref().unwrap_or(OUTPUT_HEAD.as_bytes());
-    let mut stdout = std::io::stdout().lock();
-    let _ = stdout.write_all(bytes).and_then(|()| stdout.flush());
-    match encoded {
-        Some(_) => Ok(None),
-        None => Err(Halt::PyError("a lone surrogate in the output")),
     }
 }

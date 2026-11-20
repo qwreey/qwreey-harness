@@ -10,8 +10,9 @@ use std::time::Duration;
 
 use harness_hook::py::fs;
 use harness_hook::py::path::{basename, dirname, join, relpath, splitext};
-use harness_hook::py::re::{Flags, Regex};
+use harness_hook::py::re::Flags;
 use harness_hook::py::surrogate::from_os;
+use harness_hook::rx::Regex;
 
 use crate::edit::{GEN_MARK_PATTERN, SKIP_PARTS, SKIP_SUFFIX};
 
@@ -45,12 +46,9 @@ static TEST_FILE: LazyLock<Regex> = LazyLock::new(|| {
         r"\.(spec|test|story)\.|_test\.|(^|/)test[-_]|tests\.rs$",
         Flags::IGNORECASE,
     )
-    .expect("constant pattern")
 });
-static GEN: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::with_flags(&format!("{GEN_MARK_PATTERN}|생성:"), Flags::IGNORECASE)
-        .expect("constant pattern")
-});
+static GEN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::with_flags(&format!("{GEN_MARK_PATTERN}|생성:"), Flags::IGNORECASE));
 
 /// python `LANG.get(ext)`: 같은 언어끼리만 서로 import 할 수 있다.
 pub fn lang(ext: &str) -> Option<&'static str> {
@@ -251,5 +249,12 @@ mod tests {
         assert!(generated("# 생성: tools/gen.py\nx"));
         assert!(!generated("1\n2\n3\n4\n5\n6\n# generated\n"));
         assert!(generated("1\n2\n3\n4\n5\n# Generated\n"));
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        TEST_FILE.check();
+        GEN.check();
     }
 }

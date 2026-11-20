@@ -39,11 +39,11 @@ use crate::pyval;
 use config::{Mode, ReuseConfig};
 use copies::{Siblings, Status};
 use files::{H1_EXT, JSON_EXT, RULE_EXT, ext_of, generated, indexable, lang, list_files, skip_dir};
-use index::Entry;
+use index::{Entry, ReadError};
 use judge::{Hit, Judge};
 use packages::Packages;
 use record::{Edited, ShadowRecord, State};
-use sets::reason_ok;
+use sets::{Deadline, reason_ok};
 
 /// 넘으면 겹침 판정을 그만둔다(python `HARD_MS`).
 const HARD_MS: f64 = 400.0;
@@ -114,8 +114,10 @@ pub fn run(ctx: &Context, input: &HookInput) -> Result<Option<String>> {
         return Ok(None);
     }
 
-    let notes = check(ctx, input, &edit, &mut state, &clock)?;
-    record::emit(ctx, sid, &state, &notes)
+    match check(ctx, input, &edit, &mut state, &clock)? {
+        Some(notes) => record::emit(ctx, sid, &state, &notes),
+        None => Ok(None),
+    }
 }
 
 // python main 의 앞부분: 볼 편집인가, 그 경로, 설정, 글, 추가한 줄. 볼 것이 없으면 None
@@ -201,14 +203,15 @@ fn vendored(root: &str, rel: &str) -> Result<bool> {
     Ok(false)
 }
 
-// M1, C1, C2, H1 을 차례로: 알림들. 그림자 기록과 턴 끝 보고도 여기서 쓴다
+// M1, C1, C2, H1 을 차례로: 알림들. 그림자 기록과 턴 끝 보고도 여기서 쓴다.
+// 편집한 파일을 한도 안에 다 읽지 못하면 None: python 처럼 상태도 알림도 쓰지 않는다
 fn check(
     ctx: &Context,
     input: &HookInput,
     edit: &Edit,
     state: &mut State,
     clock: &Clock,
-) -> Result<Vec<String>> {
+) -> Result<Option<Vec<String>>> {
     let rel = edit.rel.as_str();
     let fam = family(&edit.ext).unwrap_or(Family::C);
     let mut notes = Vec::new();
@@ -228,8 +231,19 @@ fn check(
     let loaded = index::load(&ip, &edit.root, &files, rel, clock)?;
     let mut idx = loaded.index;
     let prev: Option<Entry> = idx.get(rel).cloned();
-    let own = index::read_entry(&edit.root, rel, Some(&edit.text))
-        .map_err(|_| Halt::PyError("os.stat of the edited file failed"))?;
+    let deadline = Deadline { clock, ms: HARD_MS };
+    let own = match index::read_entry(&edit.root, rel, Some(&edit.text), Some(deadline)) {
+        Ok(own) => own,
+
+        // 편집한 파일을 한도 안에 다 읽지 못했다: 판정 없이 지금까지 읽은 색인만 남긴다
+        Err(ReadError::Budget) => {
+            if loaded.dirty {
+                index::save(&ip, &idx)?;
+            }
+            return Ok(None);
+        }
+        Err(ReadError::Fs) => return Err(Halt::PyError("os.stat of the edited file failed")),
+    };
     idx.insert(rel, own.clone());
     let changed = prev
         .as_ref()
@@ -298,7 +312,7 @@ fn check(
         dup,
         differ,
     );
-    Ok(notes)
+    Ok(Some(notes))
 }
 
 // 저장소 파일 목록. 너무 많으면 편집한 파일의 패키지 안만(패키지 밖 중복은 못 본다)

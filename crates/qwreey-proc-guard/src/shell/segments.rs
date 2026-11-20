@@ -1,26 +1,24 @@
 //! Bash 명령을 구간으로 나눈다(`hooks/shell_segments.py`). heavy-proc-guard 와 self-match-guard 가 같이 쓴다.
 //!
 //! 셸 문법을 다 읽지는 않는다: heredoc 본문을 버리고 `&&`, `||`, `;`, `|`, 줄바꿈으로 나눈 뒤 각 구간의 머리 프로그램을 찾는다.
-//! 따옴표 안의 구분자도 나누므로 훅은 오탐 쪽으로 기운다. 정규식은 python 판의 글 그대로다(py::re 가 같은 뜻으로 읽는다).
+//! 따옴표 안의 구분자도 나누므로 훅은 오탐 쪽으로 기운다. 정규식은 python 판의 글 그대로 [`harness_hook::rx`] 로 돈다(HEREDOC 만 결과가 같은 꼴로 줄였다).
 
 use std::sync::LazyLock;
 
-use harness_hook::py::re::Regex;
 use harness_hook::py::text::split_whitespace;
+use harness_hook::rx::Regex;
 
 const PREFIX_WORDS: &[&str] = &["(", "{", "time", "nice", "env", "command", "exec", "nohup"];
 const TIMEOUT_VALUE_OPTIONS: &[&str] = &["-s", "-k", "--signal", "--kill-after"];
 
-fn regex(pattern: &str) -> Regex {
-    Regex::new(pattern).expect("built-in pattern compiles")
-}
-
+// python 판은 `<<(?!<)` 로 시작한다. `<<` 뒤의 나머지는 `-`, 공백, 따옴표, `\`, 이름 글자로만 시작해 `<` 에서는 맞지 않으므로
+// 그 앞 보기는 결과를 바꾸지 않는다(시험 `heredoc_without_lookahead_is_the_same`)
 static HEREDOC: LazyLock<Regex> = LazyLock::new(|| {
-    regex(r#"<<(?!<)-?\s*(?:'([A-Za-z_]\w*)'|"([A-Za-z_]\w*)"|\\?([A-Za-z_]\w*))"#)
+    Regex::new(r#"<<-?\s*(?:'([A-Za-z_]\w*)'|"([A-Za-z_]\w*)"|\\?([A-Za-z_]\w*))"#)
 });
-static SPLIT: LazyLock<Regex> = LazyLock::new(|| regex(r"&&|\|\||[;|\n]"));
-static ASSIGN_WORD: LazyLock<Regex> = LazyLock::new(|| regex(r"[A-Za-z_][A-Za-z0-9_]*=\S*"));
-static DURATION: LazyLock<Regex> = LazyLock::new(|| regex(r"[\d.]+[smhd]?"));
+static SPLIT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"&&|\|\||[;|\n]"));
+static ASSIGN_WORD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[A-Za-z_][A-Za-z0-9_]*=\S*"));
+static DURATION: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[\d.]+[smhd]?"));
 
 /// 구간 하나: 머리 프로그램과 구간 글.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -115,6 +113,14 @@ fn head_index(words: &[&str]) -> usize {
 mod tests {
     use super::*;
 
+    /// 이 파일의 고정 정규식이 두 regex crate 엔진과 py::re 에서 모두 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        for re in [&*HEREDOC, &*SPLIT, &*ASSIGN_WORD, &*DURATION] {
+            re.check();
+        }
+    }
+
     fn heads(cmd: &str) -> Vec<String> {
         segments(cmd).into_iter().map(|s| s.head).collect()
     }
@@ -146,5 +152,35 @@ mod tests {
             heads("python3 - <<\"E\" <<X\nbench\nE\nperf\nX\nls"),
             ["python3", "ls"]
         );
+    }
+
+    /// `<<(?!<)` 의 앞 보기를 뺀 HEREDOC 이 python 판 패턴(py::re)과 같은 일치를 낸다.
+    #[test]
+    fn heredoc_without_lookahead_is_the_same() {
+        const PYTHON: &str =
+            r#"<<(?!<)-?\s*(?:'([A-Za-z_]\w*)'|"([A-Za-z_]\w*)"|\\?([A-Za-z_]\w*))"#;
+        let py = harness_hook::py::re::Regex::new(PYTHON).unwrap();
+        let spans = |ms: Vec<harness_hook::py::re::Match>| -> Vec<Vec<Option<(usize, usize)>>> {
+            ms.iter()
+                .map(|m| (0..=3).map(|g| m.group(g)).collect())
+                .collect()
+        };
+
+        for line in [
+            "cat <<EOF",
+            "cat <<-'EOF' x",
+            "cat << \"E1\" <<\\E2",
+            // here-string: python 도 두 번째, 세 번째 `<` 뒤의 낱말을 이름으로 읽는다
+            "cat <<<word",
+            "cat <<<<x <<- <<",
+            "a<<b<<c",
+            "<<\u{d55c} <<_x1",
+        ] {
+            assert_eq!(
+                spans(HEREDOC.find_iter(line)),
+                spans(py.find_iter(line)),
+                "{line:?}"
+            );
+        }
     }
 }

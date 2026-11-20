@@ -16,6 +16,7 @@ pub mod known_repos;
 pub mod nonce;
 pub mod output;
 pub mod py;
+pub mod rx;
 pub mod settings;
 pub mod tag;
 

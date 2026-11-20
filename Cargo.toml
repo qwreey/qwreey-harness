@@ -24,6 +24,9 @@ rustix = { version = "1.1.6", features = ["process", "fs"] }
 close_fds = "0.3.2"
 # 이 기기 시간대의 오늘 날짜(python date.today, localtime). TZ 와 tzdb 규칙을 직접 짜지 않으려고 쓴다(qwreey-sessions).
 jiff = { version = "0.2.43", default-features = false, features = ["std", "tz-system", "tzdb-zoneinfo", "tzdb-bundle-platform"] }
+# 소스에 글로 적힌 고정 정규식(Q48 a). python 과 뜻이 갈릴 수 있는 글(일부 Unicode 글자, 끝 줄바꿈)은 harness-hook 의 rx 가
+# py::re 로 넘기므로 판정은 python 과 같다. 사용자가 적는 패턴(pgrep -f, 설정 파일)은 python 이 물러날 때까지 py::re 다.
+regex = { version = "1.13", default-features = false, features = ["std","unicode-perl","unicode-case","unicode-gencat"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

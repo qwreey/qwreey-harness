@@ -6,15 +6,15 @@
 
 use std::sync::LazyLock;
 
-use harness_hook::py::re::Regex;
 use harness_hook::py::text::{is_space, strip};
+use harness_hook::rx::Regex;
 
 use super::Lang;
 use crate::check::chars::is_upper;
 use crate::lex::Row;
 
 fn constant(pattern: &str) -> Regex {
-    Regex::new(pattern).expect("constant pattern")
+    Regex::new(pattern)
 }
 
 static LUA_TOKEN: LazyLock<Regex> =
@@ -516,5 +516,25 @@ mod tests {
 
         // A tab expands to the next multiple of 8
         assert_eq!(indent("\t x"), 9);
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        LUA_TOKEN.check();
+        LUA_NAME.check();
+        LUA_PUBLIC.check();
+        METAMETHOD.check();
+        C_TOKEN.check();
+        C_METHOD.check();
+        for r in C_NAMES.iter() {
+            r.check();
+        }
+        KT_PRIVATE.check();
+        TS_EXPORT.check();
+        RUST_PUB.check();
+        PY_DEF.check();
+        PY_CLASS.check();
+        PY_MAIN.check();
     }
 }

@@ -4,7 +4,7 @@
 
 use std::sync::LazyLock;
 
-use harness_hook::py::re::Regex;
+use harness_hook::rx::Regex;
 
 /// 렉서 계열(python `FAMILY` 의 값).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -310,8 +310,7 @@ fn open_c_like(s: &str, pos: usize, fam: Family, ch: char) -> Option<Opened> {
     }
 }
 
-static BODY_HEAD: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[\s\-/#*!]+").expect("constant pattern"));
+static BODY_HEAD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[\s\-/#*!]+"));
 
 /// python `comment_body(seg)`: 주석 조각에서 표식 장식을 걷어 낸 본문.
 pub fn comment_body(seg: &str) -> &str {
@@ -371,5 +370,11 @@ mod tests {
     fn body_strips_markers() {
         assert_eq!(comment_body("-- hello --"), "hello");
         assert_eq!(comment_body("/// doc */"), "doc");
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        BODY_HEAD.check();
     }
 }

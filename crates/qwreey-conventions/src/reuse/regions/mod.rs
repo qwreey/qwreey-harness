@@ -12,10 +12,10 @@ use std::sync::LazyLock;
 
 use harness_hook::py::fs::{self, FsError};
 use harness_hook::py::path::{abspath, dirname, join, normpath, splitext};
-use harness_hook::py::re::Regex;
 use harness_hook::py::repr::repr_ascii;
 use harness_hook::py::shlex;
 use harness_hook::py::text::{is_space, strip};
+use harness_hook::rx::Regex;
 
 use crate::halt::{Halt, Result};
 
@@ -25,11 +25,13 @@ pub use literal::quote;
 const OPTIONS: &[&str] = &["template", "value"];
 
 /// 표시 줄(python `MARK`): 1 들여쓰기, 2 종류, 3 나머지.
+///
+/// python 은 종류 뒤에 앞보기 `(?![\w-])` 를 두고 나머지를 `.*?` 로 읽는다. 여기서는 나머지를 "비었거나 `\w`, `-` 가 아닌
+/// 글자로 시작"(`(?:[^\w-].*?)??`)으로 쓴다: 빈 나머지를 먼저 해 보는 차례도, 맞는 줄도, 잡는 글도 같다.
 pub static MARK: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
-        r"^(?P<indent>[ \t]*)(?:#+|//[/!]?|--)[ \t]*@(?P<kind>start-replace|end-replace)(?![\w-])(?P<rest>.*?)[ \t]*$",
+        r"^(?P<indent>[ \t]*)(?:#+|//[/!]?|--)[ \t]*@(?P<kind>start-replace|end-replace)(?P<rest>(?:[^\w-].*?)??)[ \t]*$",
     )
-    .expect("constant pattern")
 });
 
 /// 닫힌 영역 하나(python 의 region dict).
@@ -394,12 +396,15 @@ pub fn render(
     Ok(Ok(lines))
 }
 
+/// python 정본 영역을 [`pyliteral`] 이 읽지 못한 까닭. [`expected`] 를 부르는 쪽은 그 영역 하나만 판정하지 않는다.
+pub const UNSURE_PY: &str = "a python canon region outside the literal subset";
+
 /// python `string_value(lines, suffix)`: 정본 영역의 문자열 리터럴 하나.
 ///
 /// `.py` 정본은 python 이 ast 로 읽는다(옆에 붙은 리터럴은 하나). 다른 언어는 C 꼴 escape 의 큰따옴표 리터럴이다.
 fn string_value(lines: &[&str], suffix: &str) -> Result<std::result::Result<String, MarkError>> {
     let found = if suffix == ".py" {
-        pyliteral::constants(lines)?
+        pyliteral::constants(lines).map_err(|_| Halt::Unported(UNSURE_PY))?
     } else {
         match literal::c_literals(lines)? {
             Ok(found) => found,
@@ -482,5 +487,32 @@ mod tests {
         // Lines without the canon indent are left-stripped
         let got = render(&copy[0], &lines, &canon[0], ".py").unwrap().unwrap();
         assert_eq!(got, ["x = 1", "", "y"]);
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        MARK.check();
+    }
+
+    /// 앞보기 없이 쓴 표시 줄 패턴은 python 패턴과 같은 줄에 맞고 같은 괄호를 잡는다.
+    #[test]
+    fn mark_like_python() {
+        crate::pat::assert_same(
+            r"^(?P<indent>[ \t]*)(?:#+|//[/!]?|--)[ \t]*@(?P<kind>start-replace|end-replace)(?![\w-])(?P<rest>.*?)[ \t]*$",
+            harness_hook::py::re::Flags::NONE,
+            &*MARK,
+            &[(1, 1), (2, 2), (3, 3)],
+            &[
+                "# @end-replace",
+                "  // @start-replace: lib/a.py#X value=string  ",
+                "-- @end-replace  \t",
+                "# @end-replaced",
+                "# @end-replace-x",
+                "#@start-replace:x#Y",
+                "/// @start-replace \t x \t",
+                "# @end-replace\u{301}",
+            ],
+        );
     }
 }

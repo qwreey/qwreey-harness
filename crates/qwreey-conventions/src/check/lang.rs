@@ -8,8 +8,9 @@ use std::sync::LazyLock;
 
 use harness_hook::py::fs;
 use harness_hook::py::path::{dirname, join};
-use harness_hook::py::re::{Flags, Regex};
+use harness_hook::py::re::Flags;
 use harness_hook::py::value::Value;
+use harness_hook::rx::Regex;
 
 use super::config::Cfg;
 use super::docs::{INLINE_CODE, URL};
@@ -57,7 +58,7 @@ impl Script {
 }
 
 fn constant(pattern: &str) -> Regex {
-    Regex::new(pattern).expect("constant pattern")
+    Regex::new(pattern)
 }
 
 static SCRIPT_WORDS: LazyLock<[Regex; 4]> = LazyLock::new(|| {
@@ -75,7 +76,6 @@ static LABEL_REASON: LazyLock<Regex> = LazyLock::new(|| {
         r"\b(?:because|since|so|otherwise|unless|must|never|in order to|to avoid|due to|workaround)\b",
         Flags::IGNORECASE,
     )
-    .expect("constant pattern")
 });
 /// 주석 안의 코드 조각(타입 표기, 대입, 블록)은 문장이 아니다(python `CODE_LIKE`).
 static CODE_LIKE: LazyLock<Regex> = LazyLock::new(|| constant(r"::|=|[{};]|^\s*`{3}"));
@@ -340,5 +340,16 @@ mod tests {
         assert_eq!(line_script(&[1, 1, 0, 0]), None);
         assert_eq!(line_script(&[0, 2, 0, 0]), Some(Script::Hangul));
         assert_eq!(Script::of_lang("KO-kr"), Some(Script::Hangul));
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        for r in SCRIPT_WORDS.iter() {
+            r.check();
+        }
+        LABEL_LATIN.check();
+        LABEL_REASON.check();
+        CODE_LIKE.check();
     }
 }

@@ -227,7 +227,7 @@ pub fn now() -> f64 {
 /// 기록들에 `ms`, `budget` 을 붙여 차례로 한 줄씩 덧붙인다(python `shadow_log`).
 ///
 /// 자리는 `$CLAUDE_PLUGIN_DATA/reuse-shadow.jsonl`, 없으면 `<임시 폴더>/claude-qwreey-reuse/shadow.jsonl`.
-/// 짝 없는 서로게이트가 든 줄은 python 이 쓰다 UnicodeEncodeError 로 끝난다(앞 줄들은 이미 쓰였다).
+/// 짝 없는 서로게이트가 든 줄은 python 이 인코딩하지 못해 그 줄만 건너뛴다.
 pub fn shadow_log(ctx: &Context, records: Vec<ShadowRecord>, ms: i128, budget: bool) -> Result<()> {
     if records.is_empty() {
         return Ok(());
@@ -245,8 +245,9 @@ pub fn shadow_log(ctx: &Context, records: Vec<ShadowRecord>, ms: i128, budget: b
             "{}\n",
             dumps(&Value::Dict(rec.fields), EnsureAscii::No, None)
         );
+        // python 은 짝 없는 서로게이트가 든 기록을 인코딩하지 못해 그 줄을 건너뛴다
         if line.chars().any(|c| unit_of(c).is_some()) {
-            return Err(Halt::PyError("a shadow record with a lone surrogate"));
+            continue;
         }
         let _ = append(&dir, &path, &line);
     }
@@ -316,10 +317,9 @@ fn try_record_report(
         return Some(());
     }
 
-    // python 은 파일을 먼저 비우고 쓰다 인코딩 오류에서 멈춘다
+    // python 은 글을 먼저 인코딩한다: 짝 없는 서로게이트가 들면 옛 파일을 그대로 둔다
     let text = dumps(&Value::Dict(rec), EnsureAscii::No, None);
     if text.chars().any(|c| unit_of(c).is_some()) {
-        let _ = fs::write_text(&fp, "");
         return None;
     }
     fs::write_text(&fp, &text).ok()

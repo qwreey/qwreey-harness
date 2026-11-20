@@ -5,17 +5,16 @@
 
 use std::sync::LazyLock;
 
-use harness_hook::py::re::Regex;
 use harness_hook::py::repr::repr_ascii;
 use harness_hook::py::surrogate::placeholder;
 use harness_hook::py::text::{is_space, strip};
 use harness_hook::py::unicode::decimal_value;
+use harness_hook::rx::Regex;
 
 use crate::halt::{Halt, Result};
 use crate::reuse::regions::MARK;
 
-static STR_LIT: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#""((?:[^"\\\n]|\\.)*)""#).expect("constant pattern"));
+static STR_LIT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#""((?:[^"\\\n]|\\.)*)""#));
 
 /// python `quote(value)`: python, Rust, JS/TS, Luau 가 모두 읽는 큰따옴표 리터럴.
 ///
@@ -215,5 +214,11 @@ mod tests {
             c_literals(&["// \"no\"", "  -- \"no\"", "v = \"yes\""]).unwrap(),
             Ok(vec!["yes".to_owned()])
         );
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        STR_LIT.check();
     }
 }

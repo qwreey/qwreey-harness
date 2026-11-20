@@ -14,6 +14,7 @@ serde_json = { workspace = true }
 sha2 = { workspace = true }
 # salt 를 처음 만들 때 OS 난수(secrets.token_hex). 표준 라이브러리의 난수 API 는 아직 불안정하다.
 getrandom = { workspace = true }
+regex = { workspace = true }
 
 # 자기 uid(claim 디렉터리 소유자 확인). std 에 getuid 가 없고 unsafe 는 금지라 쓴다(Q41).
 [target.'cfg(unix)'.dependencies]

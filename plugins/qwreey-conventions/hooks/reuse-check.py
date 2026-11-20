@@ -36,7 +36,7 @@ import harness_nonce  # noqa: E402
 from conv_edit import GEN_MARK, MAX_BYTES, SKIP_PARTS, SKIP_SUFFIX, collect, project_root  # noqa: E402
 from conv_env import env_value  # noqa: E402
 from conv_lex import FAMILY, lex  # noqa: E402
-from reuse_sets import FLAG_DEF, FLAG_TYPE, extract, reason_ok  # noqa: E402
+from reuse_sets import FLAG_DEF, FLAG_TYPE, Budget, extract, reason_ok  # noqa: E402
 
 NAME = "qwreey-conventions"
 NS = "claude-conventions"
@@ -115,18 +115,30 @@ def list_files(root):
 def index_path(root):
     d = os.path.join(tempfile.gettempdir(), "claude-qwreey-reuse")
     os.makedirs(d, exist_ok=True)
-    return os.path.join(d, hashlib.sha1(root.encode()).hexdigest()[:12] + ".json")
+    return os.path.join(d, sha1_12(root) + ".json")
 
 
-def read_entry(root, rel, text=None):
-    """[mtime_ns, size, 묶음, 표시]. 생성 파일은 비어 있다."""
+def sha1_12(text):
+    """sha1 hex 앞 12자. 짝 없는 서로게이트(UTF-8 이 아닌 폴더 이름)는 surrogatepass 바이트로 센다."""
+    return hashlib.sha1(text.encode("utf-8", "surrogatepass")).hexdigest()[:12]
+
+
+def rel_target(target):
+    """표시 대상의 앞 `./` 들을 뗀다(`./.github/x.py` 는 `.github/x.py`, `../x` 는 그대로)."""
+    while target.startswith("./"):
+        target = target[2:]
+    return target
+
+
+def read_entry(root, rel, text=None, deadline=None):
+    """[mtime_ns, size, 묶음, 표시]. 생성 파일은 비어 있다. deadline 을 넘기면 reuse_sets.Budget."""
     fp = os.path.join(root, rel)
     st = os.stat(fp)
     if text is None:
         text = open(fp, encoding="utf-8").read()
     if GEN.search("\n".join(text.split("\n", 6)[:6])):
         return [st.st_mtime_ns, st.st_size, [], []]
-    sets, marks = extract(text, FAMILY.get(os.path.splitext(rel)[1].lower(), "c"))
+    sets, marks = extract(text, FAMILY.get(os.path.splitext(rel)[1].lower(), "c"), deadline)
     return [st.st_mtime_ns, st.st_size, sets, marks]
 
 
@@ -163,19 +175,44 @@ def load_index(root, files, own_rel):
             cut = True
             break
         try:
-            ents[rel] = read_entry(root, rel)
+            ents[rel] = read_entry(root, rel, deadline=T0 + COLD_MS / 1000)
             dirty = True
+        except Budget:
+            # 한도 안에 다 읽지 못한 파일은 빈 항목으로 둔다: 바뀔 때까지 다시 읽지 않아 다음 색인이 이 파일에서 멈추지 않는다
+            ents[rel] = [st.st_mtime_ns, st.st_size, [], []]
+            dirty = cut = True
+            break
         except (OSError, UnicodeDecodeError):
             continue
     return idx, dirty, cut
 
 
+def _index_bytes(idx):
+    return json.dumps(idx, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
 def save_index(root, idx):
+    """임시 파일에 쓰고 바꿔 단다. 짝 없는 서로게이트가 든 항목(UTF-8 이 아닌 파일 이름, 입력의 escape)은 빼고 쓴다."""
     ip = index_path(root)
     tmp = "%s.%d.tmp" % (ip, os.getpid())
+
+    # Encode first, dropping entries python cannot encode
     try:
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(idx, f, ensure_ascii=False, separators=(",", ":"))
+        data = _index_bytes(idx)
+    except UnicodeEncodeError:
+        files = {}
+        for k, v in idx["files"].items():
+            try:
+                _index_bytes([k, v])
+                files[k] = v
+            except UnicodeEncodeError:
+                continue
+        data = _index_bytes({**idx, "files": files})
+
+    # Write beside the index, then swap it in
+    try:
+        with open(tmp, "wb") as f:
+            f.write(data)
         os.replace(tmp, ip)
     except OSError:
         pass
@@ -353,7 +390,7 @@ def resolve(root, target):
         pick = next((c for c in cands if os.path.exists(os.path.join(c, path))), cands[0])
         note = f" ({len(cands)} repos named {repo} on this machine; compared with {pick}.)" if len(cands) > 1 else ""
         return os.path.join(pick, path), False, note
-    return os.path.join(root, target.lstrip("./") if target.startswith("./") else target), False, ""
+    return os.path.join(root, rel_target(target)), False, ""
 
 
 def sets_of_file(root, rel_or_abs, ents):
@@ -448,7 +485,7 @@ def source_copies(rel, ents, prev, now, touched_file, touched_regions=frozenset(
     by, regions = {}, {}
     for orel, e in ents.items():
         for ln, tgt, name, kind in e[3]:
-            if orel == rel or tgt.lstrip("./") != rel:
+            if orel == rel or rel_target(tgt) != rel:
                 continue
             if kind == "r":
                 regions.setdefault(name, []).append(f"{orel}:{ln}")
@@ -591,11 +628,16 @@ def json_marker_note(rel, text, added):
 # ---------- 기록 ----------
 
 def shadow_log(rec):
+    """한 줄 더한다. 짝 없는 서로게이트가 든 기록은 쓰지 못해 건너뛴다."""
     d = os.environ.get("CLAUDE_PLUGIN_DATA") or os.path.join(tempfile.gettempdir(), "claude-qwreey-reuse")
     try:
+        line = (json.dumps(rec, ensure_ascii=False) + "\n").encode("utf-8")
+    except UnicodeEncodeError:
+        return
+    try:
         os.makedirs(d, exist_ok=True)
-        with open(os.path.join(d, "reuse-shadow.jsonl" if os.environ.get("CLAUDE_PLUGIN_DATA") else "shadow.jsonl"), "a", encoding="utf-8") as f:
-            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        with open(os.path.join(d, "reuse-shadow.jsonl" if os.environ.get("CLAUDE_PLUGIN_DATA") else "shadow.jsonl"), "ab") as f:
+            f.write(line)
     except OSError:
         pass
 
@@ -618,7 +660,9 @@ def record_report(data, path, rel, dup, differ):
             del rec[key]
         else:
             return
-        json.dump(rec, open(fp, "w"), ensure_ascii=False)
+        data = json.dumps(rec, ensure_ascii=False).encode("utf-8")  # 서로게이트가 들면 여기서 끝나 옛 파일이 남는다
+        with open(fp, "wb") as f:
+            f.write(data)
     except Exception:
         pass
 
@@ -695,7 +739,12 @@ def main():
     idx, dirty, cut = load_index(root, files, rel)
     ents = idx["files"]
     prev = ents.get(rel)
-    own = read_entry(root, rel, text)
+    try:
+        own = read_entry(root, rel, text, deadline=T0 + HARD_MS / 1000)
+    except Budget:  # 편집한 파일을 한도 안에 다 읽지 못했다: 판정 없이 지금까지 읽은 색인만 남긴다
+        if dirty:
+            save_index(root, idx)
+        return 0
     ents[rel] = own
     if dirty or prev is None or prev[2:] != own[2:]:
         save_index(root, idx)
@@ -704,7 +753,7 @@ def main():
     log = []
 
     def log_rec(check, notice, st, hit, extra=None):
-        r = {"id": hashlib.sha1(f"{rel}:{st[0] if st else 0}:{check}:{notice}".encode()).hexdigest()[:12], "t": int(time.time()),
+        r = {"id": sha1_12(f"{rel}:{st[0] if st else 0}:{check}:{notice}"), "t": int(time.time()),
              "repo": os.path.basename(root), "lang": LANG.get(ext), "check": check, "notice": notice, "at": f"{rel}:{st[0] if st else 0}"}
         if hit:
             r.update({"other": f"{hit[1]}:{hit[2]}", "name": st[1], "shared": [x[:40] for x in sorted(hit[4])[:8]], "k": hit[5], "n": hit[6],

@@ -4,7 +4,8 @@
 //!   `{"files": {<경로>: {"base": N, "said": [...]}}, "dirs": [...], "ref_said": true}`
 //! - 기준점: `$TMPDIR/claude-structure-reminder/<sid>.base.json`, session_id 단위라 compact 뒤에도 남는다. `{<경로>: N}`
 //!
-//! 값은 읽은 JSON 그대로 들고 python 이 쓰는 연산만 한다. 꼴이 틀린 파일은 python 이 예외를 내는 자리에서 같이 끝난다.
+//! 값은 읽은 JSON 그대로 들고 python 이 쓰는 연산만 한다. 꼴이 틀린 파일(손으로 고친 것, 다른 판)은 python 처럼
+//! 빈 상태로 읽는다(`sane_state`, `sane_bases`): 그 세션 내내 훅이 예외로 끝나지 않게.
 
 use harness_hook::epoch;
 use harness_hook::py::fs::{self, FsError};
@@ -39,6 +40,48 @@ fn read_json(path: &str) -> Value {
         .unwrap_or_else(|| Value::Dict(Dict::new()))
 }
 
+// python `_is_number(v)`: int, float, bool
+fn is_number(v: &Value) -> bool {
+    matches!(
+        v,
+        Value::Int(_) | Value::BigInt(_) | Value::Float(_) | Value::Bool(_)
+    )
+}
+
+/// python `sane_state(state)`: 회차 상태의 꼴이 다르면 빈 dict.
+fn sane_state(state: Value) -> Value {
+    let empty = || Value::Dict(Dict::new());
+    let Value::Dict(d) = &state else {
+        return empty();
+    };
+
+    // Every file entry is null or a dict with a said list and a number base
+    let files_ok = match d.get("files") {
+        None => true,
+        Some(Value::Dict(files)) => files.iter().all(|(_, e)| match e {
+            Value::Null => true,
+            Value::Dict(e) => {
+                matches!(e.get("said"), Some(Value::List(_)))
+                    && e.get("base").is_some_and(is_number)
+            }
+            _ => false,
+        }),
+        Some(_) => false,
+    };
+
+    // Folders already told about are a list
+    let dirs_ok = matches!(d.get("dirs"), None | Some(Value::List(_)));
+    if files_ok && dirs_ok { state } else { empty() }
+}
+
+/// python `sane_bases(bases)`: 경로 -> 수 dict 가 아니면 빈 dict.
+fn sane_bases(bases: Value) -> Value {
+    match &bases {
+        Value::Dict(d) if d.iter().all(|(_, v)| is_number(v)) => bases,
+        _ => Value::Dict(Dict::new()),
+    }
+}
+
 // python len(x): dict, 목록, 글만
 fn py_len(value: &Value) -> Result<usize> {
     match value {
@@ -64,14 +107,14 @@ impl Ledger {
         // The per-epoch notice state
         let state_path =
             epoch::state_path(tmp, PLUGIN, NAMESPACE, sid, agent_id).map_err(fs_halt)?;
-        let state = read_json(&state_path);
+        let state = sane_state(read_json(&state_path));
 
         // The per-session growth baselines
         let dir = join(tmp, NAMESPACE);
         let os = fs::os_path(&dir).ok_or(Halt::PyError("cannot make the state folder"))?;
         std::fs::create_dir_all(os).map_err(|_| Halt::PyError("cannot make the state folder"))?;
         let base_path = join(&dir, &format!("{}.base.json", epoch::sanitize(sid)));
-        let bases = read_json(&base_path);
+        let bases = sane_bases(read_json(&base_path));
         let n_bases = py_len(&bases)?;
 
         Ok(Ledger {
@@ -270,5 +313,34 @@ mod tests {
         let bases = std::fs::read_to_string(tmp.join(NAMESPACE).join("s1.base.json")).unwrap();
         assert_eq!(bases, r#"{"/r/a.luau": 0}"#);
         std::fs::remove_dir_all(&tmp).unwrap();
+    }
+
+    /// 꼴이 다른 상태와 기준점 파일은 빈 것으로 읽는다(python `sane_state`, `sane_bases`).
+    #[test]
+    fn reads_other_shapes_as_empty() {
+        // Shapes python's check_file would fail on become an empty dict
+        let empty = Value::Dict(Dict::new());
+        for bad in [
+            "[1]",
+            r#"{"files": []}"#,
+            r#"{"files": {"/a": {"base": "x", "said": []}}}"#,
+            r#"{"files": {"/a": {"base": 1}}}"#,
+            r#"{"files": {"/a": 5}}"#,
+            r#"{"dirs": 5}"#,
+        ] {
+            assert_eq!(sane_state(loads(bad).unwrap()), empty, "{bad}");
+        }
+
+        // A good state, a null entry and a bool base (python counts bool as int) stay
+        let good =
+            loads(r#"{"files": {"/a": {"base": true, "said": ["warn"]}, "/b": null}, "dirs": []}"#)
+                .unwrap();
+        assert_eq!(sane_state(good.clone()), good);
+
+        // Baselines are a dict of numbers
+        assert_eq!(sane_bases(loads(r#"{"/a": "1"}"#).unwrap()), empty);
+        assert_eq!(sane_bases(loads("[1]").unwrap()), empty);
+        let bases = loads(r#"{"/a": 1.5}"#).unwrap();
+        assert_eq!(sane_bases(bases.clone()), bases);
     }
 }

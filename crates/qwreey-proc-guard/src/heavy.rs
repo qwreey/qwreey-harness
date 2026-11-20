@@ -16,6 +16,7 @@ use std::sync::LazyLock;
 use harness_hook::nonce::Unencodable;
 use harness_hook::py::re::{self, Flags, Regex};
 use harness_hook::py::text::split_whitespace;
+use harness_hook::rx;
 use harness_hook::settings::{self, Layers};
 use harness_hook::tag::{self, Level};
 use harness_hook::{HookInput, HookOutput};
@@ -60,13 +61,11 @@ const EXEMPT_HEADS: &[&str] = &["git", "gh"];
 // qwreey-delegate 의 드라이버는 자기 setpriv 실행 앞에 choom 을 둔다. 그 프롬프트 글은 bench, perf 를 말해도 된다
 const DELEGATE_SCRIPTS: &[&str] = &["delegate.py", "delegate.sh"];
 
-static ASSIGN: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?:^|[;&|\s(])([A-Za-z_][A-Za-z0-9_]*)=(\S*)").expect("built-in pattern")
-});
+static ASSIGN: LazyLock<rx::Regex> =
+    LazyLock::new(|| rx::Regex::new(r"(?:^|[;&|\s(])([A-Za-z_][A-Za-z0-9_]*)=(\S*)"));
 // 시간 재는 호출은 키워드보다 훨씬 정확히 벤치를 가리킨다. heredoc 본문에만 쓴다
-static TIMING: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"os\.clock\(|perf_counter|timeit|performance\.now\(|hrtime|Instant::now")
-        .expect("built-in pattern")
+static TIMING: LazyLock<rx::Regex> = LazyLock::new(|| {
+    rx::Regex::new(r"os\.clock\(|perf_counter|timeit|performance\.now\(|hrtime|Instant::now")
 });
 
 /// 실행기 이름과 무거운 낱말 정규식(설정 층에서).
@@ -257,6 +256,14 @@ fn deny_reason(wrap: &[String]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 이 파일의 고정 정규식이 두 regex crate 엔진과 py::re 에서 모두 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        for re in [&*ASSIGN, &*TIMING] {
+            re.check();
+        }
+    }
 
     fn rules(extra: &[(&str, &str)]) -> Rules {
         let mut layers = Layers::default();

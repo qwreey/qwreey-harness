@@ -2,7 +2,8 @@
 
 use std::sync::LazyLock;
 
-use harness_hook::py::re::{Flags, Regex};
+use harness_hook::py::re::Flags;
+use harness_hook::rx::Regex;
 
 use super::Category;
 use super::chars::{ESCAPE, odd_chars};
@@ -12,13 +13,11 @@ use crate::halt::Result;
 use crate::lex::{Row, comment_body};
 
 /// `Ref:` 꼬리 줄(python `REF_LINE`).
-static REF_LINE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::with_flags(r"^\s*Ref\s*:", Flags::IGNORECASE).expect("constant pattern")
-});
+static REF_LINE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::with_flags(r"^\s*Ref\s*:", Flags::IGNORECASE));
 
 /// 이유 문장의 낱말(python `WORD`).
-static WORD: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"[A-Za-zÀ-ɏ]{2,}|[가-힣]{2,}").expect("constant pattern"));
+static WORD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[A-Za-zÀ-ɏ]{2,}|[가-힣]{2,}"));
 
 /// 지시자 줄(python `DIRECTIVE`): 도구에게 하는 말이라 검사와 언어 판정에서 뺀다.
 pub static DIRECTIVE: LazyLock<Regex> = LazyLock::new(|| {
@@ -26,7 +25,6 @@ pub static DIRECTIVE: LazyLock<Regex> = LazyLock::new(|| {
         r"^\s*(?:!|@|-\*-|eslint|prettier|noqa|type:|pyright|pylint|mypy|selene|stylua|luau-lsp|region|endregion|nolint|lint:|coding[:=]|vim:|go:|nocheck|<reference)",
         Flags::IGNORECASE,
     )
-    .expect("constant pattern")
 });
 
 /// 줄의 주석 조각 가운데 지시자가 있는가.
@@ -38,7 +36,7 @@ pub fn has_directive(row: &Row) -> bool {
 pub fn scrub_public(body: &str, pats: &Patterns) -> String {
     let mut body = body.to_owned();
     for p in &pats.public {
-        body = p.replace_all(&body, |_| " ".to_owned());
+        body = p.replace_all(&body, &mut |_| " ".to_owned());
     }
     body
 }
@@ -53,7 +51,7 @@ pub fn has_history(body: &str, pats: &Patterns) -> bool {
 fn reason_words(body: &str, pats: &Patterns) -> usize {
     let mut body = body.to_owned();
     for (_, rx) in &pats.history {
-        body = rx.replace_all(&body, |_| " ".to_owned());
+        body = rx.replace_all(&body, &mut |_| " ".to_owned());
     }
     WORD.find_iter(&body).len()
 }
@@ -142,4 +140,17 @@ pub fn check_lines(
         }
     }
     Ok(problems)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        REF_LINE.check();
+        WORD.check();
+        DIRECTIVE.check();
+    }
 }

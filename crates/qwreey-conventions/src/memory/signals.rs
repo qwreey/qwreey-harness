@@ -6,7 +6,11 @@
 
 use std::sync::LazyLock;
 
-use harness_hook::py::re::{Flags, Regex};
+use harness_hook::py::re::Flags;
+use harness_hook::py::text::is_space;
+use harness_hook::rx::Regex;
+
+use crate::pat::{Look, Pat, before, is_word};
 
 /// 점수가 이 이상이면 저장소 지식(python `THRESHOLD`).
 const THRESHOLD: i32 = 3;
@@ -17,16 +21,9 @@ const EXT: &str =
     r"(?:luau|lua|ts|tsx|js|jsx|mjs|py|rs|go|kt|md|json|toml|yaml|yml|sh|astro|html|css|sql)";
 
 fn re(pattern: &str, flags: Flags) -> Regex {
-    Regex::with_flags(pattern, flags).expect("constant pattern")
+    Regex::with_flags(pattern, flags)
 }
 
-static FRONTMATTER: LazyLock<Regex> = LazyLock::new(|| {
-    let dotall = Flags {
-        dotall: true,
-        ..Flags::NONE
-    };
-    re(r"^---\s*\n(.*?)\n---\s*\n?", dotall)
-});
 static TYPE_LINE: LazyLock<Regex> = LazyLock::new(|| {
     let multiline = Flags {
         multiline: true,
@@ -34,12 +31,20 @@ static TYPE_LINE: LazyLock<Regex> = LazyLock::new(|| {
     };
     re(r"^\s*type:\s*([\w-]+)", multiline)
 });
-static RE_PATH: LazyLock<Regex> = LazyLock::new(|| {
-    re(
-        &format!(r"(?<![\w/~.])(?:\.?[\w-]+/)+[\w.-]+\.{EXT}\b"),
-        Flags::NONE,
+// python `(?<![\w/~.])...`: 뒤보기는 앞 글자 검사로. 거른 뒤에는 그 글자들이 이어진 동안을 건너뛴다(그 안의 자리는 늘 걸러진다)
+static RE_PATH: LazyLock<Look> = LazyLock::new(|| {
+    Look::new(
+        &format!(r"(?:\.?[\w-]+/)+[\w.-]+\.{EXT}\b"),
+        |t, m| before(t, m.start()).is_none_or(|c| !path_char(c)),
+        None,
     )
+    .skipping(path_char)
 });
+
+// 경로 앞에 오면 그 자리를 경로의 시작으로 보지 않는 글자(python `[\w/~.]`)
+fn path_char(c: char) -> bool {
+    is_word(c) || matches!(c, '/' | '~' | '.')
+}
 static RE_SYMBOL: LazyLock<Regex> = LazyLock::new(|| {
     re(
         r"`[A-Za-z_][\w]*(?:(?:\.|::|:)[A-Za-z_]\w*)+(?:\(\))?`|`[A-Za-z_]\w*\(\)`",
@@ -86,24 +91,43 @@ pub struct Signals {
 
 /// python `parse_memory(text)` 의 (type, body). type 은 frontmatter 의 `type:` 줄(중첩된 것도), 없으면 빈 글.
 pub fn parse_memory(text: &str) -> (String, &str) {
-    // 닫는 `\n---` 가 없으면 맞지 않는다. 정규식에 맡기면 빈 줄 n 개 뒤에서 n 제곱으로 되돌아간다(python 도 같다)
-    if !text.starts_with("---") || !text[3..].contains("\n---") {
-        return (String::new(), text);
-    }
-    let Some(m) = FRONTMATTER.match_start(text) else {
+    let Some((fm, end)) = frontmatter(text) else {
         return (String::new(), text);
     };
-    let fm = m.text(text, 1).unwrap_or("");
     let kind = TYPE_LINE
         .search(fm)
         .and_then(|t| t.text(fm, 1))
         .map(str::to_lowercase)
         .unwrap_or_default();
-    (kind, &text[m.end()..])
+    (kind, &text[end..])
+}
+
+/// python `frontmatter(text)`: `re.match(r"^---\s*\n(.*?)\n---\s*\n?", text, re.S)` 의 (머리 글, 끝 자리)를 되짚기 없이.
+///
+/// 그 정규식은 `\s*` 가 줄바꿈을 하나씩 돌려주며 닫는 `---` 가 없으면 줄바꿈마다 글 끝까지 다시 훑었다.
+/// `---` 다음 줄바꿈은 공백 줄의 마지막 줄바꿈이고, 그 줄바꿈이 닫는 `\n---` 의 머리이면 하나 앞 줄바꿈이다.
+pub fn frontmatter(text: &str) -> Option<(&str, usize)> {
+    let rest = text.strip_prefix("---")?;
+    let run = rest.len() - rest.trim_start_matches(is_space).len();
+    let nl: Vec<usize> = rest[..run]
+        .match_indices('\n')
+        .map(|(i, _)| i + 3)
+        .collect();
+    let &last = nl.last()?;
+
+    // The closing marker after the last newline, else that newline as the closing marker
+    let (start, close) = match text[last + 1..].find("\n---") {
+        Some(k) => (last, last + 1 + k),
+        None if nl.len() >= 2 && text[last + 1..].starts_with("---") => (nl[nl.len() - 2], last),
+        None => return None,
+    };
+    let after = &text[close + 4..];
+    let end = close + 4 + (after.len() - after.trim_start_matches(is_space).len());
+    Some((&text[start + 1..close], end))
 }
 
 // python [m.group(0) for m in re.finditer(...)] 를 dict.fromkeys 로 겹치지 않게
-fn found(re: &Regex, text: &str) -> Vec<String> {
+fn found(re: &dyn Pat, text: &str) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     for m in re.find_iter(text) {
         let s = &text[m.start()..m.end()];
@@ -118,12 +142,12 @@ fn found(re: &Regex, text: &str) -> Vec<String> {
 pub fn signals(body: &str) -> Signals {
     let cleaned = RE_ABS_ENV.replace_all(body, |_| " ".to_owned());
     Signals {
-        path: found(&RE_PATH, &cleaned),
-        command: found(&RE_COMMAND, body),
-        here: found(&RE_HERE, body),
-        symbol: found(&RE_SYMBOL, body),
-        conv: found(&RE_CONV, body),
-        env: found(&RE_ENV, body),
+        path: found(&*RE_PATH, &cleaned),
+        command: found(&*RE_COMMAND, body),
+        here: found(&*RE_HERE, body),
+        symbol: found(&*RE_SYMBOL, body),
+        conv: found(&*RE_CONV, body),
+        env: found(&*RE_ENV, body),
     }
 }
 
@@ -173,6 +197,42 @@ pub fn describe(sig: &Signals) -> String {
 mod tests {
     use super::*;
 
+    /// frontmatter 는 python 의 원래 정규식과 같은 머리 글과 끝 자리를 낸다(되짚는 엔진 py::re 를 기준으로).
+    #[test]
+    fn frontmatter_like_the_python_regex() {
+        // Reference: the regex python used before, read by py::re
+        let dotall = Flags {
+            dotall: true,
+            ..Flags::NONE
+        };
+        let reference =
+            harness_hook::py::re::Regex::with_flags(r"^---\s*\n(.*?)\n---\s*\n?", dotall).unwrap();
+        let pieces = [
+            "-", "---", "\n", " ", "\t", "a", "\u{3000}", "\r", "x:", "\n---", "\u{b}",
+        ];
+
+        // Every string of up to 5 pieces
+        let mut texts = vec![String::new()];
+        for _ in 0..5 {
+            let longer: Vec<String> = texts
+                .iter()
+                .flat_map(|t| pieces.iter().map(move |p| format!("{t}{p}")))
+                .collect();
+            texts.extend(longer);
+            texts.dedup();
+        }
+        for t in &texts {
+            let want = reference
+                .match_start(t)
+                .map(|m| (m.text(t, 1).unwrap_or(""), m.end()));
+            assert_eq!(frontmatter(t), want, "{t:?}");
+        }
+
+        // Long whitespace without a closing marker stays fast
+        let long = format!("---{}x", " \n".repeat(20000));
+        assert_eq!(frontmatter(&long), None);
+    }
+
     /// 저장소 지식, 개인 메모, 환경 메모를 python 판정대로 가른다.
     #[test]
     fn classifies_like_python() {
@@ -204,5 +264,42 @@ mod tests {
                 .is_empty()
         );
         assert_eq!(signals("see docs/a.md").path, vec!["docs/a.md"]);
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        TYPE_LINE.check();
+        RE_PATH.check();
+        RE_SYMBOL.check();
+        RE_COMMAND.check();
+        RE_HERE.check();
+        RE_CONV.check();
+        RE_ENV.check();
+        RE_ABS_ENV.check();
+    }
+
+    /// 뒤보기를 앞 글자 검사로 옮긴 경로 패턴은 python 패턴과 같은 조각을 찾는다(긴 낱말을 건너뛰어도).
+    #[test]
+    fn path_like_python() {
+        crate::pat::assert_same(
+            &format!(r"(?<![\w/~.])(?:\.?[\w-]+/)+[\w.-]+\.{EXT}\b"),
+            Flags::NONE,
+            &*RE_PATH,
+            &[],
+            &[
+                "see src/parser.py and ./lib/a.ts",
+                "x/src/a.py",
+                "~/a/b.md",
+                ".claude/rules/x.md",
+                "a.b/c.py",
+                "-x/y.py",
+                "한src/a.py",
+                "src/a.pyx src/b.rs",
+                "aaaa/bbbb/cccc/dddd.py",
+                "(src/a.py)",
+                "/tmp/a/b.py",
+            ],
+        );
     }
 }

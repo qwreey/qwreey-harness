@@ -18,7 +18,10 @@ def project_root(path, data):
     while d and d != "/":
         if os.path.exists(os.path.join(d, ".git")) or os.path.isdir(os.path.join(d, ".claude")):
             return d
-        d = os.path.dirname(d)
+        up = os.path.dirname(d)
+        if up == d:  # `//` 로 시작하는 경로는 dirname 이 `//` 에서 줄지 않는다
+            break
+        d = up
     return data.get("cwd") or os.path.dirname(path)
 
 

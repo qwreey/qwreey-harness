@@ -18,12 +18,37 @@ from pathlib import Path
 
 # ---------- frontmatter ----------
 
+FM_HEAD = re.compile(r"---(\s*)")
+SPACES = re.compile(r"\s*")
+
+
+def frontmatter(text):
+    r"""(frontmatter, end) as `re.match(r"^---\s*\n(.*?)\n---\s*\n?", text, re.S)` gives, or None, in linear time.
+
+    That regex lets `\s*` give back newlines one by one; with no closing `---` it rescanned the text once per newline.
+    The newline after `---` is the last one in the whitespace run, or the one before it when that last newline
+    itself starts the closing `\n---`."""
+    head = FM_HEAD.match(text)
+    nl = [i for i in range(head.start(1), head.end(1)) if text[i] == "\n"] if head else []
+    if not nl:
+        return None
+
+    # The closing marker after the last newline, else that newline as the closing marker
+    j = nl[-1]
+    e = text.find("\n---", j + 1)
+    if e < 0:
+        if len(nl) < 2 or not text.startswith("---", j + 1):
+            return None
+        j, e = nl[-2], j
+    return text[j + 1:e], SPACES.match(text, e + 4).end()
+
+
 def parse_memory(text):
     """Returns (type, name, body). `type` is read from top-level or from metadata: (nested) frontmatter; "" if absent."""
-    m = re.match(r"^---\s*\n(.*?)\n---\s*\n?", text, re.S)
-    if not m:
+    found = frontmatter(text)
+    if not found:
         return "", "", text
-    fm, body = m.group(1), text[m.end():]
+    fm, body = found[0], text[found[1]:]
     t = re.search(r"^\s*type:\s*([\w-]+)", fm, re.M)
     n = re.search(r"^name:\s*(.+)$", fm, re.M)
     return (t.group(1).lower() if t else ""), (n.group(1).strip() if n else ""), body

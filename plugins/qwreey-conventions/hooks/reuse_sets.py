@@ -5,12 +5,15 @@
 """
 import bisect
 import re
+import time
 
 from conv_lex import lex
 from copy_regions import parse_regions
 
 STR = r'"[^"\\\n]*"|\'[^\'\\\n]*\''
-GROUP = re.compile(r"[\[\{\(]((?:\s*(?:" + STR + r")\s*[,;]?)+)\s*[\]\}\)]|((?:(?:" + STR + r")\s*(?:\||\bor\b)\s*)+(?:" + STR + r"))", re.S)
+# 괄호 묶음의 공백과 구분자는 소유 되풀이(*+, ?+, ++)다: 원소 사이 공백을 앞뒤 \s* 가 나눠 가지는 길을 되짚지 않는다.
+# 닫는 괄호가 없는 긴 이어 붙인 문자열에서 python re 가 그 길을 모두 되짚어 지수 시간이 걸렸다. 맞는 글은 그대로다.
+GROUP = re.compile(r"[\[\{\(]((?:\s*+(?:" + STR + r")\s*+[,;]?+)++)\s*+[\]\}\)]|((?:(?:" + STR + r")\s*(?:\||\bor\b)\s*)+(?:" + STR + r"))", re.S)
 WORD = re.compile(r"^(?=.*[A-Za-z])[\w.\-/ ]{2,}$")
 # 정의 머리: 이름 붙은 바인딩과 const/static/let/local/type. 정의가 아닌 쪽끼리(if x in (...) 두 번)는 짝으로 보지 않는다
 DEF = re.compile(r"^\s*(?:pub(?:\([\w:]+\))?\s+)?(?:export\s+)?(?:const|static|let|local|type)\s+\w+"
@@ -24,6 +27,15 @@ HEADER_LINES = 10
 BAD_REASONS = {"", "-", "later", "todo", "fixme", "tbd", "n/a", "나중에", "추후"}
 CONT = (",", "(", "{", "[", "=", "|")
 FLAG_DEF, FLAG_TYPE = 1, 2
+
+
+class Budget(Exception):
+    """extract 가 시간 한도(deadline, time.perf_counter 기준)를 넘었다. 부르는 쪽이 그 파일을 건너뛴다."""
+
+
+def _within(deadline):
+    if deadline is not None and time.perf_counter() > deadline:
+        raise Budget
 
 
 def reason_ok(text):
@@ -41,15 +53,17 @@ def _is_def(lines, ln):
     return None
 
 
-def extract(text, fam):
+def extract(text, fam, deadline=None):
     """(묶음 목록, 표시 목록). 묶음: [줄(1 기반), 이름, 플래그(1 정의, 2 타입), 원소(정렬), 표시 대상 또는 None, @dup-ok 사유 또는 None].
-    표시: [줄, 대상 경로, 이름 또는 None, "f"(파일 사본) | "v"(값 사본) | "r"(영역 사본, 정본 영역 포함)]."""
+    표시: [줄, 대상 경로, 이름 또는 None, "f"(파일 사본) | "v"(값 사본) | "r"(영역 사본, 정본 영역 포함)].
+    deadline(time.perf_counter 값)을 넘으면 묶음 사이에서 Budget 을 낸다."""
     if fam == "rust" and "#[cfg(test)]" in text:
         text = text[:text.find("#[cfg(test)]")]
     lines = text.split("\n")
     cands = []
     starts = None
     for m in GROUP.finditer(text):
+        _within(deadline)
         els = frozenset(x[1:-1] for x in re.findall(STR, m.group(0)) if len(x) > 2)
         if len(els) < 3:
             continue
@@ -59,9 +73,11 @@ def extract(text, fam):
                 starts.append(mm.end())
         cands.append((bisect.bisect_right(starts, m.start()), els))
     has_mark = "@copy-of" in text
+    _within(deadline)
     rows = lex(text, fam) if (cands or has_mark) else None
     sets = []
     for ln, els in cands:
+        _within(deadline)
         if not rows[ln - 1]["code"] and rows[ln - 1]["c"]:
             continue  # 주석 줄
         words = sorted(x for x in els if WORD.match(x))

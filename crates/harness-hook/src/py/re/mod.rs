@@ -84,6 +84,11 @@ pub struct Match {
 }
 
 impl Match {
+    /// 괄호 자리(0 번 괄호부터 시작, 끝 쌍)로 만든다. [`crate::rx`] 가 regex crate 의 일치를 이 꼴로 돌려준다.
+    pub(crate) fn from_slots(slots: Vec<Option<usize>>) -> Match {
+        Match { slots }
+    }
+
     /// 일치의 시작.
     pub fn start(&self) -> usize {
         self.slots[0].expect("a match has group 0")
@@ -105,6 +110,12 @@ impl Match {
     /// 괄호 `i` 가 잡은 글.
     pub fn text<'t>(&self, text: &'t str, i: usize) -> Option<&'t str> {
         self.group(i).map(|(a, b)| &text[a..b])
+    }
+
+    /// 일치의 끝을 `end` 로 줄인 것. 앞보기를 먹는 괄호로 바꿔 쓴 패턴이 python 의 일치 범위를 돌려줄 때 쓴다.
+    pub fn with_end(mut self, end: usize) -> Match {
+        self.slots[1] = Some(end);
+        self
     }
 }
 

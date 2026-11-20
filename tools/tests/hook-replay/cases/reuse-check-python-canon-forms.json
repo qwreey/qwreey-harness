@@ -1,0 +1,35 @@
+{
+ "description": "reuse-check: python canon regions in forms beyond NAME = \"...\" are judged like python's ast (two constants in a + b; the text of an f-string; \\N{...} names)",
+ "files": {
+  "lib/concat.py": "# @start-replace: lib/concat.py#X\nX = \"a\" + \"b\"\n# @end-replace\n",
+  "lib/fstr.py": "# @start-replace: lib/fstr.py#X\nX = f\"a{1}\"\n# @end-replace\n",
+  "lib/nesc.py": "# @start-replace: lib/nesc.py#X\nX = \"\\N{BULLET}\"\n# @end-replace\n",
+  "pkg/c.ts": "// @start-replace: lib/concat.py#X value=string template=\"const X = {value};\"\nconst X = \"ab\";\n// @end-replace\n// @start-replace: lib/fstr.py#X value=string template=\"const X = {value};\"\nconst X = \"a\";\n// @end-replace\n// @start-replace: lib/nesc.py#X value=string template=\"const X = {value};\"\nconst X = \"x\";\n// @end-replace\n"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "pc",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/pkg/c.ts",
+     "content": "// @start-replace: lib/concat.py#X value=string template=\"const X = {value};\"\nconst X = \"ab\";\n// @end-replace\n// @start-replace: lib/fstr.py#X value=string template=\"const X = {value};\"\nconst X = \"a\";\n// @end-replace\n// @start-replace: lib/nesc.py#X value=string template=\"const X = {value};\"\nconst X = \"x\";\n// @end-replace\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "contains": [
+     "pkg/c.ts:1: @start-replace lib/concat.py#X does not resolve (value=string needs exactly one string literal in the canon region, found 2)",
+     "pkg/c.ts:7: @start-replace lib/nesc.py#X differs from its canon"
+    ],
+    "not_contains": [
+     "lib/fstr.py#X"
+    ]
+   }
+  }
+ ]
+}

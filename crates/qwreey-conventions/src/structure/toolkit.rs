@@ -159,7 +159,10 @@ impl Table {
     pub fn of(&self, name: &str) -> Result<Option<&Toolkit>> {
         let ext = splitext(name).1;
         for t in &self.0 {
+            // A string is one extension, not a substring to search
             match t.spec.get("ext") {
+                Some(Value::Str(one)) if one == ext => {}
+                Some(Value::Str(_)) => continue,
                 Some(exts) if exts.truthy() && contains(exts, ext)? => {}
                 _ => continue,
             }
@@ -198,12 +201,16 @@ impl Toolkit {
     }
 
     /// python `spec.get("test") and re.search(spec["test"], rel)`.
+    ///
+    /// py::re 가 옮기지 않은 문법(`(?x)`, 조건 괄호)의 패턴은 시험 파일이 아니라고 본다. python 은 그 패턴으로
+    /// 판정하므로 그 툴킷의 시험 기준(두 배)만 다를 수 있다.
     pub fn spec_test(&self, rel: &str) -> Result<bool> {
         match self.spec.get("test") {
-            Some(Value::Str(pattern)) if !pattern.is_empty() => {
-                let re = Regex::new(pattern).map_err(|e| re_halt(&e))?;
-                Ok(re.is_match(rel))
-            }
+            Some(Value::Str(pattern)) if !pattern.is_empty() => match Regex::new(pattern) {
+                Ok(re) => Ok(re.is_match(rel)),
+                Err(harness_hook::py::re::Error::Unsupported(_)) => Ok(false),
+                Err(e) => Err(re_halt(&e)),
+            },
             Some(v) if v.truthy() => Err(Halt::PyError("re.search with a non-string pattern")),
             _ => Ok(false),
         }
@@ -288,15 +295,13 @@ mod tests {
         assert_eq!(web.comments(), strs(&["//"]));
         assert_eq!(table.of("a.tsx").unwrap(), None);
 
-        // A string ext is searched as a substring (python `in` on str)
+        // A string ext is one extension: `.z` and a file without one are not inside `.zz`
         assert_eq!(
             table.of("b.zz").unwrap().map(|t| t.name.as_str()),
             Some("zz")
         );
-        assert_eq!(
-            table.of("b.z").unwrap().map(|t| t.name.as_str()),
-            Some("zz")
-        );
+        assert_eq!(table.of("b.z").unwrap(), None);
+        assert_eq!(table.of("Makefile").unwrap(), None);
     }
 
     /// `comments[0]` 과 escape 가 값의 꼴마다 python 과 같다.
@@ -310,5 +315,19 @@ mod tests {
         // A dict has no index 0
         assert!(first_comment(&loads(r#"{"--": 1}"#).unwrap()).is_err());
         assert!(comment_marks(&loads("[1]").unwrap()).is_err());
+    }
+
+    /// py::re 가 옮기지 않은 시험 패턴은 시험 파일이 아니라고 본다(훅 전체를 넘기지 않는다).
+    #[test]
+    fn unreadable_test_pattern_is_not_a_test() {
+        // A conditional pattern python reads; a plain one still works
+        let cfg = cfg(
+            r#"{"toolkits": {"python": {"test": "(a)?(?(1)b|src)"}, "rust": {"test": "^src/"}}}"#,
+        );
+        let table = Table::new(&cfg, "");
+        let py = table.of("a.py").unwrap().unwrap();
+        assert_eq!(py.spec_test("src/a.py"), Ok(false));
+        let rs = table.of("a.rs").unwrap().unwrap();
+        assert_eq!(rs.spec_test("src/a.rs"), Ok(true));
     }
 }

@@ -10,8 +10,8 @@ use std::sync::LazyLock;
 use harness_hook::known_repos;
 use harness_hook::py::fs;
 use harness_hook::py::path::{basename, dirname, join, normpath};
-use harness_hook::py::re::Regex;
 use harness_hook::py::surrogate::unit_of;
+use harness_hook::rx::Regex;
 
 use crate::context::Context;
 use crate::edit::Added;
@@ -26,8 +26,7 @@ use crate::reuse::sets::{Mark, MarkKind, StringSet, extract};
 /// 영역 사본이 어긋날 때 덧붙이는 말(python `SYNC_HINT`).
 const SYNC_HINT: &str = "Edit the canon region, then sync the copies (python3 -I tools/sync-copies.py --apply where the repo has it).";
 
-static SIBLING_FORM: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[\w.-]+:[^/\\]").expect("constant pattern"));
+static SIBLING_FORM: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[\w.-]+:[^/\\]"));
 
 /// C1 결과(그림자 기록의 `status`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -162,16 +161,20 @@ impl<'c> Siblings<'c> {
         }
 
         // A repo-relative path
-        let local = match target.strip_prefix("./") {
-            Some(_) => target.trim_start_matches(['.', '/']),
-            None => target,
-        };
         Resolved {
-            path: Some(join(&self.root, local)),
+            path: Some(join(&self.root, rel_target(target))),
             sibling_missing: false,
             note: String::new(),
         }
     }
+}
+
+/// python `rel_target(target)`: 앞의 `./` 들을 뗀다. `./.github/x.py` 는 `.github/x.py`, `../x` 는 그대로다.
+pub fn rel_target(mut target: &str) -> &str {
+    while let Some(rest) = target.strip_prefix("./") {
+        target = rest;
+    }
+    target
 }
 
 // python sets_of_file: 색인에 있으면 그 묶음, 아니면 파일을 읽는다(못 읽으면 None)
@@ -362,7 +365,7 @@ pub fn check_regions(
         if is_canon(r, path, &[root])? {
             continue;
         }
-        res.push(check_region(root, rel, path, &lines, r, added)?);
+        res.extend(check_region(root, rel, path, &lines, r, added)?);
     }
     Ok(res)
 }
@@ -374,7 +377,7 @@ fn check_region(
     lines: &[&str],
     r: &Region,
     added: &Added,
-) -> Result<CopyCheck> {
+) -> Result<Option<CopyCheck>> {
     let tgt = format!("{}#{}", r.path, r.name);
     let line = r.line as i64;
     let touched = added.iter().any(|&k| r.start <= k && k <= r.end);
@@ -382,22 +385,31 @@ fn check_region(
     // 형제 저장소가 이 기계에 없다
     let top: Vec<&str> = r.path.split('/').collect();
     if top[0] == ".." && top.len() > 1 && !fs::is_dir(&join(&join(root, ".."), top[1])) {
-        return Ok(CopyCheck::new(line, None, Status::Sibling, &tgt, false));
+        return Ok(Some(CopyCheck::new(
+            line,
+            None,
+            Status::Sibling,
+            &tgt,
+            false,
+        )));
     }
 
-    let want = match expected(r, path, &[root])? {
-        Ok(want) => want,
-        Err(regions::MarkError(e)) => {
+    // 이 판이 정본을 읽지 못한 영역(python 정본의 드문 꼴)은 이 영역만 판정하지 않는다: 다른 알림은 그대로 낸다
+    let want = match expected(r, path, &[root]) {
+        Err(Halt::Unported(_)) => return Ok(None),
+        Err(e) => return Err(e),
+        Ok(Ok(want)) => want,
+        Ok(Err(regions::MarkError(e))) => {
             let notice = format!(
                 "{rel}:{line}: @start-replace {tgt} does not resolve ({e}). Fix the copy or the mark."
             );
-            return Ok(CopyCheck::new(
+            return Ok(Some(CopyCheck::new(
                 line,
                 Some(notice),
                 Status::Unresolved,
                 &tgt,
                 touched,
-            ));
+            )));
         }
     };
     if want
@@ -405,16 +417,16 @@ fn check_region(
         .map(String::as_str)
         .eq(body(lines, r).iter().copied())
     {
-        return Ok(CopyCheck::new(line, None, Status::Ok, &tgt, false));
+        return Ok(Some(CopyCheck::new(line, None, Status::Ok, &tgt, false)));
     }
     let notice = format!("{rel}:{line}: @start-replace {tgt} differs from its canon. {SYNC_HINT}");
-    Ok(CopyCheck::new(
+    Ok(Some(CopyCheck::new(
         line,
         Some(notice),
         Status::Differs,
         &tgt,
         touched,
-    ))
+    )))
 }
 
 /// python `canon_regions_touched(rel, path, text, added_lines, root)`: 추가한 줄이 든 정본 영역의 이름.
@@ -458,7 +470,7 @@ pub fn source_copies(
     let mut regions: Vec<(String, Vec<String>)> = Vec::new();
     for (orel, e) in index.iter() {
         for m in &e.marks {
-            if orel == rel || m.target.trim_start_matches(['.', '/']) != rel {
+            if orel == rel || rel_target(&m.target) != rel {
                 continue;
             }
             let at = format!("{orel}:{}", m.line);
@@ -591,5 +603,20 @@ mod tests {
             )
             .is_empty()
         );
+    }
+
+    /// 앞의 `./` 만 하나씩 뗀다(python `rel_target`).
+    #[test]
+    fn rel_target_strips_only_dot_slash() {
+        assert_eq!(rel_target("./.github/x.py"), ".github/x.py");
+        assert_eq!(rel_target("././lib/x.py"), "lib/x.py");
+        assert_eq!(rel_target("../x.py"), "../x.py");
+        assert_eq!(rel_target(".github/x.py"), ".github/x.py");
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        SIBLING_FORM.check();
     }
 }

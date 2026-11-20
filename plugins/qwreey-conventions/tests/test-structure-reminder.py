@@ -306,6 +306,30 @@ case("HARNESS_LUAU_KB 에 계획기가 없음 → 안내 생략", run("Edit", mk
      env_extra={"HOME": nohome, "HARNESS_LUAU_KB": nohome}), "hard limit", not_sub="split-plan.py")
 
 import time
+# 리뷰에서 찾은 결함(python 과 Rust 가 같게 고쳤다)
+# 회차 상태가 다른 꼴이면 빈 상태로 읽는다: 예전에는 그 세션 내내 예외(종료 코드 1)로 끝났다
+cs = mk("src/CorruptState.luau", 900)
+os.makedirs(os.path.join(STATE, "claude-structure-reminder"), exist_ok=True)
+for k, bad in enumerate(([1], {"files": []}, {"files": {cs: {"base": "x", "said": []}}}, {"dirs": 5})):
+    json.dump(bad, open(os.path.join(STATE, "claude-structure-reminder", "cs%d.c0.json" % k), "w"))
+    case("상태 파일 꼴이 틀림(%d) → 빈 상태로 warn" % k, run("Edit", cs, sid="cs%d" % k, ti_extra=edit(1)), "warn limit 800")
+json.dump([1], open(os.path.join(STATE, "claude-structure-reminder", "csb.base.json"), "w"))
+case("기준점 파일이 dict 아님 → 빈 기준점", run("Edit", cs, sid="csb", ti_extra=edit(1)), "warn limit 800")
+# 글 하나인 ext 는 확장자 하나다: `.ts` 가 `.tsx` 안의 부분 글로 맞지 않는다
+json.dump({"toolkits": {"web": {"ext": ".tsx"}}}, open(os.path.join(REPO, ".claude", "structure.json"), "w"))
+case("structure.json ext 가 글 '.tsx' → .ts 파일은 web 이 아님(조용)", run("Write", mk("web/One.ts", 900, "// x"), sid="x1", resp={"type": "create"}), want_empty=True)
+case("structure.json ext 가 글 '.tsx' → .tsx 파일은 warn", run("Write", mk("web/One.tsx", 900, "// x"), sid="x2", resp={"type": "create"}), "warn limit 800")
+os.remove(os.path.join(REPO, ".claude", "structure.json"))
+# `//` 로 시작하는 경로는 dirname 이 줄지 않는다: 저장소 표지 없이 거기까지 오르면 예전에는 끝나지 않았다
+far = os.path.join(T, "far", "Far.luau")
+os.makedirs(os.path.dirname(far))
+open(far, "w").write("--!strict\n")
+case("`//` 로 시작하는 저장소 밖 경로 → 끝나고 조용", run("Edit", "/" + far, sid="d1", ti_extra=edit(1)), want_empty=True)
+# 확장자 없는 긴 낱말(2만 자): 경로 찾기가 자리마다 다시 훑지 않는다
+s0 = time.monotonic()
+case("Bash 2만 자 낱말 → 조용", run("Bash", "", sid="lt", ti_extra={"command": "sed -i x " + "a" * 20000 + ".pyx"}), want_empty=True)
+case("Bash 2만 자 낱말 → 1초 안(예전 python 은 약 1.2초, 4만 자면 4배)", "" if time.monotonic() - s0 < 1 else "slow", want_empty=True)
+
 _t = []
 for i in range(10):
     s0 = time.monotonic(); run("Edit", mid, sid="tm%d" % i, ti_extra=edit(1)); _t.append((time.monotonic() - s0) * 1000)

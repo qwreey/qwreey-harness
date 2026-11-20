@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOOK = os.path.join(ROOT, "hooks", "memory-placement.py")
@@ -119,6 +120,12 @@ d = os.path.join(T, "a.b_c", "Repo-x")
 os.makedirs(d)
 check("resolve_key finds lossy path", str(ms.resolve_key(ms.key_of(d))) == d)
 check("resolve_key none for missing", ms.resolve_key(ms.key_of(d) + "-gone") is None)
+
+# 닫는 `---` 없는 머리와 긴 공백: 머리 읽기가 선형이다(예전 정규식은 줄바꿈마다 글 끝까지 다시 훑었다)
+t0 = time.perf_counter()
+call(write("nofm.md", "---" + " \n" * 40000 + "In this repo, build with `make all`. The parser lives in src/parser.py.\n"))
+check("frontmatter without a closing --- reads in linear time", time.perf_counter() - t0 < 3)
+check("frontmatter whose closing --- is the last newline of the spaces", ms.parse_memory("---\n\n---\ntype: user\nbody")[2] == "type: user\nbody")
 
 bad = [n for n, ok in res if not ok]
 for n, ok in res:

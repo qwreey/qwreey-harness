@@ -19,7 +19,7 @@ use crate::halt::{Halt, Result};
 use crate::lex::{Family, family};
 use crate::reuse::Clock;
 use crate::reuse::files::{ext_of, generated};
-use crate::reuse::sets::{Mark, MarkKind, StringSet, extract};
+use crate::reuse::sets::{Budget, Deadline, Mark, MarkKind, StringSet, extract_within};
 
 /// 색인 판(python `INDEX_VERSION`). 2 부터 표시에 영역 사본(`"r"`)이 든다. 다른 판은 새로 만든다.
 pub const INDEX_VERSION: i128 = 2;
@@ -94,21 +94,53 @@ pub fn index_path(tempdir: &str, root: &str) -> Result<String> {
     Ok(join(&dir, &format!("{}.json", short_sha1(root)?)))
 }
 
-/// python `hashlib.sha1(text.encode()).hexdigest()[:12]`. 짝 없는 서로게이트는 python 이 인코딩하지 못한다.
+/// python `sha1_12(text)`: `hashlib.sha1(text.encode("utf-8", "surrogatepass")).hexdigest()[:12]`.
+///
+/// 짝 없는 서로게이트(자리표)는 surrogatepass 처럼 세 바이트 `ED xx xx` 로 센다.
 pub fn short_sha1(text: &str) -> Result<String> {
-    if text.chars().any(|c| unit_of(c).is_some()) {
-        return Err(Halt::PyError("a lone surrogate python cannot encode"));
+    let mut bytes = Vec::with_capacity(text.len());
+    for c in text.chars() {
+        match unit_of(c) {
+            Some(u) => bytes.extend_from_slice(&[
+                0xE0 | (u >> 12) as u8,
+                0x80 | ((u >> 6) & 0x3F) as u8,
+                0x80 | (u & 0x3F) as u8,
+            ]),
+            None => bytes.extend_from_slice(c.encode_utf8(&mut [0; 4]).as_bytes()),
+        }
     }
-    let digest = Sha1::digest(text.as_bytes());
+    let digest = Sha1::digest(&bytes);
     Ok(digest.iter().take(6).map(|b| format!("{b:02x}")).collect())
 }
 
-/// python `read_entry(root, rel, text)`: 파일 하나를 읽어 항목으로. `text` 가 없으면 디스크에서 읽는다.
+/// [`read_entry`] 가 끝나지 못한 까닭.
+#[derive(Debug)]
+pub enum ReadError {
+    /// 읽지 못했다(python 의 OSError, UnicodeDecodeError).
+    Fs,
+    /// 한도 안에 다 뽑지 못했다(python `reuse_sets.Budget`).
+    Budget,
+}
+
+impl From<FsError> for ReadError {
+    fn from(_: FsError) -> ReadError {
+        ReadError::Fs
+    }
+}
+
+impl From<Budget> for ReadError {
+    fn from(_: Budget) -> ReadError {
+        ReadError::Budget
+    }
+}
+
+/// python `read_entry(root, rel, text, deadline)`: 파일 하나를 읽어 항목으로. `text` 가 없으면 디스크에서 읽는다.
 pub fn read_entry(
     root: &str,
     rel: &str,
     text: Option<&str>,
-) -> std::result::Result<Entry, FsError> {
+    deadline: Option<Deadline>,
+) -> std::result::Result<Entry, ReadError> {
     let fp = join(root, rel);
     let st = fs::stat(&fp)?;
     let owned;
@@ -123,7 +155,7 @@ pub fn read_entry(
     let (sets, marks) = if generated(text) {
         (Vec::new(), Vec::new())
     } else {
-        extract(text, family(&ext_of(rel)).unwrap_or(Family::C))
+        extract_within(text, family(&ext_of(rel)).unwrap_or(Family::C), deadline)?
     };
     Ok(Entry {
         mtime_ns: st.mtime_ns,
@@ -180,9 +212,27 @@ pub fn load(
             cut = true;
             break;
         }
-        if let Ok(entry) = read_entry(root, rel, None) {
-            index.insert(rel, entry);
-            dirty = true;
+        let deadline = Deadline { clock, ms: COLD_MS };
+        match read_entry(root, rel, None, Some(deadline)) {
+            Ok(entry) => {
+                index.insert(rel, entry);
+                dirty = true;
+            }
+
+            // 한도 안에 다 읽지 못한 파일은 바뀔 때까지 빈 항목이다: 다음 색인이 이 파일에서 멈추지 않는다
+            Err(ReadError::Budget) => {
+                let empty = Entry {
+                    mtime_ns: st.mtime_ns,
+                    size: i128::from(st.size),
+                    sets: Vec::new(),
+                    marks: Vec::new(),
+                };
+                index.insert(rel, empty);
+                dirty = true;
+                cut = true;
+                break;
+            }
+            Err(ReadError::Fs) => {}
         }
     }
     Ok(Loaded { index, dirty, cut })
@@ -190,11 +240,19 @@ pub fn load(
 
 /// python `save_index(root, idx)`: 임시 파일에 쓰고 바꿔 단다. 쓰기 실패는 넘긴다.
 ///
-/// python 은 짝 없는 서로게이트가 든 글(UTF-8 이 아닌 파일 이름 등)을 쓰다 UnicodeEncodeError 로 끝난다.
+/// 짝 없는 서로게이트가 든 항목(UTF-8 이 아닌 파일 이름, 입력의 escape)은 python 이 인코딩하지 못해 빼고 쓴다.
 pub fn save(ip: &str, index: &Index) -> Result<()> {
-    let text = to_json(index);
-    if text.chars().any(|c| unit_of(c).is_some()) {
-        return Err(Halt::PyError("the index holds a lone surrogate"));
+    let mut text = to_json(index);
+    if has_placeholder(&text) {
+        let mut kept = Index::default();
+        for (rel, e) in index.iter() {
+            if !has_placeholder(rel)
+                && !has_placeholder(&dumps_compact(&entry_value(e), EnsureAscii::No))
+            {
+                kept.insert(rel, e.clone());
+            }
+        }
+        text = to_json(&kept);
     }
     let tmp = format!("{ip}.{}.tmp", std::process::id());
     if fs::write_text(&tmp, &text).is_ok()
@@ -203,6 +261,10 @@ pub fn save(ip: &str, index: &Index) -> Result<()> {
         let _ = std::fs::rename(from, to);
     }
     Ok(())
+}
+
+fn has_placeholder(text: &str) -> bool {
+    text.chars().any(|c| unit_of(c).is_some())
 }
 
 // 색인 파일을 읽는다. 없거나 JSON 이 아니거나 판이 다르면 빈 색인.
@@ -402,5 +464,44 @@ mod tests {
     fn short_sha1_matches_hashlib() {
         // python: hashlib.sha1(b"/repo").hexdigest()[:12]
         assert_eq!(short_sha1("/repo").unwrap(), "83630750896a");
+    }
+
+    /// 서로게이트는 surrogatepass 바이트로 해시하고, 그것이 든 항목은 색인 파일에서 뺀다.
+    #[test]
+    fn surrogates_hash_and_drop_like_python() {
+        use harness_hook::py::surrogate::placeholder;
+        let low = placeholder(0xDCFF).unwrap();
+
+        // python: hashlib.sha1("/r\udcff".encode("utf-8", "surrogatepass")).hexdigest()[:12]
+        assert_eq!(short_sha1(&format!("/r{low}")).unwrap(), "c840a8f64e23");
+
+        // The entry with the surrogate is left out, the other stays
+        let mut index = Index::default();
+        let entry = |words: Vec<String>| Entry {
+            mtime_ns: 1,
+            size: 2,
+            sets: vec![StringSet {
+                line: 1,
+                name: "X".into(),
+                flags: 0,
+                words,
+                copy_of: None,
+                dup: None,
+            }],
+            marks: Vec::new(),
+        };
+        index.insert("ok.py", entry(vec!["aa".into()]));
+        index.insert(&format!("bad{low}.py"), entry(vec!["bb".into()]));
+        index.insert("text.py", entry(vec![format!("c{low}")]));
+        let dir = std::env::temp_dir().join(format!("reuse-idx-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let ip = dir.join("i.json");
+        save(ip.to_str().unwrap(), &index).unwrap();
+        let text = std::fs::read_to_string(&ip).unwrap();
+        assert_eq!(
+            text,
+            r#"{"v":2,"files":{"ok.py":[1,2,[[1,"X",0,["aa"],null,null]],[]]}}"#
+        );
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }

@@ -8,12 +8,14 @@ use harness_hook::py::fs;
 use harness_hook::py::json_load::loads;
 use harness_hook::py::num::parse_int;
 use harness_hook::py::path::{basename, join};
-use harness_hook::py::re::{self, Flags, Regex};
+use harness_hook::py::re::{self, Flags, Match, Regex};
 use harness_hook::py::value::{Dict, Value};
+use harness_hook::rx;
 
 use super::chars::Allow;
 use crate::edit::{SKIP_PARTS, SKIP_SUFFIX};
 use crate::halt::{Halt, Result};
+use crate::pat::{Look, Pat, before, is_word};
 
 /// 이력 표지 패턴(python `PATTERNS`). 이름 순서가 곧 검사와 지우기 순서다.
 pub fn builtin_patterns() -> Vec<(&'static str, String)> {
@@ -65,17 +67,58 @@ pub struct Cfg {
 }
 
 /// 컴파일한 이력 패턴과 공개 식별자(python `compile_patterns` 의 결과).
-#[derive(Debug)]
+///
+/// 내장 패턴(소스의 글)은 regex crate([`rx::Regex`], 앞뒤 보기는 [`Look`])로, 저장소 설정이 덮어쓰거나 더한 패턴은
+/// python 이 물러날 때까지 py::re 로 읽는다.
 pub struct Patterns {
     /// (이름, 정규식), python dict 순서.
-    pub history: Vec<(String, Regex)>,
-    pub public: Vec<Regex>,
+    pub history: Vec<(String, Box<dyn Pat>)>,
+    pub public: Vec<Box<dyn Pat>>,
 }
 
 impl Patterns {
     /// 이름의 패턴(python `pats[k]`).
-    pub fn get(&self, name: &str) -> Option<&Regex> {
-        self.history.iter().find(|(k, _)| k == name).map(|(_, r)| r)
+    pub fn get(&self, name: &str) -> Option<&dyn Pat> {
+        self.history
+            .iter()
+            .find(|(k, _)| k == name)
+            .map(|(_, r)| r.as_ref())
+    }
+}
+
+// 앞에 `\w` 나 `-` 가 없는가(python `(?<![\w-])`)
+fn path_start(t: &str, m: &Match) -> bool {
+    before(t, m.start()).is_none_or(|c| !is_word(c) && c != '-')
+}
+
+// 내장 이력 패턴 하나. 앞뒤 보기가 있는 둘은 [`Look`]: 거르는 갈래는 다른 갈래와 첫 글자가 달라 그 자리에 다른 갈래가 맞지 않는다
+fn builtin_history(name: &str, pattern: &str, flags: Flags) -> Box<dyn Pat> {
+    match name {
+        // python `\.claude/|(?<![\w-])session/|(?<![\w-])audit/`
+        "path" => Box::new(Look::new(
+            r"\.claude/|(session/|audit/)",
+            |t, m| m.group(1).is_none() || path_start(t, m),
+            None,
+        )),
+
+        // python `Previously(?=,|\s+\w)`: 앞보기를 먹는 1 번 괄호의 시작이 일치의 끝이다
+        "narration" => Box::new(Look::with_flags(
+            &pattern.replacen(r"Previously(?=,|\s+\w)", r"Previously(,|\s+\w)", 1),
+            flags,
+            |_, _| true,
+            Some(1),
+        )),
+        _ => Box::new(rx::Regex::with_flags(pattern, flags)),
+    }
+}
+
+// 내장 공개 식별자 하나. 끝의 앞보기 둘은 먹는 괄호로 바꿔 그 시작을 끝으로 쓴다
+fn builtin_public(pattern: &str) -> Box<dyn Pat> {
+    match pattern.split_once("(?=") {
+        Some((head, look)) => {
+            Box::new(Look::new(&format!("{head}({}", look), |_, _| true, Some(1)))
+        }
+        None => Box::new(rx::Regex::new(pattern)),
     }
 }
 
@@ -106,17 +149,19 @@ fn iter_items(value: Option<&Value>) -> Result<Vec<Value>> {
 }
 
 /// 사람이 쓴 정규식 하나를 python 처럼 읽는다. `re.error` 는 `Ok(None)`(python 이 건너뛴다).
-fn compile_user(pattern: &Value, flags: Flags) -> Result<Option<Regex>> {
+///
+/// py::re 가 옮기지 않은 문법(`(?x)`, 조건 괄호)도 그 패턴 하나만 건너뛴다. python 은 그 패턴으로 판정하므로
+/// 그 이름의 알림만 python 과 다를 수 있고, 훅의 다른 알림은 그대로 낸다.
+fn compile_user(pattern: &Value, flags: Flags) -> Result<Option<Box<dyn Pat>>> {
     let Value::Str(p) = pattern else {
         return Err(Halt::PyError("a pattern is not a string"));
     };
     match Regex::with_flags(p, flags) {
-        Ok(r) => Ok(Some(r)),
+        Ok(r) => Ok(Some(Box::new(r))),
         Err(re::Error::Syntax(_)) => Ok(None),
         Err(re::Error::Overflow) => Err(Halt::PyError("OverflowError in a pattern")),
-        Err(re::Error::Unsupported(_) | re::Error::TooDeep) => {
-            Err(Halt::Unported("a pattern this regex engine does not read"))
-        }
+        Err(re::Error::Unsupported(_)) => Ok(None),
+        Err(re::Error::TooDeep) => Err(Halt::Unported("a pattern nested too deep")),
     }
 }
 
@@ -169,7 +214,9 @@ impl Cfg {
             Some(Value::Bool(b)) => Ok(i128::from(*b)),
             Some(Value::Float(f)) if f.is_finite() => Ok(f.trunc() as i128),
             Some(Value::Str(s)) => parse_int(s).ok_or(fail),
-            Some(Value::BigInt(_)) => Err(Halt::Unported("a huge min_reason_words")),
+            // 낱말 수와 견주기만 하므로 i128 끝으로 잘라도 판정은 같다
+            Some(Value::BigInt(digits)) if digits.starts_with('-') => Ok(i128::MIN),
+            Some(Value::BigInt(_)) => Ok(i128::MAX),
             Some(_) => Err(fail),
         }
     }
@@ -205,7 +252,8 @@ impl Cfg {
             _ => {}
         }
 
-        // Compile both lists
+        // Compile both lists: builtin text with the regex crate, the repo's own with py::re
+        let builtins = builtin_patterns();
         let mut history = Vec::new();
         for (k, v) in pats {
             let flags = if k == "round" || k == "decision" {
@@ -213,14 +261,18 @@ impl Cfg {
             } else {
                 Flags::NONE
             };
-            if let Some(r) = compile_user(&v, flags)? {
+            let builtin = builtins
+                .iter()
+                .find(|(name, text)| *name == k && v.as_str() == Some(text.as_str()));
+            if let Some((_, text)) = builtin {
+                history.push((k.clone(), builtin_history(&k, text, flags)));
+            } else if let Some(r) = compile_user(&v, flags)? {
                 history.push((k, r));
             }
         }
-        let mut public = Vec::new();
-        let user_public = iter_items(self.get("public_ids"))?;
-        let builtin = BUILTIN_PUBLIC.iter().map(|p| Value::Str((*p).to_owned()));
-        for v in builtin.chain(user_public) {
+        let mut public: Vec<Box<dyn Pat>> =
+            BUILTIN_PUBLIC.iter().map(|p| builtin_public(p)).collect();
+        for v in iter_items(self.get("public_ids"))? {
             if let Some(r) = compile_user(&v, Flags::NONE)? {
                 public.push(r);
             }
@@ -313,5 +365,62 @@ mod tests {
                 .unwrap()
         );
         assert!(!cfg.excluded("/r/src/a.py", "src/a.py").unwrap());
+    }
+
+    /// py::re 가 옮기지 않은 사용자 패턴은 그 하나만 빠지고, 아주 큰 min_reason_words 는 끝값으로 견준다.
+    #[test]
+    fn unreadable_user_items_skip_only_themselves() {
+        // A repo config with a verbose-mode pattern, a conditional one and a huge word count
+        let root = std::env::temp_dir().join(format!("conv-cfg-{}", std::process::id()));
+        std::fs::create_dir_all(root.join(".claude")).unwrap();
+        std::fs::write(
+            root.join(".claude").join("conventions.json"),
+            r#"{"patterns": {"mine": "(?x) a b", "cond": "(a)?(?(1)b|c)", "ok": "zz"}, "min_reason_words": 10000000000000000000000000000000000000000}"#,
+        )
+        .unwrap();
+        let cfg = Cfg::load(root.to_str().unwrap());
+
+        // Only the two unreadable patterns are left out; the builtins and `ok` stay
+        let pats = cfg.patterns().unwrap();
+        assert!(pats.get("mine").is_none() && pats.get("cond").is_none());
+        assert!(pats.get("ok").is_some() && pats.get("date").is_some());
+
+        // Beyond i128 the count only needs to compare like python's int
+        assert_eq!(cfg.min_reason_words(), Ok(i128::MAX));
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    /// 내장 패턴 가운데 앞뒤 보기를 코드로 옮긴 것은 python 패턴과 같은 범위를 지운다.
+    #[test]
+    fn builtin_lookarounds_like_python() {
+        // Texts around each lookaround
+        let pats = Cfg::defaults().patterns().unwrap();
+        let texts = [
+            "see .claude/x and session/ and xsession/ a-audit/ audit/",
+            "Previously, it was",
+            "Previously it",
+            "Previously.",
+            "x. Previously done",
+            "(Previously, we",
+            "It used to",
+            "예전에는 이전에는 ,이전엔",
+            "기존에는 키가 있었다",
+            "P60 fps P1080p P601 hz",
+            "A12px B123ms AB1234gb A1px",
+            "Previously,이전에는",
+        ];
+
+        // Every builtin history pattern, then every builtin public id
+        for (name, text) in builtin_patterns() {
+            let flags = if name == "round" || name == "decision" {
+                Flags::IGNORECASE
+            } else {
+                Flags::NONE
+            };
+            crate::pat::assert_same(&text, flags, pats.get(name).unwrap(), &[], &texts);
+        }
+        for (pattern, compiled) in BUILTIN_PUBLIC.iter().zip(&pats.public) {
+            crate::pat::assert_same(pattern, Flags::NONE, compiled.as_ref(), &[], &texts);
+        }
     }
 }

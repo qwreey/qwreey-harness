@@ -216,6 +216,54 @@ r = run("lib/texts.py", lines("# @start-replace: lib/texts.py#OMIT", 'OMIT = "Om
         "# @end-replace\n", "# @end-replace\nY = 1\n", sid="c2r")
 check("C2 edit outside the canon region -> no region list", "OMIT has" not in r)
 
+# python 정본 영역의 여러 꼴: python ast 가 세는 대로 판정한다(Rust 판은 이 꼴들을 예전에 훅 전체를 조용히 넘겼다)
+def py_canon(name, canon, copy_value):
+    put("lib/pyc_%s.py" % name, lines("# @start-replace: lib/pyc_%s.py#X" % name, canon, "# @end-replace"))
+    return run("r/pyc_%s.ts" % name, lines('// @start-replace: lib/pyc_%s.py#X value=string template="const X = {value};"' % name,
+                                           "const X = %s;" % copy_value, "// @end-replace"))
+
+
+check("R2 canon `\"a\" + \"b\"` -> found 2", "found 2" in py_canon("concat", 'X = "a" + "b"', '"ab"'))
+check("R2 canon f-string text before a field is the value", py_canon("fstr", 'X = f"a{1}"', '"a"') == "")
+check("R2 canon str(\"a\") is the value", py_canon("call", 'X = str("a")', '"a"') == "")
+check("R2 canon backslash continuation joins", py_canon("cont", 'X = "a" \\\n    "b"', '"ab"') == "")
+check("R2 canon bytes is no str constant -> found 0", "found 0" in py_canon("bytes", 'X = b"a"', '"a"'))
+check("R2 canon \\N{BULLET} -> the bullet", py_canon("nesc", 'X = "\\N{BULLET}"', '"\u2022"') == "")
+check("R2 canon \\N{BULLET} -> differs from another value", "differs from its canon" in py_canon("nesc2", 'X = "\\N{BULLET}"', '"x"'))
+
+# `./` 를 하나씩 뗀다: `.github/` 의 점은 남는다
+put(".github/src.luau", '-- source\nlocal FORMS = { "coin", "stick", "back", "card" }\nreturn FORMS\n')
+gh = '-- @copy-of: ./.github/src.luau#FORMS\nlocal FORMS = { "coin", "stick", "back", "card" }\n'
+check("C1 ./.github/ target resolves (the dot of .github stays)", run("b/gh.luau", gh, "", gh) == "")
+r = run(".github/src.luau", '-- source\nlocal FORMS = { "coin", "stick", "back", "dice" }\nreturn FORMS\n', '"card"', '"dice"')
+check("C2 editing a .github/ source lists its copies", "FORMS has 1 @copy-of copies: b/gh.luau:1" in r)
+
+# 닫는 괄호 없이 이어 붙인 문자열: 색인이 선형 시간이다(예전 정규식은 원소 7개에 20초가 넘었다)
+slow = "def main():\n    parser.add_argument(\"--mode\",\n        help=(\n" + "\n".join(
+    " " * 12 + '"part number %d of a long help text "' % i for i in range(12)) + "\n" + " " * 12 + "% DEFAULT))\n"
+put("t1/slow.py", slow)
+t0 = time.perf_counter()
+run("t1/a.py", "X = 1\n", "", "X = 1\n")
+check("B1 concatenated strings without a closing bracket index fast", time.perf_counter() - t0 < 3)
+if not BIN:
+    sys.path.insert(0, os.path.join(HERE, "hooks"))
+    import reuse_sets
+    try:
+        reuse_sets.extract('X = ["aa", "bb", "cc"]\n', "py", deadline=0)
+        hit = False
+    except reuse_sets.Budget:
+        hit = True
+    check("B1 extract past its deadline raises Budget (the index keeps the file empty and moves on)", hit)
+
+# UTF-8 이 아닌 파일 이름(git 이 없는 저장소의 걷기): 색인은 그 항목만 빼고 저장한다(예전 python 은 예외로 끝났다)
+surr = os.path.join(T, "surr")
+os.makedirs(os.path.join(surr, ".claude"))
+open(os.path.join(surr.encode(), b"bad\xff.py"), "w").write('Y = ["aa", "bb", "cc"]\n')
+run("ok.py", "X = 1\n", "", "X = 1\n", proj=surr)
+idx = [json.load(open(os.path.join(T, "claude-qwreey-reuse", f))) for f in os.listdir(os.path.join(T, "claude-qwreey-reuse"))
+       if f.endswith(".json")]
+check("non-UTF-8 file name -> index saved without that entry", any(set(i.get("files", {})) == {"ok.py"} for i in idx))
+
 # ---- H1: 그림자 ----
 put("m/one.py", 'SKIP = ["alpha", "bravo", "charlie", "delta"]\n')
 n0 = len(shadow())

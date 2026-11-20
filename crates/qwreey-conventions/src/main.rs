@@ -3,15 +3,14 @@
 //! 종료 코드는 python 판과 같다: 보통 0, python 이 잡지 않는 예외로 끝나는 입력이면 1(stderr 에 한 줄).
 //! 하위 명령이 틀리면 stderr 에 쓰고 1 로 끝난다(2 는 막는 코드라 쓰지 않는다).
 
-use std::io::Read;
+use std::io::{Read, Write};
 use std::process::ExitCode;
 
 use harness_hook::HookInput;
 use harness_hook::input::InputError;
-use harness_hook::output::emit;
 use qwreey_conventions::context::Context;
 use qwreey_conventions::halt::{Halt, Result};
-use qwreey_conventions::{check, memory, reuse, structure};
+use qwreey_conventions::{check, memory, reuse, stdout, structure};
 
 const USAGE: &str = "usage: qwreey-conventions hook <conventions-check|reuse-check|structure-reminder|memory-placement>";
 
@@ -84,8 +83,14 @@ fn main() -> ExitCode {
 
     match (hook.run)(&ctx, &input) {
         Ok(Some(out)) => {
-            emit(&out);
-            ExitCode::SUCCESS
+            let (bytes, whole) = stdout::python_bytes(&out);
+            let mut stdout = std::io::stdout().lock();
+            let _ = stdout.write_all(&bytes).and_then(|()| stdout.flush());
+            if whole {
+                ExitCode::SUCCESS
+            } else {
+                crash("a lone surrogate in the output")
+            }
         }
         Ok(None) | Err(Halt::Unported(_)) => ExitCode::SUCCESS,
         Err(Halt::PyError(what)) => crash(what),

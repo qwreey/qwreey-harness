@@ -53,7 +53,9 @@ def record_leftovers(data, path, rel, kind, text, added, rows, cfg, pats, pub, c
             del rec[key]
         else:
             return
-        json.dump(rec, open(fp, "w"), ensure_ascii=False)
+        data = json.dumps(rec, ensure_ascii=False).encode("utf-8")  # 서로게이트가 들면 여기서 끝나 옛 파일이 남는다
+        with open(fp, "wb") as f:
+            f.write(data)
     except Exception:
         pass
 
@@ -89,7 +91,7 @@ def leftover_message(sid, d=None):
         if v.get("differ"):
             diff.append((v["rel"], v["differ"]))
     order = ["이력", "기호", "이스케이프", "보이지 않는 문자", "같은 목록이 두 곳"]
-    items = sorted(rows.values())
+    items = sorted(rows.values(), key=lambda r: r[0])  # 상대 경로만 견준다: 두 저장소의 같은 경로에서 dict 끼리 견주지 않게
     lines = []
     if items:
         shown = ", ".join(f"{rel}(" + ", ".join(f"{c} {n[c]}" for c in order if c in n) + ")" for rel, n in items[:LEFT_MAX_FILES])
@@ -123,8 +125,10 @@ def report_leftovers(data):
     except Exception:
         pass
     try:
-        json.dump({"msg": msg}, open(mark, "w"), ensure_ascii=False)
-    except OSError:
+        data = json.dumps({"msg": msg}, ensure_ascii=False).encode("utf-8")  # 서로게이트가 든 글은 표시를 남기지 않는다
+        with open(mark, "wb") as f:
+            f.write(data)
+    except (OSError, UnicodeEncodeError):
         pass
     json.dump({"systemMessage": msg}, sys.stdout, ensure_ascii=False)
     return 0

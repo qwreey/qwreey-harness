@@ -7,11 +7,12 @@ use std::sync::LazyLock;
 
 use harness_hook::Env;
 use harness_hook::py::path::{basename, join, normpath};
-use harness_hook::py::re::Regex;
 use harness_hook::py::text::split_whitespace;
+use harness_hook::rx::Regex;
 
 use super::toolkit::BASH_EXTS;
 use crate::halt::Result;
+use crate::pat::{Look, Pat, before};
 
 /// 한 번에 보는 경로 수의 한도.
 const MAX_PATHS: usize = 8;
@@ -25,21 +26,25 @@ fn code() -> String {
     format!(r"[\w./@-]+\.(?:{})\b", BASH_EXTS.join("|"))
 }
 
-static SEGMENT: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"&&|\|\||[;|\n]").expect("constant pattern"));
+static SEGMENT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"&&|\|\||[;|\n]"));
 static INPLACE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\bsed\s+(-\S*\s+)*-i|\bperl\s+(-\S*\s+)*-\S*p\S*i|\bawk\s+-i\s+inplace|\bpatch\b")
-        .expect("constant pattern")
 });
-static REDIRECT: LazyLock<Regex> = LazyLock::new(|| {
+// python `(?<![0-9&])>>?...|\btee...`: 뒤보기는 앞 글자 검사로. 두 갈래는 `>` 와 `t` 로 시작해 한 자리에서 겹치지 않는다
+static REDIRECT: LazyLock<Look> = LazyLock::new(|| {
     let code = code();
-    Regex::new(&format!(
-        r#"(?<![0-9&])>>?\s*['\"]?({code})|\btee\s+(?:-a\s+)?['\"]?({code})"#
-    ))
-    .expect("constant pattern")
+    Look::new(
+        &format!(r#">>?\s*['\"]?({code})|\btee\s+(?:-a\s+)?['\"]?({code})"#),
+        |t, m| {
+            m.group(1).is_none()
+                || before(t, m.start()).is_none_or(|c| !c.is_ascii_digit() && c != '&')
+        },
+        None,
+    )
 });
-static BASH_PATH: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(&code()).expect("constant pattern"));
+// python 은 낱말 머리에서만 시작하게 `(?<![\w./@-])` 를 둔다(긴 낱말에서 되짚지 않으려고). 맞는 곳은 그것 없이도 같다:
+// 낱말 안에서 맞는 일치가 있으면 낱말 머리부터도 맞고, 가장 왼쪽이 이긴다. regex crate 는 되짚지 않아 뒤보기가 필요 없다
+static BASH_PATH: LazyLock<Regex> = LazyLock::new(|| Regex::new(&code()));
 
 /// python `bash_paths(cmd, cwd)`: 바꿨을 법한 소스 경로(정규화한 절대 경로, 겹치지 않게, 앞의 8개).
 ///
@@ -147,5 +152,53 @@ mod tests {
 
         // A relative path joins the cwd and raises
         assert!(bash_paths("sed -i x A.lua", &bad, &env).is_err());
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        SEGMENT.check();
+        INPLACE.check();
+        REDIRECT.check();
+        BASH_PATH.check();
+    }
+
+    /// 뒤보기를 앞 글자 검사로 옮긴 리다이렉트, 뒤보기를 뺀 경로 패턴은 python 패턴과 같은 일치를 낸다.
+    #[test]
+    fn redirect_and_paths_like_python() {
+        // Redirects, tee and in-place paths with the characters around them
+        let code = code();
+        let texts = [
+            "echo x > src/a.py",
+            "echo x>>src/a.py",
+            "echo x 2>src/a.py",
+            "echo x &>src/a.py",
+            "a>b.py>c.py",
+            "cat x | tee -a 'src/b.ts'",
+            "x=1>>>a.luau",
+            "sed -i s src/a.py src//b.ts ./c.luau",
+            "a.pyx.py b.py@c.ts",
+            "x.py-y.ts",
+            "@scope/pkg.ts",
+            "aaaa.pyx",
+            "é.py ²a.py",
+            "a\u{301}.py",
+        ];
+        crate::pat::assert_same(
+            &format!(r#"(?<![0-9&])>>?\s*['\"]?({code})|\btee\s+(?:-a\s+)?['\"]?({code})"#),
+            harness_hook::py::re::Flags::NONE,
+            &*REDIRECT,
+            &[(1, 1), (2, 2)],
+            &texts,
+        );
+
+        // The path pattern without python's lookbehind
+        crate::pat::assert_same(
+            &format!(r"(?<![\w./@-]){code}"),
+            harness_hook::py::re::Flags::NONE,
+            &*BASH_PATH,
+            &[],
+            &texts,
+        );
     }
 }

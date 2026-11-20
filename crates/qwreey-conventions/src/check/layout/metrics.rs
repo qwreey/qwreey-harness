@@ -6,15 +6,15 @@
 use std::collections::BTreeSet;
 use std::sync::LazyLock;
 
-use harness_hook::py::re::Regex;
 use harness_hook::py::text::strip;
+use harness_hook::rx::Regex;
 
 use super::functions::Function;
 use super::{Lang, Limits};
 use crate::lex::Row;
 
 fn constant(pattern: &str) -> Regex {
-    Regex::new(pattern).expect("constant pattern")
+    Regex::new(pattern)
 }
 
 static DECORATOR: LazyLock<Regex> = LazyLock::new(|| constant(r"^\s*(?:#\[|@)"));
@@ -386,5 +386,26 @@ fn doc_problem(m: &Metrics, lim: &Limits) -> Option<String> {
             Some("first doc sentence runs past the first line".to_owned())
         }
         Doc::Ok => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        DECORATOR.check();
+        REGION.check();
+        DOC_MARK.check();
+        DOC_CLOSE.check();
+        DOC_TAG.check();
+        SENTENCE_END.check();
+        PY_STR_OPEN.check();
+        PY_STR_CLOSE.check();
+        for r in DOC_OPEN.iter() {
+            r.check();
+        }
     }
 }

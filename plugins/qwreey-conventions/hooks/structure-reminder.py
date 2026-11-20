@@ -78,7 +78,8 @@ _EXTS = sorted({e[1:] for t in TOOLKITS.values() for e in t["ext"]}, key=len, re
 CODE = r"[\w./@-]+\.(?:" + "|".join(_EXTS) + r")\b"
 INPLACE = re.compile(r"\bsed\s+(-\S*\s+)*-i|\bperl\s+(-\S*\s+)*-\S*p\S*i|\bawk\s+-i\s+inplace|\bpatch\b")
 REDIRECT = re.compile(r"(?<![0-9&])>>?\s*['\"]?(" + CODE + r")|\btee\s+(?:-a\s+)?['\"]?(" + CODE + r")")
-BASH_PATH = re.compile(CODE)
+# 낱말 머리에서만 시작한다: 맞는 곳은 같고, 확장자 없는 긴 낱말(2만 자)에서 자리마다 다시 훑는 제곱 시간이 없다
+BASH_PATH = re.compile(r"(?<![\w./@-])" + CODE)
 DEFAULTS = {"warn": 800, "hard": 1500, "grow": 300, "flat": 15, "ignore": [], "exempt": [], "toolkits": {}}
 REF = "the qwreey-conventions rule code-structure (rules/code-structure.md in the plugin; injected when you open a matching file)"
 PLANNER_REL = "skills/luau-style/scripts/split-plan.py"
@@ -153,7 +154,10 @@ def project_root(path, data):
     while d and d != "/":
         if os.path.exists(os.path.join(d, ".git")) or os.path.isdir(os.path.join(d, ".claude")):
             return d
-        d = os.path.dirname(d)
+        up = os.path.dirname(d)
+        if up == d:  # `//` 로 시작하는 경로는 dirname 이 `//` 에서 줄지 않는다
+            break
+        d = up
     return data.get("cwd") or os.path.dirname(path)
 
 
@@ -181,9 +185,29 @@ def toolkit_of(name, table):
     """(툴킷 이름, 항목) 또는 None. 생성물 접미사면 None."""
     ext = os.path.splitext(name)[1]
     for tk, spec in table.items():
-        if ext in (spec.get("ext") or []):
+        exts = spec.get("ext") or []
+        if ext in ([exts] if isinstance(exts, str) else exts):  # 글 하나는 확장자 하나다(부분 글로 맞추지 않는다)
             return None if name.endswith(tuple(spec.get("skip_suffix") or ())) else (tk, spec)
     return None
+
+
+def _is_number(v):
+    return isinstance(v, (int, float))
+
+
+def sane_state(state):
+    """읽은 회차 상태. 꼴이 다르면(손으로 고친 파일, 다른 판) 빈 상태: 그 세션 내내 훅이 예외로 끝나지 않게."""
+    if not isinstance(state, dict) or not isinstance(state.get("files", {}), dict) or not isinstance(state.get("dirs", []), list):
+        return {}
+    for e in state.get("files", {}).values():
+        if e is not None and not (isinstance(e, dict) and isinstance(e.get("said"), list) and _is_number(e.get("base"))):
+            return {}
+    return state
+
+
+def sane_bases(bases):
+    """읽은 성장 기준점. 경로 -> 수 dict 가 아니면 빈 dict."""
+    return bases if isinstance(bases, dict) and all(_is_number(v) for v in bases.values()) else {}
 
 
 def count_lines(path):
@@ -371,12 +395,12 @@ def main():
     sid = re.sub(r"[^\w-]", "", str(data.get("session_id") or "nosession"))
     state_path = dedup_path("claude-structure-reminder", data.get("session_id"), data.get("agent_id"))
     try:
-        state = json.load(open(state_path))
+        state = sane_state(json.load(open(state_path)))
     except Exception:
         state = {}
     base_path = base_state_path(data.get("session_id"))
     try:
-        bases = json.load(open(base_path))
+        bases = sane_bases(json.load(open(base_path)))
     except Exception:
         bases = {}
     n_bases = len(bases)

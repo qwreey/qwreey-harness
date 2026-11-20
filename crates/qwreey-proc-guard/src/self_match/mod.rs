@@ -14,8 +14,9 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 
 use harness_hook::py::re::{self, Flags, Regex};
-use harness_hook::py::text::split_whitespace;
+use harness_hook::py::text::{is_space, split_whitespace};
 use harness_hook::py::unicode::is_alnum;
+use harness_hook::rx;
 use harness_hook::tag::{self, Level, Notices};
 use harness_hook::{HookInput, HookOutput};
 
@@ -32,19 +33,16 @@ const LEAD_WORDS: &[&str] = &[
 const SHELL_NOTE: &str =
     "Claude Code runs each Bash command through a shell whose argv holds the whole command line";
 
-fn regex(pattern: &str) -> Regex {
-    Regex::new(pattern).expect("built-in pattern compiles")
-}
-
-static FINDER: LazyLock<Regex> =
-    LazyLock::new(|| regex(r"(?:(?<=\$\()|(?<=`)|(?<![^\s({!]))(?:[\w./-]*/)?(pgrep|pkill)(?=\s)"));
-// shell_segments 는 `&&` 까지만 나눈다. 배경 실행 `a & until ...` 의 `&` 도 나눠야 루프 머리를 본다(`2>&1`, `&>` 는 그대로)
-static BACKGROUND: LazyLock<Regex> = LazyLock::new(|| regex(r"(?<![>&<])&(?![>&])"));
-static ASSIGN: LazyLock<Regex> =
-    LazyLock::new(|| regex(r#"(?:^|[;&|\s(])([A-Za-z_]\w*)=("[^"]*"|'[^']*'|[^\s;&|)]*)"#));
-static VAR_USE: LazyLock<Regex> = LazyLock::new(|| regex(r"\$\{?([A-Za-z_]\w*)\}?"));
-static LEAD_NUMBER: LazyLock<Regex> = LazyLock::new(|| regex(r"[\d.]+[smhd]?"));
-static LEAD_ASSIGN: LazyLock<Regex> = LazyLock::new(|| regex(r"[A-Za-z_]\w*=\S*"));
+// python 판의 FINDER 는 앞뒤 보기를 쓴다:
+// `(?:(?<=\$\()|(?<=`)|(?<![^\s({!]))(?:[\w./-]*/)?(pgrep|pkill)(?=\s)`. 앞 글자는 [`tool_at`] 가 보고, 뒤 공백은 잡아 둔다
+static FINDER: LazyLock<rx::Regex> =
+    LazyLock::new(|| rx::Regex::new(r"(?:[\w./-]*/)?(pgrep|pkill)\s"));
+static ASSIGN: LazyLock<rx::Regex> = LazyLock::new(|| {
+    rx::Regex::new(r#"(?:^|[;&|\s(])([A-Za-z_]\w*)=("[^"]*"|'[^']*'|[^\s;&|)]*)"#)
+});
+static VAR_USE: LazyLock<rx::Regex> = LazyLock::new(|| rx::Regex::new(r"\$\{?([A-Za-z_]\w*)\}?"));
+static LEAD_NUMBER: LazyLock<rx::Regex> = LazyLock::new(|| rx::Regex::new(r"[\d.]+[smhd]?"));
+static LEAD_ASSIGN: LazyLock<rx::Regex> = LazyLock::new(|| rx::Regex::new(r"[A-Za-z_]\w*=\S*"));
 
 /// 자기 셸에 걸리는 호출 하나.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -97,7 +95,7 @@ pub fn find(cmd: &str) -> Result<Vec<Hit>, PatternOverflow> {
     // 명령의 대입은 한 번만 모은다(호출이 수천 개인 명령에서 매번 명령 전체를 훑지 않게)
     let mut values: Option<Assignments> = None;
     for seg in segments(cmd) {
-        for part in BACKGROUND.split(&seg.text) {
+        for part in split_background(&seg.text) {
             track_loops(part, &mut loops);
             let in_wait_loop = loops.contains(&true);
             for (tool, call) in calls(part) {
@@ -142,11 +140,57 @@ fn track_loops(part: &str, loops: &mut Vec<bool>) {
     }
 }
 
+/// 배경 실행 `&` 에서 나눈다(python `re.split(r"(?<![>&<])&(?![>&])", text)`).
+///
+/// shell_segments 는 `&&` 까지만 나눈다. 배경 실행 `a & until ...` 의 `&` 도 나눠야 루프 머리를 본다(`2>&1`, `&>` 는 그대로).
+fn split_background(text: &str) -> Vec<&str> {
+    let bytes = text.as_bytes();
+    let mut out = Vec::new();
+    let mut last = 0;
+    for (i, &b) in bytes.iter().enumerate() {
+        let after_redirect = i > 0 && matches!(bytes[i - 1], b'>' | b'&' | b'<');
+        let before_redirect = matches!(bytes.get(i + 1), Some(b'>' | b'&'));
+        if b == b'&' && !after_redirect && !before_redirect {
+            out.push(&text[last..i]);
+            last = i + 1;
+        }
+    }
+    out.push(&text[last..]);
+    out
+}
+
+/// 명령 자리일 수 있는 pgrep/pkill 마다 (시작, 끝, 도구), python FINDER 의 finditer 와 같은 차례로.
+///
+/// 시작 앞 글자가 글 처음, python 공백, `(`, `{`, `!`, 백틱이어야 한다(`$(` 는 `(` 로 든다). 아니면 다음 글자에서 다시 찾는다.
+/// 끝은 도구 이름 뒤다(python 은 뒤 공백을 보기만 한다).
+fn tool_at(part: &str) -> Vec<(usize, usize, &str)> {
+    let mut out = Vec::new();
+    let mut pos = 0;
+    while let Some(m) = FINDER.search_from(part, pos) {
+        // python's lookbehind fails here: try the next character
+        let start = m.start();
+        let lead_ok = part[..start]
+            .chars()
+            .next_back()
+            .is_none_or(|c| is_space(c) || matches!(c, '(' | '{' | '!' | '`'));
+        if !lead_ok {
+            pos = start + part[start..].chars().next().map_or(1, char::len_utf8);
+            continue;
+        }
+
+        // The match ends at the tool name, before the space python only looks at
+        let (_, end) = m.group(1).expect("tool group");
+        out.push((start, end, m.text(part, 1).expect("tool group")));
+        pos = end;
+    }
+    out
+}
+
 // 구간 조각 안의 명령 자리 pgrep/pkill 마다 (도구, 호출)
 fn calls(part: &str) -> Vec<(String, args::Call)> {
     let mut out = Vec::new();
-    for m in FINDER.find_iter(part) {
-        let before = &part[..m.start()];
+    for (start, end, tool) in tool_at(part) {
+        let before = &part[..start];
         let closer = if before.ends_with("$(") {
             Some(')')
         } else if before.ends_with('`') {
@@ -159,11 +203,10 @@ fn calls(part: &str) -> Vec<(String, args::Call)> {
         }
 
         // 백틱 안의 패턴에는 백틱이 없다. 먼저 잘라야 바깥 따옴표가 낱말을 망치지 않는다
-        let mut rest = &part[m.end()..];
+        let mut rest = &part[end..];
         if closer == Some('`') {
             rest = rest.split('`').next().unwrap_or("");
         }
-        let tool = m.text(part, 1).expect("tool group");
         if let Some(call) = args::parse(tool, &args::tokens(rest, closer)) {
             out.push((tool.to_owned(), call));
         }
@@ -333,6 +376,14 @@ pub fn messages(hits: &[Hit]) -> Notices {
 mod tests {
     use super::*;
 
+    /// 이 파일의 고정 정규식이 두 regex crate 엔진과 py::re 에서 모두 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        for re in [&*FINDER, &*ASSIGN, &*VAR_USE, &*LEAD_NUMBER, &*LEAD_ASSIGN] {
+            re.check();
+        }
+    }
+
     fn hits(cmd: &str) -> Vec<Hit> {
         find(cmd).unwrap()
     }
@@ -418,5 +469,55 @@ mod tests {
         assert_eq!(unquote("\"abc"), "ab");
         assert_eq!(resolve("${A}x$B", "A=1 B='2'").as_deref(), Some("1x2"));
         assert_eq!(resolve("$C", "A=1"), None);
+    }
+
+    /// 앞뒤 보기 없이 다시 쓴 FINDER 가 python 판 패턴(py::re)의 finditer 와 같은 (시작, 끝, 도구)를 낸다.
+    #[test]
+    fn finder_without_lookaround_is_the_same() {
+        const PYTHON: &str = r"(?:(?<=\$\()|(?<=`)|(?<![^\s({!]))(?:[\w./-]*/)?(pgrep|pkill)(?=\s)";
+        let py = Regex::new(PYTHON).unwrap();
+        for text in [
+            "pgrep -f x",
+            "xpgrep -f x",
+            "$(pgrep -f a)",
+            "`pkill -f b`",
+            "!pgrep x {pgrep y (pkill z",
+            "/usr/bin/pgrep -f x ./pgrep\tx a/b/pgrep pkill x",
+            "pgrep",
+            "pgrepx y pgrep-x y pgreppgrep x x/pgrep/pgrep y",
+            "  pkill -f 'a' ; pgrep -f b",
+            "\u{e9} pgrep x \u{e9}pgrep x",
+            // python 의 \s 는 U+3000, U+00A0, U+001C 도 공백이다(이름 앞과 뒤)
+            "\u{3000}pgrep x pkill\u{a0}x \u{1c}pgrep\u{1c}x",
+            "``pgrep x $(pkill",
+        ] {
+            // Python's matches
+            let want: Vec<(usize, usize, &str)> = py
+                .find_iter(text)
+                .iter()
+                .map(|m| (m.start(), m.end(), m.text(text, 1).unwrap()))
+                .collect();
+
+            // The rewrite
+            assert_eq!(tool_at(text), want, "{text:?}");
+        }
+    }
+
+    /// 앞뒤 보기 없이 나누는 배경 `&` 가 python 판 패턴의 split 과 같다.
+    #[test]
+    fn background_split_is_the_same() {
+        let py = Regex::new(r"(?<![>&<])&(?![>&])").unwrap();
+        for text in [
+            "a & b",
+            "a && b",
+            "x 2>&1 & y &> z",
+            "&a&",
+            "&&&",
+            "a <& b &",
+            "\u{d55c}&\u{d55c}",
+            "",
+        ] {
+            assert_eq!(split_background(text), py.split(text), "{text:?}");
+        }
     }
 }

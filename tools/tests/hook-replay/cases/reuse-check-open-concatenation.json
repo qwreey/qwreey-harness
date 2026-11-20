@@ -1,0 +1,27 @@
+{
+ "description": "reuse-check: a repo file with many concatenated strings and no closing bracket indexes in linear time (the old pattern backtracked exponentially, the 5 s timeout killed the hook before the index was saved)",
+ "files": {
+  "src/slow.py": "def main():\n    parser.add_argument(\"--mode\",\n        help=(\n            \"part number 0 of a long help text \"\n            \"part number 1 of a long help text \"\n            \"part number 2 of a long help text \"\n            \"part number 3 of a long help text \"\n            \"part number 4 of a long help text \"\n            \"part number 5 of a long help text \"\n            \"part number 6 of a long help text \"\n            \"part number 7 of a long help text \"\n            \"part number 8 of a long help text \"\n            \"part number 9 of a long help text \"\n            \"part number 10 of a long help text \"\n            \"part number 11 of a long help text \"\n            % DEFAULT))\n",
+  "src/a.py": "X = ['alpha', 'beta', 'gamma']\n"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "oc",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/src/a.py",
+     "content": "X = ['alpha', 'beta', 'gamma']\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

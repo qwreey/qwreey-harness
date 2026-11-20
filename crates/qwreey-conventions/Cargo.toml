@@ -12,6 +12,9 @@ path = "src/main.rs"
 
 [dependencies]
 harness-hook = { path = "../harness-hook" }
+# harness-hook 의 regex 에 지연 DFA 를 켠다(이 crate 만): 큰 파일(3.3k 줄)에서 conventions-check 가 이것 없이 약 50 ms, 있으면 약 11 ms 다.
+# 훅마다 짧은 글만 보는 proc-guard, sessions 는 켜도 이득이 없어 따로 빌드한다(크기 +124 KB).
+regex = { workspace = true, features = ["perf-dfa"] }
 # reuse-check 색인 이름과 그림자 기록 id(python hashlib.sha1 의 앞 12자). 두 판이 같은 색인 파일을 나눠 쓴다.
 sha1 = { workspace = true }
 

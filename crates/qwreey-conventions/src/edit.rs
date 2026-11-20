@@ -9,9 +9,10 @@ use harness_hook::Env;
 use harness_hook::py::fs;
 use harness_hook::py::num::parse_int;
 use harness_hook::py::path::{dirname, join};
-use harness_hook::py::re::{Flags, Regex};
+use harness_hook::py::re::Flags;
 use harness_hook::py::text::strip;
 use harness_hook::py::value::{Dict, Value};
+use harness_hook::rx::Regex;
 
 use crate::halt::{Halt, Result};
 
@@ -58,9 +59,8 @@ pub const SKIP_SUFFIX: &[&str] = &[
 pub const GEN_MARK_PATTERN: &str =
     r"generated|do not edit|@generated|손으로 고치지 않는다|만든 것:";
 
-static GEN_MARK: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::with_flags(GEN_MARK_PATTERN, Flags::IGNORECASE).expect("constant pattern")
-});
+static GEN_MARK: LazyLock<Regex> =
+    LazyLock::new(|| Regex::with_flags(GEN_MARK_PATTERN, Flags::IGNORECASE));
 
 /// 머리 `lines` 줄 안에 생성 파일 표시가 있는가(python `any(GEN_MARK.search(l) for l in text.split("\n", n)[:n])`).
 pub fn generated(text: &str, lines: usize) -> bool {
@@ -77,7 +77,7 @@ pub type Added = BTreeSet<usize>;
 /// `$CLAUDE_PROJECT_DIR` 안이면 그것, 아니면 위로 `.git` 이나 `.claude` 폴더가 있는 폴더,
 /// 없으면 입력의 `cwd`, 그것도 없으면 파일의 폴더.
 ///
-/// python 은 `//` 로 시작하는 경로에서 `dirname` 이 줄지 않아 멈추지 않는다. 여기서는 줄지 않으면 멈춘다.
+/// `//` 로 시작하는 경로는 `dirname` 이 `//` 에서 줄지 않는다: 거기서 오르기를 멈추고 cwd 로 간다(python 도 같다).
 pub fn project_root(path: &str, cwd: Option<&Value>, env: &Env) -> Result<String> {
     if let Some(dir) = env.get_nonempty("CLAUDE_PROJECT_DIR")
         && path.starts_with(&format!("{}/", dir.trim_end_matches('/')))
@@ -93,7 +93,7 @@ pub fn project_root(path: &str, cwd: Option<&Value>, env: &Env) -> Result<String
         }
         let up = dirname(d);
         if up == d {
-            return Err(Halt::Unported("a path whose dirname does not shrink"));
+            break;
         }
         d = up;
     }
@@ -305,5 +305,22 @@ mod tests {
             patch_added(Some(&loads(r#"[{"lines": []}]"#).unwrap())).unwrap(),
             None
         );
+    }
+
+    /// `//` 로 시작하는 경로는 `//` 에서 오르기를 멈추고 cwd 로 간다(예전 python 은 끝나지 않았다).
+    #[test]
+    fn project_root_stops_at_double_slash() {
+        let env = harness_hook::Env::from_pairs([("PATH", "/bin")]);
+        let cwd = Value::Str("/work".into());
+        assert_eq!(
+            project_root("//nonexistent-conv-root/a/b.py", Some(&cwd), &env),
+            Ok("/work".to_owned())
+        );
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        GEN_MARK.check();
     }
 }

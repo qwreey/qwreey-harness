@@ -6,16 +6,18 @@ use std::sync::LazyLock;
 
 use harness_hook::py::fs;
 use harness_hook::py::path::{abspath, basename, dirname, join, normpath, relpath};
-use harness_hook::py::re::{Flags, Regex};
-use harness_hook::py::text::strip;
+use harness_hook::py::re::{Flags, Match};
+use harness_hook::py::text::{is_space, strip};
+use harness_hook::rx::Regex;
 
 use super::Category;
 use super::config::{Patterns, pathlib_parts};
 use crate::edit::Added;
 use crate::halt::{Halt, Result};
+use crate::pat::{Look, Pat, before, is_word};
 
 fn constant(pattern: &str, flags: Flags) -> Regex {
-    Regex::with_flags(pattern, flags).expect("constant pattern")
+    Regex::with_flags(pattern, flags)
 }
 
 /// 인라인 코드(python `INLINE_CODE`).
@@ -42,15 +44,26 @@ static DESC_WHEN: LazyLock<Regex> = LazyLock::new(|| {
         Flags::IGNORECASE,
     )
 });
-static DESC_PERSON: LazyLock<Regex> = LazyLock::new(|| {
-    constant(
-        r"(?<![\w'])(?:I (?:can|will|help|am)|I'll|I'm|you can|we can|we will|let me)\b",
+// python `(?<![\w'])(?:I (?:can|...)|...)\b`: 뒤보기는 앞 글자 검사로(갈래와 상관없이 같은 검사다)
+static DESC_PERSON: LazyLock<Look> = LazyLock::new(|| {
+    Look::with_flags(
+        r"(?:I (?:can|will|help|am)|I'll|I'm|you can|we can|we will|let me)\b",
         Flags::IGNORECASE,
+        |t, m| before(t, m.start()).is_none_or(|c| !is_word(c) && c != '\''),
+        None,
     )
 });
 static MD_PATH: LazyLock<Regex> =
     LazyLock::new(|| constant(r#"[^\s`'"()<>\[\]]+\.md\b"#, Flags::NONE));
-static SENTENCE_GAP: LazyLock<Regex> = LazyLock::new(|| constant(r"(?<=[.!?])\s+", Flags::NONE));
+// python `(?<=[.!?])\s+`: 뒤보기는 앞 글자 검사로. 거른 공백 줄 안의 자리는 앞이 공백이라 늘 걸러져 건너뛴다
+static SENTENCE_GAP: LazyLock<Look> = LazyLock::new(|| {
+    Look::new(
+        r"\s+",
+        |t, m| matches!(before(t, m.start()), Some('.' | '!' | '?')),
+        None,
+    )
+    .skipping(is_space)
+});
 static DMI: LazyLock<Regex> =
     LazyLock::new(|| constant(r"disable-model-invocation:\s*true\b", Flags::NONE));
 static DESCRIPTION: LazyLock<Regex> =
@@ -99,20 +112,48 @@ const DOC_REFERENCE: &[&str] = &["decision", "round", "ref_path", "tag", "banner
 /// 기존 줄 중 한국어 줄이 이보다 많으면(3줄 이상) 그 문서의 언어를 따른다.
 const DOC_KO_SHARE: f64 = 0.1;
 
-static DOC_REGEX: LazyLock<Vec<(&'static str, Regex)>> = LazyLock::new(|| {
+// `as of` 뒤가 판 번호나 이름이면 서술이 아니다(python narration 의 `(?!\s+(?:v?\d|luau|version))`)
+static AS_OF_TAIL: LazyLock<Regex> =
+    LazyLock::new(|| constant(r"\s+(?:v?\d|luau|version)", Flags::IGNORECASE));
+
+// 앞에 `\w` 나 `-` 가 없는가(python `(?<![\w-])`)
+fn path_start(t: &str, m: &Match) -> bool {
+    before(t, m.start()).is_none_or(|c| !is_word(c) && c != '-')
+}
+
+// 문서 패턴 하나. 앞뒤 보기가 있는 셋은 [`Look`] 으로: 갈래마다 첫 글자가 달라 거른 자리에 다른 갈래가 맞는 일이 없다
+fn doc_pat(name: &str, pattern: &str, icase: bool) -> Box<dyn Pat> {
+    let flags = if icase {
+        Flags::IGNORECASE
+    } else {
+        Flags::NONE
+    };
+    match name {
+        "path" => Box::new(Look::new(
+            r"((?:audit|session|handoff)/)|\.claude/(?:plan|base|research|audit|handoff|archive)/",
+            |t, m| m.group(1).is_none() || path_start(t, m),
+            None,
+        )),
+        "ref_path" => Box::new(Look::new(r"audit/\d+", path_start, None)),
+        "narration" => Box::new(Look::with_flags(
+            r"\b(?:previously|recently)\b|(\bas of\b)|현재 기준|지난\s?(?:주|번)|요즘|사실 정정|\bfact fix\b",
+            Flags::IGNORECASE,
+            |t, m| m.group(1).is_none() || AS_OF_TAIL.match_start(&t[m.end()..]).is_none(),
+            None,
+        )),
+        _ => Box::new(constant(pattern, flags)),
+    }
+}
+
+static DOC_REGEX: LazyLock<Vec<(&'static str, Box<dyn Pat>)>> = LazyLock::new(|| {
     DOC_PATTERNS
         .iter()
-        .map(|&(k, p, i)| {
-            (
-                k,
-                constant(p, if i { Flags::IGNORECASE } else { Flags::NONE }),
-            )
-        })
+        .map(|&(k, p, i)| (k, doc_pat(k, p, i)))
         .collect()
 });
 
-fn doc_regex(name: &str) -> &'static Regex {
-    &DOC_REGEX
+fn doc_regex(name: &str) -> &'static dyn Pat {
+    &*DOC_REGEX
         .iter()
         .find(|(k, _)| *k == name)
         .expect("a known doc pattern")
@@ -203,15 +244,15 @@ pub fn doc_lines(text: &str) -> Vec<(usize, &str)> {
     out
 }
 
-fn blank_out(rx: &Regex, s: &str) -> String {
-    rx.replace_all(s, |_| " ".to_owned())
+fn blank_out(rx: &dyn Pat, s: &str) -> String {
+    rx.replace_all(s, &mut |_| " ".to_owned())
 }
 
 // 줄에서 인라인 코드, URL, 공개 식별자를 지운 글
 fn scrubbed(line: &str, pats: &Patterns) -> String {
-    let mut s = blank_out(&URL, &blank_out(&INLINE_CODE, line));
+    let mut s = blank_out(&*URL, &blank_out(&*INLINE_CODE, line));
     for p in &pats.public {
-        s = blank_out(p, &s);
+        s = blank_out(p.as_ref(), &s);
     }
     s
 }
@@ -233,7 +274,7 @@ pub fn doc_check(
     };
 
     // Patterns for this kind of document
-    let mut rx: Vec<(&str, &Regex)> = Vec::new();
+    let mut rx: Vec<(&str, &dyn Pat)> = Vec::new();
     for &k in names {
         match k {
             "decision" if pats.get(k).is_some() => rx.push((k, doc_regex(k))),
@@ -253,7 +294,7 @@ pub fn doc_check(
             continue;
         }
         let s = scrubbed(line, pats);
-        let bare = blank_out(&PATH_TOKEN, &s);
+        let bare = blank_out(&*PATH_TOKEN, &s);
         let hit = rx.iter().any(|(k, r)| match *k {
             "path" | "ref_path" => r.is_match(&s),
             "ledger" => r.is_match(&bare) && !HAS_MD_PATH.is_match(&s),
@@ -335,7 +376,7 @@ fn skill_description(text: &str) -> Option<SkillDescription> {
 
 // 한국어 계기 문구인가: 트리거로 시작하거나 따옴표 밖 한글 낱말이 라틴보다 많다
 fn korean_phrase(x: &str) -> bool {
-    let s = blank_out(&QUOTED, x);
+    let s = blank_out(&*QUOTED, x);
     x.trim_start_matches(harness_hook::py::text::is_space)
         .starts_with("트리거")
         || HANGUL_WORD.find_iter(&s).len() > LATIN_WORD.find_iter(&s).len()
@@ -348,7 +389,7 @@ fn description_problems(val: &str) -> Vec<&'static str> {
         parts.pop();
     }
     let body = parts.join(" ");
-    let bare = blank_out(&QUOTED, &body);
+    let bare = blank_out(&*QUOTED, &body);
     let mut out = Vec::new();
     if body.is_empty() || HANGUL_WORD.find_iter(&bare).len() >= 3 {
         out.push("not English outside the trailing Korean trigger phrases");
@@ -363,7 +404,7 @@ fn description_problems(val: &str) -> Vec<&'static str> {
 }
 
 fn korean_line(line: &str) -> bool {
-    let s = blank_out(&QUOTED, &blank_out(&URL, line));
+    let s = blank_out(&*QUOTED, &blank_out(&*URL, line));
     let h = HANGUL_WORD.find_iter(&s).len();
     h >= 3 && h >= LATIN_WORD.find_iter(&s).len()
 }
@@ -460,7 +501,7 @@ pub fn doc_shape(
                 continue;
             }
             let s = scrubbed(line, pats);
-            if !(ledger.is_match(&blank_out(&PATH_TOKEN, &s)) && HAS_MD_PATH.is_match(&s)) {
+            if !(ledger.is_match(&blank_out(&*PATH_TOKEN, &s)) && HAS_MD_PATH.is_match(&s)) {
                 continue;
             }
             let mut any_shipped = false;
@@ -522,5 +563,71 @@ mod tests {
             description_problems("I can help"),
             vec!["no when-clause", "first or second person"]
         );
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        INLINE_CODE.check();
+        URL.check();
+        PATH_TOKEN.check();
+        HAS_MD_PATH.check();
+        DOC_STATUS.check();
+        FENCE.check();
+        HANGUL_WORD.check();
+        LATIN_WORD.check();
+        QUOTED.check();
+        DESC_WHEN.check();
+        DESC_PERSON.check();
+        MD_PATH.check();
+        SENTENCE_GAP.check();
+        DMI.check();
+        DESCRIPTION.check();
+        AS_OF_TAIL.check();
+        for (_, r) in DOC_REGEX.iter() {
+            r.check();
+        }
+    }
+
+    /// 앞뒤 보기를 코드로 옮긴 문서 패턴들은 python 패턴과 같은 일치를 낸다.
+    #[test]
+    fn lookaround_patterns_like_python() {
+        // Persons, sentence ends, paths and narration, with their neighbours
+        let icase = Flags::IGNORECASE;
+        let texts = [
+            "I can do it",
+            "xI can",
+            "I'll go",
+            "'I'm here",
+            "We will. you can",
+            "let me see",
+            "LET ME",
+            "ami can",
+            "a. b! c?  d",
+            ".  ",
+            "a .b",
+            "x audit/1 session/ handoff/",
+            "a-audit/ waudit/2 .claude/plan/",
+            "previously, as of v2",
+            "As of Version 3",
+            "as of luau",
+            "as of now",
+            "the fact fix",
+            "현재 기준",
+        ];
+
+        // The skill description patterns, then every doc pattern
+        crate::pat::assert_same(
+            r"(?<![\w'])(?:I (?:can|will|help|am)|I'll|I'm|you can|we can|we will|let me)\b",
+            icase,
+            &*DESC_PERSON,
+            &[],
+            &texts,
+        );
+        crate::pat::assert_same(r"(?<=[.!?])\s+", Flags::NONE, &*SENTENCE_GAP, &[], &texts);
+        for (name, pattern, i) in DOC_PATTERNS {
+            let flags = if *i { icase } else { Flags::NONE };
+            crate::pat::assert_same(pattern, flags, doc_regex(name), &[], &texts);
+        }
     }
 }

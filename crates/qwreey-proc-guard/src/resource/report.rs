@@ -6,6 +6,7 @@ use harness_hook::py::num::parse_decimal;
 use harness_hook::py::re::{self, Regex};
 use harness_hook::py::text::split_whitespace;
 use harness_hook::py::value::{Dict, Value};
+use harness_hook::rx;
 
 use super::core::{CoreInfo, Found, signal_name};
 use super::disk::gib;
@@ -14,15 +15,13 @@ const OUTPUT_TAIL: usize = 65536;
 const GIB: u64 = 1 << 30;
 const MIB: u64 = 1 << 20;
 
-static CRASH_TEXT: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(concat!(
+static CRASH_TEXT: LazyLock<rx::Regex> = LazyLock::new(|| {
+    rx::Regex::new(concat!(
         r"core dumped|Segmentation fault|Bus error|Illegal instruction|Floating point exception",
         r"|\bSIG(?:SEGV|ABRT|BUS|FPE|ILL|QUIT|TRAP|SYS)\b|signal: (?:3|4|5|6|7|8|11|31)\b",
     ))
-    .expect("built-in pattern")
 });
-static EXIT_CODE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\AExit code (\d+)").expect("built-in pattern"));
+static EXIT_CODE: LazyLock<rx::Regex> = LazyLock::new(|| rx::Regex::new(r"\AExit code (\d+)"));
 
 /// 명령이 크래시한 흔적(짧은 글), 없으면 빈 글. 종료 코드는 PostToolUseFailure 의 error 첫 줄에서 읽는다.
 pub fn crash_evidence(raw: &Dict) -> String {
@@ -150,6 +149,14 @@ pub fn handler_message(pattern: &str, evidence: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 이 파일의 고정 정규식이 두 regex crate 엔진과 py::re 에서 모두 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        for re in [&*CRASH_TEXT, &*EXIT_CODE] {
+            re.check();
+        }
+    }
     use harness_hook::py::json_load::loads;
 
     fn evidence(json: &str) -> String {

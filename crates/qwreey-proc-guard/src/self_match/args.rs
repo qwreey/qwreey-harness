@@ -2,7 +2,7 @@
 
 use std::sync::LazyLock;
 
-use harness_hook::py::re::Regex;
+use harness_hook::rx::Regex;
 
 use crate::shell::shlex::Lexer;
 
@@ -30,9 +30,8 @@ const ARG_LONG: &[&str] = &[
 ];
 const STOP_CHARS: &str = "();<>|&";
 
-static SIGNAL_OPT: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"-(?:\d+|(?:SIG)?[A-Z][A-Z0-9]+(?:[+-]\d+)?)").expect("built-in pattern")
-});
+static SIGNAL_OPT: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"-(?:\d+|(?:SIG)?[A-Z][A-Z0-9]+(?:[+-]\d+)?)"));
 
 /// 명령줄 전체를 패턴으로 찾는 호출(`-f`)의 패턴과 플래그.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -130,6 +129,12 @@ pub fn parse(tool: &str, args: &[String]) -> Option<Call> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 이 파일의 고정 정규식이 두 regex crate 엔진과 py::re 에서 모두 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        SIGNAL_OPT.check();
+    }
 
     fn call(tool: &str, line: &str) -> Option<Call> {
         parse(tool, &tokens(line, None))

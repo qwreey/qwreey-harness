@@ -32,8 +32,8 @@ def check(name, ok):
     res.append((name, bool(ok)))
 
 
-def call(tool, rel, ti, resp=None, sid="s1", agent=None, disk=None, env_extra=None):
-    path = os.path.join(REPO, rel)
+def call(tool, rel, ti, resp=None, sid="s1", agent=None, disk=None, env_extra=None, root=None):
+    path = os.path.join(root or REPO, rel)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     if disk is not None:
         open(path, "w").write(disk)
@@ -545,6 +545,37 @@ m6 = (stop("L6") or {}).get("systemMessage", "")
 check("comment and doc leftovers name both commands", "주석은 /qwreey-conventions:comments-cleanup, 모델용 문서는 /qwreey-conventions:docs-cleanup 으로" in m6)
 edit("l/off.luau", "local a = 1\n", "local a = 2\n", "-- old \u2192 x\nlocal a = 2\n", sid="L7")
 check("CONVENTIONS_CHECK=off silences Stop", stop("L7", {"CONVENTIONS_CHECK": "off"}) is None and stop("L7") is not None)
+
+# 두 저장소에 같은 상대 경로가 있어도 보고는 상대 경로로만 정렬한다(예전 python 은 dict 끼리 견주다 TypeError)
+OTHER = os.path.join(T, "other")
+os.makedirs(os.path.join(OTHER, ".git"))
+edit("l/same.luau", "local a = 1\n", "local a = 2\n", "-- old \u2192 x\nlocal a = 2\n", sid="L8")
+edit("l/same.luau", "local a = 1\n", "local a = 2\n", "-- old \u2192 x\nlocal a = 2\n", sid="L8", root=OTHER)
+check("two repos with the same relative path -> both in the Stop line", (stop("L8") or {}).get("systemMessage", "").count("l/same.luau(기호 1)") == 2)
+
+
+# ---- 출력의 짝 없는 서로게이트(python stdout 은 surrogateescape) ----
+def raw_call(payload):
+    env = dict(os.environ, TMPDIR=T, CLAUDE_PROJECT_DIR=REPO, CLAUDE_CONFIG_DIR=LIBHOME)
+    env.pop("CONVENTIONS_CHECK", None)
+    p = subprocess.run(CMD, input=payload, capture_output=True, env=env, timeout=10)
+    return p.returncode, p.stdout
+
+
+os.makedirs(os.path.join(REPO, "u"), exist_ok=True)
+open(os.path.join(REPO, "u", "s.py"), "w").write("# x - y\n")
+SURR = '{"session_id":"U1","cwd":"%s","hook_event_name":"PostToolUse","tool_name":"Write","tool_input":{"file_path":"%s","content":"# x %s \\u2014 y\\n"},"tool_response":{"type":"create"}}'
+rc, out = raw_call((SURR % (REPO, os.path.join(REPO, "u", "s.py"), "\\udc80")).encode())
+check("a byte surrogate in the text goes out as that byte (python surrogateescape)", rc == 0 and b"symbol: \x80 \xe2\x80\x94 (" in out)
+rc, out = raw_call((SURR % (REPO, os.path.join(REPO, "u", "s.py"), "\\ud800")).replace('"U1"', '"U3"').encode())
+check("another surrogate stops before the context string with exit 1, as python's json.dump",
+      rc == 1 and out == b'{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": ')
+
+# `//` 로 시작하는 저장소 밖 경로: dirname 이 `//` 에서 줄지 않아 예전에는 끝나지 않았다
+rc, out = raw_call(json.dumps({"session_id": "U2", "cwd": REPO, "hook_event_name": "PostToolUse", "tool_name": "Write",
+                               "tool_input": {"file_path": "//nonexistent-conv-dir/a.py", "content": "# x \u2014 y\n"},
+                               "tool_response": {"type": "create"}}).encode())
+check("a path under // outside any repo ends", rc == 0)
 
 # ---- 오탐 표본: 이유 문장만 있는 일반 주석 ----
 clean = """--!strict

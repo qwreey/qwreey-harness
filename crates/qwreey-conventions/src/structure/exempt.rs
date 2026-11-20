@@ -8,6 +8,7 @@ use harness_hook::py::re::{Flags, Regex};
 use harness_hook::py::text::strip;
 use harness_hook::py::unicode::is_word;
 use harness_hook::py::value::Value;
+use harness_hook::rx;
 
 use super::config::Config;
 use super::pyops::{fnmatch, items_or_empty, re_halt};
@@ -15,12 +16,11 @@ use super::toolkit::comment_marks;
 use crate::halt::{Halt, Result};
 
 // 사유가 아닌 말: 비었거나, 미루기, 귀찮음, 자리표시
-static NOT_A_REASON: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::with_flags(
+static NOT_A_REASON: LazyLock<rx::Regex> = LazyLock::new(|| {
+    rx::Regex::with_flags(
         r"^(?:[-.…~_?!\s]*|todo|tbd|fixme|later|wip|n/?a|none|x+|임시|나중에?|나중에 ?나눔|추후|일단|귀찮.*)$",
         Flags::IGNORECASE,
     )
-    .expect("constant pattern")
 });
 
 /// 예외 하나: 사유, 유효한가, 어디서 왔나(`header mark` 또는 `structure.json`).
@@ -81,10 +81,13 @@ fn header_mark(head: &str, comments: &Value) -> Result<Option<Exemption>> {
 fn config_exempt(rel: &str, cfg: &Config) -> Result<Option<Exemption>> {
     for entry in items_or_empty(cfg.get("exempt"))? {
         let Some(e) = entry.as_dict() else { continue };
+        // python 은 목록이나 dict 인 path 의 repr 글(`['src/*']`)을 글롭으로 쓴다. 그 글롭은 `[` 로 시작하는 한 글자 집합이라
+        // 한 글자 이름에만 맞는다: 그 항목만 건너뛴다
         let glob = match e.get("path") {
-            Some(v) if v.truthy() => v
-                .scalar_str()
-                .ok_or(Halt::Unported("a list or dict exempt path"))?,
+            Some(v) if v.truthy() => match v.scalar_str() {
+                Some(text) => text,
+                None => continue,
+            },
             _ => String::new(),
         };
         if !fnmatch(rel, &glob)? {
@@ -174,5 +177,21 @@ mod tests {
         let bad =
             Config::from_value(&loads(r#"{"exempt": [{"path": "*", "reason": [1]}]}"#).unwrap());
         assert!(exemption("", "a.luau", &bad, &luau()).is_err());
+    }
+
+    /// 목록인 exempt path 는 그 항목만 건너뛰고 다음 항목을 본다.
+    #[test]
+    fn list_path_skips_that_entry() {
+        // python globs the list's repr, which matches one-character names only
+        let raw = r#"{"exempt": [{"path": ["src/*"], "reason": "a real reason"}, {"path": "src/*", "reason": "pure data table"}]}"#;
+        let cfg = Config::from_value(&loads(raw).unwrap());
+        let got = exemption("--!strict", "src/a.luau", &cfg, &luau()).unwrap();
+        assert_eq!(got.map(|e| e.reason).as_deref(), Some("pure data table"));
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        NOT_A_REASON.check();
     }
 }

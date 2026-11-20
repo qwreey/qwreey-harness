@@ -6,20 +6,32 @@
 
 use std::sync::LazyLock;
 
-use harness_hook::py::re::Regex;
 use harness_hook::py::text::is_space;
+use harness_hook::rx::Regex;
 
 use crate::edit::Added;
 use crate::lex::{Family, lex};
+use crate::pat::{Look, Pat, is_word};
 use crate::reuse::regions::MARK;
 use crate::reuse::sets::{COPY, HEADER_LINES};
 
 fn compiled(pattern: &str) -> Regex {
-    Regex::new(pattern).expect("constant pattern")
+    Regex::new(pattern)
 }
 
-static MARK_WORD: LazyLock<Regex> =
-    LazyLock::new(|| compiled(r"@(copy-of|start-replace|end-replace)(?![\w-])"));
+// python `@(copy-of|start-replace|end-replace)(?![\w-])`: 앞보기는 다음 글자 검사로(세 갈래는 다른 글자로 시작한다)
+static MARK_WORD: LazyLock<Look> = LazyLock::new(|| {
+    Look::new(
+        r"@(copy-of|start-replace|end-replace)",
+        |t, m| {
+            t[m.end()..]
+                .chars()
+                .next()
+                .is_none_or(|c| !is_word(c) && c != '-')
+        },
+        None,
+    )
+});
 static REGION_PATH: LazyLock<Regex> =
     LazyLock::new(|| compiled(r"@start-replace:[ \t]*([^\s#]+)#"));
 static MIXED_COPY: LazyLock<Regex> = LazyLock::new(|| compiled(r"^\.\./([\w.-]+):([^/\\].*)$"));
@@ -313,5 +325,35 @@ mod tests {
                 .contains("`../other/lib/t.py`")
         );
         assert!(notes(Family::Py, "# @start-replace: ../other/lib/t.py#O\n").is_empty());
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        MARK_WORD.check();
+        REGION_PATH.check();
+        MIXED_COPY.check();
+        COLON_REGION.check();
+        LUA_OPENER.check();
+        OPENER_AT_END.check();
+        CLOSER.check();
+    }
+
+    /// 앞보기를 다음 글자 검사로 옮긴 표시 낱말은 python 패턴과 같은 자리를 찾는다.
+    #[test]
+    fn mark_word_like_python() {
+        crate::pat::assert_same(
+            r"@(copy-of|start-replace|end-replace)(?![\w-])",
+            harness_hook::py::re::Flags::NONE,
+            &*MARK_WORD,
+            &[(1, 1)],
+            &[
+                "@copy-of: x",
+                "@copy-of-x @copy-of",
+                "@end-replaced @end-replace",
+                "@start-replace_ @start-replace\u{301}",
+                "@@copy-of",
+            ],
+        );
     }
 }

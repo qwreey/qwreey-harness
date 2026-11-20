@@ -9,6 +9,7 @@ use harness_hook::py::fs;
 use harness_hook::py::json::{EnsureAscii, dumps, dumps_dict};
 use harness_hook::py::json_load::loads;
 use harness_hook::py::path::join;
+use harness_hook::py::surrogate::unit_of;
 use harness_hook::py::value::{Dict, Value};
 
 use super::Category;
@@ -85,7 +86,15 @@ pub fn record(
     } else if rec.remove(key).is_none() {
         return;
     }
-    let _ = fs::write_text(&fp, &dumps_dict(&rec, EnsureAscii::No, None));
+    // python 은 짝 없는 서로게이트가 든 글을 인코딩하지 못해 옛 파일을 그대로 둔다
+    let text = dumps_dict(&rec, EnsureAscii::No, None);
+    if !has_placeholder(&text) {
+        let _ = fs::write_text(&fp, &text);
+    }
+}
+
+fn has_placeholder(text: &str) -> bool {
+    text.chars().any(|c| unit_of(c).is_some())
 }
 
 // ---------- Stop ----------
@@ -230,18 +239,13 @@ fn gather(left: &[(String, Value)], reuse: &[(String, Value)]) -> Result<Gathere
 
 /// python `leftover_message(sid)`: 세션의 모든 호출한 쪽 기록을 합친 사용자용 글. 없으면 `None`.
 ///
-/// 첫 줄은 전부터 있던 문제(주석, 같은 목록), 둘째 줄은 원본과 달라진 사본이다. 상대 경로가 같은 두 파일은
-/// python 이 dict 끼리 견주다 TypeError 로 끝나는 자리다.
+/// 첫 줄은 전부터 있던 문제(주석, 같은 목록), 둘째 줄은 원본과 달라진 사본이다. 파일은 상대 경로로만 정렬한다:
+/// 두 저장소의 같은 상대 경로는 모은 차례 그대로다(python `sorted(key=...)` 는 안정 정렬이다).
 pub fn message(dir: &str, sid: &str) -> Result<Option<String>> {
     let left = latest(dir, &format!("{sid}.left."), ".json");
     let reuse = latest(dir, &format!("{sid}.reuse."), ".json");
     let (mut rows, mut diff) = gather(&left, &reuse)?;
     rows.sort_by(|a, b| a.rel.cmp(&b.rel));
-    if rows.windows(2).any(|w| w[0].rel == w[1].rel) {
-        return Err(Halt::PyError(
-            "two leftover files share a relative path (python compares dicts)",
-        ));
-    }
     diff.sort();
     let mut lines = Vec::new();
 
@@ -328,8 +332,39 @@ pub fn report(tempdir: &str, sid: &str) -> Result<Option<String>> {
 
     let mut rec = Dict::new();
     rec.insert("msg", Value::Str(msg.clone()));
-    let _ = fs::write_text(&mark, &dumps(&Value::Dict(rec), EnsureAscii::No, None));
+    let text = dumps(&Value::Dict(rec), EnsureAscii::No, None);
+    if !has_placeholder(&text) {
+        let _ = fs::write_text(&mark, &text);
+    }
     Ok(Some(
         harness_hook::HookOutput::system_message(msg).render(EnsureAscii::No),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 두 저장소의 같은 상대 경로는 모은 차례 그대로 둘 다 보인다(python 은 dict 끼리 견주다 끝났었다).
+    #[test]
+    fn same_relative_path_in_two_repos() {
+        // Two left records for files that exist, under one relative path
+        let dir = std::env::temp_dir().join(format!("conv-left-{}", std::process::id()));
+        let (a, b) = (dir.join("a").join("x.luau"), dir.join("b").join("x.luau"));
+        for f in [&a, &b] {
+            std::fs::create_dir_all(f.parent().unwrap()).unwrap();
+            std::fs::write(f, "x").unwrap();
+        }
+        let rec = format!(
+            r#"{{"{}": {{"rel": "x.luau", "n": {{"기호": 1}}, "t": 1.0}}, "{}": {{"rel": "x.luau", "n": {{"이력": 2}}, "t": 1.0}}}}"#,
+            a.to_str().unwrap(),
+            b.to_str().unwrap()
+        );
+        std::fs::write(dir.join("s.left.main.json"), rec).unwrap();
+
+        // Both rows, in the order they were gathered
+        let msg = message(dir.to_str().unwrap(), "s").unwrap().unwrap();
+        assert!(msg.contains("x.luau(기호 1), x.luau(이력 2)"), "{msg}");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 }

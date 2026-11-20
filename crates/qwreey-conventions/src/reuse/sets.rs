@@ -7,10 +7,12 @@
 use std::collections::BTreeSet;
 use std::sync::LazyLock;
 
-use harness_hook::py::re::{Flags, Regex};
+use harness_hook::py::re::Flags;
 use harness_hook::py::text::strip;
+use harness_hook::rx::Regex;
 
 use crate::lex::{Family, Row, lex};
+use crate::reuse::Clock;
 use crate::reuse::regions::parse_regions;
 
 /// 정의 머리 아래의 묶음(python `FLAG_DEF`).
@@ -38,10 +40,12 @@ const CONT: &[char] = &[',', '(', '{', '[', '=', '|'];
 const STR: &str = r#""[^"\\\n]*"|'[^'\\\n]*'"#;
 
 fn compiled(pattern: &str, flags: Flags) -> Regex {
-    Regex::with_flags(pattern, flags).expect("constant pattern")
+    Regex::with_flags(pattern, flags)
 }
 
 static STR_RE: LazyLock<Regex> = LazyLock::new(|| compiled(STR, Flags::NONE));
+// python 의 패턴은 소유 되풀이(`\s*+`, `[,;]?+`, `++`)로 되짚기를 막는다. regex crate 는 되짚지 않으므로 보통 되풀이로 같은 글을
+// 쓴다: 소유 꼴은 맞는 결과를 바꾸지 않는다(그 되짚기 길은 모두 같은 자리에서 끝난다, 형제 저장소 파일 10만 7천 개에서 같음).
 static GROUP: LazyLock<Regex> = LazyLock::new(|| {
     let pattern = format!(
         r"[\[\{{\(]((?:\s*(?:{STR})\s*[,;]?)+)\s*[\]\}}\)]|((?:(?:{STR})\s*(?:\||\bor\b)\s*)+(?:{STR}))"
@@ -52,8 +56,13 @@ static GROUP: LazyLock<Regex> = LazyLock::new(|| {
     };
     compiled(&pattern, flags)
 });
-static WORD: LazyLock<Regex> =
-    LazyLock::new(|| compiled(r"^(?=.*[A-Za-z])[\w.\-/ ]{2,}$", Flags::NONE));
+/// python `WORD` 의 글자 꼴(`^(?=.*[A-Za-z])[\w.\-/ ]{2,}$` 에서 앞보기를 뺀 것). 앞보기는 [`is_word`] 가 본다.
+static WORD_CHARS: LazyLock<Regex> = LazyLock::new(|| compiled(r"^[\w.\-/ ]{2,}$", Flags::NONE));
+
+// python `WORD.match(x)`: ASCII 글자가 있고(원소에는 줄바꿈이 없어 `.*` 가 끝까지 본다) 글자 꼴이 맞는다
+fn is_word(x: &str) -> bool {
+    x.chars().any(|c| c.is_ascii_alphabetic()) && WORD_CHARS.match_start(x).is_some()
+}
 // 정의 머리: 이름 붙은 바인딩과 const/static/let/local/type. 정의가 아닌 쪽끼리(if x in (...) 두 번)는 짝으로 보지 않는다
 static DEF: LazyLock<Regex> = LazyLock::new(|| {
     compiled(
@@ -190,28 +199,58 @@ fn def_line(lines: &[&str], ln: usize) -> Option<usize> {
     None
 }
 
+/// 시간 한도: 시계가 이 ms 를 넘으면 [`Budget`](python `deadline`).
+#[derive(Clone, Copy)]
+pub struct Deadline<'a> {
+    pub clock: &'a Clock,
+    pub ms: f64,
+}
+
+/// [`extract_within`] 가 한도를 넘었다(python `reuse_sets.Budget`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Budget;
+
+// python `_within(deadline)`
+fn within(deadline: Option<Deadline>) -> std::result::Result<(), Budget> {
+    match deadline {
+        Some(d) if d.clock.ms() > d.ms => Err(Budget),
+        _ => Ok(()),
+    }
+}
+
 /// python `extract(text, fam)`: (묶음 목록, 표시 목록).
 ///
 /// Rust 파일은 `#[cfg(test)]` 앞까지만 본다.
 pub fn extract(text: &str, fam: Family) -> (Vec<StringSet>, Vec<Mark>) {
+    extract_within(text, fam, None).unwrap_or_default()
+}
+
+/// python `extract(text, fam, deadline)`: 한도를 넘으면 python 과 같은 자리(묶음 후보마다, 렉서 앞)에서 [`Budget`].
+pub fn extract_within(
+    text: &str,
+    fam: Family,
+    deadline: Option<Deadline>,
+) -> std::result::Result<(Vec<StringSet>, Vec<Mark>), Budget> {
     let text = match (fam, text.find("#[cfg(test)]")) {
         (Family::Rust, Some(cut)) => &text[..cut],
         _ => text,
     };
     let lines: Vec<&str> = text.split('\n').collect();
 
-    let cands = candidates(text);
+    let cands = candidates(text, deadline)?;
     let has_mark = text.contains("@copy-of");
+    within(deadline)?;
     let rows = if !cands.is_empty() || has_mark {
         lex(text, fam, false)
     } else {
         Vec::new()
     };
 
-    let mut sets: Vec<StringSet> = cands
-        .into_iter()
-        .filter_map(|(ln, els)| string_set(&lines, &rows, ln, &els))
-        .collect();
+    let mut sets: Vec<StringSet> = Vec::new();
+    for (ln, els) in cands {
+        within(deadline)?;
+        sets.extend(string_set(&lines, &rows, ln, &els));
+    }
     let mut marks = if has_mark {
         copy_marks(&lines, &rows, &mut sets)
     } else {
@@ -225,15 +264,19 @@ pub fn extract(text: &str, fam: Family) -> (Vec<StringSet>, Vec<Mark>) {
             kind: MarkKind::Region,
         }));
     }
-    (sets, marks)
+    Ok((sets, marks))
 }
 
 // GROUP 의 일치마다 (줄, 원소 집합). 원소가 3개 미만이면 뺀다
-fn candidates(text: &str) -> Vec<(usize, BTreeSet<String>)> {
+fn candidates(
+    text: &str,
+    deadline: Option<Deadline>,
+) -> std::result::Result<Vec<(usize, BTreeSet<String>)>, Budget> {
     let mut out = Vec::new();
     let mut line = 1;
     let mut counted = 0;
     for m in GROUP.find_iter(text) {
+        within(deadline)?;
         let group = &text[m.start()..m.end()];
         let els: BTreeSet<String> = STR_RE
             .find_iter(group)
@@ -254,7 +297,7 @@ fn candidates(text: &str) -> Vec<(usize, BTreeSet<String>)> {
         counted = m.start();
         out.push((line, els));
     }
-    out
+    Ok(out)
 }
 
 // 후보 하나를 묶음으로: 주석 줄, 낱말 3개 미만, argv 목록은 뺀다
@@ -268,11 +311,7 @@ fn string_set(
     if !row.code && !row.c.is_empty() {
         return None;
     }
-    let words: Vec<String> = els
-        .iter()
-        .filter(|x| WORD.match_start(x).is_some())
-        .cloned()
-        .collect();
+    let words: Vec<String> = els.iter().filter(|x| is_word(x)).cloned().collect();
     if words.len() < 3 || (words.iter().any(|x| x.starts_with('-')) && words.len() <= 8) {
         return None;
     }
@@ -461,5 +500,91 @@ mod tests {
         let text = "#[cfg(test)]\nconst A: &[&str] = &[\"aa\", \"bb\", \"cc\"];\n";
         assert!(extract(text, Family::Rust).0.is_empty());
         assert_eq!(extract(text, Family::C).0.len(), 1);
+    }
+
+    /// 한도를 넘긴 시계로는 묶음 후보에서 Budget 이고, 한도가 없으면 끝까지 뽑는다.
+    #[test]
+    fn extract_stops_at_the_deadline() {
+        let text = "X = [\"aa\", \"bb\", \"cc\"]\n";
+        let clock = Clock::start();
+
+        // A deadline already behind the clock
+        let past = Deadline {
+            clock: &clock,
+            ms: -1.0,
+        };
+        assert!(extract_within(text, Family::Py, Some(past)).is_err());
+
+        // No deadline reads everything
+        assert_eq!(extract(text, Family::Py).0.len(), 1);
+    }
+
+    /// 닫는 괄호 없이 이어 붙인 문자열이 길어도 GROUP 은 금방 끝난다(되짚기 없는 꼴, python 과 같은 글).
+    #[test]
+    fn group_is_linear_on_open_concatenation() {
+        // The reviewer's shape: strings on their own lines inside an unclosed call
+        let body: String = (0..40)
+            .map(|i| format!("            \"part number {i} of a long help text \"\n"))
+            .collect();
+        let text = format!(
+            "def main():\n    parser.add_argument(\"--mode\",\n        help=(\n{body}            % DEFAULT))\n"
+        );
+        let started = std::time::Instant::now();
+        let n = GROUP.find_iter(&text).len();
+
+        // 40 strings took hours before; a debug build stays far under a second now
+        assert_eq!(n, 0);
+        assert!(started.elapsed().as_secs_f64() < 1.0);
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        STR_RE.check();
+        GROUP.check();
+        WORD_CHARS.check();
+        DEF.check();
+        NAME.check();
+        TYPE.check();
+        COPY.check();
+        DUP.check();
+    }
+
+    /// 소유 되풀이를 뺀 GROUP 과 앞보기를 뺀 WORD 는 python 패턴과 같다.
+    #[test]
+    fn group_and_word_like_python() {
+        // GROUP against python's possessive pattern (DOTALL as python compiles it)
+        let dotall = Flags {
+            dotall: true,
+            ..Flags::NONE
+        };
+        let python_group = format!(
+            r"[\[\{{\(]((?:\s*+(?:{STR})\s*+[,;]?+)++)\s*+[\]\}}\)]|((?:(?:{STR})\s*(?:\||\bor\b)\s*)+(?:{STR}))"
+        );
+        crate::pat::assert_same(
+            &python_group,
+            dotall,
+            &*GROUP,
+            &[(1, 1), (2, 2)],
+            &[
+                r#"x = ["aa", "bb" ,  "cc" ; ]"#,
+                r#"("a" "b"  "c""#,
+                r#"{'a',}"#,
+                r#""a" | "b" or "c" |"#,
+                r#"["a" ,]"#,
+                r#"( "a"  "b" )"#,
+                r#"x = ["a","b" "#,
+                "[\"a\"\n  \"b\"\n]",
+            ],
+        );
+
+        // WORD: an ASCII letter and the word characters, as python's lookahead and class
+        let python_word =
+            harness_hook::py::re::Regex::new(r"^(?=.*[A-Za-z])[\w.\-/ ]{2,}$").unwrap();
+        for x in [
+            "ab", "a", "12", "a1", "한글", "한a", "a-b/c d", "a!", "-x", "é1", "a\u{301}",
+        ] {
+            assert_eq!(is_word(x), python_word.match_start(x).is_some(), "{x:?}");
+        }
     }
 }

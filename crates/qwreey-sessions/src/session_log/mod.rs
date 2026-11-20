@@ -10,9 +10,12 @@
 pub mod spawn;
 pub mod state;
 
-use harness_hook::py::re::{Flags, Regex};
+use std::sync::LazyLock;
+
+use harness_hook::py::re::Flags;
 use harness_hook::py::surrogate::{from_os, unit_of};
 use harness_hook::py::value::{Dict, Value};
+use harness_hook::rx::Regex;
 use harness_hook::tag::Level;
 use harness_hook::{EnsureAscii, HookInput, HookOutput};
 
@@ -30,12 +33,18 @@ use spawn::Flush;
 use state::HookState;
 
 /// `git commit`(앞에 `-C <dir>` 가 붙어도). python `COMMIT_RX`.
-const COMMIT_RX: &str = r"(^|[;&|(\s])git(\s+-[Cc]\s+\S+)*\s+commit\b";
+static COMMIT_RX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(^|[;&|(\s])git(\s+-[Cc]\s+\S+)*\s+commit\b"));
 /// 사용자 말의 인계 요청. python `HANDOVER_RX`(re.I).
-const HANDOVER_RX: &str =
-    r"^\s*/(?:qwreey-sessions:)?(handover|checkpoint)\b|\b(handover|핸드오버|인계)\b";
+static HANDOVER_RX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::with_flags(
+        r"^\s*/(?:qwreey-sessions:)?(handover|checkpoint)\b|\b(handover|핸드오버|인계)\b",
+        Flags::IGNORECASE,
+    )
+});
 /// 인계 스킬 이름(re.I).
-const HANDOVER_SKILL_RX: &str = r"handover|checkpoint";
+static HANDOVER_SKILL_RX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::with_flags(r"handover|checkpoint", Flags::IGNORECASE));
 /// 사용자 말은 앞 400자만 본다.
 const PROMPT_SCAN_CHARS: usize = 400;
 
@@ -304,11 +313,6 @@ fn scan_text(value: Option<&Value>, n: usize, what: &'static str) -> Result<Stri
     Ok(text.chars().take(n).collect())
 }
 
-fn search(pattern: &str, flags: Flags, text: &str) -> Result<bool> {
-    let regex = Regex::with_flags(pattern, flags).map_err(|_| Abort("pattern does not compile"))?;
-    Ok(regex.is_match(text))
-}
-
 // UserPromptSubmit: 사용자 말이 인계를 말하나
 fn asks_handover(data: &Dict) -> Result<bool> {
     let prompt = scan_text(
@@ -316,7 +320,7 @@ fn asks_handover(data: &Dict) -> Result<bool> {
         PROMPT_SCAN_CHARS,
         "prompt is a list or object",
     )?;
-    search(HANDOVER_RX, Flags::IGNORECASE, &prompt)
+    Ok(HANDOVER_RX.is_match(&prompt))
 }
 
 // PreToolUse: git commit 앞이면 commit, 인계 스킬 앞이면 handover
@@ -339,10 +343,12 @@ fn pre_tool_trigger(data: &Dict) -> Result<Option<Trigger>> {
             usize::MAX,
             "command is a list or object",
         )?;
-        return Ok(search(COMMIT_RX, Flags::NONE, &command)?.then_some(Trigger::Commit));
+        return Ok(COMMIT_RX.is_match(&command).then_some(Trigger::Commit));
     }
     let skill = scan_text(input.get("skill"), usize::MAX, "skill is a list or object")?;
-    Ok(search(HANDOVER_SKILL_RX, Flags::IGNORECASE, &skill)?.then_some(Trigger::Handover))
+    Ok(HANDOVER_SKILL_RX
+        .is_match(&skill)
+        .then_some(Trigger::Handover))
 }
 
 /// 알림을 출력 JSON 으로(python `emit_context`, 이 이벤트들에는 규칙 줄과 닻이 없다). 낼 것이 없으면 `None`.
@@ -371,4 +377,29 @@ fn context_output(
         return Err(Abort("output has a lone surrogate"));
     }
     Ok(Some(payload))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 이 파일의 고정 정규식이 두 regex crate 엔진과 py::re 에서 모두 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        for re in [&*COMMIT_RX, &*HANDOVER_RX, &*HANDOVER_SKILL_RX] {
+            re.check();
+        }
+    }
+
+    /// 인계 요청과 git commit 을 python 판 패턴처럼 알아본다(ASCII 글, 한국어 글, 대소문자).
+    #[test]
+    fn triggers_like_python() {
+        // The prompt asks for a handover
+        assert!(HANDOVER_RX.is_match("/checkpoint now") && HANDOVER_RX.is_match("이제 인계 해줘"));
+        assert!(HANDOVER_RX.is_match("Write a HANDOVER") && !HANDOVER_RX.is_match("handovers"));
+
+        // A commit, with or without -C
+        assert!(COMMIT_RX.is_match("cd x && git -C /r commit -m a"));
+        assert!(!COMMIT_RX.is_match("git commits") && !COMMIT_RX.is_match("legit commit"));
+    }
 }

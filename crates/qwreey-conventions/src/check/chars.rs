@@ -2,8 +2,8 @@
 
 use std::sync::LazyLock;
 
-use harness_hook::py::re::Regex;
 use harness_hook::py::value::Value;
+use harness_hook::rx::Regex;
 
 use super::char_tables::{LETTER_MARK_DIGIT, SYMBOL_HINTS, UPPER};
 use crate::halt::{Halt, Result};
@@ -47,10 +47,8 @@ const SYMBOL_FIX: &[(char, &str)] = &[
 ];
 
 /// 주석 안의 유니코드 이스케이프(python `ESCAPE`): 금지 글자를 이스케이프로 적어 검사를 피한 것.
-pub static ESCAPE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\\u[0-9A-Fa-f]{4}|\\u\{[0-9A-Fa-f]+\}|\\U[0-9A-Fa-f]{8}")
-        .expect("constant pattern")
-});
+pub static ESCAPE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\\u[0-9A-Fa-f]{4}|\\u\{[0-9A-Fa-f]+\}|\\U[0-9A-Fa-f]{8}"));
 
 fn in_ranges(table: &[(u32, u32)], c: u32) -> bool {
     table
@@ -315,5 +313,11 @@ mod tests {
             Allow::from_value(Some(&Value::List(vec![Value::Str("emoji".into())]))).unwrap();
         assert!(!odd_chars("\u{1F600}", &emoji));
         assert!(is_upper('A') && !is_upper('a'));
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        ESCAPE.check();
     }
 }

@@ -7,8 +7,9 @@ use std::sync::LazyLock;
 
 use harness_hook::py::fs;
 use harness_hook::py::path::{abspath, basename, dirname, join, relpath, splitext};
-use harness_hook::py::re::{Flags, Regex};
+use harness_hook::py::re::Flags;
 use harness_hook::py::value::{Dict, Value};
+use harness_hook::rx::Regex;
 
 use super::Run;
 use super::config::Config;
@@ -59,10 +60,9 @@ static TEST_PATH: LazyLock<Regex> = LazyLock::new(|| {
         r"(^|/)(tests?|specs?|spikes?|bench|__tests__)(/|$)|\.(spec|test|story)\.|_test\.(go|rs)$",
         Flags::IGNORECASE,
     )
-    .expect("constant pattern")
 });
-static PASCAL_PREFIX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^([A-Z][a-z0-9]+)(?=[A-Z])").expect("constant pattern"));
+// python `^([A-Z][a-z0-9]+)(?=[A-Z])`: 앞보기 글자를 먹어도 1 번 괄호만 쓰므로 같다
+static PASCAL_PREFIX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^([A-Z][a-z0-9]+)[A-Z]"));
 
 /// 새 파일인가(Write 만). `Sure` 면 성장 기준점을 0 으로 둔다.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -490,5 +490,31 @@ mod tests {
         assert_eq!(prefix_of("ItemZoneView"), "Item");
         assert_eq!(prefix_of("Item"), "Item");
         assert_eq!(prefix_of("item_view"), "item_view");
+    }
+
+    /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
+    #[test]
+    fn fixed_patterns_build() {
+        TEST_PATH.check();
+        PASCAL_PREFIX.check();
+    }
+
+    /// 앞보기 글자를 먹는 PascalCase 머리 패턴은 python 과 같은 낱말을 잡는다.
+    #[test]
+    fn pascal_prefix_like_python() {
+        let original = harness_hook::py::re::Regex::new(r"^([A-Z][a-z0-9]+)(?=[A-Z])").unwrap();
+        for stem in [
+            "ItemView",
+            "Item",
+            "ABView",
+            "Item2View",
+            "itemView",
+            "ItemV",
+            "I",
+            "",
+        ] {
+            let want = original.match_start(stem).and_then(|m| m.text(stem, 1));
+            assert_eq!(prefix_of(stem), want.unwrap_or(stem), "{stem:?}");
+        }
     }
 }
