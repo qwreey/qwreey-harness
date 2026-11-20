@@ -2,15 +2,36 @@
 
 use super::Match;
 use super::class::literal;
-use super::compile::{At, Inst, Program};
+use super::compile::{At, Inst, One, Program};
 use crate::py::unicode::{is_word, lower};
 
 /// 스택에 쌓는 것: 갈 다른 길, 또는 되돌아갈 때 되돌릴 칸 값.
 #[derive(Clone, Copy, Debug)]
 enum Frame {
-    Retry { pc: usize, pos: usize },
-    Slot { slot: usize, old: Option<usize> },
-    Mark { mark: usize, old: usize },
+    Retry {
+        pc: usize,
+        pos: usize,
+    },
+    Slot {
+        slot: usize,
+        old: Option<usize>,
+    },
+    Mark {
+        mark: usize,
+        old: usize,
+    },
+    /// 탐욕 RepeatOne: 지금 `cur` 까지 먹었고 `floor`(최소 횟수의 끝)까지 하나씩 돌려줄 수 있다.
+    Greedy {
+        pc: usize,
+        floor: usize,
+        cur: usize,
+    },
+    /// 게으른 RepeatOne: 지금 `cur` 까지 `count` 번 먹었고 하나씩 더 먹을 수 있다.
+    Lazy {
+        pc: usize,
+        cur: usize,
+        count: u32,
+    },
 }
 
 /// 일치를 끝낼 조건.
@@ -30,6 +51,8 @@ struct Vm<'p, 't> {
     stack: Vec<Frame>,
     slots: Vec<Option<usize>>,
     marks: Vec<usize>,
+    /// 끝없는 탐욕 RepeatOne 마다 마지막으로 센 글자 줄(시작, 끝). 줄 안 어디서 세어도 끝은 같다.
+    runs: Vec<(usize, usize)>,
 }
 
 /// 찾는 방식.
@@ -48,6 +71,11 @@ pub(super) fn search(prog: &Program, text: &str, from: usize, mode: Mode) -> Opt
     let mut vm = Vm::new(prog, text);
     let mut start = from;
     let full = mode == Mode::Full;
+    if let Some(c) = prog.prefix
+        && !full
+    {
+        start += text[start..].find(c)?;
+    }
     loop {
         let end = match mode {
             Mode::Full => Accept::TextEnd,
@@ -61,6 +89,11 @@ pub(super) fn search(prog: &Program, text: &str, from: usize, mode: Mode) -> Opt
             return None;
         }
         start += text[start..].chars().next().map_or(1, char::len_utf8);
+
+        // 패턴이 글자로 시작하면 그 글자가 있는 자리로 건너뛴다
+        if let Some(c) = prog.prefix {
+            start += text[start..].find(c)?;
+        }
     }
 }
 
@@ -79,6 +112,7 @@ impl<'p, 't> Vm<'p, 't> {
             stack: Vec::new(),
             slots: vec![None; prog.slots],
             marks: vec![usize::MAX; prog.marks],
+            runs: vec![(usize::MAX, 0); prog.repeats.len()],
         }
     }
 
@@ -118,9 +152,185 @@ impl<'p, 't> Vm<'p, 't> {
                 Frame::Retry { pc, pos } => return Some((pc, pos)),
                 Frame::Slot { slot, old } => self.slots[slot] = old,
                 Frame::Mark { mark, old } => self.marks[mark] = old,
+
+                // 글자 되풀이: 하나 돌려주거나 하나 더 먹고 뒤를 다시 해 본다
+                Frame::Greedy { pc, floor, cur } => {
+                    let back = prev_char(self.text, cur);
+                    if let Some(pos) = self.give_back(pc, floor, back) {
+                        return Some((pc + 1, pos));
+                    }
+                }
+                Frame::Lazy { pc, cur, count } => {
+                    if let Some(pos) = self.take_more(pc, cur, count) {
+                        return Some((pc + 1, pos));
+                    }
+                }
             }
         }
         None
+    }
+
+    // base 위를 모두 버리고 칸 값만 되돌린다(다른 길은 해 보지 않는다)
+    fn unwind(&mut self, base: usize) {
+        while self.stack.len() > base {
+            match self.stack.pop().expect("above base") {
+                Frame::Slot { slot, old } => self.slots[slot] = old,
+                Frame::Mark { mark, old } => self.marks[mark] = old,
+                Frame::Retry { .. } | Frame::Greedy { .. } | Frame::Lazy { .. } => {}
+            }
+        }
+    }
+
+    // RepeatOne 의 글자 하나가 pos 에 맞으면 그 뒤 위치
+    fn one(&self, item: One, pos: usize) -> Option<usize> {
+        let c = self.text[pos..].chars().next()?;
+        let ok = match item {
+            One::Lit(p) => literal(p, c, self.prog.ignore_case),
+            One::Any => c != '\n' || self.prog.dotall,
+            One::Class(i) => self.prog.classes[i].matches(c),
+        };
+        ok.then(|| pos + c.len_utf8())
+    }
+
+    // pos 에서 뒤의 첫 글자가 맞을 수 있는가(뒤가 글자가 아니면 늘 true)
+    fn tail_may_match(&self, tail_lit: Option<u32>, pos: usize) -> bool {
+        let Some(p) = tail_lit else {
+            return true;
+        };
+        self.text[pos..]
+            .chars()
+            .next()
+            .is_some_and(|c| literal(p, c, self.prog.ignore_case))
+    }
+
+    // RepeatOne(pc) 를 시작한다: 최소 횟수를 먹고, 탐욕이면 끝까지 먹은 뒤 돌려주며, 게으르면 최소에서 뒤를 해 본다
+    fn repeat_one(&mut self, pc: usize, pos: usize) -> Option<usize> {
+        let Inst::RepeatOne(i) = self.prog.insts[pc] else {
+            unreachable!("RepeatOne at pc");
+        };
+        let info = self.prog.repeats[i];
+        let mut cur = pos;
+        for _ in 0..info.min {
+            cur = self.one(info.item, cur)?;
+        }
+        if !info.greedy {
+            return self.lazy_from(pc, cur, info.min);
+        }
+
+        // 탐욕: 상한까지 먹는다. 끝이 없으면 같은 줄을 다시 세지 않는다
+        let floor = cur;
+        let end = if info.max == u32::MAX {
+            let (start, end) = self.runs[i];
+            if (start..=end).contains(&floor) {
+                end
+            } else {
+                let end = self.scan(i, floor, u32::MAX);
+                self.runs[i] = (floor, end);
+                end
+            }
+        } else {
+            self.scan(i, floor, info.max - info.min)
+        };
+        self.give_back(pc, floor, end)
+    }
+
+    // RepeatOne i 의 글자를 from 부터 limit 개까지 먹은 끝. ASCII 는 바이트 표로 센다
+    fn scan(&self, i: usize, from: usize, limit: u32) -> usize {
+        let info = &self.prog.repeats[i];
+        let bytes = self.text.as_bytes();
+        let (mut cur, mut count) = (from, 0);
+        while count < limit {
+            match bytes.get(cur) {
+                None => break,
+
+                // ASCII 는 표로, 나머지는 글자를 풀어 본다
+                Some(&b) if b < 128 => {
+                    if info.ascii & (1 << b) == 0 {
+                        break;
+                    }
+                    cur += 1;
+                }
+                Some(_) => match self.one(info.item, cur) {
+                    Some(next) => cur = next,
+                    None => break,
+                },
+            }
+            count += 1;
+        }
+        cur
+    }
+
+    // 탐욕 RepeatOne 이 cur 에서 뒤를 해 볼 자리. 뒤의 글자가 없는 자리는 돌려주며 건너뛴다. 더 돌려줄 수 있으면 갈림길을 쌓는다
+    fn give_back(&mut self, pc: usize, floor: usize, cur: usize) -> Option<usize> {
+        let Inst::RepeatOne(i) = self.prog.insts[pc] else {
+            unreachable!("RepeatOne at pc");
+        };
+        let info = &self.prog.repeats[i];
+        let tail_lit = info.tail_lit;
+
+        // 되풀이 글자가 뒤 글자일 수 없으면 먹은 끝에서만 해 본다(처음 부를 때만 오고 갈림길을 쌓지 않는다)
+        if info.disjoint_tail {
+            return self.tail_may_match(tail_lit, cur).then_some(cur);
+        }
+
+        // 뒤 글자가 있는 자리까지 돌려준다. ASCII 글자는 바이트로 찾는다(ASCII 바이트는 늘 글자 경계다)
+        let mut cur = cur;
+        match tail_lit {
+            Some(p) if p < 128 && !self.prog.ignore_case => {
+                let bytes = self.text.as_bytes();
+                let hi = (cur + 1).min(bytes.len());
+                cur = floor
+                    + bytes
+                        .get(floor..hi)?
+                        .iter()
+                        .rposition(|&b| u32::from(b) == p)?;
+            }
+            _ => {
+                while !self.tail_may_match(tail_lit, cur) {
+                    if cur == floor {
+                        return None;
+                    }
+                    cur = prev_char(self.text, cur);
+                }
+            }
+        }
+
+        // 더 돌려줄 수 있으면 다음 시도
+        if cur > floor {
+            self.stack.push(Frame::Greedy { pc, floor, cur });
+        }
+        Some(cur)
+    }
+
+    // 게으른 RepeatOne 이 cur(count 번 먹음)에서 뒤를 해 볼 자리. 뒤의 글자가 없는 자리는 더 먹으며 건너뛴다
+    fn lazy_from(&mut self, pc: usize, cur: usize, count: u32) -> Option<usize> {
+        let Inst::RepeatOne(i) = self.prog.insts[pc] else {
+            unreachable!("RepeatOne at pc");
+        };
+        let info = self.prog.repeats[i];
+        let (mut cur, mut count) = (cur, count);
+        while !self.tail_may_match(info.tail_lit, cur) {
+            if count >= info.max {
+                return None;
+            }
+            cur = self.one(info.item, cur)?;
+            count += 1;
+        }
+        self.stack.push(Frame::Lazy { pc, cur, count });
+        Some(cur)
+    }
+
+    // 게으른 RepeatOne 이 뒤에 실패했다: 하나 더 먹는다
+    fn take_more(&mut self, pc: usize, cur: usize, count: u32) -> Option<usize> {
+        let Inst::RepeatOne(i) = self.prog.insts[pc] else {
+            unreachable!("RepeatOne at pc");
+        };
+        let info = self.prog.repeats[i];
+        if count >= info.max {
+            return None;
+        }
+        let next = self.one(info.item, cur)?;
+        self.lazy_from(pc, next, count + 1)
     }
 
     fn step(&mut self, pc: usize, pos: usize, end: Accept) -> Step {
@@ -166,7 +376,13 @@ impl<'p, 't> Vm<'p, 't> {
                 self.marks[mark] = pos;
                 Step::Next(pc + 1, pos)
             }
-            Inst::Progress(mark) => step_if(self.marks[mark] != pos, pc, pos),
+            // 빈 바퀴: 되풀이를 끝내고 뒤로(그 바퀴가 잡은 칸은 남는다)
+            Inst::Progress(mark, exit) if self.marks[mark] == pos => Step::Next(exit, pos),
+            Inst::Progress(..) => Step::Next(pc + 1, pos),
+            Inst::RepeatOne(_) => match self.repeat_one(pc, pos) {
+                Some(next) => Step::Next(pc + 1, next),
+                None => Step::Fail,
+            },
 
             // 자리 검사, 괄호 참조, 앞뒤 보기, 끝
             Inst::At(at) => step_if(self.at(at, pos), pc, pos),
@@ -194,7 +410,8 @@ impl<'p, 't> Vm<'p, 't> {
             At::EndLine => pos == text.len() || text[pos] == b'\n',
             At::EndString => pos == text.len(),
             At::Boundary => !text.is_empty() && self.word_before(pos) != self.word_after(pos),
-            At::NotBoundary => !text.is_empty() && self.word_before(pos) == self.word_after(pos),
+            // python 3.14 부터 빈 글에도 맞는다(늘 `\b` 의 반대)
+            At::NotBoundary => self.word_before(pos) == self.word_after(pos),
         }
     }
 
@@ -254,7 +471,7 @@ impl<'p, 't> Vm<'p, 't> {
         if matched && !info.negate {
             self.commit(base);
         } else {
-            while self.backtrack(base).is_some() {}
+            self.unwind(base);
         }
         matched != info.negate
     }
@@ -270,7 +487,7 @@ impl<'p, 't> Vm<'p, 't> {
     // base 위의 갈림길은 버리고, 칸을 되돌릴 기록만 남긴다(바깥이 되돌아가면 그때 되돌린다)
     fn commit(&mut self, base: usize) {
         let mut kept = self.stack.split_off(base);
-        kept.retain(|f| !matches!(f, Frame::Retry { .. }));
+        kept.retain(|f| matches!(f, Frame::Slot { .. } | Frame::Mark { .. }));
         self.stack.extend(kept);
     }
 }
@@ -287,6 +504,11 @@ fn step_if(ok: bool, pc: usize, pos: usize) -> Step {
     } else {
         Step::Fail
     }
+}
+
+// pos 바로 앞 글자의 시작(맨 앞이면 0)
+fn prev_char(text: &str, pos: usize) -> usize {
+    pos - text[..pos].chars().next_back().map_or(0, char::len_utf8)
 }
 
 // pos 에서 n 글자 앞의 바이트 위치. 글자가 모자라면 None

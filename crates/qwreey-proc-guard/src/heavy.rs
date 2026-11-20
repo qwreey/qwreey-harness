@@ -5,11 +5,12 @@
 //! `choom -n 1000 -- <명령>` 이 무거운 나무를 첫 희생자로 만든다.
 //!
 //! 판정(일부러 싸게. 오탐은 choom 으로 한 번 더 돌리면 된다): 한 구간이 실행기(luau, bash, python 등)를 부르고 같은 구간에
-//! 무거운 낱말이 있으면 막는다. 이미 래퍼가 있거나 git/gh 명령이면 통과. heredoc 본문은 먼저 버린다. 낱말을 값으로 가진 변수는
+//! 무거운 낱말이 있으면 막는다. 래퍼를 실행하는 구간이 있거나(`choom -n 1000 -p $$;` 는 셸 자신을 올려 뒤 구간도 덮는다)
+//! git/gh 명령이면 통과. 래퍼 이름이 글에 있기만 한 것(`echo choom`)은 치지 않는다. heredoc 본문은 먼저 버린다. 낱말을 값으로 가진 변수는
 //! 그것을 펼치는 구간으로 옮아가고, 낱말 폴더로 가는 `cd` 는 뒤의 툴킷 실행기와 스크립트로 옮아간다(인터프리터에는 아니다).
 //! 래퍼는 harness.env 의 HARNESS_HEAVY_WRAP. 비었거나 그 프로그램이 없으면(choom 없는 sandbox) 모두 통과한다.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 use std::sync::LazyLock;
 
 use harness_hook::py::re::{self, Flags, Regex};
@@ -74,8 +75,8 @@ pub struct Rules {
 }
 
 impl Rules {
-    /// python `rules(env)`.
-    pub fn from_layers(layers: &Layers) -> Rules {
+    /// python `rules(env)`. python 이 읽는 낱말 정규식을 여기서 옮기지 못하면(아주 긴 사용자 낱말) `None`: 훅은 막지 않는다.
+    pub fn from_layers(layers: &Layers) -> Option<Rules> {
         let words = |key: &str| -> Vec<String> {
             split_whitespace(layers.get(key).unwrap_or(""))
                 .map(str::to_owned)
@@ -103,9 +104,8 @@ impl Rules {
             .chain(extra)
             .collect();
         let pattern = format!("(?<![A-Za-z])({})", keywords.join("|"));
-        let heavy =
-            Regex::with_flags(&pattern, Flags::IGNORECASE).expect("escaped keywords compile");
-        Rules { executors, heavy }
+        let heavy = Regex::with_flags(&pattern, Flags::IGNORECASE).ok()?;
+        Some(Rules { executors, heavy })
     }
 
     fn is_executor(&self, head: &str) -> bool {
@@ -128,16 +128,15 @@ pub fn run(ctx: &Context, input: &HookInput) -> Option<HookOutput> {
     };
     let wrap = settings::heavy_wrap(&layers, &ctx.env);
     let program = wrap.first()?;
-    let rules = Rules::from_layers(&layers);
+    let rules = Rules::from_layers(&layers)?;
 
-    // 이미 감쌌거나, 위임 드라이버이거나, 낱말이 없으면 통과
-    if cmd.contains(program.as_str())
-        || DELEGATE_SCRIPTS.iter().any(|d| cmd.contains(d))
+    // 위임 드라이버이거나, 낱말이 없거나, 이미 감쌌으면 통과
+    if DELEGATE_SCRIPTS.iter().any(|d| cmd.contains(d))
         || !(rules.heavy.is_match(cmd) || TIMING.is_match(cmd))
     {
         return None;
     }
-    if !denies(cmd, &rules) {
+    if !denies(cmd, &rules, program) {
         return None;
     }
 
@@ -150,8 +149,8 @@ pub fn run(ctx: &Context, input: &HookInput) -> Option<HookOutput> {
     Some(HookOutput::deny(reason))
 }
 
-/// 명령을 막을지(래퍼, 위임 드라이버 검사 뒤의 판정).
-pub fn denies(cmd: &str, rules: &Rules) -> bool {
+/// 명령을 막을지(위임 드라이버, 낱말 검사 뒤의 판정). `wrapper` 는 래퍼 프로그램(`choom`).
+pub fn denies(cmd: &str, rules: &Rules, wrapper: &str) -> bool {
     let segs = segments(cmd);
     if segs
         .first()
@@ -160,10 +159,15 @@ pub fn denies(cmd: &str, rules: &Rules) -> bool {
         return false;
     }
 
+    // 래퍼를 실행하는 구간이 있으면 이미 감쌌다(경로로 불러도 같다)
+    if segs.iter().any(|s| basename(&s.head) == basename(wrapper)) {
+        return false;
+    }
+
     // `F=x/fuzz.luau; luau $F`: 낱말을 값으로 가진 변수는 펼치는 곳에서 낱말로 친다
     let mut bodies = Vec::new();
     let stripped = strip_heredocs(cmd, Some(&mut bodies));
-    let names: Vec<&str> = ASSIGN
+    let names: HashSet<&str> = ASSIGN
         .find_iter(&stripped)
         .iter()
         .filter(|m| {
@@ -172,19 +176,42 @@ pub fn denies(cmd: &str, rules: &Rules) -> bool {
         })
         .filter_map(|m| m.text(&stripped, 1))
         .collect();
-    let uses = (!names.is_empty()).then(|| {
-        let pattern = format!(r"\$\{{?(?:{})(?![A-Za-z0-9_])", names.join("|"));
-        Regex::new(&pattern).expect("variable names compile")
-    });
 
     let timed = TIMING.is_match(&bodies.join("\n"));
-    runs_heavy(&segs, rules, uses.as_ref(), timed)
+    runs_heavy(&segs, rules, &names, timed)
+}
+
+// python 의 os.path.basename
+fn basename(path: &str) -> &str {
+    path.rsplit('/').next().unwrap_or(path)
+}
+
+/// `text` 가 `names` 의 변수를 펼치는가(`$NAME`, `${NAME`, 뒤에 이름 글자가 이어지지 않음).
+///
+/// python 은 `re.compile(r"\$\{?(?:" + "|".join(names) + r")(?![A-Za-z0-9_])").search(text)` 다. 이름은 모두
+/// `[A-Za-z_][A-Za-z0-9_]*` 이고 뒤에 이름 글자가 올 수 없으므로, 맞는 이름은 `$` 또는 `${` 뒤의 이름 글자 줄 전체와 같다.
+/// 정규식으로 만들지 않는 것은 이름이 아주 길면(변수 이름 12만 자) 프로그램이 py::re 의 크기 한도를 넘기 때문이다.
+pub fn expands_any(names: &HashSet<&str>, text: &str) -> bool {
+    let ident_len = |s: &str| {
+        s.bytes()
+            .take_while(|b| b.is_ascii_alphanumeric() || *b == b'_')
+            .count()
+    };
+    text.match_indices('$').any(|(i, _)| {
+        // `\{?` 는 `{` 를 먹은 꼴과 먹지 않은 꼴 둘 다 본다
+        let after = &text[i + 1..];
+        let braced = after.strip_prefix('{');
+        [Some(after), braced]
+            .into_iter()
+            .flatten()
+            .any(|rest| names.contains(&rest[..ident_len(rest)]))
+    })
 }
 
 // 실행기 구간이 무거운 낱말을 (바로 또는 변수로) 부르면 true.
 // `cd <fuzz 폴더> && luau a.luau` 의 낱말은 cd 구간에 있다. 그 폴더는 뒤 구간으로 옮아가지만 툴킷 실행기와 스크립트(`./x`, `*.sh`)에만이다.
 // 인터프리터(python3, bash -c)는 그런 폴더에서 대개 결과를 모으거나 고친다. `timed`(시간 재는 heredoc 본문)도 같이 옮아간다
-fn runs_heavy(segs: &[Segment], rules: &Rules, uses: Option<&Regex>, timed: bool) -> bool {
+fn runs_heavy(segs: &[Segment], rules: &Rules, names: &HashSet<&str>, timed: bool) -> bool {
     let mut carry = timed;
     for seg in segs {
         let h = seg.head.as_str();
@@ -195,7 +222,7 @@ fn runs_heavy(segs: &[Segment], rules: &Rules, uses: Option<&Regex>, timed: bool
         if !rules.is_executor(h) {
             continue;
         }
-        if rules.heavy.is_match(&seg.text) || uses.is_some_and(|u| u.is_match(&seg.text)) {
+        if rules.heavy.is_match(&seg.text) || expands_any(names, &seg.text) {
             return true;
         }
         if carry && (!BASE_EXECUTORS.contains(&h) || h.starts_with("./") || h.ends_with(".sh")) {
@@ -229,7 +256,11 @@ mod tests {
         for (k, v) in extra {
             layers.values.insert((*k).to_owned(), (*v).to_owned());
         }
-        Rules::from_layers(&layers)
+        Rules::from_layers(&layers).expect("rules compile")
+    }
+
+    fn denies(cmd: &str, r: &Rules) -> bool {
+        super::denies(cmd, r, "choom")
     }
 
     #[test]
@@ -262,6 +293,55 @@ mod tests {
         ] {
             assert!(!denies(cmd, &r), "{cmd}");
         }
+    }
+
+    #[test]
+    fn only_a_segment_running_the_wrapper_counts() {
+        let r = rules(&[]);
+
+        // 래퍼를 실행하는 구간: `-p $$` 는 셸을 올려 뒤 구간도 덮는다
+        for cmd in [
+            "choom -n 1000 -- bash run-bench.sh",
+            "choom -n 1000 -p $$; python3 bench.py",
+            "cd x && FOO=1 /usr/bin/choom -n 1000 -- cargo bench",
+            "time choom -n 1000 -- ./bench.sh",
+        ] {
+            assert!(!denies(cmd, &r), "{cmd}");
+        }
+
+        // 이름만 나온다
+        for cmd in [
+            "echo choom; python3 bench.py",
+            "python3 bench.py --note choom",
+            "python3 choom-bench.py",
+        ] {
+            assert!(denies(cmd, &r), "{cmd}");
+        }
+    }
+
+    #[test]
+    fn variable_expansion_without_a_regex() {
+        let names: HashSet<&str> = ["F", "A_1"].into_iter().collect();
+        for (text, want) in [
+            ("luau $F", true),
+            ("luau ${F}/x", true),
+            ("luau ${A_1", true),
+            ("luau $FF", false),
+            ("luau $F1", false),
+            ("luau ${{F}", false),
+            ("luau $$F", true),
+            ("luau F", false),
+            ("luau $A_1-x", true),
+            ("luau $\u{e9}F", false),
+            ("x$", false),
+        ] {
+            assert_eq!(expands_any(&names, text), want, "{text}");
+        }
+
+        // 12만 자 변수 이름: python 은 막는다. 정규식으로 만들면 크기 한도를 넘었다
+        let long = "V".repeat(120_000);
+        let cmd = format!("{long}=bench; python3 ${long}");
+        assert!(denies(&cmd, &rules(&[])));
     }
 
     #[test]

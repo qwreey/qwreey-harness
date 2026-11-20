@@ -9,8 +9,9 @@ use super::{Error, Flags};
 
 /// python `_sre.MAXREPEAT`. 되풀이 수가 이 이상이면 python 은 re.error 가 아닌 OverflowError 를 낸다.
 const MAX_REPEAT: u64 = 4_294_967_295;
-/// 이보다 큰 되풀이 수는 프로그램이 커져 옮기지 않았다.
-const REPEAT_LIMIT: u32 = 1000;
+/// 괄호 중첩 한도. python 은 괄호 하나에 파서 프레임 둘을 써서 훅 안에서는 약 490 겹에서 RecursionError 를 낸다.
+/// 그보다 조금 얕게 잡아 이 깊이를 넘으면 [`Error::TooDeep`] 이다(Rust 쪽 재귀가 스택을 넘지 않게도 한다).
+pub(super) const MAX_DEPTH: usize = 450;
 const SPECIAL: &str = ".\\[{()*+?^$|";
 const FLAG_CHARS: &str = "aiLmsux";
 
@@ -50,6 +51,7 @@ pub(super) fn parse(pattern: &str, flags: Flags) -> Result<Parsed, Error> {
         names: HashMap::new(),
         flags,
         lookbehind: 0,
+        depth: 0,
         unsupported: None,
     };
 
@@ -79,6 +81,8 @@ struct Parser {
     flags: Flags,
     /// 지금 읽는 lookbehind 의 깊이.
     lookbehind: usize,
+    /// 지금 읽는 괄호의 깊이.
+    depth: usize,
     unsupported: Option<&'static str>,
 }
 
@@ -177,6 +181,17 @@ impl Parser {
         })
     }
 
+    // 괄호 안. 너무 깊으면 python 처럼 읽기를 그만둔다(python 은 RecursionError)
+    fn nested(&mut self) -> Result<Node, Error> {
+        if self.depth >= MAX_DEPTH {
+            return Err(Error::TooDeep);
+        }
+        self.depth += 1;
+        let node = self.parse_sub(1);
+        self.depth -= 1;
+        node
+    }
+
     fn parse_seq(&mut self, first: bool) -> Result<Node, Error> {
         let mut seq: Vec<Node> = Vec::new();
         while let Some(tok) = self.peek()? {
@@ -235,9 +250,6 @@ impl Parser {
         // 게으른, 소유 되풀이
         let greedy = !self.eat('?')?;
         let possessive = greedy && self.eat('+')?;
-        if min > REPEAT_LIMIT || max.is_some_and(|m| m > REPEAT_LIMIT) {
-            self.unsupported("repeat count over 1000");
-        }
         seq.push(Node::Repeat(Box::new(Repeat {
             node,
             min,
@@ -300,7 +312,7 @@ impl Parser {
         } else {
             None
         };
-        let inner = self.parse_sub(1)?;
+        let inner = self.nested()?;
         if !self.eat(')')? {
             return Err(syntax("missing ), unterminated subpattern"));
         }
@@ -392,7 +404,7 @@ impl Parser {
         };
 
         self.lookbehind += usize::from(behind);
-        let node = self.parse_sub(1)?;
+        let node = self.nested()?;
         self.lookbehind -= usize::from(behind);
         if !self.eat(')')? {
             return Err(syntax("missing ), unterminated subpattern"));
@@ -508,7 +520,8 @@ impl Parser {
         };
         Ok(match c {
             'A' => Node::At(Anchor::BeginString),
-            'Z' => Node::At(Anchor::EndString),
+            // python 3.14 부터 `\z` 는 `\Z` 와 같다
+            'Z' | 'z' => Node::At(Anchor::EndString),
             'b' => Node::At(Anchor::Boundary),
             'B' => Node::At(Anchor::NotBoundary),
             'd' => cat(Category::Digit),

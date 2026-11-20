@@ -5,10 +5,14 @@
 //! Unicode 규칙이 python 과 달라 같은 패턴의 판정이 갈린다. 여기서는 python `re._parser` 의 읽는 순서와 sre 의 맞추는
 //! 규칙(되돌아가며 찾기)을 그대로 옮겼다.
 //!
-//! 옮긴 것: 글자, `.`, `[...]`, `\d \w \s \b \A \Z` 와 반대, `^ $`, 갈래, 괄호(잡기, 묶음, 이름), 되풀이(`* + ? {m,n}`, 게으른 꼴),
+//! 옮긴 것: 글자, `.`, `[...]`, `\d \w \s \b \A \Z \z` 와 반대, `^ $`, 갈래, 괄호(잡기, 묶음, 이름), 되풀이(`* + ? {m,n}`, 게으른 꼴),
 //! 소유 되풀이, 원자 괄호, 앞뒤 보기, 괄호 참조, 맨 앞 인라인 플래그 `(?i) (?m) (?s)`, 플래그 IGNORECASE, MULTILINE, DOTALL.
+//! 기준은 python 3.14 다(`\z`, 빈 글에 맞는 `\B`).
 //! 옮기지 않은 것([`Error::Unsupported`]): 조건 괄호, 범위 플래그, `(?a)`, `(?x)`, `\N{...}`,
-//! lookbehind 안의 괄호 참조, 1000 보다 큰 되풀이 수.
+//! lookbehind 안의 괄호 참조, 펼치면 명령 10만 개를 넘는 되풀이(`(?:ab){100000}` 꼴. 글자 하나의 되풀이는 펼치지 않는다).
+//!
+//! 글자 하나의 되풀이(`x*`, `[a-z]+?`, `.{2,5}`)는 sre 의 REPEAT_ONE, MIN_REPEAT_ONE 처럼 갈림길을 쌓지 않고 센 뒤 하나씩
+//! 돌려주며, 뒤가 글자면 그 글자가 있는 자리만 해 본다. 패턴이 글자로 시작하면 search 는 그 글자가 있는 자리로 건너뛴다.
 
 mod ast;
 mod class;
@@ -50,6 +54,8 @@ pub enum Error {
     Overflow,
     /// python 은 읽지만 여기서는 옮기지 않은 문법.
     Unsupported(&'static str),
+    /// 괄호가 너무 깊이 겹쳤다. python 은 RecursionError 를 낸다(re.error 가 아니다). 한도는 python 보다 조금 얕다.
+    TooDeep,
 }
 
 impl std::fmt::Display for Error {
@@ -58,6 +64,7 @@ impl std::fmt::Display for Error {
             Error::Syntax(msg) => write!(f, "re.error: {msg}"),
             Error::Overflow => f.write_str("OverflowError: the repetition number is too large"),
             Error::Unsupported(what) => write!(f, "not supported here: {what}"),
+            Error::TooDeep => f.write_str("RecursionError: groups nested too deep"),
         }
     }
 }
@@ -113,6 +120,11 @@ impl Regex {
         Ok(Regex {
             prog: compile::compile(&parsed)?,
         })
+    }
+
+    /// python `pattern.groups`: 잡는 괄호 수(0 번 빼고).
+    pub fn groups(&self) -> usize {
+        self.prog.slots / 2 - 1
     }
 
     /// python `pattern.search(text, pos)`. `pos` 는 바이트 위치(글자 경계)다. 앞 글은 lookbehind 와 `\b` 가 본다.

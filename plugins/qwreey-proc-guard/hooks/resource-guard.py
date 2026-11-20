@@ -571,7 +571,9 @@ def handle(data):
     event = data.get("hook_event_name")
     if event not in ("PreToolUse", "PostToolUse", "PostToolUseFailure"):
         return ""
-    cwd = data.get("cwd") if isinstance(data.get("cwd"), str) and data.get("cwd") else os.getcwd()
+    if data.get("tool_input") and not isinstance(data.get("tool_input"), dict):  # 객체가 아닌 tool_input: 상태 파일을 쓰기 전에 조용히 끝난다
+        return ""
+    cwd =data.get("cwd") if isinstance(data.get("cwd"), str) and data.get("cwd") else os.getcwd()
     env = load_env(cwd)
     disk_on, core_on = switch(env, "PROC_GUARD_DISK"), switch(env, "PROC_GUARD_CORE")
     if not (disk_on or core_on):

@@ -7,12 +7,12 @@
 use std::collections::HashSet;
 use std::fs::{self, File};
 use std::io::{Read, Seek, SeekFrom};
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use harness_hook::py::re::{self, Regex};
+use harness_hook::py::surrogate::{from_os, to_os};
 use harness_hook::py::text::strip;
-
-use super::state::join;
 
 const WALK_DEPTH: usize = 4;
 const WALK_BUDGET: Duration = Duration::from_millis(200);
@@ -101,7 +101,7 @@ pub struct CoreInfo {
 }
 
 /// ELF core 이면 그 정보, 아니면 `None`.
-pub fn core_info(path: &str) -> Option<CoreInfo> {
+pub fn core_info(path: &Path) -> Option<CoreInfo> {
     let mut f = File::open(path).ok()?;
     let mut head = Vec::with_capacity(64);
     (&mut f).take(64).read_to_end(&mut head).ok()?;
@@ -229,6 +229,7 @@ fn u64_at(b: &[u8], at: usize, little: bool) -> Option<u64> {
 /// 찾은 core 하나.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Found {
+    /// python 이 쓰는 꼴의 경로 글(UTF-8 이 아닌 바이트는 surrogateescape 자리표, 출력에서 `\udcff` 꼴).
     pub path: String,
     pub size: u64,
     pub mtime_ns: i128,
@@ -246,14 +247,17 @@ pub fn mtime_after(mtime_ns: i128, since_ns: i128) -> bool {
 }
 
 /// 한 번의 core 찾기. 시한 하나가 걷기, stat, ELF 읽기를 모두 덮는다.
+///
+/// 경로는 OS 경로(`PathBuf`)로 걷는다. UTF-8 이 아닌 폴더 이름(`cwd/\xff/core.5`) 아래의 core 도 열고, 알릴 때만 python 처럼
+/// surrogateescape 글로 바꾼다.
 pub struct Search {
     names: Regex,
     since_ns: i128,
     uid: Option<u32>,
     deadline: Instant,
     pub found: Vec<Found>,
-    files: HashSet<String>,
-    dirs: HashSet<String>,
+    files: HashSet<PathBuf>,
+    dirs: HashSet<PathBuf>,
 }
 
 impl Search {
@@ -275,7 +279,7 @@ impl Search {
     }
 
     // 이름이 맞는 항목: 보통 파일(링크 아님), 내 uid, Pre 뒤 mtime, ELF core 면 found 에 더한다
-    fn consider(&mut self, entry: &fs::DirEntry, path: &str) {
+    fn consider(&mut self, entry: &fs::DirEntry, path: &Path) {
         // DirEntry 의 file_type, metadata 는 링크를 따라가지 않는다(python follow_symlinks=False)
         if !entry.file_type().is_ok_and(|t| t.is_file()) {
             return;
@@ -291,7 +295,7 @@ impl Search {
         self.files.insert(path.to_owned());
         if let Some(info) = core_info(path) {
             self.found.push(Found {
-                path: path.to_owned(),
+                path: from_os(path.as_os_str()),
                 size: meta.len(),
                 mtime_ns,
                 info,
@@ -312,7 +316,7 @@ impl Search {
     }
 
     /// `dir` 을 한 번 훑어 core 를 찾고, `dev` 가 있으면 같은 장치의 하위 폴더 목록을 돌려준다.
-    pub fn scan(&mut self, dir: &str, dev: Option<u64>) -> Vec<String> {
+    pub fn scan(&mut self, dir: &Path, dev: Option<u64>) -> Vec<PathBuf> {
         if !self.dirs.insert(dir.to_owned()) {
             return Vec::new();
         }
@@ -328,8 +332,10 @@ impl Search {
             let Ok(entry) = entry else {
                 break;
             };
-            let name = entry.file_name().to_string_lossy().into_owned();
-            let path = join(dir, &name);
+            // 이름은 python 처럼 surrogateescape 글로 맞춰 보고, 경로는 OS 경로 그대로 잇는다(python os.path.join)
+            let os_name = entry.file_name();
+            let name = from_os(&os_name);
+            let path = dir.join(&os_name);
             if self.names.match_start(&name).is_some() {
                 self.consider(&entry, &path);
             }
@@ -349,7 +355,7 @@ impl Search {
     }
 
     /// `root` 아래를 얕은 것부터 깊이 4 까지 훑는다(숨은 폴더, node_modules, 다른 장치는 건너뜀).
-    pub fn walk(&mut self, root: &str) {
+    pub fn walk(&mut self, root: &Path) {
         let Some(dev) = fs::metadata(root).ok().as_ref().and_then(device) else {
             return;
         };
@@ -394,6 +400,7 @@ fn mtime_ns(m: &fs::Metadata) -> i128 {
 }
 
 /// `since_ns` 뒤에 생긴 ELF core. core_pattern 이 절대 경로면 그 폴더도 본다. `wide` 면 roots 아래를 훑는다.
+/// python 이 OS 경로로 바꾸지 못하는 경로 글이 있으면 `None`(python 은 거기서 예외).
 pub fn find_cores(
     roots: &[&str],
     pattern: &str,
@@ -401,7 +408,7 @@ pub fn find_cores(
     since_ns: i128,
     wide: bool,
     uid: Option<u32>,
-) -> Vec<Found> {
+) -> Option<Vec<Found>> {
     // 패턴의 폴더와 파일 이름(python os.path.split, os.path.basename)
     let cut = pattern.rfind('/').map_or(0, |i| i + 1);
     let (head, template) = pattern.split_at(cut);
@@ -419,18 +426,20 @@ pub fn find_cores(
     };
     let mut search = Search::new(name_regex(template, uses_pid), since_ns, uid);
 
-    // 싼 길: 패턴의 폴더와 각 cwd 의 맨 위
+    // 싼 길: 패턴의 폴더와 각 cwd 의 맨 위. python 이 OS 경로로 바꾸지 못하는 글(파일 이름 바이트가 아닌 서로게이트)이면
+    // python 은 UnicodeEncodeError 로 훅을 멈춘다
     if !place.is_empty() && !place.contains('%') {
-        search.scan(place, None);
+        search.scan(&to_os(place)?, None);
     }
     for r in roots {
+        let root = to_os(r)?;
         if wide {
-            search.walk(r);
+            search.walk(&root);
         } else {
-            search.scan(r, None);
+            search.scan(&root, None);
         }
     }
-    search.found
+    Some(search.found)
 }
 
 #[cfg(test)]

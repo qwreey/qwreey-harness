@@ -426,6 +426,13 @@ for raw in ["", "not json", "[]", "null", '{"hook_event_name": "PostToolUse"}', 
             '{"hook_event_name": "PostToolUseFailure", "tool_name": "Bash", "error": 5, "duration_ms": "x", "cwd": "/"}']:
     rc, so, se = run(raw, {"PROC_GUARD_DISK": "off"})
     check("malformed input exits 0 silently: %r" % raw[:40], rc == 0 and so == "" and se == "")
+# 객체가 아닌 tool_input 은 상태 파일(Pre 기록)을 쓰기 전에 끝난다
+for ti in ([1], "ls", 5):
+    data = {"session_id": "ti", "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_use_id": "t1", "cwd": T,
+            "tool_input": ti}
+    rc, so, se = run(json.dumps(data), {"PROC_GUARD_DISK_MIN_FREE_PCT": "99.9"})
+    check("a non-object tool_input %r exits 0 without writing state" % (ti,),
+          rc == 0 and so == "" and se == "" and not os.path.exists(rg.pre_path(data)))
 rc, so, se = run('{"hook_event_name": "PreToolUse", "tool_name": "Bash", "cwd": "/"}', {"CLAUDE_PLUGIN_DATA": "/proc/forbidden"})
 check("an unwritable state dir exits 0", rc == 0 and se == "")
 check("a non-Bash tool is ignored", rg.handle({"hook_event_name": "PreToolUse", "tool_name": "Read", "cwd": cwd}) == "")
@@ -448,6 +455,16 @@ if real_pattern and not real_pattern.startswith(("|", "/")) and "/" not in real_
     hso = o.get("hookSpecificOutput") or {}
     check("e2e post emits the core action", hso.get("hookEventName") == "PostToolUseFailure"
           and os.path.join(ce, fname) in hso.get("additionalContext", ""))
+
+    # UTF-8 이 아닌 폴더 이름 아래의 core 도 찾고, 경로는 python 의 surrogateescape 꼴(\udcff)로 알린다
+    cb = new_dir("e2e-bytes")
+    base = dict(base, cwd=cb, tool_use_id="e2")
+    run(json.dumps(dict(base, hook_event_name="PreToolUse")), {"PROC_GUARD_DISK": "off"})
+    os.makedirs(os.path.join(cb.encode(), b"\xff"))
+    elf_core(os.path.join(cb.encode(), b"\xff", fname.encode()))
+    rc, so, _ = run(json.dumps(dict(base, hook_event_name="PostToolUseFailure", error="Exit code 139\n")), {"PROC_GUARD_DISK": "off"})
+    check("a core under a non-UTF-8 directory is found and shown as python shows it",
+          rc == 0 and json.dumps(os.path.join(cb, "\udcff", fname))[1:-1] in so)
 else:
     print("skip e2e: core_pattern is %r" % real_pattern)
 

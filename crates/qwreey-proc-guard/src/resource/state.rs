@@ -147,7 +147,8 @@ pub fn read_json(path: &str) -> Dict {
     let Ok(bytes) = fs::read(path) else {
         return Dict::new();
     };
-    match serde_json::from_slice::<Value>(&bytes) {
+    // python 이 쓴 파일 이름의 서로게이트(`\udcff`)도 읽는다
+    match harness_hook::py::surrogate::json_from_slice::<Value>(&bytes) {
         Ok(Value::Dict(d)) => d,
         _ => Dict::new(),
     }

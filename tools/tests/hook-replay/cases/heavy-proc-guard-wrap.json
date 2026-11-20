@@ -39,6 +39,18 @@
    "expect": {"empty": true}
   },
   {
+   "note": "the wrapper run on the shell itself (-p $$) covers the later segments; the bare name of the wrapper program counts too",
+   "hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "oomwrap -n 1000 -p $$; python3 bench.py"}},
+   "expect": {"empty": true}
+  },
+  {
+   "note": "merely naming the wrapper does not count",
+   "hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "echo oomwrap; python3 bench.py"}},
+   "expect": {"decision": "deny", "tags": ["heavy-proc-guard/action"]}
+  },
+  {
    "note": "commit messages mention these words",
    "hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py",
    "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "git commit -m 'add bench'"}},

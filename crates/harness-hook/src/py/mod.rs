@@ -7,6 +7,7 @@ pub mod json;
 pub mod num;
 pub mod path;
 pub mod re;
+pub mod surrogate;
 pub mod tempfile;
 pub mod text;
 pub mod unicode;

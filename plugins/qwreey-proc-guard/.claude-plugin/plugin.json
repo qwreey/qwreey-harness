@@ -1,6 +1,6 @@
 {
   "name": "qwreey-proc-guard",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "벤치·퍼저·성능 실측처럼 무거운 실행이 choom 으로 OOM 희생 순위를 올리지 않은 채 Bash 로 나가면 거절하고 감싸는 법을 알려 준다(PreToolUse, Linux 전용: choom, 공유 메모리 cgroup. choom 이 없는 환경에서는 막지 않는다). pgrep -f·pkill -f 패턴이 자기 셸의 명령줄에 걸리면 while/until 대기 루프는 거절하고 그 밖은 알린다(모든 플랫폼). Bash 명령 앞뒤로 디스크 여유 공간을 재어 낮거나 크게 줄면 사용자에게 알리게 하고(모든 플랫폼), 명령 중 생긴 core dump 는 필요 없으면 지우고 필요하면 사용자에게 알리게 한다(Linux).",
   "author": {
     "name": "qwreey",

@@ -117,6 +117,31 @@ const PATTERNS: &[&str] = &[
     "[^a-z]",
     "\u{d55c}+",
     "\\w+\u{903}",
+    // 빈 바퀴의 잡기(python 은 빈 바퀴를 받고 되풀이를 끝낸다), python 3.14 의 \z 와 빈 글의 \B
+    "()*+\\d",
+    "()*\\d",
+    "(a|)*+\\d",
+    "(a|)*?c",
+    "(a*)*+b",
+    "(a?)*+b",
+    "(a|)+c",
+    "(|a){2,3}c",
+    "(?:()|a)*+\\d",
+    "\\B",
+    "a\\z",
+    "[\\z]",
+    // 글자 하나의 되풀이(REPEAT_ONE)와 큰 되풀이 수
+    " * * *z",
+    "[ab]{2,5}?c",
+    "a*?b",
+    ".{3}x",
+    "(?:a)*b",
+    "x*+x",
+    "\\s+?\\S",
+    "x{2000}",
+    "x{0,99999}y",
+    "(?:x{500}){500}",
+    "(?:){99999}",
 ];
 
 const TEXTS: &[&str] = &[
@@ -132,12 +157,13 @@ const TEXTS: &[&str] = &[
     "",
     "\u{d55c}\u{d55c} abc_\u{903} \u{663}\u{664}s 12.5m",
     "foobarfoobaz abab aa ab\u{c}cd",
+    "     a  z ab  abbbc  1",
 ];
 
 const ALPHABET: &[&str] = &[
     "a", "b", ".", "*", "+", "?", "|", "(", ")", "[", "]", "^", "$", "\\b", "\\w", "\\d", "\\s",
     "{1,2}", "-", "(?:", "(?=", "(?<=", "(?!", "(?>", "++", "*+", "\\1", "s", "\u{17f}", "K", "{",
-    "}", ",", " ", "\\",
+    "}", ",", " ", "\\", "()", "*?", "{0,2}?", "\\B", "\\z", "(|a)",
 ];
 
 // 시드를 고정한 작은 난수(LCG). 시험은 매번 같은 패턴을 만든다
@@ -177,6 +203,7 @@ fn rust_result(pattern: &str, bits: u64, text: &str) -> Option<Value> {
         Ok(re) => re,
         Err(Error::Syntax(_)) => return Some(json!("error")),
         Err(Error::Overflow) => return Some(json!("overflow")),
+        Err(Error::TooDeep) => return Some(json!("recursion")),
         Err(Error::Unsupported(_)) => return None,
     };
     let span = |s: usize, e: usize| json!([chars_at(text, s), chars_at(text, e)]);
@@ -187,7 +214,14 @@ fn rust_result(pattern: &str, bits: u64, text: &str) -> Option<Value> {
         .filter(|m| m.end() > m.start())
         .map(|m| span(m.start(), m.end()))
         .collect();
-    Some(json!({"search": search, "full": re.fullmatch(text).is_some(), "iter": iter}))
+    let groups = re.search(text).map(|m| {
+        (1..=re.groups())
+            .map(|i| m.group(i).map(|(s, e)| span(s, e)))
+            .collect::<Vec<_>>()
+    });
+    Some(
+        json!({"search": search, "full": re.fullmatch(text).is_some(), "iter": iter, "groups": groups}),
+    )
 }
 
 #[test]
@@ -201,7 +235,12 @@ fn regex_matches_python() {
             }
         }
     }
-    for (i, p) in generated(3000).into_iter().enumerate() {
+    // 괄호 중첩: 400 겹은 둘 다 읽고, 600 겹은 python 이 RecursionError
+    for depth in [400, 600] {
+        let p = format!("{}x{}", "(?:".repeat(depth), ")".repeat(depth));
+        cases.push((p, 0, "axb".to_owned()));
+    }
+    for (i, p) in generated(4000).into_iter().enumerate() {
         let t = TEXTS[i % TEXTS.len()];
         cases.push((p, (i % 2) as u64, t.to_owned()));
     }

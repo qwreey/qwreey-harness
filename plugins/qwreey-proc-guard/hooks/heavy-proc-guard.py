@@ -9,8 +9,9 @@ inherited across exec, so `choom -n 1000 -- <cmd>` makes the heavy tree the firs
 
 Heuristic (cheap on purpose — a false positive only costs a retry with choom):
   block when ONE segment (split on && || ; | newline) executes a program (luau / lune / bash / sh /
-  python / node / hyperfine / ./x.sh) and that same segment mentions a heavy keyword, unless the command
-  already contains the wrapper or is a git/gh command (commit messages mention these words).
+  python / node / hyperfine / ./x.sh) and that same segment mentions a heavy keyword, unless a segment
+  already runs the wrapper (`choom ... -- <cmd>`, `choom -n 1000 -p $$; <cmd>`) or it is a git/gh command
+  (commit messages mention these words).
   Heredoc bodies are dropped first: they are data (reports, edit scripts), and their lines would
   otherwise be mistaken for segment heads.
   A variable assigned a keyword value (`F=a/fuzz.luau; luau $F`) carries the keyword to the segments that expand it. Keywords in other segments do not count, except a `cd` into a keyword directory, which carries over to later toolkit runners and scripts (`cd fuzz && luau a.luau`, `cd bench && ./run.sh`) but not to interpreters (`cd bench && python3 summarize.py`).
@@ -126,10 +127,14 @@ def main():
     # The delegate driver (delegate.py, its delegate.sh wrapper, the old agy-delegate.sh) puts choom in front of its
     # own setpriv launch, so the whole agent tree is already the preferred victim; its prompt text may mention
     # bench/perf freely.
-    if wrap[0] in cmd or any(d in cmd for d in DELEGATE_SCRIPTS) or not (heavy.search(cmd) or TIMING.search(cmd)):
+    if any(d in cmd for d in DELEGATE_SCRIPTS) or not (heavy.search(cmd) or TIMING.search(cmd)):
         return 0
     segs = list(segments(cmd))
     if segs and segs[0][0] in EXEMPT_HEADS:
+        return 0
+    # Already wrapped: a segment runs the wrapper program (after env assignments and prefixes). `choom -n 1000 -p $$; <cmd>`
+    # raises the shell itself, so it covers the later segments too. Merely naming it (`echo choom; python3 bench.py`) does not count.
+    if any(os.path.basename(h) == os.path.basename(wrap[0]) for h, _ in segs):
         return 0
     # `F=x/fuzz.luau; luau $F` keeps the keyword in the assignment segment: a variable whose value
     # carries a keyword counts as a keyword wherever it is expanded.

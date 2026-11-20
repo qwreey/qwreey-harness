@@ -24,7 +24,8 @@ def from_bits(bits):
 
 
 def re_case(pattern, flags, text):
-    """정규식 하나를 글 하나에: 오류 종류, 또는 search 의 (시작, 끝), fullmatch 여부, finditer 의 (시작, 끝) 목록. 위치는 글자 단위."""
+    """정규식 하나를 글 하나에: 오류 종류, 또는 search 의 (시작, 끝)과 괄호마다 잡은 (시작, 끝), fullmatch 여부,
+    finditer 의 (시작, 끝) 목록. 위치는 글자 단위."""
     import re
     fl = (re.I if flags & 1 else 0) | (re.M if flags & 2 else 0) | (re.S if flags & 4 else 0)
     try:
@@ -36,9 +37,12 @@ def re_case(pattern, flags, text):
         return "error"
     except OverflowError:
         return "overflow"
+    except RecursionError:
+        return "recursion"
     m = rx.search(text)
+    groups = [list(m.span(i)) if m.span(i) != (-1, -1) else None for i in range(1, rx.groups + 1)] if m else None
     return {"search": [m.start(), m.end()] if m else None, "full": rx.fullmatch(text) is not None,
-            "iter": [[m.start(), m.end()] for m in rx.finditer(text) if m.end() > m.start()]}
+            "iter": [[m.start(), m.end()] for m in rx.finditer(text) if m.end() > m.start()], "groups": groups}
 
 
 def run(nonce_mod, env_mod, case):

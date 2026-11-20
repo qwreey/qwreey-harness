@@ -92,6 +92,14 @@ for c in ['until ! pgrep -f "[t]est-delegate-cli.py"; do sleep 2; done',
     check("passes: " + c.replace("\n", "\\n"), run(c) is None)
 check("bracket trick still matches when the plain text appears elsewhere",
       denied(run('python3 test-delegate.py & until ! pgrep -f "[t]est-delegate"; do sleep 2; done')))
+# python 은 읽고 명령에 맞지 않는 패턴(범위 플래그, (?x), 이름 escape, 큰 되풀이 수)은 통과. Rust 판이 옮기지 않은 문법도 같아야 한다
+for pat in ["(?i:x)y", "(?x)a b", "\\N{EM DASH}", "x{2000}", "(?:x{500}){500}"]:
+    check("unmatched pattern passes: " + pat, run("while pgrep -f '%s'; do sleep 1; done" % pat) is None)
+check("python 3.14 \\z is end of string", denied(run("while pgrep -f 'done\\z'; do sleep 1; done")))
+deep = "(?:" * 600 + "x" + ")" * 600
+check("a pattern nested past the recursion limit is silent", run("while pgrep -f '%s'; do sleep 1; done" % deep) is None)
+check("lone surrogate escapes in the input are read",
+      denied(run("", raw='{"tool_input": {"command": "while pgrep -f job; do sleep 1; done # \\ud800"}}')))
 check("bad stdin is silent", run("", raw="{no") is None)
 check("no command is silent", run("", raw=json.dumps({"tool_input": {}})) is None)
 

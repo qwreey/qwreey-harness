@@ -53,6 +53,13 @@ pub fn handle(ctx: &Context, input: &HookInput) -> Result<Option<String>, Abort>
     let Some(event) = input.hook_event_name().filter(|e| EVENTS.contains(e)) else {
         return Ok(None);
     };
+    // 객체가 아닌 tool_input: 상태 파일을 쓰기 전에 조용히 끝난다
+    if raw
+        .get("tool_input")
+        .is_some_and(|v| crate::context::truthy(v) && !v.is_object())
+    {
+        return Ok(None);
+    }
     let cwd = match input.cwd().filter(|c| !c.is_empty()) {
         Some(c) => c.to_owned(),
         None => current_dir()?,
@@ -105,7 +112,7 @@ pub fn handle(ctx: &Context, input: &HookInput) -> Result<Option<String>, Abort>
             let _ = std::fs::remove_file(pp);
         }
         let cores = if core_on && state::state_trusted(env)? {
-            core_scan(raw, &pre, &cwd, &mut info)
+            core_scan(raw, &pre, &cwd, &mut info)?
         } else {
             Vec::new()
         };
@@ -193,9 +200,9 @@ fn core_scan(
     pre: &Dict,
     cwd: &str,
     info: &mut Vec<String>,
-) -> Vec<Found> {
+) -> Result<Vec<Found>, Abort> {
     let Some((pattern, uses_pid)) = core::read_core_pattern() else {
-        return Vec::new();
+        return Ok(Vec::new());
     };
 
     // Pre 시각, 없으면 지금에서 명령 시간을 뺀 시각(python 에서 bool 도 int 다)
@@ -207,7 +214,7 @@ fn core_scan(
                 now_ns() - (n.as_f64().unwrap_or(0.0) * 1e6) as i128
             }
             Some(serde_json::Value::Bool(b)) => now_ns() - i128::from(*b) * 1_000_000,
-            _ => return Vec::new(),
+            _ => return Ok(Vec::new()),
         },
     };
 
@@ -216,7 +223,7 @@ fn core_scan(
         if !evidence.is_empty() {
             info.push(report::handler_message(&pattern, &evidence));
         }
-        return Vec::new();
+        return Ok(Vec::new());
     }
 
     let mut roots = vec![cwd];
@@ -233,6 +240,7 @@ fn core_scan(
         !evidence.is_empty(),
         my_uid(),
     )
+    .ok_or(Abort)
 }
 
 #[cfg(unix)]
@@ -272,7 +280,7 @@ fn unreported(cores: Vec<Found>, session: &mut Dict) -> Result<Vec<Found>, Abort
     Ok(out)
 }
 
-// python `str((data.get("tool_input") or {}).get("command") or "")`. 참인 tool_input 이 dict 가 아니면 예외
+// python `str((data.get("tool_input") or {}).get("command") or "")`. 참인 tool_input 이 dict 가 아닌 입력은 handle 앞에서 걸렀다
 fn command_text(raw: &serde_json::Map<String, serde_json::Value>) -> Result<String, Abort> {
     let tool_input = match raw.get("tool_input") {
         Some(v) if crate::context::truthy(v) => v.as_object().ok_or(Abort)?,

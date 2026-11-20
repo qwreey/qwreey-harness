@@ -1,0 +1,25 @@
+{
+ "description": "resource-guard: a tool_input that is not an object (a list, a string) ends quietly before any state is written, so the low-disk warning it would have recorded still comes on the next well-formed call. Same /proc trick as resource-guard-low-disk.json (0 free of 0, so the text does not depend on the host)",
+ "files": {
+  "{cfg}/settings.json": {"text": "{\"pluginConfigs\": {\"qwreey-proc-guard@qwreey-harness\": {\"options\": {\"proc_guard_disk_min_free_gib\": 0.001, \"proc_guard_disk_min_free_pct\": 0, \"proc_guard_core\": false}}}}\n"}
+ },
+ "env": {"CLAUDE_PLUGIN_DATA": "{sandbox}/rgdata"},
+ "steps": [
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_use_id": "t1", "cwd": "/proc", "tool_input": ["ls"]},
+   "expect": {"exit": 0, "empty": true}
+  },
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_use_id": "t2", "cwd": "/proc", "tool_input": "ls"},
+   "expect": {"exit": 0, "empty": true}
+  },
+  {
+   "note": "the warning was not recorded by the calls above",
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_use_id": "t3", "cwd": "/proc", "tool_input": {"command": "ls"}},
+   "expect": {"tags": ["resource-guard/warn"], "contains": ["Low disk space before this command: /proc has 0.0 GiB free"]}
+  }
+ ]
+}

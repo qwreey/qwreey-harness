@@ -10,6 +10,7 @@
 
 pub mod args;
 
+use std::collections::HashMap;
 use std::sync::LazyLock;
 
 use harness_hook::py::re::{self, Flags, Regex};
@@ -56,7 +57,7 @@ pub struct Hit {
     pub in_wait_loop: bool,
 }
 
-/// 패턴이 python 에서 OverflowError 를 낸다. python 훅은 그때 아무것도 내지 않는다.
+/// 패턴이 python 에서 re.error 가 아닌 예외(OverflowError, 깊은 중첩의 RecursionError)를 낸다. python 훅은 그때 아무것도 내지 않는다.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PatternOverflow;
 
@@ -92,12 +93,15 @@ pub fn find(cmd: &str) -> Result<Vec<Hit>, PatternOverflow> {
     let mut hits: Vec<Hit> = Vec::new();
     // 열린 루프: true 면 while/until, false 면 for/select
     let mut loops: Vec<bool> = Vec::new();
+    // 명령의 대입은 한 번만 모은다(호출이 수천 개인 명령에서 매번 명령 전체를 훑지 않게)
+    let mut values: Option<Assignments> = None;
     for seg in segments(cmd) {
         for part in BACKGROUND.split(&seg.text) {
             track_loops(part, &mut loops);
             let in_wait_loop = loops.contains(&true);
             for (tool, call) in calls(part) {
-                let Some(pattern) = resolve(&call.pattern, cmd) else {
+                let values = values.get_or_insert_with(|| assignments(cmd));
+                let Some(pattern) = resolve_with(&call.pattern, values) else {
                     continue;
                 };
                 if !self_matches(&pattern, call.icase, call.exact, cmd)? {
@@ -177,21 +181,34 @@ fn lead_ok(before: &str) -> bool {
     })
 }
 
+/// 명령의 대입: 이름마다 마지막 값(따옴표를 뗀 것).
+pub type Assignments = HashMap<String, String>;
+
+/// 명령의 `NAME=value` 대입을 모은다(python 은 dict 에 차례로 넣어 뒤의 값이 이긴다).
+pub fn assignments(cmd: &str) -> Assignments {
+    ASSIGN
+        .find_iter(cmd)
+        .iter()
+        .map(|m| {
+            let name = m.text(cmd, 1).expect("name group");
+            let value = m.text(cmd, 2).expect("value group");
+            (name.to_owned(), unquote(value))
+        })
+        .collect()
+}
+
 /// 패턴의 `$VAR` 를 같은 명령의 대입 값으로 채운다. 모르는 변수가 남으면 `None`.
 pub fn resolve(pattern: &str, cmd: &str) -> Option<String> {
-    let mut values: Vec<(String, String)> = Vec::new();
-    for m in ASSIGN.find_iter(cmd) {
-        let name = m.text(cmd, 1).expect("name group");
-        let value = m.text(cmd, 2).expect("value group");
-        values.retain(|(k, _)| k != name);
-        values.push((name.to_owned(), unquote(value)));
-    }
+    resolve_with(pattern, &assignments(cmd))
+}
 
+/// [`resolve`] 를 미리 모은 대입으로.
+pub fn resolve_with(pattern: &str, values: &Assignments) -> Option<String> {
     let mut missing = false;
     let out = VAR_USE.replace_all(pattern, |m| {
         let name = m.text(pattern, 1).expect("name group");
-        match values.iter().find(|(k, _)| k == name) {
-            Some((_, v)) => v.clone(),
+        match values.get(name) {
+            Some(v) => v.clone(),
             None => {
                 missing = true;
                 pattern[m.start()..m.end()].to_owned()
@@ -214,6 +231,9 @@ fn unquote(v: &str) -> String {
 }
 
 /// 패턴이 셸의 argv(`/bin/bash -c <명령>`)에 맞는가. python 이 읽지 못하는 패턴은 글자 그대로 들어 있는지로 짐작한다.
+///
+/// py::re 가 옮기지 않은 문법(python 은 읽는다)은 맞지 않는다고 본다. 패턴은 명령 안에 있으므로 글자 비교는 늘 맞아서,
+/// python 이 통과시키는 명령을 막게 된다. 훅은 실패로 막지 않는다: 모를 때는 통과다.
 pub fn self_matches(
     pattern: &str,
     icase: bool,
@@ -229,12 +249,13 @@ pub fn self_matches(
     match Regex::with_flags(pattern, flags) {
         Ok(rx) if exact => Ok(rx.fullmatch(&argv).is_some()),
         Ok(rx) => Ok(rx.is_match(&argv)),
-        Err(re::Error::Overflow) => Err(PatternOverflow),
-        // POSIX 클래스처럼 python 이 못 읽는 ERE(여기서 옮기지 않은 문법도)
-        Err(re::Error::Syntax(_) | re::Error::Unsupported(_)) if icase => {
+        Err(re::Error::Overflow | re::Error::TooDeep) => Err(PatternOverflow),
+        Err(re::Error::Unsupported(_)) => Ok(false),
+        // POSIX 클래스처럼 python 이 못 읽는 ERE
+        Err(re::Error::Syntax(_)) if icase => {
             Ok(argv.to_lowercase().contains(&pattern.to_lowercase()))
         }
-        Err(_) => Ok(argv.contains(pattern)),
+        Err(re::Error::Syntax(_)) => Ok(argv.contains(pattern)),
     }
 }
 
@@ -361,6 +382,31 @@ mod tests {
     #[test]
     fn overflowing_pattern_stops_the_hook() {
         assert_eq!(find("pgrep -f 'a{99999999999}'"), Err(PatternOverflow));
+
+        // python 은 깊은 중첩에서 RecursionError 로 아무것도 내지 않는다. 2만 겹도 스택을 넘지 않는다
+        for depth in [600, 20_000] {
+            let p = format!("{}x{}", "(?:".repeat(depth), ")".repeat(depth));
+            let cmd = format!("while pgrep -f '{p}'; do sleep 1; done");
+            assert_eq!(find(&cmd), Err(PatternOverflow), "{depth}");
+        }
+    }
+
+    #[test]
+    fn patterns_python_reads_but_we_do_not_never_deny() {
+        // 범위 플래그, (?x), \N{...}: python 은 읽고 명령에 맞지 않아 통과. 글자 비교로 짐작하면 늘 맞아 막았었다
+        for p in ["(?i:x)y", "(?x)a b", "\\N{EM DASH}", "(?-i:a)b"] {
+            let cmd = format!("while pgrep -f '{p}'; do sleep 1; done");
+            assert!(hits(&cmd).is_empty(), "{p}");
+        }
+
+        // 큰 되풀이 수는 이제 옮긴다: 명령에 맞지 않으니 통과
+        for p in ["x{2000}", "(?:x{500}){500}"] {
+            let cmd = format!("while pgrep -f '{p}'; do sleep 1; done");
+            assert!(hits(&cmd).is_empty(), "{p}");
+        }
+
+        // python 3.14 의 \z
+        assert!(denied("while pgrep -f 'done\\z'; do sleep 1; done"));
     }
 
     #[test]

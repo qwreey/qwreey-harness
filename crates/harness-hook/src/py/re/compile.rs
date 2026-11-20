@@ -2,7 +2,7 @@
 
 use super::Error;
 use super::ast::{Anchor, Node, Repeat};
-use super::class::CompiledClass;
+use super::class::{CompiledClass, literal};
 use super::parse::Parsed;
 
 /// 기계 명령 하나.
@@ -21,8 +21,11 @@ pub(super) enum Inst {
     Save(usize),
     /// 되풀이 한 바퀴의 시작 위치를 적는다.
     Mark(usize),
-    /// 이 바퀴가 아무것도 먹지 않았으면 실패(빈 되풀이가 끝없이 돌지 않게).
-    Progress(usize),
+    /// 이 바퀴가 아무것도 먹지 않았으면 되풀이를 끝내고 뒤로(두 번째 값) 간다. 빈 바퀴가 끝없이 돌지 않게 하되, 그 바퀴가
+    /// 잡은 칸은 남긴다(sre 의 MAX_UNTIL, MIN_UNTIL, POSSESSIVE_REPEAT 가 `ptr == last_ptr` 에서 하는 일).
+    Progress(usize, usize),
+    /// 글자 하나의 되풀이(sre REPEAT_ONE, MIN_REPEAT_ONE). 뒤는 다음 명령이다.
+    RepeatOne(usize),
     Backref(usize),
     /// 앞뒤 보기. 몸은 다음 명령(Jmp) 뒤에 있다.
     Look(usize),
@@ -44,6 +47,30 @@ pub(super) enum At {
     NotBoundary,
 }
 
+/// 되풀이하는 글자 하나.
+#[derive(Clone, Copy, Debug)]
+pub(super) enum One {
+    Lit(u32),
+    Any,
+    Class(usize),
+}
+
+/// 글자 하나의 되풀이.
+#[derive(Clone, Copy, Debug)]
+pub(super) struct RepeatOne {
+    pub item: One,
+    pub min: u32,
+    /// 끝없음은 `u32::MAX`(python 의 상한은 그보다 하나 작다).
+    pub max: u32,
+    pub greedy: bool,
+    /// 바로 뒤 명령이 글자면 그 글자. 그 글자가 없는 자리에서는 뒤를 해 보지 않는다.
+    pub tail_lit: Option<u32>,
+    /// 되풀이 글자가 뒤 글자일 수 없다(`" *z"` 의 공백과 z). 그러면 돌려준 자리에서는 뒤가 맞을 수 없다.
+    pub disjoint_tail: bool,
+    /// ASCII 바이트 b 가 되풀이 글자에 맞으면 b 번째 비트가 켜진다. 글을 바이트로 빨리 센다.
+    pub ascii: u128,
+}
+
 /// 앞뒤 보기 또는 원자 괄호 하나.
 #[derive(Clone, Copy, Debug)]
 pub(super) struct LookInfo {
@@ -61,6 +88,9 @@ pub(super) struct Program {
     pub insts: Vec<Inst>,
     pub classes: Vec<CompiledClass>,
     pub looks: Vec<LookInfo>,
+    pub repeats: Vec<RepeatOne>,
+    /// 일치가 늘 이 글자로 시작한다(IGNORECASE 가 아닐 때). search 가 시작 자리를 건너뛰는 데 쓴다.
+    pub prefix: Option<char>,
     /// 잡기 칸 수(괄호마다 둘, 0 번 포함).
     pub slots: usize,
     /// Mark 칸 수.
@@ -79,6 +109,8 @@ pub(super) fn compile(parsed: &Parsed) -> Result<Program, Error> {
             insts: Vec::new(),
             classes: Vec::new(),
             looks: Vec::new(),
+            repeats: Vec::new(),
+            prefix: None,
             slots: parsed.groups * 2,
             marks: 0,
             ignore_case: parsed.flags.ignore_case,
@@ -92,6 +124,7 @@ pub(super) fn compile(parsed: &Parsed) -> Result<Program, Error> {
     c.node(&parsed.node)?;
     c.emit(Inst::Save(1));
     c.emit(Inst::Match);
+    c.link_tails();
     Ok(c.prog)
 }
 
@@ -101,6 +134,42 @@ struct Compiler {
 }
 
 impl Compiler {
+    // 글자 되풀이마다 바로 뒤 글자, 그리고 패턴 첫 글자
+    fn link_tails(&mut self) {
+        // 글자 되풀이 바로 뒤의 글자
+        for pc in 0..self.prog.insts.len() {
+            let (Inst::RepeatOne(i), Some(&Inst::Lit(c))) =
+                (self.prog.insts[pc], self.prog.insts.get(pc + 1))
+            else {
+                continue;
+            };
+
+            // IGNORECASE 의 짝은 넓어서 겹치지 않는다고 보지 않는다
+            let item = self.prog.repeats[i].item;
+            let disjoint = !self.prog.ignore_case
+                && char::from_u32(c).is_some_and(|ch| !self.one_matches(item, ch));
+            let rep = &mut self.prog.repeats[i];
+            rep.tail_lit = Some(c);
+            rep.disjoint_tail = disjoint;
+        }
+
+        // 패턴 첫 글자(0 번 명령은 Save(0))
+        if let Some(Inst::Lit(c)) = self.prog.insts.get(1)
+            && !self.prog.ignore_case
+        {
+            self.prog.prefix = char::from_u32(*c);
+        }
+    }
+
+    // 되풀이 글자 하나가 c 에 맞는가(vm 의 판정과 같다)
+    fn one_matches(&self, item: One, c: char) -> bool {
+        match item {
+            One::Lit(p) => literal(p, c, self.prog.ignore_case),
+            One::Any => c != '\n' || self.prog.dotall,
+            One::Class(i) => self.prog.classes[i].matches(c),
+        }
+    }
+
     fn emit(&mut self, inst: Inst) -> usize {
         self.prog.insts.push(inst);
         self.prog.insts.len() - 1
@@ -205,7 +274,8 @@ impl Compiler {
         Ok(())
     }
 
-    // 최소 횟수만큼 펼치고, 나머지는 선택 조각을 겹치거나(상한) 고리(끝없음)로. 소유 되풀이는 원자 괄호로 감싼다
+    // 글자 하나면 RepeatOne. 아니면 최소 횟수만큼 펼치고, 나머지는 선택 조각을 겹치거나(상한) 고리(끝없음)로.
+    // 소유 되풀이는 원자 괄호로 감싼다
     fn repeat(&mut self, r: &Repeat) -> Result<(), Error> {
         if r.possessive {
             let plain = Node::Repeat(Box::new(Repeat {
@@ -214,47 +284,104 @@ impl Compiler {
             }));
             return self.atomic(&plain);
         }
+        if let Some(item) = self.one(&r.node) {
+            let ascii = (0u8..128)
+                .filter(|&b| self.one_matches(item, char::from(b)))
+                .fold(0u128, |bits, b| bits | (1 << b));
+            self.prog.repeats.push(RepeatOne {
+                item,
+                min: r.min,
+                max: r.max.unwrap_or(u32::MAX),
+                greedy: r.greedy,
+                tail_lit: None,
+                disjoint_tail: false,
+                ascii,
+            });
+            self.emit(Inst::RepeatOne(self.prog.repeats.len() - 1));
+            return Ok(());
+        }
+
+        // 빈 몸(`(?:){99999}`)은 명령이 늘지 않아 크기 검사에 걸리지 않는다
+        if r.min as usize > MAX_INSTS {
+            return Err(Error::Unsupported("pattern too large"));
+        }
         for _ in 0..r.min {
             self.node(&r.node)?;
         }
         match r.max {
-            Some(max) => {
-                let mut exits = Vec::new();
-                for _ in r.min..max {
-                    let split = self.emit(Inst::Split(0, 0));
-                    exits.push(split);
-                    self.node(&r.node)?;
-                }
-                let end = self.pc();
-                for split in exits {
-                    let (body, skip) = (split + 1, end);
-                    self.patch(split, self.choice(r.greedy, body, skip));
-                }
+            Some(max) => self.optional_copies(r, max),
+            None => self.star(r),
+        }
+    }
+
+    // python _simple: 글자 하나를 먹는 조각(잡지 않는 괄호로 감싼 것도)
+    fn one(&mut self, node: &Node) -> Option<One> {
+        match node {
+            Node::Lit(c) => Some(One::Lit(*c)),
+            Node::Any => Some(One::Any),
+            Node::Class(class) => {
+                let compiled = CompiledClass::new(class, self.prog.ignore_case);
+                self.prog.classes.push(compiled);
+                Some(One::Class(self.prog.classes.len() - 1))
             }
-            None => self.star(r)?,
+            Node::Group(None, inner) => self.one(inner),
+            _ => None,
+        }
+    }
+
+    // 빈 글에도 맞는 몸이면 바퀴마다 시작 위치를 적을 Mark 칸
+    fn progress_mark(&mut self, r: &Repeat) -> Option<usize> {
+        if !r.node.nullable() {
+            return None;
+        }
+        self.prog.marks += 1;
+        Some(self.prog.marks - 1)
+    }
+
+    // 상한까지의 선택 조각: Split(몸, 끝); [Mark]; 몸; [Progress(끝)] 을 겹친다
+    fn optional_copies(&mut self, r: &Repeat, max: u32) -> Result<(), Error> {
+        let mark = self.progress_mark(r);
+        let mut exits = Vec::new();
+        let mut progress = Vec::new();
+        for _ in r.min..max {
+            exits.push(self.emit(Inst::Split(0, 0)));
+            if let Some(m) = mark {
+                self.emit(Inst::Mark(m));
+            }
+            self.node(&r.node)?;
+            if let Some(m) = mark {
+                progress.push((self.emit(Inst::Progress(m, 0)), m));
+            }
+        }
+
+        // 끝을 채운다
+        let end = self.pc();
+        for split in exits {
+            self.patch(split, self.choice(r.greedy, split + 1, end));
+        }
+        for (at, m) in progress {
+            self.patch(at, Inst::Progress(m, end));
         }
         Ok(())
     }
 
+    // L: Split(몸, 끝); [Mark]; 몸; [Progress(끝)]; Jmp(L)
     fn star(&mut self, r: &Repeat) -> Result<(), Error> {
-        let guard = r.node.nullable();
-        let mark = self.prog.marks;
-        if guard {
-            self.prog.marks += 1;
-        }
-
-        // L: Split(몸, 끝); 몸; Jmp(L)
+        let mark = self.progress_mark(r);
         let split = self.emit(Inst::Split(0, 0));
-        if guard {
-            self.emit(Inst::Mark(mark));
+        if let Some(m) = mark {
+            self.emit(Inst::Mark(m));
         }
         self.node(&r.node)?;
-        if guard {
-            self.emit(Inst::Progress(mark));
-        }
+        let progress = mark.map(|m| (self.emit(Inst::Progress(m, 0)), m));
         self.emit(Inst::Jmp(split));
+
+        // 끝을 채운다
         let end = self.pc();
         self.patch(split, self.choice(r.greedy, split + 1, end));
+        if let Some((at, m)) = progress {
+            self.patch(at, Inst::Progress(m, end));
+        }
         Ok(())
     }
 

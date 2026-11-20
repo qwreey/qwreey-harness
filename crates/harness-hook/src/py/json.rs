@@ -3,6 +3,7 @@
 //! python 기본값: 구분자는 `", "` 와 `": "`, 따옴표, 역슬래시, 0x20 미만 제어 문자는 escape(`\n`, `\u001f` 처럼
 //! 소문자 hex)한다. `ensure_ascii=True`(기본)면 0x20..0x7e 밖의 모든 문자를 `\uXXXX`(BMP 밖은 서로게이트 쌍)로 쓴다.
 //! serde_json 의 기본 escape 는 제어 문자 쪽이 python 과 같아서 그대로 쓰고, 구분자와 ASCII 밖 문자만 바꾼다.
+//! 짝 없는 서로게이트의 자리표([`super::surrogate`])는 `ensure_ascii=True` 에서 python 처럼 `\udcff` 꼴 하나로 쓴다.
 
 use std::io::{self, Write};
 
@@ -10,6 +11,7 @@ use serde::Serialize;
 use serde_json::ser::Formatter;
 
 use super::num::float_repr;
+use super::surrogate::unit_of;
 
 /// python `json.dumps` 의 `ensure_ascii`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -84,6 +86,11 @@ impl Formatter for PyFormatter {
                 writer.write_all(&[c as u8])?;
                 continue;
             }
+            // python 글의 짝 없는 서로게이트(자리표)는 그 코드 하나로
+            if let Some(unit) = unit_of(c) {
+                write!(writer, "\\u{unit:04x}")?;
+                continue;
+            }
             for unit in c.encode_utf16(&mut units).iter() {
                 write!(writer, "\\u{unit:04x}")?;
             }
@@ -121,6 +128,20 @@ mod tests {
         assert_eq!(
             to_string(&v, EnsureAscii::No).unwrap(),
             "{\"a\": \"\u{7f}\u{e9}\u{1f600}\\u001f\", \"b\": [1, 2.5, true, null]}"
+        );
+    }
+
+    #[test]
+    fn lone_surrogates_render_like_python() {
+        // python: json.dumps("a\udcff\ud800b") == '"a\\udcff\\ud800b"'
+        let text = format!(
+            "a{}{}b",
+            crate::py::surrogate::placeholder(0xDCFF).unwrap(),
+            crate::py::surrogate::placeholder(0xD800).unwrap()
+        );
+        assert_eq!(
+            to_string(&text, EnsureAscii::Yes).unwrap(),
+            r#""a\udcff\ud800b""#
         );
     }
 }

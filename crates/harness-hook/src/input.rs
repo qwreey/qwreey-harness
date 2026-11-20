@@ -46,12 +46,12 @@ impl HookInput {
 
     /// JSON 바이트를 훅 입력으로.
     ///
-    /// python `json.load` 와 다른 점: 짝 없는 서로게이트를 가리키는 escape, 128 단계보다 깊은 중첩, `1e400` 처럼
-    /// f64 를 넘는 수, `NaN`, `Infinity` 글자를 받지 않는다. python 훅은 그런 입력을 읽고 Rust 훅은 [`InputError::Json`]
-    /// 이 되어 아무것도 내지 않는다(막지 않는 쪽으로 실패한다. 훅은 도구를 멈추지 않는다는 원칙). Claude Code 가 주는
-    /// 입력은 표준 JSON 이라 실제로는 거의 없다.
+    /// 짝 없는 서로게이트 escape(`"\ud800"`)는 python 처럼 받는다: 글에는 자리표 글자로 든다([`crate::py::surrogate`]).
+    /// python `json.load` 와 다른 점: 128 단계보다 깊은 중첩, `1e400` 처럼 f64 를 넘는 수, `NaN`, `Infinity` 글자를
+    /// 받지 않는다. python 훅은 그런 입력을 읽고 Rust 훅은 [`InputError::Json`] 이 되어 아무것도 내지 않는다(막지 않는
+    /// 쪽으로 실패한다. 훅은 도구를 멈추지 않는다는 원칙). Claude Code 가 주는 입력은 표준 JSON 이라 실제로는 거의 없다.
     pub fn from_slice(bytes: &[u8]) -> Result<HookInput, InputError> {
-        match serde_json::from_slice(bytes).map_err(InputError::Json)? {
+        match crate::py::surrogate::json_from_slice(bytes).map_err(InputError::Json)? {
             Value::Object(raw) => Ok(HookInput { raw }),
             _ => Err(InputError::NotObject),
         }
