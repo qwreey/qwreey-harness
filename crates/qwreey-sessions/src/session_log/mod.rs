@@ -12,10 +12,9 @@ pub mod state;
 
 use harness_hook::py::re::{Flags, Regex};
 use harness_hook::py::surrogate::{from_os, unit_of};
-use harness_hook::py::value::Value;
+use harness_hook::py::value::{Dict, Value};
 use harness_hook::tag::Level;
 use harness_hook::{EnsureAscii, HookInput, HookOutput};
-use serde_json::{Map, Value as Json};
 
 use crate::abort::{Abort, Result};
 use crate::brief;
@@ -24,8 +23,8 @@ use crate::context::Context;
 use crate::epoch;
 use crate::fsx::{self, FsError};
 use crate::messages::{self, Trigger};
-use crate::paths::project_root;
-use crate::pyval::{self, Num, ZERO, greater, truthy, truthy_str};
+use crate::paths::{project_root, safe_sid};
+use crate::pyval::{self, Num, ZERO, greater, truthy_str};
 use crate::store::{Store, read_json};
 use spawn::Flush;
 use state::HookState;
@@ -83,27 +82,15 @@ pub fn run(ctx: &Context, event: Event, input: &HookInput) -> Run {
     run
 }
 
-/// 세션 id: python `str(sid)` 글과, 그것이 python 에서도 글이었는지(워커 인자로 넘길 수 있는지).
-#[derive(Clone, Debug, PartialEq, Eq)]
-struct SessionId {
-    text: String,
-    is_str: bool,
-}
-
-// python `data.get("session_id") or os.environ.get("CLAUDE_CODE_SESSION_ID") or ""`
-fn session_id(ctx: &Context, data: &Map<String, Json>) -> Result<Option<SessionId>> {
-    let given = data.get("session_id");
-    if let Some(text) = truthy_str(given, "session_id is a list or object")? {
-        let is_str = matches!(given, Some(Json::String(_)));
-        return Ok(Some(SessionId { text, is_str }));
-    }
-    Ok(ctx
-        .env
-        .get_os_nonempty("CLAUDE_CODE_SESSION_ID")
-        .map(|v| SessionId {
-            text: from_os(v),
-            is_str: true,
-        }))
+// python `data.get("session_id") or os.environ.get("CLAUDE_CODE_SESSION_ID") or ""` 가 상태 파일 이름에 쓸 수 있는 글일 때만
+// (python `safe_sid`). 글이 아닌 id, `../x` 같은 id 는 python 도 조용히 끝낸다
+fn session_id(ctx: &Context, data: &Dict) -> Option<String> {
+    let sid = match data.get("session_id").filter(|v| v.truthy()) {
+        Some(Value::Str(s)) => s.clone(),
+        Some(_) => return None,
+        None => from_os(ctx.env.get_os_nonempty("CLAUDE_CODE_SESSION_ID")?),
+    };
+    safe_sid(&sid).then_some(sid)
 }
 
 /// `transcript_path` 의 python 판정(`transcript and os.path.isfile(transcript)`).
@@ -118,26 +105,25 @@ enum Transcript {
 }
 
 impl Transcript {
-    fn of(value: Option<&Json>) -> Transcript {
+    fn of(value: Option<&Value>) -> Transcript {
         match value {
             None => Transcript::Missing,
-            Some(v) if !truthy(v) => Transcript::Missing,
-            Some(Json::String(s)) => Transcript::Path(s.clone()),
-            Some(Json::Bool(_)) => Transcript::NotPath,
-            Some(Json::Number(n)) if !n.is_f64() => Transcript::NotPath,
+            Some(v) if !v.truthy() => Transcript::Missing,
+            Some(Value::Str(s)) => Transcript::Path(s.clone()),
+            Some(Value::Bool(_) | Value::Int(_) | Value::BigInt(_)) => Transcript::NotPath,
             Some(_) => Transcript::Invalid,
         }
     }
 }
 
 // python `os.environ.get("CLAUDE_PROJECT_DIR") or data.get("cwd") or os.getcwd()`
-fn start_dir(ctx: &Context, data: &Map<String, Json>) -> Result<String> {
+fn start_dir(ctx: &Context, data: &Dict) -> Result<String> {
     if let Some(dir) = ctx.env.get_os_nonempty("CLAUDE_PROJECT_DIR") {
         return Ok(from_os(dir));
     }
     match data.get("cwd") {
-        Some(Json::String(cwd)) if !cwd.is_empty() => Ok(cwd.clone()),
-        Some(v) if truthy(v) => Err(Abort("cwd is not a string")),
+        Some(Value::Str(cwd)) if !cwd.is_empty() => Ok(cwd.clone()),
+        Some(v) if v.truthy() => Err(Abort("cwd is not a string")),
         _ => std::env::current_dir()
             .map(|d| from_os(d.as_os_str()))
             .map_err(|_| Abort("no current directory")),
@@ -145,14 +131,9 @@ fn start_dir(ctx: &Context, data: &Map<String, Json>) -> Result<String> {
 }
 
 /// python `main()` 의 옮긴 이벤트. 출력은 `stdout` 에 두고, 그 뒤의 실패는 `Err`.
-fn handle(
-    ctx: &Context,
-    event: Event,
-    data: &Map<String, Json>,
-    stdout: &mut Option<String>,
-) -> Result<()> {
+fn handle(ctx: &Context, event: Event, data: &Dict, stdout: &mut Option<String>) -> Result<()> {
     // 서브에이전트, 중첩 실행, 꺼짐
-    if data.get("agent_id").is_some_and(truthy) {
+    if data.get("agent_id").is_some_and(Value::truthy) {
         return Ok(());
     }
     if ctx.env.get_os_nonempty("SESSION_LOG_NESTED").is_some() {
@@ -164,13 +145,13 @@ fn handle(
     }
 
     // 세션, 저장소, 훅 상태
-    let Some(sid) = session_id(ctx, data)? else {
+    let Some(sid) = session_id(ctx, data) else {
         return Ok(());
     };
     let transcript = Transcript::of(data.get("transcript_path"));
     let start = start_dir(ctx, data)?;
     let store = Store::new(project_root(&start)?, &config.home(&ctx.env));
-    let mut hs = HookState::load(&store, &sid.text);
+    let mut hs = HookState::load(&store, &sid)?;
     let mut session = Session {
         ctx,
         store: &store,
@@ -198,7 +179,7 @@ fn handle(
     let nonce_sid = truthy_str(data.get("session_id"), "session_id")?;
     *stdout = context_output(ctx, event, &parts, nonce_sid.as_deref())?;
     if hs.changed() {
-        store.save_hstate(&sid.text, hs.value())?;
+        store.save_hstate(&sid, hs.value())?;
     }
     Ok(())
 }
@@ -207,7 +188,7 @@ fn handle(
 struct Session<'a> {
     ctx: &'a Context,
     store: &'a Store,
-    sid: &'a SessionId,
+    sid: &'a str,
     hs: &'a mut HookState,
 }
 
@@ -243,7 +224,7 @@ impl Session<'_> {
     // 띄웠으면 다음 요약이 시작할 줄(python `ws.get("line", 0) + 1` 의 글)
     fn maybe_spawn(&mut self, transcript: &str) -> Result<Option<String>> {
         let config = self.ctx.config();
-        let wstate_path = self.store.wstate_path(&self.sid.text);
+        let wstate_path = self.store.wstate_path(self.sid)?;
         let ws = if fsx::exists(&wstate_path) {
             read_json(&wstate_path)
         } else {
@@ -271,13 +252,10 @@ impl Session<'_> {
         }
 
         // 워커를 띄우고 띄운 때를 남긴다
-        if !self.sid.is_str {
-            return Err(Abort("session_id is not a string"));
-        }
         spawn::spawn(
             self.ctx,
             &Flush {
-                session: &self.sid.text,
+                session: self.sid,
                 transcript,
                 project: &self.store.root,
                 trigger: "PostToolUse",
@@ -295,7 +273,7 @@ impl Session<'_> {
         if line.is_empty() {
             return Ok((level, line));
         }
-        let epoch = epoch::epoch(self.ctx.tempdir(), Some(&self.sid.text));
+        let epoch = epoch::epoch(self.ctx.tempdir(), Some(self.sid));
         let key = format!("pending:{}@{epoch}", trigger.as_str());
         Ok(if self.hs.once(&key)? {
             (level, line)
@@ -318,10 +296,10 @@ pub fn now_secs() -> f64 {
 }
 
 // python `str(value)` 의 앞 n 글자. 목록, 객체는 python repr 을 옮기지 않아 Abort
-fn scan_text(value: Option<&Json>, n: usize, what: &'static str) -> Result<String> {
+fn scan_text(value: Option<&Value>, n: usize, what: &'static str) -> Result<String> {
     let text = match value {
         None => String::new(),
-        Some(v) => pyval::scalar_str(v).ok_or(Abort(what))?,
+        Some(v) => v.scalar_str().ok_or(Abort(what))?,
     };
     Ok(text.chars().take(n).collect())
 }
@@ -332,7 +310,7 @@ fn search(pattern: &str, flags: Flags, text: &str) -> Result<bool> {
 }
 
 // UserPromptSubmit: 사용자 말이 인계를 말하나
-fn asks_handover(data: &Map<String, Json>) -> Result<bool> {
+fn asks_handover(data: &Dict) -> Result<bool> {
     let prompt = scan_text(
         data.get("prompt"),
         PROMPT_SCAN_CHARS,
@@ -342,17 +320,17 @@ fn asks_handover(data: &Map<String, Json>) -> Result<bool> {
 }
 
 // PreToolUse: git commit 앞이면 commit, 인계 스킬 앞이면 handover
-fn pre_tool_trigger(data: &Map<String, Json>) -> Result<Option<Trigger>> {
-    let tool = data.get("tool_name").and_then(Json::as_str);
+fn pre_tool_trigger(data: &Dict) -> Result<Option<Trigger>> {
+    let tool = data.get("tool_name").and_then(Value::as_str);
     if !matches!(tool, Some("Bash" | "Skill")) {
         return Ok(None);
     }
 
     // python `data.get("tool_input") or {}`: 참인 dict 가 아니면 .get 에서 AttributeError
-    let empty = Map::new();
+    let empty = Dict::new();
     let input = match data.get("tool_input") {
-        Some(Json::Object(o)) => o,
-        Some(v) if truthy(v) => return Err(Abort("tool_input is not an object")),
+        Some(Value::Dict(o)) => o,
+        Some(v) if v.truthy() => return Err(Abort("tool_input is not an object")),
         _ => &empty,
     };
     if tool == Some("Bash") {

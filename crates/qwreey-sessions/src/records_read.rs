@@ -11,9 +11,9 @@ use std::fs::OpenOptions;
 use harness_hook::py::num::integral_float_text;
 use harness_hook::py::path::{join, normpath, splitext, which};
 use harness_hook::py::surrogate::from_os;
+use harness_hook::py::value::{Dict, Value};
 use harness_hook::tag::Level;
 use harness_hook::{EnsureAscii, HookInput, HookOutput};
-use serde_json::{Map, Value as Json};
 
 use crate::abort::{Abort, Result};
 use crate::config::{Key, claude_config_dir, home_claude_dir};
@@ -21,7 +21,7 @@ use crate::context::Context;
 use crate::epoch;
 use crate::fsx::{self, FsError};
 use crate::messages;
-use crate::pyval::{truthy, truthy_str};
+use crate::pyval::truthy_str;
 use crate::records_home::{self, is_snapshot, is_under};
 
 /// Read 가 offset/limit 으로 나눠 읽지 못하는 파일(그림은 통째로, PDF 는 pages 로). 막으면 읽을 길이 없다.
@@ -52,7 +52,7 @@ impl Event {
 /// 훅 하나를 돌려 stdout 글을 돌려준다. 낼 것이 없거나 python 에서 예외가 나는 입력이면 `None`.
 pub fn run(ctx: &Context, event: Event, input: &HookInput) -> Option<String> {
     let data = input.raw();
-    let Some(Json::Object(tool_input)) = data.get("tool_input") else {
+    let Some(Value::Dict(tool_input)) = data.get("tool_input") else {
         return None;
     };
 
@@ -60,8 +60,8 @@ pub fn run(ctx: &Context, event: Event, input: &HookInput) -> Option<String> {
     let path = [tool_input.get("file_path"), tool_input.get("path")]
         .into_iter()
         .flatten()
-        .find(|v| truthy(v))?;
-    let Json::String(path) = path else {
+        .find(|v| v.truthy())?;
+    let Value::Str(path) = path else {
         return None;
     };
     if !path.starts_with('/') || ctx.env.get_os_nonempty("SESSION_LOG_NESTED").is_some() {
@@ -80,12 +80,12 @@ pub fn run(ctx: &Context, event: Event, input: &HookInput) -> Option<String> {
 }
 
 // 저장소에 정해 둔 보관 폴더(.claude/session-log.json 의 records_home) 아래인가
-fn in_records_home(ctx: &Context, data: &Map<String, Json>, path: &str) -> Result<bool> {
+fn in_records_home(ctx: &Context, data: &Dict, path: &str) -> Result<bool> {
     let root = match ctx.env.get_os_nonempty("CLAUDE_PROJECT_DIR") {
         Some(dir) => from_os(dir),
         None => match data.get("cwd") {
-            Some(Json::String(cwd)) => cwd.clone(),
-            Some(v) if truthy(v) => return Err(Abort("cwd is not a string")),
+            Some(Value::Str(cwd)) => cwd.clone(),
+            Some(v) if v.truthy() => return Err(Abort("cwd is not a string")),
             _ => String::new(),
         },
     };
@@ -99,18 +99,13 @@ fn in_records_home(ctx: &Context, data: &Map<String, Json>, path: &str) -> Resul
 }
 
 /// PreToolUse(Read): 큰 기록 통째 읽기를 막는다.
-fn gate(
-    ctx: &Context,
-    data: &Map<String, Json>,
-    input: &Map<String, Json>,
-    path: &str,
-) -> Result<Option<HookOutput>> {
+fn gate(ctx: &Context, data: &Dict, input: &Dict, path: &str) -> Result<Option<HookOutput>> {
     // 통째 읽기만, 나눠 읽을 수 있는 파일만
-    let given = |key: &str| input.get(key).is_some_and(|v| !v.is_null());
-    let read_whole = data.get("tool_name").and_then(Json::as_str) == Some("Read")
+    let given = |key: &str| input.get(key).is_some_and(|v| *v != Value::Null);
+    let read_whole = data.get("tool_name").and_then(Value::as_str) == Some("Read")
         && !given("offset")
         && !given("limit")
-        && !input.get("pages").is_some_and(truthy);
+        && !input.get("pages").is_some_and(Value::truthy);
     if !read_whole || NOT_TEXT.contains(&splitext(path).1.to_lowercase().as_str()) {
         return Ok(None);
     }
@@ -162,7 +157,7 @@ fn gate(
 }
 
 /// PostToolUse(Read, Grep): 세션 기록을 읽었으면 스냅숏 경고를 회차마다 한 번.
-fn notice(ctx: &Context, data: &Map<String, Json>, path: &str) -> Result<Option<HookOutput>> {
+fn notice(ctx: &Context, data: &Dict, path: &str) -> Result<Option<HookOutput>> {
     let config = ctx.config();
     if config.disabled() {
         return Ok(None);

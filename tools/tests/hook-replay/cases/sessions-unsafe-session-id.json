@@ -1,0 +1,43 @@
+{
+ "description": "session-log: a session id that cannot name a state file (`../x`, an absolute path, a leading dot, longer than 128 characters, not a string) is skipped quietly: no notice, no hook state, no error log, nothing written outside the store",
+ "files": {
+  "{sandbox}/seed/index.json": "{\"2026-01-02-s8aaaaaa\": {\"session_id\": \"s8\", \"created\": \"2026-01-02T09:00:00\", \"status\": \"pending\", \"sections\": 1}}",
+  "{sandbox}/seed/.state/notices.jsonl": "{\"session_id\": \"s8\", \"rids\": [\"2026-01-02-s8aaaaaa\"], \"sections\": 1, \"seq\": 1}\n",
+  "{sandbox}/seed/.state/notice.seq": "1\n",
+  ".claude/session-log.json": "{\"records_home\": \"docs/sessions/\"}\n"
+ },
+ "setup": [
+  "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); mkdir -p \"{store}/$K\" && cp -r {sandbox}/seed/. \"{store}/$K/\""
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py", "argv": ["PreToolUse"],
+   "payload": {"session_id": "../../x", "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "git commit"}},
+   "expect": {"empty": true}
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py", "argv": ["PostToolUse"],
+   "payload": {"session_id": "/tmp/x", "hook_event_name": "PostToolUse", "tool_name": "Bash"},
+   "expect": {"empty": true}
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py", "argv": ["UserPromptSubmit"],
+   "payload": {"session_id": ".hidden", "hook_event_name": "UserPromptSubmit", "prompt": "handover please"},
+   "expect": {"empty": true}
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py", "argv": ["PreToolUse"],
+   "payload": {"session_id": ["s1"], "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "git commit"}},
+   "expect": {"empty": true}
+  },
+  {
+   "sh": "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); ls -a \"{store}/$K/.state\" | grep -v -x -e . -e .. -e notices.jsonl -e notice.seq && exit 1; test ! -e \"{store}/hook-errors.log\""
+  },
+  {
+   "note": "the longest safe id still works",
+   "hook": "plugins/qwreey-sessions/scripts/hook.py", "argv": ["PreToolUse"],
+   "payload": {"session_id": "a1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234.-_", "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "git commit"}},
+   "expect": {"tags": ["session-log/warn"], "contains": ["1 auto-summarized session record pending import"]}
+  }
+ ]
+}

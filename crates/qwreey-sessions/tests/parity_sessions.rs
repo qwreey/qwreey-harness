@@ -7,7 +7,8 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-use harness_hook::py::json::{EnsureAscii, to_string_indented};
+use harness_hook::py::json::{EnsureAscii, dumps};
+use harness_hook::py::json_load::loads;
 use harness_hook::py::num::parse_int;
 use harness_hook::py::path::{join, pathlib_join, splitext};
 use harness_hook::py::value::Value as PyValue;
@@ -240,11 +241,8 @@ fn tables_and_text_helpers_match_python() {
     assert_eq!(py[7], json!(got));
     let got: Vec<bool> = unders.iter().map(|(p, d)| is_under(p, d)).collect();
     assert_eq!(py[8], json!(got));
-    let value: PyValue = serde_json::from_value(dump).expect("py value");
-    assert_eq!(
-        py[9],
-        json!(to_string_indented(&value, EnsureAscii::No, 1).expect("dumps"))
-    );
+    let value: PyValue = loads(&dump.to_string()).expect("py value");
+    assert_eq!(py[9], json!(dumps(&value, EnsureAscii::No, Some(1))));
 }
 
 #[test]
@@ -356,6 +354,8 @@ fn model_facing_text_matches_python() {
         [1, ["/a.md", "/b.md", "/c.md"], 2, 1],
         [1.0, ["x"], 1, 0.0],
         [2.5, ["x", "y"], 0, 1.0],
+        [2, [], 3, 1],
+        [1, ["x"], 0, 2],
     ]);
     let cases = vec![case(
         "messages",

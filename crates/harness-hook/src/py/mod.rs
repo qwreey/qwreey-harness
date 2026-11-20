@@ -4,6 +4,7 @@
 //! float 표기, `~` 풀기, 경로 정규화가 python 과 조금씩 달라 그 차이가 그대로 훅 출력과 설정 값에 나온다.
 
 pub mod json;
+pub mod json_load;
 pub mod num;
 pub mod path;
 pub mod re;

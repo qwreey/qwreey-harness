@@ -190,12 +190,9 @@
     "hook_event_name": "PreToolUse"
    },
    "expect": {
-    "empty": false,
-    "contains": [
-     "level=\"warn\""
-    ]
+    "empty": true
    },
-   "note": "non-string session id: python str()"
+   "note": "a non-string session id cannot name the state files: quiet"
   },
   {
    "hook": "plugins/qwreey-sessions/scripts/hook.py",

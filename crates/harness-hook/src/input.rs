@@ -2,15 +2,16 @@
 
 use std::io::Read;
 
-use serde_json::{Map, Value};
+use crate::py::json_load::{self, Decode, JsonError};
+use crate::py::value::{Dict, Value};
 
-/// 훅 입력 객체. python 훅의 `data = json.load(sys.stdin)` 자리.
+/// 훅 입력 객체. python 훅의 `data = json.load(sys.stdin)` 자리(`python3 -X utf8` 의 stdin 이라 surrogateescape).
 ///
 /// 필드는 이벤트마다 달라서 원본 객체를 들고, 자주 읽는 것만 접근자로 낸다.
 /// 접근자는 python 의 `data.get(key)` 가 문자열일 때만 값을 준다(다른 타입은 `None`).
 #[derive(Clone, Debug, PartialEq)]
 pub struct HookInput {
-    raw: Map<String, Value>,
+    raw: Dict,
 }
 
 /// stdin 을 훅 입력으로 읽지 못한 이유. python 훅은 이때 아무것도 내지 않고 0 으로 끝난다.
@@ -18,8 +19,8 @@ pub struct HookInput {
 pub enum InputError {
     /// 읽기 실패.
     Io(std::io::Error),
-    /// JSON 이 아니다(UTF-8 이 아닌 바이트 포함).
-    Json(serde_json::Error),
+    /// python `json.loads` 가 받지 않는 글([`json_load`]).
+    Json(JsonError),
     /// JSON 이지만 객체가 아니다.
     NotObject,
 }
@@ -44,22 +45,25 @@ impl HookInput {
         HookInput::from_slice(&bytes)
     }
 
-    /// JSON 바이트를 훅 입력으로.
-    ///
-    /// 짝 없는 서로게이트 escape(`"\ud800"`)는 python 처럼 받는다: 글에는 자리표 글자로 든다([`crate::py::surrogate`]).
-    /// python `json.load` 와 다른 점: 128 단계보다 깊은 중첩, `1e400` 처럼 f64 를 넘는 수, `NaN`, `Infinity` 글자를
-    /// 받지 않는다. python 훅은 그런 입력을 읽고 Rust 훅은 [`InputError::Json`] 이 되어 아무것도 내지 않는다(막지 않는
-    /// 쪽으로 실패한다. 훅은 도구를 멈추지 않는다는 원칙). Claude Code 가 주는 입력은 표준 JSON 이라 실제로는 거의 없다.
+    /// JSON 바이트를 훅 입력으로. python 과 같이 읽는다([`json_load`]): UTF-8 이 아닌 바이트와 짝 없는 서로게이트
+    /// escape 는 자리표 글자, `NaN`, 큰 정수, 깊은 중첩도 받는다.
     pub fn from_slice(bytes: &[u8]) -> Result<HookInput, InputError> {
-        match crate::py::surrogate::json_from_slice(bytes).map_err(InputError::Json)? {
-            Value::Object(raw) => Ok(HookInput { raw }),
-            _ => Err(InputError::NotObject),
+        let value =
+            json_load::from_bytes(bytes, Decode::SurrogateEscape).map_err(InputError::Json)?;
+        match value.into_dict() {
+            Ok(raw) => Ok(HookInput { raw }),
+            Err(_) => Err(InputError::NotObject),
         }
     }
 
     /// 원본 객체.
-    pub fn raw(&self) -> &Map<String, Value> {
+    pub fn raw(&self) -> &Dict {
         &self.raw
+    }
+
+    /// 필드 하나(python `data.get(key)`).
+    pub fn get(&self, key: &str) -> Option<&Value> {
+        self.raw.get(key)
     }
 
     /// 문자열 필드(python `data.get(key)` 가 `str` 일 때).
@@ -93,8 +97,8 @@ impl HookInput {
     }
 
     /// `tool_input` 객체.
-    pub fn tool_input(&self) -> Option<&Map<String, Value>> {
-        self.raw.get("tool_input").and_then(Value::as_object)
+    pub fn tool_input(&self) -> Option<&Dict> {
+        self.raw.get("tool_input").and_then(Value::as_dict)
     }
 
     /// Bash 의 `tool_input.command`(python `(data.get("tool_input") or {}).get("command")` 가 `str` 일 때).
@@ -123,5 +127,22 @@ mod tests {
             HookInput::from_slice(b"{"),
             Err(InputError::Json(_))
         ));
+    }
+
+    #[test]
+    fn reads_what_python_reads() {
+        let deep = format!(
+            "{{\"session_id\": \"s\", \"tool_response\": {}1{}}}",
+            "[".repeat(20_000),
+            "]".repeat(20_000)
+        );
+        let input = HookInput::from_slice(deep.as_bytes()).unwrap();
+        assert_eq!(input.session_id(), Some("s"));
+        drop(input);
+
+        let odd = HookInput::from_slice(b"{\"a\": NaN, \"b\": 1e400, \"c\": \"\xff\"}").unwrap();
+        assert!(matches!(odd.get("a"), Some(Value::Float(f)) if f.is_nan()));
+        assert_eq!(odd.get("b"), Some(&Value::Float(f64::INFINITY)));
+        assert!(odd.str_field("c").is_some());
     }
 }

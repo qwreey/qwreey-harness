@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from . import config, extract as ex, messages, summarize, verify
+from .paths import safe_sid
 from .store import Store, flocked
 
 
@@ -63,6 +64,8 @@ def flush(store: Store, sid: str, transcript: str, trigger: str, force: bool = F
     """결과: {sections, rids, cost_usd, flagged, error?, locked?, budget_stop?}"""
     model = model or config.get("SESSION_LOG_MODEL")
     res = {"sections": 0, "rids": [], "cost_usd": 0.0, "flagged": 0, "calls": 0, "chars": 0, "wall_s": 0.0}
+    if not safe_sid(sid):  # 상태 파일, 잠금, 기록 이름에 쓰는 id 다: 저장소 밖으로 나가는 id 는 요약하지 않는다
+        return dict(res, error="unsafe session id")
     if not os.path.isfile(transcript):
         return dict(res, error="transcript missing")
     store.ensure()

@@ -114,9 +114,11 @@ def replay(case, sb):
             yield i, step, None, None
             continue
 
-        payload = dict(step.get("payload") or {})
-        payload.setdefault("session_id", "s1")
-        payload.setdefault("cwd", "{repo}")
+        payload = step.get("payload") or {}
+        if not isinstance(payload, str):  # 글이면 stdin 에 그대로 쓴다(짝 없는 서로게이트 escape 처럼 json.dumps 가 못 쓰는 입력)
+            payload = dict(payload)
+            payload.setdefault("session_id", "s1")
+            payload.setdefault("cwd", "{repo}")
         yield i, step, payload, dict(case.get("env") or {}, **(step.get("env") or {}))
 
 

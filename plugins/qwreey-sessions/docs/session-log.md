@@ -36,6 +36,8 @@ index.json                         rid → pending | imported(위치, 커밋) | 
 .state/notices.jsonl, errors.log
 ```
 
+`<sid>` 는 파일 이름에 쓸 수 있는 id 만이다(`[A-Za-z0-9][A-Za-z0-9._-]{0,127}`, Claude Code 의 id 는 UUID). `../x`, 절대 경로, 글이 아닌 id 의 훅은 조용히 아무것도 하지 않고, 워커와 CLI 도 그런 id 를 받지 않는다.
+
 기록 형식(coderag §11·§17·§21): frontmatter `title, description, keywords, kind: session, date, session_id, project, project_root, source_transcript, summarizer, verify`.
 절마다 `## <날짜 시각–시각> · <트리거>` 다음 메타 줄 `id: <sid8>-<n> · summary: … · note: L<a>–L<b>` 을 둔다. 그 아래 `### 요약 / 사용자 지시와 정정 / 결정 / 바뀐 파일과 커밋 / 실측 수치 / 실패한 시도 / 미해결과 다음 단계` 가 오고, 항목마다 `(L…)` 근거 줄을 단다.
 

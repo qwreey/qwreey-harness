@@ -158,6 +158,11 @@ impl Sandbox {
 
     /// 입력 글 그대로(짝 없는 서로게이트 escape 등 serde_json 이 만들 수 없는 꼴도) 훅 하나를 돌린다.
     fn run_raw(&self, script: &str, event: &str, side: Side, input: &str) -> (i32, String) {
+        self.run_bytes(script, event, side, input.as_bytes())
+    }
+
+    /// 입력 바이트 그대로(UTF-8 이 아닌 바이트도) 훅 하나를 돌린다.
+    fn run_bytes(&self, script: &str, event: &str, side: Side, input: &[u8]) -> (i32, String) {
         let mut command = match side {
             Side::Python => {
                 let mut c = Command::new("python3");
@@ -194,7 +199,7 @@ impl Sandbox {
             .stdin
             .take()
             .expect("stdin")
-            .write_all(input.as_bytes())
+            .write_all(input)
             .expect("write input");
         let out = child.wait_with_output().expect("hook output");
         (
@@ -567,4 +572,173 @@ fn odd_inputs_match_python() {
         assert_eq!(outputs[0].1, outputs[1].1, "case {i}: output of {raw}");
         assert_eq!(outputs[0].2, outputs[1].2, "case {i}: state files of {raw}");
     }
+}
+
+// 알림 큐에 기록 없는 알림(rids 가 빔) 하나
+fn empty_rids_notice(sb: &Sandbox) {
+    let state = sb.store_dir().join(".state");
+    let notice = json!({"seq": 2, "rids": [], "sections": 1, "flagged": 0});
+    let mut f = std::fs::OpenOptions::new()
+        .append(true)
+        .open(state.join("notices.jsonl"))
+        .expect("notices");
+    writeln!(f, "{notice}").expect("append notice");
+    std::fs::write(state.join("notice.seq"), "2\n").expect("seq");
+}
+
+// index 의 created 가 글, 수, null 로 섞였다
+fn mixed_created(sb: &Sandbox) {
+    let index = json!({
+        "a": {"created": 5, "status": "pending"},
+        "b": {"created": "2026-01-02T09:00:00", "status": "pending"},
+        "c": {"created": null, "status": "pending"},
+        "d": {"created": 1.5, "status": "pending"},
+    });
+    std::fs::write(sb.store_dir().join("index.json"), index.to_string()).expect("index");
+}
+
+// index 의 created 가 모두 수(가장 오래된 날짜를 글로 읽지 못한다)
+fn numeric_created(sb: &Sandbox) {
+    let index =
+        json!({"a": {"created": 5, "status": "pending"}, "b": {"created": 2, "status": "pending"}});
+    std::fs::write(sb.store_dir().join("index.json"), index.to_string()).expect("index");
+}
+
+// 저장소 설정에 아주 깊은 값(python 은 읽고, Rust 도 되부름 없이 읽고 버려야 한다)과 보관 폴더의 기록 하나
+fn deep_repo_config(sb: &Sandbox) {
+    let deep = format!(
+        "{{\"records_home\": \"docs/s\", \"x\": {}1{}}}",
+        "[".repeat(45_000),
+        "]".repeat(45_000)
+    );
+    sb.write("repo/.claude/session-log.json", &deep);
+    sb.write("repo/docs/s/a.md", "x\n");
+}
+
+/// (훅, 이벤트, 입력 바이트, 돌리기 전에 상태를 바꿀 일). 입력의 `<repo>` 는 시험 저장소 경로다.
+type EdgeCase = (&'static str, &'static str, Vec<u8>, Option<fn(&Sandbox)>);
+
+/// python 만 읽던 입력(UTF-8 이 아닌 바이트, NaN, 깊은 중첩), 파일 이름에 쓸 수 없는 세션 id, 꼴이 어긋난 상태(빈 rids, 섞인 created).
+#[test]
+fn json_ids_and_state_edges_match_python() {
+    // 입력 조각
+    let commit = |sid: &str| {
+        format!(r#"{{"session_id": {sid}, "tool_name": "Bash", "tool_input": {{"command": "git commit"}}}}"#)
+            .into_bytes()
+    };
+    let deep = format!(
+        r#"{{"session_id": "s1", "tool_name": "Bash", "tool_input": {{"command": "git commit"}}, "tool_response": {}NaN{}}}"#,
+        "[".repeat(5000),
+        "]".repeat(5000)
+    );
+    let post = br#"{"session_id": "s1", "tool_name": "Bash"}"#.to_vec();
+
+    // 경우들
+    let cases: Vec<EdgeCase> = vec![
+        ("hook.py", "PreToolUse", b"{\"session_id\": \"s1\", \"tool_name\": \"Bash\", \"tool_input\": {\"command\": \"git commit \xff\"}}".to_vec(), None),
+        ("hook.py", "PreToolUse", b"{\"session_id\": \"s\xff\", \"tool_name\": \"Bash\", \"tool_input\": {\"command\": \"git commit\"}}".to_vec(), None),
+        ("hook.py", "PreToolUse", b"{\"session_id\": \"s1\", \"tool_name\": \"Bash\", \"tool_input\": {\"command\": \"git commit\"}, \xff}".to_vec(), None),
+        ("hook.py", "PreToolUse", br#"{"session_id": "s1", "tool_name": "Bash", "tool_input": {"command": "git commit", "n": NaN}, "x": 1e400, "y": 123456789012345678901234567890123456789012}"#.to_vec(), None),
+        ("hook.py", "PreToolUse", deep.into_bytes(), None),
+        ("hook.py", "PreToolUse", commit(r#""../x""#), None),
+        ("hook.py", "PreToolUse", commit(r#""/abs/x""#), None),
+        ("hook.py", "PreToolUse", commit(r#"".x""#), None),
+        ("hook.py", "PreToolUse", commit(r#"["s1"]"#), None),
+        ("hook.py", "PreToolUse", commit(&format!("\"{}\"", "a".repeat(129))), None),
+        ("hook.py", "PreToolUse", commit(&format!("\"{}\"", "a".repeat(128))), None),
+        ("hook.py", "PostToolUse", br#"{"session_id": "../../s1", "tool_name": "Bash"}"#.to_vec(), Some(add_notice)),
+        ("hook.py", "PostToolUse", post.clone(), Some(empty_rids_notice)),
+        ("hook.py", "PreToolUse", commit(r#""s1""#), Some(mixed_created)),
+        ("hook.py", "PreToolUse", commit(r#""s1""#), Some(numeric_created)),
+        ("hook.py", "PostToolUse", post, Some(mixed_created)),
+        (
+            "records_read.py",
+            "PostToolUse",
+            br#"{"session_id": "s1", "tool_name": "Read", "tool_input": {"file_path": "<repo>/docs/s/a.md"}}"#.to_vec(),
+            Some(deep_repo_config),
+        ),
+    ];
+
+    // 경우마다 새 시험 폴더 둘에서 python 과 Rust
+    for (i, (script, event, raw, before)) in cases.iter().enumerate() {
+        let mut outputs = Vec::new();
+        for side in [Side::Python, Side::Rust] {
+            let sb = Sandbox::new(&format!("edge{i}-{side:?}"));
+            if let Some(before) = before {
+                before(&sb);
+            }
+            let repo = sb.path("repo").to_string_lossy().into_owned();
+            let text = String::from_utf8_lossy(raw);
+            let raw = if text.contains("<repo>") {
+                text.replace("<repo>", &repo).into_bytes()
+            } else {
+                raw.clone()
+            };
+            let (rc, out) = sb.run_bytes(script, event, side, &raw);
+            outputs.push((rc, out, sb.state_files()));
+        }
+
+        let shown: String = String::from_utf8_lossy(raw).chars().take(160).collect();
+        assert_eq!(outputs[0].0, outputs[1].0, "case {i}: exit code");
+        assert_eq!(outputs[0].1, outputs[1].1, "case {i}: output of {shown}");
+        assert_eq!(
+            outputs[0].2, outputs[1].2,
+            "case {i}: state files of {shown}"
+        );
+    }
+}
+
+/// 워커는 이 훅이 물려받은 fd 를 받지 않는다(python `close_fds=True`).
+///
+/// fd 7 에 테스트의 stdout 파이프를 걸어 훅을 띄우고, 가짜 `setsid`(워커 자리)가 fd 7 을 가졌는지 적게 한다.
+/// 워커가 파이프를 쥐면 읽는 쪽이 EOF 를 기다린다.
+#[test]
+fn worker_does_not_inherit_hook_fds() {
+    let sb = Sandbox::new("fds");
+    sb.write(
+        "bin/setsid",
+        "#!/bin/sh\nif [ -e /dev/fd/7 ]; then echo open; else echo closed; fi >> \"$SPAWN_LOG\"\n",
+    );
+
+    // sh 가 fd 7 을 close-on-exec 없이 열고 훅 바이너리로 바뀐다
+    let input = json!({
+        "session_id": "s1",
+        "hook_event_name": "PostToolUse",
+        "cwd": sb.path("repo"),
+        "transcript_path": sb.path("t.jsonl"),
+    });
+    let mut child = Command::new("/bin/sh")
+        .args(["-c", "exec 7>&1; exec \"$0\" hook session-log PostToolUse"])
+        .arg(env!("CARGO_BIN_EXE_qwreey-sessions"))
+        .env_clear()
+        .envs(sb.env())
+        .current_dir(sb.path("repo"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("start hook");
+    child
+        .stdin
+        .take()
+        .expect("stdin")
+        .write_all(input.to_string().as_bytes())
+        .expect("write input");
+
+    // 쿨다운이 지났고 트랜스크립트가 자라 워커를 띄운다
+    let out = child.wait_with_output().expect("hook output");
+    assert!(out.status.success());
+
+    // 가짜 setsid 는 기다리지 않고 떼어 띄웠다: 적을 때까지 잠깐 기다린다
+    let log = sb.path("spawn.log");
+    for _ in 0..200 {
+        if std::fs::read_to_string(&log).is_ok_and(|t| t.ends_with('\n')) {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert_eq!(
+        std::fs::read_to_string(&log).expect("worker ran"),
+        "closed\n"
+    );
 }

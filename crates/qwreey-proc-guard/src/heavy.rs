@@ -13,6 +13,7 @@
 use std::collections::{BTreeSet, HashSet};
 use std::sync::LazyLock;
 
+use harness_hook::nonce::Unencodable;
 use harness_hook::py::re::{self, Flags, Regex};
 use harness_hook::py::text::split_whitespace;
 use harness_hook::settings::{self, Layers};
@@ -114,7 +115,23 @@ impl Rules {
 }
 
 /// 훅 하나를 돌린다. 막을 때만 deny 출력.
-pub fn run(ctx: &Context, input: &HookInput) -> Option<HookOutput> {
+///
+/// `Err` 는 python 판이 nonce 를 만들다 잡지 않은 예외로 끝나는 자리다(종료 코드 1, 출력 없음).
+pub fn run(ctx: &Context, input: &HookInput) -> Result<Option<HookOutput>, Unencodable> {
+    let Some(wrap) = decide(ctx, input) else {
+        return Ok(None);
+    };
+    let reason = tag::harness_hook(
+        TAG,
+        Level::Action,
+        ctx.nonce(input)?.as_ref(),
+        &deny_reason(&wrap),
+    );
+    Ok(Some(HookOutput::deny(reason)))
+}
+
+// 막을지 정한다. 막으면 래퍼 명령(deny 사유에 쓴다)
+fn decide(ctx: &Context, input: &HookInput) -> Option<Vec<String>> {
     // choom 과 공유 메모리 cgroup 은 Linux 의 일이다. Windows 에서는 래퍼 설정과 상관없이 막지 않는다
     if cfg!(windows) {
         return None;
@@ -136,17 +153,7 @@ pub fn run(ctx: &Context, input: &HookInput) -> Option<HookOutput> {
     {
         return None;
     }
-    if !denies(cmd, &rules, program) {
-        return None;
-    }
-
-    let reason = tag::harness_hook(
-        TAG,
-        Level::Action,
-        ctx.nonce(input).as_ref(),
-        &deny_reason(&wrap),
-    );
-    Some(HookOutput::deny(reason))
+    denies(cmd, &rules, program).then_some(wrap)
 }
 
 /// 명령을 막을지(위임 드라이버, 낱말 검사 뒤의 판정). `wrapper` 는 래퍼 프로그램(`choom`).

@@ -37,7 +37,7 @@ fn main() -> ExitCode {
     if !input.command().is_some_and(|c| c.contains("smoke-deny")) {
         return ExitCode::SUCCESS;
     }
-    let nonce = Nonce::for_session(&env, input.session_id());
+    let nonce = Nonce::for_session(&env, input.session_id()).unwrap_or(None);
     let body = format!("smoke deny; wrap is `{}`.", wrap.join(" "));
     let reason = tag::harness_hook("smoke", Level::Action, nonce.as_ref(), &body);
     emit(&HookOutput::deny(reason).render(EnsureAscii::Yes));

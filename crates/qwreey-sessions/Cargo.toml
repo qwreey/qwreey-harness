@@ -12,11 +12,18 @@ path = "src/main.rs"
 
 [dependencies]
 harness-hook = { path = "../harness-hook" }
-serde_json = { workspace = true }
 # 상태 파일을 쓸 임시 파일 이름(python tempfile.mkstemp 의 무작위 꼬리).
 getrandom = { workspace = true }
 # pending 기록의 나이(일)는 이 기기 시간대의 오늘로 센다(python date.today).
 jiff = { workspace = true }
+
+# 워커에 이 훅이 물려받은 fd(>2)를 넘기지 않는다(session_log::spawn).
+[target.'cfg(unix)'.dependencies]
+close_fds = { workspace = true }
+
+# 대조 시험이 python 쪽과 주고받는 JSON.
+[dev-dependencies]
+serde_json = { workspace = true }
 
 [lints]
 workspace = true

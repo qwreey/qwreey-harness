@@ -14,7 +14,8 @@ tools/tests/hook-replay/cases/*.json 하나가 사례 하나다. 사례마다 �
      {"sh": "<저장소에서 돌릴 bash 명령>"},
      {"write": {"<경로>": 글, ...}}]}
 
-payload 에 session_id 가 없으면 "s1", cwd 가 없으면 "{repo}" 를 넣는다. 태그는 그 세션의 고정 salt nonce 를 달아야 맞은 것으로 본다.
+payload 에 session_id 가 없으면 "s1", cwd 가 없으면 "{repo}" 를 넣는다. payload 가 글이면 그 JSON 글을 자리 표시도 바꾸지 않고
+stdin 에 그대로 쓴다(짝 없는 서로게이트 escape 처럼 json.dumps 가 쓰지 못하는 입력). 태그는 그 세션의 고정 salt nonce 를 달아야 맞은 것으로 본다.
 contains 와 not_contains 는 출력에서 모델(과 systemMessage)에게 가는 글을 기계 경로를 지운 꼴(<sandbox>, <root>)로 본다.
 """
 import json
@@ -87,7 +88,8 @@ def run_case(path):
                     errors.append("%s: no hook script %s" % (where, step["hook"]))
                     continue
                 result = sb.run(step["hook"], payload, argv=step.get("argv") or (), env=env)
-                for msg in check(result, step.get("expect") or {}, payload["session_id"], sb):
+                sid = (json.loads(payload) if isinstance(payload, str) else payload).get("session_id")
+                for msg in check(result, step.get("expect") or {}, sid, sb):
                     errors.append("%s (%s): %s\n    output: %s" % (where, step["hook"].rsplit("/", 1)[-1], msg,
                                                                    sb.normalize(result.text())[:600].replace("\n", "\n    ")))
         except SetupFailed as e:

@@ -10,7 +10,9 @@ use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use harness_hook::Env;
-use harness_hook::py::json::{EnsureAscii, to_string};
+use harness_hook::py::json::{EnsureAscii, dumps_dict};
+use harness_hook::py::json_load::{Decode, from_bytes};
+use harness_hook::py::surrogate::unit_of;
 use harness_hook::py::tempfile::gettempdir;
 use harness_hook::py::value::{Dict, Value};
 use sha2::{Digest, Sha256};
@@ -111,20 +113,25 @@ pub fn state_trusted(env: &Env) -> Result<bool, Abort> {
 }
 
 /// 세션 id 의 sha256 hex 앞 16자(없으면 "none" 의).
-pub fn session_key(session_id: Option<&serde_json::Value>) -> String {
+///
+/// 짝 없는 서로게이트가 든 id 는 python 이 UTF-8 로 바꾸다 예외를 낸다(상태 파일을 쓰기 전): [`Abort`].
+pub fn session_key(session_id: Option<&Value>) -> Result<String, Abort> {
     let sid = session_id
         .and_then(py_str)
         .unwrap_or_else(|| "none".to_owned());
+    if sid.chars().any(|c| unit_of(c).is_some()) {
+        return Err(Abort);
+    }
     let mut hex: String = Sha256::digest(sid.as_bytes())
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect();
     hex.truncate(16);
-    hex
+    Ok(hex)
 }
 
 /// Pre 기록 이름에 쓸 tool_use_id: 영문자, 숫자, `_`, `-` 만 80자까지. 비면 `None`(Pre 기록 없음).
-pub fn tool_use_key(tool_use_id: Option<&serde_json::Value>) -> Option<String> {
+pub fn tool_use_key(tool_use_id: Option<&Value>) -> Option<String> {
     let raw = tool_use_id.and_then(py_str).unwrap_or_default();
     let tid: String = raw
         .chars()
@@ -148,10 +155,10 @@ pub fn read_json(path: &str) -> Dict {
         return Dict::new();
     };
     // python 이 쓴 파일 이름의 서로게이트(`\udcff`)도 읽는다
-    match harness_hook::py::surrogate::json_from_slice::<Value>(&bytes) {
-        Ok(Value::Dict(d)) => d,
-        _ => Dict::new(),
-    }
+    from_bytes(&bytes, Decode::Strict)
+        .ok()
+        .and_then(|v| v.into_dict().ok())
+        .unwrap_or_default()
 }
 
 /// `path` 와 없는 부모를 0700 으로 만든다(python `os.makedirs` 의 mode 는 맨 끝 폴더에만 걸려 따로 짰다).
@@ -181,7 +188,7 @@ pub fn write_json(path: &str, value: &Dict) {
 
 fn try_write_json(path: &str, value: &Dict) -> std::io::Result<()> {
     ensure_dir(&dirname(path))?;
-    let text = to_string(value, EnsureAscii::Yes).expect("string keys");
+    let text = dumps_dict(value, EnsureAscii::Yes, None);
     let tmp = format!("{path}.{}.tmp", std::process::id());
     fs::File::create(&tmp)?.write_all(text.as_bytes())?;
     fs::rename(&tmp, path)
@@ -272,16 +279,18 @@ mod tests {
 
     #[test]
     fn keys_and_pre_paths() {
-        let sid = serde_json::json!("abc");
-        assert_eq!(session_key(Some(&sid)), "ba7816bf8f01cfea");
-        assert_eq!(session_key(None), session_key(Some(&serde_json::json!(""))));
-        let tid = serde_json::json!("../../x y");
-        assert_eq!(tool_use_key(Some(&tid)).as_deref(), Some("xy"));
-        assert_eq!(tool_use_key(Some(&serde_json::json!("../"))), None);
+        let sid = Value::Str("abc".into());
+        assert_eq!(session_key(Some(&sid)).unwrap(), "ba7816bf8f01cfea");
+        let lone = harness_hook::py::surrogate::placeholder(0xDCFF).unwrap();
+        assert!(session_key(Some(&Value::Str(format!("s{lone}")))).is_err());
         assert_eq!(
-            tool_use_key(Some(&serde_json::json!(12))).as_deref(),
-            Some("12")
+            session_key(None).unwrap(),
+            session_key(Some(&Value::Str(String::new()))).unwrap()
         );
+        let tid = Value::Str("../../x y".into());
+        assert_eq!(tool_use_key(Some(&tid)).as_deref(), Some("xy"));
+        assert_eq!(tool_use_key(Some(&Value::Str("../".into()))), None);
+        assert_eq!(tool_use_key(Some(&Value::Int(12))).as_deref(), Some("12"));
         assert_eq!(pre_path("/d", "k", "xy"), "/d/pre/k-xy.json");
     }
 }

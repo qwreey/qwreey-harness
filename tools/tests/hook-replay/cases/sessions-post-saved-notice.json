@@ -1,5 +1,5 @@
 {
- "description": "session-log PostToolUse and UserPromptSubmit pass the worker's saved notices once (cursor in the hook state), and stay quiet on a notice python cannot render",
+ "description": "session-log PostToolUse and UserPromptSubmit pass the worker's saved notices once (cursor in the hook state); a notice without records (empty rids) is skipped and the cursor still moves past it",
  "files": {
   "{sandbox}/seed/.state/notices.jsonl": "{\"session_id\": \"s1\", \"rids\": [\"2026-11-01-s1aaaaaa\"], \"sections\": 2, \"flagged\": 1, \"seq\": 1, \"ts\": \"2026-11-01T01:00:00\"}\n{\"session_id\": \"s1\", \"rids\": [\"2026-11-01-s1aaaaaa\", \"2026-11-01-s1aaaaaa-2\"], \"sections\": 1, \"seq\": 2, \"ts\": \"2026-11-01T02:00:00\"}\nnot json\n",
   "{sandbox}/seed/.state/notice.seq": "2\n",
@@ -90,7 +90,7 @@
    "expect": {
     "empty": true
    },
-   "note": "python IndexError on a notice without records: no output, cursor not saved"
+   "note": "a notice without records is skipped: no output, the cursor moves past it"
   },
   {
    "hook": "plugins/qwreey-sessions/scripts/hook.py",
@@ -120,12 +120,12 @@
      "session-log/info"
     ],
     "contains": [
-     "saved 5.0 new sections",
+     "saved 4.0 new sections",
      "(+2 more)",
-     "1.0 item failed"
+     "1.0 item failed the source check and is marked"
     ]
    },
-   "note": "a new session reads every notice: the empty rids add none"
+   "note": "a new session reads every notice: the one without records adds no sections"
   }
  ]
 }

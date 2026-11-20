@@ -12,12 +12,15 @@ path = "src/main.rs"
 
 [dependencies]
 harness-hook = { path = "../harness-hook" }
-serde_json = { workspace = true }
 sha2 = { workspace = true }
 
 # statvfs(디스크 여유), flock(세션 기록 잠금), getuid(상태 폴더 소유자). std 에 없고 unsafe 는 금지라 쓴다(Q41).
 [target.'cfg(unix)'.dependencies]
 rustix = { workspace = true }
+
+# 대조 시험이 python 쪽과 주고받는 JSON.
+[dev-dependencies]
+serde_json = { workspace = true }
 
 [lints]
 workspace = true

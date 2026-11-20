@@ -57,11 +57,13 @@ pub fn started(trigger: &str, line_from: &str, line_to: Option<&str>) -> String 
     )
 }
 
-/// 요약 완료 알림(python `saved`). `files` 가 비면 python 은 IndexError 라 `None`.
+/// 요약 완료 알림(python `saved`). `files` 가 비면 알릴 곳이 없어 빈 글.
 ///
 /// 절 수와 표시한 항목 수는 알림 큐에서 더한 python 수라 float 일 수 있다(글과 단수 판정이 python 과 같게).
-pub fn saved(sections: Num, files: &[String], pending: usize, flagged: Num) -> Option<String> {
-    let first = files.first()?;
+pub fn saved(sections: Num, files: &[String], pending: usize, flagged: Num) -> String {
+    let Some(first) = files.first() else {
+        return String::new();
+    };
     let place = if files.len() == 1 {
         first.clone()
     } else {
@@ -76,9 +78,14 @@ pub fn saved(sections: Num, files: &[String], pending: usize, flagged: Num) -> O
     // 원문 대조에 걸린 항목, 받아 가지 않은 기록
     if flagged.compare(Num::Int(0)) != Some(Ordering::Equal) {
         out += &format!(
-            " {} item{} failed the source check and are marked \u{26a0}.",
+            " {} item{} failed the source check and {} marked \u{26a0}.",
             flagged.text(),
-            num_plural(flagged)
+            num_plural(flagged),
+            if num_plural(flagged).is_empty() {
+                "is"
+            } else {
+                "are"
+            }
         );
     }
     if pending > 0 {
@@ -87,7 +94,7 @@ pub fn saved(sections: Num, files: &[String], pending: usize, flagged: Num) -> O
             plural(pending as i64)
         );
     }
-    Some(out)
+    out
 }
 
 fn num_plural(n: Num) -> &'static str {
@@ -200,11 +207,12 @@ pub fn pending_propose(
     );
 
     format!(
-        "Session log: {} have piled up outside the repo (oldest from {oldest_date}, {oldest_days} day{}) and this repo has no records home. \
+        "Session log: {} {} piled up outside the repo (oldest from {oldest_date}, {oldest_days} day{}) and this repo has no records home. \
          Propose a location to the user, one of: {}. \
          Save the choice with `session-log home <path>` (commit `.claude/session-log.json` so coworkers share it), \
          then run `session-log import`.",
         records(count),
+        if count == 1 { "has" } else { "have" },
         plural(oldest_days),
         options.join("; ")
     )

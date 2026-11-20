@@ -25,7 +25,7 @@ sys.path.insert(0, HERE)
 import compact_epoch  # noqa: E402
 import harness_nonce  # noqa: E402
 from sllib import anchors, brief, config, messages, records_home  # noqa: E402
-from sllib.paths import project_root, short_home  # noqa: E402
+from sllib.paths import project_root, safe_sid, short_home  # noqa: E402
 from sllib.redact import redact  # noqa: E402
 from sllib.store import Store  # noqa: E402
 
@@ -156,6 +156,10 @@ def main() -> None:
         return
     sid = data.get("session_id") or os.environ.get("CLAUDE_CODE_SESSION_ID") or ""
     if not sid:
+        return
+    if not safe_sid(sid):  # 상태 파일 이름에 쓸 수 없는 id(`../x` 등): 이 세션의 상태 없이는 알림을 한 번으로 줄이지 못해 조용히 끝낸다
+        if event == "PreCompact":
+            compact_epoch.bump_for_precompact("qwreey-sessions", data)
         return
     transcript = data.get("transcript_path") or ""
     start = os.environ.get("CLAUDE_PROJECT_DIR") or data.get("cwd") or os.getcwd()

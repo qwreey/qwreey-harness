@@ -5,7 +5,7 @@ use std::sync::LazyLock;
 use harness_hook::py::num::parse_decimal;
 use harness_hook::py::re::{self, Regex};
 use harness_hook::py::text::split_whitespace;
-use serde_json::Value;
+use harness_hook::py::value::{Dict, Value};
 
 use super::core::{CoreInfo, Found, signal_name};
 use super::disk::gib;
@@ -25,17 +25,17 @@ static EXIT_CODE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\AExit code (\d+)").expect("built-in pattern"));
 
 /// 명령이 크래시한 흔적(짧은 글), 없으면 빈 글. 종료 코드는 PostToolUseFailure 의 error 첫 줄에서 읽는다.
-pub fn crash_evidence(raw: &serde_json::Map<String, Value>) -> String {
+pub fn crash_evidence(raw: &Dict) -> String {
     let text = if raw.get("hook_event_name").and_then(Value::as_str) == Some("PostToolUseFailure") {
         raw.get("error")
             .and_then(Value::as_str)
             .unwrap_or("")
             .to_owned()
     } else {
-        let resp = raw.get("tool_response").and_then(Value::as_object);
+        let resp = raw.get("tool_response").and_then(Value::as_dict);
         ["stdout", "stderr"]
             .iter()
-            .filter_map(|k| resp.and_then(|r| r.get(*k)).and_then(Value::as_str))
+            .filter_map(|k| resp.and_then(|r| r.get(k)).and_then(Value::as_str))
             .collect::<Vec<_>>()
             .join("\n")
     };
@@ -150,20 +150,20 @@ pub fn handler_message(pattern: &str, evidence: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
+    use harness_hook::py::json_load::loads;
 
-    fn evidence(v: Value) -> String {
-        crash_evidence(v.as_object().unwrap())
+    fn evidence(json: &str) -> String {
+        crash_evidence(loads(json).unwrap().as_dict().unwrap())
     }
 
     #[test]
     fn reads_crash_evidence() {
         let failure =
-            json!({"hook_event_name": "PostToolUseFailure", "error": "Exit code 139\nboom"});
+            r#"{"hook_event_name": "PostToolUseFailure", "error": "Exit code 139\nboom"}"#;
         assert_eq!(evidence(failure), "exit code 139, SIGSEGV");
-        let out = json!({"hook_event_name": "PostToolUse", "tool_response": {"stdout": "x", "stderr": "(signal: 11, SIGSEGV)"}});
+        let out = r#"{"hook_event_name": "PostToolUse", "tool_response": {"stdout": "x", "stderr": "(signal: 11, SIGSEGV)"}}"#;
         assert_eq!(evidence(out), "output says `signal: 11`");
-        let fine = json!({"hook_event_name": "PostToolUseFailure", "error": "Exit code 1\n"});
+        let fine = r#"{"hook_event_name": "PostToolUseFailure", "error": "Exit code 1\n"}"#;
         assert_eq!(evidence(fine), "");
     }
 

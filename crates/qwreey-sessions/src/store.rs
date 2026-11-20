@@ -15,18 +15,19 @@ use std::fs::{self, OpenOptions};
 use std::io::{ErrorKind, Write};
 
 use harness_hook::nonce::redact_text;
-use harness_hook::py::json::{EnsureAscii, to_string_indented};
+use harness_hook::py::json::{EnsureAscii, dumps};
+use harness_hook::py::json_load::{Decode, from_bytes};
 use harness_hook::py::num::parse_int;
 use harness_hook::py::path::pathlib_join;
-use harness_hook::py::surrogate::{json_from_slice, unit_of};
+use harness_hook::py::surrogate::unit_of;
 use harness_hook::py::text::strip;
 use harness_hook::py::value::{Dict, Value};
 
 use crate::abort::{Abort, Result};
 use crate::date::Date;
 use crate::fsx::{self, FsError};
-use crate::paths::project_key;
-use crate::pyval::{self, Num, ZERO, greater};
+use crate::paths::{project_key, safe_sid};
+use crate::pyval::{self, ZERO, greater};
 
 /// 한 저장소의 외부 저장소 자리. 경로는 모두 python `str(Path)` 꼴이다.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -56,7 +57,7 @@ pub struct PendingSummary {
 pub fn read_json(path: &str) -> Value {
     let parsed = fsx::os_path(path)
         .and_then(|os| fs::read(os).ok())
-        .and_then(|bytes| json_from_slice::<Value>(&bytes).ok());
+        .and_then(|bytes| from_bytes(&bytes, Decode::Strict).ok());
     parsed.unwrap_or_else(|| Value::Dict(Dict::new()))
 }
 
@@ -81,14 +82,23 @@ impl Store {
         fsx::is_dir(&self.dir)
     }
 
-    /// 워커 상태 파일. `sid` 는 python `f"{sid}"` 글이다(정리하지 않는다: python 판과 같은 자리).
-    pub fn wstate_path(&self, sid: &str) -> String {
-        pathlib_join(&self.state, &format!("{sid}.json"))
+    /// `.state/<sid><suffix>`(python `session_file`). 파일 이름에 쓸 수 없는 id 는 python 의 ValueError 자리라 [`Abort`]:
+    /// 훅은 그런 id 를 먼저 걸러 조용히 끝낸다([`crate::paths::safe_sid`]).
+    pub fn session_file(&self, sid: &str, suffix: &str) -> Result<String> {
+        if !safe_sid(sid) {
+            return Err(Abort("session id is not a safe file name"));
+        }
+        Ok(pathlib_join(&self.state, &format!("{sid}{suffix}")))
+    }
+
+    /// 워커 상태 파일.
+    pub fn wstate_path(&self, sid: &str) -> Result<String> {
+        self.session_file(sid, ".json")
     }
 
     /// 훅 상태 파일.
-    pub fn hstate_path(&self, sid: &str) -> String {
-        pathlib_join(&self.state, &format!("{sid}.hook.json"))
+    pub fn hstate_path(&self, sid: &str) -> Result<String> {
+        self.session_file(sid, ".hook.json")
     }
 
     /// 기록 파일.
@@ -98,8 +108,9 @@ impl Store {
 
     /// 훅 상태를 쓴다(python `save_hstate`).
     pub fn save_hstate(&self, sid: &str, state: &Value) -> Result<()> {
+        let path = self.hstate_path(sid)?;
         mkdir_all(&self.state)?;
-        write_json(&self.hstate_path(sid), state)
+        write_json(&path, state)
     }
 
     /// 알림 큐의 마지막 번호(python `notice_seq`). 읽지 못하면 0.
@@ -124,10 +135,10 @@ impl Store {
         // 줄마다 알림 하나
         let mut out = Vec::new();
         for line in text.split_inclusive('\n') {
-            let Ok(notice) = json_from_slice::<Value>(line.as_bytes()) else {
+            let Ok(notice) = harness_hook::py::json_load::loads(line) else {
                 continue;
             };
-            let Value::Dict(notice) = notice else {
+            let Ok(notice) = notice.into_dict() else {
                 return Err(Abort("notice is not a dict"));
             };
             if greater(notice.get("seq").unwrap_or(&ZERO), seq, "notice seq")? {
@@ -144,7 +155,7 @@ impl Store {
 
     /// 받아 가지 않은 기록, 만든 때 순서(python `pending()`).
     pub fn pending(&self) -> Result<Vec<PendingRecord>> {
-        let Value::Dict(index) = self.index() else {
+        let Ok(index) = self.index().into_dict() else {
             return Err(Abort("index.json is not a dict"));
         };
         let mut out = Vec::new();
@@ -156,7 +167,7 @@ impl Store {
                 });
             }
         }
-        sort_by_created(&mut out)?;
+        sort_by_created(&mut out);
         Ok(out)
     }
 
@@ -167,11 +178,11 @@ impl Store {
             return Ok(None);
         };
 
-        // 가장 오래된 기록의 날짜와 나이. 날짜를 읽지 못하면 0 일
-        let Value::Str(created) = &first.created else {
-            return Err(Abort("created is not a string"));
+        // 가장 오래된 기록의 날짜와 나이. 글이 아니면 빈 날짜, 날짜를 읽지 못하면 0 일
+        let oldest: String = match &first.created {
+            Value::Str(created) => created.chars().take(10).collect(),
+            _ => String::new(),
         };
-        let oldest: String = created.chars().take(10).collect();
         let today = Date::today().ok_or(Abort("no local date"))?;
         let days = Date::fromisoformat(&oldest).map_or(0, |d| today.days_since(d));
         Ok(Some(PendingSummary {
@@ -183,10 +194,11 @@ impl Store {
 }
 
 static EMPTY: Value = Value::Str(String::new());
+static NULL: Value = Value::Null;
 
 /// python `Store.is_pending(e)`.
 fn is_pending(entry: &Value) -> Result<bool> {
-    let status = pyval::get(entry, "status", &Value::Null, "index entry")?;
+    let status = pyval::get(entry, "status", &NULL, "index entry")?;
     match status.as_str() {
         Some("dismissed") => Ok(false),
         Some("imported") => greater(
@@ -198,32 +210,59 @@ fn is_pending(entry: &Value) -> Result<bool> {
     }
 }
 
-// python `list.sort(key=created)`: 글끼리, 수끼리는 비교하고, 섞였으면 TypeError. 하나 이하면 비교하지 않는다
-fn sort_by_created(items: &mut [PendingRecord]) -> Result<()> {
-    if items.len() <= 1 {
-        return Ok(());
-    }
+// python `list.sort(key=lambda e: created_order(e.get("created", "")))`(안정 정렬)
+fn sort_by_created(items: &mut [PendingRecord]) {
+    items.sort_by(|a, b| created_order(&a.created, &b.created));
+}
 
-    // 모두 글
-    if items.iter().all(|p| matches!(p.created, Value::Str(_))) {
-        items.sort_by(|a, b| a.created.as_str().cmp(&b.created.as_str()));
-        return Ok(());
+/// python `store.created_order` 의 순서: 글(코드 포인트 순), 수(float 로 견준다, bool 도 수), NaN, 그 밖(서로 같다).
+///
+/// 꼴이 섞인 index 에서도 순서가 정해진다. i128 밖의 정수는 python 처럼 float 로 바꿔 견준다(넘치면 무한대).
+pub fn created_order(a: &Value, b: &Value) -> Ordering {
+    match (created_rank(a), created_rank(b)) {
+        (Rank::Text(x), Rank::Text(y)) => x.chars().map(py_code).cmp(y.chars().map(py_code)),
+        (Rank::Number(x), Rank::Number(y)) => x.partial_cmp(&y).expect("NaN has its own rank"),
+        (x, y) => x.group().cmp(&y.group()),
     }
+}
 
-    // 모두 수(NaN 은 python 이 순서 없이 두므로 옮기지 않았다)
-    let comparable = items
-        .iter()
-        .all(|p| Num::of(&p.created).is_some_and(|n| n.compare(n).is_some()));
-    if !comparable {
-        return Err(Abort("created values do not compare"));
+enum Rank<'a> {
+    Text(&'a str),
+    Number(f64),
+    NaN,
+    Other,
+}
+
+impl Rank<'_> {
+    fn group(&self) -> u8 {
+        match self {
+            Rank::Text(_) => 0,
+            Rank::Number(_) => 1,
+            Rank::NaN => 2,
+            Rank::Other => 3,
+        }
     }
-    items.sort_by(|a, b| {
-        let (Some(x), Some(y)) = (Num::of(&a.created), Num::of(&b.created)) else {
-            return Ordering::Equal;
-        };
-        x.compare(y).unwrap_or(Ordering::Equal)
-    });
-    Ok(())
+}
+
+fn created_rank(v: &Value) -> Rank<'_> {
+    let number = match v {
+        Value::Str(s) => return Rank::Text(s),
+        Value::Bool(b) => f64::from(u8::from(*b)),
+        Value::Int(i) => *i as f64,
+        Value::BigInt(digits) => digits.parse().unwrap_or(f64::NAN),
+        Value::Float(f) => *f,
+        _ => return Rank::Other,
+    };
+    if number.is_nan() {
+        Rank::NaN
+    } else {
+        Rank::Number(number)
+    }
+}
+
+// python 의 코드 포인트(서로게이트 자리표는 그 서로게이트)
+fn py_code(c: char) -> u32 {
+    unit_of(c).unwrap_or(u32::from(c))
 }
 
 /// python `Path.mkdir(parents=True, exist_ok=True)`.
@@ -234,9 +273,7 @@ pub fn mkdir_all(dir: &str) -> Result<()> {
 
 /// python `write_json(path, obj)`: `json.dumps(obj, ensure_ascii=False, indent=1)` 를 [`atomic_write`].
 pub fn write_json(path: &str, value: &Value) -> Result<()> {
-    let text =
-        to_string_indented(value, EnsureAscii::No, 1).map_err(|_| Abort("state is not JSON"))?;
-    atomic_write(path, &text)
+    atomic_write(path, &dumps(value, EnsureAscii::No, Some(1)))
 }
 
 /// python `atomic_write(path, text)`: nonce 를 지우고, 같은 폴더의 임시 파일(0600)에 쓴 뒤 바꿔 놓는다.
@@ -314,30 +351,52 @@ mod tests {
     fn paths_follow_pathlib() {
         let store = Store::new("/r/x.y".to_owned(), "/h/");
         assert_eq!(store.dir, "/h/-r-x-y");
-        assert_eq!(store.hstate_path("s"), "/h/-r-x-y/.state/s.hook.json");
+        assert_eq!(
+            store.hstate_path("s").unwrap(),
+            "/h/-r-x-y/.state/s.hook.json"
+        );
+        assert!(store.hstate_path("../x").is_err());
         assert_eq!(store.record_path("a//b"), "/h/-r-x-y/records/a/b.md");
     }
 
     #[test]
     fn sorts_created_like_python() {
-        let mut items: Vec<PendingRecord> = ["b", "a"]
-            .iter()
-            .map(|s| PendingRecord {
-                created: Value::Str((*s).to_owned()),
-            })
-            .collect();
-        sort_by_created(&mut items).unwrap();
-        assert_eq!(items[0].created, Value::Str("a".to_owned()));
-
-        // 글과 수가 섞이면 python 은 TypeError
-        let mut mixed = vec![
-            PendingRecord {
-                created: Value::Int(1),
-            },
-            PendingRecord {
-                created: Value::Str("a".to_owned()),
-            },
+        let values = [
+            Value::Int(3),
+            Value::Str("b".into()),
+            Value::Null,
+            Value::Float(f64::NAN),
+            Value::Float(1.5),
+            Value::Bool(true),
+            Value::Str("a".into()),
+            Value::BigInt("1".repeat(400)),
+            Value::List(vec![]),
         ];
-        assert!(sort_by_created(&mut mixed).is_err());
+        let mut items: Vec<PendingRecord> = values
+            .iter()
+            .map(|v| PendingRecord { created: v.clone() })
+            .collect();
+        sort_by_created(&mut items);
+
+        // python: sorted([...], key=created_order)
+        let got: Vec<String> = items
+            .iter()
+            .map(|p| p.created.scalar_str().unwrap_or_else(|| "[]".into()))
+            .collect();
+        let big = "1".repeat(400);
+        assert_eq!(
+            got,
+            [
+                "a",
+                "b",
+                "True",
+                "1.5",
+                "3",
+                big.as_str(),
+                "nan",
+                "None",
+                "[]"
+            ]
+        );
     }
 }

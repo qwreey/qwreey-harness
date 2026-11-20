@@ -45,6 +45,34 @@ def re_case(pattern, flags, text):
             "iter": [[m.start(), m.end()] for m in rx.finditer(text) if m.end() > m.start()], "groups": groups}
 
 
+def _unplace(text):
+    """Rust 쪽 서로게이트 자리표(U+10F800..U+10FFFF, py/surrogate.rs)를 python 의 짝 없는 서로게이트로."""
+    return "".join(chr(ord(c) - 0x10F800 + 0xD800) if ord(c) >= 0x10F800 else c for c in text)
+
+
+def _nonce_or_error(nonce_mod, sid):
+    try:
+        return nonce_mod.nonce(sid)
+    except UnicodeEncodeError:
+        return "UnicodeEncodeError"
+
+
+def _json_case(raw, mode, indent):
+    """python 훅이 읽는 대로 JSON 을 읽고 두 꼴(indent 면 세 꼴)로 쓴다.
+
+    stdin 은 python3 -X utf8 의 sys.stdin(surrogateescape), file 은 open(encoding="utf-8")(strict)이고, 둘 다 줄 끝을 바꾸는
+    글 스트림이다. 쓴 글은 서로게이트를 그대로 담으려고 surrogatepass 바이트의 hex 로 준다."""
+    import io
+    import json
+    errors = "surrogateescape" if mode == "stdin" else "strict"
+    try:
+        v = json.loads(io.TextIOWrapper(io.BytesIO(raw), encoding="utf-8", errors=errors).read())
+    except (ValueError, RecursionError) as e:
+        return {"error": type(e).__name__}
+    forms = [json.dumps(v), json.dumps(v, ensure_ascii=False)] + ([json.dumps(v, ensure_ascii=False, indent=1)] if indent else [])
+    return {"dumps": [f.encode("utf-8", "surrogatepass").hex() for f in forms]}
+
+
 def run(nonce_mod, env_mod, case):
     os.environ.clear()
     os.environ.update(case.get("env") or {})
@@ -53,6 +81,8 @@ def run(nonce_mod, env_mod, case):
     env_mod._MANIFEST.clear()
     op, a = case["op"], case.get("args") or {}
 
+    if op == "json":
+        return [_json_case(bytes.fromhex(hx), a["mode"], indent) for hx, indent in a["inputs"]]
     if op == "isspace":
         return [c for c in range(0x110000) if chr(c).isspace()]
     if op == "splitlines":
@@ -82,7 +112,7 @@ def run(nonce_mod, env_mod, case):
 
     # nonce
     if op == "nonce":
-        return [nonce_mod.nonce(sid) for sid in a["sids"]]
+        return [_nonce_or_error(nonce_mod, _unplace(sid)) for sid in a["sids"]]
     if op == "attr":
         return nonce_mod.attr(a["sid"])
     if op == "claim_path":

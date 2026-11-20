@@ -1,4 +1,5 @@
-//! `qwreey-proc-guard hook <이름>`: 훅 입력(stdin JSON)을 읽어 그 훅을 돌리고 출력(stdout JSON)을 쓴다. 종료 코드는 늘 0 이다.
+//! `qwreey-proc-guard hook <이름>`: 훅 입력(stdin JSON)을 읽어 그 훅을 돌리고 출력(stdout JSON)을 쓴다. 종료 코드는 0 이다.
+//! 하나만 다르다: heavy-proc-guard 는 python 판처럼 짝 없는 서로게이트가 든 session_id 에서 nonce 를 만들지 못하면 1 이다.
 //!
 //! 이름은 python 스크립트 이름과 같다: `heavy-proc-guard`, `self-match-guard`, `resource-guard`. 이벤트는 stdin 의
 //! `hook_event_name` 에서 읽으므로 hooks.json 이 한 훅을 여러 이벤트에 걸어도 하위 명령은 하나다.
@@ -34,7 +35,14 @@ fn main() -> ExitCode {
 
     let ctx = Context::from_process();
     let output = match name {
-        "heavy-proc-guard" => heavy::run(&ctx, &input),
+        "heavy-proc-guard" => match heavy::run(&ctx, &input) {
+            Ok(out) => out,
+            // python 판은 이 예외를 잡지 않아 traceback 과 함께 1 로 끝난다
+            Err(_) => {
+                eprintln!("heavy-proc-guard: session_id has a lone surrogate, no nonce");
+                return ExitCode::from(1);
+            }
+        },
         "self-match-guard" => self_match::run(&ctx, &input),
         _ => resource::run(&ctx, &input),
     };

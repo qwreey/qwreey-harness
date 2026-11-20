@@ -78,7 +78,8 @@ pub fn run(ctx: &Context, input: &HookInput) -> Option<HookOutput> {
         return None;
     }
 
-    let nonce = ctx.nonce(input);
+    // python 은 nonce 를 만들다 예외가 나면 아무것도 내지 않는다
+    let nonce = ctx.nonce(input).ok()?;
     let notices = messages(&hits);
     Some(match deny_text(&hits) {
         Some(text) => {

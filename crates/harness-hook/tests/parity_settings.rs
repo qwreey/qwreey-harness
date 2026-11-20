@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 
 use common::{TempDir, case, pairs, python};
 use harness_hook::Env;
+use harness_hook::py::json_load::loads;
 use harness_hook::settings::envfile::{self, Values};
 use harness_hook::settings::options::option_value;
 use harness_hook::settings::{self, Layers, LoadRequest, Project};
@@ -443,7 +444,7 @@ fn parse_and_option_values_match_python() {
         .as_array()
         .unwrap()
         .iter()
-        .map(|v| option_value(v, &rust_env))
+        .map(|v| option_value(&loads(&v.to_string()).expect("JSON"), &rust_env))
         .collect();
     want.push(json!(options));
 

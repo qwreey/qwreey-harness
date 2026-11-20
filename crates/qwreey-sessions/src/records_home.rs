@@ -3,8 +3,8 @@
 //! 설정은 저장소 안 `.claude/session-log.json` 이다: `{"records_home": "docs/sessions"}` 면 그 폴더로 import 하고,
 //! `{"archive_only": true}` 면 기록을 저장소 밖에만 두고 pending 알림을 끈다.
 
+use harness_hook::py::json_load::{Decode, from_bytes};
 use harness_hook::py::path::{join, normpath};
-use harness_hook::py::surrogate::json_from_slice;
 use harness_hook::py::text::strip;
 use harness_hook::py::value::{Dict, Value};
 
@@ -30,11 +30,8 @@ pub fn load(root: &str) -> Dict {
     };
     let parsed = std::fs::read(os)
         .ok()
-        .and_then(|bytes| json_from_slice::<Value>(&bytes).ok());
-    match parsed {
-        Some(Value::Dict(d)) => d,
-        _ => Dict::new(),
-    }
+        .and_then(|bytes| from_bytes(&bytes, Decode::Strict).ok());
+    parsed.and_then(|v| v.into_dict().ok()).unwrap_or_default()
 }
 
 /// 기록을 저장소 밖에만 두는가(`archive_only` 가 참).

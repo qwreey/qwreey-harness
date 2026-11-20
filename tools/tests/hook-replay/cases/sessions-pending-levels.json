@@ -122,9 +122,11 @@
     "hook_event_name": "PreToolUse"
    },
    "expect": {
-    "empty": true
+    "contains": [
+     "2 auto-summarized session records pending import (oldest from x, 0 days)"
+    ]
    },
-   "note": "python TypeError while sorting: no output"
+   "note": "created values of mixed types sort (strings first, then numbers) instead of raising TypeError"
   },
   {
    "sh": "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); printf '[1, 2]' > \"{store}/$K/index.json\""

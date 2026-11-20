@@ -46,8 +46,8 @@ pub fn handle(ctx: &Context, input: &HookInput) -> Result<Option<String>, Abort>
     let raw = input.raw();
     let env = &ctx.env;
     match raw.get("tool_name") {
-        None | Some(serde_json::Value::Null) => {}
-        Some(serde_json::Value::String(s)) if s == "Bash" => {}
+        None | Some(Value::Null) => {}
+        Some(Value::Str(s)) if s == "Bash" => {}
         Some(_) => return Ok(None),
     }
     let Some(event) = input.hook_event_name().filter(|e| EVENTS.contains(e)) else {
@@ -56,7 +56,7 @@ pub fn handle(ctx: &Context, input: &HookInput) -> Result<Option<String>, Abort>
     // 객체가 아닌 tool_input: 상태 파일을 쓰기 전에 조용히 끝난다
     if raw
         .get("tool_input")
-        .is_some_and(|v| crate::context::truthy(v) && !v.is_object())
+        .is_some_and(|v| v.truthy() && v.as_dict().is_none())
     {
         return Ok(None);
     }
@@ -90,7 +90,7 @@ pub fn handle(ctx: &Context, input: &HookInput) -> Result<Option<String>, Abort>
     } else {
         Vec::new()
     };
-    let key = state::session_key(raw.get("session_id"));
+    let key = state::session_key(raw.get("session_id"))?;
     let pre_path = match state::tool_use_key(raw.get("tool_use_id")) {
         Some(tid) => Some(state::pre_path(&state::state_dir(env)?, &key, &tid)),
         None => None,
@@ -161,7 +161,8 @@ pub fn handle(ctx: &Context, input: &HookInput) -> Result<Option<String>, Abort>
     if notices.is_empty() {
         return Ok(None);
     }
-    Ok(Some(notices.render(TAG, ctx.nonce(input).as_ref())))
+    let nonce = ctx.nonce(input).map_err(|_| Abort)?;
+    Ok(Some(notices.render(TAG, nonce.as_ref())))
 }
 
 fn current_dir() -> Result<String, Abort> {
@@ -196,7 +197,7 @@ fn write_pre(
 
 // Pre 이후 생긴 core 목록. core_pattern 이 처리기면 info 에 안내를 더하고 빈 목록
 fn core_scan(
-    raw: &serde_json::Map<String, serde_json::Value>,
+    raw: &Dict,
     pre: &Dict,
     cwd: &str,
     info: &mut Vec<String>,
@@ -210,10 +211,10 @@ fn core_scan(
         Some(Value::Int(t)) => *t,
         Some(Value::Bool(b)) => i128::from(*b),
         _ => match raw.get("duration_ms") {
-            Some(serde_json::Value::Number(n)) => {
-                now_ns() - (n.as_f64().unwrap_or(0.0) * 1e6) as i128
-            }
-            Some(serde_json::Value::Bool(b)) => now_ns() - i128::from(*b) * 1_000_000,
+            Some(Value::Bool(b)) => now_ns() - i128::from(*b) * 1_000_000,
+            Some(Value::Int(ms)) => since_float_ms(*ms as f64)?,
+            Some(Value::BigInt(digits)) => since_float_ms(digits.parse().unwrap_or(f64::INFINITY))?,
+            Some(Value::Float(ms)) => since_float_ms(*ms)?,
             _ => return Ok(Vec::new()),
         },
     };
@@ -241,6 +242,16 @@ fn core_scan(
         my_uid(),
     )
     .ok_or(Abort)
+}
+
+// python `time.time_ns() - int(dur * 1e6)`: int() 는 NaN, 무한대에서 예외다(큰 int 를 float 로 못 바꿀 때도). 그 밖의 큰 값은
+// i128 끝에 붙여도 core 의 mtime 과 견준 결과가 같다
+fn since_float_ms(ms: f64) -> Result<i128, Abort> {
+    let ns = ms * 1e6;
+    if !ns.is_finite() {
+        return Err(Abort);
+    }
+    Ok(now_ns().saturating_sub(ns as i128))
 }
 
 #[cfg(unix)]
@@ -281,9 +292,9 @@ fn unreported(cores: Vec<Found>, session: &mut Dict) -> Result<Vec<Found>, Abort
 }
 
 // python `str((data.get("tool_input") or {}).get("command") or "")`. 참인 tool_input 이 dict 가 아닌 입력은 handle 앞에서 걸렀다
-fn command_text(raw: &serde_json::Map<String, serde_json::Value>) -> Result<String, Abort> {
+fn command_text(raw: &Dict) -> Result<String, Abort> {
     let tool_input = match raw.get("tool_input") {
-        Some(v) if crate::context::truthy(v) => v.as_object().ok_or(Abort)?,
+        Some(v) if v.truthy() => v.as_dict().ok_or(Abort)?,
         _ => return Ok(String::new()),
     };
     Ok(tool_input

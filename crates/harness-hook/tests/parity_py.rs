@@ -241,7 +241,7 @@ fn json_and_tags_match_python() {
             "warn" => Level::Warn,
             _ => Level::Info,
         };
-        let nonce = Nonce::for_session(&rust_env, sid);
+        let nonce = Nonce::for_session(&rust_env, sid).unwrap();
         let rendered = tag::harness_hook(name, level, nonce.as_ref(), body);
         want.push(json!([
             rendered,

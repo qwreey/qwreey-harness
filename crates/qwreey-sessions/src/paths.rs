@@ -89,6 +89,20 @@ pub fn project_root(start: &str) -> Result<String> {
     }
 }
 
+/// 세션 id 를 상태 파일 이름(`.state/<sid>.json` 등)에 써도 되는가(python `paths.safe_sid`).
+///
+/// `[A-Za-z0-9][A-Za-z0-9._-]{0,127}` 전체. Claude Code 의 id 는 UUID 다. `../x`, `/abs` 는 저장소 밖에 쓰게 된다.
+pub fn safe_sid(sid: &str) -> bool {
+    let bytes = sid.as_bytes();
+    let ok_rest = |b: &u8| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-');
+    match bytes.split_first() {
+        Some((first, rest)) => {
+            first.is_ascii_alphanumeric() && rest.len() < 128 && rest.iter().all(ok_rest)
+        }
+        None => false,
+    }
+}
+
 /// 외부 저장소 키(python `project_key`).
 pub fn project_key(root: &str) -> String {
     root.chars()

@@ -17,6 +17,9 @@ serde_json = "1.0.154"
 sha2 = { version = "0.11.1", default-features = false }
 getrandom = "0.4.3"
 rustix = { version = "1.1.6", features = ["process", "fs"] }
+# 띄우는 워커에 물려줄 fd 를 close-on-exec 로(python subprocess 의 close_fds=True). 날 fd 번호로 fcntl 을 부르는 safe API 가
+# rustix 에도 std 에도 없다(BorrowedFd::borrow_raw 는 unsafe). 새로 드는 crate 는 이것 하나다(libc, cfg-if 는 이미 있다).
+close_fds = "0.3.2"
 # 이 기기 시간대의 오늘 날짜(python date.today, localtime). TZ 와 tzdb 규칙을 직접 짜지 않으려고 쓴다(qwreey-sessions).
 jiff = { version = "0.2.43", default-features = false, features = ["std", "tz-system", "tzdb-zoneinfo", "tzdb-bundle-platform"] }
 

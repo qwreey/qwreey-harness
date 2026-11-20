@@ -3,6 +3,10 @@
 //! python 판과 같은 명령, 같은 환경(이 프로세스의 것)으로 띄우고 기다리지 않는다. POSIX 에서는 `setsid -f` 로 새 세션에서
 //! 돌게 하고, `setsid` 가 없으면 python 은 `start_new_session` 이지만 여기서는 새 프로세스 그룹만 만든다(setsid 를
 //! 부르려면 unsafe 가 필요하다). cwd 는 `/`, 표준 입출력은 모두 `/dev/null`.
+//!
+//! python 은 `close_fds=True` 다. Rust 의 `Command` 는 이 프로세스가 물려받은 fd(Claude Code 가 넘긴 파이프 등)를 그대로
+//! 넘기므로, 띄우기 전에 2 보다 큰 fd 를 모두 close-on-exec 로 둔다. 오래 도는 워커가 그 파이프를 쥐고 있으면 읽는 쪽이
+//! EOF 를 기다린다. 훅은 띄운 뒤 곧 끝나므로 이 프로세스의 다른 fd 에 표시가 붙어도 상관없다.
 
 use std::process::{Command, Stdio};
 
@@ -79,6 +83,8 @@ fn os_args(argv: &[String]) -> Result<Vec<std::ffi::OsString>> {
 /// 워커를 떼어 띄운다. 띄우지 못하면(python Popen 의 OSError) [`Abort`].
 pub fn spawn(ctx: &Context, flush: &Flush<'_>) -> Result<()> {
     let argv = os_args(&worker_argv(ctx, flush)?)?;
+    #[cfg(unix)]
+    close_fds::set_fds_cloexec(3, &[]);
     let (program, rest) = argv.split_first().ok_or(Abort("empty argv"))?;
     let mut command = detached(ctx, program, rest);
     command

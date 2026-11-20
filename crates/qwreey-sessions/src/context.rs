@@ -3,9 +3,8 @@
 use std::cell::OnceCell;
 use std::path::PathBuf;
 
-use harness_hook::nonce::salt;
 use harness_hook::py::path::{join, normpath};
-use harness_hook::py::surrogate::{from_os, unit_of};
+use harness_hook::py::surrogate::from_os;
 use harness_hook::py::tempfile::gettempdir;
 use harness_hook::settings::{self, LoadRequest, Project};
 use harness_hook::{Env, Nonce};
@@ -87,17 +86,9 @@ impl Context {
 
     /// 세션 id 글(python `str(sid)`)의 nonce. id 가 없거나 salt 가 없으면 `None`.
     ///
-    /// 짝 없는 서로게이트가 든 id 는 python 이 `(salt + ":" + sid).encode()` 에서 UnicodeEncodeError 를 낸다(salt 가 있을 때).
+    /// 짝 없는 서로게이트가 든 id 는 python 이 예외를 내는 자리라 [`Abort`]([`Nonce::for_session`]).
     pub fn nonce(&self, session_id: Option<&str>) -> Result<Option<Nonce>> {
-        let Some(sid) = session_id.filter(|s| !s.is_empty()) else {
-            return Ok(None);
-        };
-        if sid.chars().any(|c| unit_of(c).is_some()) {
-            return match salt(&self.env) {
-                Some(_) => Err(Abort("session id has a lone surrogate")),
-                None => Ok(None),
-            };
-        }
-        Ok(Nonce::for_session(&self.env, Some(sid)))
+        Nonce::for_session(&self.env, session_id)
+            .map_err(|_| Abort("session id has a lone surrogate"))
     }
 }

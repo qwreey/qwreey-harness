@@ -10,12 +10,12 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
-use serde_json::{Map, Value};
-
 use super::envfile::Values;
 use crate::env::Env;
+use crate::py::json_load::{Decode, from_bytes};
 use crate::py::num::{float_repr, integral_float_text};
 use crate::py::path::expanduser;
+use crate::py::value::{Dict, Value};
 
 const MANIFEST_DEPTH: usize = 5;
 
@@ -28,13 +28,10 @@ pub struct PluginManifest {
     pub option_keys: BTreeSet<String>,
 }
 
-/// JSON 파일 하나. 없거나 읽지 못하거나 JSON 이 아니면 `None`.
-///
-/// python `json.load` 와 다른 점: `NaN`, `Infinity` 글자와 짝 없는 서로게이트를 가리키는 escape 를 받지 않고,
-/// 128 단계보다 깊은 중첩도 받지 않는다. python 은 그런 settings.json 의 옵션을 읽고 Rust 는 옵션 층을 건너뛴다.
+/// JSON 파일 하나(python `open(path, encoding="utf-8")` 의 `json.load`). 없거나 읽지 못하거나 JSON 이 아니면 `None`.
 pub fn read_json(path: &Path) -> Option<Value> {
     let bytes = fs::read(path).ok()?;
-    serde_json::from_slice(&bytes).ok()
+    from_bytes(&bytes, Decode::Strict).ok()
 }
 
 /// `start` 부터 위로 5단계 안에서 처음 만나는 plugin.json(이름이 문자열인 것). 못 찾으면 `None`.
@@ -45,11 +42,11 @@ pub fn plugin_manifest(start: &Path) -> Option<PluginManifest> {
     for _ in 0..MANIFEST_DEPTH {
         // 읽히지 않거나 이름이 없는 plugin.json 은 건너뛰고 위로 간다
         let data = read_json(&dir.join(".claude-plugin").join("plugin.json"));
-        if let Some(Value::Object(data)) = data
-            && let Some(Value::String(name)) = data.get("name")
+        if let Some(Value::Dict(data)) = &data
+            && let Some(Value::Str(name)) = data.get("name")
         {
             let option_keys = match data.get("userConfig") {
-                Some(Value::Object(config)) => config.keys().map(|k| k.to_uppercase()).collect(),
+                Some(Value::Dict(config)) => config.iter().map(|(k, _)| k.to_uppercase()).collect(),
                 _ => BTreeSet::new(),
             };
             return Some(PluginManifest {
@@ -76,17 +73,18 @@ pub fn plugin_options(
     if keys.is_empty() {
         return nothing();
     }
-    let Some(Value::Object(data)) = read_json(&config_dir.join("settings.json")) else {
+    let settings = read_json(&config_dir.join("settings.json"));
+    let Some(Value::Dict(data)) = &settings else {
         return nothing();
     };
-    let Some(Value::Object(configs)) = data.get("pluginConfigs") else {
+    let Some(Value::Dict(configs)) = data.get("pluginConfigs") else {
         return nothing();
     };
 
     // 이 플러그인의 사본들(마켓마다 하나)
-    let ids: Vec<&String> = configs
+    let ids: Vec<&str> = configs
         .iter()
-        .filter(|(id, v)| owner(id) == name && v.is_object())
+        .filter(|(id, v)| owner(id) == name && v.as_dict().is_some())
         .map(|(id, _)| id)
         .collect();
     if ids.is_empty() {
@@ -94,12 +92,11 @@ pub fn plugin_options(
     }
 
     // 켠 사본에 설정이 없으면 꺼진 옛 사본의 값(예: 게이트 끔)이 새 사본에 새지 않게 한다
-    let enabled: Option<&Map<String, Value>> =
-        data.get("enabledPlugins").and_then(Value::as_object);
+    let enabled: Option<&Dict> = data.get("enabledPlugins").and_then(Value::as_dict);
     let is_on = |id: &str| enabled.and_then(|m| m.get(id)) == Some(&Value::Bool(true));
-    let on: Vec<&String> = enabled
+    let on: Vec<&str> = enabled
         .into_iter()
-        .flatten()
+        .flat_map(Dict::iter)
         .filter(|(id, _)| is_on(id) && owner(id) == name)
         .map(|(id, _)| id)
         .collect();
@@ -110,10 +107,10 @@ pub fn plugin_options(
     // 켠 것 먼저, 그다음 이름순
     let pid = ids
         .into_iter()
-        .min_by_key(|id| (!is_on(id), id.as_str()))
+        .min_by_key(|id| (!is_on(id), *id))
         .expect("ids is not empty");
     let mut out = Values::new();
-    if let Some(Value::Object(opts)) = configs[pid].get("options") {
+    if let Some(Value::Dict(opts)) = configs.get(pid).and_then(|c| c.as_dict()?.get("options")) {
         for key in keys {
             if let Some(v) = opts
                 .get(&key.to_lowercase())
@@ -123,7 +120,7 @@ pub fn plugin_options(
             }
         }
     }
-    (out, pid.clone())
+    (out, pid.to_owned())
 }
 
 // python i.rpartition("@")[0]: 마지막 @ 앞, @ 가 없으면 빈 문자열
@@ -138,15 +135,18 @@ fn owner(id: &str) -> &str {
 pub fn option_value(value: &Value, env: &Env) -> Option<String> {
     match value {
         Value::Bool(b) => Some(if *b { "on" } else { "off" }.to_owned()),
-        Value::Number(n) => Some(number_text(n)),
-        Value::Array(items) => Some(
+        Value::Int(i) => Some(i.to_string()),
+        Value::BigInt(digits) => Some(digits.clone()),
+        Value::Float(f) if f.is_finite() && f.fract() == 0.0 => Some(integral_float_text(*f)),
+        Value::Float(f) => Some(float_repr(*f)),
+        Value::List(items) => Some(
             items
                 .iter()
                 .filter_map(|v| option_value(v, env))
                 .collect::<Vec<_>>()
                 .join(";"),
         ),
-        Value::String(s) => Some(
+        Value::Str(s) => Some(
             s.split(';')
                 .map(|part| {
                     if part.starts_with('~') {
@@ -158,22 +158,6 @@ pub fn option_value(value: &Value, env: &Env) -> Option<String> {
                 .collect::<Vec<_>>()
                 .join(";"),
         ),
-        Value::Null | Value::Object(_) => None,
-    }
-}
-
-// u64, i64 를 넘는 정수는 serde_json 이 f64 로 읽어 python(임의 정밀도)과 다를 수 있다
-fn number_text(n: &serde_json::Number) -> String {
-    if let Some(i) = n.as_i64() {
-        return i.to_string();
-    }
-    if let Some(u) = n.as_u64() {
-        return u.to_string();
-    }
-    let f = n.as_f64().unwrap_or(f64::NAN);
-    if f.is_finite() && f.fract() == 0.0 {
-        integral_float_text(f)
-    } else {
-        float_repr(f)
+        Value::Null | Value::Dict(_) => None,
     }
 }

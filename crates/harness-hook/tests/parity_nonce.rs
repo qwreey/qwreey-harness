@@ -7,13 +7,16 @@ use harness_hook::nonce::{self, Nonce};
 use harness_hook::{Env, HookInput};
 use serde_json::{Value, json};
 
-const SIDS: [&str; 6] = [
+// 끝의 둘은 짝 없는 서로게이트의 자리표(py/surrogate.rs): python 은 salt 가 있으면 UnicodeEncodeError 다
+const SIDS: [&str; 8] = [
     "abc",
     "\u{c138}\u{c158}-\u{1f600}",
     "",
     "a:b",
     " ",
     "0123456789abcdef0123456789abcdef-long",
+    "a\u{10fcff}b",
+    "\u{10f800}",
 ];
 
 fn salt_env(path: &str) -> Vec<(String, String)> {
@@ -73,7 +76,10 @@ fn nonce_and_salt_files_match_python() {
             let env = Env::from_pairs(env.clone());
             json!(
                 SIDS.iter()
-                    .map(|sid| Nonce::for_session(&env, Some(sid)).map(|n| n.as_str().to_owned()))
+                    .map(|sid| match Nonce::for_session(&env, Some(sid)) {
+                        Ok(n) => json!(n.map(|n| n.as_str().to_owned())),
+                        Err(_) => json!("UnicodeEncodeError"),
+                    })
                     .collect::<Vec<_>>()
             )
         })
@@ -81,7 +87,7 @@ fn nonce_and_salt_files_match_python() {
     for env in &envs[..2] {
         let env = Env::from_pairs(env.clone());
         want.push(json!(nonce::attr(
-            Nonce::for_session(&env, Some("abc")).as_ref()
+            Nonce::for_session(&env, Some("abc")).unwrap().as_ref()
         )));
     }
 
@@ -98,6 +104,7 @@ fn created_salt_is_shared_with_python() {
 
     // 서로 만든 salt 를 읽어 같은 nonce 를 내는지
     let rust_nonce = Nonce::for_session(&Env::from_pairs(salt_env(&by_rust)), Some("abc"))
+        .unwrap()
         .expect("rust creates a salt");
     let cases = [
         case("nonce", &salt_env(&by_rust), json!({"sids": ["abc"]})),
@@ -107,7 +114,8 @@ fn created_salt_is_shared_with_python() {
         return;
     };
     assert_eq!(got[0], json!([rust_nonce.as_str()]));
-    let python_nonce = Nonce::for_session(&Env::from_pairs(salt_env(&by_python)), Some("abc"));
+    let python_nonce =
+        Nonce::for_session(&Env::from_pairs(salt_env(&by_python)), Some("abc")).unwrap();
     assert_eq!(got[1], json!([python_nonce.map(|n| n.as_str().to_owned())]));
 
     // 같은 권한(파일 0600, 새 디렉터리 0700)
@@ -220,7 +228,7 @@ fn rule_lines_match_python() {
             .iter()
             .map(|call| {
                 let input = HookInput::from_slice(call[1].to_string().as_bytes()).unwrap();
-                let n = Nonce::for_session(&env, input.session_id());
+                let n = Nonce::for_session(&env, input.session_id()).unwrap();
                 nonce::rule_for(&env, call[0].as_str().unwrap(), &input, n.as_ref(), now)
             })
             .collect();
@@ -320,7 +328,7 @@ fn claim_dir_links_and_prune_match_python() {
             .iter()
             .map(|call| {
                 let input = HookInput::from_slice(call[1].to_string().as_bytes()).unwrap();
-                let n = Nonce::for_session(&env, input.session_id());
+                let n = Nonce::for_session(&env, input.session_id()).unwrap();
                 nonce::rule_for(&env, call[0].as_str().unwrap(), &input, n.as_ref(), now)
             })
             .collect();
@@ -370,7 +378,7 @@ fn redaction_matches_python() {
             cases.push(case("redact", &env, json!({"text": text, "sid": sid})));
             want.push(json!(nonce::redact_text(
                 text,
-                Nonce::for_session(&rust_env, sid).as_ref()
+                Nonce::for_session(&rust_env, sid).unwrap().as_ref()
             )));
         }
     }

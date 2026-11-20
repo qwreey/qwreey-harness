@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import math
 import os
 import re
 import subprocess
@@ -24,7 +25,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from . import config, file_lock
-from .paths import project_key, short_home
+from .paths import project_key, safe_sid, short_home
 from .redact import redact
 
 
@@ -99,11 +100,17 @@ class Store:
     def exists(self) -> bool:
         return self.dir.is_dir()
 
+    def session_file(self, sid: str, suffix: str) -> Path:
+        """`.state/<sid><suffix>`. 파일 이름에 쓸 수 없는 id(paths.safe_sid)는 ValueError: 부르는 쪽이 먼저 거른다."""
+        if not safe_sid(sid):
+            raise ValueError("session id is not a safe file name")
+        return self.state / f"{sid}{suffix}"
+
     def wstate_path(self, sid: str) -> Path:
-        return self.state / f"{sid}.json"
+        return self.session_file(sid, ".json")
 
     def hstate_path(self, sid: str) -> Path:
-        return self.state / f"{sid}.hook.json"
+        return self.session_file(sid, ".hook.json")
 
     def wstate(self, sid: str) -> dict:
         return read_json(self.wstate_path(sid))
@@ -164,14 +171,15 @@ class Store:
 
     def pending(self) -> list[dict]:
         out = [dict(e, rid=rid) for rid, e in self.index().items() if self.is_pending(e)]
-        out.sort(key=lambda e: e.get("created", ""))
+        out.sort(key=lambda e: created_order(e.get("created", "")))
         return out
 
     def pending_summary(self) -> tuple[int, str, int]:
         p = self.pending()
         if not p:
             return 0, "", 0
-        oldest = p[0].get("created", "")[:10]
+        created = p[0].get("created", "")
+        oldest = created[:10] if isinstance(created, str) else ""
         try:
             days = (date.today() - date.fromisoformat(oldest)).days
         except ValueError:
@@ -288,6 +296,22 @@ class Store:
             if rid not in idx:
                 raise KeyError(rid)
             idx[rid].update(fields)
+
+
+def created_order(v) -> tuple:
+    """pending 을 만든 때 순서로 세우는 키. 꼴이 섞인 index 에서도 TypeError 가 나지 않는다.
+
+    글(ISO 시각, 정상인 꼴), 수(float 로 견준다, bool 도 수), NaN, 그 밖(None, 목록 등, 서로 같다) 순서다.
+    qwreey-sessions Rust 판(crates/qwreey-sessions/src/store.rs 의 created_order)이 같은 순서를 따른다."""
+    if isinstance(v, str):
+        return (0, 0.0, v)
+    if isinstance(v, (int, float)):
+        try:
+            f = float(v)
+        except OverflowError:  # float 로 담지 못하는 큰 int
+            f = math.inf if v > 0 else -math.inf
+        return (2, 0.0, "") if f != f else (1, f, "")
+    return (3, 0.0, "")
 
 
 def token_estimate(text: str) -> int:

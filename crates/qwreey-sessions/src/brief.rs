@@ -68,7 +68,7 @@ pub fn pending_line(store: &Store, config: &Config, trigger: Trigger) -> Result<
 }
 
 // python `sum(x.get(key, 0) for x in notices)`
-fn sum(notices: &[Dict], key: &str) -> Result<Num> {
+fn sum(notices: &[&Dict], key: &str) -> Result<Num> {
     notices.iter().try_fold(Num::Int(0), |total, notice| {
         let value = notice
             .get(key)
@@ -79,18 +79,22 @@ fn sum(notices: &[Dict], key: &str) -> Result<Num> {
 
 /// 요약 완료 알림 글(python `saved_line`). 알림이 없으면 빈 글.
 pub fn saved_line(store: &Store, notices: &[Dict], env: &Env) -> Result<String> {
+    // 기록이 없는 알림(rids 가 비거나 없음)은 건너뛴다. 남은 것이 없어도 부르는 쪽은 커서를 넘긴다
+    let notices: Vec<&Dict> = notices
+        .iter()
+        .filter(|n| n.get("rids").is_some_and(Value::truthy))
+        .collect();
     if notices.is_empty() {
         return Ok(String::new());
     }
-    let sections = sum(notices, "sections")?;
+    let sections = sum(&notices, "sections")?;
 
     // 기록 파일들(처음 나온 순서, 겹치면 하나)
     let mut rids: Vec<&str> = Vec::new();
-    for notice in notices {
+    for notice in &notices {
         let items = match notice.get("rids") {
-            None => continue,
             Some(Value::List(items)) => items,
-            Some(_) => return Err(Abort("notice rids is not a list")),
+            _ => return Err(Abort("notice rids is not a list")),
         };
         for item in items {
             let rid = item.as_str().ok_or(Abort("notice rid is not a string"))?;
@@ -105,11 +109,11 @@ pub fn saved_line(store: &Store, notices: &[Dict], env: &Env) -> Result<String> 
         .collect();
 
     // 표시한 항목, 받아 가지 않은 기록
-    let flagged = sum(notices, "flagged")?;
+    let flagged = sum(&notices, "flagged")?;
     let pending = if records_home::archive_only(&store.root) {
         0
     } else {
         store.pending()?.len()
     };
-    messages::saved(sections, &files, pending, flagged).ok_or(Abort("saved notice without records"))
+    Ok(messages::saved(sections, &files, pending, flagged))
 }

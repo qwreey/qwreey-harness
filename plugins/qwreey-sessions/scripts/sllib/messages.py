@@ -48,10 +48,13 @@ def started(trigger: str, line_from: int, line_to: int | None) -> str:
 
 
 def saved(n_sections: int, files: list[str], pending: int, flagged: int) -> str:
+    if not files:  # 기록 없는 알림(rids 가 빔)은 알릴 곳이 없다
+        return ""
     where = files[0] if len(files) == 1 else f"{files[0]} (+{len(files) - 1} more)"
     s = f"Session log: saved {n_sections} new section{'s' if n_sections != 1 else ''} to {where}."
     if flagged:
-        s += f" {flagged} item{'s' if flagged != 1 else ''} failed the source check and are marked ⚠."
+        s += (f" {flagged} item{'s' if flagged != 1 else ''} failed the source check and "
+              f"{'is' if flagged == 1 else 'are'} marked ⚠.")
     if pending:
         s += f" {pending} record{'s' if pending != 1 else ''} pending import (`session-log pending`)."
     return s
@@ -117,7 +120,7 @@ def pending_propose(count: int, oldest_date: str, oldest_days: int, history: lis
     if history:
         opts.append("the existing history dir " + " or ".join(f"`{h}`" for h in history))
     opts.append("keep them outside the repo as an archive only (`session-log home --archive-only`; turns off these reminders)")
-    return (f"Session log: {_rec(count)} have piled up outside the repo (oldest from {oldest_date}, {oldest_days} day{'s' if oldest_days != 1 else ''}) and this repo has no records home. "
+    return (f"Session log: {_rec(count)} {'has' if count == 1 else 'have'} piled up outside the repo (oldest from {oldest_date}, {oldest_days} day{'s' if oldest_days != 1 else ''}) and this repo has no records home. "
             "Propose a location to the user, one of: " + "; ".join(opts) + ". "
             "Save the choice with `session-log home <path>` (commit `.claude/session-log.json` so coworkers share it), "
             "then run `session-log import`.")

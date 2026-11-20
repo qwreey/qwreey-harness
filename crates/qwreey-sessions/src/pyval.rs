@@ -1,4 +1,4 @@
-//! python 값의 참거짓, `str()`, 수 비교와 덧셈. 훅 입력(serde_json 값)과 상태 파일(python 순서 dict)을 python 처럼 읽는다.
+//! python 값의 `str()`, 수 비교와 덧셈. 훅 입력과 상태 파일([`Value`])을 python 처럼 읽는다.
 //!
 //! 상태 파일은 이 훅과 워커(python)가 쓰므로 정상이면 꼴이 정해져 있다. 꼴이 어긋난 값에서 python 이 TypeError 를 내는
 //! 자리는 [`Abort`] 다. python 은 받지만 여기서 옮기지 않은 드문 꼴(목록의 `str()` 등)도 [`Abort`] 로 끝낸다.
@@ -10,36 +10,11 @@ use harness_hook::py::value::Value;
 
 use crate::abort::{Abort, Result};
 
-/// 훅 입력 값의 python 참거짓(`bool(v)`).
-pub fn truthy(v: &serde_json::Value) -> bool {
-    match v {
-        serde_json::Value::Null => false,
-        serde_json::Value::Bool(b) => *b,
-        serde_json::Value::Number(n) => n.as_f64().is_some_and(|f| f != 0.0),
-        serde_json::Value::String(s) => !s.is_empty(),
-        serde_json::Value::Array(a) => !a.is_empty(),
-        serde_json::Value::Object(o) => !o.is_empty(),
-    }
-}
-
-/// 훅 입력 값의 python `str(v)`. 목록과 객체는 python repr 을 옮기지 않아 `None` 이다.
-pub fn scalar_str(v: &serde_json::Value) -> Option<String> {
-    match v {
-        serde_json::Value::Null => Some("None".to_owned()),
-        serde_json::Value::Bool(true) => Some("True".to_owned()),
-        serde_json::Value::Bool(false) => Some("False".to_owned()),
-        serde_json::Value::Number(n) if n.is_f64() => n.as_f64().map(float_repr),
-        serde_json::Value::Number(n) => Some(n.to_string()),
-        serde_json::Value::String(s) => Some(s.clone()),
-        serde_json::Value::Array(_) | serde_json::Value::Object(_) => None,
-    }
-}
-
 /// `data.get(key) or <다음>` 의 참인 값을 `str()` 로. 거짓이면 `Ok(None)`, 참인 목록이나 객체는 [`Abort`].
-pub fn truthy_str(v: Option<&serde_json::Value>, what: &'static str) -> Result<Option<String>> {
-    match v.filter(|v| truthy(v)) {
+pub fn truthy_str(v: Option<&Value>, what: &'static str) -> Result<Option<String>> {
+    match v.filter(|v| v.truthy()) {
         None => Ok(None),
-        Some(v) => scalar_str(v).map(Some).ok_or(Abort(what)),
+        Some(v) => v.scalar_str().map(Some).ok_or(Abort(what)),
     }
 }
 
@@ -51,7 +26,7 @@ pub enum Num {
 }
 
 impl Num {
-    /// 상태 값이 수면 그것(bool 은 0, 1).
+    /// 상태 값이 수면 그것(bool 은 0, 1). i128 밖의 정수는 옮기지 않아 `None` 이다(python 에서는 수다).
     pub fn of(v: &Value) -> Option<Num> {
         match v {
             Value::Bool(b) => Some(Num::Int(i128::from(*b))),
@@ -179,22 +154,11 @@ mod tests {
 
     #[test]
     fn input_strings_follow_python_str() {
-        let v: serde_json::Value = serde_json::json!([null, true, 5, 1.0, "s", [], {"a": 1}]);
-        let got: Vec<Option<String>> = v.as_array().unwrap().iter().map(scalar_str).collect();
+        assert_eq!(truthy_str(Some(&Value::Int(0)), "t"), Ok(None));
         assert_eq!(
-            got,
-            [
-                Some("None"),
-                Some("True"),
-                Some("5"),
-                Some("1.0"),
-                Some("s"),
-                None,
-                None
-            ]
-            .map(|s| s.map(str::to_owned))
+            truthy_str(Some(&Value::Float(1.0)), "t"),
+            Ok(Some("1.0".into()))
         );
-        assert_eq!(truthy_str(Some(&serde_json::json!(0)), "t"), Ok(None));
-        assert!(truthy_str(Some(&serde_json::json!([1])), "t").is_err());
+        assert!(truthy_str(Some(&Value::List(vec![Value::Int(1)])), "t").is_err());
     }
 }

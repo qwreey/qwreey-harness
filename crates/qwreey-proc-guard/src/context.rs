@@ -2,10 +2,10 @@
 
 use std::path::PathBuf;
 
-use harness_hook::py::num::float_repr;
+use harness_hook::nonce::Unencodable;
+use harness_hook::py::value::Value;
 use harness_hook::settings::{self, Layers, LoadRequest, Project};
 use harness_hook::{Env, HookInput, Nonce};
-use serde_json::Value;
 
 /// 한 번 실행하는 동안의 환경.
 #[derive(Clone, Debug)]
@@ -44,10 +44,10 @@ impl Context {
         settings::load_layers(&self.env, &req).unwrap_or_default()
     }
 
-    /// 이 세션의 nonce(python `harness_nonce.attr(data.get("session_id"))`).
-    pub fn nonce(&self, input: &HookInput) -> Option<Nonce> {
-        let sid = py_str(input.raw().get("session_id")?)?;
-        Nonce::for_session(&self.env, Some(&sid))
+    /// 이 세션의 nonce(python `harness_nonce.attr(data.get("session_id"))`). `Err` 는 python 이 예외를 내는 id 다.
+    pub fn nonce(&self, input: &HookInput) -> Result<Option<Nonce>, Unencodable> {
+        let sid = input.get("session_id").and_then(py_str);
+        Nonce::for_session(&self.env, sid.as_deref())
     }
 }
 
@@ -57,34 +57,13 @@ impl Context {
 /// 훅은 설정 전체를 `{}` 로 본다.
 pub fn project_for(env: &Env, cwd: Option<&Value>) -> Option<Project> {
     match cwd {
-        Some(Value::String(s)) => Some(settings::project_dir(env, Some(s))),
-        Some(v) if truthy(v) && env.get_nonempty("CLAUDE_PROJECT_DIR").is_none() => None,
+        Some(Value::Str(s)) => Some(settings::project_dir(env, Some(s))),
+        Some(v) if v.truthy() && env.get_nonempty("CLAUDE_PROJECT_DIR").is_none() => None,
         _ => Some(settings::project_dir(env, None)),
-    }
-}
-
-/// python 의 참거짓(`bool(v)`).
-pub fn truthy(v: &Value) -> bool {
-    match v {
-        Value::Null => false,
-        Value::Bool(b) => *b,
-        Value::Number(n) => n.as_f64().is_some_and(|f| f != 0.0),
-        Value::String(s) => !s.is_empty(),
-        Value::Array(a) => !a.is_empty(),
-        Value::Object(o) => !o.is_empty(),
     }
 }
 
 /// 참인 값의 python `str(v)`. 거짓이면 `None`. 목록과 객체는 옮기지 않아 `None` 이다(Claude Code 는 문자열만 준다).
 pub fn py_str(v: &Value) -> Option<String> {
-    if !truthy(v) {
-        return None;
-    }
-    match v {
-        Value::String(s) => Some(s.clone()),
-        Value::Bool(_) => Some("True".to_owned()),
-        Value::Number(n) if n.is_f64() => n.as_f64().map(float_repr),
-        Value::Number(n) => Some(n.to_string()),
-        _ => None,
-    }
+    v.truthy().then(|| v.scalar_str()).flatten()
 }

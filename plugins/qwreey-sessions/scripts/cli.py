@@ -28,7 +28,7 @@ sys.path.insert(0, HERE)
 
 from sllib import brief, config, extract as ex, records_home, summarize, verify, worker  # noqa: E402
 from sllib.redact import redact  # noqa: E402
-from sllib.paths import find_transcript, latest_transcript_for, project_root, short_home  # noqa: E402
+from sllib.paths import find_transcript, latest_transcript_for, project_root, safe_sid, short_home  # noqa: E402
 from sllib.store import Store, fmt_tokens, token_estimate  # noqa: E402
 
 
@@ -37,9 +37,16 @@ def store_for(a) -> Store:
     return Store(project_root(start))
 
 
+def check_sid(sid: str) -> str:
+    """상태 파일 이름에 쓸 수 없는 세션 id(`../x` 등)면 알리고 끝낸다."""
+    if sid and not safe_sid(sid):
+        sys.exit(f"세션 id 를 파일 이름에 쓸 수 없다(영문자, 숫자, `._-` 만, 128자까지): {sid!r}")
+    return sid
+
+
 def session_and_transcript(a, store: Store) -> tuple[str, str]:
     tp = a.transcript or ""
-    sid = a.session or (Path(tp).stem if tp else "") or os.environ.get("CLAUDE_CODE_SESSION_ID") or ""
+    sid = check_sid(a.session or (Path(tp).stem if tp else "") or os.environ.get("CLAUDE_CODE_SESSION_ID") or "")
     if not tp and sid:
         p = find_transcript(sid)
         tp = str(p) if p else ""
@@ -47,7 +54,7 @@ def session_and_transcript(a, store: Store) -> tuple[str, str]:
         p = latest_transcript_for(store.root)
         tp = str(p) if p else ""
     if tp and not sid:
-        sid = Path(tp).stem
+        sid = check_sid(Path(tp).stem)
     return sid, tp
 
 

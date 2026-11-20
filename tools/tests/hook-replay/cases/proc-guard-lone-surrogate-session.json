@@ -1,0 +1,38 @@
+{
+ "description": "qwreey-proc-guard: a session id with a lone surrogate cannot be hashed into a nonce (python UnicodeEncodeError once the salt exists). heavy-proc-guard does not catch it (exit 1, no output), self-match-guard and resource-guard end quietly. Inputs python's json reads but strict JSON parsers reject (NaN, 1e400, big ints) still reach the hooks",
+ "files": {
+  "{sandbox}/bin/oomwrap": "#!/bin/sh\nexec \"$@\"\n",
+  "{cfg}/settings.json": {"text": "{\"pluginConfigs\": {\"qwreey-proc-guard@qwreey-harness\": {\"options\": {\"proc_guard_disk_min_free_gib\": 0.001, \"proc_guard_disk_min_free_pct\": 0, \"proc_guard_core\": false}}}}\n"}
+ },
+ "setup": ["chmod +x {sandbox}/bin/oomwrap"],
+ "env": {"HARNESS_HEAVY_WRAP": "{sandbox}/bin/oomwrap -n 1000 --", "CLAUDE_PLUGIN_DATA": "{sandbox}/rgdata"},
+ "steps": [
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py",
+   "payload": "{\"session_id\": \"s\\udc80\", \"cwd\": \"/\", \"hook_event_name\": \"PreToolUse\", \"tool_name\": \"Bash\", \"tool_input\": {\"command\": \"bash run-bench.sh\"}}",
+   "expect": {"exit": 1, "empty": true}
+  },
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/self-match-guard.py",
+   "payload": "{\"session_id\": \"\\ud800\", \"hook_event_name\": \"PreToolUse\", \"tool_name\": \"Bash\", \"tool_input\": {\"command\": \"until ! pgrep -f test-x.py >/dev/null; do sleep 2; done\"}}",
+   "expect": {"empty": true}
+  },
+  {
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": "{\"session_id\": \"s\\udcff\", \"hook_event_name\": \"PreToolUse\", \"tool_name\": \"Bash\", \"tool_use_id\": \"t1\", \"cwd\": \"/proc\", \"tool_input\": {\"command\": \"ls\"}}",
+   "expect": {"empty": true}
+  },
+  {
+   "note": "NaN, an overflowing float and a big int in the input",
+   "hook": "plugins/qwreey-proc-guard/hooks/heavy-proc-guard.py",
+   "payload": {"session_id": "s2", "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "bash run-bench.sh", "n": NaN}, "x": 1e400, "y": 123456789012345678901234567890123456789012},
+   "expect": {"decision": "deny", "tags": ["heavy-proc-guard/action"]}
+  },
+  {
+   "note": "a NaN duration does not break the core scan path",
+   "hook": "plugins/qwreey-proc-guard/hooks/resource-guard.py",
+   "payload": {"session_id": "s3", "hook_event_name": "PostToolUse", "tool_name": "Bash", "tool_use_id": "t2", "cwd": "/proc", "duration_ms": NaN, "tool_input": {"command": "ls"}},
+   "expect": {"tags": ["resource-guard/warn"]}
+  }
+ ]
+}

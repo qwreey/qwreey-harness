@@ -45,6 +45,15 @@ def project_key(root: str | os.PathLike) -> str:
     return re.sub(r"[^A-Za-z0-9]", "-", str(Path(root)))
 
 
+# 세션 id 를 파일 이름에 쓸 수 있는 꼴. Claude Code 의 id 는 UUID 다. `../x`, `/abs` 같은 id 는 저장소 밖에 쓰게 된다.
+SAFE_SID_RX = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
+
+
+def safe_sid(sid) -> bool:
+    """세션 id 를 상태 파일 이름(.state/<sid>.json 등)과 기록 이름에 써도 되는가. 글이 아니면 거짓."""
+    return isinstance(sid, str) and SAFE_SID_RX.fullmatch(sid) is not None
+
+
 def short_home(p: str | os.PathLike) -> str:
     s, h = str(p), os.path.expanduser("~")
     return "~" + s[len(h):] if h != "/" and (s == h or s.startswith(h + "/")) else s

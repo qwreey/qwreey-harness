@@ -157,6 +157,8 @@ def pending_line(store: Store, trigger: str) -> tuple[str, str]:
 
 # ---- 요약 완료 알림 ----
 def saved_line(store: Store, notices: list[dict]) -> str:
+    # 기록이 없는 알림(rids 가 비거나 없음)은 건너뛴다. 남은 것이 없어도 부르는 쪽은 커서를 넘긴다
+    notices = [x for x in notices if x.get("rids")]
     if not notices:
         return ""
     n = sum(x.get("sections", 0) for x in notices)
