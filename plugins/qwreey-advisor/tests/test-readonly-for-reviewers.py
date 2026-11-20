@@ -11,6 +11,9 @@ T = tempfile.mkdtemp(prefix="ro-reviewers-")
 os.environ["QWREEY_HARNESS_SALT_FILE"] = os.path.join(T, "salt")  # nonce 는 고정 salt 로
 open(os.environ["QWREEY_HARNESS_SALT_FILE"], "w").write("00" * 32)
 HOOK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks", "readonly-for-reviewers.py")
+# HOOK_TEST_BIN=<바이너리> 면 python 스크립트 대신 `<바이너리> hook readonly-for-reviewers` 를 하위 프로세스로 돌린다(Rust 판, crates/qwreey-advisor)
+BIN = os.environ.get("HOOK_TEST_BIN")
+CMD = [BIN, "hook", "readonly-for-reviewers"] if BIN else [sys.executable, "-I", HOOK]
 CASES = [
     # (기대 종료 코드, agent_type, 도구, 입력)
     (2, "qwreey-advisor:reviewer", "Bash", {"command": "rm -rf src"}),
@@ -37,15 +40,15 @@ for case in CASES:
         d["agent_id"] = case[4]
     if agent:
         d["agent_type"] = agent
-    rc = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(d), capture_output=True, text=True).returncode
+    rc = subprocess.run(CMD, input=json.dumps(d), capture_output=True, text=True).returncode
     if rc != want:
         fail += 1
         print(f"FAIL: {agent} {tool} {ti} {d.get('agent_id')} → {rc}, 기대 {want}")
-rc = subprocess.run([sys.executable, "-I", HOOK], input="not json", capture_output=True, text=True).returncode
+rc = subprocess.run(CMD, input="not json", capture_output=True, text=True).returncode
 if rc != 0:
     fail += 1
     print("FAIL: 깨진 입력은 통과해야 한다")
-err = subprocess.run([sys.executable, "-I", HOOK], capture_output=True, text=True, input=json.dumps(
+err = subprocess.run(CMD, capture_output=True, text=True, input=json.dumps(
     {"tool_name": "Bash", "tool_input": {"command": "rm -rf src"}, "cwd": "/code/Projects/x", "session_id": "S1", "agent_type": "qwreey-advisor:reviewer"})).stderr
 if not err.startswith('<harness-hook name="auditor-readonly-guard" level="action" nonce="1c2df154ed44">\n'):
     fail += 1

@@ -1,0 +1,163 @@
+{
+ "description": "track-reviewer appends one run line with the caller and a scratch folder to reviewer prompts; expand-inherit-prompt expands the inherit-advisor marker from the templates; other calls pass untouched",
+ "env": {
+  "CLAUDE_AUDIT_SCRATCH": "{tmp}/audit"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-advisor/hooks/track-reviewer.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+     "description": "second opinion: done",
+     "subagent_type": "qwreey-advisor:reviewer",
+     "prompt": "Review the diff.\n\n",
+     "model": "opus"
+    }
+   },
+   "expect": {
+    "decision": "allow"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/track-reviewer.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "agent_id": "w1",
+    "tool_input": {
+     "subagent_type": "qwreey-advisor:reviewer",
+     "prompt": "é review"
+    }
+   },
+   "expect": {
+    "decision": "allow"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/track-reviewer.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+     "subagent_type": "qwreey-advisor:reviewer",
+     "prompt": "x [qwreey-advisor run: 0b1f2c3d-aaaa-4bbb-8ccc-123456789012 caller=main scratch=/tmp/x/]"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/track-reviewer.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+     "subagent_type": "general-purpose",
+     "prompt": "x"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/track-reviewer.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+     "subagent_type": "qwreey-advisor:reviewer",
+     "prompt": null
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/track-reviewer.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": "x"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/expand-inherit-prompt.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+     "subagent_type": "fork",
+     "description": "second opinion: inherit",
+     "prompt": "[qwreey-advisor:inherit] Review only. Do not continue the work, edit files, or commit.\nnext: commit the parser\noptions: reqs, other"
+    }
+   },
+   "expect": {
+    "decision": "allow"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/expand-inherit-prompt.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+     "subagent_type": "fork",
+     "prompt": "[qwreey-advisor:inherit] Review only. Do not continue the work, edit files, or commit.\nNext : ì́ x\n"
+    }
+   },
+   "expect": {
+    "decision": "allow"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/expand-inherit-prompt.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+     "subagent_type": "fork",
+     "prompt": "[qwreey-advisor:inherit] Review only. Do not continue the work, edit files, or commit."
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/expand-inherit-prompt.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+     "subagent_type": "qwreey-advisor:reviewer",
+     "prompt": "[qwreey-advisor:inherit] Review only. Do not continue the work, edit files, or commit.\nnext: x"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/expand-inherit-prompt.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+     "subagent_type": "fork",
+     "prompt": "plain"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

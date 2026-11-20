@@ -13,6 +13,9 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HOOK = os.path.join(os.path.dirname(HERE), "hooks", "second-opinion-nudge.py")
+# HOOK_TEST_BIN=<바이너리> 면 python 스크립트 대신 `<바이너리> hook second-opinion-nudge` 를 하위 프로세스로 돌린다(Rust 판, crates/qwreey-advisor)
+BIN = os.environ.get("HOOK_TEST_BIN")
+CMD = [BIN, "hook", "second-opinion-nudge"] if BIN else [sys.executable, "-I", HOOK]
 DOCTOR = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 T = tempfile.mkdtemp(prefix="so-nudge-")
 CH = os.path.join(T, "home", ".claude")
@@ -22,6 +25,8 @@ ENV = {k: v for k, v in os.environ.items() if not k.startswith("HARNESS_") and k
 ENV.update(TMPDIR=os.path.join(T, "tmp"), HOME=os.path.join(T, "home"), GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
            GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
 os.makedirs(ENV["TMPDIR"])
+if BIN:  # 바이너리는 플러그인 폴더(ledger 스크립트 자리)를 CLAUDE_PLUGIN_ROOT 로 안다
+    ENV["CLAUDE_PLUGIN_ROOT"] = os.path.dirname(HERE)
 ENV["QWREEY_HARNESS_SALT_FILE"] = os.path.join(T, "salt")  # nonce 는 고정 salt 로
 open(ENV["QWREEY_HARNESS_SALT_FILE"], "w").write("00" * 32)
 ok = fail = 0
@@ -38,7 +43,7 @@ def repo(name):
 
 
 def run(data, env=None):
-    p = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(data), capture_output=True, text=True, env=env or ENV, timeout=20)
+    p = subprocess.run(CMD, input=json.dumps(data), capture_output=True, text=True, env=env or ENV, timeout=20)
     assert p.returncode == 0, p.stderr
     return p.stdout.strip()
 

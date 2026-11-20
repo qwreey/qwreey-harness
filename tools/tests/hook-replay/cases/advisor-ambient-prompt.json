@@ -1,0 +1,139 @@
+{
+ "description": "qwreey-advisor ambient UserPromptSubmit: supplements once per (session, compact epoch) when SessionStart did not mark it, never in subagents or when switched off",
+ "steps": [
+  {
+   "hook": "plugins/qwreey-advisor/hooks/ambient.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "hi"
+   },
+   "expect": {
+    "tags": [
+     "plugin:qwreey-advisor"
+    ]
+   },
+   "argv": [
+    "UserPromptSubmit"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/ambient.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "hi"
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "UserPromptSubmit"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/compact_epoch.py",
+   "payload": {
+    "hook_event_name": "PreCompact",
+    "trigger": "auto"
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "qwreey-advisor"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/ambient.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "hi"
+   },
+   "expect": {
+    "tags": [
+     "plugin:qwreey-advisor"
+    ]
+   },
+   "argv": [
+    "UserPromptSubmit"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/ambient.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "hi",
+    "session_id": "s2",
+    "agent_id": "a1"
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "UserPromptSubmit"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/ambient.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "hi",
+    "session_id": "s3"
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "UserPromptSubmit"
+   ],
+   "env": {
+    "HARNESS_QWREEY_ADVISOR_AMBIENT": " Off "
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/ambient.py",
+   "payload": {
+    "hook_event_name": "SessionStart",
+    "source": "startup",
+    "session_id": "s4"
+   },
+   "expect": {
+    "tags": [
+     "plugin:qwreey-advisor"
+    ]
+   },
+   "argv": [
+    "SessionStart"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/ambient.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "hi",
+    "session_id": "s4"
+   },
+   "expect": {
+    "empty": true
+   },
+   "argv": [
+    "UserPromptSubmit"
+   ]
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/ambient.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "hi",
+    "session_id": "a/b"
+   },
+   "expect": {
+    "tags": [
+     "plugin:qwreey-advisor"
+    ]
+   },
+   "argv": [
+    "UserPromptSubmit"
+   ]
+  }
+ ]
+}

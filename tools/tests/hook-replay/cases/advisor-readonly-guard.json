@@ -1,0 +1,585 @@
+{
+ "description": "readonly-for-reviewers: only this plugin's reviewers are guarded; writes outside the scratch run folders, state-changing git, installs and Studio MCP are denied (exit 2), odd inputs end like python",
+ "env": {
+  "CLAUDE_AUDIT_SCRATCH": "{tmp}/audit"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "rm -rf src"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "rm -rf src"
+    },
+    "agent_type": "general-purpose"
+   },
+   "expect": {
+    "exit": 0,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "rm -rf src"
+    }
+   },
+   "expect": {
+    "exit": 0,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git diff HEAD~1 -- src && git log --oneline | head"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 0,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "mkdir -p {tmp}/audit/r1 && echo x > {tmp}/audit/r1/a.txt 2>&1"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 0,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo x >> notes.md"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo 'a > b' \"c > d\" | grep a"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 0,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "luau - <<'EOF'\nprint(1 > 0)\nEOF\necho done"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 0,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "cat <<EOF > out.txt\nx\nEOF"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "sed -i s/a/b/ src/x.luau"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "perl -pi.bak -e s/a/b/ f"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "choom -n 1000 -- cargo build"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "env A=1 timeout 5 npm test"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "mise exec -- luau x.luau"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 0,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "mise use luau@1"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "cp src/a {tmp}/audit/r1/"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 0,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "cp {tmp}/audit/r1/a src/"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git -C sub branch -a && git stash list && git config --get user.name"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 0,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git stash"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git -c x=y commit -m 'a b'"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo 'unterminated && rm -rf /"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "rm -rf {tmp}/audit"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "touch ~/x"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{tmp}/audit/r1/probe.luau",
+     "content": "x"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 0,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{tmp}/audit/r1/../../x.luau"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{tmp}/audit"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "src/été​.luau"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "it's.luau"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "NotebookEdit",
+    "tool_input": {
+     "notebook_path": "{tmp}/audit/r2/n.ipynb"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 0,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "MultiEdit",
+    "tool_input": {},
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "mcp__roblox-studio__execute_luau",
+    "tool_input": {
+     "code": "print(1)"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 2,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "mcp__other__tool",
+    "tool_input": {
+     "x": 1
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 0,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "/etc/passwd"
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 0,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": [
+      "rm"
+     ]
+    },
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 1,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Write",
+    "tool_input": "not a dict",
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 1,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "ls"
+    },
+    "agent_type": [
+     "x"
+    ]
+   },
+   "expect": {
+    "exit": 1,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": null,
+    "agent_type": "qwreey-advisor:reviewer"
+   },
+   "expect": {
+    "exit": 1,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "agent_type": "qwreey-advisor:reviewer",
+    "cwd": 5,
+    "tool_input": {
+     "command": "rm a"
+    }
+   },
+   "expect": {
+    "exit": 1,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py",
+   "payload": "{\"agent_type\": \"qwreey-advisor-reviewer\", \"tool_name\": \"Bash\", \"session_id\": \"s\\udc80\", \"tool_input\": {\"command\": \"rm -rf src\"}}",
+   "expect": {
+    "exit": 2,
+    "empty": true
+   },
+   "note": "a lone surrogate session id: the deny goes out without a nonce"
+  }
+ ]
+}

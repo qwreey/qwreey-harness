@@ -1,0 +1,312 @@
+{
+ "description": "second-opinion-nudge PreToolUse: a git commit at or over the tier's line limit gets one done-review notice per diff, then rests for FRESH_MIN; dry runs, subagents, other repos and plan mode rules",
+ "env": {
+  "HARNESS_REVIEW_TIERS": "mine=high",
+  "HARNESS_REVIEW_LINES": "high=10"
+ },
+ "setup": [
+  "printf 'a\\n' > a.txt && git add a.txt && git commit -qm init",
+  "seq 1 20 > b.txt",
+  "mkdir -p sub && seq 1 12 > sub/s.txt"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git status"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git add b.txt && git commit -m 'add b'"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-advisor/warn"
+    ],
+    "contains": [
+     "About to commit: 20 changed lines in `mine` (review tier: high)",
+     "model=opus"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git add b.txt && git commit -m 'add b'"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "sh": "seq 1 30 > c.txt"
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git add -A && git commit -m c"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit --dry-run -a"
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_REVIEW_FRESH_MIN": "0"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git add -A && git commit -m c"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-advisor/warn"
+    ],
+    "contains": [
+     "About to commit: 62 changed lines"
+    ]
+   },
+   "env": {
+    "HARNESS_REVIEW_FRESH_MIN": "0"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "cd sub && git add . && git commit -m s"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-advisor/warn"
+    ],
+    "contains": [
+     "About to commit: 12 changed lines"
+    ]
+   },
+   "env": {
+    "HARNESS_REVIEW_FRESH_MIN": "0"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit -m s -- sub/s.txt b.txt"
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_REVIEW_FRESH_MIN": "0"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git add -A && git commit -m c"
+    },
+    "agent_id": "w1"
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_REVIEW_FRESH_MIN": "0"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git -C ../other commit -am x"
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_REVIEW_FRESH_MIN": "0"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit -m 'unterminated"
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_REVIEW_FRESH_MIN": "0"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git add -A && git commit -m c"
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_REVIEW_TIERS": "mine=mid"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git add -A && git commit -m c"
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_REVIEW_LINES": "high=x"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "ExitPlanMode",
+    "tool_input": {
+     "plan": "1. do x"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-advisor/warn"
+    ],
+    "contains": [
+     "Consider a kind=plan review"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "ExitPlanMode",
+    "tool_input": {
+     "plan": "1. do x"
+    }
+   },
+   "expect": {
+    "decision": "deny",
+    "tags": [
+     "qwreey-advisor/action"
+    ]
+   },
+   "env": {
+    "HARNESS_REVIEW_PLAN": "deny"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "ExitPlanMode",
+    "tool_input": {
+     "plan": "1. do x\nqwreey-advisor: reviewed"
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_REVIEW_PLAN": "deny"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "ExitPlanMode",
+    "tool_input": {
+     "plan": "1. do x"
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_REVIEW_TIERS": ""
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit -am x"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

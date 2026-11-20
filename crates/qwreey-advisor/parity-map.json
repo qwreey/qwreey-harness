@@ -1,0 +1,7 @@
+[
+ {"hook": "plugins/qwreey-advisor/hooks/readonly-for-reviewers.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-advisor", "hook", "readonly-for-reviewers"]},
+ {"hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-advisor", "hook", "second-opinion-nudge"]},
+ {"hook": "plugins/qwreey-advisor/hooks/expand-inherit-prompt.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-advisor", "hook", "expand-inherit-prompt"]},
+ {"hook": "plugins/qwreey-advisor/hooks/track-reviewer.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-advisor", "hook", "track-reviewer"]},
+ {"hook": "plugins/qwreey-advisor/hooks/ambient.py", "argv": ["UserPromptSubmit"], "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-advisor", "hook", "ambient", "UserPromptSubmit"]}
+]

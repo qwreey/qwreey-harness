@@ -1,0 +1,3 @@
+[
+ {"hook": "plugins/qwreey-reply-language/hooks/reply_language.py", "argv": [], "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-reply-language", "hook", "reply-language"]}
+]

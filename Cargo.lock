@@ -228,6 +228,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "qwreey-advisor"
+version = "0.1.0"
+dependencies = [
+ "close_fds",
+ "getrandom",
+ "harness-hook",
+ "jiff",
+ "regex",
+ "regex-syntax",
+ "rustix",
+ "serde_json",
+]
+
+[[package]]
 name = "qwreey-conventions"
 version = "0.1.0"
 dependencies = [
@@ -245,6 +259,16 @@ dependencies = [
  "rustix",
  "serde_json",
  "sha2",
+]
+
+[[package]]
+name = "qwreey-reply-language"
+version = "0.1.0"
+dependencies = [
+ "harness-hook",
+ "regex",
+ "regex-syntax",
+ "serde_json",
 ]
 
 [[package]]

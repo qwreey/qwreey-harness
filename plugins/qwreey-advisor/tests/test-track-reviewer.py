@@ -11,12 +11,16 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HOOKS = os.path.join(os.path.dirname(HERE), "hooks")
+# HOOK_TEST_BIN=<바이너리> 면 훅 스크립트 대신 `<바이너리> hook <스크립트 이름>` 를 하위 프로세스로 돌린다(Rust 판, crates/qwreey-advisor)
+BIN = os.environ.get("HOOK_TEST_BIN")
 LEDGER = os.path.join(os.path.dirname(HERE), "skills", "fresh-advisor", "scripts", "review-ledger.py")
 T = tempfile.mkdtemp(prefix="so-track-")
 ENV = {k: v for k, v in os.environ.items() if not k.startswith("HARNESS_") and k != "CLAUDE_CONFIG_DIR"}
 ENV.update(TMPDIR=os.path.join(T, "tmp"), HOME=os.path.join(T, "home"), CLAUDE_AUDIT_SCRATCH=os.path.join(T, "audit"),
            XDG_STATE_HOME=os.path.join(T, "state"))
 os.makedirs(ENV["TMPDIR"])
+if BIN:  # 바이너리는 플러그인 폴더(ledger 스크립트 자리)를 CLAUDE_PLUGIN_ROOT 로 안다
+    ENV["CLAUDE_PLUGIN_ROOT"] = os.path.dirname(HERE)
 os.makedirs(ENV["HOME"])
 ok = fail = 0
 R = "qwreey-advisor:reviewer"
@@ -32,7 +36,7 @@ def check(name, cond):
 
 
 def hook(name, data):
-    p = subprocess.run([sys.executable, "-I", os.path.join(HOOKS, name)], input=json.dumps(data), capture_output=True, text=True, env=ENV, timeout=20)
+    p = subprocess.run([BIN, "hook", name[:-len(".py")]] if BIN else [sys.executable, "-I", os.path.join(HOOKS, name)], input=json.dumps(data), capture_output=True, text=True, env=ENV, timeout=20)
     assert p.returncode == 0, p.stderr
     return p.stdout.strip()
 

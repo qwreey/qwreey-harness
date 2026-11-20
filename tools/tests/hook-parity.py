@@ -29,6 +29,7 @@
 import argparse
 import difflib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -153,8 +154,14 @@ def compare(label, a, b):
     return {"label": label, "same": same, "stderr_same": a_err == b_err, "detail": detail}
 
 
+# uuid4 는 실행마다 다르다(track-reviewer 의 run id). 양쪽 모두 자리 표시로 바꿔 비교한다
+UUID4 = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
+
+
 def captured(sb, result):
-    return result.rc, sb.normalize(result.stdout), sb.normalize(result.stderr)
+    def norm(text):
+        return UUID4.sub("<uuid4>", sb.normalize(text))
+    return result.rc, norm(result.stdout), norm(result.stderr)
 
 
 # hook-replay 사례

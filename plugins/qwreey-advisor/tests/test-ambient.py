@@ -8,9 +8,21 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HOOK = os.path.join(os.path.dirname(HERE), "hooks", "ambient.py")
+# HOOK_TEST_BIN=<바이너리> 면 UserPromptSubmit 만 python 스크립트 대신 `<바이너리> hook ambient UserPromptSubmit` 를 하위 프로세스로
+# 돌린다(Rust 판, crates/qwreey-advisor). 바이너리는 플러그인 폴더를 CLAUDE_PLUGIN_ROOT 로 안다. 다른 이벤트는 python 그대로다.
+BIN = os.environ.get("HOOK_TEST_BIN")
+
+
+def cmd(event):
+    """이 이벤트의 훅 argv(옮긴 것은 바이너리)."""
+    return [BIN, "hook", "ambient", event] if BIN and event == "UserPromptSubmit" else [sys.executable, "-I", HOOK, event]
+
+
 T = tempfile.mkdtemp(prefix="adv-ambient-")
 ENV = {k: v for k, v in os.environ.items() if not k.startswith("HARNESS_")}
 ENV["TMPDIR"] = T
+if BIN:
+    ENV["CLAUDE_PLUGIN_ROOT"] = os.path.dirname(HERE)
 ENV["QWREEY_HARNESS_SALT_FILE"] = os.path.join(T, "salt")  # nonce 는 고정 salt 로
 open(ENV["QWREEY_HARNESS_SALT_FILE"], "w").write("00" * 32)
 NONCE = "985461182738"  # salt "00"*32, session "s1"
@@ -21,7 +33,7 @@ ok = fail = 0
 def run(event, extra=None, env=None, stdin=None):
     d = {"session_id": "s1", "hook_event_name": event}
     d.update(extra or {})
-    p = subprocess.run([sys.executable, "-I", HOOK, event], input=json.dumps(d) if stdin is None else stdin,
+    p = subprocess.run(cmd(event), input=json.dumps(d) if stdin is None else stdin,
                        capture_output=True, text=True, env=env or ENV, timeout=30)
     assert p.returncode == 0, p.stderr
     return json.loads(p.stdout) if p.stdout.strip() else None
@@ -72,7 +84,7 @@ check("subagent ups", run("UserPromptSubmit", {"agent_id": "a"}) is None)
 def precompact(extra=None, env=None, stdin=None):
     d = {"session_id": "s1", "hook_event_name": "PreCompact", "trigger": "manual", "custom_instructions": None}
     d.update(extra or {})
-    p = subprocess.run([sys.executable, "-I", HOOK, "PreCompact"], input=json.dumps(d) if stdin is None else stdin,
+    p = subprocess.run(cmd("PreCompact"), input=json.dumps(d) if stdin is None else stdin,
                        capture_output=True, text=True, env=env or ENV, timeout=30)
     assert p.returncode == 0, p.stderr
     return p.stdout

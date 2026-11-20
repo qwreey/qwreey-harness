@@ -1,0 +1,437 @@
+{
+ "description": "second-opinion-nudge SubagentStop, PostToolBatch, UserPromptSubmit: a main-spawned subagent's report with recommendations or open questions gets one info line; reviews, nested agents, debates and batches that start a review stay quiet; reviewer stops record the last review and a ledger row",
+ "files": {
+  "{sandbox}/t/agent-w1.jsonl": [
+   {
+    "type": "user",
+    "message": {
+     "role": "user",
+     "content": "Fix the parser."
+    }
+   },
+   {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "ok"
+      }
+     ]
+    }
+   }
+  ],
+  "{sandbox}/t/agent-w1.meta.json": "{\"description\": \"fix parser\", \"spawnDepth\": 1}",
+  "{sandbox}/t/agent-w3.jsonl": [
+   {
+    "type": "user",
+    "message": {
+     "role": "user",
+     "content": "Look at B."
+    }
+   },
+   {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "x"
+      },
+      {
+       "type": "tool_use",
+       "id": "t1",
+       "name": "SubagentHandback",
+       "input": {
+        "message": "Open questions:\n- Q1: keep A?\n- Q2: drop B?"
+       }
+      }
+     ]
+    }
+   }
+  ],
+  "{sandbox}/t/agent-w3.meta.json": "{\"description\": \"look at <b>\"}",
+  "{sandbox}/t/agent-n1.jsonl": [
+   {
+    "type": "user",
+    "message": {
+     "role": "user",
+     "content": "nested"
+    }
+   }
+  ],
+  "{sandbox}/t/agent-n1.meta.json": "{\"description\": \"nested\", \"parentAgentId\": \"w9\"}",
+  "{sandbox}/t/agent-d1.jsonl": [
+   {
+    "type": "user",
+    "message": {
+     "role": "user",
+     "content": "debate"
+    }
+   }
+  ],
+  "{sandbox}/t/agent-d1.meta.json": "{\"description\": \"debate: pro\", \"spawnDepth\": \"1\"}",
+  "{sandbox}/t/agent-r1.jsonl": [
+   {
+    "type": "user",
+    "message": {
+     "role": "user",
+     "content": [
+      {
+       "type": "text",
+       "text": "Review.\n\n[qwreey-advisor run: 0b1f2c3d-aaaa-4bbb-8ccc-123456789012 caller=main scratch=/tmp/x/]"
+      }
+     ]
+    }
+   },
+   {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "ok"
+      }
+     ]
+    }
+   }
+  ],
+  "{sandbox}/t/agent-r1.meta.json": "{\"description\": \"second opinion: done\", \"model\": \"claude-opus-5\"}",
+  "{sandbox}/t/agent-r2.jsonl": [
+   {
+    "type": "user",
+    "message": {
+     "role": "user",
+     "content": "Review.\n\n[qwreey-advisor run: 0b1f2c3d-aaaa-4bbb-8ccc-123456789012 caller=subagent scratch=/tmp/x/]"
+    }
+   }
+  ],
+  "{sandbox}/t/agent-r2.meta.json": "{\"description\": \"second opinion: plan\", \"model\": \"sonnet\"}",
+  "{sandbox}/t/agent-f1.jsonl": [
+   {
+    "type": "user",
+    "message": {
+     "role": "user",
+     "content": "x"
+    }
+   },
+   {
+    "type": "user",
+    "message": {
+     "content": "[qwreey-advisor:inherit] Review only. Do not continue the work, edit files, or commit."
+    }
+   }
+  ],
+  "{sandbox}/t/agent-f1.meta.json": "{}"
+ },
+ "setup": [
+  "printf 'a\\n' > a.txt && git add a.txt && git commit -qm init"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolBatch",
+    "tool_calls": []
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "SubagentStop",
+    "agent_id": "w1",
+    "agent_type": "general-purpose",
+    "agent_transcript_path": "{sandbox}/t/agent-w1.jsonl",
+    "last_assistant_message": "## Recommendations\n- use option A\n- or B"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolBatch",
+    "tool_calls": []
+   },
+   "expect": {
+    "tags": [
+     "qwreey-advisor/info"
+    ],
+    "contains": [
+     "The report from subagent \"fix parser\" carries recommendations"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolBatch",
+    "tool_calls": []
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "SubagentStop",
+    "agent_id": "n1",
+    "agent_type": "general-purpose",
+    "agent_transcript_path": "{sandbox}/t/agent-n1.jsonl",
+    "last_assistant_message": "## Recommendations\n- a"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "SubagentStop",
+    "agent_id": "d1",
+    "agent_type": "general-purpose",
+    "agent_transcript_path": "{sandbox}/t/agent-d1.jsonl",
+    "last_assistant_message": "## Recommendations\n- a"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolBatch",
+    "tool_calls": []
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "SubagentStop",
+    "agent_id": "w3",
+    "agent_type": "general-purpose",
+    "agent_transcript_path": "{sandbox}/t/agent-w3.jsonl",
+    "last_assistant_message": ""
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolBatch",
+    "tool_calls": [
+     {
+      "tool_name": "Agent",
+      "tool_input": {
+       "subagent_type": "qwreey-advisor:reviewer",
+       "prompt": "Review"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolBatch",
+    "tool_calls": []
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "<task-notification>\n<task-id>w2</task-id>\n<summary>Agent \"plan `review`\" completed</summary>\n<result>I recommend X. Your call.</result>\n</task-notification>"
+   },
+   "expect": {
+    "tags": [
+     "qwreey-advisor/info"
+    ],
+    "contains": [
+     "The report from subagent \"plan review\""
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "<task-notification>\n<task-id>w2</task-id>\n<summary>Agent \"plan review\" completed</summary>\n<result>I recommend X. Your call.</result>\n</task-notification>"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "<agent-message from=\"w4\">\n[Subagent hand-back] The report follows:\n  ## Proposals\n  - x\n</agent-message>"
+   },
+   "expect": {
+    "tags": [
+     "qwreey-advisor/info"
+    ],
+    "contains": [
+     "The report from subagent \"subagent\""
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "<agent-message from=\"w5\">\n[Subagent hand-back] The report follows:\n## Proposals\n[second opinion: done]\n</agent-message>"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "hello"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "<task-notification><task-id>w6</task-id><result>ok</result></task-notification>"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "SubagentStop",
+    "agent_id": "r2",
+    "agent_type": "qwreey-advisor:reviewer",
+    "agent_transcript_path": "{sandbox}/t/agent-r2.jsonl",
+    "last_assistant_message": "Findings: none"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "SubagentStop",
+    "agent_id": "r1",
+    "agent_type": "qwreey-advisor:reviewer",
+    "agent_transcript_path": "{sandbox}/t/agent-r1.jsonl",
+    "last_assistant_message": "## Recommendations\n- fix"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "SubagentStop",
+    "agent_id": "f1",
+    "agent_type": "fork",
+    "agent_transcript_path": "{sandbox}/t/agent-f1.jsonl",
+    "last_assistant_message": "## Recommendations\n- fix"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "SubagentStop",
+    "agent_id": "w7",
+    "agent_type": "general-purpose",
+    "agent_transcript_path": "",
+    "last_assistant_message": "## Open questions\n- a"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "<task-notification>\n<task-id>w8</task-id>\n<result>## Recommendations\n- a</result>\n</task-notification>"
+   },
+   "expect": {
+    "tags": [
+     "qwreey-advisor/info"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "<task-notification>\n<task-id>w9</task-id>\n<result>## Recommendations\n- a</result>\n</task-notification>"
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_REVIEW_HANDBACK": "off"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "agent_id": "x",
+    "prompt": "<task-notification>\n<task-id>w10</task-id>\n<result>## Recommendations\n- a</result>\n</task-notification>"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "sh": "test -s {home}/.local/state/claude-second-opinion/ledger.jsonl && grep -q '\"ref\": \"agent-r1\"' {home}/.local/state/claude-second-opinion/ledger.jsonl"
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit -am x"
+    }
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_REVIEW_LINES": "mid=1"
+   }
+  }
+ ]
+}
