@@ -1,0 +1,292 @@
+{
+ "description": "session-log PreToolUse: git commit and handover skills get the pending-import note once per (session, compact epoch, trigger); quiet for other commands, subagents, sdk sessions and when off",
+ "files": {
+  "{sandbox}/seed/index.json": "{\n \"2026-01-05-s9aaaaaa\": {\n  \"session_id\": \"s9\",\n  \"file\": \"records/2026-01-05-s9aaaaaa.md\",\n  \"created\": \"2026-01-05T10:00:00\",\n  \"status\": \"pending\",\n  \"sections\": 2\n },\n \"2026-01-02-s8aaaaaa\": {\n  \"session_id\": \"s8\",\n  \"file\": \"records/2026-01-02-s8aaaaaa.md\",\n  \"created\": \"2026-01-02T09:00:00\",\n  \"status\": \"pending\",\n  \"sections\": 1\n },\n \"2026-01-01-s7aaaaaa\": {\n  \"session_id\": \"s7\",\n  \"created\": \"2026-01-01T09:00:00\",\n  \"status\": \"dismissed\"\n },\n \"2026-01-03-s6aaaaaa\": {\n  \"session_id\": \"s6\",\n  \"created\": \"2026-01-03T09:00:00\",\n  \"status\": \"imported\",\n  \"sections\": 3,\n  \"imported_sections\": 3\n }\n}",
+  ".claude/session-log.json": "{\"records_home\": \"docs/sessions/\"}\n"
+ },
+ "setup": [
+  "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); mkdir -p \"{store}/$K\" && cp -r {sandbox}/seed/. \"{store}/$K/\""
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git status"
+    },
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "cd x && git -C sub commit -m 'a b'"
+    },
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/warn"
+    ],
+    "contains": [
+     "2 auto-summarized session records pending import",
+     "docs/sessions/",
+     "(Not blocking.)"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit -m again"
+    },
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Skill",
+    "tool_input": {
+     "skill": "qwreey-sessions:CHECKPOINT"
+    },
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/warn"
+    ],
+    "contains": [
+     "A handover is a good time"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Skill",
+    "tool_input": {
+     "skill": "handover"
+    },
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit"
+    },
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "SESSION_LOG": "off"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit"
+    },
+    "session_id": "s2",
+    "agent_id": "a1",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit"
+    },
+    "session_id": "s2",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "CLAUDE_CODE_ENTRYPOINT": "sdk-cli"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit"
+    },
+    "session_id": "s2",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/warn"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo git commit"
+    },
+    "session_id": 7,
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": false,
+    "contains": [
+     "level=\"warn\""
+    ]
+   },
+   "note": "non-string session id: python str()"
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "gitcommit"
+    },
+    "session_id": "s3",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": null,
+    "session_id": "s3",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": null
+    },
+    "session_id": "s3",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "sh": "mkdir -p {tmp}/claude-qwreey-sessions-epoch && printf ' 1\\n' > {tmp}/claude-qwreey-sessions-epoch/s1"
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit"
+    },
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/warn"
+    ]
+   },
+   "note": "a new compact epoch reminds again"
+  },
+  {
+   "sh": "rm -rf .claude/session-log.json && printf '{\"archive_only\": true}' > .claude/session-log.json"
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit"
+    },
+    "session_id": "s4",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

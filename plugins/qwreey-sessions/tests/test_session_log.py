@@ -15,6 +15,23 @@ ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 FAKE = Path(__file__).resolve().parent / "fixtures" / "fake_claude.py"
+# HOOK_TEST_BIN=<바이너리> 면 옮긴 훅(hook.py 의 PostToolUse, UserPromptSubmit, PreToolUse 와 records_read.py)을 python 스크립트 대신
+# `<바이너리> hook session-log <이벤트>`, `<바이너리> hook records-read [<이벤트>]` 로 돌린다(Rust 판, crates/qwreey-sessions).
+# 나머지 이벤트는 늘 python 이다
+BIN = os.environ.get("HOOK_TEST_BIN")
+PORTED_EVENTS = ("PostToolUse", "UserPromptSubmit", "PreToolUse")
+
+
+def hook_cmd(event):
+    if BIN and event in PORTED_EVENTS:
+        return [BIN, "hook", "session-log", event]
+    return [sys.executable, "-I", str(SCRIPTS / "hook.py"), event]
+
+
+def records_read_cmd(*event):
+    if BIN:
+        return [BIN, "hook", "records-read", *event]
+    return [sys.executable, "-I", str(SCRIPTS / "records_read.py"), *event]
 
 
 SALT = "00" * 32
@@ -95,7 +112,7 @@ class Env(unittest.TestCase):
 
     def hook(self, event, payload, extra_env=None):
         env = dict(os.environ, **(extra_env or {}))
-        p = subprocess.run([sys.executable, "-I", str(SCRIPTS / "hook.py"), event], input=json.dumps(payload),
+        p = subprocess.run(hook_cmd(event), input=json.dumps(payload),
                            capture_output=True, text=True, env=env, timeout=30)
         self.assertEqual(p.returncode, 0, p.stderr)
         return p.stdout
@@ -605,7 +622,7 @@ class TestRecordsRead(Env):
         payload = {"session_id": sid, "tool_name": tool, "tool_input": inp, "cwd": str(root or self.proj)}
         if agent:
             payload["agent_id"] = agent
-        p = subprocess.run([sys.executable, "-I", str(SCRIPTS / "records_read.py")], input=json.dumps(payload),
+        p = subprocess.run(records_read_cmd(), input=json.dumps(payload),
                            capture_output=True, text=True, env=dict(os.environ), timeout=30)
         self.assertEqual(p.returncode, 0, p.stderr)
         return json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"] if p.stdout.strip() else ""
@@ -647,7 +664,7 @@ class TestRecordsRead(Env):
         recdir.mkdir(parents=True)
         f = recdir / "a.md"; f.write_text("x")
         payload = {"session_id": "r9", "tool_name": "Read", "tool_input": {"file_path": str(f)}, "cwd": str(self.proj)}
-        p = subprocess.run([sys.executable, "-I", str(SCRIPTS / "records_read.py"), "PostToolUse"], input=json.dumps(payload),
+        p = subprocess.run(records_read_cmd("PostToolUse"), input=json.dumps(payload),
                            capture_output=True, text=True, env=dict(os.environ), timeout=30)
         self.assertIn("snapshots", p.stdout)
 
@@ -659,7 +676,7 @@ class TestRecordsGate(Env):
     def gate(self, path, extra=None, sid="g1", env=None, raw=None):
         inp = {"file_path": str(path), **(extra or {})}
         payload = raw if raw is not None else json.dumps({"session_id": sid, "tool_name": "Read", "tool_input": inp, "cwd": str(self.proj)})
-        p = subprocess.run([sys.executable, "-I", str(SCRIPTS / "records_read.py"), "PreToolUse"], input=payload,
+        p = subprocess.run(records_read_cmd("PreToolUse"), input=payload,
                            capture_output=True, text=True, env={**os.environ, **(env or {})}, timeout=30)
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertEqual(p.stderr, "")

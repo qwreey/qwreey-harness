@@ -1,0 +1,150 @@
+{
+ "description": "session-log pending note levels: one fresh record without a home is info, three records or old ones propose a home (warn) and name existing history dirs; a broken index is quiet",
+ "setup": [
+  "T=$(date +%F); mkdir -p {sandbox}/seed && printf '{\"r1\": {\"session_id\": \"a\", \"created\": \"%sT01:00:00\", \"status\": \"pending\"}}' \"$T\" > {sandbox}/seed/index.json",
+  "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); mkdir -p \"{store}/$K\" && cp -r {sandbox}/seed/. \"{store}/$K/\""
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit -qm x"
+    },
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/info"
+    ],
+    "contains": [
+     "1 auto-summarized session record pending import",
+     "0 days",
+     "No records home is set yet"
+    ]
+   }
+  },
+  {
+   "sh": "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); T=$(date +%F); printf '{\"r1\": {\"created\": \"%sT01:00:00\"}, \"r2\": {\"created\": \"%sT02:00:00\"}, \"r3\": {\"created\": \"%s\"}}' \"$T\" \"$T\" \"$T\" > \"{store}/$K/index.json\"; mkdir -p handoff .claude/audit"
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit"
+    },
+    "session_id": "s2",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/warn"
+    ],
+    "contains": [
+     "have piled up outside the repo",
+     "`handoff/` or `.claude/audit/`"
+    ]
+   }
+  },
+  {
+   "sh": "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); printf '{\"r1\": {\"created\": \"2026-W01-3\"}}' > \"{store}/$K/index.json\""
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit"
+    },
+    "session_id": "s3",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/warn"
+    ],
+    "contains": [
+     "oldest from 2026-W01-3"
+    ]
+   },
+   "note": "ISO week date"
+  },
+  {
+   "sh": "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); printf '{\"r1\": {\"created\": \"not a date\"}, \"r2\": {\"created\": \"zz\"}}' > \"{store}/$K/index.json\""
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit"
+    },
+    "session_id": "s4",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/info"
+    ],
+    "contains": [
+     "oldest from not a date, 0 days"
+    ]
+   }
+  },
+  {
+   "sh": "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); printf '{\"r1\": {\"created\": 5}, \"r2\": {\"created\": \"x\"}}' > \"{store}/$K/index.json\""
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit"
+    },
+    "session_id": "s5",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   },
+   "note": "python TypeError while sorting: no output"
+  },
+  {
+   "sh": "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); printf '[1, 2]' > \"{store}/$K/index.json\""
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit"
+    },
+    "session_id": "s6",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

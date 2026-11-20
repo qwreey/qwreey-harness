@@ -1,0 +1,132 @@
+{
+ "description": "session-log PostToolUse starts the detached summarizer once the transcript grew by SESSION_LOG_GROW_KB and the cooldown passed, then waits out the cooldown (worker runs with SESSION_LOG_CLAUDE=/bin/false in the sandbox)",
+ "files": {
+  "{sandbox}/sess.jsonl": {
+   "repeat": "x",
+   "times": 600000
+  },
+  "{sandbox}/small.jsonl": {
+   "repeat": "x",
+   "times": 1000
+  },
+  "{sandbox}/seed/.state/s1.json": "{\"offset\": 10, \"line\": 41, \"last_run\": 0}"
+ },
+ "setup": [
+  "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); mkdir -p \"{store}/$K\" && cp -r {sandbox}/seed/. \"{store}/$K/\""
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "transcript_path": "{sandbox}/small.jsonl",
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "transcript_path": "{sandbox}/nope.jsonl",
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "transcript_path": 3,
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "transcript_path": "{sandbox}/sess.jsonl",
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "SESSION_LOG_GROW_KB": "1000"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "transcript_path": "{sandbox}/sess.jsonl",
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/info"
+    ],
+    "contains": [
+     "summarizing this session (L42–end, periodic)"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "transcript_path": "{sandbox}/sess.jsonl",
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "empty": true
+   },
+   "note": "cooldown from last_spawn"
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "UserPromptSubmit"
+   ],
+   "payload": {
+    "prompt": "go",
+    "transcript_path": "{sandbox}/sess.jsonl",
+    "session_id": "s2",
+    "hook_event_name": "UserPromptSubmit"
+   },
+   "expect": {
+    "tags": [
+     "session-log/info"
+    ],
+    "contains": [
+     "(L1–end, periodic)"
+    ]
+   }
+  }
+ ]
+}

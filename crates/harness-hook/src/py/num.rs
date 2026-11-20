@@ -196,9 +196,37 @@ pub fn parse_decimal(digits: &str) -> Option<u128> {
     })
 }
 
+/// python `int(text)`(base 10). 읽지 못하거나 i128 을 넘으면 `None`(python 은 ValueError, 넘는 값은 python 만 읽는다).
+///
+/// 앞뒤 공백을 떼고, 부호 하나, Unicode 십진 숫자, 숫자 사이의 `_` 하나를 받는다(`" -1_000 "` 은 -1000).
+pub fn parse_int(text: &str) -> Option<i128> {
+    let text = crate::py::text::strip(text);
+    let (negative, digits) = match text.as_bytes().first() {
+        Some(b'-') => (true, &text[1..]),
+        Some(b'+') => (false, &text[1..]),
+        _ => (false, text),
+    };
+    if digits.starts_with('_') || digits.ends_with('_') || digits.contains("__") {
+        return None;
+    }
+    let magnitude = parse_decimal(&digits.replace('_', ""))?;
+    let value = i128::try_from(magnitude).ok()?;
+    Some(if negative { -value } else { value })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn int_parsing_follows_python() {
+        assert_eq!(parse_int(" -1_000 "), Some(-1000));
+        assert_eq!(parse_int("+7"), Some(7));
+        assert_eq!(parse_int("\u{663}\n"), Some(3));
+        for bad in ["", "-", "1__0", "_1", "1_", "1.0", "0x1", "- 1"] {
+            assert_eq!(parse_int(bad), None, "{bad:?}");
+        }
+    }
 
     #[test]
     fn float_parsing_and_g_follow_python() {

@@ -1,0 +1,6 @@
+[
+ {"hook": "plugins/qwreey-sessions/scripts/hook.py", "argv": ["PostToolUse"], "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-sessions", "hook", "session-log", "PostToolUse"]},
+ {"hook": "plugins/qwreey-sessions/scripts/hook.py", "argv": ["UserPromptSubmit"], "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-sessions", "hook", "session-log", "UserPromptSubmit"]},
+ {"hook": "plugins/qwreey-sessions/scripts/hook.py", "argv": ["PreToolUse"], "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-sessions", "hook", "session-log", "PreToolUse"]},
+ {"hook": "plugins/qwreey-sessions/scripts/records_read.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-sessions", "hook", "records-read"]}
+]

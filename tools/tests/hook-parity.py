@@ -36,7 +36,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))  # python3 -I 는 스�
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from hook_sandbox import PYTHON_HOOK, ROOT, Sandbox, SetupFailed, plugin_of, replay  # noqa: E402
 from usage_bench import matches  # noqa: E402
-from usage_scan import load_hook_entries  # noqa: E402
+from usage_scan import load_hook_entries, native_alias  # noqa: E402
 
 CASES = Path(__file__).resolve().parent / "hook-replay" / "cases"
 PROJECTS = Path.home() / ".claude" / "projects"
@@ -213,13 +213,29 @@ def registrations(entry):
     """entry 의 훅이 hooks.json 에 도구 이벤트로 걸린 [(이벤트, matcher, 인자)]."""
     out = []
     for h in load_hook_entries([ROOT / entry.plugin]):
-        m = PYTHON_HOOK.match(h["command"] or "") if h["type"] == "command" else None
-        if not m or h["event"] not in TOOL_EVENTS or "%s/%s" % (entry.plugin, m.group(1)) != entry.hook:
+        if h["type"] != "command" or h["event"] not in TOOL_EVENTS:
             continue
-        args = m.group(2).split()
+        script = registered_script(h)
+        if not script or "%s/%s" % (entry.plugin, script[0]) != entry.hook:
+            continue
+        args = list(script[1])
         if entry.argv is None or args == entry.argv:
             out.append((h["event"], h["matcher"], args))
     return out
+
+
+def registered_script(h):
+    """hooks.json 항목이 부르는 python 스크립트 (플러그인 기준 경로, 인자), 없으면 None.
+
+    Rust 바이너리(실행 형식)는 crates/*/parity-map.json 으로 그 바이너리가 대신하는 스크립트로 되돌린다."""
+    m = PYTHON_HOOK.match(h["command"] or "")
+    if m:
+        return m.group(1), tuple(m.group(2).split())
+    prefix = "${CLAUDE_PLUGIN_ROOT}/"
+    if not h["args"] or not (h["command"] or "").startswith(prefix):
+        return None
+    rel, args = native_alias(h["command"][len(prefix):], tuple(h["args"]))
+    return (rel, args) if rel.endswith(".py") else None
 
 
 def calls_in(path):

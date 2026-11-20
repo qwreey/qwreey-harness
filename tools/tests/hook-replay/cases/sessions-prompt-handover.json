@@ -1,0 +1,149 @@
+{
+ "description": "session-log UserPromptSubmit adds the pending note when the user asks for a handover or checkpoint (word boundaries, case, Korean), once per session",
+ "files": {
+  "{sandbox}/seed/index.json": "{\"2026-01-05-s9aaaaaa\": {\"session_id\": \"s9\", \"file\": \"records/2026-01-05-s9aaaaaa.md\", \"created\": \"2026-01-05T10:00:00\", \"status\": \"pending\", \"sections\": 2}, \"2026-01-02-s8aaaaaa\": {\"session_id\": \"s8\", \"file\": \"records/2026-01-02-s8aaaaaa.md\", \"created\": \"2026-01-02T09:00:00\", \"status\": \"pending\", \"sections\": 1}, \"2026-01-01-s7aaaaaa\": {\"session_id\": \"s7\", \"created\": \"2026-01-01T09:00:00\", \"status\": \"dismissed\"}, \"2026-01-03-s6aaaaaa\": {\"session_id\": \"s6\", \"created\": \"2026-01-03T09:00:00\", \"status\": \"imported\", \"sections\": 3, \"imported_sections\": 3}}"
+ },
+ "setup": [
+  "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); mkdir -p \"{store}/$K\" && cp -r {sandbox}/seed/. \"{store}/$K/\""
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "UserPromptSubmit"
+   ],
+   "payload": {
+    "prompt": "please continue",
+    "hook_event_name": "UserPromptSubmit"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "UserPromptSubmit"
+   ],
+   "payload": {
+    "prompt": "  /qwreey-sessions:Checkpoint now",
+    "hook_event_name": "UserPromptSubmit"
+   },
+   "expect": {
+    "tags": [
+     "session-log/warn"
+    ],
+    "contains": [
+     "have piled up outside the repo"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "UserPromptSubmit"
+   ],
+   "payload": {
+    "prompt": "/handover",
+    "hook_event_name": "UserPromptSubmit"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "UserPromptSubmit"
+   ],
+   "payload": {
+    "prompt": "let's do a HANDOVER.",
+    "session_id": "s2",
+    "hook_event_name": "UserPromptSubmit"
+   },
+   "expect": {
+    "tags": [
+     "session-log/warn"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "UserPromptSubmit"
+   ],
+   "payload": {
+    "prompt": "인계 준비",
+    "session_id": "s3",
+    "hook_event_name": "UserPromptSubmit"
+   },
+   "expect": {
+    "tags": [
+     "session-log/warn"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "UserPromptSubmit"
+   ],
+   "payload": {
+    "prompt": "핸드오버해줘",
+    "session_id": "s4",
+    "hook_event_name": "UserPromptSubmit"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "UserPromptSubmit"
+   ],
+   "payload": {
+    "prompt": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx handover",
+    "session_id": "s5",
+    "hook_event_name": "UserPromptSubmit"
+   },
+   "expect": {
+    "empty": true
+   },
+   "note": "only the first 400 characters"
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "UserPromptSubmit"
+   ],
+   "payload": {
+    "prompt": 12345,
+    "session_id": "s6",
+    "hook_event_name": "UserPromptSubmit"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "UserPromptSubmit"
+   ],
+   "payload": {
+    "prompt": "handover",
+    "session_id": "s7",
+    "cwd": "{ws}/other",
+    "hook_event_name": "UserPromptSubmit"
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "CLAUDE_PROJECT_DIR": null
+   },
+   "note": "another repo has no store"
+  }
+ ]
+}

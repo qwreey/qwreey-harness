@@ -1,0 +1,99 @@
+{
+ "description": "session-log finds the main checkout from a git worktree and through a symlinked cwd, so the store key matches",
+ "files": {
+  "{sandbox}/seed/index.json": "{\"2026-01-05-s9aaaaaa\": {\"session_id\": \"s9\", \"file\": \"records/2026-01-05-s9aaaaaa.md\", \"created\": \"2026-01-05T10:00:00\", \"status\": \"pending\", \"sections\": 2}, \"2026-01-02-s8aaaaaa\": {\"session_id\": \"s8\", \"file\": \"records/2026-01-02-s8aaaaaa.md\", \"created\": \"2026-01-02T09:00:00\", \"status\": \"pending\", \"sections\": 1}, \"2026-01-01-s7aaaaaa\": {\"session_id\": \"s7\", \"created\": \"2026-01-01T09:00:00\", \"status\": \"dismissed\"}, \"2026-01-03-s6aaaaaa\": {\"session_id\": \"s6\", \"created\": \"2026-01-03T09:00:00\", \"status\": \"imported\", \"sections\": 3, \"imported_sections\": 3}}"
+ },
+ "setup": [
+  "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); mkdir -p \"{store}/$K\" && cp -r {sandbox}/seed/. \"{store}/$K/\"",
+  "git commit -q --allow-empty -m init && git worktree add -q {ws}/wt && mkdir -p sub/deep && ln -s {repo}/sub {ws}/link"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit"
+    },
+    "cwd": "{ws}/wt",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/warn"
+    ]
+   },
+   "env": {
+    "CLAUDE_PROJECT_DIR": null
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit"
+    },
+    "cwd": "{ws}/link/deep/../deep",
+    "session_id": "s2",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/warn"
+    ]
+   },
+   "env": {
+    "CLAUDE_PROJECT_DIR": null
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit"
+    },
+    "cwd": "{ws}/other/nested/missing",
+    "session_id": "s3",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "CLAUDE_PROJECT_DIR": null
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "git commit"
+    },
+    "cwd": 5,
+    "session_id": "s4",
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "CLAUDE_PROJECT_DIR": null
+   }
+  }
+ ]
+}

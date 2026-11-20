@@ -25,26 +25,88 @@ pub enum EnsureAscii {
 /// python 기본 `json.dumps` 와 같은 꼴로 쓰는 Formatter.
 pub struct PyFormatter {
     ascii: EnsureAscii,
+    /// `indent=n` 이면 `Some(n)`: 항목마다 줄을 바꾸고 깊이마다 공백 n 개, 항목 구분자는 `","`(python 이 indent 를 주면 바꾼다).
+    indent: Option<usize>,
+    depth: usize,
+    has_value: bool,
 }
 
 impl PyFormatter {
     /// `ensure_ascii` 를 정한 Formatter.
     pub fn new(ascii: EnsureAscii) -> PyFormatter {
-        PyFormatter { ascii }
+        PyFormatter {
+            ascii,
+            indent: None,
+            depth: 0,
+            has_value: false,
+        }
+    }
+
+    /// python `json.dumps(value, ensure_ascii=..., indent=indent)` 꼴.
+    pub fn indented(ascii: EnsureAscii, indent: usize) -> PyFormatter {
+        PyFormatter {
+            indent: Some(indent),
+            ..PyFormatter::new(ascii)
+        }
+    }
+
+    // 항목 앞: 첫 항목이 아니면 구분자, indent 가 있으면 줄바꿈과 들여쓰기
+    fn item_start<W: ?Sized + Write>(&mut self, writer: &mut W, first: bool) -> io::Result<()> {
+        match self.indent {
+            None if first => Ok(()),
+            None => writer.write_all(b", "),
+            Some(width) => {
+                writer.write_all(if first { b"\n" } else { b",\n" })?;
+                writer.write_all(" ".repeat(width * self.depth).as_bytes())
+            }
+        }
+    }
+
+    // 묶음 끝: indent 가 있고 항목이 있었으면 줄을 바꿔 한 단계 덜 들여 쓴 뒤 닫는다
+    fn group_end<W: ?Sized + Write>(&mut self, writer: &mut W, close: &[u8]) -> io::Result<()> {
+        self.depth = self.depth.saturating_sub(1);
+        if let Some(width) = self.indent
+            && self.has_value
+        {
+            writer.write_all(b"\n")?;
+            writer.write_all(" ".repeat(width * self.depth).as_bytes())?;
+        }
+        writer.write_all(close)
     }
 }
 
 impl Formatter for PyFormatter {
+    fn begin_array<W: ?Sized + Write>(&mut self, writer: &mut W) -> io::Result<()> {
+        self.depth += 1;
+        self.has_value = false;
+        writer.write_all(b"[")
+    }
+
+    fn end_array<W: ?Sized + Write>(&mut self, writer: &mut W) -> io::Result<()> {
+        self.group_end(writer, b"]")
+    }
+
     fn begin_array_value<W: ?Sized + Write>(
         &mut self,
         writer: &mut W,
         first: bool,
     ) -> io::Result<()> {
-        if first {
-            Ok(())
-        } else {
-            writer.write_all(b", ")
-        }
+        self.item_start(writer, first)
+    }
+
+    fn end_array_value<W: ?Sized + Write>(&mut self, _writer: &mut W) -> io::Result<()> {
+        self.has_value = true;
+        Ok(())
+    }
+
+    fn begin_object<W: ?Sized + Write>(&mut self, writer: &mut W) -> io::Result<()> {
+        self.depth += 1;
+        self.has_value = false;
+        writer.write_all(b"{")
+    }
+
+    fn end_object<W: ?Sized + Write>(&mut self, writer: &mut W) -> io::Result<()> {
+        self.group_end(writer, b"}")
     }
 
     fn begin_object_key<W: ?Sized + Write>(
@@ -52,11 +114,12 @@ impl Formatter for PyFormatter {
         writer: &mut W,
         first: bool,
     ) -> io::Result<()> {
-        if first {
-            Ok(())
-        } else {
-            writer.write_all(b", ")
-        }
+        self.item_start(writer, first)
+    }
+
+    fn end_object_value<W: ?Sized + Write>(&mut self, _writer: &mut W) -> io::Result<()> {
+        self.has_value = true;
+        Ok(())
     }
 
     fn begin_object_value<W: ?Sized + Write>(&mut self, writer: &mut W) -> io::Result<()> {
@@ -113,6 +176,21 @@ pub fn to_string<T: Serialize + ?Sized>(
     Ok(String::from_utf8(out).expect("serde_json writes UTF-8"))
 }
 
+/// `value` 를 python `json.dumps(value, ensure_ascii=..., indent=n)` 꼴 문자열로.
+///
+/// 오류는 [`to_string`] 과 같다.
+pub fn to_string_indented<T: Serialize + ?Sized>(
+    value: &T,
+    ascii: EnsureAscii,
+    indent: usize,
+) -> serde_json::Result<String> {
+    let mut out = Vec::new();
+    let mut ser =
+        serde_json::Serializer::with_formatter(&mut out, PyFormatter::indented(ascii, indent));
+    value.serialize(&mut ser)?;
+    Ok(String::from_utf8(out).expect("serde_json writes UTF-8"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -128,6 +206,20 @@ mod tests {
         assert_eq!(
             to_string(&v, EnsureAscii::No).unwrap(),
             "{\"a\": \"\u{7f}\u{e9}\u{1f600}\\u001f\", \"b\": [1, 2.5, true, null]}"
+        );
+    }
+
+    #[test]
+    fn indented_matches_python_dumps() {
+        // python: json.dumps({"a": [1, {}], "b": {"c": []}, "d": "é"}, ensure_ascii=False, indent=1)
+        let v = json!({"a": [1, {}], "b": {"c": []}, "d": "\u{e9}"});
+        assert_eq!(
+            to_string_indented(&v, EnsureAscii::No, 1).unwrap(),
+            "{\n \"a\": [\n  1,\n  {}\n ],\n \"b\": {\n  \"c\": []\n },\n \"d\": \"\u{e9}\"\n}"
+        );
+        assert_eq!(
+            to_string_indented(&json!({}), EnsureAscii::No, 1).unwrap(),
+            "{}"
         );
     }
 

@@ -224,6 +224,8 @@ class Sandbox:
             for prefix, (dst, _) in plugin_install()["dirs"].items():
                 text = text.replace(str(dst), str(ROOT / prefix))
         text = text.replace(str(self.root), "<sandbox>").replace(str(ROOT), "<root>")
+        # session-log 저장소 키(경로의 영숫자 아닌 글자를 `-` 로)에 든 샌드박스 경로
+        text = text.replace(re.sub(r"[^A-Za-z0-9]", "-", str(self.root)), "<sandbox-key>")
         return text.replace("claude-%d" % os.getuid(), "claude-<uid>")
 
     def env(self, extra=None):
@@ -295,8 +297,10 @@ class Sandbox:
 
         # Claude Code 처럼 변수를 글자로 펼치기
         full = self.env(env)
-        names = {"CLAUDE_PLUGIN_ROOT": str(self.plugin_root(plugin)[0]), "CLAUDE_PLUGIN_DATA": full["CLAUDE_PLUGIN_DATA"],
-                 "CLAUDE_PROJECT_DIR": full["CLAUDE_PROJECT_DIR"]}
+        # 사례가 CLAUDE_PROJECT_DIR 을 지웠으면(env 값 null) 그 자리는 펼치지 않는다
+        names = {"CLAUDE_PLUGIN_ROOT": str(self.plugin_root(plugin)[0]), "CLAUDE_PLUGIN_DATA": full["CLAUDE_PLUGIN_DATA"]}
+        if "CLAUDE_PROJECT_DIR" in full:
+            names["CLAUDE_PROJECT_DIR"] = full["CLAUDE_PROJECT_DIR"]
         expanded = []
         for arg in argv:
             arg = self.subst(arg)

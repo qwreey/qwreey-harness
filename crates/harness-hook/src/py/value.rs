@@ -102,6 +102,11 @@ fn same_content(a: &Value, b: &Value) -> bool {
 }
 
 impl Value {
+    /// 키 순서를 무시하고 같은가(python `json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)`).
+    pub fn same_content(&self, other: &Value) -> bool {
+        same_content(self, other)
+    }
+
     /// dict 면 그것.
     pub fn as_dict(&self) -> Option<&Dict> {
         match self {

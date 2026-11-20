@@ -1,0 +1,310 @@
+{
+ "description": "records_read PostToolUse: reading or grepping session records warns once per (session, agent, compact epoch); records home reads count, other files do not; the PreToolUse gate names coderag only when it is on PATH",
+ "files": {
+  "{store}/k/records/a.md": "x\n",
+  "{store}/k/records/big.md": {
+   "repeat": "y",
+   "times": 40000
+  },
+  "docs/sessions/r.md": "q\n",
+  "notes.md": "z\n",
+  ".claude/audit/1/s.md": {
+   "repeat": "y",
+   "times": 40000
+  },
+  "{sandbox}/bin/coderag": "#!/bin/sh\nexit 0\n"
+ },
+ "setup": [
+  "chmod +x {sandbox}/bin/coderag"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "argv": [],
+   "payload": {
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{store}/k/records/a.md"
+    },
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/info"
+    ],
+    "contains": [
+     "snapshots"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{store}/k/records/a.md"
+    },
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Grep",
+    "tool_input": {
+     "path": "{store}/k/records",
+     "pattern": "x"
+    },
+    "agent_id": "sub-1",
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/info"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/notes.md"
+    },
+    "session_id": "s2",
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/docs/sessions/r.md"
+    },
+    "session_id": "s2",
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "write": {
+    ".claude/session-log.json": "{\"records_home\": \"docs/sessions\"}"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/docs/sessions/r.md"
+    },
+    "session_id": "s2",
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/info"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/docs/sessions/r.md"
+    },
+    "session_id": "",
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{store}/k/records/a.md"
+    },
+    "session_id": "s3",
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "SESSION_LOG_NESTED": "1"
+   }
+  },
+  {
+   "sh": "mkdir -p {tmp}/claude-qwreey-sessions-epoch && echo 2 > {tmp}/claude-qwreey-sessions-epoch/s1"
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{store}/k/records/a.md"
+    },
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/info"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{store}/k/records/big.md"
+    },
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "decision": "deny",
+    "not_contains": [
+     "coderag get"
+    ]
+   },
+   "env": {
+    "PATH": "{sandbox}/bin:/usr/bin:/bin"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/.claude/audit/1/s.md"
+    },
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "decision": "deny",
+    "contains": [
+     "coderag get"
+    ]
+   },
+   "env": {
+    "PATH": "{sandbox}/bin:/usr/bin:/bin"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/.claude/audit/1/s.md"
+    },
+    "session_id": 9,
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "decision": "deny"
+   },
+   "env": {
+    "SESSION_LOG_READ_GATE_KB": "1.5"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/.claude/audit/1/s.md"
+    },
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "SESSION_LOG_READ_GATE_KB": "nan"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/.claude/audit/1/s.md",
+     "offset": null,
+     "pages": ""
+    },
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "decision": "deny"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/records_read.py",
+   "argv": [
+    "PreToolUse"
+   ],
+   "payload": {
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "{repo}/.claude/audit/1/S.PDF"
+    },
+    "hook_event_name": "PreToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

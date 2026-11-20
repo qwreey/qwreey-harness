@@ -1,0 +1,131 @@
+{
+ "description": "session-log PostToolUse and UserPromptSubmit pass the worker's saved notices once (cursor in the hook state), and stay quiet on a notice python cannot render",
+ "files": {
+  "{sandbox}/seed/.state/notices.jsonl": "{\"session_id\": \"s1\", \"rids\": [\"2026-11-01-s1aaaaaa\"], \"sections\": 2, \"flagged\": 1, \"seq\": 1, \"ts\": \"2026-11-01T01:00:00\"}\n{\"session_id\": \"s1\", \"rids\": [\"2026-11-01-s1aaaaaa\", \"2026-11-01-s1aaaaaa-2\"], \"sections\": 1, \"seq\": 2, \"ts\": \"2026-11-01T02:00:00\"}\nnot json\n",
+  "{sandbox}/seed/.state/notice.seq": "2\n",
+  "{sandbox}/seed/index.json": "{\"2026-11-01-s1aaaaaa\": {\"created\": \"2026-11-01T01:00:00\", \"status\": \"pending\"}}"
+ },
+ "setup": [
+  "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); mkdir -p \"{store}/$K\" && cp -r {sandbox}/seed/. \"{store}/$K/\""
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "/x"
+    },
+    "tool_response": {
+     "a": [
+      1,
+      {
+       "b": null
+      }
+     ]
+    },
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/info"
+    ],
+    "contains": [
+     "saved 3 new sections",
+     "(+1 more)",
+     "1 item failed the source check",
+     "1 record pending import"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Read",
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "sh": "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); printf '{\"seq\": 3, \"sections\": 1.0, \"rids\": [\"r9\"], \"flagged\": 0.0}\\n' >> \"{store}/$K/.state/notices.jsonl\"; echo 3 > \"{store}/$K/.state/notice.seq\""
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "UserPromptSubmit"
+   ],
+   "payload": {
+    "prompt": "hello",
+    "hook_event_name": "UserPromptSubmit"
+   },
+   "expect": {
+    "tags": [
+     "session-log/info"
+    ],
+    "contains": [
+     "saved 1.0 new section to"
+    ]
+   }
+  },
+  {
+   "sh": "K=$(pwd | sed \"s/[^A-Za-z0-9]/-/g\"); printf '{\"seq\": 4, \"sections\": 1, \"rids\": []}\\n' >> \"{store}/$K/.state/notices.jsonl\"; echo 4 > \"{store}/$K/.state/notice.seq\""
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "empty": true
+   },
+   "note": "python IndexError on a notice without records: no output, cursor not saved"
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-sessions/scripts/hook.py",
+   "argv": [
+    "PostToolUse"
+   ],
+   "payload": {
+    "tool_name": "Bash",
+    "session_id": "s2",
+    "hook_event_name": "PostToolUse"
+   },
+   "expect": {
+    "tags": [
+     "session-log/info"
+    ],
+    "contains": [
+     "saved 5.0 new sections",
+     "(+2 more)",
+     "1.0 item failed"
+    ]
+   },
+   "note": "a new session reads every notice: the empty rids add none"
+  }
+ ]
+}

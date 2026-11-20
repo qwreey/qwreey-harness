@@ -160,6 +160,135 @@ pub fn abspath(path: &str) -> Option<String> {
     Some(normpath(&joined))
 }
 
+/// python `posixpath.join(a, b)`: `b` 가 절대 경로면 `b`, `a` 가 비었거나 `/` 로 끝나면 그대로 잇고, 아니면 `/` 를 끼운다.
+pub fn join(a: &str, b: &str) -> String {
+    if b.starts_with('/') || a.is_empty() {
+        b.to_owned()
+    } else if a.ends_with('/') {
+        format!("{a}{b}")
+    } else {
+        format!("{a}/{b}")
+    }
+}
+
+/// python `str(PurePosixPath(base) / name)`: [`join`] 한 뒤 [`pathlib_str`] 로 정리한다.
+pub fn pathlib_join(base: &str, name: &str) -> String {
+    pathlib_str(&join(base, name))
+}
+
+/// python `posixpath.splitext(path)`: (앞, 확장자). 확장자는 마지막 조각의 마지막 `.` 부터, 조각 맨 앞의 `.` 들은 확장자가 아니다.
+pub fn splitext(path: &str) -> (&str, &str) {
+    let name_start = path.rfind('/').map_or(0, |i| i + 1);
+    match path[name_start..].rfind('.') {
+        Some(dot)
+            if path[name_start..name_start + dot]
+                .bytes()
+                .any(|b| b != b'.') =>
+        {
+            path.split_at(name_start + dot)
+        }
+        _ => (path, ""),
+    }
+}
+
+/// [`realpath`] 가 python 에서 예외가 나는 자리.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RealpathError {
+    /// 경로를 OS 바이트로 바꾸지 못하거나 NUL 이 들었다(python ValueError).
+    Invalid,
+    /// 상대 경로인데 현재 디렉터리를 읽지 못했다(python `os.getcwd` 의 OSError).
+    Cwd,
+}
+
+// realpath 가 풀 조각과, 다 푼 링크를 표시하는 자리(python 의 None 표식)
+enum Pending {
+    Name(String),
+    Resolved(String),
+}
+
+/// python `os.path.realpath(path)`(POSIX, strict=False): 링크를 모두 따라간 절대 경로.
+///
+/// 3.14 판의 순서를 그대로 옮겼다: 조각마다 lstat 하고 링크면 대상을 펼친다. 없는 조각과 lstat, readlink 오류는 글자 그대로 잇는다.
+/// 링크 고리는 고리를 이룬 링크 경로에서 멈춘다. 글은 python str 꼴(서로게이트 자리표, [`crate::py::surrogate`])이다.
+pub fn realpath(path: &str) -> Result<String, RealpathError> {
+    use crate::py::surrogate::{from_os, to_os};
+    use std::collections::HashMap;
+
+    // 남은 조각(뒤집은 스택)과 지금까지 푼 경로
+    let mut rest: Vec<Pending> = path
+        .split('/')
+        .rev()
+        .map(|p| Pending::Name(p.to_owned()))
+        .collect();
+    let mut part_count = rest.len();
+    let mut resolved = if path.starts_with('/') {
+        "/".to_owned()
+    } else {
+        let cwd = std::env::current_dir().map_err(|_| RealpathError::Cwd)?;
+        from_os(cwd.as_os_str())
+    };
+    let mut seen: HashMap<String, Option<String>> = HashMap::new();
+
+    while part_count > 0 {
+        let Some(item) = rest.pop() else { break };
+        let name = match item {
+            Pending::Resolved(link) => {
+                seen.insert(link, Some(resolved.clone()));
+                continue;
+            }
+            Pending::Name(name) => name,
+        };
+        part_count -= 1;
+
+        // 빈 조각, `.`, `..`
+        if name.is_empty() || name == "." {
+            continue;
+        }
+        if name == ".." {
+            let cut = resolved.rfind('/').unwrap_or(0);
+            resolved.truncate(cut.max(1));
+            continue;
+        }
+
+        // 조각 하나를 이어 lstat
+        let next = if resolved == "/" {
+            format!("/{name}")
+        } else {
+            format!("{resolved}/{name}")
+        };
+        if next.contains('\0') {
+            return Err(RealpathError::Invalid);
+        }
+        let os = to_os(&next).ok_or(RealpathError::Invalid)?;
+        let is_link = std::fs::symlink_metadata(&os).is_ok_and(|m| m.file_type().is_symlink());
+        if !is_link {
+            resolved = next;
+            continue;
+        }
+        if let Some(done) = seen.get(&next) {
+            // 이미 푼 링크는 그 값, 푸는 중인 링크는 고리라 글자 그대로
+            resolved = done.clone().unwrap_or(next);
+            continue;
+        }
+        let Ok(target) = std::fs::read_link(&os) else {
+            resolved = next;
+            continue;
+        };
+
+        // 링크 대상을 스택에 펼치기
+        let target = from_os(target.as_os_str());
+        if target.starts_with('/') {
+            resolved = "/".to_owned();
+        }
+        seen.insert(next.clone(), None);
+        rest.push(Pending::Resolved(next));
+        let parts: Vec<&str> = target.split('/').collect();
+        part_count += parts.len();
+        rest.extend(parts.into_iter().rev().map(|p| Pending::Name(p.to_owned())));
+    }
+    Ok(resolved)
+}
+
 /// [`pathlib_str`] 를 `PathBuf` 로.
 pub fn pathlib(path: &str) -> PathBuf {
     PathBuf::from(pathlib_str(path))

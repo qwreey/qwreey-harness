@@ -1,0 +1,22 @@
+[package]
+name = "qwreey-sessions"
+version = "0.1.0"
+description = "qwreey-sessions plugin hooks (session-log per-tool and per-prompt events, records-read) as one binary"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "qwreey-sessions"
+path = "src/main.rs"
+
+[dependencies]
+harness-hook = { path = "../harness-hook" }
+serde_json = { workspace = true }
+# 상태 파일을 쓸 임시 파일 이름(python tempfile.mkstemp 의 무작위 꼬리).
+getrandom = { workspace = true }
+# pending 기록의 나이(일)는 이 기기 시간대의 오늘로 센다(python date.today).
+jiff = { workspace = true }
+
+[lints]
+workspace = true

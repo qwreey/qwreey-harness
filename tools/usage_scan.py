@@ -39,6 +39,51 @@ ROOT_SCRIPT = re.compile(r'\$\{?CLAUDE_PLUGIN_ROOT\}?/([^\s"\']+)["\']?(.*)')
 CACHE_SCRIPT = re.compile(r'/plugins/cache/[^/\s"]+/([\w.-]+)/[^/\s"]+/([^\s"\']+)["\']?(.*)')
 SOURCE_SCRIPT = re.compile(r'/plugins/([\w.-]+)/([^\s"\']+)["\']?(.*)')
 USER_SCRIPT = re.compile(r'(?:\$HOME|\$\{HOME\}|~)/\.claude/(hooks/[^\s"\']+)["\']?(.*)')
+NATIVE_BIN = re.compile(r"native/([\w.-]+?)(?:\.exe)?\Z")
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_NATIVE = {}
+
+
+def native_aliases():
+    """Rust 훅 실행 형식 -> 그 훅이 대신하는 python 스크립트. crates/*/parity-map.json 에서 읽는다.
+
+    {(바이너리 이름, exec 인자 tuple): (플러그인 기준 스크립트 경로, python 인자 tuple)}. 실사용 보고서가 python 시절 기준선과
+    같은 이름으로 세도록 쓴다.
+    """
+    if _NATIVE:
+        return _NATIVE
+
+    # crate 마다 대조표 하나
+    crates = os.path.join(REPO, "crates")
+    for name in sorted(os.listdir(crates)) if os.path.isdir(crates) else []:
+        try:
+            with open(os.path.join(crates, name, "parity-map.json"), encoding="utf-8") as f:
+                entries = json.load(f)
+        except (OSError, ValueError):
+            continue
+
+        # 항목 키는 바이너리 이름과 exec 인자
+        for e in entries if isinstance(entries, list) else []:
+            m = NATIVE_BIN.search(str((e.get("exec") or [""])[0]))
+            parts = str(e.get("hook", "")).split("/", 2)
+            if m and len(parts) == 3:
+                _NATIVE[(m.group(1), tuple(e["exec"][1:]))] = (parts[2], tuple(e.get("argv") or ()))
+    return _NATIVE
+
+
+def native_alias(rel, args):
+    """rel 이 native/<바이너리> 이면 대조표로 python 스크립트 경로와 인자로 바꾼다. 대조표에 없으면 그대로."""
+    m = NATIVE_BIN.search(rel)
+    if not m:
+        return rel, args
+
+    # 긴 인자 머리부터 맞춰 본다(대조표에 argv 가 없는 항목은 남은 인자가 python 인자다)
+    aliases = native_aliases()
+    for cut in range(len(args), -1, -1):
+        hit = aliases.get((m.group(1), tuple(args[:cut])))
+        if hit:
+            return hit[0], hit[1] + tuple(args[cut:])
+    return rel, args
 
 
 def safe(name):
@@ -98,6 +143,7 @@ def command_id(command):
             plugin = m.group(1) if has_plugin else ("~/.claude" if rx is USER_SCRIPT else None)
             rel, rest = m.groups()[-2:]
             args = tuple(safe(a.strip("\"'")) for a in rest.split()[:3])
+            rel, args = native_alias(rel, args)
             return plugin, safe(rel), args
     first = (command or "").split()
     return None, safe(os.path.basename(first[-1].strip("\"'"))) if first else "?", ()

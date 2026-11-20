@@ -6,6 +6,7 @@ Automatic session log: hooks decide when to summarize, a detached worker summari
 - `scripts/hook.py`: every hook event except `records_read.py` (PreToolUse deny of whole-file Reads of large records, PostToolUse snapshot warning on record reads). Keep it to decisions; summarizing belongs to the worker (`scripts/cli.py flush`).
 - `scripts/sllib/`: the library (`config.py` settings, `messages.py` every model-facing string, `redact.py` nonce redaction, `anchors.py` the post-compact anchors (user messages and identifiers of the span just compacted, read from the transcript), `verify.py` quote check against the transcript, `store.py`, `worker.py`, `summarize.py`).
 - `bin/session-log`: the CLI on PATH when the plugin is enabled.
+- `crates/qwreey-sessions` (repo root): Rust port of the per-tool and per-prompt hooks (`hook.py` PostToolUse, UserPromptSubmit, PreToolUse and `records_read.py`), built and copied by hand to `native/qwreey-sessions` (git-ignored). `hooks/hooks.json` still runs the python scripts. A behavior change in those paths goes into both; check with `python3 -I tools/tests/hook-parity.py --map crates/qwreey-sessions/parity-map.json`, `cargo test -p qwreey-sessions` and `HOOK_TEST_BIN=<repo>/plugins/qwreey-sessions/native/qwreey-sessions python3 -I tests/test_session_log.py`.
 
 ## Tests
 - `python3 -I tests/test_session_log.py`: unit tests with a fake `claude`, no cost.
