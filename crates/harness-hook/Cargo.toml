@@ -1,0 +1,19 @@
+[package]
+name = "harness-hook"
+version = "0.1.0"
+description = "Shared hook I/O, nonce and harness.env layers for the qwreey-harness plugin binaries"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+# 훅 stdin JSON 읽기, 출력 JSON 쓰기(Python json.dumps 와 같은 바이트는 py::json 의 Formatter 가 맞춘다).
+serde = { workspace = true }
+serde_json = { workspace = true }
+# nonce = sha256(salt + ":" + session_id). 표준 라이브러리에 해시가 없다.
+sha2 = { workspace = true }
+# salt 를 처음 만들 때 OS 난수(secrets.token_hex). 표준 라이브러리의 난수 API 는 아직 불안정하다.
+getrandom = { workspace = true }
+
+[lints]
+workspace = true

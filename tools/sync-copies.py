@@ -20,7 +20,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "lib"))
 import copy_regions  # noqa: E402
 
-HOME_DIRS = ("lib", "plugins", "packs", "tools")
+HOME_DIRS = ("lib", "plugins", "packs", "tools", "crates")
 SIBLINGS = {"coderag": ("crates", "harness", "conventions")}
 # Markdown is left out: docs quote the marker shapes, and coderag syncs its own .md copies (tools/sync-harness.sh).
 SUFFIX = {".py", ".sh", ".luau", ".lua", ".ts", ".tsx", ".js", ".mjs", ".cjs", ".rs", ".toml", ".yml", ".yaml"}

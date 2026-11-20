@@ -29,7 +29,7 @@ EXPECTED = {
 # 키는 정본 영역(<경로>#<이름>), 값은 그 영역의 사본을 둔 파일. ../ 로 시작하는 형제 저장소는 옆에 있을 때만 본다.
 REGIONS = {
     "lib/harness_texts.py#OMIT_LINE": ["lib/ambient.py", "../coderag/crates/coderag-core/src/rules/ledger.rs"],
-    "lib/harness_texts.py#NONCE_RULE": ["lib/harness_nonce.py", "../coderag/crates/coderag-core/src/hooktag.rs"],
+    "lib/harness_texts.py#NONCE_RULE": ["lib/harness_nonce.py", "crates/harness-hook/src/nonce.rs", "../coderag/crates/coderag-core/src/hooktag.rs"],
     "lib/harness_texts.py#STOP_ERROR": ["plugins/qwreey-advisor/hooks/second-opinion-nudge.py", "plugins/qwreey-operator/hooks/subagent-bg-tasks.py"],
 }
 # 표시 없이 바이트째 같아야 하는 사본. 데이터 파일이라 머리에 표시 줄을 넣으면 출처 기록의 md5 가 어긋난다.

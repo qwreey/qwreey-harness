@@ -25,3 +25,6 @@ plugins/qwreey-desk/.claude-plugin/types/
 
 # agent worktrees (Claude Code isolation)
 .claude/worktrees/
+
+# Cargo 빌드 출력(Cargo.toml 워크스페이스)
+/target/
