@@ -12,6 +12,9 @@ import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOOK = os.path.join(ROOT, "hooks", "memory-placement.py")
+# HOOK_TEST_BIN=<바이너리> 면 python 스크립트 대신 `<바이너리> hook memory-placement` 를 하위 프로세스로 돌린다(Rust 판, crates/qwreey-conventions)
+BIN = os.environ.get("HOOK_TEST_BIN")
+CMD = [BIN, "hook", "memory-placement"] if BIN else [sys.executable, "-I", HOOK]
 T = tempfile.mkdtemp(prefix="mem-place-")
 # nonce 는 고정 salt 로(실제 ~/.local/share 의 salt 를 쓰지 않게)
 open(os.path.join(T, "salt"), "w").write("00" * 32)
@@ -39,7 +42,7 @@ def call(path, sid="s1", agent=None, tool="Write", cwd=T, env_extra=None):
     env = dict(os.environ, TMPDIR=T, CLAUDE_CONFIG_DIR=CFG)
     env.pop("MEMORY_PLACEMENT", None)
     env.update(env_extra or {})
-    p = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(d), capture_output=True, text=True, env=env, timeout=10)
+    p = subprocess.run(CMD, input=json.dumps(d), capture_output=True, text=True, env=env, timeout=10)
     assert p.returncode == 0, p.stderr
     if not p.stdout.strip():
         return ""
@@ -95,7 +98,7 @@ os.makedirs(os.path.dirname(outside))
 open(outside, "w").write(REPO_NOTE)
 check("non-memory path ignored", call(outside) == "")
 check("env switch off", call(p, sid="s3", env_extra={"MEMORY_PLACEMENT": "off"}) == "")
-check("bad stdin is silent", subprocess.run([sys.executable, "-I", HOOK], input="not json", capture_output=True, text=True).returncode == 0)
+check("bad stdin is silent", subprocess.run(CMD, input="not json", capture_output=True, text=True).returncode == 0)
 
 # autoMemoryDirectory (absolute, project settings) counts as memory
 custom = os.path.join(T, "custom-mem")

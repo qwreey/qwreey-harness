@@ -191,6 +191,57 @@ pub fn splitext(path: &str) -> (&str, &str) {
     }
 }
 
+/// python `posixpath.dirname(path)`: 마지막 `/` 앞. 끝의 `/` 들은 떼되 모두 `/` 인 머리는 그대로 둔다.
+pub fn dirname(path: &str) -> &str {
+    let cut = path.rfind('/').map_or(0, |i| i + 1);
+    let head = &path[..cut];
+    if !head.is_empty() && head.bytes().any(|b| b != b'/') {
+        head.trim_end_matches('/')
+    } else {
+        head
+    }
+}
+
+/// python `posixpath.basename(path)`: 마지막 `/` 뒤.
+pub fn basename(path: &str) -> &str {
+    path.rfind('/').map_or(path, |i| &path[i + 1..])
+}
+
+/// python `os.path.relpath(path, start)`.
+///
+/// 빈 `path` 는 python 이 ValueError 를, 현재 디렉터리를 읽지 못하는 상대 경로는 OSError 를 내는 자리라 `None` 이다.
+pub fn relpath(path: &str, start: &str) -> Option<String> {
+    if path.is_empty() {
+        return None;
+    }
+    let start = abspath(start)?;
+    let path = abspath(path)?;
+
+    // 같은 머리 조각을 지나 남은 start 조각마다 `..`
+    let split = |p: &str| -> Vec<String> {
+        let tail = p.trim_start_matches('/');
+        if tail.is_empty() {
+            Vec::new()
+        } else {
+            tail.split('/').map(str::to_owned).collect()
+        }
+    };
+    let (start_list, path_list) = (split(&start), split(&path));
+    let common = start_list
+        .iter()
+        .zip(&path_list)
+        .take_while(|(a, b)| a == b)
+        .count();
+    let mut rel: Vec<&str> = vec![".."; start_list.len() - common];
+    rel.extend(path_list[common..].iter().map(String::as_str));
+
+    Some(if rel.is_empty() {
+        ".".to_owned()
+    } else {
+        rel.join("/")
+    })
+}
+
 /// [`realpath`] 가 python 에서 예외가 나는 자리.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RealpathError {
@@ -336,6 +387,23 @@ fn executable(path: &Path) -> bool {
 #[cfg(all(test, not(windows)))]
 mod tests {
     use super::*;
+
+    /// dirname, basename, relpath 가 posixpath 와 같은 글을 낸다.
+    #[test]
+    fn dirname_basename_relpath_like_python() {
+        assert_eq!(dirname("/a/b/c"), "/a/b");
+        assert_eq!(dirname("/a"), "/");
+        assert_eq!(dirname("a"), "");
+        assert_eq!(dirname("//a//b"), "//a");
+        assert_eq!(dirname("///"), "///");
+        assert_eq!(basename("/a/b.c"), "b.c");
+        assert_eq!(basename("a/"), "");
+        assert_eq!(relpath("/a/b/c", "/a").as_deref(), Some("b/c"));
+        assert_eq!(relpath("/a", "/a/b/c").as_deref(), Some("../.."));
+        assert_eq!(relpath("/a", "/a").as_deref(), Some("."));
+        assert_eq!(relpath("/x/y", "/a/b").as_deref(), Some("../../x/y"));
+        assert_eq!(relpath("", "/a"), None);
+    }
 
     #[test]
     fn pathlib_examples() {

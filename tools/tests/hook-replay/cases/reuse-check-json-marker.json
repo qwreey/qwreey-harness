@@ -1,0 +1,75 @@
+{
+ "description": "reuse-check: a copy marker inside a JSON file is reported once (JSON has no comment to hold it); prose naming the marker is silent",
+ "files": {},
+ "steps": [
+  {
+   "write": {
+    "mk/data.json": "{\n  \"_source\": \"@copy-of: mk/src.ts#KINDS\",\n  \"kinds\": [\"red\"]\n}\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/mk/data.json",
+     "content": "{\n  \"_source\": \"@copy-of: mk/src.ts#KINDS\",\n  \"kinds\": [\"red\"]\n}\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "mk/data.json:2: JSON cannot hold a copy marker"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/mk/data.json",
+     "content": "{\n  \"_source\": \"@copy-of: mk/src.ts#KINDS\",\n  \"kinds\": [\"red\"]\n}\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "write": {
+    "mk/p.json": "{\"description\": \"checks (@copy-of marks) and lists\"}\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/mk/p.json",
+     "content": "{\"description\": \"checks (@copy-of marks) and lists\"}\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

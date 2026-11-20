@@ -12,6 +12,9 @@ import sys
 import tempfile
 
 HOOK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks", "conventions-check.py")
+# HOOK_TEST_BIN=<바이너리> 면 python 스크립트 대신 `<바이너리> hook conventions-check` 를 하위 프로세스로 돌린다(Rust 판, crates/qwreey-conventions)
+BIN = os.environ.get("HOOK_TEST_BIN")
+CMD = [BIN, "hook", "conventions-check"] if BIN else [sys.executable, "-I", HOOK]
 T = tempfile.mkdtemp(prefix="conv-")
 REPO = os.path.join(T, "repo")
 os.makedirs(os.path.join(REPO, ".git"))
@@ -42,7 +45,7 @@ def call(tool, rel, ti, resp=None, sid="s1", agent=None, disk=None, env_extra=No
     env.pop("CONVENTIONS_CHECK", None)
     env.pop("HARNESS_READABLE_CODE", None)
     env.update(env_extra or {})
-    p = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(d), capture_output=True, text=True, env=env, timeout=10)
+    p = subprocess.run(CMD, input=json.dumps(d), capture_output=True, text=True, env=env, timeout=10)
     assert p.returncode == 0, p.stderr
     if not p.stdout.strip():
         return ""
@@ -164,8 +167,8 @@ check("broken config -> defaults", write_new("j/y.luau", "-- H-973\n", sid="x8")
 os.remove(os.path.join(REPO, ".claude", "comments.json"))
 check("CONVENTIONS_CHECK=off -> silent", write_new("j/z.luau", "-- H-973\n", sid="x9", env_extra={"CONVENTIONS_CHECK": "off"}) == "")
 check("other tools / bad stdin -> silent",
-      subprocess.run([sys.executable, "-I", HOOK], input="{no", capture_output=True, text=True).stdout == ""
-      and subprocess.run([sys.executable, "-I", HOOK], input=json.dumps({"tool_name": "Bash", "tool_input": {}}), capture_output=True, text=True).stdout == "")
+      subprocess.run(CMD, input="{no", capture_output=True, text=True).stdout == ""
+      and subprocess.run(CMD, input=json.dumps({"tool_name": "Bash", "tool_input": {}}), capture_output=True, text=True).stdout == "")
 
 # ---- (a) 문자 기준 ----
 def cfg_write(txt):
@@ -505,7 +508,7 @@ def stop(sid, env_extra=None):
     env = dict(os.environ, TMPDIR=T, CLAUDE_PROJECT_DIR=REPO, CLAUDE_CONFIG_DIR=LIBHOME)
     env.pop("CONVENTIONS_CHECK", None)
     env.update(env_extra or {})
-    p = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(d), capture_output=True, text=True, env=env, timeout=10)
+    p = subprocess.run(CMD, input=json.dumps(d), capture_output=True, text=True, env=env, timeout=10)
     assert p.returncode == 0, p.stderr
     return json.loads(p.stdout) if p.stdout.strip() else None
 

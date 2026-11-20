@@ -1,0 +1,55 @@
+{
+ "description": "reuse-check: with reuse.mode on in .claude/conventions.json, a new list sharing three strings with a definition in another file is reported once",
+ "files": {
+  ".claude/conventions.json": "{\"reuse\": {\"mode\": \"on\"}}\n",
+  "m/one.py": "SKIP = [\"alpha\", \"bravo\", \"charlie\", \"delta\"]\n"
+ },
+ "steps": [
+  {
+   "write": {
+    "m/two.py": "SKIP_DIRS = [\"alpha\", \"bravo\", \"charlie\", \"echo\"]\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/m/two.py",
+     "content": "SKIP_DIRS = [\"alpha\", \"bravo\", \"charlie\", \"echo\"]\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "m/two.py:1: string set repeats SKIP at m/one.py:1 (3/4 shared: \"alpha\", \"bravo\", \"charlie\")"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/m/two.py",
+     "content": "SKIP_DIRS = [\"alpha\", \"bravo\", \"charlie\", \"echo\"]\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

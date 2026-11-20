@@ -1,0 +1,117 @@
+{
+ "description": "memory-placement: an auto memory note that reads as repo knowledge warns once per session; personal notes, MEMORY.md and other folders stay quiet",
+ "files": {
+  "{cfg}/projects/-x-repo/memory/build.md": "---\nname: build\ndescription: build info\nmetadata:\n  type: project\n---\nIn this repo, build with `make all` and tests run via `pytest tests/`. The parser lives in src/parser.py.\n",
+  "{cfg}/projects/-x-repo/memory/role.md": "---\nname: role\ndescription: who\ntype: user\n---\nIn this repo they prefer terse answers. See src/main.py and `make all`.\n",
+  "{cfg}/projects/-x-repo/memory/MEMORY.md": "- [build](build.md) `make all` in this repo, src/parser.py\n",
+  "docs/build.md": "---\nname: build\ndescription: build info\nmetadata:\n  type: project\n---\nIn this repo, build with `make all` and tests run via `pytest tests/`. The parser lives in src/parser.py.\n"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/memory-placement.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{cfg}/projects/-x-repo/memory/build.md",
+     "content": "---\nname: build\ndescription: build info\nmetadata:\n  type: project\n---\nIn this repo, build with `make all` and tests run via `pytest tests/`. The parser lives in src/parser.py.\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "memory-placement/warn"
+    ],
+    "contains": [
+     "Memory file build.md looks like repo knowledge (path src/parser.py; command `make all`, `pytest tests/`; here In this repo)"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/memory-placement.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{cfg}/projects/-x-repo/memory/build.md",
+     "old_string": "a",
+     "new_string": "b"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/memory-placement.py",
+   "payload": {
+    "session_id": "s2",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{cfg}/projects/-x-repo/memory/build.md",
+     "content": "---\nname: build\ndescription: build info\nmetadata:\n  type: project\n---\nIn this repo, build with `make all` and tests run via `pytest tests/`. The parser lives in src/parser.py.\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "tags": [
+     "memory-placement/warn"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/memory-placement.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{cfg}/projects/-x-repo/memory/role.md",
+     "content": "---\nname: role\ndescription: who\ntype: user\n---\nIn this repo they prefer terse answers. See src/main.py and `make all`.\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/memory-placement.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{cfg}/projects/-x-repo/memory/MEMORY.md",
+     "content": "x"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/memory-placement.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/docs/build.md",
+     "content": "---\nname: build\ndescription: build info\nmetadata:\n  type: project\n---\nIn this repo, build with `make all` and tests run via `pytest tests/`. The parser lives in src/parser.py.\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

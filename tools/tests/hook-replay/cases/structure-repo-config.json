@@ -1,0 +1,202 @@
+{
+ "description": "structure-reminder: the repo's structure.json changes limits (float values print like python), toolkits, ignore and exempt globs",
+ "files": {
+  ".claude/structure.json": "{\"warn\": 100.0, \"hard\": 4000, \"ignore\": [\"src/legacy/*\"], \"exempt\": [{\"path\": \"src/data/*\", \"reason\": \"icon table (name to asset id)\"}, {\"path\": \"src/blank/*\", \"reason\": \"\"}], \"toolkits\": {\"web\": {\"warn\": 50, \"ext\": [\".ts\", \".vue\"]}, \"zz\": {\"ext\": [\".zz\"], \"comment\": [\";;\"], \"hard\": 20}}}",
+  "src/Over.luau": {
+   "repeat": "local x = 1\n",
+   "times": 150
+  },
+  "src/legacy/Old.luau": {
+   "repeat": "local x = 1\n",
+   "times": 5000
+  },
+  "src/data/Icons.luau": {
+   "repeat": "local x = 1\n",
+   "times": 300
+  },
+  "src/blank/Big.luau": {
+   "repeat": "local x = 1\n",
+   "times": 300
+  },
+  "web/A.vue": {
+   "repeat": "<p/>\n",
+   "times": 60
+  },
+  "web/B.tsx": {
+   "repeat": "<p/>\n",
+   "times": 900
+  },
+  "zz/a.zz": {
+   "repeat": "z\n",
+   "times": 30
+  },
+  "tests/Big.spec.luau": {
+   "repeat": "local x = 1\n",
+   "times": 150
+  }
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{repo}/src/Over.luau",
+     "old_string": "a",
+     "new_string": "a\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "tags": [
+     "structure-reminder/warn"
+    ],
+    "contains": [
+     "(warn limit 100.0)"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{repo}/src/legacy/Old.luau",
+     "old_string": "a",
+     "new_string": "a\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{repo}/src/data/Icons.luau",
+     "old_string": "a",
+     "new_string": "a\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "tags": [
+     "structure-reminder/info"
+    ],
+    "contains": [
+     "Reason: icon table (name to asset id) (structure.json)"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{repo}/src/blank/Big.luau",
+     "old_string": "a",
+     "new_string": "a\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "tags": [
+     "structure-reminder/warn"
+    ],
+    "contains": [
+     "(structure.json) is invalid"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{repo}/web/A.vue",
+     "old_string": "a",
+     "new_string": "a\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "tags": [
+     "structure-reminder/warn"
+    ],
+    "contains": [
+     "(warn limit 50)"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{repo}/web/B.tsx",
+     "old_string": "a",
+     "new_string": "a\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{repo}/zz/a.zz",
+     "old_string": "a",
+     "new_string": "a\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "tags": [
+     "structure-reminder/action"
+    ],
+    "contains": [
+     "over the hard limit (20)",
+     "`;;@structure-exempt: <reason>`"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{repo}/tests/Big.spec.luau",
+     "old_string": "a",
+     "new_string": "a\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

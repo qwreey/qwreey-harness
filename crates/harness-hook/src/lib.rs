@@ -10,7 +10,9 @@
 //! 환경 변수는 [`Env`] 로 받는다. 프로세스 환경을 직접 읽지 않으므로 시험이 환경을 바꾸지 않고 경우마다 다른 환경을 준다.
 
 pub mod env;
+pub mod epoch;
 pub mod input;
+pub mod known_repos;
 pub mod nonce;
 pub mod output;
 pub mod py;

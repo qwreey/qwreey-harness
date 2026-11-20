@@ -1,0 +1,137 @@
+{
+ "description": "structure-reminder: a new file in a flat folder or a third file with one PascalCase prefix suggests folders once; an existing prefix folder and test folders stay quiet",
+ "setup": [
+  "mkdir -p src/flat src/client src/client2/Item && for i in $(seq -w 0 14); do echo 'local x = 1' > src/flat/Mod$i.luau; done",
+  "for n in ItemPick ItemView ItemZoneView; do echo 'local x = 1' > src/client/$n.luau; echo 'local x = 1' > src/client2/$n.luau; done",
+  "mkdir -p tests && for i in $(seq -w 0 16); do echo 'x' > tests/t$i.luau; done"
+ ],
+ "steps": [
+  {
+   "write": {
+    "src/flat/Extra.luau": "local x = 1\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/src/flat/Extra.luau",
+     "content": "local x = 1\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "structure-reminder/info"
+    ],
+    "contains": [
+     "`src/flat/` has 16 source files and 0 subfolders",
+     "(init.luau)"
+    ]
+   }
+  },
+  {
+   "write": {
+    "src/flat/Extra2.luau": "local x = 1\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/src/flat/Extra2.luau",
+     "content": "local x = 1\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s2",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/src/client/ItemZoneView.luau",
+     "content": "local x = 1\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "tags": [
+     "structure-reminder/info"
+    ],
+    "contains": [
+     "`src/client/` has 3 files starting with `Item` (ItemPick, ItemView, ItemZoneView)"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s2",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/src/client2/ItemZoneView.luau",
+     "content": "local x = 1\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s3",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/tests/t00.luau",
+     "content": "x\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s5",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/src/client/ItemZoneView.luau",
+     "content": "local x = 1\n"
+    },
+    "tool_response": {
+     "type": "update"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

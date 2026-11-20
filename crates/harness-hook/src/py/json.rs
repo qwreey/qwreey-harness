@@ -200,16 +200,46 @@ pub fn to_string_indented<T: Serialize + ?Sized>(
 ///
 /// NaN, 무한대는 `NaN`, `Infinity`, `-Infinity`, 큰 정수는 그 숫자 그대로다. 깊은 중첩도 되부르지 않고 쓴다.
 pub fn dumps(value: &Value, ascii: EnsureAscii, indent: Option<usize>) -> String {
-    write_all(Work::Value(value, 0), ascii, indent)
+    write_all(Work::Value(value, 0), ascii, indent, Separators::DEFAULT)
+}
+
+/// python `json.dumps(value, ensure_ascii=..., separators=(",", ":"))`: 구분자 뒤 공백이 없는 꼴.
+pub fn dumps_compact(value: &Value, ascii: EnsureAscii) -> String {
+    write_all(Work::Value(value, 0), ascii, None, Separators::COMPACT)
+}
+
+/// 항목 사이와 키 뒤의 구분자(python `separators`). indent 가 있으면 항목 구분자는 늘 `","` 다.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Separators {
+    pub item: &'static str,
+    pub key: &'static str,
+}
+
+impl Separators {
+    /// python 기본값 `(", ", ": ")`.
+    pub const DEFAULT: Separators = Separators {
+        item: ", ",
+        key: ": ",
+    };
+    /// `(",", ":")`.
+    pub const COMPACT: Separators = Separators {
+        item: ",",
+        key: ":",
+    };
 }
 
 /// dict 하나를 [`dumps`] 처럼(값으로 감싸려고 복사하지 않는다).
 pub fn dumps_dict(dict: &Dict, ascii: EnsureAscii, indent: Option<usize>) -> String {
-    write_all(Work::Dict(dict, 0), ascii, indent)
+    write_all(Work::Dict(dict, 0), ascii, indent, Separators::DEFAULT)
 }
 
 // 꺼낸 차례로 쓴다. 목록과 dict 는 항목을 다시 쌓는다
-fn write_all(first: Work<'_>, ascii: EnsureAscii, indent: Option<usize>) -> String {
+fn write_all(
+    first: Work<'_>,
+    ascii: EnsureAscii,
+    indent: Option<usize>,
+    seps: Separators,
+) -> String {
     let mut out = String::new();
     let mut work = vec![first];
     while let Some(item) = work.pop() {
@@ -221,14 +251,21 @@ fn write_all(first: Work<'_>, ascii: EnsureAscii, indent: Option<usize>) -> Stri
             }
             Work::Key(key) => {
                 write_str(&mut out, key, ascii);
-                out.push_str(": ");
+                out.push_str(seps.key);
             }
             Work::Value(value, depth) => {
-                write_value(&mut out, &mut work, value, depth, ascii, indent)
+                write_value(&mut out, &mut work, value, depth, ascii, (indent, seps))
             }
             Work::Dict(dict, depth) => {
                 let items = dict.iter().map(|(k, v)| (Some(k), v)).collect();
-                write_items(&mut out, &mut work, ("{", "}"), items, depth, indent);
+                write_items(
+                    &mut out,
+                    &mut work,
+                    ("{", "}"),
+                    items,
+                    depth,
+                    (indent, seps),
+                );
             }
         }
     }
@@ -252,7 +289,7 @@ fn write_value<'a>(
     value: &'a Value,
     depth: usize,
     ascii: EnsureAscii,
-    indent: Option<usize>,
+    layout: (Option<usize>, Separators),
 ) {
     match value {
         Value::Null => out.push_str("null"),
@@ -263,7 +300,7 @@ fn write_value<'a>(
         Value::Str(s) => write_str(out, s, ascii),
         Value::List(items) => {
             let items = items.iter().map(|v| (None, v)).collect();
-            write_items(out, work, ("[", "]"), items, depth, indent);
+            write_items(out, work, ("[", "]"), items, depth, layout);
         }
         Value::Dict(dict) => work.push(Work::Dict(dict, depth)),
     }
@@ -276,7 +313,7 @@ fn write_items<'a>(
     (open, close): (&str, &'static str),
     items: Vec<(Option<&'a str>, &'a Value)>,
     depth: usize,
-    indent: Option<usize>,
+    (indent, seps): (Option<usize>, Separators),
 ) {
     out.push_str(open);
     if items.is_empty() {
@@ -297,7 +334,7 @@ fn write_items<'a>(
         match (indent, i) {
             (Some(_), _) => work.push(Work::Break(depth + 1)),
             (None, 0) => {}
-            (None, _) => work.push(Work::Text(", ")),
+            (None, _) => work.push(Work::Text(seps.item)),
         }
         if indent.is_some() && i > 0 {
             work.push(Work::Text(","));
@@ -380,6 +417,21 @@ mod tests {
         assert_eq!(
             to_string_indented(&json!({}), EnsureAscii::No, 1).unwrap(),
             "{}"
+        );
+    }
+
+    /// `separators=(",", ":")` 는 항목과 키 뒤 공백만 뺀다(글 안의 공백은 그대로).
+    #[test]
+    fn compact_matches_python_separators() {
+        // python: json.dumps({"a": [1, "b c"], "d": {}}, ensure_ascii=False, separators=(",", ":"))
+        let v = crate::py::json_load::loads(r#"{"a": [1, "b c"], "d": {}}"#).unwrap();
+        assert_eq!(
+            dumps_compact(&v, EnsureAscii::No),
+            r#"{"a":[1,"b c"],"d":{}}"#
+        );
+        assert_eq!(
+            dumps(&v, EnsureAscii::No, None),
+            r#"{"a": [1, "b c"], "d": {}}"#
         );
     }
 

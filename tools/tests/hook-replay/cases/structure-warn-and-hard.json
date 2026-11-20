@@ -1,0 +1,185 @@
+{
+ "description": "structure-reminder: a long file warns once, growing past the hard limit asks for a split, exemption marks give a reason or are invalid",
+ "files": {
+  "src/Mid.luau": {
+   "repeat": "local x = 1\n",
+   "times": 850
+  }
+ },
+ "setup": [
+  "{ echo '-- @structure-exempt: type limits, the recursive types must stay in one module'; yes 'local x = 1' | head -1700; } > src/Exempt.luau",
+  "{ echo '--!strict'; echo '-- @structure-exempt: 나중에'; yes 'local x = 1' | head -900; } > src/Later.luau"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{repo}/src/Mid.luau",
+     "old_string": "a",
+     "new_string": "a\n\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "tags": [
+     "structure-reminder/warn"
+    ],
+    "contains": [
+     "`src/Mid.luau` is 850 lines (warn limit 800)",
+     "code-structure.md"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{repo}/src/Mid.luau",
+     "old_string": "a",
+     "new_string": "a\n\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "write": {
+    "src/Mid.luau": {
+     "repeat": "local x = 1\n",
+     "times": 1600
+    }
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{repo}/src/Mid.luau",
+     "old_string": "a",
+     "new_string": "a\n\n\n\n\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "tags": [
+     "structure-reminder/action",
+     "structure-reminder/warn"
+    ],
+    "contains": [
+     "over the hard limit (1500)",
+     "`--@structure-exempt: <reason>`",
+     "grew 848 -> 1600 lines (+752)"
+    ],
+    "not_contains": [
+     "code-structure.md"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{repo}/src/Mid.luau",
+     "old_string": "a",
+     "new_string": "a\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s2",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{repo}/src/Exempt.luau",
+     "old_string": "a",
+     "new_string": "a\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "tags": [
+     "structure-reminder/info"
+    ],
+    "contains": [
+     "(1701 lines) has a structure exemption. Reason: type limits, the recursive types must stay in one module (header mark)"
+    ],
+    "not_contains": [
+     "hard limit"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s2",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{repo}/src/Later.luau",
+     "old_string": "a",
+     "new_string": "a\n"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "tags": [
+     "structure-reminder/warn"
+    ],
+    "contains": [
+     "is invalid: the reason is empty or not a reason (\"나중에\")",
+     "warn limit 800"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s3",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "MultiEdit",
+    "tool_input": {
+     "file_path": "{repo}/src/Mid.luau",
+     "edits": [
+      {
+       "old_string": "a",
+       "new_string": "a\n\n"
+      },
+      {
+       "new_string": "b\n"
+      }
+     ]
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "tags": [
+     "structure-reminder/action"
+    ],
+    "not_contains": [
+     "grew"
+    ]
+   }
+  }
+ ]
+}

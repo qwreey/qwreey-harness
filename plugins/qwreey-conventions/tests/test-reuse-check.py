@@ -15,6 +15,11 @@ import time
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOOK = os.path.join(HERE, "hooks", "reuse-check.py")
 CONV = os.path.join(HERE, "hooks", "conventions-check.py")
+# HOOK_TEST_BIN=<바이너리> 면 python 스크립트 대신 `<바이너리> hook reuse-check`, `<바이너리> hook conventions-check` 를
+# 하위 프로세스로 돌린다(Rust 판, crates/qwreey-conventions)
+BIN = os.environ.get("HOOK_TEST_BIN")
+CMD = [BIN, "hook", "reuse-check"] if BIN else [sys.executable, "-I", HOOK]
+CONV_CMD = [BIN, "hook", "conventions-check"] if BIN else [sys.executable, "-I", CONV]
 T = tempfile.mkdtemp(prefix="reuse-")
 # 세션 기록으로 찾을 저장소는 훅의 TMPDIR(T) 밖에 둔다. known_repos 는 임시 폴더 아래를 자동 출처에서 뺀다.
 F = tempfile.mkdtemp(prefix="reuse-far-")
@@ -70,7 +75,7 @@ def run(rel, content, old="", new=None, sid=None, agent=None, env=None, proj=Non
     d = {"session_id": sid, "cwd": proj, "hook_event_name": "PostToolUse", "tool_name": tool, "tool_input": ti, "tool_response": resp}
     if agent:
         d["agent_id"] = agent
-    p = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(d), capture_output=True, text=True,
+    p = subprocess.run(CMD, input=json.dumps(d), capture_output=True, text=True,
                        env=env_for(dict({"CLAUDE_PROJECT_DIR": proj}, **(env or {}))), timeout=10)
     assert p.returncode == 0, p.stderr
     if not p.stdout.strip():
@@ -82,7 +87,7 @@ def run(rel, content, old="", new=None, sid=None, agent=None, env=None, proj=Non
 
 def stop(sid):
     d = {"session_id": sid, "cwd": REPO, "hook_event_name": "Stop", "stop_hook_active": False}
-    p = subprocess.run([sys.executable, "-I", CONV], input=json.dumps(d), capture_output=True, text=True, env=env_for(), timeout=10)
+    p = subprocess.run(CONV_CMD, input=json.dumps(d), capture_output=True, text=True, env=env_for(), timeout=10)
     assert p.returncode == 0, p.stderr
     return json.loads(p.stdout)["systemMessage"] if p.stdout.strip() else None
 

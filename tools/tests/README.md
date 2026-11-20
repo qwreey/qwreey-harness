@@ -11,6 +11,7 @@
 | `test-hooks-simwin.py` | `hooks.json` 의 모든 훅을 `simwin.py` 로 한 번씩 돌려 죽지 않는지(exit 0 또는 2, Traceback 없음) |
 | `test-hook-commands.py` | `hooks.json` 의 command 가 모두 `python3 -I -X utf8 "${CLAUDE_PLUGIN_ROOT}/...py"` 꼴(Windows 의 Git Bash·PowerShell 에서도 도는 꼴)이거나, `args` 가 있으면 `${CLAUDE_PLUGIN_ROOT}/native/<바이너리>` 실행 꼴인지(머리 주석에 이유) |
 | `hook-parity.py` | 시험이 아니라 대조 실행기: python 훅과 바꿀 실행 형식(Rust 바이너리 등)에 hook-replay 사례와 트랜스크립트의 실제 도구 호출(`--from-transcripts N`)을 같은 샌드박스 둘에서 넣고 종료 코드와 stdout 을 바이트로 비교한다(stderr 는 따로 알림). 양쪽 모두 CLAUDE_PLUGIN_ROOT, CLAUDE_PLUGIN_DATA 를 단다. 대조표 형식은 머리 주석, `--identity <플러그인>` 은 python 대 python |
+| `hook-corpus.py` | 시험이 아니라 대조 실행기: 다른 저장소의 실제 파일(읽기만, 임시 저장소에 복사)로 새 파일, Edit, 덮어쓰기를 흉내 내어 python 훅(conventions-check, reuse-check, structure-reminder)과 바이너리의 종료 코드와 stdout 을 견주고 양쪽 CPU 합을 찍는다. `--bin <바이너리> REPO...` |
 | `test-hook-parity.py` | `hook-parity.py` 와 `run_argv`: identity 는 모두 같음, 다른 대역은 diff, 없는 바이너리는 exit 127, 양쪽에 플러그인 환경 변수, 가짜 트랜스크립트의 입력 만들기 |
 | `test-ambient-lib.py`, `test-vendored-copies.py`, `test-sync-copies.py` | `lib/` 정본과 사본 |
 | `test-harness-env.py`, `test-harness-env-owners.py`, `test-settings-migrate.py` | `home/` 의 harness.env 로더(플러그인 옵션 층 포함)와 settings 마이그레이션 |

@@ -1,0 +1,104 @@
+{
+ "description": "conventions-check: old problems in edited files (comments and agent docs) reach the Stop systemMessage once, and again only when it changes",
+ "files": {
+  "s/old.luau": "-- Old note — keep (H-973)\n-- Another → one\nlocal a = 1\n-- Clamp the index so reads stay in range.\n",
+  "CLAUDE.md": "# Guide\n\nWritten 2026-11-01 for the H-12 ledger.\n"
+ },
+ "steps": [
+  {
+   "write": {
+    "s/old.luau": "-- Old note — keep (H-973)\n-- Another → one\nlocal a = 2\n-- Clamp the index so reads stay in range.\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "st",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "old_string": "local a = 1",
+     "new_string": "local a = 2",
+     "file_path": "{repo}/s/old.luau"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "st",
+    "hook_event_name": "Stop",
+    "stop_hook_active": false
+   },
+   "expect": {
+    "contains": [
+     "손댄 파일에 전부터 있던 문제: s/old.luau(",
+     "comments-cleanup"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "st",
+    "hook_event_name": "Stop",
+    "stop_hook_active": false
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "write": {
+    "CLAUDE.md": "# Guide\n\nWritten 2026-11-01 for the H-12 ledger.\n\nMore text.\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "st",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "old_string": "Written 2026-11-01 for the H-12 ledger.\n",
+     "new_string": "Written 2026-11-01 for the H-12 ledger.\n\nMore text.\n",
+     "file_path": "{repo}/CLAUDE.md"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "st",
+    "hook_event_name": "Stop",
+    "stop_hook_active": false
+   },
+   "expect": {
+    "contains": [
+     "CLAUDE.md(",
+     "docs-cleanup",
+     "s/old.luau("
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "other",
+    "hook_event_name": "Stop",
+    "stop_hook_active": false
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

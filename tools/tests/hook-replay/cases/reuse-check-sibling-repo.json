@@ -1,0 +1,59 @@
+{
+ "description": "reuse-check: a <repo>:<path> mark to a repo that is neither beside this one nor in the session records is silent; one beside it (ws/other) is compared",
+ "files": {
+  "{ws}/other/src/x.luau": "-- source\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"card\" }\nreturn FORMS\n"
+ },
+ "steps": [
+  {
+   "write": {
+    "s/a.luau": "-- @copy-of: nothere:src/x.luau#FORMS\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"card\" }\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/s/a.luau",
+     "content": "-- @copy-of: nothere:src/x.luau#FORMS\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"card\" }\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "write": {
+    "s/b.luau": "-- @copy-of: other:src/x.luau#FORMS\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"dice\" }\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/s/b.luau",
+     "content": "-- @copy-of: other:src/x.luau#FORMS\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"dice\" }\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "s/b.luau:1: @copy-of other:src/x.luau#FORMS differs: missing \"card\", extra \"dice\""
+    ]
+   }
+  }
+ ]
+}

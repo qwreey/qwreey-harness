@@ -1,0 +1,58 @@
+{
+ "description": "reuse-check: editing the members of a source set lists the @copy-of copies of it (C2); a copy equal to its source is silent",
+ "files": {
+  "a/src.luau": "-- source\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"card\" }\nreturn FORMS\n"
+ },
+ "steps": [
+  {
+   "write": {
+    "b/copy.luau": "-- @copy-of: a/src.luau#FORMS\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"card\" }\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/b/copy.luau",
+     "content": "-- @copy-of: a/src.luau#FORMS\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"card\" }\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "write": {
+    "a/src.luau": "-- source\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"card\", \"ring\" }\nreturn FORMS\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "{repo}/a/src.luau",
+     "old_string": "\"card\" }",
+     "new_string": "\"card\", \"ring\" }"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "a/src.luau:2: FORMS has 1 @copy-of copies: b/copy.luau:1. If this change altered what they copy, update them too"
+    ]
+   }
+  }
+ ]
+}

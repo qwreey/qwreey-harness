@@ -1,0 +1,116 @@
+{
+ "description": "reuse-check: a value=string region copy equal to its python canon is silent, a drifted one and a re-indented plain copy that differs are reported with the sync hint",
+ "files": {
+  "lib/texts.py": "# @start-replace: lib/texts.py#OMIT\nOMIT = (\"Omit the {block}\"\n        \" block.\")\n# @end-replace\n",
+  "lib/kinds.luau": "-- @start-replace: lib/kinds.luau#KINDS\nlocal KINDS = 1\n\tlocal MORE = 2\n-- @end-replace\n"
+ },
+ "steps": [
+  {
+   "write": {
+    "r/ok.py": "# @start-replace: lib/texts.py#OMIT value=string template=\"OMIT = {value}\"\nOMIT = \"Omit the {block} block.\"\n# @end-replace\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/r/ok.py",
+     "content": "# @start-replace: lib/texts.py#OMIT value=string template=\"OMIT = {value}\"\nOMIT = \"Omit the {block} block.\"\n# @end-replace\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "write": {
+    "r/bad.py": "# @start-replace: lib/texts.py#OMIT value=string template=\"OMIT = {value}\"\nOMIT = \"Omit the {block} blocks.\"\n# @end-replace\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/r/bad.py",
+     "content": "# @start-replace: lib/texts.py#OMIT value=string template=\"OMIT = {value}\"\nOMIT = \"Omit the {block} blocks.\"\n# @end-replace\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "r/bad.py:1: @start-replace lib/texts.py#OMIT differs from its canon. Edit the canon region, then sync the copies"
+    ]
+   }
+  },
+  {
+   "write": {
+    "r/plain.luau": "\t-- @start-replace: lib/kinds.luau#KINDS\n\tlocal KINDS = 1\n\tlocal MORE = 3\n\t-- @end-replace\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/r/plain.luau",
+     "content": "\t-- @start-replace: lib/kinds.luau#KINDS\n\tlocal KINDS = 1\n\tlocal MORE = 3\n\t-- @end-replace\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "r/plain.luau:1: @start-replace lib/kinds.luau#KINDS differs from its canon."
+    ]
+   }
+  },
+  {
+   "write": {
+    "r/none.py": "# @start-replace: lib/texts.py#NOPE\nX = 1\n# @end-replace\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/r/none.py",
+     "content": "# @start-replace: lib/texts.py#NOPE\nX = 1\n# @end-replace\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "r/none.py:1: @start-replace lib/texts.py#NOPE does not resolve (canon region lib/texts.py#NOPE not found)"
+    ]
+   }
+  }
+ ]
+}

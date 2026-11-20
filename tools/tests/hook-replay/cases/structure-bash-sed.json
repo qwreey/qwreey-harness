@@ -1,0 +1,119 @@
+{
+ "description": "structure-reminder: Bash sed -i, interpreters and redirects name the source paths they change; reads and paths outside the project are quiet",
+ "files": {
+  "src/BashBig.luau": {
+   "repeat": "local x = 1\n",
+   "times": 900
+  },
+  "py/app.py": {
+   "repeat": "x = 1\n",
+   "times": 1600
+  },
+  "web/Other.ts": {
+   "repeat": "const x = 1;\n",
+   "times": 820
+  }
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "sed -i 's/a/b/' src/BashBig.luau py/app.py"
+    },
+    "tool_response": {
+     "stdout": ""
+    }
+   },
+   "expect": {
+    "tags": [
+     "structure-reminder/action",
+     "structure-reminder/warn"
+    ],
+    "contains": [
+     "`src/BashBig.luau` is 900 lines (warn limit 800)",
+     "`py/app.py` is 1600 lines, over the hard limit (1500)",
+     "`#@structure-exempt: <reason>`"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "grep -n foo web/Other.ts | head"
+    },
+    "tool_response": {
+     "stdout": ""
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo x > /dev/null; cat part.txt >> web/Other.ts"
+    },
+    "tool_response": {
+     "stdout": ""
+    }
+   },
+   "expect": {
+    "tags": [
+     "structure-reminder/warn"
+    ],
+    "contains": [
+     "`web/Other.ts` is 820 lines"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s2",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "sed -i s/a/b/ /tmp/elsewhere/Big.luau"
+    },
+    "tool_response": {
+     "stdout": ""
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {
+    "session_id": "s4",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "python3 - src/BashBig.luau <<'EOF'\nprint(1)\nEOF"
+    },
+    "tool_response": {
+     "stdout": ""
+    }
+   },
+   "expect": {
+    "tags": [
+     "structure-reminder/warn"
+    ]
+   }
+  }
+ ]
+}

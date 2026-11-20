@@ -1,0 +1,6 @@
+[
+ {"hook": "plugins/qwreey-conventions/hooks/conventions-check.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-conventions", "hook", "conventions-check"]},
+ {"hook": "plugins/qwreey-conventions/hooks/reuse-check.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-conventions", "hook", "reuse-check"]},
+ {"hook": "plugins/qwreey-conventions/hooks/structure-reminder.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-conventions", "hook", "structure-reminder"]},
+ {"hook": "plugins/qwreey-conventions/hooks/memory-placement.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-conventions", "hook", "memory-placement"]}
+]

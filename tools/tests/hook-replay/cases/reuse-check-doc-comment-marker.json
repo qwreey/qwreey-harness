@@ -1,0 +1,84 @@
+{
+ "description": "reuse-check: a @copy-of marker in a Luau --- or Rust /// doc comment gets the plain line comment form, once per line",
+ "files": {
+  "a/src.luau": "-- source\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"card\" }\nreturn FORMS\n"
+ },
+ "steps": [
+  {
+   "write": {
+    "mk/doc.luau": "--- @copy-of: a/src.luau#FORMS\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"card\" }\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/mk/doc.luau",
+     "content": "--- @copy-of: a/src.luau#FORMS\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"card\" }\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "mk/doc.luau:1: the @copy-of marker is in a doc comment",
+     "`-- @copy-of: a/src.luau#FORMS`"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/mk/doc.luau",
+     "content": "--- @copy-of: a/src.luau#FORMS\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"card\" }\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "write": {
+    "mk/a.rs": "/// @copy-of: a/src.rs#KINDS\npub const KINDS: &[&str] = &[\"amber\", \"jade\", \"onyx\", \"ruby\"];\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "{repo}/mk/a.rs",
+     "content": "/// @copy-of: a/src.rs#KINDS\npub const KINDS: &[&str] = &[\"amber\", \"jade\", \"onyx\", \"ruby\"];\n"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "mk/a.rs:1: the @copy-of marker is in a doc comment",
+     "`// @copy-of: a/src.rs#KINDS`"
+    ]
+   }
+  }
+ ]
+}

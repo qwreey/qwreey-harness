@@ -1,0 +1,76 @@
+{
+ "description": "conventions-check: a public function without a doc comment is named once, rechecked after the next edit, and quiet once fixed",
+ "steps": [
+  {
+   "write": {
+    "r/m.luau": "local M = {}\n\nfunction M.run(a)\n\treturn a\nend\n\nreturn M\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "rc",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "content": "local M = {}\n\nfunction M.run(a)\n\treturn a\nend\n\nreturn M\n",
+     "file_path": "{repo}/r/m.luau"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "contains": [
+     "Doc comments: M.run L3 has no doc comment."
+    ]
+   }
+  },
+  {
+   "write": {
+    "r/m.luau": "local M = {}\n\nfunction M.run(a)\n\treturn a + 1\nend\n\nreturn M\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "rc",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "old_string": "\treturn a\n",
+     "new_string": "\treturn a + 1\n",
+     "file_path": "{repo}/r/m.luau"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "contains": [
+     "M.run L3 has no doc comment (still so after your last edit)"
+    ]
+   }
+  },
+  {
+   "write": {
+    "r/m.luau": "local M = {}\n\n--- Runs it.\nfunction M.run(a)\n\treturn a + 2\nend\n\nreturn M\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "rc",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "old_string": "function M.run(a)\n\treturn a + 1\n",
+     "new_string": "--- Runs it.\nfunction M.run(a)\n\treturn a + 2\n",
+     "file_path": "{repo}/r/m.luau"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

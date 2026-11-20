@@ -1,0 +1,85 @@
+{
+ "description": "conventions-check: agent docs get history markers (date, audit path, ledger id without a path), Korean lines and ledger paths that do not ship",
+ "files": {
+  "pl/.claude-plugin/plugin.json": "{\"name\": \"pl\"}\n",
+  "pl/skills/s/SKILL.md": "---\nname: s\ndescription: Does a thing. Use when a thing is needed.\n---\n\nBody.\n"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "d1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "content": "# Repo\n\n- Decided on 2026-11-02, see .claude/audit/12-x.md.\n- Status: active\n- 이것은 한국어로 쓴 긴 설명 문장입니다\n",
+     "file_path": "{repo}/CLAUDE.md"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "CLAUDE.md may not follow the agent-doc conventions.",
+     "L3 history marker",
+     "L5 language mismatch"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "d2",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "content": "---\nname: s\ndescription: I can help with things\n---\n\nSee Q-12 in docs/ledger.md for why.\n",
+     "file_path": "{repo}/pl/skills/s/SKILL.md"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "L3 skill description: no when-clause, first or second person.",
+     "L6 ledger id path",
+     "name a ledger file inside pl"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "d3",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "content": "Previously this was 2026-11-02 and H-12.\nPer the user, see audit/4 [measured].\n",
+     "file_path": "{repo}/pl/skills/s/references/notes.md"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "L2 history marker"
+    ],
+    "not_contains": [
+     "L1 history marker"
+    ]
+   }
+  }
+ ]
+}

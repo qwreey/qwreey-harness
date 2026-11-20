@@ -15,6 +15,8 @@ publish = false
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 sha2 = { version = "0.11.1", default-features = false }
+# 같은 RustCrypto 계열(digest 0.11 을 sha2 와 같이 쓴다). reuse-check 색인 파일 이름과 그림자 기록 id 가 python hashlib.sha1 과 같아야 한다.
+sha1 = { version = "0.11.0", default-features = false }
 getrandom = "0.4.3"
 rustix = { version = "1.1.6", features = ["process", "fs"] }
 # 띄우는 워커에 물려줄 fd 를 close-on-exec 로(python subprocess 의 close_fds=True). 날 fd 번호로 fcntl 을 부르는 safe API 가
