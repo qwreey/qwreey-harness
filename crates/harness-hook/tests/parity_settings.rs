@@ -3,6 +3,7 @@
 
 mod common;
 
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use common::{TempDir, case, pairs, python};
@@ -356,9 +357,9 @@ fn load_layers_matches_python() {
         ("PROC_GUARD_DISK", json!("on")),           // 호출자 user_only
         ("HARNESS_WORKSPACE", json!("/from-env")),  // 옛 키는 환경 변수만
         ("SESSION_LOG_HOME", Value::Null),          // 옛 플러그인 대신 막는 키
-        ("LEAK", json!("evil")), // 막힌 키의 저장소 값이 같은 파일의 $NAME 으로는 샌다
-        ("DEMO_FLAG", json!("off")), // 저장소 층이 옵션 층을 이긴다
-        ("DEMO_NUM", json!("99")), // 환경 변수가 옵션을 이긴다
+        ("LEAK", json!("nice -n 5")), // 막힌 줄은 같은 파일의 $NAME 에도 들지 않고 아래 층 값을 본다
+        ("DEMO_FLAG", json!("off")),  // 저장소 층이 옵션 층을 이긴다
+        ("DEMO_NUM", json!("99")),    // 환경 변수가 옵션을 이긴다
         ("PROC_GUARD_DISK_MIN_FREE_GIB", json!("1")),
         ("REPO_KEY", json!("local")),
         ("OTHER_KEY", json!("o")),
@@ -411,6 +412,15 @@ fn parse_and_option_values_match_python() {
         .iter()
         .map(|t| case("parse", &env, json!({"text": t, "base": base})))
         .collect();
+
+    // 저장소 층처럼 막은 키: 그 줄은 결과에도 $NAME 에도 들지 않는다
+    let skip: BTreeSet<&str> = ["HARNESS_HEAVY_WRAP", "FROM_ENV", "B"].into();
+    let skip_text = "HARNESS_HEAVY_WRAP=evil\nLEAK=$HARNESS_HEAVY_WRAP\nB=evil\nC=$B\nFROM_ENV=file\nD=$FROM_ENV\n";
+    cases.push(case(
+        "parse",
+        &env,
+        json!({"text": skip_text, "base": base, "skip": skip}),
+    ));
     cases.push(case("option_value", &env, json!({"values": values})));
     let Some(got) = python(&cases) else {
         return;
@@ -420,8 +430,15 @@ fn parse_and_option_values_match_python() {
     let rust_env = Env::from_pairs(env.clone());
     let mut want: Vec<Value> = texts
         .iter()
-        .map(|t| json!(envfile::parse(t, &base, &rust_env)))
+        .map(|t| json!(envfile::parse(t, &base, &rust_env, &BTreeSet::new())))
         .collect();
+    let skipped = envfile::parse(skip_text, &base, &rust_env, &skip);
+    assert_eq!(
+        json!(skipped),
+        json!({"LEAK": "", "C": "base", "D": "scope"}),
+        "막힌 줄 대신 아래 층 값"
+    );
+    want.push(json!(skipped));
     let options: Vec<Option<String>> = values
         .as_array()
         .unwrap()
@@ -433,6 +450,32 @@ fn parse_and_option_values_match_python() {
     for (i, (g, w)) in got.iter().zip(&want).enumerate() {
         assert_eq!(g, w, "case {i}: {}", cases[i]);
     }
+}
+
+#[test]
+fn config_dir_matches_python() {
+    // 홈이 `/` 여도 `//.claude` 가 아니다(`//` 는 POSIX 에서 따로 정의된 뿌리라 남긴다)
+    let envs = [
+        pairs(&[("HOME", "/")]),
+        pairs(&[("HOME", "//")]),
+        pairs(&[("HOME", "/h/")]),
+        pairs(&[("HOME", "/h/./x//")]),
+        pairs(&[("HOME", "/"), ("CLAUDE_CONFIG_DIR", "//c/./d/")]),
+        pairs(&[("HOME", "/h"), ("CLAUDE_CONFIG_DIR", "")]),
+    ];
+    let cases: Vec<Value> = envs
+        .iter()
+        .map(|env| case("config_dir", env, json!({})))
+        .collect();
+    let Some(got) = python(&cases) else {
+        return;
+    };
+
+    for (i, (g, env)) in got.iter().zip(&envs).enumerate() {
+        let dir = settings::config_dir(&Env::from_pairs(env.clone())).expect("home is set");
+        assert_eq!(*g, json!(dir.to_string_lossy()), "case {i}: {}", cases[i]);
+    }
+    assert_eq!(got[0], json!("/.claude"));
 }
 
 #[test]

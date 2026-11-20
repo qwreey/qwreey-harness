@@ -57,6 +57,8 @@ check("no heavy keyword passes", run("python3 build.py") is None)
 check("heavy word but no executor passes", run("echo bench") is None)
 check("empty wrapper disables the guard", run("bash run-bench.sh", wrap="") is None)
 check("bad stdin is silent", run("", raw="{no") is None)
+for raw in ("[]", "null", '"python3 fuzz.py"', "3", '{"tool_input": ["python3 fuzz.py"]}', '{"tool_input": {"command": 5}}'):
+    check(f"non-object stdin or fields are silent: {raw}", run("", raw=raw) is None)
 check("no harness.env: defaults, no crash", run("ls", wrap=None) is None)
 
 # 저장소 층은 래퍼를 끄지 못하고(USER_ONLY), 실행기는 더할 수 있다

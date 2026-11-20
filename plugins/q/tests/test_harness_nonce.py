@@ -102,6 +102,46 @@ class HarnessNonce(unittest.TestCase):
                       "print(os.path.exists(old))")
         self.assertEqual(out, "False")
 
+    def test_failed_random_leaves_no_salt(self):
+        out = self.py("def boom(n):\n    raise OSError('no entropy')\n"
+                      "hn.secrets.token_hex = boom\n"
+                      "import os\nprint(repr(hn.salt()), os.path.exists(hn.salt_path()))")
+        self.assertEqual(out, "None False", "빈 salt 가 남으면 뒤의 훅이 모두 nonce 를 잃는다")
+
+    def test_claim_dir_taken_by_file_still_claims(self):
+        Path(self.tmp.name, "claude-harness-rule").write_text("x")
+        self.assertEqual(self.py("print(hn.claim('abc', None, 'startup', 61), hn.claim('abc', None, 'startup', 61))"), "True True")
+
+    def test_claim_dir_symlink_is_not_followed(self):
+        victim = Path(self.tmp.name, "victim")
+        victim.mkdir()
+        old = victim / "old"
+        old.write_text("keep")
+        os.utime(old, (1, 1))
+        os.symlink(victim, Path(self.tmp.name, "claude-harness-rule"))
+        out = self.py("print(hn.claim('abc', None, 'startup'), hn.claim('abc', None, 'startup'))")
+        self.assertEqual(out, "True True", "남의 링크면 조율하지 않고 싣는다")
+        self.assertEqual(sorted(os.listdir(victim)), ["old"], "링크 너머에 쓰지도 지우지도 않는다")
+
+    @unittest.skipUnless(hasattr(os, "getuid"), "POSIX 소유자")
+    def test_claim_dir_of_other_user_is_not_used(self):
+        out = self.py("import os\n"
+                      "d = os.path.dirname(hn.claim_path('abc'))\n"
+                      "os.makedirs(d); old = os.path.join(d, 'old'); open(old, 'w').close(); os.utime(old, (1, 1))\n"
+                      "me = os.getuid(); hn.os.getuid = lambda: me + 1\n"
+                      "print(hn.claim('abc', None, 'startup'), hn.claim('abc', None, 'startup'), sorted(os.listdir(d)))")
+        self.assertEqual(out, "True True ['old']")
+
+    def test_prune_skips_links_and_dirs(self):
+        out = self.py("import os, time\n"
+                      "d = os.path.dirname(hn.claim_path('abc'))\n"
+                      "os.makedirs(os.path.join(d, 'subdir')); target = os.path.join(os.environ['TMPDIR'], 'target')\n"
+                      "open(target, 'w').close(); os.utime(target, (1, 1)); os.symlink(target, os.path.join(d, 'link'))\n"
+                      "os.utime(os.path.join(d, 'subdir'), (1, 1))\n"
+                      "hn.claim('abc', None, 'startup')\n"
+                      "print(sorted(n for n in os.listdir(d) if not n.startswith(('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'))), os.path.exists(target))")
+        self.assertEqual(out, "['link', 'subdir'] True")
+
 
 if __name__ == "__main__":
     unittest.main()

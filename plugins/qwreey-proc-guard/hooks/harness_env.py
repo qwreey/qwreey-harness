@@ -10,7 +10,9 @@
 
 파일 형식: 한 줄에 `KEY=VALUE`. `#` 로 시작하는 줄과 빈 줄은 무시한다.
 - 값의 바깥 따옴표('…' 또는 "…")는 벗긴다. 줄 끝 주석은 따옴표 밖의 ` #` 부터다.
-- `${NAME}` 과 `$NAME` 은 앞에서 정의한 키(아래 층 포함)나 환경 변수로 바꾼다. 맨 앞의 `~` 는 $HOME 이다.
+- `${NAME}` 과 `$NAME` 은 앞에서 정의한 키(아래 층 포함)나 환경 변수로 바꾼다. 작은따옴표 안에서도 바꾼다(셸과 다르다).
+  맨 앞의 `~` 는 $HOME 이다.
+- 저장소 층에서 사용자 전용 키(아래)의 줄은 값도 되지 않고 같은 파일의 `$NAME` 에도 들어가지 않는다: `$NAME` 은 아래 층의 값을 본다.
 - 셸로 source 하지 않는다(실행 없음). tools/home-sync.sh 도 같은 규칙으로 읽는다.
 
 층(load_layers): 키마다 합치고 번호가 큰 층이 이긴다. 높은 층에 키가 있으면 빈 값이어도 그 값이다.
@@ -19,7 +21,8 @@
   3. 플러그인 옵션: <설정 디렉터리>/settings.json 의 pluginConfigs["<플러그인>@<마켓>"].options (/config, /plugin configure 가 쓴다)
   4. 저장소 공유: <project>/.claude/harness.env (커밋한다)
   5. 저장소 개인: <project>/.claude/harness.local.env (커밋하지 않는다. 저장소 .gitignore 에 넣는다)
-  6. 프로세스 환경 변수
+  6. 프로세스 환경 변수: 1~5 층 어딘가에 있는 키만 덮는다. 기본값에도 파일에도 없는 키는 환경 변수만으로 결과에 생기지 않는다
+     (RETIRED_USER_ONLY 는 예외로 환경 변수만으로도 생긴다).
 4, 5 층은 USER_ONLY, RETIRED_USER_ONLY, LEGACY_USER_ONLY 와 호출자 user_only 의 키(실행 경로, 기기 고유값, 보안 게이트)를 바꾸지 못한다.
 <project> 는 호출자가 주거나, 안 주면 $CLAUDE_PROJECT_DIR(project_dir() 은 그것이 없을 때 훅 stdin 의 cwd). 없으면 4, 5 층이 없다.
 HARNESS_ENV 는 사용자 층 파일 하나만 바꾼다. 저장소 층은 그대로 위에 얹힌다.
@@ -75,14 +78,15 @@ def expand(s, scope):
     return os.path.expanduser(s) if s.startswith("~") else s
 
 
-def parse(text, base=None):
+def parse(text, base=None, skip=frozenset()):
+    """파일 글의 {키: 값}. base 는 `$NAME` 을 풀 때 볼 아래 층 값, skip 은 이 파일이 정하지 못하는 키(줄을 통째로 건너뛴다)."""
     scope = dict(base or {})
     out = {}
     for line in text.splitlines():
         if not line.strip() or line.lstrip().startswith("#"):
             continue
         m = _KEY.match(line)
-        if not m:
+        if not m or m.group(1) in skip:
             continue
         key = m.group(1)
         val = os.environ[key] if key in os.environ else expand(_value(m.group(2)), scope)  # 환경 변수가 이긴다
@@ -240,7 +244,7 @@ def _options_layer(vals, extra=None):
 
 def _read(vals, f, skip=frozenset()):
     try:
-        vals.update({k: v for k, v in parse(f.read_text(encoding="utf-8"), vals).items() if k not in skip})
+        vals.update(parse(f.read_text(encoding="utf-8"), vals, skip))
         return True
     except (OSError, UnicodeDecodeError):
         return False

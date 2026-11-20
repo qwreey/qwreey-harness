@@ -152,7 +152,8 @@ pub fn config_dir(env: &Env) -> Result<PathBuf, HomeUnknown> {
     if home == "~" {
         return Err(HomeUnknown);
     }
-    Ok(pathlib(&format!("{home}/.claude")))
+    // python Path.home() / ".claude": 홈이 `/` 여도 `//.claude` 가 되지 않게 정규화한 뒤 잇는다
+    Ok(pathlib(&home).join(".claude"))
 }
 
 /// 사용자 층 파일: `$HARNESS_ENV`, 없으면 `candidates` 가운데 처음 있는 파일.
@@ -200,12 +201,12 @@ pub fn layer_files(
     Ok((user, repo))
 }
 
-// python Path(project) / rel. 빈 디렉터리는 Path("") 처럼 현재 디렉터리다
+// python Path(project) / rel. 빈 디렉터리는 Path("") 처럼 현재 디렉터리다. `/` 는 `//` 가 되지 않게 정규화한 뒤 잇는다
 fn project_file(dir: &str, rel: &str) -> PathBuf {
     if dir.is_empty() {
         pathlib(rel)
     } else {
-        pathlib(&format!("{dir}/{rel}"))
+        pathlib(dir).join(rel)
     }
 }
 
@@ -274,11 +275,8 @@ fn read_layer(values: &mut Values, file: &Path, env: &Env, skip: &BTreeSet<&str>
     else {
         return false;
     };
-    for (key, value) in envfile::parse(&text, values, env) {
-        if !skip.contains(key.as_str()) {
-            values.insert(key, value);
-        }
-    }
+    let parsed = envfile::parse(&text, values, env, skip);
+    values.extend(parsed);
     true
 }
 
@@ -354,5 +352,21 @@ pub fn heavy_wrap(layers: &Layers, env: &Env) -> Vec<String> {
     match argv.first() {
         Some(program) if which(program, env).is_some() => argv,
         _ => Vec::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[cfg(unix)]
+    fn project_files_join_like_pathlib() {
+        // python str(Path(dir) / rel)
+        let joined = |dir: &str| project_file(dir, PROJECT_FILES[0]);
+        assert_eq!(joined("/"), PathBuf::from("/.claude/harness.env"));
+        assert_eq!(joined("//"), PathBuf::from("//.claude/harness.env"));
+        assert_eq!(joined("/p/./q/"), PathBuf::from("/p/q/.claude/harness.env"));
+        assert_eq!(joined(""), PathBuf::from(".claude/harness.env"));
     }
 }

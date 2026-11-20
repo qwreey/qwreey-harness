@@ -111,9 +111,13 @@ def main():
         data = json.load(sys.stdin)
     except Exception:
         return 0
+    if not isinstance(data, dict):  # 객체가 아닌 입력은 읽지 않는다(다른 훅과 같이 조용히 끝난다)
+        return 0
     if os.name == "nt":  # choom 과 공유 메모리 cgroup 은 Linux 의 일이다. Windows 에서는 래퍼 설정과 상관없이 막지 않는다
         return 0
-    cmd = (data.get("tool_input") or {}).get("command") or ""
+    tool_input = data.get("tool_input")
+    cmd = tool_input.get("command") if isinstance(tool_input, dict) else None
+    cmd = cmd if isinstance(cmd, str) else ""
     env = load_env(data.get("cwd"))
     wrap = wrap_argv(env)
     if not wrap:  # 래퍼를 끈 환경이거나 래퍼 프로그램이 없다(choom 없는 sandbox) - 막지 않는다

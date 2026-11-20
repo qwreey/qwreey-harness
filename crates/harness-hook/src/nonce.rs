@@ -5,11 +5,12 @@
 //!   소문자 hex 64자, 디렉터리 0700, 파일 0600. 없으면 O_EXCL 로 만든다. 읽지도 만들지도 못하면 nonce 가 없다.
 //! - nonce = sha256(salt + ":" + session_id) 의 hex 앞 12자.
 //! - 규칙 줄: SessionStart, SubagentStart 에서 claim 파일을 O_EXCL 로 먼저 만든 플러그인만 싣는다.
+//!   claim 디렉터리가 이 사용자 소유의 진짜 디렉터리가 아니면 조율하지 않고 싣는다([`claim`]).
 //!
 //! python 판과 다른 점: 프로세스 안 캐시가 없다(바이너리는 한 번 뜨고 끝나므로 호출한 쪽이 [`Nonce`] 를 들고 쓴다).
-//! salt 를 만들다 난수를 얻지 못하면 빈 파일을 지운다(python 은 예외로 끝나 빈 파일이 남는다).
+//! claim 디렉터리 소유자와 견줄 자기 uid 를 python 은 `os.getuid()` 로, Rust 는 시험 파일의 소유자로 안다([`claim`]).
 
-use std::fs::{self, DirBuilder, File, OpenOptions};
+use std::fs::{self, DirBuilder, File, Metadata, OpenOptions};
 use std::io::{ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -70,11 +71,13 @@ pub fn attr(nonce: Option<&Nonce>) -> String {
 }
 
 /// salt 파일 경로(python `salt_path`).
+///
+/// 두 경로 변수는 UTF-8 이 아니어도 바이트 그대로 쓴다. 빼면 python 과 다른 salt 를 읽어 nonce 가 어긋난다.
 pub fn salt_path(env: &Env) -> PathBuf {
-    if let Some(p) = env.get_nonempty(SALT_ENV) {
+    if let Some(p) = env.get_os_nonempty(SALT_ENV) {
         return PathBuf::from(p);
     }
-    let base = match env.get_nonempty("XDG_DATA_HOME") {
+    let base = match env.get_os_nonempty("XDG_DATA_HOME") {
         Some(dir) => PathBuf::from(dir),
         None => Path::new(&expanduser("~", env))
             .join(".local")
@@ -228,8 +231,8 @@ pub fn claim_path(
 
 /// 이 주입 이벤트의 규칙 줄을 맡으면 `true`(python `claim`).
 ///
-/// claim 파일을 O_EXCL 로 만든 쪽이 맡는다. 디렉터리를 못 만드는 등 조율할 수 없으면 중복이 낫다고 보고 `true`.
-/// python 판처럼 claim 디렉터리 자리에 파일이 있으면(AlreadyExists) `false` 다.
+/// claim 파일을 O_EXCL 로 만든 쪽이 맡는다. 조율할 수 없으면 중복이 낫다고 보고 `true`: 디렉터리를 못 만듦,
+/// 그 자리에 파일이 있음, 이 사용자 소유의 진짜 디렉터리가 아님(심볼릭 링크, 남의 디렉터리).
 pub fn claim(
     env: &Env,
     session_id: Option<&str>,
@@ -243,12 +246,12 @@ pub fn claim(
     let path = claim_path(env, sid, agent_id, source, now);
     let dir = path.parent().expect("claim path has a directory");
 
-    // 디렉터리와 파일을 O_EXCL 로
-    match make_private_dir(dir) {
-        Err(e) if e.kind() == ErrorKind::AlreadyExists => return false,
-        Err(_) => return true,
-        Ok(()) => {}
+    // 공유 임시 폴더라 남이 심은 자리일 수 있다
+    if make_private_dir(dir).is_err() || !own_dir(dir) {
+        return true;
     }
+
+    // O_EXCL 로 먼저 만든 쪽이 맡는다
     match create_private_file(&path) {
         Ok(_) => {}
         Err(e) if e.kind() == ErrorKind::AlreadyExists => return false,
@@ -259,17 +262,57 @@ pub fn claim(
     true
 }
 
-// 하루 넘은 claim 파일을 지운다. 오류는 넘긴다
+// 남이 claim 디렉터리 자리에 링크를 심어 두면 prune 이 링크가 가리키는 피해자의 디렉터리에서 하루 넘은 파일을 지운다.
+// 남의 진짜 디렉터리도 받지 않는다: 그 주인은 lstat 뒤에 그것을 링크로 바꿔 칠 수 있고, claim 이름을 미리 만들어 규칙 줄을 막을 수 있다.
+fn own_dir(dir: &Path) -> bool {
+    match fs::symlink_metadata(dir) {
+        Ok(meta) if meta.file_type().is_dir() => owned_by_me(dir, &meta),
+        _ => false,
+    }
+}
+
+// std 에 getuid 가 없고 unsafe 는 금지라, 디렉터리 안에 이름이 겹치지 않는 시험 파일을 만들어 그 소유자(유효 uid)와 견준다.
+// 남의 디렉터리라 쓸 수 없으면 만들지 못해 false 다. 링크로 바꿔 쳐져 내 디렉터리에 만들어져도 소유자가 lstat 때와 달라 false 다.
+#[cfg(unix)]
+fn owned_by_me(dir: &Path, meta: &Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt;
+
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| d.subsec_nanos());
+    let probe = dir.join(format!(".uid-probe-{}-{nanos}", std::process::id()));
+    let Ok(file) = create_private_file(&probe) else {
+        return false;
+    };
+    let mine = file.metadata().map(|m| m.uid());
+    drop(file);
+    let _ = fs::remove_file(&probe);
+    mine.is_ok_and(|uid| uid == meta.uid())
+}
+
+// Windows 의 임시 폴더는 사용자마다 따로 있어 소유자를 보지 않는다(python 도 os.getuid 가 없어 보지 않는다)
+#[cfg(not(unix))]
+fn owned_by_me(_dir: &Path, _meta: &Metadata) -> bool {
+    true
+}
+
+// 하루 넘은 claim 파일을 지운다. 링크를 따라가지 않고, claim 이 그렇듯 보통 파일만 지운다. 오류는 넘긴다
 fn prune(dir: &Path, now: f64) {
     let Ok(entries) = fs::read_dir(dir) else {
         return;
     };
     for entry in entries.flatten() {
-        // python DirEntry.stat() 처럼 링크를 따라간다
-        let path = entry.path();
-        let Ok(modified) = fs::metadata(&path).and_then(|m| m.modified()) else {
+        // DirEntry::metadata 는 링크를 따라가지 않는다(python stat(follow_symlinks=False))
+        let Ok(meta) = entry.metadata() else {
             continue;
         };
+        if !meta.file_type().is_file() {
+            continue;
+        }
+        let Ok(modified) = meta.modified() else {
+            continue;
+        };
+        let path = entry.path();
 
         let mtime = match modified.duration_since(UNIX_EPOCH) {
             Ok(d) => d.as_secs_f64(),
@@ -402,6 +445,25 @@ mod tests {
         assert_eq!(
             Nonce::from_salt(&"00".repeat(32), "abc").as_str(),
             "39596342ed0e"
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn salt_path_keeps_non_utf8_bytes() {
+        use std::ffi::OsString;
+        use std::os::unix::ffi::OsStringExt;
+
+        // python 은 surrogateescape 로 같은 바이트의 경로를 연다
+        let raw = |bytes: &[u8]| OsString::from_vec(bytes.to_vec());
+        let env = Env::from_pairs([(SALT_ENV, raw(b"/s/\xff/salt"))]);
+        assert_eq!(salt_path(&env), PathBuf::from(raw(b"/s/\xff/salt")));
+        let env = Env::from_pairs([("XDG_DATA_HOME", raw(b"/x/\xfe"))]);
+        assert_eq!(
+            salt_path(&env),
+            PathBuf::from(raw(b"/x/\xfe"))
+                .join("qwreey-harness")
+                .join("salt")
         );
     }
 

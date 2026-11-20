@@ -126,6 +126,16 @@ class Layers(unittest.TestCase):
         self.assertEqual(v["HARNESS_CODERAG"], "coderag", "저장소 층의 /evil 이 아니라 기본값")
         self.assertEqual(v["HARNESS_FANOUT_WARN_CONCURRENT"], "2", "다른 키는 덮는다")
 
+    def test_blocked_repo_values_do_not_leak_through_references(self):
+        # 막힌 줄은 같은 파일의 $NAME 에도 들어가지 않는다. $NAME 은 아래 층(사용자, 기본값, 환경 변수)의 값을 본다.
+        self.user("HARNESS_HEAVY_WRAP=nice -n 5\n")
+        self.repo("HARNESS_HEAVY_WRAP=evil\nDEMO_LEAK=$HARNESS_HEAVY_WRAP\nHARNESS_CODERAG=/evil\nDEMO_CR=${HARNESS_CODERAG}\n"
+                  "DEMO_GATE=off\nDEMO_G=$DEMO_GATE\nHARNESS_WORKSPACE=/evil\nDEMO_WS=$HARNESS_WORKSPACE\n")
+        os.environ["HARNESS_WORKSPACE"] = "/env-ws"
+        v = he.load_layers(self.proj, user_only={"DEMO_GATE"})
+        self.assertEqual((v["DEMO_LEAK"], v["DEMO_CR"], v["DEMO_G"], v["DEMO_WS"]), ("nice -n 5", "coderag", "", "/env-ws"))
+        self.assertEqual(he.load_layers(self.proj)["DEMO_G"], "off", "막지 않은 키는 같은 파일에서 그대로 쓴다")
+
     def test_caller_user_only_keys(self):
         # 한 플러그인만 읽는 사용자 전용 키는 그 플러그인이 user_only 로 넘긴다. 넘기지 않은 호출은 막지 않는다.
         self.user("DEMO_GATE=on\n")

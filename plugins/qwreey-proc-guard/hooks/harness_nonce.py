@@ -13,11 +13,15 @@
   qwreey-sessions 는 기록에 쓰기 전에 값을 지운다(redact_text). 모델이 그래도 옮겨 적으면 그 세션 안에서는 막지 못한다.
 - 규칙 줄: SessionStart(모든 source), SubagentStart 에서 블록을 내는 플러그인마다 rule_for() 를 부르고, claim 파일을 O_EXCL 로 먼저 만든
   쪽만 싣는다. 같은 이벤트의 훅은 병렬이라 순서로 정할 수 없다. 30초 칸 경계에 걸려 두 번 실리는 것은 해가 없다.
+  claim 디렉터리는 공유 임시 폴더에 있어 다른 사용자가 먼저 만들 수 있다. 이 사용자 소유의 진짜 디렉터리(심볼릭 링크 아님)가
+  아니면 그 안에 쓰지도 지우지도 않고 규칙 줄을 싣는다(조율할 수 없으면 중복이 낫다). 남이 심어 둔 링크를 따라가 하루 넘은
+  claim 을 지우면 링크가 가리키는 피해자의 파일을 지우게 된다.
 """
 import hashlib
 import os
 import re
 import secrets
+import stat
 import time
 
 # @start-replace: lib/harness_texts.py#NONCE_RULE value=string template="RULE = {value}"
@@ -51,11 +55,11 @@ def _create(path):
         return ""
     except OSError:
         return None
-    value = secrets.token_hex(32)
     try:
         with os.fdopen(fd, "w") as f:
+            value = secrets.token_hex(32)
             f.write(value)
-    except OSError:
+    except Exception:  # 난수 원천 없음(OSError, NotImplementedError)이나 쓰기 실패. 빈 salt 를 남기면 뒤의 훅이 모두 nonce 를 잃는다
         try:
             os.unlink(path)
         except OSError:
@@ -115,12 +119,24 @@ def claim_path(session_id, agent_id=None, source=None, now=None):
     return os.path.join(tmp, CLAIM_DIR, name)
 
 
+def _own_dir(directory):
+    """directory 가 이 사용자 소유의 진짜 디렉터리면 True. 심볼릭 링크, 파일, 남의 디렉터리, 없음은 False.
+    소유자는 POSIX 에서만 본다(Windows 의 임시 폴더는 사용자마다 따로 있다)."""
+    try:
+        st = os.lstat(directory)
+    except OSError:
+        return False
+    getuid = getattr(os, "getuid", None)
+    return stat.S_ISDIR(st.st_mode) and (getuid is None or st.st_uid == getuid())
+
+
 def _prune(directory, now):
+    """하루 넘은 claim 을 지운다. 링크를 따라가지 않고, claim 이 그렇듯 보통 파일만 지운다."""
     try:
         with os.scandir(directory) as it:
             for e in it:
                 try:
-                    if e.stat().st_mtime < now - CLAIM_TTL_SEC:
+                    if e.is_file(follow_symlinks=False) and e.stat(follow_symlinks=False).st_mtime < now - CLAIM_TTL_SEC:
                         os.unlink(e.path)
                 except OSError:
                     pass
@@ -129,19 +145,32 @@ def _prune(directory, now):
 
 
 def claim(session_id, agent_id=None, source=None, now=None):
-    """이 주입 이벤트의 규칙 줄을 맡으면 True. 조율할 수 없으면(디렉터리를 못 만듦 등) 중복이 낫다고 보고 True."""
+    """이 주입 이벤트의 규칙 줄을 맡으면 True.
+    조율할 수 없으면 중복이 낫다고 보고 True: 디렉터리를 못 만듦, 그 자리에 파일이 있음,
+    이 사용자 소유의 진짜 디렉터리가 아님(심볼릭 링크, 남의 디렉터리)."""
     if not session_id:
         return False
     now = time.time() if now is None else now
     path = claim_path(session_id, agent_id, source, now)
+    directory = os.path.dirname(path)
+
+    # 공유 임시 폴더라 남이 심은 자리일 수 있다
     try:
-        os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
+        os.makedirs(directory, mode=0o700, exist_ok=True)
+    except OSError:
+        return True
+    if not _own_dir(directory):
+        return True
+
+    # O_EXCL 로 먼저 만든 쪽이 맡는다
+    try:
         os.close(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600))
     except FileExistsError:
         return False
     except OSError:
         return True
-    _prune(os.path.dirname(path), now)
+
+    _prune(directory, now)
     return True
 
 

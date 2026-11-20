@@ -78,7 +78,9 @@ def run(nonce_mod, env_mod, case):
 
     # 설정 층
     if op == "parse":
-        return env_mod.parse(a["text"], a["base"])
+        return env_mod.parse(a["text"], a["base"], frozenset(a.get("skip") or ()))
+    if op == "config_dir":
+        return str(env_mod.config_dir())
     if op == "option_value":
         return [env_mod.option_value(v) for v in a["values"]]
     if op == "load_layers":

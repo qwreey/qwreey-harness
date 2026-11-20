@@ -186,7 +186,7 @@ fn rule_lines_match_python() {
         ["SessionStart", {"session_id": "\u{c138}\u{c158}", "agent_id": ""}]
     ]);
 
-    // 양쪽이 서로의 claim 을 보지 않게 임시 폴더를 나눈다. blocked 는 claim 디렉터리 자리에 파일이 있는 경우
+    // 양쪽이 서로의 claim 을 보지 않게 임시 폴더를 나눈다. blocked 는 claim 디렉터리 자리에 파일이 있는 경우(조율하지 못해 늘 싣는다)
     let side = |name: &str| {
         pairs(&[
             ("QWREEY_HARNESS_SALT_FILE", &salt),
@@ -225,6 +225,124 @@ fn rule_lines_match_python() {
             })
             .collect();
         assert_eq!(got[i], json!(mine), "case {i}");
+    }
+    let blocked: Vec<&Value> = got[1].as_array().unwrap().iter().take(5).collect();
+    assert!(
+        blocked
+            .iter()
+            .all(|line| line.as_str().is_some_and(|l| !l.is_empty())),
+        "claim 디렉터리를 못 쓰면 매번 싣는다: {blocked:?}"
+    );
+}
+
+// 하루 넘은 시각으로 mtime 을 바꾼다
+#[cfg(unix)]
+fn make_old(path: &std::path::Path) {
+    let old = std::time::UNIX_EPOCH + std::time::Duration::from_secs(1);
+    std::fs::File::open(path)
+        .and_then(|f| f.set_modified(old))
+        .expect("set mtime");
+}
+
+// claim 디렉터리 안에서 claim 이름(sha256 hex 로 시작)이 아닌 것
+#[cfg(unix)]
+fn non_claims(dir: &std::path::Path) -> Vec<String> {
+    let mut names: Vec<String> = std::fs::read_dir(dir)
+        .expect("claim dir")
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .filter(|n| !n.starts_with(|c: char| c.is_ascii_hexdigit()))
+        .collect();
+    names.sort();
+    names
+}
+
+#[test]
+#[cfg(unix)]
+fn claim_dir_links_and_prune_match_python() {
+    use std::os::unix::fs::symlink;
+
+    let tmp = TempDir::new("claim-fs");
+    let salt = tmp
+        .write("salt", "00".repeat(32))
+        .to_string_lossy()
+        .into_owned();
+    let now = nonce::now_secs();
+    let calls = json!([
+        ["SessionStart", {"session_id": "s1", "source": "startup"}],
+        ["SessionStart", {"session_id": "s1", "source": "startup"}]
+    ]);
+
+    for side in ["py", "rs"] {
+        // claim 디렉터리 자리에 남이 심은 링크
+        let victim = tmp.dir(&format!("{side}-victim"));
+        make_old(&tmp.write(&format!("{side}-victim/old"), "keep"));
+        let planted = tmp.dir(&format!("{side}-link")).join("claude-harness-rule");
+        symlink(&victim, planted).expect("planted link");
+
+        // 내 claim 디렉터리에 오래된 파일, 링크, 디렉터리
+        let own = tmp.dir(&format!("{side}-own/claude-harness-rule"));
+        make_old(&tmp.write(&format!("{side}-own/claude-harness-rule/old"), ""));
+        let target = tmp.write(&format!("{side}-target"), "keep");
+        make_old(&target);
+        symlink(&target, own.join("link")).expect("link in claim dir");
+        make_old(&tmp.dir(&format!("{side}-own/claude-harness-rule/sub")));
+    }
+
+    // python 쪽
+    let side = |dir: &str| {
+        pairs(&[
+            ("QWREEY_HARNESS_SALT_FILE", &salt),
+            ("TMPDIR", &tmp.text(dir)),
+        ])
+    };
+    let cases = [
+        case(
+            "rule_for",
+            &side("py-link"),
+            json!({"calls": calls, "now": now.to_bits()}),
+        ),
+        case(
+            "rule_for",
+            &side("py-own"),
+            json!({"calls": calls, "now": now.to_bits()}),
+        ),
+    ];
+    let Some(got) = python(&cases) else {
+        return;
+    };
+
+    // Rust 쪽 같은 호출
+    for (i, dir) in ["rs-link", "rs-own"].iter().enumerate() {
+        let env = Env::from_pairs(side(dir));
+        let mine: Vec<String> = calls
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|call| {
+                let input = HookInput::from_slice(call[1].to_string().as_bytes()).unwrap();
+                let n = Nonce::for_session(&env, input.session_id());
+                nonce::rule_for(&env, call[0].as_str().unwrap(), &input, n.as_ref(), now)
+            })
+            .collect();
+        assert_eq!(got[i], json!(mine), "case {i}");
+    }
+
+    // 링크면 두 번 다 싣고 링크 너머에 쓰지도 지우지도 않는다. 내 디렉터리에서는 한 번 싣고 오래된 보통 파일만 지운다
+    let rule = got[0][0].clone();
+    assert_eq!(got[0], json!([rule, rule]));
+    assert_eq!(got[1], json!([rule, ""]));
+    for side in ["py", "rs"] {
+        assert_eq!(
+            non_claims(&tmp.dir(&format!("{side}-victim"))),
+            ["old"],
+            "{side}"
+        );
+        assert_eq!(
+            non_claims(&tmp.dir(&format!("{side}-own/claude-harness-rule"))),
+            ["link", "sub"],
+            "{side}"
+        );
+        assert!(tmp.path().join(format!("{side}-target")).exists(), "{side}");
     }
 }
 

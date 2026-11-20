@@ -31,7 +31,13 @@ pub fn pairs(items: &[(&str, &str)]) -> Vec<(String, String)> {
         .collect()
 }
 
-/// 경우들을 python 정본에 넣고 결과 목록을 받는다. python3 이 없으면 알리고 `None`(시험은 건너뛴다).
+/// python3 이 없을 때 대조 시험을 건너뛰게 하는 환경 변수. 값이 `1` 일 때만 건너뛴다.
+pub const SKIP_ENV: &str = "HARNESS_HOOK_PARITY_SKIP";
+
+/// 경우들을 python 정본에 넣고 결과 목록을 받는다.
+///
+/// python3 이 없으면 실패한다. 조용히 통과하면 대조하지 않은 것을 대조한 것으로 읽게 된다.
+/// [`SKIP_ENV`]`=1` 이면 알리고 `None`(시험은 건너뛴다).
 pub fn python(cases: &[Value]) -> Option<Vec<Value>> {
     let driver = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests")
@@ -46,7 +52,13 @@ pub fn python(cases: &[Value]) -> Option<Vec<Value>> {
     let mut child = match spawned {
         Ok(child) => child,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            eprintln!("skip: python3 not found, parity with the python hooks is not checked");
+            assert!(
+                std::env::var_os(SKIP_ENV).is_some_and(|v| v == "1"),
+                "python3 not found: parity with the python hooks cannot be checked (set {SKIP_ENV}=1 to skip)"
+            );
+            eprintln!(
+                "skip: python3 not found and {SKIP_ENV}=1, parity with the python hooks is not checked"
+            );
             return None;
         }
         Err(e) => panic!("starting python3: {e}"),

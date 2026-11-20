@@ -7,8 +7,10 @@
 //! - `${NAME}`, `$NAME` 은 앞에서 정한 키(아래 층 포함), 없으면 환경 변수, 없으면 빈 값. 작은따옴표 안에서도 푼다.
 //! - 풀고 난 값이 `~` 로 시작하면 홈으로 바꾼다.
 //! - 같은 이름의 환경 변수가 있으면 파일 값 대신 그것이다.
+//! - `skip` 에 든 키의 줄은 통째로 건너뛴다. 저장소 층이 사용자 전용 키를 정하지 못하게 할 때, 그 줄의 값이
+//!   같은 파일의 `$NAME` 으로 새지 않게 한다(`$NAME` 은 아래 층의 값을 본다).
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::env::Env;
 use crate::py::path::expanduser;
@@ -17,8 +19,10 @@ use crate::py::text::{is_space, splitlines, strip};
 /// 키 -> 값.
 pub type Values = BTreeMap<String, String>;
 
-/// 파일 글 하나를 읽은 키와 값. `base` 는 아래 층까지 합친 값으로, `$NAME` 을 풀 때 본다.
-pub fn parse(text: &str, base: &Values, env: &Env) -> Values {
+/// 파일 글 하나를 읽은 키와 값(python `parse`). `base` 는 아래 층까지 합친 값으로, `$NAME` 을 풀 때 본다.
+///
+/// `skip` 은 이 파일이 정하지 못하는 키다. 그 줄은 결과에도 `$NAME` 에도 들어가지 않는다.
+pub fn parse(text: &str, base: &Values, env: &Env, skip: &BTreeSet<&str>) -> Values {
     let mut scope = base.clone();
     let mut out = Values::new();
     for line in splitlines(text) {
@@ -26,7 +30,7 @@ pub fn parse(text: &str, base: &Values, env: &Env) -> Values {
         if strip(line).is_empty() || line.trim_start_matches(is_space).starts_with('#') {
             continue;
         }
-        let Some((key, raw)) = split_assignment(line) else {
+        let Some((key, raw)) = split_assignment(line).filter(|(key, _)| !skip.contains(key)) else {
             continue;
         };
 
@@ -153,7 +157,7 @@ mod tests {
     fn parses_quotes_comments_and_references() {
         let env = Env::from_pairs([("HOME", "/h"), ("FROM_ENV", "e")]);
         let text = "# c\nexport A=1 # note\nB='$A x' #k\nexportC=${A}${MISSING}$A_\nD = ~/x\nFROM_ENV=file\n bad line\n";
-        let got = parse(text, &Values::new(), &env);
+        let got = parse(text, &Values::new(), &env, &BTreeSet::new());
         let want: Values = [
             ("A", "1"),
             ("B", "1 x"),
