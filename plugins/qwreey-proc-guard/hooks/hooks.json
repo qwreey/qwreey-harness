@@ -7,17 +7,29 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/heavy-proc-guard.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-proc-guard",
+            "args": [
+              "hook",
+              "heavy-proc-guard"
+            ],
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/self-match-guard.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-proc-guard",
+            "args": [
+              "hook",
+              "self-match-guard"
+            ],
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/resource-guard.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-proc-guard",
+            "args": [
+              "hook",
+              "resource-guard"
+            ],
             "timeout": 10
           }
         ]
@@ -29,7 +41,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/resource-guard.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-proc-guard",
+            "args": [
+              "hook",
+              "resource-guard"
+            ],
             "timeout": 10
           }
         ]
@@ -41,7 +57,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/resource-guard.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-proc-guard",
+            "args": [
+              "hook",
+              "resource-guard"
+            ],
             "timeout": 10
           }
         ]

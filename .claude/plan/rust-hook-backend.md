@@ -51,7 +51,7 @@ Q38 b(사용자): 계획만 먼저 쓰고 debate 로 확정한다. debate 종합
 ## 옮기는 순서 (매 도구마다 뜨는 것, CPU 큰 것부터)
 훅이 쓰는 python(시험 제외, `lib/` 사본 포함) 약 2만 4천 줄. 위임·토론·라이선스의 스킬 스크립트는 훅이 아니라 대상에서 뺀다.
 
-1. **qwreey-proc-guard** (1.6k 줄): Bash 앞에 3개, 뒤에 1개. 작고 막는 훅이 있어 첫 시범으로 알맞다(어댑터, 막기, 시험 대조를 다 거친다). 이 기기에서 0단계와 나란히 한다. Windows 는 거치지 않으므로(heavy-proc-guard 는 Linux 에서만 막음) Windows 확인은 0단계 몫이다.
+1. **qwreey-proc-guard** (1.6k 줄): Bash 앞에 3개, 뒤에 1개. 작고 막는 훅이 있어 첫 시범으로 알맞다(어댑터, 막기, 시험 대조를 다 거친다). 이 기기에서 0단계와 나란히 한다. 끝(aaf316a, e96f75d): python 과 대조 모두 같음, Bash 한 번 훅 CPU 약 94 ms -> 2.5 ms, 0.4.0 에서 hooks.json 을 바이너리로(Q43 a, 실사용 주간 전에). 정규식은 직접 짠 python re 호환 엔진, conventions 때 fancy-regex 와 다시 잰다(Q42 c). Windows 는 거치지 않으므로(heavy-proc-guard 는 Linux 에서만 막음) Windows 확인은 0단계 몫이다.
    - 그 다음 막는 훅은 **qwreey-workspace** 의 workspace-gate 를 앞당긴다. 모든 OS 에서 돈다.
 2. **qwreey-sessions** `hook.py`, `records_read.py` (3.6k 줄 중 훅 부분): 도구 앞뒤마다 45~55 ms. 요약 작업자(`cli.py flush`)는 백그라운드라 나중.
 3. **qwreey-advisor** (2.7k 줄): Bash 앞, PostToolBatch, Stop, 사용자 말.

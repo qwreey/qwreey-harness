@@ -63,7 +63,7 @@ core dump(Linux 만, `/proc/sys/kernel/core_pattern` 을 읽지 못하면 건너
 
 상태: `${CLAUDE_PLUGIN_DATA}/resource-guard/`(없으면 `$TMPDIR/claude-qwreey-proc-guard-<uid>/resource-guard/`, Windows 는 uid 대신 사용자 이름). 새로 만드는 폴더는 0700. `pre/<세션 해시>-<tool_use_id>.json`(Pre 시각 `t_ns`, cwd, 측정), `s-<세션 해시>.json`(경고한 값, 알린 core)과 그 잠금 파일 `.lock`. 하루 지난 Pre 파일과 일주일 지난 세션 파일은 Pre 가 지운다.
 
-비용(2026-11-19, 이 기계): 훅 한 번 중앙값 약 31 ms(빈 python 시작 9 ms, heavy-proc-guard 24 ms). 크래시 뒤 훑기는 이 저장소에서 3 ms 안팎을 더한다.
+비용(2026-11-20, 이 기계, CPU 중앙값): 0.4.0 의 Rust 바이너리는 훅 한 번 0.5~0.8 ms, Bash 한 번(훅 넷) 약 2.5 ms. python 일 때는 훅 한 번 약 16~31 ms, Bash 한 번 약 94 ms. 크래시 뒤 훑기는 이 저장소에서 3 ms 안팎을 더한다.
 
 ## 테스트
 ```bash
