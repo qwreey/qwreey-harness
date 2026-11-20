@@ -218,6 +218,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "qwreey-advisor"
+version = "0.1.0"
+dependencies = [
+ "close_fds",
+ "getrandom",
+ "harness-hook",
+ "jiff",
+ "rustix",
+ "serde_json",
+]
+
+[[package]]
 name = "qwreey-proc-guard"
 version = "0.1.0"
 dependencies = [

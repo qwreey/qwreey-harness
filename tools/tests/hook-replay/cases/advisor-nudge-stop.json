@@ -1,0 +1,162 @@
+{
+ "description": "second-opinion-nudge Stop: uncommitted changes over the limit get one done-review notice per diff; empty, error and question replies, stop_hook_active and STOP=off pass",
+ "env": {
+  "HARNESS_REVIEW_LINES": "mid=10"
+ },
+ "setup": [
+  "printf 'a\\n' > a.txt && git add a.txt && git commit -qm init",
+  "seq 1 30 > a.txt"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "Stop",
+    "last_assistant_message": "Shall I commit?"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "Stop",
+    "last_assistant_message": "Done. Next:\n- Q1. **which?**"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "Stop",
+    "last_assistant_message": "API Error: 529 overloaded"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "Stop",
+    "last_assistant_message": ""
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "Stop",
+    "last_assistant_message": "Done.",
+    "stop_hook_active": true
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "Stop",
+    "last_assistant_message": "Done."
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_REVIEW_STOP": "off"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "Stop",
+    "last_assistant_message": "Done."
+   },
+   "expect": {
+    "tags": [
+     "qwreey-advisor/warn"
+    ],
+    "contains": [
+     "Turn ending with uncommitted changes: 31 changed lines in `mine` (review tier: mid)",
+     "model=sonnet"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "Stop",
+    "last_assistant_message": "Done."
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "sh": "echo more >> a.txt"
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "Stop",
+    "last_assistant_message": "Done."
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "Stop",
+    "last_assistant_message": {
+     "text": "x"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-advisor/warn"
+    ],
+    "contains": [
+     "32 changed lines"
+    ]
+   },
+   "env": {
+    "HARNESS_REVIEW_FRESH_MIN": "0"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "Stop",
+    "last_assistant_message": "Done."
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_REVIEW_FRESH_MIN": "soon"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "Stop",
+    "last_assistant_message": "Done.",
+    "session_id": "s2"
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_REVIEW_LINES": "mid=0"
+   }
+  }
+ ]
+}

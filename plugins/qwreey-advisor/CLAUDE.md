@@ -8,7 +8,7 @@ Self-review plugin: skills `inherit-advisor` (fork) and `fresh-advisor` (fresh r
 - `README.md` is for people deciding whether to install; technical detail goes in `docs/how-it-works.md`.
 
 ## Tests
-Run each file under `tests/` with `python3 -I`; exit 0 means pass, no model calls. Cross-plugin copy checks: `python3 -I tools/tests/test-vendored-copies.py` from the repo root.
+Run each file under `tests/` with `python3 -I`; exit 0 means pass, no model calls. With `HOOK_TEST_BIN=<repo>/plugins/qwreey-advisor/native/qwreey-advisor` the tests run the Rust port (`crates/qwreey-advisor`) instead of the ported hooks; `python3 -I tools/tests/hook-parity.py --map crates/qwreey-advisor/parity-map.json` compares the two byte for byte. Cross-plugin copy checks: `python3 -I tools/tests/test-vendored-copies.py` from the repo root.
 
 ## Rules for this plugin
 - `hooks/ambient.py`, `hooks/harness_nonce.py` and `hooks/compact_epoch.py` are byte copies of the repo's `lib/`; `hooks/harness_env.py` is a byte copy of `home/.claude/lib/harness_env.py` (the harness.env layer loader). Edit the canon, then run `python3 -I tools/sync-copies.py --apply`; never edit the copies here. Ambient settings (events, off switch, epoch) live in `context/ambient.json`.

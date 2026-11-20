@@ -1,0 +1,30 @@
+[package]
+name = "qwreey-advisor"
+version = "0.1.0"
+description = "qwreey-advisor plugin hooks (reviewer read-only guard, second-opinion nudge, inherit prompt, reviewer run line, ambient prompt supplement) as one binary"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "qwreey-advisor"
+path = "src/main.rs"
+
+[dependencies]
+harness-hook = { path = "../harness-hook" }
+# 리뷰어 run id(python uuid.uuid4)의 난수.
+getrandom = { workspace = true }
+# ledger 행의 시각(python time.strftime("%Y-%m-%dT%H:%M:%S%z"), 이 기기 시간대).
+jiff = { workspace = true }
+
+# git 에 이 훅이 물려받은 fd(>2)를 넘기지 않는다(python subprocess 의 close_fds=True). flock(handback 상태 잠금).
+[target.'cfg(unix)'.dependencies]
+close_fds = { workspace = true }
+rustix = { workspace = true }
+
+# 대조 시험이 python 쪽과 주고받는 JSON.
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

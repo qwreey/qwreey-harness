@@ -15,6 +15,9 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 HOOKS = os.path.join(os.path.dirname(HERE), "hooks")
 HOOK = os.path.join(HOOKS, "second-opinion-nudge.py")
+# HOOK_TEST_BIN=<바이너리> 면 python 스크립트 대신 `<바이너리> hook second-opinion-nudge` 를 하위 프로세스로 돌린다(Rust 판, crates/qwreey-advisor)
+BIN = os.environ.get("HOOK_TEST_BIN")
+CMD = [BIN, "hook", "second-opinion-nudge"] if BIN else [sys.executable, "-I", HOOK]
 sys.path.insert(0, HOOKS)
 import handback_notice as hn  # noqa: E402
 
@@ -23,6 +26,8 @@ ENV = {k: v for k, v in os.environ.items() if not k.startswith("HARNESS_") and k
 ENV.update(TMPDIR=os.path.join(T, "tmp"), HOME=os.path.join(T, "home"), XDG_STATE_HOME=os.path.join(T, "state"),
            QWREEY_HARNESS_SALT_FILE=os.path.join(T, "salt"))
 os.makedirs(ENV["TMPDIR"])
+if BIN:  # 바이너리는 플러그인 폴더(ledger 스크립트 자리)를 CLAUDE_PLUGIN_ROOT 로 안다
+    ENV["CLAUDE_PLUGIN_ROOT"] = os.path.dirname(HERE)
 os.makedirs(ENV["HOME"])
 open(ENV["QWREEY_HARNESS_SALT_FILE"], "w").write("00" * 32)
 ok = fail = 0
@@ -61,7 +66,7 @@ def check(name, cond):
 
 
 def run(data, env=None):
-    p = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(data), capture_output=True, text=True, env=env or ENV, timeout=20)
+    p = subprocess.run(CMD, input=json.dumps(data), capture_output=True, text=True, env=env or ENV, timeout=20)
     assert p.returncode == 0, p.stderr
     return p.stdout.strip()
 

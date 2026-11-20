@@ -1,0 +1,213 @@
+{
+ "description": "second-opinion-nudge PostToolUseFailure: the same failure signature (digits folded) a second time gets one stuck-review notice; interrupts and benign probes do not count",
+ "setup": [
+  "printf 'a\\n' > a.txt && git add a.txt && git commit -qm init"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "make test"
+    },
+    "error": "Exit code 1\nerror: build failed at line 12"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "make test"
+    },
+    "error": "Exit code 2\nerror: build failed at line 13"
+   },
+   "expect": {
+    "tags": [
+     "qwreey-advisor/warn"
+    ],
+    "contains": [
+     "The same failure happened twice this session: `Bash|error: build failed at line #`",
+     "model=sonnet"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "make test"
+    },
+    "error": "Exit code 2\nerror: build failed at line 14"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "grep x f"
+    },
+    "error": "Exit code 1"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "grep x f"
+    },
+    "error": "Exit code 1"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Edit",
+    "is_interrupt": true,
+    "error": "x"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Edit",
+    "error": "String to replace not found in é.txt"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Edit",
+    "error": "String to replace not found in é.txt"
+   },
+   "expect": {
+    "tags": [
+     "qwreey-advisor/warn"
+    ],
+    "contains": [
+     "Edit|String to replace not found"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Task",
+    "error": 404
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Task",
+    "error": 405
+   },
+   "expect": {
+    "tags": [
+     "qwreey-advisor/warn"
+    ],
+    "contains": [
+     "Task|#"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "error": "     \n\n"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "error": "     \n\n"
+   },
+   "expect": {
+    "tags": [
+     "qwreey-advisor/warn"
+    ],
+    "contains": [
+     "`None|`"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Bash",
+    "error": "boom"
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_REVIEW_DEFAULT": "off"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Bash",
+    "error": "boom",
+    "agent_id": "w"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-advisor/hooks/second-opinion-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Bash",
+    "error": "boom",
+    "cwd": "{ws}/other"
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

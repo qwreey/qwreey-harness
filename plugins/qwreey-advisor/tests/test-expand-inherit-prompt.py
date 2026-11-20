@@ -7,6 +7,9 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOOK = os.path.join(ROOT, "hooks", "expand-inherit-prompt.py")
+# HOOK_TEST_BIN=<바이너리> 면 python 스크립트 대신 `<바이너리> hook expand-inherit-prompt` 를 하위 프로세스로 돌린다(Rust 판, crates/qwreey-advisor)
+BIN = os.environ.get("HOOK_TEST_BIN")
+CMD = [BIN, "hook", "expand-inherit-prompt"] if BIN else [sys.executable, "-I", HOOK]
 TPL = open(os.path.join(ROOT, "skills", "inherit-advisor", "templates", "fork-prompt.md"), encoding="utf-8").read().rstrip("\n")
 REQ = open(os.path.join(ROOT, "skills", "inherit-advisor", "templates", "fork-prompt-reqs.md"), encoding="utf-8").read().strip()
 TAG = "[qwreey-advisor:inherit] Review only. Do not continue the work, edit files, or commit."
@@ -15,7 +18,7 @@ fails = 0
 
 def run(tool_input, root=ROOT):
     env = dict(os.environ, CLAUDE_PLUGIN_ROOT=root)
-    r = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps({"tool_name": "Agent", "tool_input": tool_input}),
+    r = subprocess.run(CMD, input=json.dumps({"tool_name": "Agent", "tool_input": tool_input}),
                        capture_output=True, text=True, env=env)
     out = json.loads(r.stdout)["hookSpecificOutput"] if r.stdout.strip() else None
     return r.returncode, out
@@ -48,6 +51,6 @@ for name, ti in [
 
 rc, o = run({"subagent_type": "fork", "prompt": TAG + "\nnext: x"}, root="/nonexistent")
 check("템플릿이 없으면 통과", rc == 0 and o is None)
-r = subprocess.run([sys.executable, "-I", HOOK], input="not json", capture_output=True, text=True)
+r = subprocess.run(CMD, input="not json", capture_output=True, text=True)
 check("깨진 입력은 통과", r.returncode == 0 and not r.stdout.strip())
 sys.exit(1 if fails else 0)
