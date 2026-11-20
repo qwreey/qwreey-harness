@@ -1,56 +1,11 @@
-//! python 의 파일 함수를 python str 꼴 경로로(UTF-8 이 아닌 바이트는 서로게이트 자리표, `harness_hook::py::surrogate`).
+//! `harness_hook::py::fs` 에 없는 python 파일 함수: 줄마다 읽기(`for line in open(path)`)와 `os.makedirs(exist_ok=True)`.
 //!
-//! python 은 OS 바이트로 바꾸지 못하는 경로(짝 없는 high 서로게이트)와 NUL 이 든 경로에서 ValueError 를 낸다.
-//! 그 경우는 [`FsError::Value`] 다. 호출하는 곳마다 python 이 잡는 예외가 달라 갈래를 나눠 돌려준다.
+//! 경로와 오류 갈래는 `harness_hook::py::fs` 와 같다(OSError 는 [`FsError::Os`], 바꿀 수 없는 경로와 UTF-8 이 아닌 내용은
+//! [`FsError::Value`]).
 
 use std::fs;
-use std::path::PathBuf;
 
-use harness_hook::py::surrogate::to_os;
-
-use super::text::universal_newlines;
-
-/// python 에서 나는 예외의 갈래.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum FsError {
-    /// OSError(없음, 권한, 폴더 등).
-    Os,
-    /// ValueError: 바꿀 수 없는 경로, NUL, UTF-8 이 아닌 내용(UnicodeDecodeError).
-    Value,
-}
-
-/// python 이 OS 에 넘기는 경로. 넘기지 못하면 `None`(python ValueError).
-pub fn os_path(path: &str) -> Option<PathBuf> {
-    if path.contains('\0') {
-        return None;
-    }
-    to_os(path)
-}
-
-/// python `open(path, "rb").read()`.
-pub fn read_bytes(path: &str) -> Result<Vec<u8>, FsError> {
-    let os = os_path(path).ok_or(FsError::Value)?;
-    fs::read(os).map_err(|_| FsError::Os)
-}
-
-/// python `open(path, encoding="utf-8").read()`: UTF-8(어긋나면 ValueError), 줄 끝 `\r\n`, `\r` 은 `\n` 으로.
-pub fn read_text(path: &str) -> Result<String, FsError> {
-    let bytes = read_bytes(path)?;
-    let text = String::from_utf8(bytes).map_err(|_| FsError::Value)?;
-    Ok(universal_newlines(&text))
-}
-
-/// python `os.path.isfile`.
-pub fn is_file(path: &str) -> bool {
-    os_path(path)
-        .and_then(|p| fs::metadata(p).ok())
-        .is_some_and(|m| m.is_file())
-}
-
-/// python `os.path.exists`.
-pub fn exists(path: &str) -> bool {
-    os_path(path).is_some_and(|p| fs::metadata(p).is_ok())
-}
+use harness_hook::py::fs::{FsError, os_path, universal_newlines};
 
 /// python `for line in open(path, encoding="utf-8")`: 줄마다(끝 `\n` 포함), 필요한 만큼만 읽는다.
 ///
@@ -75,7 +30,7 @@ impl TextLines {
     /// 파일을 연다. 열지 못하면 python 의 OSError, 바꿀 수 없는 경로면 ValueError.
     pub fn open(path: &str) -> Result<TextLines, FsError> {
         let os = os_path(path).ok_or(FsError::Value)?;
-        let file = fs::File::open(os).map_err(|_| FsError::Os)?;
+        let file = fs::File::open(os).map_err(|e| FsError::Os(e.kind()))?;
         Ok(TextLines {
             file,
             pending: Vec::new(),
@@ -110,7 +65,7 @@ impl TextLines {
             match self.file.read(&mut buf) {
                 Ok(n) => break n,
                 Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
-                Err(_) => return Err(FsError::Os),
+                Err(e) => return Err(FsError::Os(e.kind())),
             }
         };
         let last = n == 0;
@@ -136,8 +91,7 @@ impl TextLines {
             decoded.pop();
             self.pending_cr = true;
         }
-        self.text
-            .push_str(&super::text::universal_newlines(&decoded));
+        self.text.push_str(&universal_newlines(&decoded));
         Ok(())
     }
 }
@@ -145,11 +99,5 @@ impl TextLines {
 /// python `os.makedirs(path, exist_ok=True)`. 이미 있는 폴더는 성공, 파일이 그 자리에 있으면 실패다.
 pub fn makedirs(path: &str) -> Result<(), FsError> {
     let os = os_path(path).ok_or(FsError::Value)?;
-    fs::create_dir_all(os).map_err(|_| FsError::Os)
-}
-
-/// python `open(path, "w").write(text)`: 자르고 쓴다. `text` 는 UTF-8 로 쓸 수 있어야 한다(자리표가 없는 글).
-pub fn write_text(path: &str, text: &str) -> Result<(), FsError> {
-    let os = os_path(path).ok_or(FsError::Value)?;
-    fs::write(os, text).map_err(|_| FsError::Os)
+    fs::create_dir_all(os).map_err(|e| FsError::Os(e.kind()))
 }

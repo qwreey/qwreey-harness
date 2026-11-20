@@ -6,14 +6,15 @@
 
 use std::sync::LazyLock;
 
-use crate::fixed_re::Fixed;
+use harness_hook::py::fs::{read_text, write_text};
 use harness_hook::py::num::{float_repr, parse_float, parse_int};
 use harness_hook::py::path::join;
 use harness_hook::py::value::{Dict, Value};
+use harness_hook::rx::Regex;
 
 use crate::abort::{Abort, Result};
 use crate::epoch::sanitize;
-use crate::pylib::fs::{makedirs, read_text, write_text};
+use crate::pylib::fs::makedirs;
 
 use super::NS;
 use super::transcript::{head_text, run_caller};
@@ -21,7 +22,7 @@ use super::transcript::{head_text, run_caller};
 const REVIEWERS: &[&str] = &["qwreey-advisor:reviewer", "qwreey-advisor-reviewer"];
 const FORK_MARKERS: &[&str] = &["[qwreey-advisor:inherit]", "[second opinion: inherit]"];
 
-static LEDGER_KIND: LazyLock<Fixed> = LazyLock::new(|| Fixed::new(r"second opinion:\s*(\w+)"));
+static LEDGER_KIND: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"second opinion:\s*(\w+)"));
 
 /// 검토의 종류.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -161,7 +162,7 @@ mod tests {
     /// 이 모듈의 고정 정규식이 regex 판과 python 판(py::re)에서 같은 자리에 맞는다(만든 글 3000개).
     #[test]
     fn fixed_patterns_agree_with_python() {
-        crate::fixed_re::assert_agree(
+        harness_hook::testkit::assert_agree(
             &[("LEDGER_KIND", &*LEDGER_KIND)],
             &[
                 "second opinion:",

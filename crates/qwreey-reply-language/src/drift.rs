@@ -5,12 +5,12 @@
 
 use std::sync::LazyLock;
 
-use harness_hook::py::re::{Flags, Regex as PyRegex};
+use harness_hook::py::re::Flags;
 use harness_hook::py::text::strip;
-use regex::{Regex, RegexBuilder};
+use harness_hook::rx::Regex;
 
-use crate::fixed_re::{Fixed, divergent};
 use crate::language::Script;
+use crate::scan::{pathlike_spans, url_spans};
 
 const MIN_LATIN: usize = 20;
 const THRESHOLD: f64 = 0.25;
@@ -27,95 +27,31 @@ const IGNORECASE_DOTALL: Flags = Flags {
     dotall: true,
 };
 
-// python \Z 는 regex 의 \z 다
-static FENCE: LazyLock<Fixed> = LazyLock::new(|| {
-    Fixed::with_rust(
-        r"```.*?(?:```|\Z)|~~~.*?(?:~~~|\Z)",
-        r"```.*?(?:```|\z)|~~~.*?(?:~~~|\z)",
-        DOTALL,
-    )
-});
-static INLINE: LazyLock<Fixed> = LazyLock::new(|| Fixed::new(r"`[^`\n]*`"));
-static URL: LazyLock<Fixed> =
-    LazyLock::new(|| Fixed::with_flags(r"\b[a-z][a-z0-9+.-]*://\S+|\bwww\.\S+", Flags::IGNORECASE));
-/// 붙여 넣은 블록(python `PASTED`). 괄호 참조 `</\1>` 는 regex 판에서 태그 이름마다의 갈래로 펼쳤다(같은 순서).
-pub static PASTED: LazyLock<Fixed> = LazyLock::new(|| {
-    Fixed::with_rust(
-        r"<(pasted_content|pasted_text|paste)[^>]*>.*?(?:</\1>|\Z)",
+static FENCE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::with_flags(r"```.*?(?:```|\Z)|~~~.*?(?:~~~|\Z)", DOTALL));
+static INLINE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"`[^`\n]*`"));
+
+/// python `PASTED.sub` 가 떼는 붙여 넣은 블록. 쓰는 곳은 일치 범위만 본다.
+// python 판 `<(pasted_content|pasted_text|paste)[^>]*>.*?(?:</\1>|\Z)` 의 괄호 참조는 rx 가 옮기지 않는다. 태그 이름마다의
+// 갈래로 펼쳐도 한 자리에서 같은 순서로 해 보고 `>` 를 지나면 늘 맞으므로 범위가 같다(시험이 py::re 의 원래 패턴과 견준다)
+pub static PASTED: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::with_flags(
         concat!(
-            r"<pasted_content[^>]*>.*?(?:</pasted_content>|\z)",
-            r"|<pasted_text[^>]*>.*?(?:</pasted_text>|\z)",
-            r"|<paste[^>]*>.*?(?:</paste>|\z)"
+            r"<pasted_content[^>]*>.*?(?:</pasted_content>|\Z)",
+            r"|<pasted_text[^>]*>.*?(?:</pasted_text>|\Z)",
+            r"|<paste[^>]*>.*?(?:</paste>|\Z)"
         ),
         IGNORECASE_DOTALL,
     )
 });
 
-/// python `PATHLIKE`(re.I). 첫 갈래의 앞 보기 `(?<![\w])` 는 [`pathlike_spans`] 가 맡는다.
-const PY_PATHLIKE: &str =
-    r"(?<![\w])(?:[~.]{0,2}/)?[\w@.-]+(?:/[\w@.-]+)+/?|[\w-]+\.(?:[a-z]{1,5})\b";
-
-fn ignore_case(pattern: &str) -> Regex {
-    RegexBuilder::new(pattern)
-        .case_insensitive(true)
-        .build()
-        .expect("built-in pattern")
-}
-
-static PATH_DIRS: LazyLock<Regex> =
-    LazyLock::new(|| ignore_case(r"(?:[~.]{0,2}/)?[\w@.-]+(?:/[\w@.-]+)+/?"));
-static PATH_FILE: LazyLock<Regex> = LazyLock::new(|| ignore_case(r"[\w-]+\.(?:[a-z]{1,5})\b"));
-static PATHLIKE_PY: LazyLock<PyRegex> =
-    LazyLock::new(|| PyRegex::with_flags(PY_PATHLIKE, Flags::IGNORECASE).expect("python pattern"));
-
-/// python `PATHLIKE.finditer(text)` 의 범위: 경로(`a/b`, `./x/`)와 확장자 붙은 이름(`main.rs`).
-///
-/// 경로 갈래는 앞 글자가 단어 글자인 자리에서 시작하지 않는다. 같은 자리에서는 경로 갈래가 먼저다(python 의 갈래 순서).
-pub fn pathlike_spans(text: &str) -> Vec<(usize, usize)> {
-    // Chars the engines read differently: python's pattern decides
-    if divergent(text) {
-        return PATHLIKE_PY
-            .find_iter(text)
-            .iter()
-            .map(|m| (m.start(), m.end()))
-            .collect();
-    }
-
-    // Leftmost of the two branches; a tie goes to the path branch
-    let mut out = Vec::new();
-    let mut pos = 0;
-    while pos <= text.len() {
-        let dirs = first_dirs_match(text, pos);
-        let file = PATH_FILE.find_at(text, pos).map(|m| (m.start(), m.end()));
-        let next = match (dirs, file) {
-            (Some(d), Some(f)) => Some(if d.0 <= f.0 { d } else { f }),
-            (d, f) => d.or(f),
-        };
-        let Some((start, end)) = next else { break };
-        out.push((start, end));
-        pos = end;
-    }
-    out
-}
-
-// 앞 글자가 단어 글자가 아닌 첫 경로 일치(python 의 앞 보기). 갈리는 글자가 없는 글이라 regex 의 \w 로 본다
-fn first_dirs_match(text: &str, mut pos: usize) -> Option<(usize, usize)> {
-    loop {
-        let m = PATH_DIRS.find_at(text, pos)?;
-        let before = text[..m.start()].chars().next_back();
-        if !before.is_some_and(regex_syntax::is_word_character) {
-            return Some((m.start(), m.end()));
-        }
-        pos = m.start() + text[m.start()..].chars().next().map_or(1, char::len_utf8);
-    }
-}
-
 /// python `strip_text(text)`: 코드 블록, 인라인 코드, URL, 경로를 공백 하나로 바꾼다.
 pub fn strip_text(text: &str) -> String {
     let mut out = text.to_owned();
-    for rx in [&FENCE, &INLINE, &URL] {
+    for rx in [&FENCE, &INLINE] {
         out = rx.replace_all(&out, |_| " ".to_owned());
     }
+    out = replace_spans(&out, &url_spans(&out));
     replace_spans(&out, &pathlike_spans(&out))
 }
 
@@ -157,62 +93,111 @@ pub fn is_drift(text: &str, script: Script) -> (bool, f64, usize) {
 mod tests {
     use super::*;
 
-    /// 고정 정규식이 regex 판과 python 판(py::re)에서 같은 자리에 맞는다(만든 글 3000개).
+    use harness_hook::py::re::Regex as PyRegex;
+    use harness_hook::testkit::{assert_agree, corpus};
+
+    const PIECES: &[&str] = &[
+        "```",
+        "~~~",
+        "`x`",
+        "`",
+        "\n",
+        " ",
+        "http://a.b/c",
+        "HTTPS://x",
+        "www.x",
+        "a/b",
+        "./c/",
+        "~/d",
+        "x.rs",
+        "main.PY",
+        "-",
+        "@",
+        ".",
+        "/",
+        "\u{d55c}\u{ae00}",
+        "<paste>",
+        "</paste>",
+        "<PASTED_TEXT a>",
+        "</pasted_text>",
+        "<pasted_content>",
+        "x",
+        "\u{e9}",
+        "\u{130}",
+        "\u{17f}",
+        "\u{212a}",
+        "_",
+        "9",
+    ];
+
+    fn py(pattern: &str, flags: Flags) -> PyRegex {
+        PyRegex::with_flags(pattern, flags).expect("python pattern")
+    }
+
+    /// 고정 정규식이 python 판(py::re)과 같은 자리에 맞고, 펼친 PASTED 가 괄호 참조 원래 패턴과 같은 범위를 뗀다(만든 글 3000개).
     #[test]
     fn fixed_patterns_agree_with_python() {
-        let pieces = [
-            "```",
-            "~~~",
-            "`x`",
-            "`",
-            "\n",
-            " ",
-            "http://a.b/c",
-            "HTTPS://x",
-            "www.x",
-            "a/b",
-            "./c/",
-            "~/d",
-            "x.rs",
-            "main.PY",
-            "-",
-            "@",
-            ".",
-            "/",
-            "\u{d55c}\u{ae00}",
-            "<paste>",
-            "</paste>",
-            "<PASTED_TEXT a>",
-            "</pasted_text>",
-            "<pasted_content>",
-            "x",
-            "\u{e9}",
-            "\u{17f}",
-            "\u{212a}",
-            "_",
-            "9",
-        ];
-
-        // Patterns the regex crate reads as written (PASTED with its backref expanded)
-        crate::fixed_re::assert_agree(
+        assert_agree(
             &[
                 ("FENCE", &*FENCE),
                 ("INLINE", &*INLINE),
-                ("URL", &*URL),
                 ("PASTED", &*PASTED),
             ],
-            &pieces,
+            PIECES,
         );
 
-        // PATHLIKE through its lookbehind emulation
-        for text in crate::fixed_re::corpus(&pieces, 3000) {
-            let want: Vec<(usize, usize)> = PATHLIKE_PY
-                .find_iter(&text)
-                .iter()
-                .map(|m| (m.start(), m.end()))
-                .collect();
-            assert_eq!(pathlike_spans(&text), want, "{text:?}");
+        // The python hook's PASTED, back reference and all
+        let original = py(
+            r"<(pasted_content|pasted_text|paste)[^>]*>.*?(?:</\1>|\Z)",
+            IGNORECASE_DOTALL,
+        );
+        let spans = |ms: Vec<harness_hook::py::re::Match>| {
+            ms.iter().map(|m| (m.start(), m.end())).collect::<Vec<_>>()
+        };
+        for text in corpus(PIECES, 3000) {
+            assert_eq!(
+                spans(PASTED.find_iter(&text)),
+                spans(original.find_iter(&text)),
+                "{text:?}"
+            );
         }
+    }
+
+    /// strip_text 가 python 의 네 정규식(py::re)을 차례로 sub 한 글과 같다(만든 글과 세 번 이은 긴 글).
+    #[test]
+    fn strip_text_matches_the_python_regexes() {
+        let patterns = [
+            py(r"```.*?(?:```|\Z)|~~~.*?(?:~~~|\Z)", DOTALL),
+            py(r"`[^`\n]*`", Flags::NONE),
+            py(r"\b[a-z][a-z0-9+.-]*://\S+|\bwww\.\S+", Flags::IGNORECASE),
+            py(
+                r"(?<![\w])(?:[~.]{0,2}/)?[\w@.-]+(?:/[\w@.-]+)+/?|[\w-]+\.(?:[a-z]{1,5})\b",
+                Flags::IGNORECASE,
+            ),
+        ];
+
+        // Repeating makes long runs, the case the scanners exist for
+        for piece_text in corpus(PIECES, 3000) {
+            for text in [piece_text.clone(), piece_text.repeat(3)] {
+                let want = patterns
+                    .iter()
+                    .fold(text.clone(), |t, rx| rx.replace_all(&t, |_| " ".to_owned()));
+                assert_eq!(strip_text(&text), want, "{text:?}");
+            }
+        }
+    }
+
+    /// 정규식이 제곱 시간이던 답(Stop 에서 고치기 전 Rust 판 10 초, 훅 제한 5 초)을 debug 빌드에서도 1 초 안에 판정한다.
+    #[test]
+    fn slow_replies_are_judged_in_time() {
+        let reply = format!("{} a/b", "see foo.rs and ".repeat(5000));
+        let started = std::time::Instant::now();
+        let (drifted, _, latin) = is_drift(&reply, Script::Hangul);
+        let took = started.elapsed();
+        assert!(took < std::time::Duration::from_secs(1), "{took:?}");
+
+        // "see", "and" stay after foo.rs and a/b are stripped
+        assert!(drifted && latin == 6 * 5000, "latin {latin}");
     }
 
     /// 영어 답은 이탈, 한국어 답 속 코드와 경로는 세지 않는다.

@@ -8,7 +8,7 @@ use std::sync::LazyLock;
 
 use harness_hook::py::re::Flags;
 
-use crate::fixed_re::Fixed;
+use harness_hook::rx::Regex;
 
 const DOTALL: Flags = Flags {
     ignore_case: false,
@@ -16,18 +16,18 @@ const DOTALL: Flags = Flags {
     dotall: true,
 };
 
-fn regex(pattern: &'static str, flags: Flags) -> Fixed {
-    Fixed::with_flags(pattern, flags)
+fn regex(pattern: &'static str, flags: Flags) -> Regex {
+    Regex::with_flags(pattern, flags)
 }
 
-static FENCE: LazyLock<Fixed> = LazyLock::new(|| regex(r"```.*?```", DOTALL));
-static HEADLINE: LazyLock<Fixed> = LazyLock::new(|| {
+static FENCE: LazyLock<Regex> = LazyLock::new(|| regex(r"```.*?```", DOTALL));
+static HEADLINE: LazyLock<Regex> = LazyLock::new(|| {
     regex(
         r"(?m)^\s{0,3}(?:(?:[-*]|\d+[.)])\s+)?(?:#{1,6}\s+(?P<h>[^\n]{1,80})|\*\*(?P<b>[^*\n]{1,80})\*\*:?\s*$|(?P<c>[^\n:]{1,50}):\s*$)",
         Flags::NONE,
     )
 });
-static HEAD_KEY: LazyLock<Fixed> = LazyLock::new(|| {
+static HEAD_KEY: LazyLock<Regex> = LazyLock::new(|| {
     regex(
         concat!(
             r"(?i)\b(recommendations?|recommended|proposals?|proposed changes?|suggestions?|open questions?|questions? for (?:you|the user|main)|",
@@ -37,7 +37,7 @@ static HEAD_KEY: LazyLock<Fixed> = LazyLock::new(|| {
         Flags::NONE,
     )
 });
-static PHRASE: LazyLock<Fixed> = LazyLock::new(|| {
+static PHRASE: LazyLock<Regex> = LazyLock::new(|| {
     regex(
         concat!(
             r"(?i)\b(?:open questions?|recommendation)\s*:|",
@@ -50,13 +50,13 @@ static PHRASE: LazyLock<Fixed> = LazyLock::new(|| {
         Flags::NONE,
     )
 });
-static QLINE: LazyLock<Fixed> = LazyLock::new(|| {
+static QLINE: LazyLock<Regex> = LazyLock::new(|| {
     regex(
         r"(?m)^\s*(?:[-*]\s*|\|\s*)?(?:\*\*)?(?:Q\d+|Option [A-Z0-9]|선택지 ?\d|안 ?[A-D1-4][.):])",
         Flags::NONE,
     )
 });
-static SPACES: LazyLock<Fixed> = LazyLock::new(|| regex(r"\s+", Flags::NONE));
+static SPACES: LazyLock<Regex> = LazyLock::new(|| regex(r"\s+", Flags::NONE));
 
 /// python `signals(text)`: `head:<말>` 과 문구 신호의 집합.
 pub fn signals(text: &str) -> BTreeSet<String> {
@@ -107,7 +107,7 @@ mod tests {
     /// 이 모듈의 고정 정규식이 regex 판과 python 판(py::re)에서 같은 자리에 맞는다(만든 글 3000개).
     #[test]
     fn fixed_patterns_agree_with_python() {
-        crate::fixed_re::assert_agree(
+        harness_hook::testkit::assert_agree(
             &[
                 ("FENCE", &*FENCE),
                 ("HEADLINE", &*HEADLINE),

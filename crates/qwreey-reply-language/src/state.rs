@@ -5,15 +5,14 @@
 use std::io::Write;
 
 use harness_hook::nonce::now_secs;
+use harness_hook::py::fs::os_path;
 use harness_hook::py::json::{EnsureAscii, dumps_dict};
 use harness_hook::py::path::join;
 use harness_hook::py::value::{Dict, Value};
 
 use crate::context::Context;
 use crate::language::data_dir;
-use crate::pyval::{
-    Abort, Result, os_path, parse_object, read_bytes, round3, sanitize, take_chars,
-};
+use crate::pyval::{Abort, Result, parse_object, read_bytes, round3, sanitize, take_chars};
 
 const NS: &str = "claude-conventions-lang";
 

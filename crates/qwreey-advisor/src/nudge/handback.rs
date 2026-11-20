@@ -6,18 +6,19 @@
 use std::fs::File;
 use std::sync::LazyLock;
 
-use crate::fixed_re::Fixed;
 use harness_hook::nonce::now_secs;
+use harness_hook::py::fs::{exists, os_path, read_bytes, write_text};
 use harness_hook::py::json::{EnsureAscii, dumps_dict};
 use harness_hook::py::path::join;
 use harness_hook::py::text::strip;
 use harness_hook::py::value::{Dict, Value};
+use harness_hook::rx::Regex;
 
 use crate::abort::{Abort, Result};
 use crate::epoch::sanitize;
 use crate::hookio::parse_object;
-use crate::pylib::fs::{exists, makedirs, os_path, read_bytes, write_text};
-use crate::pylib::sha1;
+use crate::pylib::fs::makedirs;
+use crate::pylib::hashlib::sha1_hex_prefix;
 use crate::pylib::text::{dedent, encode_replace, take_chars};
 
 use super::NS;
@@ -31,21 +32,21 @@ const STUB: &str = "report was delivered to you as a message";
 const INHERIT_TAG: &str = "[qwreey-advisor:inherit]";
 const REVIEWERS: &[&str] = &["qwreey-advisor:reviewer", "qwreey-advisor-reviewer"];
 
-fn regex(pattern: &'static str) -> Fixed {
-    Fixed::new(pattern)
+fn regex(pattern: &'static str) -> Regex {
+    Regex::new(pattern)
 }
 
-static HANDBACK: LazyLock<Fixed> =
+static HANDBACK: LazyLock<Regex> =
     LazyLock::new(|| regex(r#"<agent-message from="([^"]+)">\s*\[Subagent hand-back\]"#));
-static TASK: LazyLock<Fixed> =
+static TASK: LazyLock<Regex> =
     LazyLock::new(|| regex(r"<task-notification>\s*<task-id>([^<]+)</task-id>"));
-static SUMMARY: LazyLock<Fixed> = LazyLock::new(|| regex(r#"<summary>Agent "(.*?)" "#));
-static REVIEW_TEXT: LazyLock<Fixed> = LazyLock::new(|| {
+static SUMMARY: LazyLock<Regex> = LazyLock::new(|| regex(r#"<summary>Agent "(.*?)" "#));
+static REVIEW_TEXT: LazyLock<Regex> = LazyLock::new(|| {
     regex(r"\[qwreey-advisor run: |\[second opinion: |\[qwreey-advisor:inherit\]")
 });
 // qwreey-debate 스킬이 토론자 설명을 `debate:` 로 시작하게 한다
-static DEBATE: LazyLock<Fixed> = LazyLock::new(|| regex(r"(?i)^\s*(debate|토론)"));
-static LABEL_DROP: LazyLock<Fixed> = LazyLock::new(|| regex("[`<>\"\n\r]"));
+static DEBATE: LazyLock<Regex> = LazyLock::new(|| regex(r"(?i)^\s*(debate|토론)"));
+static LABEL_DROP: LazyLock<Regex> = LazyLock::new(|| regex("[`<>\"\n\r]"));
 
 /// python `state_path(sid)`: `<임시 폴더>/claude-second-opinion/<sid>.handbacks.json`. 폴더를 만든다.
 pub fn state_path(tempdir: &str, sid: &str) -> Result<String> {
@@ -61,7 +62,7 @@ pub fn has_state(tempdir: &str, sid: &str) -> Result<bool> {
 
 /// python `digest(text)`: 앞뒤 공백을 뗀 글의 sha1 앞 12자.
 pub fn digest(text: &str) -> String {
-    sha1::hex_prefix(&encode_replace(strip(text)), 12)
+    sha1_hex_prefix(&encode_replace(strip(text)), 12)
 }
 
 // python re.sub(r"[`<>\"\n\r]", "", raw)[:60]
@@ -449,7 +450,7 @@ mod tests {
     /// 이 모듈의 고정 정규식이 regex 판과 python 판(py::re)에서 같은 자리에 맞는다(만든 글 3000개).
     #[test]
     fn fixed_patterns_agree_with_python() {
-        crate::fixed_re::assert_agree(
+        harness_hook::testkit::assert_agree(
             &[
                 ("HANDBACK", &*HANDBACK),
                 ("TASK", &*TASK),

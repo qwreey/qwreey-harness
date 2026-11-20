@@ -3,9 +3,9 @@
 //! 휴리스틱이다: 리다이렉션 대상, 쓰기 명령의 경로, 상태를 바꾸는 git 하위 명령, 설치와 네트워크 명령을 본다.
 //! 순서도 python 과 같다(리다이렉션 먼저, 그다음 명령 조각마다). 처음 걸린 것이 사유다.
 
+use harness_hook::py::path::basename;
 use harness_hook::py::text::{split_whitespace, strip};
 
-use crate::pylib::pathx::basename;
 use crate::pylib::repr::repr_str;
 use crate::pylib::shlex::{self, Syntax};
 

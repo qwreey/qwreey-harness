@@ -28,8 +28,6 @@ jiff = { version = "0.2.43", default-features = false, features = ["std", "tz-sy
 # py::re 로 넘기므로 판정은 python 과 같다. 사용자가 적는 패턴(pgrep -f, 설정 파일)은 python 이 물러날 때까지 py::re 다.
 # unicode-perl(\w \s \d \b), unicode-case((?i)), unicode-gencat(\p{L} \p{N}). perf 는 뺐다(qwreey-conventions 만 perf-dfa).
 regex = { version = "1.13", default-features = false, features = ["std", "unicode-perl", "unicode-case", "unicode-gencat"] }
-# regex 가 이미 쓰는 판(새로 받는 crate 없음). regex 의 \w 판정 표(is_word_character)만 쓴다(qwreey-advisor).
-regex-syntax = { version = "0.8", default-features = false, features = ["unicode-perl"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

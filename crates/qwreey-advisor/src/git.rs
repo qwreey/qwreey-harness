@@ -16,7 +16,7 @@ use std::time::Duration;
 
 use harness_hook::py::surrogate::encode_os;
 
-use crate::pylib::text::universal_newlines;
+use harness_hook::py::fs::universal_newlines;
 
 const TIMEOUT: Duration = Duration::from_secs(5);
 

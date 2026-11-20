@@ -7,7 +7,9 @@ use harness_hook::py::path::join;
 use harness_hook::py::unicode::is_word;
 
 use crate::abort::{Abort, Result};
-use crate::pylib::fs::{makedirs, read_text};
+use harness_hook::py::fs::read_text;
+
+use crate::pylib::fs::makedirs;
 
 /// python `_sid(value)`(정규식 `[^\w-]` 지우기). `value` 는 `str(value or "nosession")` 한 글이다.
 pub fn sanitize(value: &str) -> String {

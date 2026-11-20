@@ -12,9 +12,6 @@ path = "src/main.rs"
 
 [dependencies]
 harness-hook = { path = "../harness-hook" }
-# 코드에 적은 고정 정규식(src/fixed_re.rs).
-regex = { workspace = true }
-regex-syntax = { workspace = true }
 
 # 대조 시험이 python 쪽과 주고받는 JSON.
 [dev-dependencies]

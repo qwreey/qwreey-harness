@@ -1,11 +1,10 @@
 //! 이 훅이 쓰는 python 동작 가운데 `harness_hook::py` 에 없는 것: 값 비교(`==`), 글 비교, `json.loads(bytes)`, `round(x, 3)`,
-//! 파일 읽기, 세션 id 정리. qwreey-advisor crate 에도 비슷한 조각이 있다(둘 다 쓰면 `harness_hook::py` 로 옮길 후보).
+//! 파일 읽기(실패를 None 으로), 세션 id 정리. qwreey-advisor crate 에도 비슷한 조각이 있다(둘 다 쓰면 `harness_hook::py` 로 옮길 후보).
 
 use std::cmp::Ordering;
-use std::path::PathBuf;
 
 use harness_hook::py::json_load::{self, Decode};
-use harness_hook::py::surrogate::{placeholder, to_os, unit_of};
+use harness_hook::py::surrogate::{placeholder, unit_of};
 use harness_hook::py::unicode::is_word;
 use harness_hook::py::value::{Dict, Value};
 
@@ -16,17 +15,9 @@ pub struct Abort(pub &'static str);
 /// [`Abort`] 로 끝날 수 있는 결과.
 pub type Result<T> = std::result::Result<T, Abort>;
 
-/// python 이 OS 에 넘기는 경로. NUL 이나 바이트로 바꿀 수 없는 서로게이트가 있으면 `None`(python ValueError).
-pub fn os_path(path: &str) -> Option<PathBuf> {
-    if path.contains('\0') {
-        return None;
-    }
-    to_os(path)
-}
-
 /// python `open(path, "rb").read()`. 실패는 `None`(OSError 든 ValueError 든 부르는 곳이 같게 잡는다).
 pub fn read_bytes(path: &str) -> Option<Vec<u8>> {
-    std::fs::read(os_path(path)?).ok()
+    harness_hook::py::fs::read_bytes(path).ok()
 }
 
 /// `json.load(open(path))` 의 객체(엄격한 UTF-8). 객체가 아니면 `Err(Some(값))`, 읽지 못하면 `Err(None)`.

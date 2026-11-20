@@ -307,6 +307,13 @@ impl Regex {
         out
     }
 
+    /// 이 글의 [`Regex::find_iter`] 가 py::re 의 finditer 와 괄호마다 같은가(시험용, [`crate::testkit::assert_agree`]).
+    ///
+    /// 갈림 글자가 든 글은 늘 py::re 가 도니 참이다. 그 밖의 글에서 옮긴 패턴과 regex crate 가 python 과 같은지를 본다.
+    pub fn agrees_with_py(&self, text: &str) -> bool {
+        self.find_iter(text) == self.exact().find_iter(text)
+    }
+
     // 이 글을 돌릴 엔진: ASCII 글은 ASCII 엔진, 갈림 글자가 든 글은 py::re, 나머지는 Unicode 엔진
     fn pick(&self, text: &str, kind: Kind) -> Pick<'_> {
         if self.diverges(text) {

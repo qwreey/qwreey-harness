@@ -25,13 +25,13 @@ mod transcript;
 
 use std::sync::LazyLock;
 
-use crate::fixed_re::Fixed;
 use harness_hook::nonce::now_secs;
 use harness_hook::py::json::EnsureAscii;
 use harness_hook::py::path::normpath;
 use harness_hook::py::surrogate::from_os;
 use harness_hook::py::text::{splitlines, strip};
 use harness_hook::py::value::{Dict, Value};
+use harness_hook::rx::Regex;
 
 use crate::abort::{Abort, Result};
 use crate::context::Context;
@@ -49,16 +49,16 @@ pub const NS: &str = "claude-second-opinion";
 const PLUGIN: &str = "qwreey-advisor";
 const ON: &[&str] = &["1", "on", "true", "yes"];
 
-fn regex(pattern: &'static str) -> Fixed {
-    Fixed::new(pattern)
+fn regex(pattern: &'static str) -> Regex {
+    Regex::new(pattern)
 }
 
-static BENIGN: LazyLock<Fixed> = LazyLock::new(|| {
+static BENIGN: LazyLock<Regex> = LazyLock::new(|| {
     regex(r"^\s*(grep|rg|egrep|fgrep|test|\[|diff|cmp|pgrep|pidof|which|command)\b")
 });
-static COMMIT: LazyLock<Fixed> = LazyLock::new(|| regex(r"\bgit\b(\s+-C\s+\S+)?\s+commit\b"));
-static DIGITS: LazyLock<Fixed> = LazyLock::new(|| regex(r"[0-9]+"));
-static PLAN_MARK: LazyLock<Fixed> = LazyLock::new(|| regex(r"qwreey-advisor:\s*(reviewed|skip)"));
+static COMMIT: LazyLock<Regex> = LazyLock::new(|| regex(r"\bgit\b(\s+-C\s+\S+)?\s+commit\b"));
+static DIGITS: LazyLock<Regex> = LazyLock::new(|| regex(r"[0-9]+"));
+static PLAN_MARK: LazyLock<Regex> = LazyLock::new(|| regex(r"qwreey-advisor:\s*(reviewed|skip)"));
 
 /// 훅 한 번. python 의 예외는 모두 잡혀 0 으로 끝나므로 stdout 만 다르다.
 pub fn run(ctx: &Context, raw: &[u8]) -> Outcome {
@@ -493,7 +493,7 @@ mod tests {
     /// 이 모듈의 고정 정규식이 regex 판과 python 판(py::re)에서 같은 자리에 맞는다(만든 글 3000개).
     #[test]
     fn fixed_patterns_agree_with_python() {
-        crate::fixed_re::assert_agree(
+        harness_hook::testkit::assert_agree(
             &[
                 ("BENIGN", &*BENIGN),
                 ("COMMIT", &*COMMIT),

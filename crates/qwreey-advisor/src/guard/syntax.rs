@@ -215,7 +215,7 @@ mod tests {
             "\n EOF  \n",
             "EOF x",
         ];
-        crate::fixed_re::corpus(&parts, 4000)
+        harness_hook::testkit::corpus(&parts, 4000)
     }
 
     /// heredoc 꼴로 짠 명령 글: 따옴표, 이름, 본문, 끝 줄의 공백과 꼬리를 섞는다.
@@ -240,7 +240,7 @@ mod tests {
         ];
 
         // One piece from each slot, in slot order
-        let mut next = crate::fixed_re::xorshift(0x9e37_79b9_7f4a_7c15);
+        let mut next = harness_hook::testkit::xorshift(0x9e37_79b9_7f4a_7c15);
         (0..3000)
             .map(|_| {
                 pieces

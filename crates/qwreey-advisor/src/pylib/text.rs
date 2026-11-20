@@ -1,4 +1,4 @@
-//! python `str` 동작 몇 가지: 글자 단위 자르기, `textwrap.dedent`, 인코딩 오류 처리(`replace`, `backslashreplace`), 줄 끝 바꾸기.
+//! python `str` 동작 몇 가지: 글자 단위 자르기, `textwrap.dedent`, 인코딩 오류 처리(`replace`, `backslashreplace`).
 
 use std::cmp::Ordering;
 
@@ -24,14 +24,6 @@ pub fn skip_chars(s: &str, n: usize) -> &str {
 /// python `str.isspace()`: 비어 있지 않고 모든 글자가 공백.
 pub fn is_space_str(s: &str) -> bool {
     !s.is_empty() && s.chars().all(is_space)
-}
-
-/// python 글 모드 읽기(newline=None)의 줄 끝: `\r\n` 과 `\r` 을 `\n` 으로.
-pub fn universal_newlines(text: &str) -> String {
-    if !text.contains('\r') {
-        return text.to_owned();
-    }
-    text.replace("\r\n", "\n").replace('\r', "\n")
 }
 
 /// python `s.encode("utf-8", "replace")`: 짝 없는 서로게이트(자리표)는 `?` 다.

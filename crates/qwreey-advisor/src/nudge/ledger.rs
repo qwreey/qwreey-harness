@@ -6,6 +6,7 @@
 use std::io::Write;
 
 use harness_hook::Env;
+use harness_hook::py::fs::{is_file, os_path};
 use harness_hook::py::json::{EnsureAscii, dumps_dict};
 use harness_hook::py::path::{expanduser, join, pathlib_join};
 use harness_hook::py::surrogate::{encode_os, from_os, unit_of};
@@ -13,7 +14,7 @@ use harness_hook::py::text::strip;
 use harness_hook::py::value::{Dict, Value};
 
 use crate::git;
-use crate::pylib::fs::{is_file, makedirs, os_path};
+use crate::pylib::fs::makedirs;
 use crate::pylib::pathx::pathlib_name;
 
 const UNRECORDED: &str = "미기록";

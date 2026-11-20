@@ -9,19 +9,17 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
 use std::sync::LazyLock;
 
-use crate::fixed_re::Fixed;
 use harness_hook::Env;
+use harness_hook::py::fs::os_path;
 use harness_hook::py::num::parse_decimal;
-use harness_hook::py::path::{expanduser, join, normpath};
-use harness_hook::py::re::Flags;
+use harness_hook::py::path::{basename, expanduser, join, normpath, relpath};
 use harness_hook::py::text::{splitlines, strip};
+use harness_hook::rx::Regex;
 
 use crate::abort::{Abort, Result};
 use crate::git::{self, GitError};
-use crate::pylib::fs::os_path;
-use crate::pylib::pathx::{basename, relpath};
+use crate::pylib::hashlib::sha1_hex_prefix;
 use crate::pylib::repr::is_digit_str;
-use crate::pylib::sha1;
 use crate::pylib::shlex::{Lexer, Syntax};
 
 use super::settings::git_abort;
@@ -54,14 +52,7 @@ const ALL: &str = ":/";
 const MAX_FILE_BYTES: u64 = 2 * 1024 * 1024;
 const BINARY_SNIFF: usize = 8192;
 
-// python `$` 는 끝 줄바꿈 앞에서도 맞는다(`>\n` 낱말)
-static REDIRECT: LazyLock<Fixed> = LazyLock::new(|| {
-    Fixed::with_rust(
-        r"^[<>&]*[<>][<>&]*$",
-        r"^[<>&]*[<>][<>&]*\n?\z",
-        Flags::NONE,
-    )
-});
+static REDIRECT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[<>&]*[<>][<>&]*$"));
 
 /// `git commit` 의 읽은 옵션.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -440,7 +431,7 @@ pub fn measure(plan: &Plan, env: &Env) -> Result<Option<(i128, String)>> {
     let listing: Vec<String> = files.iter().map(|(k, v)| format!("{k}\t{v}")).collect();
     Ok(Some((
         total,
-        sha1::hex_prefix(listing.join("\n").as_bytes(), 16),
+        sha1_hex_prefix(listing.join("\n").as_bytes(), 16),
     )))
 }
 
@@ -448,15 +439,13 @@ pub fn measure(plan: &Plan, env: &Env) -> Result<Option<(i128, String)>> {
 mod tests {
     use super::*;
 
-    /// REDIRECT 는 python 판과 같은 낱말을 리다이렉트로 본다(만든 글 3000개).
+    /// REDIRECT 가 python 판과 같은 자리에 맞는다(만든 글 3000개, `>\n` 처럼 끝 줄바꿈이 든 낱말 포함).
     #[test]
     fn redirect_agrees_with_python() {
-        // Only whether the token matches is used; the regex side's span also covers the final \n
-        let py = harness_hook::py::re::Regex::new(r"^[<>&]*[<>][<>&]*$").expect("python pattern");
-        for t in crate::fixed_re::corpus(&[">", "<", "&", "\n", "x", "2"], 3000) {
-            let want = py.match_start(&t).is_some();
-            assert_eq!(REDIRECT.match_start(&t).is_some(), want, "{t:?}");
-        }
+        harness_hook::testkit::assert_agree(
+            &[("REDIRECT", &*REDIRECT)],
+            &[">", "<", "&", "\n", "x", "2"],
+        );
     }
 
     fn env() -> Env {

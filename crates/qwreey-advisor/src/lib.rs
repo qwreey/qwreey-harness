@@ -15,7 +15,6 @@ pub mod ambient;
 pub mod context;
 pub mod epoch;
 pub mod expand_inherit;
-pub mod fixed_re;
 pub mod git;
 pub mod guard;
 pub mod hookio;

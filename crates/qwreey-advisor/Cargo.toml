@@ -12,9 +12,10 @@ path = "src/main.rs"
 
 [dependencies]
 harness-hook = { path = "../harness-hook" }
-# 코드에 적은 고정 정규식(src/fixed_re.rs).
+# diff 와 보고 글의 지문(python hashlib.sha1 의 hexdigest 앞자리, Q49 a).
+sha1 = { workspace = true }
+# 리뷰어 가드의 Bash 명령 패턴(src/guard/syntax.rs, 앞 보기를 코드로 옮겨 regex crate 로 직접 돈다).
 regex = { workspace = true }
-regex-syntax = { workspace = true }
 # 리뷰어 run id(python uuid.uuid4)의 난수.
 getrandom = { workspace = true }
 # ledger 행의 시각(python time.strftime("%Y-%m-%dT%H:%M:%S%z"), 이 기기 시간대).

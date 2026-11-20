@@ -6,9 +6,12 @@
 """
 import json
 import os
+import random
+import re
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -335,6 +338,94 @@ class Batch(Base):
         s = fresh()
         self.assertEqual(ctx(batch(s, os.path.join(T, "nope.jsonl"))), "")
         self.assertIsNone(hook("PostToolBatch", s, agent="a1", prompt_id="x", transcript_path=self.tp, tool_calls=[{}] * 20))
+
+
+def strip_by_regex(text):
+    """strip_text 이전 꼴: 정규식 네 개를 글 전체에 sub 한다(결과의 기준)."""
+    for rx in (rl.FENCE, rl.INLINE, rl.URL, rl.PATHLIKE):
+        text = rx.sub(" ", text)
+    return text
+
+
+# 긴 줄의 시작 자리마다 줄 끝까지 다시 훑던 글(정규식만으로는 python 3 초 넘게, Rust 판 10 초 넘게 들었다)
+SLOW_BEFORE = {
+    "x-dot": "x." * 20000,
+    "name-dash": "a-" * 20000,
+    "scheme-like": "http" * 10000,
+    "files-then-path": "see foo.rs and " * 5000 + " a/b",
+    "file-chain": "x.foo" * 8000,
+}
+
+
+class LongRuns(unittest.TestCase):
+    PIECES = ["a", "x", "Z", "_", "9", "\u00e9", "\u0130", "\u0131", "\u017f", "\u212a", "\u00b2", "\u0903", "한", "\ud800",
+              ".", "-", "@", "~", "/", ":", "://", "+", " ", "\n", "\x1c", "\u3000", "www", "WwW.", "rs", "html", "abcdef",
+              "http", "a/b", "./", "../", "~/", ".~/", "~~/", "...", "//", "`", "!", "\u00a0", "x.", "a-", "foo.rs", "K", "s"]
+
+    def test_scanners_match_the_regexes(self):
+        """긴 줄 훑기가 URL, PATHLIKE 정규식과 같은 일치를 낸다(무작위 글 2만 개, 긴 줄 길로 가게 세 번 이은 글 포함)."""
+        rng = random.Random(20261120)
+        for _ in range(20000):
+            text = "".join(rng.choice(self.PIECES) for _ in range(rng.randint(0, 40)))
+
+            # path_spans takes any text, url_spans one whitespace-free run
+            self.assertEqual(rl.path_spans(text), [m.span() for m in rl.PATHLIKE.finditer(text)], repr(text))
+            for run in re.findall(r"\S+", text):
+                self.assertEqual(rl.url_spans(run), [m.span() for m in rl.URL.finditer(run)], repr(run))
+
+            # Repeating makes runs past LONG_RUN, so strip_text takes the scanner path
+            long_text = text * 3
+            self.assertEqual(rl.strip_text(long_text), strip_by_regex(long_text), repr(long_text))
+
+    def test_class_sets_follow_python(self):
+        """손으로 적은 글자 집합이 모든 코드 포인트에서 python re 의 판정과 같다."""
+        az, scheme, w = re.compile(r"[a-z]", re.I), re.compile(r"[a-z0-9+.-]", re.I), re.compile("w", re.I)
+        for code in range(sys.maxunicode + 1):
+            c = chr(code)
+            self.assertEqual(bool(az.fullmatch(c)), c in rl.ICASE_LETTERS, hex(code))
+            self.assertEqual(bool(scheme.fullmatch(c)), c in rl.SCHEME_CHARS, hex(code))
+            # url_spans checks "www" as w or W only
+            self.assertEqual(bool(w.fullmatch(c)), c in "wW", hex(code))
+
+    def test_strip_text_is_linear(self):
+        """제곱 시간이던 글을 strip_text 가 0.5 초 안에 뗀다."""
+        for name, text in SLOW_BEFORE.items():
+            started = time.perf_counter()
+            rl.strip_text(text)
+            self.assertLess(time.perf_counter() - started, 0.5, name)
+
+
+class LongRunHooks(Base):
+    def setUp(self):
+        super().setUp()
+        set_language("user", "Korean")
+
+    def test_stop_blocks_in_time(self):
+        """제곱 시간이던 답에서 Stop 이 훅 제한(5 초) 한참 안에 block 을 낸다."""
+        for name, text in SLOW_BEFORE.items():
+            started = time.perf_counter()
+            r = hook("Stop", fresh(), last_assistant_message=text)
+            self.assertLess(time.perf_counter() - started, 2.0, name)
+            # x-dot and file-chain strip down to file names only ("x.x", "x.foo"), so they leave too few Latin letters
+            want = None if name in ("x-dot", "file-chain") else "block"
+            self.assertEqual((r or {}).get("decision"), want, name)
+
+    def test_batch_reads_in_time_and_saves_the_offset(self):
+        """트랜스크립트의 그런 글도 PostToolBatch 가 제때 읽고 오프셋을 저장해 다음 batch 가 다시 읽지 않는다."""
+        s = fresh()
+        tp = os.path.join(T, "long-%s.jsonl" % s)
+        with open(tp, "w", encoding="utf-8") as f:
+            f.write(line(SLOW_BEFORE["files-then-path"]))
+
+        # First batch reads the long text and notices the drift
+        started = time.perf_counter()
+        first = ctx(batch(s, tp))
+        self.assertLess(time.perf_counter() - started, 2.0)
+        self.assertIn('level="info"', first)
+
+        # The offset moved past it: nothing new to read
+        self.assertEqual(ctx(batch(s, tp)), "")
+        self.assertEqual([r["kind"] for r in log_lines()], ["interim_drift"])
 
 
 if __name__ == "__main__":

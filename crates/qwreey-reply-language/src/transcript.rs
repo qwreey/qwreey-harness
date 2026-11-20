@@ -5,9 +5,10 @@
 
 use std::io::{Read, Seek, SeekFrom};
 
+use harness_hook::py::fs::os_path;
 use harness_hook::py::value::{Dict, Value};
 
-use crate::pyval::{Abort, Num, Result, loads_bytes, os_path};
+use crate::pyval::{Abort, Num, Result, loads_bytes};
 
 const PROMPT_TAIL_BYTES: u64 = 1_000_000;
 const FIRST_READ_BYTES: i128 = 200_000;

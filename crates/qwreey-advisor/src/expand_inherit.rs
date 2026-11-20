@@ -13,7 +13,7 @@ use harness_hook::py::value::{Dict, Value};
 use crate::context::Context;
 use crate::hookio::{allow_with_input, load_dict, text, truthy};
 use crate::outcome::Outcome;
-use crate::pylib::fs::{FsError, read_text};
+use harness_hook::py::fs::{FsError, read_text};
 
 const TAG: &str = "[qwreey-advisor:inherit]";
 const NEXT_PLACEHOLDER: &str = "<next step in one line>";

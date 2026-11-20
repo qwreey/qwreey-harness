@@ -2,20 +2,20 @@
 
 use std::sync::LazyLock;
 
-use crate::fixed_re::Fixed;
 use harness_hook::Env;
 use harness_hook::py::path::join;
+use harness_hook::rx::Regex;
 
 use crate::abort::Result;
 use crate::git;
-use crate::pylib::sha1;
+use crate::pylib::hashlib::sha1_hex_prefix;
 
 use super::commit_scope::{self, numstat_lines, sum};
 use super::settings::git_abort;
 
-static GIT_DASH_C: LazyLock<Fixed> = LazyLock::new(|| Fixed::new(r"\bgit\s+-C\s+(\S+)"));
-static COMMIT_ALL: LazyLock<Fixed> =
-    LazyLock::new(|| Fixed::new(r"\scommit\b.*\s(-a|--all|-\w*a\w*)\b"));
+static GIT_DASH_C: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\bgit\s+-C\s+(\S+)"));
+static COMMIT_ALL: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\scommit\b.*\s(-a|--all|-\w*a\w*)\b"));
 
 /// 잰 크기: 줄 수와 내용 지문 16자.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -40,7 +40,7 @@ pub fn diff_stat(cwd: &str, args: &[&str]) -> Result<Size> {
     let diff = git_text(cwd, &diff_args)?;
     Ok(Size {
         lines,
-        hash: sha1::hex_prefix(diff.as_bytes(), 16),
+        hash: sha1_hex_prefix(diff.as_bytes(), 16),
     })
 }
 
@@ -87,7 +87,7 @@ mod tests {
     /// 이 모듈의 고정 정규식이 regex 판과 python 판(py::re)에서 같은 자리에 맞는다(만든 글 3000개).
     #[test]
     fn fixed_patterns_agree_with_python() {
-        crate::fixed_re::assert_agree(
+        harness_hook::testkit::assert_agree(
             &[("GIT_DASH_C", &*GIT_DASH_C), ("COMMIT_ALL", &*COMMIT_ALL)],
             &[
                 "git", " ", "-C", "commit", "x", "-a", "--all", "-qam", "\n", "_", "é", "/p", "'",

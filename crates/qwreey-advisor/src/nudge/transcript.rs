@@ -5,13 +5,14 @@
 
 use std::io::{Read, Seek, SeekFrom};
 
+use harness_hook::py::fs::{FsError, os_path, read_bytes, universal_newlines};
 use harness_hook::py::text::splitlines;
 use harness_hook::py::value::{Dict, Value};
 
 use crate::abort::{Abort, Result};
 use crate::hookio::{loads_object, parse_object};
-use crate::pylib::fs::{FsError, TextLines, os_path, read_bytes};
-use crate::pylib::text::{take_chars, universal_newlines};
+use crate::pylib::fs::TextLines;
+use crate::pylib::text::take_chars;
 use crate::track_reviewer::RUN_LINE;
 
 const HEAD_CHARS: usize = 64 * 1024;
@@ -124,12 +125,15 @@ pub fn handback_message(tpath: &str) -> Result<String> {
 }
 
 fn read_tail(path: &std::path::Path) -> std::result::Result<String, FsError> {
-    let mut file = std::fs::File::open(path).map_err(|_| FsError::Os)?;
-    let size = file.seek(SeekFrom::End(0)).map_err(|_| FsError::Os)?;
+    let mut file = std::fs::File::open(path).map_err(|e| FsError::Os(e.kind()))?;
+    let size = file
+        .seek(SeekFrom::End(0))
+        .map_err(|e| FsError::Os(e.kind()))?;
     file.seek(SeekFrom::Start(size.saturating_sub(TAIL_BYTES)))
-        .map_err(|_| FsError::Os)?;
+        .map_err(|e| FsError::Os(e.kind()))?;
     let mut bytes = Vec::new();
-    file.read_to_end(&mut bytes).map_err(|_| FsError::Os)?;
+    file.read_to_end(&mut bytes)
+        .map_err(|e| FsError::Os(e.kind()))?;
     Ok(String::from_utf8_lossy(&bytes).into_owned())
 }
 

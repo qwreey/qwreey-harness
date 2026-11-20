@@ -16,7 +16,9 @@ use crate::context::Context;
 use crate::epoch::{self, sanitize};
 use crate::hookio::{context_output, load_dict, parse_object, truthy};
 use crate::outcome::Outcome;
-use crate::pylib::fs::{FsError, makedirs, read_bytes, read_text, write_text};
+use harness_hook::py::fs::{FsError, read_bytes, read_text, write_text};
+
+use crate::pylib::fs::makedirs;
 
 const EVENT: &str = "UserPromptSubmit";
 const EVENTS: &[&str] = &[
@@ -51,7 +53,7 @@ pub fn run(ctx: &Context, raw: &[u8]) -> Outcome {
     }
     let main_text = match read_text(&join(&context_dir, "ambient.md")) {
         Ok(text) => text,
-        Err(FsError::Os) => String::new(),
+        Err(FsError::Os(_)) => String::new(),
         Err(FsError::Value) => return Outcome::quiet(),
     };
 

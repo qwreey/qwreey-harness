@@ -236,9 +236,9 @@ dependencies = [
  "harness-hook",
  "jiff",
  "regex",
- "regex-syntax",
  "rustix",
  "serde_json",
+ "sha1",
 ]
 
 [[package]]
@@ -266,8 +266,6 @@ name = "qwreey-reply-language"
 version = "0.1.0"
 dependencies = [
  "harness-hook",
- "regex",
- "regex-syntax",
  "serde_json",
 ]
 

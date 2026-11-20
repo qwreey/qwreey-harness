@@ -4,8 +4,8 @@ use std::sync::LazyLock;
 
 use harness_hook::py::re::Flags;
 
-use crate::fixed_re::Fixed;
 use harness_hook::py::text::{splitlines, strip};
+use harness_hook::rx::Regex;
 
 /// 질문 뒤에 선택지 목록이 붙는 답을 위해 끝에서 몇 줄까지 본다.
 const QUESTION_TAIL: usize = 5;
@@ -16,8 +16,8 @@ const QUESTION_TAIL: usize = 5;
 const STOP_ERROR_PATTERN: &str = "^\\s*(API Error|Prompt is too long|Context limit|Request timed out|Credit balance)";
 // @end-replace
 
-static STOP_ERROR: LazyLock<Fixed> =
-    LazyLock::new(|| Fixed::with_flags(STOP_ERROR_PATTERN, Flags::IGNORECASE));
+static STOP_ERROR: LazyLock<Regex> =
+    LazyLock::new(|| Regex::with_flags(STOP_ERROR_PATTERN, Flags::IGNORECASE));
 
 /// 등급별 권하는 검토 모델(python `MODEL.get(tier, "sonnet")`).
 pub fn model_for(tier: &str) -> &'static str {
@@ -89,7 +89,7 @@ mod tests {
     /// 이 모듈의 고정 정규식이 regex 판과 python 판(py::re)에서 같은 자리에 맞는다(만든 글 3000개).
     #[test]
     fn fixed_patterns_agree_with_python() {
-        crate::fixed_re::assert_agree(
+        harness_hook::testkit::assert_agree(
             &[("STOP_ERROR", &*STOP_ERROR)],
             &[
                 "API Error",

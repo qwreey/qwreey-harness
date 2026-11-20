@@ -3,9 +3,7 @@
 //! 가드는 리뷰어의 run 폴더를 모른다. 그래서 `<base>/<아무 이름>/...` 을 허용하고 base 자체와 그 밖은 거부한다.
 
 use harness_hook::Env;
-use harness_hook::py::path::{expanduser, join, normpath};
-
-use crate::pylib::pathx::relpath;
+use harness_hook::py::path::{expanduser, join, normpath, relpath};
 
 use super::Cwd;
 

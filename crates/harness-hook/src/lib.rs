@@ -19,6 +19,7 @@ pub mod py;
 pub mod rx;
 pub mod settings;
 pub mod tag;
+pub mod testkit;
 
 pub use env::Env;
 pub use input::HookInput;

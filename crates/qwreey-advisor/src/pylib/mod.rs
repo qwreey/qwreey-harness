@@ -3,9 +3,9 @@
 //! 다른 플러그인도 쓰게 되면 `harness_hook::py` 로 옮길 후보다(shlex 는 qwreey-proc-guard 에도 한 갈래가 있다).
 
 pub mod fs;
+pub mod hashlib;
 pub mod pathx;
 pub mod repr;
-pub mod sha1;
 pub mod shlex;
 pub mod text;
 mod unicode_extra;

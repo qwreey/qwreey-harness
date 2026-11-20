@@ -85,10 +85,134 @@ def script_for(language):
     return None
 
 
+# URL 과 PATHLIKE 를 글 전체에 sub 하면 긴 줄(공백 없는 글, [\w@.~/-] 글자 줄)의 시작 자리마다 줄 끝까지 다시 훑어 제곱
+# 시간이 든다("x."*20000 에 6 초, 훅 제한은 5 초다). 일치는 그 글자들의 줄 하나를 벗어나지 않고 줄 밖은 단어 글자가 아니므로,
+# 짧은 줄은 정규식 그대로 두고 긴 줄은 아래 훑기가 같은 일치를 선형 시간에 낸다(tests/test-reply-language.py 가 무작위 글로 견준다).
+LONG_RUN = 32
+URL_RUN = re.compile(r"\S{%d,}" % LONG_RUN)
+PATH_RUN = re.compile(r"[\w@.~/-]{%d,}" % LONG_RUN)
+URL_MARK = re.compile(r"://|www\.", re.I)
+# re.I 의 [a-z]: python 은 이 네 글자도 ASCII 글자와 같게 본다
+ICASE_LETTERS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\u0130\u0131\u017f\u212a")
+SCHEME_CHARS = ICASE_LETTERS | frozenset("0123456789+.-")
+
+
+def _is_word(c):
+    return c.isalnum() or c == "_"
+
+
+def _run_ends(run, member):
+    """자리마다 그 자리에서 시작하는 member 글자 줄의 끝(그 자리 글자가 아니면 그 자리). 끝 자리 len(run) 도 있다."""
+    ends = [len(run)] * (len(run) + 1)
+    for i in range(len(run) - 1, -1, -1):
+        ends[i] = ends[i + 1] if member(run[i]) else i
+    return ends
+
+
+def url_spans(run):
+    """URL.finditer(run) 의 (시작, 끝): run 은 공백 없는 글이고 앞뒤는 공백이나 글 끝이다. 맞으면 끝은 run 끝이다."""
+    if not URL_MARK.search(run):
+        return []
+    n = len(run)
+    scheme_end = _run_ends(run, SCHEME_CHARS.__contains__)
+
+    # First start at a word boundary where either branch matches
+    prev_word = False
+    for s, c in enumerate(run):
+        word = _is_word(c)
+        if word and not prev_word:
+            # ':' 는 scheme 글자가 아니라 "://" 는 scheme 줄 바로 뒤에만 올 수 있다
+            r = scheme_end[s + 1]
+            if c in ICASE_LETTERS and run.startswith("://", r) and r + 3 < n:
+                return [(s, n)]
+            if all(ch in "wW" for ch in run[s:s + 3]) and run[s + 3:s + 4] == "." and s + 4 < n:
+                return [(s, n)]
+        prev_word = word
+    return []
+
+
+def path_spans(run):
+    """PATHLIKE.finditer(run) 의 (시작, 끝)들. 어느 글에서나 같고, 시작 자리마다 상수 시간이다."""
+    n = len(run)
+    word = [_is_word(c) for c in run] + [False]
+    seg_end = _run_ends(run, lambda c: _is_word(c) or c in "@.-")
+    name_end = _run_ends(run, lambda c: _is_word(c) or c == "-")
+    letter_end = _run_ends(run, ICASE_LETTERS.__contains__)
+
+    # Chain ends of [\w@.-]+(?:/[\w@.-]+)*, right to left
+    chain_end = [0] * (n + 1)
+    for i in range(n - 1, -1, -1):
+        r = seg_end[i]
+        if r > i:
+            chain_end[i] = chain_end[r + 1] if r + 1 < n and run[r] == "/" and seg_end[r + 1] > r + 1 else r
+
+    def dirs_from(q):
+        # [\w@.-]+(?:/[\w@.-]+)+/? 의 끝 또는 -1. '/' 는 [\w@.-] 가 아니라 되돌려 줄여도 맞는 일이 없다
+        r = seg_end[q]
+        if r == q or not (r + 1 < n and run[r] == "/" and seg_end[r + 1] > r + 1):
+            return -1
+        end = chain_end[q]
+        return end + 1 if end < n and run[end] == "/" else end
+
+    def dirs_at(s):
+        # 앞 [~.]{0,2}/ 는 가장 긴 [~.] 줄 뒤에만 '/' 가 올 수 있다
+        if s > 0 and word[s - 1]:
+            return -1
+        k = 0
+        while k < 3 and s + k < n and run[s + k] in "~.":
+            k += 1
+        if k <= 2 and s + k + 1 < n and run[s + k] == "/":
+            end = dirs_from(s + k + 1)
+            if end >= 0:
+                return end
+        return dirs_from(s)
+
+    def file_at(s):
+        # [\w-]+ 줄 전체 뒤의 '.', 그 뒤 글자 줄 전체가 1..5 자이고 다음이 단어 글자가 아닐 때만(\b)
+        f = name_end[s]
+        if f == s or f >= n or run[f] != ".":
+            return -1
+        end = letter_end[f + 1] if f + 1 < n else n
+        return end if 1 <= end - f - 1 <= 5 and not word[end] else -1
+
+    # Leftmost match, the path branch first at one start
+    out = []
+    s = 0
+    while s < n:
+        end = dirs_at(s)
+        if end < 0:
+            end = file_at(s)
+        if end < 0:
+            s += 1
+            continue
+        out.append((s, end))
+        s = end
+    return out
+
+
+def _sub_runs(rx, long_run, spans_of, text):
+    """rx.sub(" ", text) 와 같은 글: long_run 이 찾은 긴 줄은 spans_of 가, 그 사이 글은 rx 가 맡는다."""
+    out = []
+    last = 0
+    for m in long_run.finditer(text):
+        out.append(rx.sub(" ", text[last:m.start()]))
+        run = m.group()
+        done = 0
+        for start, end in spans_of(run):
+            out.append(run[done:start])
+            out.append(" ")
+            done = end
+        out.append(run[done:])
+        last = m.end()
+    out.append(rx.sub(" ", text[last:]))
+    return "".join(out)
+
+
 def strip_text(text):
-    for rx in (FENCE, INLINE, URL, PATHLIKE):
+    for rx in (FENCE, INLINE):
         text = rx.sub(" ", text)
-    return text
+    text = _sub_runs(URL, URL_RUN, url_spans, text)
+    return _sub_runs(PATHLIKE, PATH_RUN, path_spans, text)
 
 
 def drift_ratio(text, script):
