@@ -240,6 +240,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "qwreey-reply-language"
+version = "0.1.0"
+dependencies = [
+ "harness-hook",
+ "serde_json",
+]
+
+[[package]]
 name = "qwreey-sessions"
 version = "0.1.0"
 dependencies = [

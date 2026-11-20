@@ -1,0 +1,21 @@
+[package]
+name = "qwreey-reply-language"
+version = "0.1.0"
+description = "qwreey-reply-language plugin hook (reply language drift on UserPromptSubmit, Stop, PostToolBatch) as one binary"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "qwreey-reply-language"
+path = "src/main.rs"
+
+[dependencies]
+harness-hook = { path = "../harness-hook" }
+
+# 대조 시험이 python 쪽과 주고받는 JSON.
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

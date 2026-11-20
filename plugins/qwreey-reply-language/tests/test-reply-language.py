@@ -14,6 +14,10 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOOKS = os.path.join(ROOT, "hooks")
 HOOK = os.path.join(HOOKS, "reply_language.py")
+# HOOK_TEST_BIN=<바이너리> 면 훅 실행(set 빼고)을 python 스크립트 대신 `<바이너리> hook reply-language` 로 돌린다
+# (Rust 판, crates/qwreey-reply-language). 바이너리는 플러그인 폴더를 CLAUDE_PLUGIN_ROOT 로 안다.
+BIN = os.environ.get("HOOK_TEST_BIN")
+CMD = [BIN, "hook", "reply-language"] if BIN else [sys.executable, "-I", HOOK]
 T = tempfile.mkdtemp(prefix="reply-lang-")
 # nonce 는 고정 salt 로(실제 ~/.local/share 의 salt 를 쓰지 않게)
 open(os.path.join(T, "salt"), "w").write("00" * 32)
@@ -59,6 +63,8 @@ def clear_language():
 def env(extra=None):
     e = dict(os.environ, TMPDIR=T, CLAUDE_CONFIG_DIR=CFG, CLAUDE_PROJECT_DIR=PROJ, CLAUDE_PLUGIN_DATA=DATA)
     e.pop("HARNESS_REPLY_LANGUAGE", None)
+    if BIN:
+        e["CLAUDE_PLUGIN_ROOT"] = ROOT
     e.update(extra or {})
     return e
 
@@ -68,7 +74,7 @@ def hook(event, session, extra=None, agent=None, e=None, **fields):
     p.update(fields)
     if agent:
         p["agent_id"] = agent
-    r = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(p), capture_output=True, text=True, env=e or env(extra))
+    r = subprocess.run(CMD, input=json.dumps(p), capture_output=True, text=True, env=e or env(extra))
     return json.loads(r.stdout) if r.stdout.strip() else None
 
 
