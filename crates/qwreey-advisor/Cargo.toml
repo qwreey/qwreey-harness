@@ -12,6 +12,9 @@ path = "src/main.rs"
 
 [dependencies]
 harness-hook = { path = "../harness-hook" }
+# 코드에 적은 고정 정규식(src/fixed_re.rs).
+regex = { workspace = true }
+regex-syntax = { workspace = true }
 # 리뷰어 run id(python uuid.uuid4)의 난수.
 getrandom = { workspace = true }
 # ledger 행의 시각(python time.strftime("%Y-%m-%dT%H:%M:%S%z"), 이 기기 시간대).

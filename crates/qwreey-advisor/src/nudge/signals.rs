@@ -6,7 +6,9 @@
 use std::collections::BTreeSet;
 use std::sync::LazyLock;
 
-use harness_hook::py::re::{Flags, Regex};
+use harness_hook::py::re::Flags;
+
+use crate::fixed_re::Fixed;
 
 const DOTALL: Flags = Flags {
     ignore_case: false,
@@ -14,18 +16,18 @@ const DOTALL: Flags = Flags {
     dotall: true,
 };
 
-fn regex(pattern: &str, flags: Flags) -> Regex {
-    Regex::with_flags(pattern, flags).expect("built-in pattern")
+fn regex(pattern: &'static str, flags: Flags) -> Fixed {
+    Fixed::with_flags(pattern, flags)
 }
 
-static FENCE: LazyLock<Regex> = LazyLock::new(|| regex(r"```.*?```", DOTALL));
-static HEADLINE: LazyLock<Regex> = LazyLock::new(|| {
+static FENCE: LazyLock<Fixed> = LazyLock::new(|| regex(r"```.*?```", DOTALL));
+static HEADLINE: LazyLock<Fixed> = LazyLock::new(|| {
     regex(
         r"(?m)^\s{0,3}(?:(?:[-*]|\d+[.)])\s+)?(?:#{1,6}\s+(?P<h>[^\n]{1,80})|\*\*(?P<b>[^*\n]{1,80})\*\*:?\s*$|(?P<c>[^\n:]{1,50}):\s*$)",
         Flags::NONE,
     )
 });
-static HEAD_KEY: LazyLock<Regex> = LazyLock::new(|| {
+static HEAD_KEY: LazyLock<Fixed> = LazyLock::new(|| {
     regex(
         concat!(
             r"(?i)\b(recommendations?|recommended|proposals?|proposed changes?|suggestions?|open questions?|questions? for (?:you|the user|main)|",
@@ -35,7 +37,7 @@ static HEAD_KEY: LazyLock<Regex> = LazyLock::new(|| {
         Flags::NONE,
     )
 });
-static PHRASE: LazyLock<Regex> = LazyLock::new(|| {
+static PHRASE: LazyLock<Fixed> = LazyLock::new(|| {
     regex(
         concat!(
             r"(?i)\b(?:open questions?|recommendation)\s*:|",
@@ -48,13 +50,13 @@ static PHRASE: LazyLock<Regex> = LazyLock::new(|| {
         Flags::NONE,
     )
 });
-static QLINE: LazyLock<Regex> = LazyLock::new(|| {
+static QLINE: LazyLock<Fixed> = LazyLock::new(|| {
     regex(
         r"(?m)^\s*(?:[-*]\s*|\|\s*)?(?:\*\*)?(?:Q\d+|Option [A-Z0-9]|선택지 ?\d|안 ?[A-D1-4][.):])",
         Flags::NONE,
     )
 });
-static SPACES: LazyLock<Regex> = LazyLock::new(|| regex(r"\s+", Flags::NONE));
+static SPACES: LazyLock<Fixed> = LazyLock::new(|| regex(r"\s+", Flags::NONE));
 
 /// python `signals(text)`: `head:<말>` 과 문구 신호의 집합.
 pub fn signals(text: &str) -> BTreeSet<String> {
@@ -101,6 +103,53 @@ pub fn carries_decisions(text: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 이 모듈의 고정 정규식이 regex 판과 python 판(py::re)에서 같은 자리에 맞는다(만든 글 3000개).
+    #[test]
+    fn fixed_patterns_agree_with_python() {
+        crate::fixed_re::assert_agree(
+            &[
+                ("FENCE", &*FENCE),
+                ("HEADLINE", &*HEADLINE),
+                ("HEAD_KEY", &*HEAD_KEY),
+                ("PHRASE", &*PHRASE),
+                ("QLINE", &*QLINE),
+                ("SPACES", &*SPACES),
+            ],
+            &[
+                "## ",
+                "**",
+                "Recommendations",
+                "recommended",
+                "Open questions",
+                ":",
+                "\n",
+                " ",
+                "Q1",
+                "Q2: x",
+                "- ",
+                "1. ",
+                "I recommend",
+                "your call",
+                "(recommended)",
+                "권고",
+                "할까요?",
+                "```",
+                "x",
+                "Decisions needed",
+                "options for",
+                "\t",
+                "é",
+                "_",
+                "9",
+                "Option A",
+                "안 1.",
+                "\u{2167}",
+                "\u{301}",
+                "\u{a0}",
+            ],
+        );
+    }
 
     /// 모든 내장 정규식이 읽힌다.
     #[test]

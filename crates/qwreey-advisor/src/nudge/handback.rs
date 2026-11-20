@@ -6,10 +6,10 @@
 use std::fs::File;
 use std::sync::LazyLock;
 
+use crate::fixed_re::Fixed;
 use harness_hook::nonce::now_secs;
 use harness_hook::py::json::{EnsureAscii, dumps_dict};
 use harness_hook::py::path::join;
-use harness_hook::py::re::Regex;
 use harness_hook::py::text::strip;
 use harness_hook::py::value::{Dict, Value};
 
@@ -31,21 +31,21 @@ const STUB: &str = "report was delivered to you as a message";
 const INHERIT_TAG: &str = "[qwreey-advisor:inherit]";
 const REVIEWERS: &[&str] = &["qwreey-advisor:reviewer", "qwreey-advisor-reviewer"];
 
-fn regex(pattern: &str) -> Regex {
-    Regex::new(pattern).expect("built-in pattern")
+fn regex(pattern: &'static str) -> Fixed {
+    Fixed::new(pattern)
 }
 
-static HANDBACK: LazyLock<Regex> =
+static HANDBACK: LazyLock<Fixed> =
     LazyLock::new(|| regex(r#"<agent-message from="([^"]+)">\s*\[Subagent hand-back\]"#));
-static TASK: LazyLock<Regex> =
+static TASK: LazyLock<Fixed> =
     LazyLock::new(|| regex(r"<task-notification>\s*<task-id>([^<]+)</task-id>"));
-static SUMMARY: LazyLock<Regex> = LazyLock::new(|| regex(r#"<summary>Agent "(.*?)" "#));
-static REVIEW_TEXT: LazyLock<Regex> = LazyLock::new(|| {
+static SUMMARY: LazyLock<Fixed> = LazyLock::new(|| regex(r#"<summary>Agent "(.*?)" "#));
+static REVIEW_TEXT: LazyLock<Fixed> = LazyLock::new(|| {
     regex(r"\[qwreey-advisor run: |\[second opinion: |\[qwreey-advisor:inherit\]")
 });
 // qwreey-debate 스킬이 토론자 설명을 `debate:` 로 시작하게 한다
-static DEBATE: LazyLock<Regex> = LazyLock::new(|| regex(r"(?i)^\s*(debate|토론)"));
-static LABEL_DROP: LazyLock<Regex> = LazyLock::new(|| regex("[`<>\"\n\r]"));
+static DEBATE: LazyLock<Fixed> = LazyLock::new(|| regex(r"(?i)^\s*(debate|토론)"));
+static LABEL_DROP: LazyLock<Fixed> = LazyLock::new(|| regex("[`<>\"\n\r]"));
 
 /// python `state_path(sid)`: `<임시 폴더>/claude-second-opinion/<sid>.handbacks.json`. 폴더를 만든다.
 pub fn state_path(tempdir: &str, sid: &str) -> Result<String> {
@@ -445,6 +445,40 @@ fn raw_label(meta: &Dict, agent_type: Option<&Value>) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 이 모듈의 고정 정규식이 regex 판과 python 판(py::re)에서 같은 자리에 맞는다(만든 글 3000개).
+    #[test]
+    fn fixed_patterns_agree_with_python() {
+        crate::fixed_re::assert_agree(
+            &[
+                ("HANDBACK", &*HANDBACK),
+                ("TASK", &*TASK),
+                ("SUMMARY", &*SUMMARY),
+                ("REVIEW_TEXT", &*REVIEW_TEXT),
+                ("DEBATE", &*DEBATE),
+                ("LABEL_DROP", &*LABEL_DROP),
+            ],
+            &[
+                "<agent-message from=\"a\">",
+                " ",
+                "\n",
+                "[Subagent hand-back]",
+                "<task-notification>",
+                "<task-id>",
+                "t1",
+                "</task-id>",
+                "<summary>Agent \"x\" ",
+                "debate",
+                "토론",
+                "DEBATE",
+                "`",
+                "<",
+                "\"",
+                "[second opinion: ",
+                "x",
+            ],
+        );
+    }
 
     /// 보고 prompt 두 꼴(hand-back 메시지, task-notification)에서 id, 본문, 설명을 꺼낸다.
     #[test]

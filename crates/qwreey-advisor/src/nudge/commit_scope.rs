@@ -9,10 +9,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
 use std::sync::LazyLock;
 
+use crate::fixed_re::Fixed;
 use harness_hook::Env;
 use harness_hook::py::num::parse_decimal;
 use harness_hook::py::path::{expanduser, join, normpath};
-use harness_hook::py::re::Regex;
+use harness_hook::py::re::Flags;
 use harness_hook::py::text::{splitlines, strip};
 
 use crate::abort::{Abort, Result};
@@ -53,8 +54,14 @@ const ALL: &str = ":/";
 const MAX_FILE_BYTES: u64 = 2 * 1024 * 1024;
 const BINARY_SNIFF: usize = 8192;
 
-static REDIRECT: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[<>&]*[<>][<>&]*$").expect("built-in pattern"));
+// python `$` 는 끝 줄바꿈 앞에서도 맞는다(`>\n` 낱말)
+static REDIRECT: LazyLock<Fixed> = LazyLock::new(|| {
+    Fixed::with_rust(
+        r"^[<>&]*[<>][<>&]*$",
+        r"^[<>&]*[<>][<>&]*\n?\z",
+        Flags::NONE,
+    )
+});
 
 /// `git commit` 의 읽은 옵션.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -440,6 +447,17 @@ pub fn measure(plan: &Plan, env: &Env) -> Result<Option<(i128, String)>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// REDIRECT 는 python 판과 같은 낱말을 리다이렉트로 본다(만든 글 3000개).
+    #[test]
+    fn redirect_agrees_with_python() {
+        // Only whether the token matches is used; the regex side's span also covers the final \n
+        let py = harness_hook::py::re::Regex::new(r"^[<>&]*[<>][<>&]*$").expect("python pattern");
+        for t in crate::fixed_re::corpus(&[">", "<", "&", "\n", "x", "2"], 3000) {
+            let want = py.match_start(&t).is_some();
+            assert_eq!(REDIRECT.match_start(&t).is_some(), want, "{t:?}");
+        }
+    }
 
     fn env() -> Env {
         Env::from_pairs([("HOME", "/h")])

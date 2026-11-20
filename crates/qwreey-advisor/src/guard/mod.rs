@@ -6,6 +6,7 @@
 
 mod bash;
 mod scratch;
+mod syntax;
 
 use harness_hook::py::json_load::{self, Decode};
 use harness_hook::py::surrogate::from_os;

@@ -6,9 +6,9 @@
 
 use std::sync::LazyLock;
 
+use crate::fixed_re::Fixed;
 use harness_hook::py::num::{float_repr, parse_float, parse_int};
 use harness_hook::py::path::join;
-use harness_hook::py::re::Regex;
 use harness_hook::py::value::{Dict, Value};
 
 use crate::abort::{Abort, Result};
@@ -21,8 +21,7 @@ use super::transcript::{head_text, run_caller};
 const REVIEWERS: &[&str] = &["qwreey-advisor:reviewer", "qwreey-advisor-reviewer"];
 const FORK_MARKERS: &[&str] = &["[qwreey-advisor:inherit]", "[second opinion: inherit]"];
 
-static LEDGER_KIND: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"second opinion:\s*(\w+)").expect("built-in pattern"));
+static LEDGER_KIND: LazyLock<Fixed> = LazyLock::new(|| Fixed::new(r"second opinion:\s*(\w+)"));
 
 /// 검토의 종류.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -158,6 +157,25 @@ pub fn ledger_fields(kind: Kind, meta: &Dict) -> Option<(String, String)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 이 모듈의 고정 정규식이 regex 판과 python 판(py::re)에서 같은 자리에 맞는다(만든 글 3000개).
+    #[test]
+    fn fixed_patterns_agree_with_python() {
+        crate::fixed_re::assert_agree(
+            &[("LEDGER_KIND", &*LEDGER_KIND)],
+            &[
+                "second opinion:",
+                " ",
+                "done",
+                "plan",
+                "_x",
+                "1",
+                "\t",
+                "é",
+                "\u{2460}",
+            ],
+        );
+    }
 
     fn meta(json: &str) -> Dict {
         crate::hookio::loads_object(json).expect("test meta is an object")

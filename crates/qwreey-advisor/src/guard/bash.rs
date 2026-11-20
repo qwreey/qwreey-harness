@@ -3,9 +3,6 @@
 //! 휴리스틱이다: 리다이렉션 대상, 쓰기 명령의 경로, 상태를 바꾸는 git 하위 명령, 설치와 네트워크 명령을 본다.
 //! 순서도 python 과 같다(리다이렉션 먼저, 그다음 명령 조각마다). 처음 걸린 것이 사유다.
 
-use std::sync::LazyLock;
-
-use harness_hook::py::re::{Flags, Regex};
 use harness_hook::py::text::{split_whitespace, strip};
 
 use crate::pylib::pathx::basename;
@@ -13,6 +10,7 @@ use crate::pylib::repr::repr_str;
 use crate::pylib::shlex::{self, Syntax};
 
 use super::scratch::Scratch;
+use super::syntax::{blank_quotes, has_inplace, redirect_targets, segments, strip_heredocs};
 use super::{Cwd, Verdict};
 
 const WRITE_CMDS: &[&str] = &[
@@ -84,52 +82,16 @@ const GIT_CONFIG_READ: &[&str] = &["--get", "--list", "-l", "--get-all", "--get-
 const WRAPPERS: &[&str] = &["env", "nice", "nohup", "time", "command", "exec"];
 const SAFE_TARGETS: &[&str] = &["/dev/null", "/dev/stderr", "/dev/stdout"];
 
-fn regex(pattern: &str, flags: Flags) -> Regex {
-    Regex::with_flags(pattern, flags).expect("built-in pattern")
-}
-
-static INPLACE: LazyLock<Regex> =
-    LazyLock::new(|| regex(r"(^|\s)-[a-zA-Z]*i(\s|$|[.=])|--in-place", Flags::NONE));
-static REDIR: LazyLock<Regex> = LazyLock::new(|| {
-    regex(
-        r"(?<![0-9&<])(?:[0-9]?)(>>?|&>>?)\s*([^\s;&|<>]+)",
-        Flags::NONE,
-    )
-});
-static SEGMENT_SPLIT: LazyLock<Regex> = LazyLock::new(|| regex(r"\|\||&&|[;|\n]", Flags::NONE));
-static HEREDOC: LazyLock<Regex> = LazyLock::new(|| {
-    let dotall = Flags {
-        dotall: true,
-        ..Flags::NONE
-    };
-    regex(
-        "<<-?\\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\\1[^\\n]*\\n(.*?)\\n\\s*\\2\\s*(?=\\n|$)",
-        dotall,
-    )
-});
-static QUOTED: LazyLock<Regex> =
-    LazyLock::new(|| regex("'[^']*'|\"(?:[^\"\\\\]|\\\\.)*\"", Flags::NONE));
-
-// heredoc 을 그 첫 줄(`cat <<EOF` 까지)만 남긴다
-fn strip_heredocs(cmd: &str) -> String {
-    HEREDOC.replace_all(cmd, |m| {
-        let whole = &cmd[m.start()..m.end()];
-        whole.split('\n').next().unwrap_or("").to_owned()
-    })
-}
-
 /// python `strip_bodies`: heredoc 본문과 따옴표 안 글을 지운다(리다이렉션, 명령으로 보지 않게).
 fn strip_bodies(cmd: &str) -> String {
-    let no_heredoc = strip_heredocs(cmd);
-    QUOTED.replace_all(&no_heredoc, |_| "''".to_owned())
+    blank_quotes(&strip_heredocs(cmd))
 }
 
 /// python `check_bash(cmd, cwd)`.
 pub fn check(scratch: &Scratch, cmd: &str, cwd: &Cwd) -> Verdict {
     // 1. Redirect targets must stay in scratch
     let stripped = strip_bodies(cmd);
-    for m in REDIR.find_iter(&stripped) {
-        let target = m.text(&stripped, 2).unwrap_or("");
+    for target in redirect_targets(&stripped) {
         if target.starts_with('&') || SAFE_TARGETS.contains(&target) {
             continue;
         }
@@ -147,7 +109,7 @@ pub fn check(scratch: &Scratch, cmd: &str, cwd: &Cwd) -> Verdict {
 
     // 2. Each command segment (quotes are shlex's job, so only heredocs go)
     let body = strip_heredocs(cmd);
-    for seg in SEGMENT_SPLIT.split(&body) {
+    for seg in segments(&body) {
         if strip(seg).is_empty() {
             continue;
         }
@@ -241,7 +203,7 @@ fn check_segment(scratch: &Scratch, argv: &[String], cwd: &Cwd) -> Option<Verdic
     }
 
     // In-place editors
-    if matches!(a0, "sed" | "perl" | "ruby") && INPLACE.is_match(&args.join(" ")) {
+    if matches!(a0, "sed" | "perl" | "ruby") && has_inplace(&args.join(" ")) {
         return Some(Verdict::Deny(format!("`{a0} -i` edits files in place")));
     }
 
@@ -297,14 +259,6 @@ mod tests {
 
     fn denied(cmd: &str) -> bool {
         matches!(verdict(cmd), Verdict::Deny(_))
-    }
-
-    /// 모든 내장 정규식이 읽힌다(LazyLock 의 expect 가 입력과 상관없이 늘 통과한다).
-    #[test]
-    fn built_in_patterns_compile() {
-        for re in [&INPLACE, &REDIR, &SEGMENT_SPLIT, &HEREDOC, &QUOTED] {
-            LazyLock::force(re);
-        }
     }
 
     /// 읽기 명령과 스크래치 안 쓰기는 통과하고, 밖으로 쓰는 명령은 막는다.

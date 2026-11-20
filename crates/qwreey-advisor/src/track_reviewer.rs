@@ -6,8 +6,8 @@
 
 use std::sync::LazyLock;
 
+use crate::fixed_re::Fixed;
 use harness_hook::py::path::join;
-use harness_hook::py::re::Regex;
 use harness_hook::py::surrogate::from_os;
 use harness_hook::py::value::{Dict, Value};
 
@@ -20,9 +20,8 @@ const REVIEWER: &str = "qwreey-advisor:reviewer";
 const REASON: &str = "qwreey-advisor: 리뷰어 실행 id 와 스크래치를 prompt 끝에 붙임";
 
 /// track-reviewer 가 붙이는 run 줄(python `RUN_LINE`). 잡는 괄호: run id, 호출자.
-pub static RUN_LINE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\[qwreey-advisor run: ([0-9a-f-]{36}) caller=(main|subagent) scratch=[^\]\n]*\]")
-        .expect("built-in pattern")
+pub static RUN_LINE: LazyLock<Fixed> = LazyLock::new(|| {
+    Fixed::new(r"\[qwreey-advisor run: ([0-9a-f-]{36}) caller=(main|subagent) scratch=[^\]\n]*\]")
 });
 
 /// python `parse_run_line(text)`: 마지막 run 줄의 (run id, 호출자).
@@ -104,6 +103,24 @@ fn uuid4() -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 이 모듈의 고정 정규식이 regex 판과 python 판(py::re)에서 같은 자리에 맞는다(만든 글 3000개).
+    #[test]
+    fn fixed_patterns_agree_with_python() {
+        crate::fixed_re::assert_agree(
+            &[("RUN_LINE", &*RUN_LINE)],
+            &[
+                "[qwreey-advisor run: ",
+                "0b1f2c3d-aaaa-4bbb-8ccc-123456789012",
+                " caller=main",
+                " caller=subagent",
+                " scratch=/x/",
+                "]",
+                "\n",
+                "x",
+            ],
+        );
+    }
 
     /// uuid4 꼴: 36자, 판 4, 변형 비트가 8..b, run 줄 정규식이 받는다.
     #[test]

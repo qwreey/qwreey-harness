@@ -6,6 +6,7 @@
 pub mod context;
 pub mod drift;
 pub mod events;
+pub mod fixed_re;
 pub mod language;
 pub mod pyval;
 pub mod state;

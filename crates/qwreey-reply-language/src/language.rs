@@ -6,12 +6,12 @@
 use std::sync::LazyLock;
 
 use harness_hook::py::path::{expanduser, join};
-use harness_hook::py::re::Regex;
 use harness_hook::py::surrogate::from_os;
 use harness_hook::py::text::strip;
 use harness_hook::py::value::Value;
 
 use crate::context::Context;
+use crate::fixed_re::Fixed;
 use crate::pyval::{parse_object, py_cmp, read_bytes};
 
 /// 라틴 문자가 아닌 문자 체계. 라틴 문자 언어는 감지하지 않는다.
@@ -139,8 +139,7 @@ const LANG_SCRIPT: &[(&[&str], Script)] = &[
     (&["hi", "mr", "ne"], Script::Devanagari),
 ];
 
-static WORD: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"[^\W\d_]+(?:-[^\W\d_]+)?").expect("built-in pattern"));
+static WORD: LazyLock<Fixed> = LazyLock::new(|| Fixed::new(r"[^\W\d_]+(?:-[^\W\d_]+)?"));
 
 /// python `script_for(language)`: 언어 설정값(자유 글)의 문자 체계. 라틴 문자 언어나 모르는 값은 `None`.
 ///

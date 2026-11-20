@@ -22,6 +22,12 @@ rustix = { version = "1.1.6", features = ["process", "fs"] }
 close_fds = "0.3.2"
 # 이 기기 시간대의 오늘 날짜(python date.today, localtime). TZ 와 tzdb 규칙을 직접 짜지 않으려고 쓴다(qwreey-sessions).
 jiff = { version = "0.2.43", default-features = false, features = ["std", "tz-system", "tzdb-zoneinfo", "tzdb-bundle-platform"] }
+# 코드에 적은 고정 정규식(Q48 a). 사용자나 설정이 준 패턴은 harness_hook::py::re 그대로다.
+# unicode-perl(\w \s \d \b), unicode-case((?i)), unicode-gencat(\p{L} \p{N}): python 의 Unicode 판정과 맞추는 데 쓴다.
+# perf 는 뺐다: 훅 한 번의 CPU 는 넣으나 빼나 같았고(0.8~1.4 ms, 잡음 안) 바이너리는 0.5 MB 커진다.
+regex = { version = "1.13", default-features = false, features = ["std", "unicode-perl", "unicode-case", "unicode-gencat"] }
+# regex 가 이미 쓰는 판(새로 받는 crate 없음). regex 의 \w 판정 표(is_word_character)만 쓴다.
+regex-syntax = { version = "0.8", default-features = false, features = ["unicode-perl"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
