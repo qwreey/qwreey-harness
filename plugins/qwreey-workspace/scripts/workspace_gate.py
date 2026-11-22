@@ -87,7 +87,8 @@ def log_deny(data, x, what) -> None:
     try:
         d = _state_dir()
         os.makedirs(d, exist_ok=True)
-        with open(os.path.join(d, "deny.log"), "a") as f:
+        # 짝 없는 서로게이트(UTF-8 이 아닌 입력 바이트)는 escape 로 남긴다. strict 면 UnicodeEncodeError 로 deny 까지 빠진다
+        with open(os.path.join(d, "deny.log"), "a", encoding="utf-8", errors="backslashreplace") as f:
             f.write(f"{time.strftime('%F %T')} sid={data.get('session_id')} agent={data.get('agent_id')} repo={x} {what}\n")
     except OSError:
         pass

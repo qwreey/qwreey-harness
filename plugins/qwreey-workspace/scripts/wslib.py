@@ -75,7 +75,8 @@ def is_off(key: str, vals: dict | None = None) -> bool:
 
 def expand(p: str) -> str:
     home = os.path.expanduser("~")
-    p = re.sub(r"^\$\{?HOME\}?", home, p)
+    # 바꿀 글을 함수로 준다: 글로 주면 re 가 그 안의 `\` 를 escape 로 읽어 Windows 홈(C:\Users)에서 re.error 로 끝난다
+    p = re.sub(r"^\$\{?HOME\}?", lambda _: home, p)
     return os.path.expanduser(p) if p.startswith("~") else p
 
 
@@ -224,12 +225,13 @@ def classify_bash(cmd: str, cwd: str, scope: Scope):
         for w in args + redirs:
             cands.append(w)
             cands += ABS.findall(w)
-        touched = set()
+        # 처음 나온 순서로(dict): 두 저장소를 건드리면 먼저 나온 쪽을 알린다. set 이면 해시 순서라 실행마다 달랐다
+        touched: dict[str, None] = {}
         for w in cands:
             if "/" in w or w.startswith(("~", "$HOME", "${HOME}", ".")) or w in redirs:
-                touched.add(norm(w, seg_cwd))
+                touched[norm(w, seg_cwd)] = None
         for m in ABS.findall(seg):
-            touched.add(norm(m, seg_cwd))
+            touched[norm(m, seg_cwd)] = None
         wt = {norm(w, seg_cwd) for w in write_tokens if w}
         x_cwd = scope.sibling(seg_cwd)
         if x_cwd and (args or redirs):
