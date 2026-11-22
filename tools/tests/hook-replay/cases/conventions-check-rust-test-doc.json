@@ -1,0 +1,61 @@
+{
+ "description": "conventions-check: a Rust #[test] without a doc comment is named with the test sentence, a test with /// is not",
+ "steps": [
+  {
+   "write": {
+    "r/lib.rs": "/// Adds one.\npub fn inc(a: u8) -> u8 {\n    a + 1\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn plain() {\n        assert_eq!(inc(1), 2);\n    }\n\n    /// One plus one is two.\n    #[test]\n    fn documented() {\n        assert_eq!(inc(1), 2);\n    }\n}\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "rt",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "content": "/// Adds one.\npub fn inc(a: u8) -> u8 {\n    a + 1\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn plain() {\n        assert_eq!(inc(1), 2);\n    }\n\n    /// One plus one is two.\n    #[test]\n    fn documented() {\n        assert_eq!(inc(1), 2);\n    }\n}\n",
+     "file_path": "{repo}/r/lib.rs"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "Doc comments: plain L11 is a test with no doc comment. Each test gets a one-line `///` doc comment saying the one behavior it checks; a line that needs \"and\" means two tests."
+    ],
+    "not_contains": [
+     "documented",
+     "inc L",
+     "Public functions"
+    ]
+   }
+  },
+  {
+   "write": {
+    "r/ok.rs": "#[cfg(test)]\nmod tests {\n    /// One plus one is two.\n    #[test]\n    fn adds() {\n        assert_eq!(1 + 1, 2);\n    }\n}\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "rt",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "content": "#[cfg(test)]\nmod tests {\n    /// One plus one is two.\n    #[test]\n    fn adds() {\n        assert_eq!(1 + 1, 2);\n    }\n}\n",
+     "file_path": "{repo}/r/ok.rs"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

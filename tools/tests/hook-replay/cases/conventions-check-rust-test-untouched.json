@@ -1,0 +1,55 @@
+{
+ "description": "conventions-check: an old Rust test without a doc stays quiet when an edit adds other tests; only the new one is named",
+ "steps": [
+  {
+   "write": {
+    "r/old.rs": "#[cfg(test)]\nmod tests {\n    #[test]\n    fn old_case() {\n        assert!(true);\n    }\n\n    /// Two is even.\n    #[test]\n    fn even() {\n        assert_eq!(2 % 2, 0);\n    }\n}\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "ro",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "old_string": "    }\n}\n",
+     "new_string": "    }\n\n    /// Two is even.\n    #[test]\n    fn even() {\n        assert_eq!(2 % 2, 0);\n    }\n}\n",
+     "file_path": "{repo}/r/old.rs"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "write": {
+    "r/old.rs": "#[cfg(test)]\nmod tests {\n    #[test]\n    fn old_case() {\n        assert!(true);\n    }\n\n    /// Two is even.\n    #[test]\n    fn even() {\n        assert_eq!(2 % 2, 0);\n    }\n\n    #[test]\n    fn new_case() {\n        assert!(true);\n    }\n}\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "ro",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "old_string": "    /// Two is even.\n    #[test]\n    fn even() {\n        assert_eq!(2 % 2, 0);\n    }\n",
+     "new_string": "    /// Two is even.\n    #[test]\n    fn even() {\n        assert_eq!(2 % 2, 0);\n    }\n\n    #[test]\n    fn new_case() {\n        assert!(true);\n    }\n",
+     "file_path": "{repo}/r/old.rs"
+    },
+    "tool_response": {}
+   },
+   "expect": {
+    "contains": [
+     "new_case L15 is a test with no doc comment"
+    ],
+    "not_contains": [
+     "old_case",
+     "even L"
+    ]
+   }
+  }
+ ]
+}

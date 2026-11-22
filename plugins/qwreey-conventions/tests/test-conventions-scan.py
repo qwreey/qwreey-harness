@@ -310,6 +310,13 @@ rc, out, _ = cli("layout", os.path.join(REPO, "lay", "m.luau"), "--summary")
 check("layout: conventions.json layout limits apply", "read as one block: 0" in out and "M.flat" not in out)
 os.remove(os.path.join(REPO, ".claude", "conventions.json"))
 
+# 전체 파일 scan 도 Rust 시험의 문서를 훅과 같게 본다
+put("layrs/t.rs", "#[cfg(test)]\nmod tests {\n    #[test]\n    fn bare() {}\n\n    /// Two is even.\n    #[test]\n    fn even() {}\n}\n")
+rc, out, _ = cli("layout", os.path.join(REPO, "layrs"))
+check("layout: Rust tests are tagged, an undocumented one gets doc summary, the summary counts them",
+      rc == 1 and "layrs/t.rs:4-4: bare (test):" in out and "doc none  [doc summary]" in out
+      and "even (test):" in out and "tests (Rust #[test]) with a doc comment: 1/2" in out)
+
 for name, ok in res:
     print(("PASS " if ok else "FAIL ") + name)
 fails = [r for r in res if not r[1]]

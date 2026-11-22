@@ -1,0 +1,33 @@
+{
+ "description": "conventions-check: #[tokio::test(...)] with another attribute between it and the fn counts as a Rust test",
+ "steps": [
+  {
+   "write": {
+    "r/rt.rs": "#[cfg(test)]\nmod tests {\n    #[tokio::test(flavor = \"multi_thread\")]\n    #[ignore]\n    async fn runs_async() {\n        assert!(true);\n    }\n\n    fn helper() -> u8 {\n        1\n    }\n}\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {
+    "session_id": "tk",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "content": "#[cfg(test)]\nmod tests {\n    #[tokio::test(flavor = \"multi_thread\")]\n    #[ignore]\n    async fn runs_async() {\n        assert!(true);\n    }\n\n    fn helper() -> u8 {\n        1\n    }\n}\n",
+     "file_path": "{repo}/r/rt.rs"
+    },
+    "tool_response": {
+     "type": "create"
+    }
+   },
+   "expect": {
+    "contains": [
+     "runs_async L5 is a test with no doc comment"
+    ],
+    "not_contains": [
+     "helper"
+    ]
+   }
+  }
+ ]
+}

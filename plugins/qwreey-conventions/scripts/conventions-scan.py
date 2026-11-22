@@ -433,7 +433,8 @@ def layout_line(rel, m, found):
     if doc == "ok":
         doc = "ok, first line %d chars%s" % (m["doc_first_len"], "" if m["doc_sentence"] else ", sentence runs on")
     inter = ", ".join("L%d(%d)" % pair for pair in m["interleaved"]) or "0"
-    return (f"{rel}:{m['start']}-{m['end']}: {m['name']}{' (public)' if m['public'] else ''}: {m['nonblank']} lines, "
+    tags = (" (public)" if m["public"] else "") + (" (test)" if m["test"] else "")
+    return (f"{rel}:{m['start']}-{m['end']}: {m['name']}{tags}: {m['nonblank']} lines, "
             f"{m['blank']} blank, {m['paragraphs']} paragraphs, longest run {m['max_run']}, labels {m['labels']}, "
             f"interleaved {inter}, multi-decl {m['multi_decl']}, one-letter {m['one_letter']}, doc {doc}"
             + (f"  [{', '.join(found)}]" if found else ""))
@@ -459,6 +460,7 @@ def run_layout(args, out=sys.stdout):
     fns = [(rel, m, f) for rel, ms, fs in files for m, f in zip(ms, fs)]
     long_fns = [m for _, m, _ in fns if m["nonblank"] >= limits["min_lines"]]
     public = [m for _, m, _ in fns if m["public"] and not m["metamethod"]]
+    tests = [m for _, m, _ in fns if m["test"]]
     body = sum(m["nonblank"] for _, m, _ in fns)
     cats = Counter(c for _, _, f in fns for c in f)
     summary = {
@@ -466,6 +468,7 @@ def run_layout(args, out=sys.stdout):
         "long_functions": len(long_fns), "long_one_block": cats["layout"],
         "interleaved_per_100_lines": round(100 * sum(len(m["interleaved"]) for _, m, _ in fns) / body, 2) if body else 0,
         "public_with_doc": sum(1 for m in public if m["doc"] == "ok"), "public": len(public),
+        "tests_with_doc": sum(1 for m in tests if m["doc"] == "ok"), "tests": len(tests),
         "multi_decl": sum(m["multi_decl"] for _, m, _ in fns), "by_category": {c: cats[c] for c in layout_metrics.CATEGORIES if cats[c]},
     }
     status = 1 if cats else 0
@@ -482,6 +485,8 @@ def run_layout(args, out=sys.stdout):
     w(f"functions with {limits['min_lines']}+ lines: {len(long_fns)}, read as one block: {cats['layout']}\n")
     w(f"interleaved multi-line comments per 100 body lines: {summary['interleaved_per_100_lines']}\n")
     w(f"public functions with a doc comment callers can see: {summary['public_with_doc']}/{len(public)}\n")
+    if tests:
+        w(f"tests (Rust #[test]) with a doc comment: {summary['tests_with_doc']}/{len(tests)}\n")
     w(f"multi-name declarations: {summary['multi_decl']}\n")
     w("findings: " + (", ".join(f"{c} {n}" for c, n in summary["by_category"].items()) or "none") + "\n")
     return status

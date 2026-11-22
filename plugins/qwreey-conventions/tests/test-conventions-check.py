@@ -625,6 +625,18 @@ ts_doc = ("// Kept sync: callers run in a worker\n/** Returns one. */\nexport fu
 check("doc: TS `//` above `/** */` -> ok, multi-line JSDoc -> ok, `//` nearest -> hidden",
       docs(ts_doc, "ts", "c") == {"one": "ok", "two": "ok", "three": "hidden"})
 check("doc: Rust `//` above `///` -> ok", docs("// Reason\n/// Returns one.\npub fn one() -> u8 {\n    1\n}\n", "rust", "rust") == {"one": "ok"})
+
+# Rust 시험 속성이 달린 함수는 pub 이 아니어도 문서를 본다
+rs_tests = ("#[cfg(test)]\nmod tests {\n    #[test]\n    fn a() {}\n\n    /// Two is even.\n    #[tokio::test(flavor = \"x\")]\n"
+            "    #[ignore]\n    async fn b() {}\n\n    #[test] fn c() {}\n\n    fn helper() {}\n}\n")
+rs_rows = _lex.lex(rs_tests, "rust", keep_code=True)
+check("doc: Rust #[test], #[tokio::test(...)] and a same-line #[test] are tests, a helper is not",
+      [(f["name"], f["test"]) for f in _lm.functions(rs_rows, rs_tests.split("\n"), "rust")]
+      == [("a", True), ("b", True), ("c", True), ("helper", False)])
+c = write_new("ly/t.rs", rs_tests, sid=uniq("ly"), env_extra=ON)
+check("layout: an undocumented Rust test -> doc summary with the test sentence, no public-function sentence",
+      "a L4 is a test with no doc comment; c L11 is a test with no doc comment." in c
+      and "Each test gets a one-line `///` doc comment" in c and "Public functions" not in c and "helper" not in c)
 c = write_new("ly/rsn.luau", reason_above.replace("--- Returns two.\n-- Kept for old callers\n", "--- Returns two.\n"), sid=uniq("ly"), env_extra=ON)
 check("doc: hook does not report a doc under a reason comment", "Doc comments" not in c)
 

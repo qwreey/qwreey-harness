@@ -9,7 +9,7 @@ use std::sync::LazyLock;
 use harness_hook::py::text::strip;
 use harness_hook::rx::Regex;
 
-use super::functions::Function;
+use super::functions::{ATTRIBUTE, Function};
 use super::{Lang, Limits};
 use crate::lex::Row;
 
@@ -17,7 +17,6 @@ fn constant(pattern: &str) -> Regex {
     Regex::new(pattern)
 }
 
-static DECORATOR: LazyLock<Regex> = LazyLock::new(|| constant(r"^\s*(?:#\[|@)"));
 /// 편집기 접기 표지(`--#region`, `// #endregion`)는 문서도 이유도 아니라 건너뛴다.
 static REGION: LazyLock<Regex> =
     LazyLock::new(|| constant(r"^\s*(?:--|//)\s*#\s*(?:end)?region\b"));
@@ -38,6 +37,12 @@ static DOC_OPEN: LazyLock<[Regex; 4]> = LazyLock::new(|| {
         constant(r"^\s*//"),
     ]
 });
+
+/// 문서 없는 시험의 설명(python `TEST_NO_DOC`, `TEST_HIDDEN_DOC`).
+const TEST_NO_DOC: &str = "is a test with no doc comment";
+const TEST_HIDDEN_DOC: &str = "is a test whose comment is not a doc comment";
+/// 알림이 시험의 설명을 가리는 말(python `TEST_MARK`). 함수 이름에는 빈칸이 없다.
+pub(super) const TEST_MARK: &str = " is a test ";
 
 fn doc_open(lang: Lang) -> &'static Regex {
     match lang {
@@ -86,6 +91,7 @@ pub struct Metrics {
     pub end: usize,
     pub public: bool,
     pub metamethod: bool,
+    pub test: bool,
     pub nonblank: usize,
     pub blank: usize,
     pub max_run: usize,
@@ -113,6 +119,7 @@ pub fn measure(rows: &[Row], lines: &[&str], f: &Function, lang: Lang) -> Option
         end: f.last + 1,
         public: f.public,
         metamethod: f.metamethod,
+        test: f.test,
         nonblank,
         blank: kinds.len() - nonblank,
         max_run: runs.iter().copied().max().unwrap_or(0),
@@ -208,7 +215,7 @@ fn doc_info(rows: &[Row], lines: &[&str], f: &Function, lang: Lang) -> Option<Do
     let mut k = f.start as i64 - 1;
     let at = |k: i64| usize::try_from(k).ok();
     while let Some(i) =
-        at(k).filter(|&i| rows[i].code && DECORATOR.match_start(&rows[i].k).is_some())
+        at(k).filter(|&i| rows[i].code && ATTRIBUTE.match_start(&rows[i].k).is_some())
     {
         k = i as i64 - 1;
     }
@@ -376,6 +383,8 @@ fn doc_problem(m: &Metrics, lim: &Limits) -> Option<String> {
         return None;
     }
     match m.doc.doc {
+        Doc::None if m.test => Some(TEST_NO_DOC.to_owned()),
+        Doc::Hidden if m.test => Some(TEST_HIDDEN_DOC.to_owned()),
         Doc::None if m.public => Some("has no doc comment".to_owned()),
         Doc::Hidden if m.public => Some("has a comment that hover does not show".to_owned()),
         Doc::None | Doc::Hidden => None,
@@ -396,7 +405,6 @@ mod tests {
     /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
     #[test]
     fn fixed_patterns_build() {
-        DECORATOR.check();
         REGION.check();
         DOC_MARK.check();
         DOC_CLOSE.check();
