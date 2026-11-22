@@ -18,7 +18,8 @@
 - 오래된 worktree 가 있을 때만: 세션 시작에 한 줄(약 100~200 토큰). 세션 시작마다 git 명령 서너 번(보통 0.1초 안팎, 최대 몇 초로 묶음).
 
 ## 요구 사항
-- 훅은 순수 Python 3 이라 OS 무관. 스킬의 살아 있는 세션 확인 명령은 Linux `/proc`, macOS `lsof`.
+- 쓰기 게이트와 형제 저장소 경로 알림은 Rust 바이너리 `native/qwreey-workspace` 를 부른다. 지금은 저장소에서 `cargo build --release -p qwreey-workspace` 로 만들어 그 자리에 복사해야 하고, 없으면 그 훅들이 아무것도 하지 않는다(막지 않는 오류이고, 쓰기 게이트도 서지 않는다). 바이너리는 아직 Linux 판만 있다.
+- 세션 시작 안내와 오래된 worktree 알림은 순수 Python 3 이라 OS 무관. 스킬의 살아 있는 세션 확인 명령은 Linux `/proc`, macOS `lsof`.
 
 ## 설정
 `/plugin configure qwreey-workspace@qwreey-harness` 또는 `/config` 의 플러그인 옵션에서 고친다.

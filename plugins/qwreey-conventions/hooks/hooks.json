@@ -18,7 +18,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/rules_inject.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-conventions",
+            "args": [
+              "hook",
+              "rules-inject"
+            ],
             "timeout": 5
           }
         ]
@@ -42,7 +46,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/bash_writes.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-conventions",
+            "args": [
+              "hook",
+              "bash-writes"
+            ],
             "timeout": 10
           }
         ]
@@ -96,7 +104,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/bash_writes.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-conventions",
+            "args": [
+              "hook",
+              "bash-writes"
+            ],
             "timeout": 10
           }
         ]
@@ -123,7 +135,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/bash-bypass-reminder.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-conventions",
+            "args": [
+              "hook",
+              "bash-bypass-reminder"
+            ],
             "timeout": 10
           }
         ]

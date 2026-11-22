@@ -302,8 +302,10 @@ class Failure(unittest.TestCase):
 
     def test_registered_on_failure(self):
         hooks = json.load(open(os.path.join(ROOT, "hooks", "hooks.json")))["hooks"]
-        regs = [h["command"] for m in hooks.get("PostToolUseFailure", []) if m.get("matcher") == "Bash" for h in m["hooks"]]
-        self.assertTrue(any("bash_writes.py" in c for c in regs))
+        # python 판(bash_writes.py) 이나 Rust 판(native/qwreey-conventions hook bash-writes) 어느 쪽이든 된다
+        regs = [" ".join([h["command"], *h.get("args", [])])
+                for m in hooks.get("PostToolUseFailure", []) if m.get("matcher") == "Bash" for h in m["hooks"]]
+        self.assertTrue(any("bash_writes.py" in c or c.endswith("hook bash-writes") for c in regs), regs)
 
 
 class SnapshotFile(unittest.TestCase):
