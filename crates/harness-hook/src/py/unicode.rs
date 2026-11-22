@@ -73,13 +73,31 @@ pub fn case_fixes(lo: u32) -> &'static [u32] {
 mod tests {
     use super::*;
 
+    /// 낱말 글자 판정은 밑줄과 한글을 받고, Rust 에서 alphabetic 인 U+0903 은 python `\w` 가 아니라 뺀다.
     #[test]
-    fn classes_follow_python() {
+    fn word_class_follows_python() {
         assert!(is_word(u32::from('_')) && is_word(u32::from('\u{d55c}')));
-        // U+0903(데바나가리 모음 기호)는 Rust 에서 alphabetic, python 에서 \w 아님
-        assert!(!is_word(0x903) && '\u{903}'.is_alphabetic());
+        assert!(
+            !is_word(0x903) && '\u{903}'.is_alphabetic(),
+            "U+0903 is alphabetic in Rust but not \\w in python"
+        );
+    }
+
+    /// 십진 숫자 판정은 다른 문자의 숫자를 받고 위 첨자 숫자는 뺀다.
+    #[test]
+    fn decimal_class_follows_python() {
         assert!(is_decimal(0x663) && !is_decimal(u32::from('\u{b2}')));
+    }
+
+    /// `lower` 는 점 있는 `I`(U+0130)를 `i` 로 내린다.
+    #[test]
+    fn lower_maps_dotted_capital_i_to_i() {
         assert_eq!(lower(0x130), 0x69);
+    }
+
+    /// IGNORECASE 가 `s` 와 같게 보는 `ſ`(U+017F) 는 `case_fixes` 에 있고, `a` 에는 없다.
+    #[test]
+    fn case_fixes_lists_extra_ignorecase_pairs() {
         assert_eq!(case_fixes(u32::from('s')), &[0x17f]);
         assert!(case_fixes(u32::from('a')).is_empty());
     }

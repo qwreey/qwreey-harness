@@ -446,26 +446,39 @@ fn redact_attrs(text: &str) -> String {
 mod tests {
     use super::*;
 
+    /// salt 와 세션 id 에서 HOOK-MESSAGES.md 의 시험 벡터와 같은 nonce 가 나온다.
     #[test]
     fn known_vector() {
-        // HOOK-MESSAGES.md 의 시험 벡터
         assert_eq!(
             Nonce::from_salt(&"00".repeat(32), "abc").as_str(),
             "39596342ed0e"
         );
     }
 
+    /// UTF-8 이 아닌 바이트가 든 salt 경로 환경 변수도 바이트 그대로 쓴다.
     #[test]
     #[cfg(unix)]
     fn salt_path_keeps_non_utf8_bytes() {
         use std::ffi::OsString;
         use std::os::unix::ffi::OsStringExt;
 
-        // python 은 surrogateescape 로 같은 바이트의 경로를 연다
+        // python opens the same bytes through surrogateescape
         let raw = |bytes: &[u8]| OsString::from_vec(bytes.to_vec());
         let env = Env::from_pairs([(SALT_ENV, raw(b"/s/\xff/salt"))]);
+
         assert_eq!(salt_path(&env), PathBuf::from(raw(b"/s/\xff/salt")));
+    }
+
+    /// UTF-8 이 아닌 바이트가 든 `XDG_DATA_HOME` 아래 기본 salt 경로도 바이트 그대로 쓴다.
+    #[test]
+    #[cfg(unix)]
+    fn xdg_salt_path_keeps_non_utf8_bytes() {
+        use std::ffi::OsString;
+        use std::os::unix::ffi::OsStringExt;
+
+        let raw = |bytes: &[u8]| OsString::from_vec(bytes.to_vec());
         let env = Env::from_pairs([("XDG_DATA_HOME", raw(b"/x/\xfe"))]);
+
         assert_eq!(
             salt_path(&env),
             PathBuf::from(raw(b"/x/\xfe"))
@@ -474,6 +487,7 @@ mod tests {
         );
     }
 
+    /// 규칙 문구는 지우고, 태그 속성과 escape 된 따옴표 속 nonce 는 값을 가리며, 대문자 값은 건드리지 않는다.
     #[test]
     fn redacts_rule_and_attributes() {
         let rule = RULE.replace("{nonce}", "39596342ed0e");

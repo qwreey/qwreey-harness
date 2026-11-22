@@ -110,33 +110,65 @@ mod tests {
         }
     }
 
+    /// 같은 키는 처음에만 참이다.
+    #[test]
+    fn once_is_true_only_the_first_time() {
+        let mut hs = state("{}");
+
+        assert!(hs.once("a@0").unwrap());
+        assert!(!hs.once("a@0").unwrap());
+    }
+
+    /// `reminded` 는 마지막 50 개만 남기고, 남기면 바뀜으로 표시한다.
     #[test]
     fn once_keeps_the_last_fifty() {
         let mut hs = state("{}");
-        assert!(hs.once("a@0").unwrap());
-        assert!(!hs.once("a@0").unwrap());
+        hs.once("a@0").unwrap();
         for i in 0..60 {
             hs.once(&format!("k{i}@0")).unwrap();
         }
+
         let Value::Dict(d) = hs.value() else { panic!() };
         let Some(Value::List(items)) = d.get("reminded") else {
             panic!()
         };
         assert_eq!(items.len(), 50);
-        assert_eq!(items[0], Value::Str("k10@0".to_owned()));
+        assert_eq!(
+            items[0],
+            Value::Str("k10@0".to_owned()),
+            "61 keys went in, so the first 11 are dropped"
+        );
         assert!(hs.changed());
     }
 
+    /// `reminded` 가 글이면 python `in` 처럼 부분 글로 이미 알린 것을 가린다.
     #[test]
-    fn odd_shapes_follow_python() {
+    fn once_reads_a_string_reminded_as_substring() {
         assert!(!state(r#"{"reminded": "xa@0x"}"#).once("a@0").unwrap());
+    }
+
+    /// `reminded` 가 목록이 아니고 키가 없으면 python 의 AttributeError 처럼 오류다.
+    #[test]
+    fn once_errors_when_reminded_is_not_a_list() {
         assert!(state(r#"{"reminded": "b"}"#).once("a@0").is_err());
         assert!(state(r#"{"reminded": 3}"#).once("a@0").is_err());
+    }
+
+    /// 상태 파일이 dict 가 아니면 `once` 는 오류고 바뀜 표시도 없다.
+    #[test]
+    fn non_dict_state_errors_and_stays_unchanged() {
         assert!(state("[1]").once("a@0").is_err());
         assert!(!state("[1]").changed());
+    }
+
+    /// `set` 은 내용이 같으면 바뀜으로 보지 않는다(3 과 3.0 은 다른 내용).
+    #[test]
+    fn set_marks_changed_only_for_different_content() {
         let mut hs = state(r#"{"notice_seq": 3}"#);
+
         hs.set("notice_seq", Value::Int(3)).unwrap();
         assert!(!hs.changed());
+
         hs.set("notice_seq", Value::Float(3.0)).unwrap();
         assert!(hs.changed());
     }

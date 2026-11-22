@@ -395,25 +395,42 @@ mod tests {
         v.as_str().unwrap().chars().map(unit_of).collect()
     }
 
+    /// python `json` 만 받는 `NaN`, `Infinity` 와 넘치거나 모자란 지수를 읽는다.
     #[test]
     fn reads_python_only_forms() {
         let v = loads(" [NaN, Infinity, -Infinity, -0, -0.0, 1E400, 1e-400, 1.5e3] ").unwrap();
         let Value::List(items) = &v else { panic!() };
+
         assert!(matches!(items[0], Value::Float(f) if f.is_nan()));
         assert_eq!(items[1], Value::Float(f64::INFINITY));
         assert_eq!(items[2], Value::Float(f64::NEG_INFINITY));
-        assert_eq!(items[3], Value::Int(0));
+        assert_eq!(items[3], Value::Int(0), "-0 is an integer, so plain 0");
         assert!(matches!(items[4], Value::Float(f) if f == 0.0 && f.is_sign_negative()));
-        assert_eq!(items[5], Value::Float(f64::INFINITY));
-        assert_eq!(items[6], Value::Float(0.0));
+        assert_eq!(
+            items[5],
+            Value::Float(f64::INFINITY),
+            "1E400 overflows to infinity"
+        );
+        assert_eq!(items[6], Value::Float(0.0), "1e-400 underflows to zero");
         assert_eq!(items[7], Value::Float(1500.0));
+    }
 
+    /// i128 에 들지 않는 정수는 자릿수 글 그대로 든다.
+    #[test]
+    fn big_integers_keep_their_digits() {
         let big = format!("-{}", "9".repeat(60));
+
         assert_eq!(loads(&big).unwrap(), Value::BigInt(big.clone()));
         assert_eq!(
             loads("170141183460469231731687303715884105728").unwrap(),
-            Value::BigInt("170141183460469231731687303715884105728".into())
+            Value::BigInt("170141183460469231731687303715884105728".into()),
+            "i128::MAX plus one"
         );
+    }
+
+    /// 정수는 4300 자리까지만 받는다(python 의 정수 글자 수 한도).
+    #[test]
+    fn integers_over_4300_digits_are_rejected() {
         assert_eq!(
             loads(&"1".repeat(4300)).unwrap(),
             Value::BigInt("1".repeat(4300))
@@ -421,6 +438,7 @@ mod tests {
         assert!(loads(&"1".repeat(4301)).is_err());
     }
 
+    /// 끝 쉼표, BOM, 앞자리 0, 짝 안 맞는 escape 같은 python 이 거절하는 글은 거절한다.
     #[test]
     fn rejects_what_python_rejects() {
         for bad in [
@@ -446,9 +464,11 @@ mod tests {
         }
     }
 
+    /// 서로게이트 escape 는 쌍이면 한 글자로 합치고, 짝 없는 것은 자리표로 남긴다.
     #[test]
-    fn strings_follow_python_scanstring() {
+    fn surrogate_escapes_follow_python_scanstring() {
         let v = loads(r#""\ud83d\ude00\ud800x\udc00\ud800\\u""#).unwrap();
+
         assert_eq!(
             units(&v),
             [
@@ -461,31 +481,65 @@ mod tests {
                 None
             ]
         );
+    }
+
+    /// 글자 escape(`\/`, `\b`, `\u00e9` ...)를 풀어 읽는다.
+    #[test]
+    fn simple_escapes_are_decoded() {
         assert_eq!(
             loads(r#""\/\b\f\n\r\t\"\u00e9\u007F""#).unwrap(),
             Value::Str("/\u{8}\u{c}\n\r\t\"\u{e9}\u{7f}".into())
         );
     }
 
+    /// 엄격한 해석은 UTF-8 이 아닌 바이트를 거절한다.
     #[test]
-    fn bytes_decode_like_python() {
+    fn strict_decode_rejects_invalid_utf8() {
         let raw = b"{\"a\": \"x\xffy\"}";
+
         assert!(from_bytes(raw, Decode::Strict).is_err());
+    }
+
+    /// surrogateescape 해석은 글 안의 나쁜 바이트를 서로게이트 자리표로 남긴다.
+    #[test]
+    fn surrogateescape_keeps_invalid_bytes_inside_strings() {
+        let raw = b"{\"a\": \"x\xffy\"}";
+
         let v = from_bytes(raw, Decode::SurrogateEscape).unwrap();
+
         let a = v.as_dict().unwrap().get("a").unwrap();
         assert_eq!(units(a), [None, Some(0xDCFF), None]);
+    }
+
+    /// surrogateescape 해석도 글 밖의 나쁜 바이트는 거절한다.
+    #[test]
+    fn surrogateescape_rejects_invalid_bytes_outside_strings() {
         assert!(from_bytes(b"[1, \xff]", Decode::SurrogateEscape).is_err());
     }
 
+    /// 목록은 `MAX_DEPTH` 겹까지 읽고 한 겹 더 깊으면 거절한다(호출 스택 없이).
     #[test]
-    fn deep_nesting_has_a_limit_and_no_recursion() {
+    fn list_depth_has_a_limit() {
         let ok = format!("{}{}", "[".repeat(MAX_DEPTH), "]".repeat(MAX_DEPTH));
         drop(loads(&ok).unwrap());
+
         let deep = format!("{}{}", "[".repeat(MAX_DEPTH + 1), "]".repeat(MAX_DEPTH + 1));
         assert!(loads(&deep).is_err());
+    }
+
+    /// 객체도 `MAX_DEPTH` 겹까지 읽는다.
+    #[test]
+    fn dict_depth_reaches_the_limit() {
         let dicts = format!("{}1{}", "{\"a\": ".repeat(MAX_DEPTH), "}".repeat(MAX_DEPTH));
+
         drop(loads(&dicts).unwrap());
+    }
+
+    /// 가장 깊은 값 뒤에 글이 남으면 거절한다.
+    #[test]
+    fn trailing_text_after_deepest_value_is_rejected() {
         let trailing = format!("{}{}x", "[".repeat(MAX_DEPTH), "]".repeat(MAX_DEPTH));
+
         assert!(loads(&trailing).is_err());
     }
 }

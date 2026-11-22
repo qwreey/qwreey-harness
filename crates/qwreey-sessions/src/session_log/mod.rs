@@ -391,14 +391,16 @@ mod tests {
         }
     }
 
-    /// 인계 요청과 git commit 을 python 판 패턴처럼 알아본다(ASCII 글, 한국어 글, 대소문자).
+    /// 인계 요청은 python 판 패턴처럼 ASCII 글, 한국어 글, 대소문자로 알아본다.
     #[test]
-    fn triggers_like_python() {
-        // The prompt asks for a handover
+    fn handover_prompts_trigger_like_python() {
         assert!(HANDOVER_RX.is_match("/checkpoint now") && HANDOVER_RX.is_match("이제 인계 해줘"));
         assert!(HANDOVER_RX.is_match("Write a HANDOVER") && !HANDOVER_RX.is_match("handovers"));
+    }
 
-        // A commit, with or without -C
+    /// git commit 은 `-C` 가 있든 없든 알아보고, 낱말이 이어 붙은 글은 알아보지 않는다.
+    #[test]
+    fn commit_commands_trigger_like_python() {
         assert!(COMMIT_RX.is_match("cd x && git -C /r commit -m a"));
         assert!(!COMMIT_RX.is_match("git commits") && !COMMIT_RX.is_match("legit commit"));
     }

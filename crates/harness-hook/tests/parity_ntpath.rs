@@ -61,7 +61,7 @@ fn ntpath_matches_python() {
     };
 
     for ((a, b), want) in pairs.iter().zip(expected) {
-        // relpath 는 절대 경로끼리만 본다(abspath 는 OS 몫이다)
+        // relpath only takes absolute paths; abspath is left to the OS
         let rel = if ntpath::isabs(a) && ntpath::isabs(b) {
             match ntpath::relpath_abs(&ntpath::normpath(a), &ntpath::normpath(b)) {
                 Some(r) => json!(r),

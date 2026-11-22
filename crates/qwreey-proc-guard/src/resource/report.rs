@@ -163,36 +163,63 @@ mod tests {
         crash_evidence(loads(json).unwrap().as_dict().unwrap())
     }
 
+    /// 실패 훅의 `Exit code 139` 는 신호 이름을 붙인 증거가 된다.
     #[test]
-    fn reads_crash_evidence() {
+    fn exit_code_in_failure_is_crash_evidence() {
         let failure =
             r#"{"hook_event_name": "PostToolUseFailure", "error": "Exit code 139\nboom"}"#;
+
         assert_eq!(evidence(failure), "exit code 139, SIGSEGV");
+    }
+
+    /// 출력에 `signal: 11` 이 있으면 그 글을 증거로 든다.
+    #[test]
+    fn signal_text_in_output_is_crash_evidence() {
         let out = r#"{"hook_event_name": "PostToolUse", "tool_response": {"stdout": "x", "stderr": "(signal: 11, SIGSEGV)"}}"#;
         assert_eq!(evidence(out), "output says `signal: 11`");
+    }
+
+    /// 보통 실패(`Exit code 1`)는 증거가 아니다.
+    #[test]
+    fn ordinary_failure_is_not_crash_evidence() {
         let fine = r#"{"hook_event_name": "PostToolUseFailure", "error": "Exit code 1\n"}"#;
         assert_eq!(evidence(fine), "");
     }
 
-    #[test]
-    fn program_matching_uses_a_left_boundary() {
-        let info = |program: &str, args: &str| CoreInfo {
+    fn core_of(program: &str, args: &str) -> CoreInfo {
+        CoreInfo {
             program: program.into(),
             args: args.into(),
             signal: String::new(),
-        };
-        assert!(program_in_command(
-            &info("python3", "/usr/bin/python3 x.py"),
-            "python3 x.py"
-        ));
-        assert!(!program_in_command(&info("sh", ""), "bash run.sh"));
+        }
     }
 
+    /// 코어 파일의 프로그램이 명령에 나오면 그 명령의 것으로 본다.
     #[test]
-    fn sizes_and_handler() {
+    fn program_found_in_command() {
+        assert!(program_in_command(
+            &core_of("python3", "/usr/bin/python3 x.py"),
+            "python3 x.py"
+        ));
+    }
+
+    /// 프로그램 이름은 왼쪽 경계에서만 맞는다(`sh` 는 `bash` 의 끝이 아니다).
+    #[test]
+    fn program_matching_uses_a_left_boundary() {
+        assert!(!program_in_command(&core_of("sh", ""), "bash run.sh"));
+    }
+
+    /// 크기 글은 KiB, MiB, GiB 로 줄이고 1 KiB 아래는 1 KiB 로 올린다.
+    #[test]
+    fn sizes_are_rounded_to_units() {
         assert_eq!(size_text(500), "1 KiB");
         assert_eq!(size_text(3 * MIB / 2), "1.5 MiB");
         assert_eq!(size_text(GIB), "1.0 GiB");
+    }
+
+    /// 코어를 파이프로 넘기는 핸들러는 프로그램 이름으로 안내한다.
+    #[test]
+    fn piped_handler_is_named_in_the_message() {
         assert!(
             handler_message("|/usr/lib/systemd/systemd-coredump %P", "x")
                 .contains("(`systemd-coredump`)")

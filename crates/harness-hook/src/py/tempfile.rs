@@ -96,6 +96,7 @@ fn random_name() -> String {
 mod tests {
     use super::*;
 
+    /// 없는 `TMPDIR` 후보는 건너뛰고, 다음 후보 `TEMP` 는 `.` 조각을 접어 돌려준다.
     #[test]
     fn skips_missing_and_normalizes() {
         let env = Env::from_pairs([("TMPDIR", "/no/such/dir"), ("TEMP", "/tmp/./")]);

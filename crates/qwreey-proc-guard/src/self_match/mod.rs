@@ -392,6 +392,7 @@ mod tests {
         deny_text(&hits(cmd)).is_some()
     }
 
+    /// pgrep/pkill 을 `-f` 패턴으로 기다림 반복문 조건에 쓰면 막는다.
     #[test]
     fn loops_are_denied() {
         for cmd in [
@@ -407,15 +408,28 @@ mod tests {
         }
     }
 
+    /// 반복문 밖의 pkill 은 막지 않고 알림 한 건만 남긴다.
     #[test]
-    fn outside_loops_is_a_notice() {
+    fn pkill_outside_loops_is_a_notice() {
         let h = hits("pkill -9 -f 'node server.js'");
+
         assert!(deny_text(&h).is_none() && h[0].tool == "pkill");
+    }
+
+    /// 기다림 조건이 아닌 반복문 안이나 뒤의 pgrep 은 막지 않는다.
+    #[test]
+    fn non_waiting_loops_do_not_deny() {
         assert!(!denied("for i in 1 2; do pgrep -f job; done"));
         assert!(!denied("while false; do :; done; pgrep -f job"));
+    }
+
+    /// 파이프 앞의 pgrep 은 호출 한 건으로 센다.
+    #[test]
+    fn piped_pgrep_is_one_hit() {
         assert_eq!(hits("pgrep -fl worker | wc -l").len(), 1);
     }
 
+    /// `[t]est` 꼴 패턴, `-x`, 변수, 따옴표 속 글, 문서 본문은 자기 자신과 맞지 않아 통과한다.
     #[test]
     fn safe_forms_pass() {
         for cmd in [
@@ -431,11 +445,15 @@ mod tests {
         }
     }
 
+    /// python 이 처리하지 못하는 되풀이 수는 훅을 멈춘다.
     #[test]
-    fn overflowing_pattern_stops_the_hook() {
+    fn overflowing_repeat_count_stops_the_hook() {
         assert_eq!(find("pgrep -f 'a{99999999999}'"), Err(PatternOverflow));
+    }
 
-        // python 은 깊은 중첩에서 RecursionError 로 아무것도 내지 않는다. 2만 겹도 스택을 넘지 않는다
+    /// 깊은 중첩은 python 이 RecursionError 로 아무것도 내지 않으니 멈추고, 2만 겹도 스택을 넘지 않는다.
+    #[test]
+    fn deeply_nested_pattern_stops_the_hook() {
         for depth in [600, 20_000] {
             let p = format!("{}x{}", "(?:".repeat(depth), ")".repeat(depth));
             let cmd = format!("while pgrep -f '{p}'; do sleep 1; done");
@@ -443,30 +461,52 @@ mod tests {
         }
     }
 
+    /// 범위 플래그, `(?x)`, `\N{...}` 는 python 이 읽고 명령에 맞지 않아 통과하니 막지 않는다.
     #[test]
-    fn patterns_python_reads_but_we_do_not_never_deny() {
-        // 범위 플래그, (?x), \N{...}: python 은 읽고 명령에 맞지 않아 통과. 글자 비교로 짐작하면 늘 맞아 막았었다
+    fn python_only_syntax_never_denies() {
         for p in ["(?i:x)y", "(?x)a b", "\\N{EM DASH}", "(?-i:a)b"] {
             let cmd = format!("while pgrep -f '{p}'; do sleep 1; done");
             assert!(hits(&cmd).is_empty(), "{p}");
         }
+    }
 
-        // 큰 되풀이 수는 이제 옮긴다: 명령에 맞지 않으니 통과
+    /// 큰 되풀이 수도 읽어 옮기고, 명령에 맞지 않으니 통과한다.
+    #[test]
+    fn large_repeat_counts_are_read_and_pass() {
         for p in ["x{2000}", "(?:x{500}){500}"] {
             let cmd = format!("while pgrep -f '{p}'; do sleep 1; done");
             assert!(hits(&cmd).is_empty(), "{p}");
         }
+    }
 
-        // python 3.14 의 \z
+    /// python 3.14 의 `\z` 도 읽어 막는다.
+    #[test]
+    fn python_314_end_anchor_is_read() {
         assert!(denied("while pgrep -f 'done\\z'; do sleep 1; done"));
     }
 
+    /// `bracket` 은 첫 글자를 대괄호로 감싼 패턴을 권하고, 글자나 숫자로 시작하지 않으면 예시를 쓴다.
     #[test]
-    fn helpers_follow_python() {
+    fn bracket_suggests_a_bracketed_pattern() {
         assert_eq!(bracket("test"), "[t]est");
         assert_eq!(bracket("-x"), "[t]est-delegate");
+    }
+
+    /// `short` 는 60 자가 넘는 글을 57 자와 `...` 로 줄인다.
+    #[test]
+    fn short_cuts_long_text() {
         assert_eq!(short(&"a".repeat(61)), format!("{}...", "a".repeat(57)));
+    }
+
+    /// `unquote` 는 여는 따옴표만 있어도 앞뒤 한 글자씩 뗀다(python 슬라이스).
+    #[test]
+    fn unquote_trims_one_char_each_side() {
         assert_eq!(unquote("\"abc"), "ab");
+    }
+
+    /// `resolve` 는 같은 명령에서 대입한 변수를 펼치고, 모르는 변수가 있으면 없음이다.
+    #[test]
+    fn resolve_expands_known_variables_only() {
         assert_eq!(resolve("${A}x$B", "A=1 B='2'").as_deref(), Some("1x2"));
         assert_eq!(resolve("$C", "A=1"), None);
     }
@@ -487,7 +527,8 @@ mod tests {
             "pgrepx y pgrep-x y pgreppgrep x x/pgrep/pgrep y",
             "  pkill -f 'a' ; pgrep -f b",
             "\u{e9} pgrep x \u{e9}pgrep x",
-            // python 의 \s 는 U+3000, U+00A0, U+001C 도 공백이다(이름 앞과 뒤)
+            // Whitespace around the name
+            // python \s also counts U+3000, U+00A0 and U+001C
             "\u{3000}pgrep x pkill\u{a0}x \u{1c}pgrep\u{1c}x",
             "``pgrep x $(pkill",
         ] {

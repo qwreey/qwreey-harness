@@ -93,6 +93,7 @@ impl Drop for Fixture {
     }
 }
 
+/// 설정 기본값, 기록 폴더 표, 날짜, 경로 조각, 훅 상태 꼴이 python 판과 같다.
 #[test]
 fn tables_and_text_helpers_match_python() {
     let dates = [
@@ -184,7 +185,7 @@ fn tables_and_text_helpers_match_python() {
     ];
     let Some(py) = python(&cases) else { return };
 
-    // 설정 기본값과 사용자 전용 키
+    // Config defaults and user-only keys
     for key in Key::ALL {
         assert_eq!(
             py[0]["defaults"][key.name()],
@@ -196,14 +197,14 @@ fn tables_and_text_helpers_match_python() {
     user_only.sort_unstable();
     assert_eq!(py[0]["user_only"], json!(user_only));
 
-    // 기록 폴더 표: 판정 결과로 대조한다(Rust 표는 비공개)
+    // Records folder table, compared by verdict
     let kinds = py[1]["kinds"].as_object().expect("kinds");
     for (name, kind) in kinds {
         let path = format!("/r/.claude/{name}/x/a.md");
         assert_eq!(is_snapshot(&path, &[]), kind == "snapshot", "{name}");
     }
 
-    // 날짜, 경로 조각, 정수
+    // Dates, path pieces, integers
     let got: Vec<Value> = dates
         .iter()
         .map(|d| {
@@ -223,7 +224,7 @@ fn tables_and_text_helpers_match_python() {
         .collect();
     assert_eq!(py[6], json!(got));
 
-    // 기록 경로 판정, 훅 상태 꼴
+    // Record path verdicts, hook state shape
     let got: Vec<bool> = snapshots
         .as_array()
         .expect("list")
@@ -245,6 +246,7 @@ fn tables_and_text_helpers_match_python() {
     assert_eq!(py[9], json!(dumps(&value, EnsureAscii::No, Some(1))));
 }
 
+/// 경로 풀기와 저장소 루트 찾기(worktree, 서브모듈 꼴, 링크, 고리)가 python 판과 같다.
 #[test]
 fn resolve_and_project_root_match_python() {
     let fx = Fixture::new("root");
@@ -253,7 +255,7 @@ fn resolve_and_project_root_match_python() {
         std::os::unix::fs::symlink(target, fx.0.join(rel)).expect("symlink")
     };
 
-    // 본 저장소, worktree(상대, 절대 gitdir), 서브모듈 꼴, 링크, 고리
+    // Main repo, worktrees, submodule form, links, loops
     mk("main/.git/worktrees/wt");
     mk("main/sub/deep");
     std::fs::write(fx.0.join("main/.git/worktrees/wt/commondir"), "../..\n").expect("commondir");
@@ -332,6 +334,7 @@ fn resolve_and_project_root_match_python() {
     assert_eq!(py[1], json!(roots));
 }
 
+/// 모델에게 보이는 알림 글(대기 기록, 제안, 읽기 관문, 시작, 저장)이 python 판과 같다.
 #[test]
 fn model_facing_text_matches_python() {
     let pending = json!([

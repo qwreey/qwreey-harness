@@ -347,18 +347,35 @@ fn random_suffix() -> String {
 mod tests {
     use super::*;
 
+    /// 저장 폴더는 저장소 키로, 훅 상태 파일은 그 아래 `.state/` 에 둔다.
     #[test]
-    fn paths_follow_pathlib() {
+    fn store_dir_and_hook_state_path() {
         let store = Store::new("/r/x.y".to_owned(), "/h/");
+
         assert_eq!(store.dir, "/h/-r-x-y");
         assert_eq!(
             store.hstate_path("s").unwrap(),
             "/h/-r-x-y/.state/s.hook.json"
         );
+    }
+
+    /// 저장소 밖을 가리키는 세션 id 는 상태 경로를 만들지 않는다.
+    #[test]
+    fn unsafe_session_id_has_no_state_path() {
+        let store = Store::new("/r/x.y".to_owned(), "/h/");
+
         assert!(store.hstate_path("../x").is_err());
+    }
+
+    /// 기록 경로는 겹친 `/` 를 하나로 하고 `.md` 를 붙인다.
+    #[test]
+    fn record_path_collapses_slashes() {
+        let store = Store::new("/r/x.y".to_owned(), "/h/");
+
         assert_eq!(store.record_path("a//b"), "/h/-r-x-y/records/a/b.md");
     }
 
+    /// 섞인 종류의 `created` 값도 python 의 정렬 순서로 나온다.
     #[test]
     fn sorts_created_like_python() {
         let values = [
@@ -378,7 +395,7 @@ mod tests {
             .collect();
         sort_by_created(&mut items);
 
-        // python: sorted([...], key=created_order)
+        // Compare against python sorted([...], key=created_order)
         let got: Vec<String> = items
             .iter()
             .map(|p| p.created.scalar_str().unwrap_or_else(|| "[]".into()))
@@ -396,7 +413,8 @@ mod tests {
                 "nan",
                 "None",
                 "[]"
-            ]
+            ],
+            "strings first, then numbers by value, then NaN, None and the rest"
         );
     }
 }

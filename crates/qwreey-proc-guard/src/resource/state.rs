@@ -267,30 +267,60 @@ pub fn secs(t: SystemTime) -> f64 {
 mod tests {
     use super::*;
 
+    /// `join` 은 posixpath 처럼 겹친 `/` 를 만들지 않는다.
     #[test]
-    fn paths_follow_posixpath() {
+    fn join_follows_posixpath() {
         assert_eq!(join("/a", "b"), "/a/b");
         assert_eq!(join("/a/", "b"), "/a/b");
+    }
+
+    /// `dirname` 은 posixpath 처럼 루트와 `//` 를 그대로 둔다.
+    #[test]
+    fn dirname_follows_posixpath() {
         assert_eq!(dirname("/a/b"), "/a");
         assert_eq!(dirname("/a"), "/");
         assert_eq!(dirname("a"), "");
         assert_eq!(dirname("//a//b"), "//a");
     }
 
+    /// 세션 키는 세션 id 의 sha256 앞 16 자리다.
     #[test]
-    fn keys_and_pre_paths() {
+    fn session_key_is_a_sha256_prefix() {
         let sid = Value::Str("abc".into());
+
         assert_eq!(session_key(Some(&sid)).unwrap(), "ba7816bf8f01cfea");
+    }
+
+    /// 짝 없는 서로게이트가 든 세션 id 는 python 처럼 인코딩에 실패한다.
+    #[test]
+    fn session_key_fails_on_lone_surrogate() {
         let lone = harness_hook::py::surrogate::placeholder(0xDCFF).unwrap();
+
         assert!(session_key(Some(&Value::Str(format!("s{lone}")))).is_err());
+    }
+
+    /// 세션 id 가 없으면 빈 글과 같은 키다.
+    #[test]
+    fn missing_session_id_keys_like_empty() {
         assert_eq!(
             session_key(None).unwrap(),
             session_key(Some(&Value::Str(String::new()))).unwrap()
         );
+    }
+
+    /// 도구 호출 id 는 글자와 숫자만 남기고, 남는 것이 없으면 없음이며, 정수는 글로 쓴다.
+    #[test]
+    fn tool_use_key_keeps_only_safe_characters() {
         let tid = Value::Str("../../x y".into());
+
         assert_eq!(tool_use_key(Some(&tid)).as_deref(), Some("xy"));
         assert_eq!(tool_use_key(Some(&Value::Str("../".into()))), None);
         assert_eq!(tool_use_key(Some(&Value::Int(12))).as_deref(), Some("12"));
+    }
+
+    /// 명령 앞 기록 경로는 `pre/<세션 키>-<도구 호출 키>.json` 이다.
+    #[test]
+    fn pre_path_joins_both_keys() {
         assert_eq!(pre_path("/d", "k", "xy"), "/d/pre/k-xy.json");
     }
 }

@@ -196,7 +196,7 @@ fn classify_and_hits_match_python() {
         "README.md",
         "\n",
         "x",
-        // 이어 붙이면 실제로 있는 경로가 되는 조각
+        // Pieces that join into a real path
         " ../other/src/engine.py",
         " other/src/engine.py",
         " test/README.md",
@@ -290,7 +290,7 @@ fn classify_and_hits_match_python() {
         );
     }
 
-    // 글 모음이 갈래마다 충분히 닿았는지(대조가 빈 답끼리만 같지 않게)
+    // Check every kind is reached enough, so the comparison is not only empty answers
     let kinds = |k: Value| rust_classify.iter().filter(|v| v[0] == k).count();
     let found = rust_hits
         .iter()
@@ -316,7 +316,7 @@ fn scripts_dir() -> String {
         .to_owned()
 }
 
-// python3 이 없으면 HARNESS_HOOK_PARITY_SKIP=1 일 때만 건너뛴다
+// Skip only when the env switch is set and python3 is missing
 fn python(request: &Value) -> Option<Value> {
     let spawned = Command::new("python3")
         .args(["-I", "-X", "utf8", "-c", DRIVER])

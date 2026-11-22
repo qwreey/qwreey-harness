@@ -92,10 +92,12 @@ pub fn from_os(path: &std::ffi::OsStr) -> String {
 mod tests {
     use super::*;
 
+    /// UTF-8 이 아닌 바이트는 surrogateescape 자리표로 풀리고, 다시 인코딩하면 같은 바이트다.
     #[test]
     fn os_bytes_round_trip_like_surrogateescape() {
         let raw = b"caf\xe9/\xff/core.5\xe2\x82";
         let text = decode_os(raw);
+
         assert!(
             text.starts_with("caf")
                 && text.ends_with(&format!(
@@ -105,7 +107,17 @@ mod tests {
                 ))
         );
         assert_eq!(encode_os(&text).unwrap(), raw);
+    }
+
+    /// surrogateescape 범위 밖의 서로게이트(`U+D800`)는 인코딩하지 못한다.
+    #[test]
+    fn encode_os_rejects_other_surrogates() {
         assert_eq!(encode_os(&placeholder(0xD800).unwrap().to_string()), None);
+    }
+
+    /// 올바른 UTF-8 글은 그대로 풀린다.
+    #[test]
+    fn decode_os_keeps_valid_utf8() {
         assert_eq!(decode_os("한글".as_bytes()), "한글");
     }
 }

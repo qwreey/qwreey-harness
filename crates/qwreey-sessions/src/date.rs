@@ -136,17 +136,38 @@ fn digits(s: &[u8], at: usize, n: usize) -> Option<i64> {
 mod tests {
     use super::*;
 
+    /// 날짜 번호는 0001-01-01 이 1 이다(python `date.toordinal`).
     #[test]
-    fn ordinals_and_iso_forms() {
+    fn ordinals_count_from_year_one() {
         assert_eq!(Date::new(1, 1, 1), Some(Date(1)));
         assert_eq!(Date::new(2026, 11, 10).map(|d| d.0), Some(739930));
+    }
+
+    /// 달력 날짜 글은 대시 있는 꼴, 없는 꼴, 뒤에 시각이 붙은 꼴을 받는다.
+    #[test]
+    fn iso_calendar_forms_are_accepted() {
         let want = Date::new(2026, 11, 10);
+
         for ok in ["2026-11-10", "20261110", "20261110T1"] {
             assert_eq!(Date::fromisoformat(ok), want, "{ok}");
         }
+    }
+
+    /// 주 날짜 글(`W01-1`, `W01`)은 ISO 주 규칙으로 읽는다.
+    #[test]
+    fn iso_week_forms_follow_week_rules() {
         assert_eq!(Date::fromisoformat("2026-W01-1"), Date::new(2025, 12, 29));
         assert_eq!(Date::fromisoformat("2026W01"), Date::new(2025, 12, 29));
-        assert_eq!(Date::fromisoformat("2026-W53-1"), Date::new(2026, 12, 28));
+        assert_eq!(
+            Date::fromisoformat("2026-W53-1"),
+            Date::new(2026, 12, 28),
+            "2026 has 53 ISO weeks"
+        );
+    }
+
+    /// 자릿수가 모자라거나 없는 날짜, 범위 밖 주와 요일, 뒤 공백은 거절한다.
+    #[test]
+    fn malformed_iso_dates_are_rejected() {
         for bad in [
             "2026-11-1",
             "2026-02-30",

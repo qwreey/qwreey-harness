@@ -124,18 +124,32 @@ pub fn is_snapshot(path: &str, skip_dirs: &[String]) -> bool {
 mod tests {
     use super::*;
 
+    /// audit, handoff 같은 스냅숏 폴더 안의 파일만 스냅숏이다.
     #[test]
-    fn snapshots_and_under() {
+    fn snapshot_folders_are_recognized() {
         assert!(is_snapshot("/r/.claude/audit/1/a.md", &[]));
         assert!(is_snapshot("/r/.claude/scopes/x/y/handoff/a.md", &[]));
         assert!(!is_snapshot("/r/.claude/plan/a.md", &[]));
-        assert!(!is_snapshot("/r/.claude/audit", &[]));
+        assert!(
+            !is_snapshot("/r/.claude/audit", &[]),
+            "the folder itself holds no file"
+        );
+    }
+
+    /// 사용자 홈의 `.claude` 아래는 스냅숏 이름이어도 스냅숏이 아니다.
+    #[test]
+    fn user_claude_dir_is_never_a_snapshot() {
         assert!(!is_snapshot(
             "/h/.claude/sessions/a",
             &["/h/.claude/".to_owned()]
         ));
+    }
+
+    /// `is_under` 는 폴더 경계로 비교하고 루트는 아무것도 품지 않는다.
+    #[test]
+    fn under_compares_whole_path_parts() {
         assert!(is_under("/a/b", "/a/"));
-        assert!(!is_under("/ab", "/a"));
+        assert!(!is_under("/ab", "/a"), "ab is a sibling of a, not inside");
         assert!(!is_under("/x", "/"));
     }
 }

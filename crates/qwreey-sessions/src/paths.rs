@@ -125,14 +125,30 @@ pub fn short_home(path: &str, env: &Env) -> String {
 mod tests {
     use super::*;
 
+    /// 외부 저장소 키는 영숫자가 아닌 코드 포인트 하나마다 `-` 가 된다.
     #[test]
-    fn keys_parents_and_home() {
-        assert_eq!(project_key("/a/b\u{d55c}.c"), "-a-b--c");
+    fn project_key_dashes_each_other_char() {
+        assert_eq!(
+            project_key("/a/b\u{d55c}.c"),
+            "-a-b--c",
+            "the Hangul char is one code point, so one dash"
+        );
+    }
+
+    /// `parent` 와 `name` 은 pathlib 처럼 마지막 조각을 떼고 읽는다.
+    #[test]
+    fn parent_and_name_follow_pathlib() {
         assert_eq!(parent("/a/b"), "/a");
         assert_eq!(parent("/a"), "/");
         assert_eq!(parent("/"), "/");
         assert_eq!(name("/a/.git"), ".git");
+    }
+
+    /// `short_home` 은 홈 자신과 그 아래만 `~` 로 줄이고, 이름만 닮은 경로는 둔다.
+    #[test]
+    fn short_home_shortens_only_under_home() {
         let env = Env::from_pairs([("HOME", "/h")]);
+
         assert_eq!(short_home("/h/x", &env), "~/x");
         assert_eq!(short_home("/hx", &env), "/hx");
         assert_eq!(short_home("/h", &env), "~");

@@ -198,7 +198,7 @@ mod tests {
         assert!(!doc.get("j").unwrap().truthy());
         assert!(doc.get("k").unwrap().truthy());
 
-        // `0x_1` 은 16진이 아니다: python 은 0 을 읽고 나머지에서 거절한다
+        // `0x_1` is not hex: python reads 0, then rejects the rest
         assert!(loads("e = 0x_1").is_err());
     }
 }

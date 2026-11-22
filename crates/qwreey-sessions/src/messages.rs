@@ -249,6 +249,7 @@ pub fn record_read_gate(kb: u64, gate_kb: &str, path: &str, coderag: bool) -> St
 mod tests {
     use super::*;
 
+    /// 같은 수준의 조각은 처음 나온 수준 자리에 모이고, 빈 조각은 버린다.
     #[test]
     fn wrap_parts_keeps_first_seen_order() {
         let parts = vec![
@@ -257,11 +258,17 @@ mod tests {
             (Level::Info, "c".to_owned()),
             (Level::Warn, String::new()),
         ];
+
         assert_eq!(
             wrap_parts(&parts, None),
             "<harness-hook name=\"session-log\" level=\"info\">\na\nc\n</harness-hook>\n\
              <harness-hook name=\"session-log\" level=\"warn\">\nb\n</harness-hook>"
         );
+    }
+
+    /// 공백뿐인 본문은 태그 없이 빈 글이다.
+    #[test]
+    fn blank_body_wraps_to_nothing() {
         assert_eq!(wrap(" \n", Level::Info, None), "");
     }
 }

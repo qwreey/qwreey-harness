@@ -121,7 +121,7 @@ fn toml_parity() {
         assert_eq!(&got, want, "{text:?}");
     }
 
-    // 받은 글이 너무 적으면 대조가 값 읽기를 보지 못한 것이다
+    // Too few texts accepted means the comparison never saw value reading
     assert!(accepted > 300, "only {accepted} accepted texts");
 }
 

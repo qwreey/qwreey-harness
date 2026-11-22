@@ -446,14 +446,27 @@ pub fn find_cores(
 mod tests {
     use super::*;
 
+    /// `%e` 와 `%p` 자리가 있는 core_pattern 은 그 꼴의 이름만 맞는다.
     #[test]
     fn name_regex_follows_core_pattern() {
         let r = name_regex("core.%e.%p", false);
+
         assert!(r.match_start("core.luau-lsp.123").is_some());
         assert!(r.match_start("core.txt.x").is_none() && r.match_start("src").is_none());
+    }
+
+    /// core_uses_pid 가 켜져 있으면 `core` 와 `core.<숫자>` 도 늘 맞는다.
+    #[test]
+    fn name_regex_always_takes_plain_core_names() {
         let r = name_regex("%e.core", true);
+
         assert!(r.match_start("prog.core.12").is_some() && r.match_start("core").is_some());
         assert!(r.match_start("core.7").is_some());
+    }
+
+    /// 이름이 `core` 로 시작할 뿐인 파일은 맞지 않는다.
+    #[test]
+    fn name_regex_rejects_names_that_only_start_with_core() {
         assert!(
             name_regex("core", true)
                 .match_start("core_test.py")
@@ -461,6 +474,7 @@ mod tests {
         );
     }
 
+    /// since 가 초 중간이어도 초 단위 mtime 은 그 초의 처음부터 받고, 나노초 mtime 은 정확히 가른다.
     #[test]
     fn whole_second_mtimes_count_from_the_pre_second() {
         let since = 5 * NS + 300;

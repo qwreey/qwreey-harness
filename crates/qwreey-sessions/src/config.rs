@@ -182,18 +182,53 @@ pub fn home_claude_dir(env: &Env) -> String {
 mod tests {
     use super::*;
 
-    #[test]
-    fn env_beats_layers_and_switches_read_words() {
+    /// 레이어 값과 환경 값이 겹치는 설정에서 쓸 레이어와 환경을 만든다.
+    fn sample() -> (BTreeMap<String, String>, Env) {
         let layers = BTreeMap::from([
             ("SESSION_LOG_GROW_KB".to_owned(), "64".to_owned()),
             ("SESSION_LOG".to_owned(), " OFF ".to_owned()),
         ]);
         let env = Env::from_pairs([("SESSION_LOG_GROW_KB", "x"), ("HOME", "/h")]);
+        (layers, env)
+    }
+
+    /// 환경 값이 레이어 값을 이기고, 숫자가 아니면 기본값으로 돌아간다.
+    #[test]
+    fn env_beats_layer_and_bad_number_falls_back() {
+        let (layers, env) = sample();
         let config = Config::from_layers(&layers, &env);
-        assert_eq!(config.num(Key::GrowKb), 512.0);
-        assert!(config.disabled());
-        assert_eq!(config.home(&env), "/h/.local/share/session-log");
+
+        assert_eq!(
+            config.num(Key::GrowKb),
+            512.0,
+            "x is not a number, so the default"
+        );
+    }
+
+    /// 끄기 스위치는 앞뒤 공백과 대소문자를 무시하고 읽는다.
+    #[test]
+    fn off_switch_ignores_padding_and_case() {
+        let (layers, env) = sample();
+
+        assert!(Config::from_layers(&layers, &env).disabled());
+    }
+
+    /// 기록 폴더 기본값은 HOME 아래 `.local/share/session-log` 다.
+    #[test]
+    fn home_defaults_under_user_share() {
+        let (layers, env) = sample();
+
+        assert_eq!(
+            Config::from_layers(&layers, &env).home(&env),
+            "/h/.local/share/session-log"
+        );
+    }
+
+    /// 기록 폴더 설정은 공백을 걷고 `~` 를 풀고 끝 `/` 를 뗀다.
+    #[test]
+    fn home_override_is_trimmed_and_expanded() {
         let env = Env::from_pairs([("SESSION_LOG_HOME", " ~/s/ "), ("HOME", "/h")]);
+
         assert_eq!(
             Config::from_layers(&BTreeMap::new(), &env).home(&env),
             "/h/s"

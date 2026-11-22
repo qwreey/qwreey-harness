@@ -62,6 +62,7 @@ pub fn splitlines(s: &str) -> Vec<&str> {
 mod tests {
     use super::*;
 
+    /// `splitlines` 는 python 처럼 끝 줄바꿈 뒤에 빈 줄을 만들지 않고 유니코드 줄 경계로 나눈다.
     #[test]
     fn splitlines_matches_python_examples() {
         assert_eq!(splitlines(""), Vec::<&str>::new());
@@ -73,9 +74,15 @@ mod tests {
         assert_eq!(splitlines("\n\n"), vec!["", ""]);
     }
 
+    /// `strip` 은 python 이 공백으로 보는 문자(U+001F, U+3000, U+0085)를 뗀다.
     #[test]
-    fn strip_and_split_use_python_spaces() {
+    fn strip_uses_python_spaces() {
         assert_eq!(strip("\u{1f}\u{3000} a b\u{85}"), "a b");
+    }
+
+    /// `split_whitespace` 는 python 이 공백으로 보는 문자(U+00A0 포함)로 나눈다.
+    #[test]
+    fn split_whitespace_uses_python_spaces() {
         assert_eq!(
             split_whitespace(" choom\t-n\u{a0}1000 ").collect::<Vec<_>>(),
             vec!["choom", "-n", "1000"]

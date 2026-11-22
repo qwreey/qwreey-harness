@@ -393,27 +393,43 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    /// `ensure_ascii=True` 는 ASCII 밖 글자를 `\u` escape 로 쓰고, astral 글자는 서로게이트 쌍으로 쓴다.
     #[test]
-    fn matches_python_dumps_examples() {
+    fn ensure_ascii_escapes_like_python_dumps() {
         let v = json!({"a": "\u{7f}\u{e9}\u{1f600}\u{1f}", "b": [1, 2.5, true, null]});
+
         assert_eq!(
             to_string(&v, EnsureAscii::Yes).unwrap(),
             r#"{"a": "\u007f\u00e9\ud83d\ude00\u001f", "b": [1, 2.5, true, null]}"#
         );
+    }
+
+    /// `ensure_ascii=False` 는 ASCII 밖 글자를 그대로 쓰고 제어 문자만 escape 한다.
+    #[test]
+    fn non_ascii_is_kept_when_not_ensured() {
+        let v = json!({"a": "\u{7f}\u{e9}\u{1f600}\u{1f}", "b": [1, 2.5, true, null]});
+
         assert_eq!(
             to_string(&v, EnsureAscii::No).unwrap(),
             "{\"a\": \"\u{7f}\u{e9}\u{1f600}\\u001f\", \"b\": [1, 2.5, true, null]}"
         );
     }
 
+    /// `indent=1` 은 한 줄에 키나 항목 하나씩 쓰고 빈 객체와 목록은 `{}`, `[]` 로 둔다.
     #[test]
     fn indented_matches_python_dumps() {
         // python: json.dumps({"a": [1, {}], "b": {"c": []}, "d": "é"}, ensure_ascii=False, indent=1)
         let v = json!({"a": [1, {}], "b": {"c": []}, "d": "\u{e9}"});
+
         assert_eq!(
             to_string_indented(&v, EnsureAscii::No, 1).unwrap(),
             "{\n \"a\": [\n  1,\n  {}\n ],\n \"b\": {\n  \"c\": []\n },\n \"d\": \"\u{e9}\"\n}"
         );
+    }
+
+    /// 빈 객체는 들여쓰기가 있어도 `{}` 한 덩어리다.
+    #[test]
+    fn indented_empty_object_stays_on_one_line() {
         assert_eq!(
             to_string_indented(&json!({}), EnsureAscii::No, 1).unwrap(),
             "{}"
@@ -435,6 +451,7 @@ mod tests {
         );
     }
 
+    /// 짝 없는 서로게이트 자리표는 python 처럼 `\udcff` escape 로 쓴다.
     #[test]
     fn lone_surrogates_render_like_python() {
         // python: json.dumps("a\udcff\ud800b") == '"a\\udcff\\ud800b"'

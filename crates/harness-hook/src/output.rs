@@ -126,16 +126,27 @@ pub fn exit_block(text: &str) -> ExitCode {
 mod tests {
     use super::*;
 
+    /// 거절 출력은 python dict 의 키 순서로 쓴다.
     #[test]
-    fn renders_python_dict_order() {
+    fn deny_renders_in_python_key_order() {
         assert_eq!(
             HookOutput::deny("r").render(EnsureAscii::Yes),
             r#"{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "r"}}"#
         );
+    }
+
+    /// 문맥 출력은 `EnsureAscii::No` 이면 ASCII 밖 글자를 그대로 쓴다.
+    #[test]
+    fn context_keeps_non_ascii_when_asked() {
         assert_eq!(
             HookOutput::context("PostToolUse", "\u{e9}").render(EnsureAscii::No),
             "{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"\u{e9}\"}}"
         );
+    }
+
+    /// 막기 출력은 `decision` 과 `reason` 두 키다.
+    #[test]
+    fn block_renders_decision_and_reason() {
         assert_eq!(
             HookOutput::block("x").render(EnsureAscii::Yes),
             r#"{"decision": "block", "reason": "x"}"#

@@ -15,11 +15,12 @@ use serde_json::json;
 const TRICKY: &str =
     "q\"b\\s/n\nr\rt\tb\u{8}f\u{c}z\u{0}u\u{1f}d\u{7f}e\u{e9}k\u{d55c}x\u{1f600}l\u{2028}m\u{ffff}";
 
+/// 공백 처리, 줄 나누기, float 표기, `~` 풀기, pathlib 글이 python 판과 같다.
 #[test]
 fn text_and_numbers_match_python() {
     let no_env = Vec::new();
 
-    // 공백 문자 전체, 줄 나누기
+    // All whitespace chars, line splitting
     let spaces: Vec<u32> = (0..=0x10ffff_u32)
         .filter_map(char::from_u32)
         .filter(|c| is_space(*c))
@@ -34,7 +35,7 @@ fn text_and_numbers_match_python() {
         "\u{d55c}\u{3000}x\n\u{1f}",
     ];
 
-    // float 표기, 정수 값 float, 30초 칸
+    // Float spellings, integral floats, 30 second slots
     let floats = [
         1.5,
         100.0,
@@ -77,7 +78,7 @@ fn text_and_numbers_match_python() {
     let bits = |xs: &[f64]| xs.iter().map(|x| x.to_bits()).collect::<Vec<_>>();
     let random = random_floats(5000);
 
-    // ~ 풀기와 pathlib 문자열
+    // Tilde expansion and pathlib strings
     let tilde = ["~", "~/", "~/a", "~nobody-here/a", "a~", "~//x"];
     let homes = ["/home/u/", "", "/"];
     let paths = [
@@ -115,7 +116,7 @@ fn text_and_numbers_match_python() {
         return;
     };
 
-    // Rust 쪽 같은 순서로
+    // Rust side in the same order
     let mut want = vec![json!(spaces)];
     want.extend(texts.iter().map(|t| json!(splitlines(t))));
     want.push(json!(
@@ -153,7 +154,7 @@ fn text_and_numbers_match_python() {
     }
 }
 
-// 고정 씨앗 splitmix64 로 고른 유한 float(모든 지수 대역), 2 의 거듭제곱 언저리, 짧은 십진수
+// Finite floats from a fixed splitmix64 seed (all exponents), near powers of 2, short decimals
 fn random_floats(count: usize) -> Vec<f64> {
     let mut state = 0x9e37_79b9_7f4a_7c15_u64;
     let mut next = move || {
@@ -180,13 +181,14 @@ fn random_floats(count: usize) -> Vec<f64> {
     out
 }
 
+/// `json.dumps`, 태그, 훅 출력 JSON 이 python 판과 같다.
 #[test]
 fn json_and_tags_match_python() {
     let tmp = common::TempDir::new("tags");
     let salt = tmp.write("salt", "00".repeat(32));
     let env = pairs(&[("QWREEY_HARNESS_SALT_FILE", &salt.to_string_lossy())]);
 
-    // json.dumps: 까다로운 문자열, 중첩, 숫자
+    // json.dumps: tricky strings, nesting, numbers
     let values = [
         json!(TRICKY),
         json!({"z": [1, -2, 2.5, 1e-7, 1e16, true, false, null], "a": {"k": TRICKY}, TRICKY: ""}),
@@ -200,7 +202,7 @@ fn json_and_tags_match_python() {
         }
     }
 
-    // 태그와 훅 출력 JSON
+    // Tags and hook output JSON
     let tags = [
         (
             "heavy-proc-guard",
@@ -227,7 +229,7 @@ fn json_and_tags_match_python() {
         return;
     };
 
-    // Rust 쪽 같은 순서로
+    // Rust side in the same order
     let mut want = Vec::new();
     for value in &values {
         want.push(json!(to_string(value, EnsureAscii::Yes).unwrap()));

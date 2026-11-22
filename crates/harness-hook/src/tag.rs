@@ -94,6 +94,7 @@ impl Notices {
 mod tests {
     use super::*;
 
+    /// 알림은 수준마다 태그 하나로 묶고, 경고를 먼저, 같은 수준은 넣은 순서로 쓴다.
     #[test]
     fn renders_one_tag_per_level_in_order() {
         let n = Nonce::from_salt("00".repeat(32).as_str(), "abc");
@@ -106,7 +107,17 @@ mod tests {
             "<harness-hook name=\"x\" level=\"warn\" nonce=\"39596342ed0e\">\nw1\n</harness-hook>\n\
              <harness-hook name=\"x\" level=\"info\" nonce=\"39596342ed0e\">\ni1\ni2\n</harness-hook>"
         );
+    }
+
+    /// 알림이 없으면 빈 글이다.
+    #[test]
+    fn no_notices_render_nothing() {
         assert_eq!(Notices::new().render("x", None), "");
+    }
+
+    /// 플러그인 블록은 nonce 가 없으면 이름만 단 태그로 쓴다.
+    #[test]
+    fn plugin_block_without_nonce_has_only_the_name() {
         assert_eq!(
             plugin_block("q", None, "t"),
             "<plugin name=\"q\">\nt\n</plugin>"

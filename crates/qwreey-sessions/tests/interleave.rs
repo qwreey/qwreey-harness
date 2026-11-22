@@ -412,6 +412,7 @@ fn play(tag: &str, pick: impl Fn(usize) -> Side) -> (Vec<(i32, String)>, BTreeMa
     (outputs, sb.state_files())
 }
 
+/// 모두 python, 번갈아, 모두 Rust 로 돌린 사건 열이 같은 출력과 같은 상태 파일을 남긴다.
 #[test]
 fn python_and_rust_interleave_on_the_same_state() {
     let (py_out, py_state) = play("py", |_| Side::Python);
@@ -421,7 +422,7 @@ fn python_and_rust_interleave_on_the_same_state() {
     );
     let (rust_out, rust_state) = play("rust", |_| Side::Rust);
 
-    // 사건 열이 시험할 것을 실제로 거치는가
+    // Check the sequence reaches every notice
     let joined: String = py_out.iter().map(|(_, o)| o.as_str()).collect();
     for want in [
         "saved 1 new section to",
@@ -551,7 +552,7 @@ fn odd_inputs_match_python() {
         ),
     ];
 
-    // 경우마다 새 시험 폴더 둘에서 python 과 Rust
+    // Run each case in fresh sandboxes for python and Rust
     for (i, (script, event, raw)) in cases.iter().enumerate() {
         let mut outputs = Vec::new();
         for side in [Side::Python, Side::Rust] {
@@ -621,7 +622,7 @@ type EdgeCase = (&'static str, &'static str, Vec<u8>, Option<fn(&Sandbox)>);
 /// python 만 읽던 입력(UTF-8 이 아닌 바이트, NaN, 깊은 중첩), 파일 이름에 쓸 수 없는 세션 id, 꼴이 어긋난 상태(빈 rids, 섞인 created).
 #[test]
 fn json_ids_and_state_edges_match_python() {
-    // 입력 조각
+    // Input pieces
     let commit = |sid: &str| {
         format!(r#"{{"session_id": {sid}, "tool_name": "Bash", "tool_input": {{"command": "git commit"}}}}"#)
             .into_bytes()
@@ -633,7 +634,7 @@ fn json_ids_and_state_edges_match_python() {
     );
     let post = br#"{"session_id": "s1", "tool_name": "Bash"}"#.to_vec();
 
-    // 경우들
+    // Cases
     let cases: Vec<EdgeCase> = vec![
         ("hook.py", "PreToolUse", b"{\"session_id\": \"s1\", \"tool_name\": \"Bash\", \"tool_input\": {\"command\": \"git commit \xff\"}}".to_vec(), None),
         ("hook.py", "PreToolUse", b"{\"session_id\": \"s\xff\", \"tool_name\": \"Bash\", \"tool_input\": {\"command\": \"git commit\"}}".to_vec(), None),
@@ -659,7 +660,7 @@ fn json_ids_and_state_edges_match_python() {
         ),
     ];
 
-    // 경우마다 새 시험 폴더 둘에서 python 과 Rust
+    // Run each case in fresh sandboxes for python and Rust
     for (i, (script, event, raw, before)) in cases.iter().enumerate() {
         let mut outputs = Vec::new();
         for side in [Side::Python, Side::Rust] {
@@ -700,7 +701,7 @@ fn worker_does_not_inherit_hook_fds() {
         "#!/bin/sh\nif [ -e /dev/fd/7 ]; then echo open; else echo closed; fi >> \"$SPAWN_LOG\"\n",
     );
 
-    // sh 가 fd 7 을 close-on-exec 없이 열고 훅 바이너리로 바뀐다
+    // Open fd 7 without close-on-exec, then exec the hook
     let input = json!({
         "session_id": "s1",
         "hook_event_name": "PostToolUse",
@@ -725,11 +726,11 @@ fn worker_does_not_inherit_hook_fds() {
         .write_all(input.to_string().as_bytes())
         .expect("write input");
 
-    // 쿨다운이 지났고 트랜스크립트가 자라 워커를 띄운다
+    // Cooldown passed and transcript grew, so a worker starts
     let out = child.wait_with_output().expect("hook output");
     assert!(out.status.success());
 
-    // 가짜 setsid 는 기다리지 않고 떼어 띄웠다: 적을 때까지 잠깐 기다린다
+    // Wait for the detached fake setsid to log
     let log = sb.path("spawn.log");
     for _ in 0..200 {
         if std::fs::read_to_string(&log).is_ok_and(|t| t.ends_with('\n')) {
