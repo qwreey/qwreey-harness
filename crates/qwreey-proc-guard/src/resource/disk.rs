@@ -268,8 +268,16 @@ mod tests {
         drop_gib: 2.0,
     };
 
+    /// 남은 공간을 읽고 `state` 를 갱신하며, 알릴 줄을 돌려준다.
+    fn low_lines(state: &mut Dict, free_gib: f64) -> Vec<String> {
+        findings(&[reading(free_gib, 100.0)], None, LIMITS, state, "x")
+            .unwrap()
+            .0
+    }
+
+    /// 한도 아래로 처음 내려가면 남은 양과 한도를 담은 경고 한 줄이 나온다.
     #[test]
-    fn low_is_warned_once_then_on_each_step() {
+    fn low_space_is_warned_with_numbers() {
         let mut state = Dict::new();
         let (lines, _) = findings(
             &[reading(3.0, 100.0)],
@@ -279,22 +287,42 @@ mod tests {
             "before this command",
         )
         .unwrap();
+
         assert_eq!(
             lines,
             [
                 "Low disk space before this command: /m has 3.0 GiB free (3.0% of 100.0 GiB; the warning starts below 10 GiB or 5%)."
             ]
         );
-        let (lines, _) = findings(&[reading(2.0, 100.0)], None, LIMITS, &mut state, "x").unwrap();
-        assert!(lines.is_empty());
-        let (lines, _) = findings(&[reading(0.9, 100.0)], None, LIMITS, &mut state, "x").unwrap();
-        assert_eq!(lines.len(), 1);
-        let (lines, _) = findings(&[reading(50.0, 100.0)], None, LIMITS, &mut state, "x").unwrap();
+    }
+
+    /// 같은 경고는 되풀이하지 않고, 마지막 경고보다 한 단계(2 GiB) 더 내려가야 다시 알린다.
+    #[test]
+    fn low_space_warns_again_only_a_step_lower() {
+        let mut state = Dict::new();
+        low_lines(&mut state, 3.0);
+
+        assert!(
+            low_lines(&mut state, 2.0).is_empty(),
+            "2.0 is less than a 2 GiB step below the 3.0 already warned"
+        );
+        assert_eq!(low_lines(&mut state, 0.9).len(), 1);
+    }
+
+    /// 공간이 한도 위로 돌아오면 경고 기록을 지운다.
+    #[test]
+    fn recovered_space_clears_the_warning_record() {
+        let mut state = Dict::new();
+        low_lines(&mut state, 3.0);
+
+        let lines = low_lines(&mut state, 50.0);
+
         assert!(lines.is_empty() && state.is_empty());
     }
 
+    /// 명령이 도는 동안 남은 공간이 한 단계 넘게 줄면 줄어든 양을 알리고 `du` 안내를 붙인다.
     #[test]
-    fn drop_is_warned_and_repeated_only_when_worse() {
+    fn space_drop_is_warned_with_advice() {
         let mut state = Dict::new();
         let before = Value::Dict(to_dict(&[reading(50.0, 100.0)]));
         let (lines, kinds) = findings(
@@ -310,6 +338,22 @@ mod tests {
             ["Free space on /m fell by 3.0 GiB while this command ran (now 47.0 GiB free)."]
         );
         assert!(kinds.contains("drop") && advice(&kinds).contains("du -sh"));
+    }
+
+    /// 같은 줄어듦은 되풀이하지 않는다(더 줄어야 다시 알린다).
+    #[test]
+    fn same_space_drop_is_not_repeated() {
+        let mut state = Dict::new();
+        let before = Value::Dict(to_dict(&[reading(50.0, 100.0)]));
+        findings(
+            &[reading(47.0, 100.0)],
+            Some(&before),
+            LIMITS,
+            &mut state,
+            "after",
+        )
+        .unwrap();
+
         let (lines, _) = findings(
             &[reading(47.0, 100.0)],
             Some(&before),
@@ -321,15 +365,23 @@ mod tests {
         assert!(lines.is_empty());
     }
 
+    /// 상태의 `disk` 기록이 dict 가 아니면 중단한다.
     #[test]
-    fn malformed_records_abort() {
+    fn malformed_state_record_aborts() {
         let mut state = Dict::new();
         state.insert("disk", Value::List(vec![]));
+
         assert_eq!(
             findings(&[reading(50.0, 100.0)], None, LIMITS, &mut state, "x"),
             Err(Abort)
         );
+    }
+
+    /// 명령 앞 기록이 dict 가 아니면 중단한다.
+    #[test]
+    fn malformed_before_record_aborts() {
         let before = Value::Str("x".into());
+
         assert_eq!(
             findings(
                 &[reading(50.0, 100.0)],
@@ -340,6 +392,13 @@ mod tests {
             ),
             Err(Abort)
         );
+    }
+
+    /// 읽은 마운트가 없으면 명령 앞 기록이 망가져도 중단하지 않는다.
+    #[test]
+    fn malformed_before_record_is_ignored_without_readings() {
+        let before = Value::Str("x".into());
+
         assert!(findings(&[], Some(&before), LIMITS, &mut Dict::new(), "x").is_ok());
     }
 }

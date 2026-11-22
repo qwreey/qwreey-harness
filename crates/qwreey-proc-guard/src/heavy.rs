@@ -277,6 +277,7 @@ mod tests {
         super::denies(cmd, r, "choom")
     }
 
+    /// 무거운 실행(fuzz, bench, 시간 재기)은 막는다.
     #[test]
     fn denies_heavy_runs() {
         let r = rules(&[]);
@@ -294,6 +295,7 @@ mod tests {
         }
     }
 
+    /// 이름만 닮은 글(커밋 메시지, 인자, 앞선 구간)은 막지 않는다.
     #[test]
     fn passes_false_positives() {
         let r = rules(&[]);
@@ -309,11 +311,11 @@ mod tests {
         }
     }
 
+    /// 래퍼를 실행하는 구간은 통과하고, `-p $$` 는 셸을 올려 뒤 구간도 덮는다.
     #[test]
-    fn only_a_segment_running_the_wrapper_counts() {
+    fn wrapper_run_segments_pass() {
         let r = rules(&[]);
 
-        // 래퍼를 실행하는 구간: `-p $$` 는 셸을 올려 뒤 구간도 덮는다
         for cmd in [
             "choom -n 1000 -- bash run-bench.sh",
             "choom -n 1000 -p $$; python3 bench.py",
@@ -322,8 +324,13 @@ mod tests {
         ] {
             assert!(!denies(cmd, &r), "{cmd}");
         }
+    }
 
-        // 이름만 나온다
+    /// 래퍼 이름이 인자나 다른 구간에 나올 뿐이면 래퍼로 감싼 것이 아니라 막는다.
+    #[test]
+    fn wrapper_name_only_mentions_are_denied() {
+        let r = rules(&[]);
+
         for cmd in [
             "echo choom; python3 bench.py",
             "python3 bench.py --note choom",
@@ -333,6 +340,7 @@ mod tests {
         }
     }
 
+    /// `$F`, `${F}` 꼴로 이름이 쓰인 글만 변수 펼침으로 본다.
     #[test]
     fn variable_expansion_without_a_regex() {
         let names: HashSet<&str> = ["F", "A_1"].into_iter().collect();
@@ -351,34 +359,54 @@ mod tests {
         ] {
             assert_eq!(expands_any(&names, text), want, "{text}");
         }
+    }
 
-        // 12만 자 변수 이름: python 은 막는다. 정규식으로 만들면 크기 한도를 넘었다
+    /// 12만 자 변수 이름도 python 처럼 막는다(정규식으로 만들면 크기 한도를 넘는다).
+    #[test]
+    fn very_long_variable_names_still_deny() {
         let long = "V".repeat(120_000);
         let cmd = format!("{long}=bench; python3 ${long}");
         assert!(denies(&cmd, &rules(&[])));
     }
 
+    /// 설정의 실행기 이름을 더하면 그 이름으로 도는 실행도 막는다.
     #[test]
-    fn settings_add_executors_and_keywords() {
+    fn settings_add_executors() {
         assert!(!denies("mytool bench", &rules(&[])));
         assert!(denies(
             "mytool bench",
             &rules(&[("HARNESS_HEAVY_EXECUTORS", "mytool")])
         ));
+    }
+
+    /// 설정의 낱말을 더하면 그 낱말이 든 실행도 막는다(`soak` 은 기본 낱말).
+    #[test]
+    fn settings_add_keywords() {
         assert!(denies("python3 x.py --mode=soak.test", &rules(&[])));
         assert!(denies(
             "python3 x.py c++",
             &rules(&[("HARNESS_HEAVY_KEYWORDS", "c++")])
         ));
+    }
+
+    /// 툴킷을 luau 로 고르면 cargo 실행기는 막지 않는다.
+    #[test]
+    fn toolkit_setting_drops_other_executors() {
         assert!(!denies(
             "cargo bench",
             &rules(&[("HARNESS_TOOLKITS", "luau")])
         ));
     }
 
+    /// 거절 문구는 `-p $$` 로 셸 전체를 감싸는 방법을 알려 준다.
     #[test]
-    fn reason_names_the_wrapper() {
+    fn reason_names_the_shell_wrap() {
         assert!(deny_reason(&["choom".into()]).contains("choom -n 1000 -p $$;"));
+    }
+
+    /// 거절 문구는 인자를 넘긴 래퍼로 다시 돌리는 명령을 알려 준다.
+    #[test]
+    fn reason_names_the_rerun_command() {
         assert!(
             deny_reason(&["/w".into(), "-n".into()])
                 .contains("Re-run wrapped as `/w -n <command>`.")

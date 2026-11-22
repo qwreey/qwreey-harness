@@ -140,18 +140,31 @@ mod tests {
         parse(tool, &tokens(line, None))
     }
 
+    /// 플래그 뒤의 패턴을 따옴표를 풀어 읽고, `--` 뒤의 `-x` 는 패턴이다.
     #[test]
     fn reads_flags_and_pattern() {
         let c = call("pgrep", " -af 'python3 run.py'; do").unwrap();
+
         assert_eq!(c.pattern, "python3 run.py");
-        assert!(call("pgrep", " -u root -f my-job").is_some());
         assert_eq!(call("pkill", " -9 -f 'node x'").unwrap().pattern, "node x");
-        assert!(call("pkill", " -0 -f my-job").is_some());
-        assert!(call("pgrep", " --full my-job").is_some());
-        assert!(call("pgrep", " -fix job").unwrap().icase);
         assert_eq!(call("pgrep", " -f -- -x").unwrap().pattern, "-x");
     }
 
+    /// 값을 받는 옵션, 신호 번호, 긴 옵션 이름이 앞에 와도 호출로 읽는다.
+    #[test]
+    fn other_option_forms_are_accepted() {
+        assert!(call("pgrep", " -u root -f my-job").is_some());
+        assert!(call("pkill", " -0 -f my-job").is_some());
+        assert!(call("pgrep", " --full my-job").is_some());
+    }
+
+    /// 묶음 플래그에 `i` 가 있으면 대소문자를 가리지 않는 호출이다.
+    #[test]
+    fn i_flag_ignores_case() {
+        assert!(call("pgrep", " -fix job").unwrap().icase);
+    }
+
+    /// 자기 자신과 맞을 수 없는 호출(`-x`, `-A`, `-v`, `-f` 없음, 패턴 없음)은 건너뛴다.
     #[test]
     fn skips_calls_that_cannot_self_match() {
         assert!(call("pgrep", " -x luau").is_none());
@@ -161,9 +174,15 @@ mod tests {
         assert!(call("pgrep", " -f").is_none());
     }
 
+    /// 낱말은 `$(` 를 닫는 `)` 에서 끝난다.
     #[test]
-    fn stops_at_the_end_of_the_simple_command() {
+    fn stops_at_the_closing_paren() {
         assert_eq!(tokens(" -f foo.py)\" ]", Some(')')), ["-f", "foo.py"]);
+    }
+
+    /// 낱말은 파이프에서 끝난다.
+    #[test]
+    fn stops_at_a_pipe() {
         assert_eq!(tokens(" -f job | wc -l", None), ["-f", "job"]);
     }
 }

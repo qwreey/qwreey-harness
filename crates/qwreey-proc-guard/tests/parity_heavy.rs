@@ -25,7 +25,7 @@ for names, text in json.load(sys.stdin):
 json.dump(out, sys.stdout)
 "#;
 
-// 시드를 고정한 작은 난수(LCG)
+// Small fixed-seed random generator (LCG)
 fn lcg() -> impl FnMut() -> usize {
     let mut state: u64 = 0x2545_f491_4f6c_dd1d;
     move || {
@@ -52,7 +52,7 @@ fn cases(count: usize) -> Vec<(Vec<&'static str>, String)> {
 }
 
 fn python(cases: &[(Vec<&str>, String)]) -> Option<Vec<bool>> {
-    // python3 이 없으면 HARNESS_HOOK_PARITY_SKIP=1 일 때만 건너뛴다
+    // Skip only when the env switch is set and python3 is missing
     let spawned = Command::new("python3")
         .args(["-I", "-X", "utf8", "-c", DRIVER])
         .stdin(Stdio::piped())
@@ -70,7 +70,7 @@ fn python(cases: &[(Vec<&str>, String)]) -> Option<Vec<bool>> {
         Err(e) => panic!("python3: {e}"),
     };
 
-    // 경우를 넣고 답을 받는다
+    // Send the cases and read the answers
     let input: Vec<Value> = cases.iter().map(|(n, t)| json!([n, t])).collect();
     child
         .stdin
@@ -84,6 +84,7 @@ fn python(cases: &[(Vec<&str>, String)]) -> Option<Vec<bool>> {
     Some(serde_json::from_slice(&out.stdout).expect("list of bools"))
 }
 
+/// 무작위 5000 경우에서 변수 펼침 판정이 python 정규식과 같다.
 #[test]
 fn variable_expansion_matches_python_regex() {
     let cases = cases(5000);

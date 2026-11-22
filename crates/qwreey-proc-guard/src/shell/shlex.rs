@@ -238,13 +238,34 @@ mod tests {
         out
     }
 
+    /// 따옴표와 백슬래시로 묶은 낱말과 `;` 는 python shlex 처럼 나눈다.
     #[test]
-    fn reads_like_python_shlex() {
+    fn quotes_and_escapes_follow_shlex() {
         assert_eq!(tokens(r#"-f "a b" c\ d;x"#), ["-f", "a b", "c d", ";", "x"]);
         assert_eq!(tokens(r#""a\"b\x" 'q\'"#), ["a\"b\\x", "q\\"]);
+    }
+
+    /// `#` 는 낱말 첫머리가 아니어도 그 줄 끝까지 주석이다.
+    #[test]
+    fn hash_starts_a_comment() {
         assert_eq!(tokens("a#b c\nd >/dev/null"), ["a", "d", ">", "/dev/null"]);
+    }
+
+    /// 괄호 같은 구두점은 낱말과 떨어져 한 덩어리로 나온다.
+    #[test]
+    fn punctuation_splits_off() {
         assert_eq!(tokens("x)) y"), ["x", "))", "y"]);
+    }
+
+    /// 빈 따옴표는 빈 낱말이다.
+    #[test]
+    fn empty_quotes_make_an_empty_token() {
         assert_eq!(tokens("\"\" z"), ["", "z"]);
+    }
+
+    /// 닫히지 않은 따옴표는 오류다.
+    #[test]
+    fn unclosed_quote_is_an_error() {
         assert_eq!(
             Lexer::new("\"abc").next_token(),
             Err(LexError::NoClosingQuotation)

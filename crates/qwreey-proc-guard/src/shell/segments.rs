@@ -125,22 +125,34 @@ mod tests {
         segments(cmd).into_iter().map(|s| s.head).collect()
     }
 
+    /// `&&`, `|` 로 나눈 구간마다 변수 대입과 `nice` 를 건너뛴 명령 이름이 머리다.
     #[test]
-    fn splits_and_finds_heads() {
+    fn heads_skip_assignments_and_nice() {
         assert_eq!(
             heads("cd x && FOO=1 nice python3 a.py | tail"),
             ["cd", "python3", "tail"]
         );
+    }
+
+    /// `timeout`, `mise exec --` 같은 래퍼의 옵션과 값을 건너뛰고 그 뒤 명령이 머리다.
+    #[test]
+    fn heads_skip_wrapper_options() {
         assert_eq!(
             heads("timeout -s KILL 60 lune run p.luau; mise exec -- luau a"),
             ["lune", "luau"]
         );
+    }
+
+    /// 명령이 없는 래퍼 낱말(`env`, `timeout 5`)은 머리가 없고, 괄호와 `time` 은 건너뛴다.
+    #[test]
+    fn bare_wrappers_have_no_head() {
         assert_eq!(heads("env; ( time ls )"), ["ls"]);
         assert_eq!(heads("timeout 5"), Vec::<String>::new());
     }
 
+    /// 히어독 본문은 지우고, 지운 본문을 따로 돌려준다.
     #[test]
-    fn drops_heredoc_bodies() {
+    fn strips_heredoc_bodies() {
         let mut dropped = Vec::new();
         let cmd = "cat <<'EOF' > f\nbench\nEOF\npython3 - <<-X\n\tperf\n\tX\nls";
         assert_eq!(
@@ -148,6 +160,11 @@ mod tests {
             "cat <<'EOF' > f\npython3 - <<-X\nls"
         );
         assert_eq!(dropped, ["bench", "\tperf"]);
+    }
+
+    /// 한 줄에 히어독이 둘이어도 두 본문을 모두 지우고 뒤 명령을 읽는다.
+    #[test]
+    fn two_heredocs_on_one_line_are_both_dropped() {
         assert_eq!(
             heads("python3 - <<\"E\" <<X\nbench\nE\nperf\nX\nls"),
             ["python3", "ls"]
@@ -170,7 +187,8 @@ mod tests {
             "cat <<EOF",
             "cat <<-'EOF' x",
             "cat << \"E1\" <<\\E2",
-            // here-string: python 도 두 번째, 세 번째 `<` 뒤의 낱말을 이름으로 읽는다
+            // Here-strings
+            // python reads the word after the 2nd and 3rd `<` as a name
             "cat <<<word",
             "cat <<<<x <<- <<",
             "a<<b<<c",

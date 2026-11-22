@@ -78,6 +78,7 @@ mod tests {
         l
     }
 
+    /// 저장소 층이 한도를 0 으로 풀어도 사용자 층의 더 빡빡한 값이 남는다.
     #[test]
     fn repo_layers_only_tighten() {
         let user = layers(&[
@@ -91,13 +92,24 @@ mod tests {
         let limits = thresholds(&all, &user);
         assert_eq!(limits.min_free_gib, 10.0);
         assert_eq!(limits.drop_gib, 2.0);
+    }
+
+    /// 숫자가 아닌 값은 그 설정의 기본값으로 돌아간다.
+    #[test]
+    fn non_number_falls_back_to_default() {
         assert_eq!(
             number(
                 &layers(&[("PROC_GUARD_DISK_DROP_GIB", "x")]),
                 "PROC_GUARD_DISK_DROP_GIB"
             ),
-            2.0
+            2.0,
+            "x is not a number, so the default"
         );
+    }
+
+    /// 음수는 0 으로 깎는다.
+    #[test]
+    fn negative_number_clamps_to_zero() {
         assert_eq!(
             number(
                 &layers(&[("PROC_GUARD_DISK_DROP_GIB", "-3")]),
@@ -107,6 +119,7 @@ mod tests {
         );
     }
 
+    /// 스위치는 설정이 없으면 켜짐이고, 공백과 대소문자를 무시한 꺼짐 낱말에서 꺼진다.
     #[test]
     fn switches_read_on_values() {
         assert!(switch(&layers(&[]), "PROC_GUARD_DISK"));
