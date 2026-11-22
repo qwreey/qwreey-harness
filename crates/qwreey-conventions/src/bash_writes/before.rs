@@ -13,7 +13,7 @@ use harness_hook::rx::Regex;
 use super::files::{self, CANDIDATE_MAX, Recorded, TEXT_MAX, TOTAL_MAX, char_len};
 use super::repo::{self, Porcelain};
 use super::snap::{self, Snapshot};
-use super::{checked_ext, inside};
+use super::{checked_ext, inside, plain_path};
 use crate::context::Context;
 use crate::halt::Result;
 
@@ -66,7 +66,7 @@ pub fn take(ctx: &Context, input: &HookInput, before: &Before<'_>) -> Result<()>
     let mut total = 0;
     let mut seen = HashSet::new();
     for p in before.candidates {
-        if !seen.insert(p.as_str()) || !inside(p, &snap.root) || p.contains('\n') {
+        if !seen.insert(p.as_str()) || !inside(p, &snap.root) || !plain_path(p) {
             continue;
         }
         snap.named.push(p.clone());

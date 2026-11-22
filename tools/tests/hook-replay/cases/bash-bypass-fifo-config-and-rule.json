@@ -1,0 +1,18 @@
+{
+ "description": "bash-bypass-reminder: a FIFO named coderag.toml or a rule *.md is not opened (it would wait for a writer); the readable rules are still named",
+ "files": {
+  "src/a.py": "x = 1\n",
+  ".claude/rules/real.md": "---\npaths: [\"**/*.py\"]\n---\n# real\n"
+ },
+ "setup": [
+  "mkfifo coderag.toml .claude/rules/p.md && mkdir -p {home}/.claude/rules && mkfifo {home}/.claude/rules/q.md"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {"session_id": "s1", "hook_event_name": "PreToolUse", "tool_name": "Bash",
+               "tool_input": {"command": "sed -i 's/x/y/' src/a.py"}, "tool_use_id": "t1"},
+   "expect": {"tags": ["bash-bypass-reminder/warn"], "contains": [".claude/rules/real.md", "code-structure (qwreey-conventions rule:"]}
+  }
+ ]
+}

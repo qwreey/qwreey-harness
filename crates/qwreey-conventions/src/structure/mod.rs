@@ -104,8 +104,8 @@ pub fn run(ctx: &Context, input: &HookInput) -> Result<Option<String>> {
     }
 
     // State of this session and epoch
-    let sid = pyval::truthy_text(input.get("session_id"))?;
-    let agent = pyval::truthy_text(input.get("agent_id"))?;
+    let sid = pyval::truthy_text(input.get("session_id"));
+    let agent = pyval::truthy_text(input.get("agent_id"));
     let mut ledger = Ledger::load(ctx, sid.as_deref(), agent.as_deref())?;
 
     // Check each path

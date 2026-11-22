@@ -75,6 +75,20 @@ class Globs(unittest.TestCase):
         self.assertEqual(switches.pop("readable-code"), "HARNESS_READABLE_CODE")
         self.assertEqual(set(switches.values()), {None})
 
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "no FIFOs here")
+    def test_fifo_rule_is_not_opened(self):
+        """FIFO 인 rule 파일은 쓰는 쪽을 기다리지 않고 rule 이 아닌 것(None)이다. 일반 파일은 그대로 읽는다."""
+        d = tempfile.mkdtemp(dir=T)
+        os.mkfifo(os.path.join(d, "p.md"))
+        with open(os.path.join(d, "r.md"), "w", encoding="utf-8") as f:
+            f.write('---\npaths: ["**/*.py"]\n---\n# r\r\nbody\n')
+
+        # A child process, so a hang fails the test instead of stopping it
+        code = "import sys; sys.path.insert(0, sys.argv[1]); import rules_inject as ri; print(ri.parse_rule(sys.argv[2]), ri.parse_rule(sys.argv[3]))"
+        r = subprocess.run([sys.executable, "-I", "-c", code, HOOKS, os.path.join(d, "p.md"), os.path.join(d, "r.md")],
+                           capture_output=True, text=True, timeout=10)
+        self.assertEqual(r.stdout.strip(), "None (['**/*.py'], '# r\\nbody', None)", r.stderr)
+
     def test_pack_rules_do_not_use_switch(self):
         # 팩 rule 은 coderag 가 넣고 coderag 는 `switch:` 를 읽지 않아, 팩 rule 에 쓰면 늘 실린다
         packs = os.path.join(ROOT, "..", "..", "packs")

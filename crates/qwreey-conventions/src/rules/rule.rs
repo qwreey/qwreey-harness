@@ -74,9 +74,10 @@ pub struct Rule {
 
 /// python `parse_rule(path)`: 프론트매터에 `paths` 가 있으면 그 rule, 아니면 `None`.
 ///
-/// 열지 못한 파일은 `None` 이다. UTF-8 이 아닌 파일은 python 이 잡지 않는 예외라 [`Halt::PyError`].
+/// 열지 못한 파일과 일반 파일이 아닌 것(FIFO 는 쓰는 쪽을 기다리지 않는다)은 `None` 이다. UTF-8 이 아닌 파일은 python 이 잡지 않는
+/// 예외라 [`Halt::PyError`].
 pub fn parse_rule(path: &str) -> Result<Option<RuleText>> {
-    let text = match fs::read_text(path) {
+    let text = match fs::read_regular_text(path) {
         Ok(text) => text,
         Err(FsError::Os(_)) => return Ok(None),
         Err(FsError::Value) => return Err(Halt::PyError("a rule file is not UTF-8")),
@@ -202,6 +203,19 @@ mod tests {
         assert_eq!(parse_rule(&b).unwrap().unwrap().globs, vec!["*.py", "c/**"]);
         let c = write(dir, "c.md", "---\nx: 1\n---\nC");
         assert_eq!(parse_rule(&c).unwrap(), None);
+        std::fs::remove_dir_all(&tmp).unwrap();
+    }
+
+    /// FIFO 인 rule 파일은 쓰는 쪽을 기다리지 않고 rule 이 아니다(python 도 같다).
+    #[cfg(unix)]
+    #[test]
+    fn fifo_is_not_a_rule() {
+        let tmp = std::env::temp_dir().join(format!("conv-rule-fifo-{}", std::process::id()));
+        std::fs::create_dir_all(&tmp).unwrap();
+        let fifo = tmp.join("p.md");
+        let made = std::process::Command::new("mkfifo").arg(&fifo).status();
+        assert!(made.is_ok_and(|s| s.success()), "mkfifo");
+        assert_eq!(parse_rule(fifo.to_str().unwrap()).unwrap(), None);
         std::fs::remove_dir_all(&tmp).unwrap();
     }
 

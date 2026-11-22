@@ -1,26 +1,21 @@
 //! 훅 입력 값을 python 훅이 읽는 꼴로: `x or ""`, `x or {}`, `str(x)` 의 결과와, 그 뒤에 python 이 예외로 끝나는 꼴.
 
 use harness_hook::epoch::sanitize;
+use harness_hook::py::repr::str_value;
 use harness_hook::py::value::{Dict, Value};
 
 use crate::halt::{Halt, Result};
 
 /// python 에서 참인 값의 `str()`. 없거나 거짓이면 `None`.
 ///
-/// 목록과 dict 는 python 이 repr 글을 쓰는 자리라 이 판이 옮기지 않는다([`Halt::Unported`]).
-pub fn truthy_text(value: Option<&Value>) -> Result<Option<String>> {
-    match value {
-        Some(v) if v.truthy() => v
-            .scalar_str()
-            .map(Some)
-            .ok_or(Halt::Unported("a list or dict id")),
-        _ => Ok(None),
-    }
+/// 목록과 dict 는 python 처럼 repr 글이다(`['a']` 등, 깊이 상관없음).
+pub fn truthy_text(value: Option<&Value>) -> Option<String> {
+    value.filter(|v| v.truthy()).map(str_value)
 }
 
 /// python `re.sub(r"[^\w-]", "", str(value or "nosession"))`(상태 파일 이름에 넣는 id).
-pub fn sanitized_id(value: Option<&Value>) -> Result<String> {
-    Ok(sanitize(truthy_text(value)?.as_deref().unwrap_or("")))
+pub fn sanitized_id(value: Option<&Value>) -> String {
+    sanitize(truthy_text(value).as_deref().unwrap_or(""))
 }
 
 /// python `value or {}` 를 dict 로 쓰는 자리. 거짓이면 `None`(빈 dict), 참인 dict 가 아니면 python 은 `.get` 에서 끝난다.
@@ -53,17 +48,21 @@ mod tests {
     /// `x or ""`, `x or {}`, `str(x)` 를 python 처럼 읽고 python 이 끝나는 꼴은 오류로 돌려준다.
     #[test]
     fn reads_like_python_or() {
-        // Truthy scalars give their str() text
+        // Truthy values give their str() text, lists and dicts their repr
+        assert_eq!(truthy_text(Some(&Value::Int(5))).as_deref(), Some("5"));
+        assert_eq!(truthy_text(Some(&Value::Int(0))), None);
         assert_eq!(
-            truthy_text(Some(&Value::Int(5))).unwrap().as_deref(),
-            Some("5")
+            truthy_text(Some(&Value::List(vec![Value::Null]))).as_deref(),
+            Some("[None]")
         );
-        assert_eq!(truthy_text(Some(&Value::Int(0))).unwrap(), None);
-        assert!(truthy_text(Some(&Value::List(vec![Value::Null]))).is_err());
 
         // Ids for file names
-        assert_eq!(sanitized_id(None).unwrap(), "nosession");
-        assert_eq!(sanitized_id(Some(&Value::Str("a/b".into()))).unwrap(), "ab");
+        assert_eq!(sanitized_id(None), "nosession");
+        assert_eq!(sanitized_id(Some(&Value::Str("a/b".into()))), "ab");
+        assert_eq!(
+            sanitized_id(Some(&Value::List(vec![Value::Str("a".into())]))),
+            "a"
+        );
 
         // `x or ""` and `x or {}`: a truthy value of another type is a python error
         assert_eq!(str_or_empty(Some(&Value::Int(0))).unwrap(), "");

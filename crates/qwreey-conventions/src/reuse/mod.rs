@@ -91,8 +91,8 @@ pub fn run(ctx: &Context, input: &HookInput) -> Result<Option<String>> {
 
     // Dedup state for this session, caller and compact epoch
     let sid = input.get("session_id");
-    let agent = pyval::truthy_text(input.get("agent_id"))?;
-    let sid_text = pyval::truthy_text(sid)?.unwrap_or_default();
+    let agent = pyval::truthy_text(input.get("agent_id"));
+    let sid_text = pyval::truthy_text(sid).unwrap_or_default();
     let sp = state_path(
         ctx.tempdir()?,
         PLUGIN,

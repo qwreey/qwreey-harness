@@ -103,6 +103,53 @@ pub fn read_bytes(path: &str) -> Result<Vec<u8>, FsError> {
     fs::read(os).map_err(|e| FsError::Os(e.kind()))
 }
 
+/// 일반 파일만 연다(python `os.open(path, O_RDONLY | O_NONBLOCK)` 뒤 `fstat` 로 종류 보기).
+///
+/// FIFO 를 그냥 열면 쓰는 쪽이 올 때까지 멈춘다. 일반 파일이 아니면(FIFO, 장치, 폴더) `FsError::Os(InvalidInput)`.
+#[cfg(unix)]
+pub fn open_regular(path: &str) -> Result<fs::File, FsError> {
+    use rustix::fs::{FileType, Mode, OFlags, fstat, open};
+
+    let os = os_path(path).ok_or(FsError::Value)?;
+    let flags = OFlags::RDONLY | OFlags::NONBLOCK | OFlags::CLOEXEC;
+    let fd =
+        open(&os, flags, Mode::empty()).map_err(|e| FsError::Os(std::io::Error::from(e).kind()))?;
+    let st = fstat(&fd).map_err(|e| FsError::Os(std::io::Error::from(e).kind()))?;
+    if FileType::from_raw_mode(st.st_mode) != FileType::RegularFile {
+        return Err(FsError::Os(ErrorKind::InvalidInput));
+    }
+    Ok(fs::File::from(fd))
+}
+
+/// 일반 파일만 연다. 이 OS 에서는 열린 파일의 종류를 본다(FIFO 가 없다).
+#[cfg(not(unix))]
+pub fn open_regular(path: &str) -> Result<fs::File, FsError> {
+    let os = os_path(path).ok_or(FsError::Value)?;
+    let file = fs::File::open(os).map_err(|e| FsError::Os(e.kind()))?;
+    match file.metadata() {
+        Ok(m) if m.is_file() => Ok(file),
+        Ok(_) => Err(FsError::Os(ErrorKind::InvalidInput)),
+        Err(e) => Err(FsError::Os(e.kind())),
+    }
+}
+
+/// [`open_regular`] 로 연 파일의 바이트(python `open_regular(path, "rb").read()`).
+pub fn read_regular_bytes(path: &str) -> Result<Vec<u8>, FsError> {
+    use std::io::Read;
+
+    let mut bytes = Vec::new();
+    open_regular(path)?
+        .read_to_end(&mut bytes)
+        .map_err(|e| FsError::Os(e.kind()))?;
+    Ok(bytes)
+}
+
+/// [`open_regular`] 로 연 파일의 글: [`read_text`] 와 같이 UTF-8 로 읽고 줄 끝을 바꾼다.
+pub fn read_regular_text(path: &str) -> Result<String, FsError> {
+    let text = String::from_utf8(read_regular_bytes(path)?).map_err(|_| FsError::Value)?;
+    Ok(universal_newlines(&text))
+}
+
 /// python `open(path, encoding="utf-8").read()`: UTF-8(어긋나면 ValueError), 줄 끝 `\r\n`, `\r` 은 `\n` 으로.
 pub fn read_text(path: &str) -> Result<String, FsError> {
     let bytes = read_bytes(path)?;
@@ -144,5 +191,35 @@ mod tests {
         assert_eq!(getsize("/a\0b"), Err(FsError::Value));
         assert!(is_dir("/"));
         assert!(listdir("/").is_ok_and(|names| !names.is_empty()));
+    }
+
+    /// 일반 파일만 읽고, FIFO 는 쓰는 쪽을 기다리지 않고 OSError 갈래로 돌려준다.
+    #[cfg(unix)]
+    #[test]
+    fn regular_files_only() {
+        let dir = std::env::temp_dir().join(format!("hh-regular-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("a.md");
+        let fifo = dir.join("p.md");
+        fs::write(&file, "x\r\ny").unwrap();
+        let made = std::process::Command::new("mkfifo").arg(&fifo).status();
+        assert!(made.is_ok_and(|s| s.success()), "mkfifo");
+
+        // Text like read_text, nothing from a FIFO or a folder
+        let path = |p: &std::path::Path| p.to_str().unwrap().to_owned();
+        assert_eq!(read_regular_text(&path(&file)).as_deref(), Ok("x\ny"));
+        assert_eq!(
+            read_regular_bytes(&path(&fifo)),
+            Err(FsError::Os(ErrorKind::InvalidInput))
+        );
+        assert_eq!(
+            read_regular_bytes(&path(&dir)),
+            Err(FsError::Os(ErrorKind::InvalidInput))
+        );
+        assert_eq!(
+            read_regular_bytes(&path(&dir.join("none"))),
+            Err(FsError::Os(ErrorKind::NotFound))
+        );
+        fs::remove_dir_all(&dir).unwrap();
     }
 }

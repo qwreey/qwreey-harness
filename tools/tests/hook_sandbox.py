@@ -39,7 +39,8 @@ TEXT_FIELDS = (("hookSpecificOutput", "additionalContext"), ("hookSpecificOutput
 
 
 def nonce(session_id):
-    return hashlib.sha256((SALT + ":" + session_id).encode()).hexdigest()[:12]
+    """고정 salt 의 nonce. 목록이나 dict 인 id 는 harness_nonce 처럼 str() 글로 만든다."""
+    return hashlib.sha256((SALT + ":" + str(session_id)).encode()).hexdigest()[:12]
 
 
 PLUGIN_COPY = os.environ.get("HOOK_SANDBOX_PLUGIN_COPY") == "1"

@@ -1,0 +1,26 @@
+{
+ "description": "bash: an untracked file whose name is not UTF-8 is left out of the snapshot, so the snapshot stays valid and the file the command changed is still checked",
+ "files": {
+  "src/a.py": "def f():\n    return 1\n"
+ },
+ "setup": [
+  "git add -A && git commit -qm init && printf 'x = 1\\n' > $'src/bad\\xff.py' && printf 'y = 1\\n' > $'src/odd\\xe9.md'"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {"session_id": "s1", "hook_event_name": "PreToolUse", "tool_name": "Bash",
+               "tool_input": {"command": "sed -i 's/return 1/# one · two\\n    return 1/' src/a.py"}, "tool_use_id": "t1"},
+   "expect": {"tags": ["bash-bypass-reminder/warn"]}
+  },
+  {
+   "sh": "sed -i 's/return 1/# one · two\\n    return 1/' src/a.py && printf '# c · d\\n' >> $'src/bad\\xff.py'"
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {"session_id": "s1", "hook_event_name": "PostToolUse", "tool_name": "Bash",
+               "tool_input": {"command": "sed -i 's/return 1/# one · two\\n    return 1/' src/a.py"}, "tool_use_id": "t1"},
+   "expect": {"tags": ["qwreey-conventions/info"], "contains": ["src/a.py may not follow the comment conventions"], "not_contains": ["bad"]}
+  }
+ ]
+}

@@ -159,8 +159,8 @@ fn remind(ctx: &Context, input: &HookInput, plugin: &Plugin) -> Result<Option<St
     }
 
     // What this context was already told
-    let sid = pyval::truthy_text(input.get("session_id"))?.unwrap_or_default();
-    let agent = pyval::truthy_text(input.get("agent_id"))?;
+    let sid = pyval::truthy_text(input.get("session_id")).unwrap_or_default();
+    let agent = pyval::truthy_text(input.get("agent_id"));
     let state_path = epoch::state_path(ctx.tempdir()?, PLUGIN, NS, &sid, agent.as_deref())
         .map_err(|_| Halt::PyError("cannot create the reminder state folder"))?;
     let mut seen = Seen::load(&state_path);

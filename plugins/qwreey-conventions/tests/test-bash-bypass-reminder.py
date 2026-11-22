@@ -125,6 +125,31 @@ class PluginRules(unittest.TestCase):
                 if os.path.exists(f):
                     os.remove(f)
 
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "no FIFOs here")
+    def test_fifo_config_and_rule_are_not_opened(self):
+        """coderag.toml 이나 rule *.md 가 FIFO 여도 쓰는 쪽을 기다리지 않고, 다른 rule 은 그대로 알린다."""
+        home = os.path.join(T, "fifo-crhome")
+        os.makedirs(home)
+        os.mkfifo(os.path.join(home, "coderag.toml"))
+
+        # The project's coderag.toml is a FIFO, or lists a pack so the one in CODERAG_HOME is read
+        for name, listed in (("fifo-proj", None), ("fifo-home", '[[packs]]\nname = "sec"\n')):
+            proj = os.path.join(T, name)
+            os.makedirs(os.path.join(proj, ".claude", "rules"))
+            os.mkfifo(os.path.join(proj, ".claude", "rules", "p.md"))
+            with open(os.path.join(proj, ".claude", "rules", "real.md"), "w", encoding="utf-8") as f:
+                f.write('---\npaths: ["**/*.py"]\n---\n# real\n')
+            if listed:
+                with open(os.path.join(proj, "coderag.toml"), "w", encoding="utf-8") as f:
+                    f.write(listed)
+            else:
+                os.mkfifo(os.path.join(proj, "coderag.toml"))
+
+            # The hook returns and still names the readable rules
+            c = run("sed -i 's/a/b/' src/a.py", {"CLAUDE_PROJECT_DIR": proj, "CODERAG_HOME": home})
+            self.assertIn(os.path.join(".claude", "rules", "real.md"), c, name)
+            self.assertIn("code-structure (qwreey-conventions rule:", c, name)
+
     def test_own_rules_still_listed(self):
         self.assertIn("code-structure (qwreey-conventions rule:", run("python3 -c \"print(open('src/a.py').read())\""))
 

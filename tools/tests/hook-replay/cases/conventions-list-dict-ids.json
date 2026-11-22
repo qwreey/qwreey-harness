@@ -1,0 +1,76 @@
+{
+ "description": "qwreey-conventions: a session_id or agent_id that is a list or dict is used through python str() (its repr) for state file names and the nonce, so every hook still speaks",
+ "files": {
+  "a/src.luau": "-- source\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"card\" }\nreturn FORMS\n",
+  "b/copy.luau": "-- @copy-of: a/src.luau#FORMS\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"dice\" }\n",
+  "src/c.py": "x = 1\n# one · two\n",
+  "src/a.py": "def f():\n    return 1\n",
+  "src/Mid.luau": {"repeat": "local x = 1\n", "times": 850},
+  "{cfg}/projects/-x-repo/memory/build.md": "---\nname: build\ndescription: build info\nmetadata:\n  type: project\n---\nIn this repo, build with `make all` and tests run via `pytest tests/`. The parser lives in src/parser.py.\n"
+ },
+ "setup": [
+  "git add -A && git commit -qm init"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "payload": {"session_id": ["s", 1], "agent_id": {"a": [1]}, "hook_event_name": "PostToolUse", "tool_name": "Write",
+               "tool_input": {"content": "-- @copy-of: a/src.luau#FORMS\nlocal FORMS = { \"coin\", \"stick\", \"back\", \"dice\" }\n", "file_path": "{repo}/b/copy.luau"},
+               "tool_response": {"type": "create"}},
+   "expect": {"tags": ["qwreey-conventions/info"], "contains": ["b/copy.luau:1: @copy-of a/src.luau#FORMS differs"]}
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {"session_id": {"k": "é"}, "agent_id": ["sub"], "hook_event_name": "PostToolUse", "tool_name": "Edit",
+               "tool_input": {"file_path": "{repo}/src/c.py", "old_string": "x = 1", "new_string": "x = 1\n# one · two"}, "tool_response": {}},
+   "expect": {"tags": ["qwreey-conventions/info"], "contains": ["src/c.py may not follow the comment conventions"]}
+  },
+  {
+   "note": "the same ids again: the notice was recorded under the same state file",
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {"session_id": {"k": "é"}, "agent_id": ["sub"], "hook_event_name": "PostToolUse", "tool_name": "Edit",
+               "tool_input": {"file_path": "{repo}/src/c.py", "old_string": "x = 1", "new_string": "x = 1\n# one · two"}, "tool_response": {}},
+   "expect": {"empty": true}
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {"session_id": {"k": "é"}, "agent_id": ["sub"], "hook_event_name": "Stop", "stop_hook_active": false},
+   "expect": {}
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {"session_id": ["x"], "agent_id": {"y": 2}, "hook_event_name": "PostToolUse", "tool_name": "Edit",
+               "tool_input": {"file_path": "{repo}/src/Mid.luau", "old_string": "a", "new_string": "a\n\n"}, "tool_response": {}},
+   "expect": {"tags": ["structure-reminder/warn"], "contains": ["`src/Mid.luau` is 850 lines (warn limit 800)"]}
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/memory-placement.py",
+   "payload": {"session_id": ["m", null], "agent_id": [[]], "hook_event_name": "PostToolUse", "tool_name": "Write",
+               "tool_input": {"file_path": "{cfg}/projects/-x-repo/memory/build.md",
+                              "content": "---\nname: build\ndescription: build info\nmetadata:\n  type: project\n---\nIn this repo, build with `make all` and tests run via `pytest tests/`. The parser lives in src/parser.py.\n"},
+               "tool_response": {"type": "create"}},
+   "expect": {"tags": ["memory-placement/warn"]}
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {"session_id": {"r": 1}, "agent_id": ["a", {"b": true}], "hook_event_name": "PostToolUse", "tool_name": "Read",
+               "tool_input": {"file_path": "{repo}/src/c.py"}, "tool_response": {}},
+   "expect": {"tags": ["rules-inject/info"], "contains": ["name=\"comments\""]}
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {"session_id": ["b"], "agent_id": {"x": 1.5}, "hook_event_name": "PreToolUse", "tool_name": "Bash",
+               "tool_input": {"command": "sed -i 's/return 1/# one · two\\n    return 1/' src/a.py"}, "tool_use_id": "t1"},
+   "expect": {"tags": ["bash-bypass-reminder/warn"]}
+  },
+  {
+   "sh": "sed -i 's/return 1/# one · two\\n    return 1/' src/a.py"
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {"session_id": ["b"], "agent_id": {"x": 1.5}, "hook_event_name": "PostToolUse", "tool_name": "Bash",
+               "tool_input": {"command": "sed -i 's/return 1/# one · two\\n    return 1/' src/a.py"}, "tool_use_id": "t1"},
+   "expect": {"tags": ["qwreey-conventions/info"], "contains": ["src/a.py may not follow the comment conventions"]}
+  }
+ ]
+}

@@ -2,10 +2,8 @@
 //!
 //! git 이 되면 `git ls-files`(무시 규칙을 따른다), 아니면 python `os.walk` 와 같은 차례로 걷는다.
 
-use std::io::Read;
-use std::process::{Command, Stdio};
+use std::ffi::OsString;
 use std::sync::LazyLock;
-use std::sync::mpsc;
 use std::time::Duration;
 
 use harness_hook::py::fs;
@@ -15,6 +13,7 @@ use harness_hook::py::surrogate::from_os;
 use harness_hook::rx::Regex;
 
 use crate::edit::{GEN_MARK_PATTERN, SKIP_PARTS, SKIP_SUFFIX};
+use crate::git;
 
 /// 규칙과 사본 검사를 거는 확장자(python `RULE_EXT`).
 pub const RULE_EXT: &[&str] = &[
@@ -118,41 +117,20 @@ pub fn list_files(root: &str) -> Vec<String> {
 
 // `git -C root ls-files -z --cached --others --exclude-standard`. 실패, 0 이 아닌 종료, 3 초 넘김은 None(걷기로)
 fn git_ls_files(root: &str) -> Option<Vec<String>> {
-    let os_root = fs::os_path(root)?;
-    let mut child = Command::new("git")
-        .arg("-C")
-        .arg(os_root)
-        .args([
+    let mut args = vec!["-C".into(), git::os_arg(root).ok()?];
+    args.extend(
+        [
             "ls-files",
             "-z",
             "--cached",
             "--others",
             "--exclude-standard",
-        ])
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .ok()?;
-
-    // Read the output on a thread so the deadline holds
-    let mut stdout = child.stdout.take()?;
-    let (send, recv) = mpsc::channel();
-    std::thread::spawn(move || {
-        let mut buf = Vec::new();
-        let read = stdout.read_to_end(&mut buf).map(|_| buf);
-        let _ = send.send(read);
-    });
-    let Ok(Ok(out)) = recv.recv_timeout(GIT_TIMEOUT) else {
-        let _ = child.kill();
-        let _ = child.wait();
-        return None;
-    };
+        ]
+        .map(OsString::from),
+    );
+    let out = git::output(&args, None, GIT_TIMEOUT)?;
 
     // python decode("utf-8", "replace") then split on NUL
-    if !child.wait().ok()?.success() {
-        return None;
-    }
     Some(
         String::from_utf8_lossy(&out)
             .split('\0')

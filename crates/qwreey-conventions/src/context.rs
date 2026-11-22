@@ -124,10 +124,10 @@ impl Context {
 
     /// python `harness_nonce.attr(data.get("session_id"))`: ` nonce="N"` 또는 빈 글.
     ///
-    /// id 가 python 에서 거짓이면 nonce 가 없다. 목록이나 dict 인 id 는 python 이 repr 로 nonce 를 만들어 이 판이 따라 하지 않는다.
+    /// id 가 python 에서 거짓이면 nonce 가 없다. 목록이나 dict 인 id 는 python 처럼 그 repr 글로 nonce 를 만든다.
     /// 짝 없는 서로게이트가 든 id 는 python 이 UnicodeEncodeError 로 끝나는 자리다.
     pub fn nonce_attr(&self, session_id: Option<&Value>) -> Result<String> {
-        let sid = pyval::truthy_text(session_id)?;
+        let sid = pyval::truthy_text(session_id);
         let nonce = Nonce::for_session(&self.env, sid.as_deref())
             .map_err(|_| Halt::PyError("session id has a lone surrogate"))?;
         Ok(harness_hook::nonce::attr(nonce.as_ref()))

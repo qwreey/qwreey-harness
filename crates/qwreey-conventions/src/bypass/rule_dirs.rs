@@ -57,9 +57,9 @@ pub fn plugin_rule_dirs(ctx: &Context, own_rules: &str, proj: &str) -> Result<Ru
     Ok(out)
 }
 
-// python _read_toml(path): 없거나 깨진 설정은 빈 표다
+// python _read_toml(path): 없거나 깨진 설정은 빈 표다. 일반 파일만 연다(FIFO 를 열면 쓰는 쪽이 올 때까지 멈춘다)
 fn read_toml(path: &str) -> Table {
-    fs::read_bytes(path)
+    fs::read_regular_bytes(path)
         .ok()
         .and_then(|b| toml::loads_bytes(&b).ok())
         .unwrap_or_default()

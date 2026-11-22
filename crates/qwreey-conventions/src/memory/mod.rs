@@ -70,8 +70,8 @@ fn placement(ctx: &Context, input: &HookInput) -> Result<Option<String>> {
 ///
 /// 상태 경로를 만들지 못하면 python 은 처음 보는 것으로 친다. dict 가 아닌 상태는 python 이 `in` 이나 대입에서 끝난다.
 fn seen_before(ctx: &Context, input: &HookInput, fp: &str) -> Result<bool> {
-    let sid = pyval::truthy_text(input.get("session_id"))?;
-    let agent = pyval::truthy_text(input.get("agent_id"))?;
+    let sid = pyval::truthy_text(input.get("session_id"));
+    let agent = pyval::truthy_text(input.get("agent_id"));
     let Ok(tmp) = ctx.tempdir() else {
         return Ok(false);
     };

@@ -3,6 +3,7 @@
 //! 경로에 NUL 이나 짝 없는 서로게이트가 있으면 python 의 `os.open`, `os.stat` 은 ValueError 를 낸다. 그 함수들은 OSError 만
 //! 잡으므로 예외는 훅 끝까지 간다: 여기서는 [`Halt::PyError`] 로 돌려준다.
 
+use std::io::{ErrorKind, Read};
 use std::time::Instant;
 
 use harness_hook::py::fs::{self, FsError};
@@ -77,73 +78,25 @@ fn size(path: &str) -> Result<u64> {
 
 /// python `_read(path, cap)`: 일반 파일이고 `cap` 바이트 안이면 그 글(줄 끝은 python 글 모드처럼 `\n`).
 ///
-/// O_NONBLOCK 으로 열고 종류를 본 뒤에야 읽는다(FIFO 를 그냥 열면 쓰는 쪽이 올 때까지 멈춘다).
+/// 일반 파일만 연다([`fs::open_regular`]: FIFO 를 그냥 열면 쓰는 쪽이 올 때까지 멈춘다).
 pub fn read(path: &str, cap: u64) -> Result<Recorded> {
-    let os = fs::os_path(path).ok_or(Halt::PyError("os.open of an unusable path"))?;
-    let bytes = match open_regular(&os, cap) {
-        Opened::Missing => return Ok(Recorded::Missing),
-        Opened::Unread => return Ok(Recorded::Unread),
-        Opened::Bytes(bytes) => bytes,
+    let mut file = match fs::open_regular(path) {
+        Ok(file) => file,
+        Err(FsError::Value) => return Err(Halt::PyError("os.open of an unusable path")),
+        Err(FsError::Os(ErrorKind::NotFound)) => return Ok(Recorded::Missing),
+        Err(FsError::Os(_)) => return Ok(Recorded::Unread),
     };
+
+    // Within the cap, as UTF-8 text
+    let small = file.metadata().is_ok_and(|m| m.len() <= cap);
+    let mut bytes = Vec::new();
+    if !small || file.read_to_end(&mut bytes).is_err() {
+        return Ok(Recorded::Unread);
+    }
     Ok(match String::from_utf8(bytes) {
         Ok(text) => Recorded::Text(fs::universal_newlines(&text)),
         Err(_) => Recorded::Unread,
     })
-}
-
-enum Opened {
-    Missing,
-    Unread,
-    Bytes(Vec<u8>),
-}
-
-#[cfg(unix)]
-fn open_regular(path: &std::path::Path, cap: u64) -> Opened {
-    use rustix::fs::{FileType, Mode, OFlags, fstat, open};
-    use rustix::io::Errno;
-    use std::io::Read;
-
-    let fd = match open(
-        path,
-        OFlags::RDONLY | OFlags::NONBLOCK | OFlags::CLOEXEC,
-        Mode::empty(),
-    ) {
-        Ok(fd) => fd,
-        Err(Errno::NOENT) => return Opened::Missing,
-        Err(_) => return Opened::Unread,
-    };
-    let Ok(st) = fstat(&fd) else {
-        return Opened::Unread;
-    };
-    let size = u64::try_from(st.st_size).unwrap_or(u64::MAX);
-    if FileType::from_raw_mode(st.st_mode) != FileType::RegularFile || size > cap {
-        return Opened::Unread;
-    }
-    let mut bytes = Vec::new();
-    match std::fs::File::from(fd).read_to_end(&mut bytes) {
-        Ok(_) => Opened::Bytes(bytes),
-        Err(_) => Opened::Unread,
-    }
-}
-
-#[cfg(not(unix))]
-fn open_regular(path: &std::path::Path, cap: u64) -> Opened {
-    use std::io::{ErrorKind, Read};
-
-    let mut file = match std::fs::File::open(path) {
-        Ok(f) => f,
-        Err(e) if e.kind() == ErrorKind::NotFound => return Opened::Missing,
-        Err(_) => return Opened::Unread,
-    };
-    match file.metadata() {
-        Ok(m) if m.is_file() && m.len() <= cap => {}
-        _ => return Opened::Unread,
-    }
-    let mut bytes = Vec::new();
-    match file.read_to_end(&mut bytes) {
-        Ok(_) => Opened::Bytes(bytes),
-        Err(_) => Opened::Unread,
-    }
 }
 
 /// python 글자 수(`len(text)`).

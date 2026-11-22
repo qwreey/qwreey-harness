@@ -29,6 +29,7 @@ glob: 공식 paths 와 같게 `**`, `*`, `?`, `{a,b}`, `[..]`. 절대 경로에 
 import json
 import os
 import re
+import stat
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -100,10 +101,25 @@ def glob_to_regex(glob):
     return re.compile("".join(out) + r"\Z")
 
 
+def open_regular(path, mode="r"):
+    """일반 파일만 연다(open 과 같은 파일 객체, 글 모드는 UTF-8). FIFO, 장치는 OSError.
+
+    O_NONBLOCK 으로 열고 fstat 로 종류를 본 뒤에 넘긴다: FIFO 를 그냥 열면 쓰는 쪽이 올 때까지 멈춘다."""
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0))
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise OSError("not a regular file")
+        return os.fdopen(fd, mode, encoding=None if "b" in mode else "utf-8")
+    except BaseException:
+        os.close(fd)
+        raise
+
+
 def parse_rule(path):
     """(globs, body, switch) 또는 None. 프론트매터의 paths 와 switch(없으면 None)를 읽고 프론트매터를 뗀 본문을 돌려준다."""
     try:
-        text = open(path, encoding="utf-8").read()
+        with open_regular(path) as f:
+            text = f.read()
     except OSError:
         return None
     m = re.match(r"---\n(.*?)\n---\n?", text, re.S)
