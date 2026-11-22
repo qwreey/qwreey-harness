@@ -23,6 +23,12 @@ DOC_FORM = {
     "go": "a `//` doc comment directly above the func, starting with its name",
     "kt": "a `/** */` KDoc comment (`//` is not shown on hover)",
 }
+# 시험 함수가 따를 문서 꼴. 시험은 호버로 부르지 않으니, 보는 것은 무엇을 확인하는지 적은 한 줄이다
+TEST_FORM = {"rust": "a one-line `///` doc comment"}
+# 문서 없는 시험의 설명. notice 가 TEST_MARK 로 시험을 가려 시험용 문장을 붙인다(함수 이름에는 빈칸이 없다)
+TEST_NO_DOC = "is a test with no doc comment"
+TEST_HIDDEN_DOC = "is a test whose comment is not a doc comment"
+TEST_MARK = " is a test "
 DOC_OPEN = {"lua": re.compile(r"^\s*(?:---|--\[=+\[)"), "ts": re.compile(r"^\s*/\*\*"), "kt": re.compile(r"^\s*/\*\*"),
             "rust": re.compile(r"^\s*(?:///|/\*\*)"), "go": re.compile(r"^\s*//")}
 # 편집기 접기 표지(`--#region`, `// #endregion`)는 문서도 이유도 아니라 건너뛴다
@@ -55,6 +61,10 @@ C_NAMES = (re.compile(r"\bfunction\s*\*?\s*([\w$]+)"), re.compile(r"\bfn\s+(\w+)
            re.compile(r"([\w$]+)\s*[:=]\s*(?:async\s*)?(?:function|\()"))
 C_CONTINUES = ("{", "where", "->", ":", ")")
 KT_PRIVATE = re.compile(r"\b(?:private|protected|internal)\b")
+# 함수 머리 위의 속성이나 데코레이터 줄(`#[...]`, `@x`). 문서 주석은 그 위에 있어도 된다
+ATTRIBUTE = re.compile(r"^\s*(?:#\[|@)")
+# Rust 시험 속성: `#[test]`, `#[tokio::test]`, `#[tokio::test(flavor = "...")]`. `#[cfg(test)]` 는 시험이 아니다
+RUST_TEST = re.compile(r"#\[\s*(?:[A-Za-z_]\w*\s*::\s*)*test\s*[\](]")
 
 PY_DEF = re.compile(r"^\s*(?:async\s+)?def\s+(\w+)")
 PY_CLASS = re.compile(r"^\s*class\s+(\w+)")
@@ -81,7 +91,7 @@ LIST_MAX = 8  # 알림에서 범주당 이름을 대는 함수 수. 나머지는
 # ---------- 함수 찾기 ----------
 
 def functions(rows, lines, lang):
-    """가장 바깥 함수 목록: [{name, start, header_end, end, last, public, metamethod}], 줄은 0 기반.
+    """가장 바깥 함수 목록: [{name, start, header_end, end, last, public, metamethod, test}], 줄은 0 기반.
 
     본문은 header_end+1 부터 end-1 까지, last 는 함수의 마지막 줄이다. lang 은 LANG_BY_EXT 의 값이다.
     """
@@ -137,7 +147,7 @@ def _lua_functions(rows):
         m = LUA_NAME.search(head)
         name = (m.group(1) or m.group(2)) if m else "(anonymous)"
         out.append({"name": name, "start": start, "header_end": _params_end(rows, start, end), "end": end, "last": end,
-                    "public": bool(LUA_PUBLIC.match(head)), "metamethod": bool(METAMETHOD.search(name))})
+                    "public": bool(LUA_PUBLIC.match(head)), "metamethod": bool(METAMETHOD.search(name)), "test": False})
     return out
 
 
@@ -174,7 +184,7 @@ def _py_functions(rows, lines):
         last = _py_body_end(rows, lines, head_end, indent)
         name = m.group(1)
         out.append({"name": name, "start": ln, "header_end": head_end, "end": last + 1, "last": last, "public": not name.startswith("_"),
-                    "metamethod": name.startswith("__") and name.endswith("__"), "indent": indent})
+                    "metamethod": name.startswith("__") and name.endswith("__"), "test": False, "indent": indent})
         ln = last + 1
 
     _py_public_scope(out, rows, lines)
@@ -303,8 +313,18 @@ def _c_functions(rows, lang):
             m = C_METHOD.match(code)
             name = m.group(1) if m else "(anonymous)"
         out.append({"name": name, "start": head, "header_end": brace, "end": end, "last": end, "public": _c_public(code, name, lang),
-                    "metamethod": False})
+                    "metamethod": False, "test": lang == "rust" and _rust_test(rows, head)})
     return out
+
+
+def _rust_test(rows, head):
+    """머리 줄이나 그 바로 위 속성 줄에 시험 속성(`#[test]`, `#[tokio::test]`)이 있는가."""
+    k = head
+    while k >= 0 and (k == head or rows[k]["code"] and ATTRIBUTE.match(rows[k]["k"])):
+        if RUST_TEST.search(rows[k]["k"]):
+            return True
+        k -= 1
+    return False
 
 
 def _c_public(code, name, lang):
@@ -328,8 +348,8 @@ def measure(rows, lines, fn, lang):
     interleaved, labels = _comment_blocks(rows, kinds)
     return {
         "name": fn["name"], "start": fn["start"] + 1, "end": fn["last"] + 1, "public": fn["public"], "metamethod": fn["metamethod"],
-        "nonblank": nonblank, "blank": len(kinds) - nonblank, "paragraphs": len(runs), "max_run": max(runs, default=0),
-        "labels": labels, "interleaved": interleaved, "multi_decl": _multi_decl(rows, kinds, lang),
+        "test": fn["test"], "nonblank": nonblank, "blank": len(kinds) - nonblank, "paragraphs": len(runs),
+        "max_run": max(runs, default=0), "labels": labels, "interleaved": interleaved, "multi_decl": _multi_decl(rows, kinds, lang),
         "one_letter": _one_letter(rows, kinds, lang), **doc,
     }
 
@@ -442,7 +462,7 @@ def _doc_info(rows, lines, fn, lang):
 
     # Comment lines above the header, past decorators and region markers
     k = fn["start"] - 1
-    while k >= 0 and rows[k]["code"] and re.match(r"^\s*(?:#\[|@)", rows[k]["k"]):
+    while k >= 0 and rows[k]["code"] and ATTRIBUTE.match(rows[k]["k"]):
         k -= 1
     while k >= 0 and _comment_only(rows[k]) and REGION.match(lines[k]):
         k -= 1
@@ -539,6 +559,8 @@ def _doc_problem(m, limits):
     if m["metamethod"]:
         return None
     if m["doc"] != "ok":
+        if m["test"]:
+            return TEST_NO_DOC if m["doc"] == "none" else TEST_HIDDEN_DOC
         if not m["public"]:
             return None
         return "has no doc comment" if m["doc"] == "none" else "has a comment that hover does not show"
@@ -598,6 +620,8 @@ def fn_keys(fns):
 
 def notice(items, lang):
     """알림 한 줄의 layout 부분. items 는 [(범주, 설명, 다시 본 것인가)], lang 은 문서 주석 꼴을 고른다."""
+    docs = [desc for cat, desc, _ in items if cat == "doc summary"]
+    tests = sum(1 for desc in docs if TEST_MARK in desc)
     by = {}
     for cat, desc, again in items:
         by.setdefault(cat, []).append(desc + (" (still so after your last edit)" if again else ""))
@@ -615,8 +639,14 @@ def notice(items, lang):
         parts.append("Multi-line comments between statements: " + "; ".join(by["interleaved comment"]) + ". Move a design reason "
                      "above the declaration, apart from the doc comment, or cut it to one line at the trap.")
     if "doc summary" in by:
-        parts.append("Doc comments: " + "; ".join(by["doc summary"]) + ". Public functions in code others call get "
-                     + DOC_FORM[lang] + " whose first sentence ends on the first line, about 80 characters.")
+        text = "Doc comments: " + "; ".join(by["doc summary"]) + "."
+        if tests < len(docs):
+            text += (" Public functions in code others call get " + DOC_FORM[lang]
+                     + " whose first sentence ends on the first line, about 80 characters.")
+        if tests:
+            text += (" Each test gets " + TEST_FORM.get(lang, "a one-line doc comment") + " saying the one behavior it checks; "
+                     'a line that needs "and" means two tests.')
+        parts.append(text)
 
     return " ".join(parts) + " These numbers are evidence, not a verdict; a repo's own rules win."
 

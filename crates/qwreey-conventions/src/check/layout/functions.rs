@@ -47,6 +47,11 @@ static KT_PRIVATE: LazyLock<Regex> =
     LazyLock::new(|| constant(r"\b(?:private|protected|internal)\b"));
 static TS_EXPORT: LazyLock<Regex> = LazyLock::new(|| constant(r"\bexport\b"));
 static RUST_PUB: LazyLock<Regex> = LazyLock::new(|| constant(r"\bpub\b"));
+/// 함수 머리 위의 속성이나 데코레이터 줄(`#[...]`, `@x`). 문서 주석은 그 위에 있어도 된다.
+pub(super) static ATTRIBUTE: LazyLock<Regex> = LazyLock::new(|| constant(r"^\s*(?:#\[|@)"));
+/// Rust 시험 속성: `#[test]`, `#[tokio::test]`, `#[tokio::test(flavor = "...")]`. `#[cfg(test)]` 는 시험이 아니다.
+static RUST_TEST: LazyLock<Regex> =
+    LazyLock::new(|| constant(r"#\[\s*(?:[A-Za-z_]\w*\s*::\s*)*test\s*[\](]"));
 static PY_DEF: LazyLock<Regex> = LazyLock::new(|| constant(r"^\s*(?:async\s+)?def\s+(\w+)"));
 static PY_CLASS: LazyLock<Regex> = LazyLock::new(|| constant(r"^\s*class\s+(\w+)"));
 static PY_MAIN: LazyLock<Regex> = LazyLock::new(|| constant(r"^if\s+__name__\s*=="));
@@ -76,6 +81,8 @@ pub struct Function {
     pub last: usize,
     pub public: bool,
     pub metamethod: bool,
+    /// Rust 시험 함수(`#[test]` 같은 속성이 달린 것).
+    pub test: bool,
     indent: usize,
 }
 
@@ -170,6 +177,7 @@ fn lua_functions(rows: &[Row]) -> Vec<Function> {
                 last: end,
                 public: LUA_PUBLIC.match_start(head).is_some(),
                 metamethod: METAMETHOD.is_match(&name),
+                test: false,
                 name,
                 indent: 0,
             }
@@ -241,6 +249,7 @@ fn py_functions(rows: &[Row], lines: &[&str]) -> Vec<Function> {
         out.push(Function {
             public: !name.starts_with('_'),
             metamethod: name.starts_with("__") && name.ends_with("__"),
+            test: false,
             name,
             start: ln,
             header_end: head_end,
@@ -460,10 +469,22 @@ fn c_functions(rows: &[Row], lang: Lang) -> Vec<Function> {
                 end,
                 last: end,
                 metamethod: false,
+                test: lang == Lang::Rust && rust_test(rows, head),
                 indent: 0,
             }
         })
         .collect()
+}
+
+// 머리 줄이나 그 바로 위 속성 줄에 시험 속성이 있는가
+fn rust_test(rows: &[Row], head: usize) -> bool {
+    let attrs = rows[..head]
+        .iter()
+        .rev()
+        .take_while(|r| r.code && ATTRIBUTE.match_start(&r.k).is_some());
+    std::iter::once(&rows[head])
+        .chain(attrs)
+        .any(|r| RUST_TEST.is_match(&r.k))
 }
 
 fn c_public(code: &str, name: &str, lang: Lang) -> bool {
@@ -518,6 +539,21 @@ mod tests {
         assert_eq!(indent("\t x"), 9);
     }
 
+    /// 시험 속성(`#[test]`, `#[tokio::test(...)]`, 머리 줄의 `#[test]`)이 달린 함수만 시험이다.
+    #[test]
+    fn marks_rust_tests() {
+        let rs = "#[cfg(test)]\nmod tests {\n    #[test]\n    fn a() {}\n\n    #[tokio::test(flavor = \"x\")]\n    #[ignore]\n    async fn b() {}\n\n    #[test] fn c() {}\n\n    fn helper() {}\n}\n";
+        let rows = lex(rs, Family::Rust, true);
+        let lines: Vec<&str> = rs.split('\n').collect();
+        let tests: Vec<(String, bool)> = functions(&rows, &lines, Lang::Rust)
+            .unwrap()
+            .into_iter()
+            .map(|f| (f.name, f.test))
+            .collect();
+        let want = [("a", true), ("b", true), ("c", true), ("helper", false)];
+        assert_eq!(tests, want.map(|(n, t)| (n.to_owned(), t)).to_vec());
+    }
+
     /// 이 모듈의 고정 패턴이 모두 regex crate 로 옮겨지고 엔진이 만들어진다.
     #[test]
     fn fixed_patterns_build() {
@@ -533,6 +569,8 @@ mod tests {
         KT_PRIVATE.check();
         TS_EXPORT.check();
         RUST_PUB.check();
+        ATTRIBUTE.check();
+        RUST_TEST.check();
         PY_DEF.check();
         PY_CLASS.check();
         PY_MAIN.check();

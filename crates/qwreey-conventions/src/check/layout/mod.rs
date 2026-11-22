@@ -14,6 +14,7 @@ use harness_hook::py::value::Value;
 use crate::edit::Added;
 use crate::lex::Row;
 pub use metrics::Finding;
+use metrics::TEST_MARK;
 
 /// layout 을 재는 언어(python `LANG_BY_EXT` 의 값).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -51,6 +52,14 @@ impl Lang {
             Lang::Rust => "a `///` doc comment (`//` is not shown on hover)",
             Lang::Go => "a `//` doc comment directly above the func, starting with its name",
             Lang::Kt => "a `/** */` KDoc comment (`//` is not shown on hover)",
+        }
+    }
+
+    /// 시험 함수가 따를 문서 꼴(python `TEST_FORM`). 시험은 Rust 만 가린다.
+    fn test_form(self) -> &'static str {
+        match self {
+            Lang::Rust => "a one-line `///` doc comment",
+            _ => "a one-line doc comment",
         }
     }
 }
@@ -180,6 +189,14 @@ const LIST_MAX: usize = 8;
 
 /// python `notice(items, lang)`: 알림 한 줄의 layout 부분. `items` 는 (범주, 설명, 다시 본 것인가).
 pub fn notice(items: &[(Finding, String, bool)], lang: Lang) -> String {
+    // Doc summaries that name tests, counted before the list is cut
+    let docs: Vec<&String> = items
+        .iter()
+        .filter(|(cat, _, _)| *cat == Finding::DocSummary)
+        .map(|(_, desc, _)| desc)
+        .collect();
+    let tests = docs.iter().filter(|d| d.contains(TEST_MARK)).count();
+
     // Descriptions per category, in first-seen order
     let mut by: Vec<(Finding, Vec<String>)> = Vec::new();
     for (cat, desc, again) in items {
@@ -219,13 +236,54 @@ pub fn notice(items: &[(Finding, String, bool)], lang: Lang) -> String {
         ));
     }
     if let Some(list) = get(Finding::DocSummary) {
-        parts.push(format!(
-            "Doc comments: {list}. Public functions in code others call get {} whose first sentence ends on the first line, about 80 characters.",
-            lang.doc_form()
-        ));
+        let mut text = format!("Doc comments: {list}.");
+        if tests < docs.len() {
+            text += &format!(
+                " Public functions in code others call get {} whose first sentence ends on the first line, about 80 characters.",
+                lang.doc_form()
+            );
+        }
+        if tests > 0 {
+            text += &format!(
+                " Each test gets {} saying the one behavior it checks; a line that needs \"and\" means two tests.",
+                lang.test_form()
+            );
+        }
+        parts.push(text);
     }
     format!(
         "{} These numbers are evidence, not a verdict; a repo's own rules win.",
         parts.join(" ")
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn doc(desc: &str) -> (Finding, String, bool) {
+        (Finding::DocSummary, desc.to_owned(), false)
+    }
+
+    /// 시험만 걸린 doc summary 는 공개 함수 문장 없이 시험 문장을 단다.
+    #[test]
+    fn test_only_doc_notice_names_the_test_form() {
+        let text = notice(&[doc("a L3 is a test with no doc comment")], Lang::Rust);
+        assert!(text.starts_with(
+            "Doc comments: a L3 is a test with no doc comment. Each test gets a one-line `///` doc comment"
+        ));
+        assert!(!text.contains("Public functions"));
+    }
+
+    /// 공개 함수와 시험이 함께 걸리면 두 문장을 모두 단다.
+    #[test]
+    fn mixed_doc_notice_has_both_sentences() {
+        let items = [
+            doc("f L1 has no doc comment"),
+            doc("a L3 is a test with no doc comment"),
+        ];
+        let text = notice(&items, Lang::Rust);
+        assert!(text.contains("Public functions in code others call get a `///` doc comment"));
+        assert!(text.contains("Each test gets a one-line `///` doc comment"));
+    }
 }

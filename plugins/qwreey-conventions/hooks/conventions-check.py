@@ -23,8 +23,8 @@ Bash 로 바꾼 파일은 bash_writes.py 가 이 파일의 file_notice 로 같�
     단계 라벨(본문 안 들여쓴 한 줄 주석, 위는 주석 줄이 아니고 아래는 코드, label_language 글자만 2-10낱말, 72자 이하, 마침표와 이유 접속어 없음)은
     언어 판정과 다수 계산에서 뺀다. 한국어 주석 파일에 영어 라벨을 쓰는 것이 readable-code 규약이라서다(키와 무관하게 늘)
   - layout (harness.env 층의 HARNESS_READABLE_CODE 가 on 일 때, 기본 on, hooks/layout_metrics.py): 이번 편집이 새로 쓰거나(함수 줄의 절반 이상) 15줄 이상 키운 함수의
-    빈 줄 없는 긴 본문(layout), 문장 사이에 끼운 여러 줄 주석(interleaved comment), 호출하는 쪽이 못 보는 문서 주석(doc summary: 공개 함수에
-    호버 꼴 문서가 없음, 첫 줄이 길거나 첫 문장이 첫 줄에서 안 끝남. 메타메서드 제외). (파일, 범주, 함수)마다 한 번이고, doc summary 를 알린 함수는
+    빈 줄 없는 긴 본문(layout), 문장 사이에 끼운 여러 줄 주석(interleaved comment), 호출하는 쪽이 못 보는 문서 주석(doc summary: 공개 함수나
+    Rust 시험(`#[test]`)에 호버 꼴 문서가 없음, 첫 줄이 길거나 첫 문장이 첫 줄에서 안 끝남. 메타메서드 제외). (파일, 범주, 함수)마다 한 번이고, doc summary 를 알린 함수는
     다음 편집 뒤 한 번 더 본다
 모델용 문서(CLAUDE.md, SKILL.md, agents/*.md, .claude/rules/*.md, skills/**/*.md; 추가된 줄만, frontmatter, 코드 펜스, 인라인 코드, URL, 경로 토큰 안은 통과)
   - 입구 문서: 날짜, audit/session/handoff 경로와 .claude/ 아래 기록 폴더 경로, 라운드, 결정 문구, 실측 표지, 변경 서술, 같은 줄에 .md 경로가 없는 원장 id
