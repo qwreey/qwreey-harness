@@ -41,6 +41,7 @@ pub fn state_path(
 mod tests {
     use super::*;
 
+    /// 세션 id 에서 글자, 숫자, `-`, `_` 만 남기고 한글은 지키며, id 가 없으면 `nosession` 이다.
     #[test]
     fn sanitize_keeps_word_chars() {
         assert_eq!(sanitize(Some("a/b.c-d_\u{d55c}")), "abc-d_\u{d55c}");

@@ -132,6 +132,7 @@ pub static ZERO: Value = Value::Int(0);
 mod tests {
     use super::*;
 
+    /// 정수와 실수는 python 처럼 값으로 비교하고, NaN 은 순서가 없다.
     #[test]
     fn numbers_compare_like_python() {
         assert_eq!(Num::Int(3).compare(Num::Float(3.0)), Some(Ordering::Equal));
@@ -145,13 +146,27 @@ mod tests {
             Some(Ordering::Less)
         );
         assert_eq!(Num::Int(1).compare(Num::Float(f64::NAN)), None);
+    }
+
+    /// `greater` 는 글끼리, bool 과 정수는 비교하고 글과 정수는 오류다.
+    #[test]
+    fn greater_compares_like_python() {
         assert!(greater(&Value::Str("b".into()), &Value::Str("a".into()), "t").unwrap());
         assert!(greater(&Value::Bool(true), &Value::Int(0), "t").unwrap());
-        assert!(greater(&Value::Str("1".into()), &Value::Int(0), "t").is_err());
+        assert!(
+            greater(&Value::Str("1".into()), &Value::Int(0), "t").is_err(),
+            "python raises TypeError on str > int"
+        );
+    }
+
+    /// 더한 합의 글은 정수끼리면 정수, 하나라도 실수면 실수 꼴이다.
+    #[test]
+    fn sums_print_like_python() {
         assert_eq!(Num::Int(1).plus(Num::Float(0.5)).unwrap().text(), "1.5");
         assert_eq!(Num::Int(4).plus(Num::Int(1)).unwrap().text(), "5");
     }
 
+    /// 거짓 값은 없음, 참인 숫자는 python `str()` 글, 목록은 오류다.
     #[test]
     fn input_strings_follow_python_str() {
         assert_eq!(truthy_str(Some(&Value::Int(0)), "t"), Ok(None));
@@ -159,6 +174,9 @@ mod tests {
             truthy_str(Some(&Value::Float(1.0)), "t"),
             Ok(Some("1.0".into()))
         );
-        assert!(truthy_str(Some(&Value::List(vec![Value::Int(1)])), "t").is_err());
+        assert!(
+            truthy_str(Some(&Value::List(vec![Value::Int(1)])), "t").is_err(),
+            "a list is not a string input"
+        );
     }
 }
