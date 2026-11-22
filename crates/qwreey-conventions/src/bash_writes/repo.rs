@@ -141,12 +141,12 @@ pub fn blobs(
                 .and_then(parse_int)
                 .and_then(|n| usize::try_from(n).ok())
                 .ok_or(Halt::PyError("int() of a git size"))?;
-            let end = (pos + size).min(raw.len());
+            let end = pos.saturating_add(size).min(raw.len());
             out.insert(
                 r.clone(),
                 Some(String::from_utf8_lossy(&raw[pos.min(end)..end]).into_owned()),
             );
-            pos += size + 1;
+            pos = pos.saturating_add(size).saturating_add(1);
         }
         if pos > raw.len() {
             pos = raw.len();

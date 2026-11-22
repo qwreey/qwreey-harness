@@ -71,7 +71,7 @@ pub fn take(ctx: &Context, input: &HookInput, before: &Before<'_>) -> Result<()>
         }
         snap.named.push(p.clone());
         snap.stats.push((p.clone(), files::stat(p)?));
-        let t = files::read(p, CANDIDATE_MAX.min(TOTAL_MAX - total))?;
+        let t = files::read(p, CANDIDATE_MAX.min(TOTAL_MAX.saturating_sub(total)))?;
         total += t.text().map_or(0, char_len);
         snap.texts.push((p.clone(), t));
     }
@@ -111,7 +111,8 @@ fn record_dirty(snap: &mut Snapshot, st: Option<&Porcelain>, total: &mut u64) ->
         if have.contains(&ap) || !checked_ext(rel) || *total >= TOTAL_MAX {
             continue;
         }
-        if let Recorded::Text(t) = files::read(&ap, TEXT_MAX.min(TOTAL_MAX - *total))? {
+        if let Recorded::Text(t) = files::read(&ap, TEXT_MAX.min(TOTAL_MAX.saturating_sub(*total)))?
+        {
             *total += char_len(&t);
             have.insert(ap.clone());
             snap.texts.push((ap, Recorded::Text(t)));
