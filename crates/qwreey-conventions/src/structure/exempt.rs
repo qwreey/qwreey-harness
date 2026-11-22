@@ -5,6 +5,7 @@
 use std::sync::LazyLock;
 
 use harness_hook::py::re::{Flags, Regex};
+use harness_hook::py::repr::truthy_str;
 use harness_hook::py::text::strip;
 use harness_hook::py::unicode::is_word;
 use harness_hook::py::value::Value;
@@ -81,15 +82,8 @@ fn header_mark(head: &str, comments: &Value) -> Result<Option<Exemption>> {
 fn config_exempt(rel: &str, cfg: &Config) -> Result<Option<Exemption>> {
     for entry in items_or_empty(cfg.get("exempt"))? {
         let Some(e) = entry.as_dict() else { continue };
-        // python 은 목록이나 dict 인 path 의 repr 글(`['src/*']`)을 글롭으로 쓴다. 그 글롭은 `[` 로 시작하는 한 글자 집합이라
-        // 한 글자 이름에만 맞는다: 그 항목만 건너뛴다
-        let glob = match e.get("path") {
-            Some(v) if v.truthy() => match v.scalar_str() {
-                Some(text) => text,
-                None => continue,
-            },
-            _ => String::new(),
-        };
+        // python str(path or ""): 목록이나 dict 인 path 는 repr 글(`['src/*']`)이 글롭이라 한 글자 집합이 된다
+        let glob = truthy_str(e.get("path"));
         if !fnmatch(rel, &glob)? {
             continue;
         }
@@ -179,9 +173,22 @@ mod tests {
         assert!(exemption("", "a.luau", &bad, &luau()).is_err());
     }
 
-    /// 목록인 exempt path 는 그 항목만 건너뛰고 다음 항목을 본다.
+    /// 목록인 path 는 python 처럼 repr 글(`['x']`)을 글롭으로 써서 한 글자 이름에만 맞는다.
     #[test]
-    fn list_path_skips_that_entry() {
+    fn list_path_is_a_repr_glob() {
+        let cfg = Config::from_value(
+            &loads(r#"{"exempt": [{"path": ["x"], "reason": "data table"}]}"#).unwrap(),
+        );
+
+        // The glob is the set ['x'], one character
+        assert!(exemption("", "x", &cfg, &luau()).unwrap().is_some());
+        assert!(exemption("", "'", &cfg, &luau()).unwrap().is_some());
+        assert_eq!(exemption("", "x.luau", &cfg, &luau()).unwrap(), None);
+    }
+
+    /// 목록인 exempt path 에 맞지 않는 긴 이름은 다음 항목을 본다.
+    #[test]
+    fn list_path_misses_longer_names() {
         // python globs the list's repr, which matches one-character names only
         let raw = r#"{"exempt": [{"path": ["src/*"], "reason": "a real reason"}, {"path": "src/*", "reason": "pure data table"}]}"#;
         let cfg = Config::from_value(&loads(raw).unwrap());
