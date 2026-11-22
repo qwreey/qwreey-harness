@@ -6,6 +6,7 @@ User-invoked commands (`/q:start`, `/q:doctor`, `/q:away`, `/q:back`) plus alway
 - `hooks/hooks.json`: every hook registration. Scripts are in `scripts/`: `ambient.py` (injects `context/ambient.md`), `subagent-slots.py` + `subagent_ledger.py` (fan-out notice, away budget; the ledger is also the CLI behind `/q:away` and `/q:back` and is read by the qwreey-harness statusline), `stale_work.py`, `drift.py`, `mise-hint.py`, `records_check.py` (used by `/q:doctor`).
 - `skills/<name>/SKILL.md` per command; `/q:doctor` checks live in `skills/doctor/scripts/`, its references in `skills/doctor/references/`.
 - `README.md` is for people deciding whether to install; technical detail goes in `docs/how-it-works.md`.
+- `hooks/hooks.json` runs the Rust binary `native/q hook <name>` (exec form, source `crates/q`, built and copied by hand, git-ignored) for subagent-slots (every event), stale-work, mise-hint and ambient on UserPromptSubmit; ambient on SessionStart, SubagentStart and PreCompact, drift and compact_epoch stay python. The python scripts stay as the reference the binary must match byte for byte: a behavior change goes into both, then run `python3 -I tools/tests/hook-parity.py --map crates/q/parity-map.json`, `cargo test -p q` and the tests with `HOOK_TEST_BIN=<repo>/plugins/q/native/q`.
 
 ## Tests
 Run each `tests/test*.py` and `skills/doctor/tests/*.py` with `python3 -I` (exit 0 = pass, no model calls). Cross-plugin copy checks: `python3 -I tools/tests/test-vendored-copies.py` from the repo root.

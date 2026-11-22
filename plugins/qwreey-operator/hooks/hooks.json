@@ -4,14 +4,22 @@
       {
         "matcher": "startup|resume|clear|compact",
         "hooks": [
-          { "type": "command", "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/ambient.py\"", "timeout": 10 }
+          {
+            "type": "command",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/ambient.py\"",
+            "timeout": 10
+          }
         ]
       }
     ],
     "SubagentStart": [
       {
         "hooks": [
-          { "type": "command", "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/ambient.py\" SubagentStart", "timeout": 10 }
+          {
+            "type": "command",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/ambient.py\" SubagentStart",
+            "timeout": 10
+          }
         ]
       }
     ],
@@ -19,14 +27,26 @@
       {
         "matcher": "manual|auto",
         "hooks": [
-          { "type": "command", "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/ambient.py\" PreCompact", "timeout": 5 }
+          {
+            "type": "command",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/ambient.py\" PreCompact",
+            "timeout": 5
+          }
         ]
       }
     ],
     "SubagentStop": [
       {
         "hooks": [
-          { "type": "command", "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-bg-tasks.py\"", "timeout": 10 }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-operator",
+            "args": [
+              "hook",
+              "subagent-bg-tasks"
+            ],
+            "timeout": 10
+          }
         ]
       }
     ],
@@ -34,14 +54,30 @@
       {
         "matcher": "*",
         "hooks": [
-          { "type": "command", "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/delegate-nudge.py\"", "timeout": 5 }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-operator",
+            "args": [
+              "hook",
+              "delegate-nudge"
+            ],
+            "timeout": 5
+          }
         ]
       }
     ],
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/delegate-nudge.py\"", "timeout": 5 }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-operator",
+            "args": [
+              "hook",
+              "delegate-nudge"
+            ],
+            "timeout": 5
+          }
         ]
       }
     ]

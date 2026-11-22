@@ -17,6 +17,7 @@
 
 ## 요구 사항
 - `python3`. Linux·macOS·Windows(Windows 는 qwreey-harness README 의 Windows 절).
+- 서브에이전트 자리·예산, 끝나지 않은 일 알림, mise 안내, 말마다 붙는 보충은 Rust 바이너리 `native/q` 를 부른다. 지금은 저장소에서 `cargo build --release -p q` 로 만들어 그 자리에 복사해야 하고, 없으면 그 훅들이 아무것도 하지 않는다(막지 않는 오류이고, 자리 비움 중 거절도 서지 않는다). 바이너리는 아직 Linux 판만 있다.
 - 구독 한도 %로 예산을 걸려면 qwreey-harness 의 statusline 이 한도 값을 기록해야 한다. 없으면 달러 기준으로 바뀐다.
 
 ## 설정

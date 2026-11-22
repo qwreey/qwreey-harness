@@ -1,6 +1,7 @@
 # qwreey-operator (plugin development)
 
 Keeps the main session talking with the user while large implementations go to background subagents: a five-line ambient (`context/ambient.md`), one notice hook (`hooks/delegate-nudge.py`) and one SubagentStop hook (`hooks/subagent-bg-tasks.py`) that sends a finishing subagent back once to collect or stop its own running background tasks. Behavior, thresholds and their evidence: `docs/how-it-works.md`.
+- `hooks/hooks.json` runs the Rust binary `native/qwreey-operator hook <name>` (exec form, source `crates/qwreey-operator`, built and copied by hand, git-ignored) for delegate-nudge and subagent-bg-tasks; ambient stays python. The python scripts stay as the reference the binary must match byte for byte: a behavior change goes into both, then run `python3 -I tools/tests/hook-parity.py --map crates/qwreey-operator/parity-map.json`, `cargo test -p qwreey-operator` and the tests with `HOOK_TEST_BIN=<repo>/plugins/qwreey-operator/native/qwreey-operator`.
 
 ## Tests
 `python3 -I tests/test_delegate_nudge.py` and `python3 -I tests/test_subagent_bg_tasks.py` (exit 0 = pass, no model calls; they redirect `TMPDIR`). Cross-plugin copy checks: `python3 -I tools/tests/test-vendored-copies.py` from the repo root.

@@ -37,7 +37,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/q",
+            "args": [
+              "hook",
+              "subagent-slots"
+            ],
             "timeout": 10
           }
         ]
@@ -48,7 +52,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/stale_work.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/q",
+            "args": [
+              "hook",
+              "stale-work"
+            ],
             "timeout": 10
           }
         ]
@@ -57,7 +65,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/ambient.py\" UserPromptSubmit",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/q",
+            "args": [
+              "hook",
+              "ambient",
+              "UserPromptSubmit"
+            ],
             "timeout": 10
           }
         ]
@@ -69,7 +82,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/q",
+            "args": [
+              "hook",
+              "subagent-slots"
+            ],
             "timeout": 10
           }
         ]
@@ -81,7 +98,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/q",
+            "args": [
+              "hook",
+              "subagent-slots"
+            ],
             "timeout": 10
           }
         ]
@@ -93,7 +114,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/mise-hint.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/q",
+            "args": [
+              "hook",
+              "mise-hint"
+            ],
             "timeout": 10
           }
         ]
@@ -104,7 +129,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/stale_work.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/q",
+            "args": [
+              "hook",
+              "stale-work"
+            ],
             "timeout": 10
           }
         ]
@@ -113,7 +142,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/q",
+            "args": [
+              "hook",
+              "subagent-slots"
+            ],
             "timeout": 10
           }
         ]
@@ -124,7 +157,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/stale_work.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/q",
+            "args": [
+              "hook",
+              "stale-work"
+            ],
             "timeout": 10
           }
         ]
@@ -133,7 +170,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/subagent-slots.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/q",
+            "args": [
+              "hook",
+              "subagent-slots"
+            ],
             "timeout": 10
           }
         ]

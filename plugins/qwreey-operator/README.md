@@ -16,7 +16,8 @@
 
 ## 요구 사항
 - Claude Code 서브에이전트가 도는 곳이면 어디서나(구독만으로 충분, 다른 벤더 불필요). Linux·macOS·Windows.
-- 훅이 `python3` 를 부른다. Windows 는 Python 3 설치가 필요하다.
+- 세션 시작 안내 훅이 `python3` 를 부른다. Windows 는 Python 3 설치가 필요하다.
+- 위임 알림과 서브에이전트 백그라운드 작업 알림은 Rust 바이너리 `native/qwreey-operator` 를 부른다. 지금은 저장소에서 `cargo build --release -p qwreey-operator` 로 만들어 그 자리에 복사해야 하고, 없으면 그 훅들이 아무것도 하지 않는다(막지 않는 오류). 바이너리는 아직 Linux 판만 있다.
 
 ## 설정
 `/plugin configure qwreey-operator@qwreey-harness` 또는 `/config` 의 플러그인 설정에서 바꾼다.
