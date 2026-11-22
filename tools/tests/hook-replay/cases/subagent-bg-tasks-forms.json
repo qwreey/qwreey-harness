@@ -1,0 +1,392 @@
+{
+ "description": "subagent-bg-tasks: skips errors, stop_hook_active and the off switch; lists names, long and quoted descriptions; reads non-text tool results",
+ "files": {
+  "{sandbox}/agent-a1.jsonl": "{\"type\": \"user\", \"message\": {\"content\": \"start\"}}\n{\"type\": \"user\", \"message\": {\"content\": [{\"type\": \"tool_result\", \"tool_use_id\": \"t\", \"content\": \"Command running in background with ID: b7x9k2.\"}]}}\n{\"type\": \"user\", \"message\": {\"content\": [{\"type\": \"tool_result\", \"tool_use_id\": \"t\", \"content\": [{\"type\": \"text\", \"text\": \"started bq77 and é\"}]}]}}\n{\"type\": \"user\", \"message\": {\"content\": [{\"type\": \"tool_result\", \"tool_use_id\": \"t\", \"content\": \"monitor bmon1 and x-b0dd, b0dd2\"}]}}\n{\"type\": \"user\", \"message\": {\"content\": [{\"type\": \"tool_result\", \"tool_use_id\": \"t\", \"content\": null}]}}\nnot json but has \"tool_result\"\nÿ\n",
+  "{sandbox}/agent-a2.jsonl": [
+   {
+    "type": "user",
+    "message": {
+     "content": [
+      {
+       "type": "tool_result",
+       "tool_use_id": "t",
+       "content": "ID: bz1"
+      }
+     ]
+    }
+   },
+   [
+    1,
+    "tool_result"
+   ]
+  ],
+  "{sandbox}/agent-a3.jsonl": [
+   {
+    "type": "user",
+    "message": [
+     "tool_result"
+    ]
+   }
+  ]
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a1",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "  api error: overloaded",
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl",
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "shell",
+      "status": "running",
+      "description": "build"
+     }
+    ]
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a1",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "   ",
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl",
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "shell",
+      "status": "running",
+      "description": "build"
+     }
+    ]
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a1",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done.",
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl",
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "shell",
+      "status": "running",
+      "description": "build"
+     }
+    ],
+    "stop_hook_active": true
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done.",
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl",
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "shell",
+      "status": "running",
+      "description": "build"
+     }
+    ]
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a1",
+    "hook_event_name": "Stop",
+    "last_assistant_message": "Done.",
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl",
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "shell",
+      "status": "running",
+      "description": "build"
+     }
+    ]
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a1",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done.",
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl",
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "monitor",
+      "status": "running"
+     },
+     {
+      "id": "b0dd",
+      "status": "running"
+     }
+    ]
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a1",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done.",
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl",
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "shell",
+      "status": "running",
+      "description": "build"
+     }
+    ]
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_OPERATOR_SUBAGENT_BG": "no"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a1",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done.",
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl",
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "shell",
+      "status": "running",
+      "description": "  wait\n  for   \"the\" build xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+     },
+     {
+      "id": "bq77",
+      "type": "subagent",
+      "status": "running",
+      "description": "",
+      "name": "helper"
+     },
+     {
+      "id": "bmon1",
+      "status": "running",
+      "agent_type": "Explore"
+     },
+     {
+      "id": "b0dd2",
+      "type": "",
+      "status": "running"
+     },
+     {
+      "id": "a1",
+      "type": "subagent",
+      "status": "running"
+     },
+     {
+      "id": 5,
+      "status": "running"
+     },
+     {
+      "id": "bdone",
+      "status": "completed"
+     }
+    ]
+   },
+   "expect": {
+    "tags": [
+     "subagent-bg-tasks/warn"
+    ],
+    "contains": [
+     "helper",
+     "bmon1"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a1",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done.",
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl",
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "shell",
+      "status": "running",
+      "description": "build"
+     }
+    ]
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a2",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done.",
+    "agent_transcript_path": "{sandbox}/agent-a2.jsonl",
+    "background_tasks": [
+     {
+      "id": "bz1",
+      "status": "running"
+     }
+    ]
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a3",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done.",
+    "agent_transcript_path": "{sandbox}/agent-a3.jsonl",
+    "background_tasks": [
+     {
+      "id": "bz1",
+      "status": "running"
+     }
+    ]
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a4",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done.",
+    "agent_transcript_path": "{sandbox}/missing.jsonl",
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "shell",
+      "status": "running",
+      "description": "build"
+     }
+    ]
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a5",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done.",
+    "agent_transcript_path": 3,
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "shell",
+      "status": "running",
+      "description": "build"
+     }
+    ]
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": "s1",
+    "agent_id": "a6",
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done.",
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl",
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "shell",
+      "status": "running",
+      "description": "build"
+     }
+    ],
+    "cwd": 9
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+   "payload": {
+    "session_id": [
+     "s",
+     1
+    ],
+    "agent_id": 7,
+    "hook_event_name": "SubagentStop",
+    "last_assistant_message": "Done.",
+    "agent_transcript_path": "{sandbox}/agent-a1.jsonl",
+    "background_tasks": [
+     {
+      "id": "b7x9k2",
+      "type": "shell",
+      "status": "running",
+      "description": "build"
+     }
+    ]
+   },
+   "expect": {
+    "empty": false
+   }
+  }
+ ]
+}

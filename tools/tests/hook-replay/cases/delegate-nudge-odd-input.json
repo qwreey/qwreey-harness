@@ -1,0 +1,229 @@
+{
+ "description": "delegate-nudge: subagents, the off switch and odd input values (lists, numbers, a missing event) behave like python",
+ "env": {
+  "HARNESS_OPERATOR_NUDGE_WRITES": "1"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "agent_id": "a1",
+    "tool_input": {
+     "file_path": "x.py"
+    },
+    "session_id": "o1"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": [
+     "Edit"
+    ],
+    "tool_input": {
+     "file_path": "x.py"
+    },
+    "session_id": "o2"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": [
+     "x.py"
+    ],
+    "session_id": "o3"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": 5
+    },
+    "session_id": "o4"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "x.py"
+    },
+    "session_id": "o5"
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_OPERATOR_NUDGE": " Off "
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "x.py"
+    },
+    "cwd": 7,
+    "session_id": "o6"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": 1.5
+    },
+    "session_id": "o7"
+   },
+   "expect": {
+    "empty": false
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "y.py"
+    },
+    "session_id": "o7"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "session_id": [
+     "o7"
+    ]
+   },
+   "expect": {
+    "empty": false
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "",
+     "notebook_path": "nb.py"
+    },
+    "session_id": "o/8"
+   },
+   "expect": {
+    "tags": [
+     "delegate-nudge/info"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "éè.rs"
+    },
+    "session_id": "o9"
+   },
+   "expect": {
+    "empty": false
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo > /dev/null; echo > a.toolong7 > b.PY"
+    },
+    "session_id": "o10"
+   },
+   "expect": {
+    "empty": false
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Task",
+    "tool_input": {},
+    "session_id": "o11"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "p.py"
+    },
+    "session_id": "o11"
+   },
+   "expect": {
+    "empty": false
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": "{\"hook_event_name\": \"PostToolUse\", \"tool_name\": \"Edit\", \"session_id\": \"s4\", \"tool_input\": {\"file_path\": \"\\ud800.py\"}}",
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": "[1, 2]",
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": "not json",
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

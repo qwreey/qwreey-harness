@@ -16,10 +16,13 @@ from pathlib import Path
 
 STALE = Path(__file__).resolve().parent.parent / "scripts" / "stale_work.py"
 SID = "s-stale-test"
+# HOOK_TEST_BIN=<바이너리> 면 훅을 python 스크립트 대신 `<바이너리> hook stale-work` 로 돌린다(Rust 판, crates/q).
+BIN = os.environ.get("HOOK_TEST_BIN")
+CMD = [BIN, "hook", "stale-work"] if BIN else [sys.executable, "-I", str(STALE)]
 
 
 def run(payload, env):
-    p = subprocess.run([sys.executable, "-I", str(STALE)], input=json.dumps(payload), capture_output=True, text=True, env=env, timeout=30)
+    p = subprocess.run(CMD, input=json.dumps(payload), capture_output=True, text=True, env=env, timeout=30)
     assert p.returncode == 0, p.stderr
     return json.loads(p.stdout) if p.stdout.strip() else None
 

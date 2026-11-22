@@ -1,0 +1,295 @@
+{
+ "description": "subagent-slots: inputs python ends with a traceback exit 1, inputs it swallows, the off switch, custom agent models and a ledger that is not an object",
+ "files": {
+  "{sandbox}/tx/odd.jsonl": "",
+  "{repo}/.claude/agents/rev.md": "---\nname: reviewer-x\nmodel: 'opus'\n---\nbody\n",
+  "{repo}/.claude/agents/plain.md": "---\ndescription: no name\nmodel: haiku\n---\n",
+  "{cfg}/agents/mine.md": "---\nname:\n  \"sonnet-agent\"\nmodel:   sonnet\n---\n",
+  "{tmp}/claude-subagent-slots/ls.json": "[1, 2]"
+ },
+ "setup": [
+  "mkdir -p {tmp}/claude-subagent-slots && printf '\\xff\\xfe' > {tmp}/claude-subagent-slots/bad.json"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": "[]",
+   "expect": {
+    "exit": 1
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": "\"PostToolUse\"",
+   "expect": {
+    "exit": 1
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": "{\"hook_event_name\": [\"PreToolUse\"]}",
+   "expect": {
+    "exit": 1
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": "{\"hook_event_name\": \"PreToolUse\", \"tool_name\": {\"a\": 1}}",
+   "expect": {
+    "exit": 1
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": "{\"hook_event_name\": \"PostToolUse\", \"session_id\": \"bad\", \"tool_name\": \"Read\"}",
+   "expect": {
+    "exit": 1
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": "{not json",
+   "expect": {
+    "exit": 0,
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "odd",
+    "transcript_path": "{sandbox}/tx/odd.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": [
+     "x"
+    ]
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "odd",
+    "transcript_path": "{sandbox}/tx/odd.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+     "model": 5
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "odd",
+    "transcript_path": "{sandbox}/tx/odd.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "agent_id": "a1"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "odd",
+    "transcript_path": "{sandbox}/tx/odd.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": {}
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_SUBAGENT_SLOTS": "OFF"
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "odd",
+    "transcript_path": "{sandbox}/tx/odd.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read"
+   },
+   "expect": {
+    "empty": true
+   },
+   "env": {
+    "HARNESS_SUBAGENT_SLOTS": "no"
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "odd",
+    "transcript_path": "{sandbox}/tx/odd.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_odd_1",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "reviewer-x",
+     "model": "inherit",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "contains": [
+     "opus 1; opus-or-above: 1"
+    ]
+   },
+   "env": {
+    "HARNESS_FANOUT_WARN_BIG": "1"
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "odd",
+    "transcript_path": "{sandbox}/tx/odd.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_odd_2",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "plain",
+     "model": "",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   },
+   "env": {
+    "HARNESS_FANOUT_WARN_CONCURRENT": "1"
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "odd",
+    "transcript_path": "{sandbox}/tx/odd.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_odd_3",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "sonnet-agent",
+     "model": "",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   },
+   "env": {
+    "HARNESS_FANOUT_WARN_CONCURRENT": "x1"
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "odd",
+    "transcript_path": "{sandbox}/tx/odd.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_odd_4",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "plugin:agent",
+     "model": "",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "ls",
+    "transcript_path": "{sandbox}/tx/odd.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": {}
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": "{\"hook_event_name\": \"PreToolUse\", \"tool_name\": \"Task\", \"session_id\": \"s\\ud800\", \"tool_input\": {}}",
+   "env": {
+    "HARNESS_FANOUT_WARN_CONCURRENT": "1"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "odd",
+    "transcript_path": "{sandbox}/tx/odd.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStart",
+    "agent_id": "w1",
+    "agent_type": "workflow-subagent"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "odd",
+    "transcript_path": "{sandbox}/tx/odd.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStop",
+    "agent_id": "w1"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "odd",
+    "transcript_path": "{sandbox}/tx/odd.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "Notification"
+   },
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

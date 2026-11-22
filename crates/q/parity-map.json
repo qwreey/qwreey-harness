@@ -1,0 +1,6 @@
+[
+ {"hook": "plugins/q/scripts/subagent-slots.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/q", "hook", "subagent-slots"]},
+ {"hook": "plugins/q/scripts/stale_work.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/q", "hook", "stale-work"]},
+ {"hook": "plugins/q/scripts/mise-hint.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/q", "hook", "mise-hint"]},
+ {"hook": "plugins/q/scripts/ambient.py", "argv": ["UserPromptSubmit"], "exec": ["${CLAUDE_PLUGIN_ROOT}/native/q", "hook", "ambient", "UserPromptSubmit"]}
+]

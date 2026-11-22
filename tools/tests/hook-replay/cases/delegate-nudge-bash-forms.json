@@ -1,0 +1,106 @@
+{
+ "description": "delegate-nudge: Bash writes count through heredoc, redirect, tee and sed -i; quoted >, heredoc bodies, /tmp and non-code files do not",
+ "env": {
+  "HARNESS_OPERATOR_NUDGE_FILES": "4"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "cat > gen.py <<'EOF'\nx = 1 > 0  # > body.rs\nEOF\necho done"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo \"a > quoted.rs\" > out.go; echo x 2>err.py"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "ls | tee -a log.txt copy.lua >/dev/null"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo hi > /tmp/scratch.py; echo y >> notes.md; cat <<EOF > conf.json\n{}\nEOF"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "sed -i.bak -e 's/a/b/' 'lib/x.kt' && git status"
+    }
+   },
+   "expect": {
+    "tags": [
+     "delegate-nudge/info"
+    ],
+    "contains": [
+     "across 4 files"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "cat <<-  \"END\"  > tab.c\n\tbody\n\tEND\t\nsed -ni p y.swift"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "next"
+   },
+   "expect": {
+    "tags": [
+     "delegate-nudge/info"
+    ],
+    "contains": [
+     "5 times in 6 files"
+    ]
+   }
+  }
+ ]
+}

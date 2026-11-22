@@ -1,0 +1,126 @@
+{
+ "description": "mise-hint: lists installed shim copies with the suggested tool and version first, skips alias folders, and stays quiet without the shim error",
+ "env": {
+  "HARNESS_TOOL_INSTALLS": "{sandbox}/installs"
+ },
+ "files": {
+  "{sandbox}/installs/node/24.20.0/bin/corepack": "#!/bin/sh\n",
+  "{sandbox}/installs/node/22.1.0/bin/corepack": "#!/bin/sh\n",
+  "{sandbox}/installs/aqua-nodejs-node/20.0.0/corepack.cmd": "x\n",
+  "{sandbox}/installs/other/1.0/bin/corepack.exe": "x\n",
+  "{sandbox}/installs/notadir": "x\n"
+ },
+ "setup": [
+  "ln -s 24.20.0 {sandbox}/installs/node/latest"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/q/scripts/mise-hint.py",
+   "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Bash",
+    "error": "Exit code 1\nmise ERROR No version is set for shim: corepack\nmise use -g node@24.20.0\n"
+   },
+   "expect": {
+    "tags": [
+     "mise-hint/info"
+    ],
+    "contains": [
+     "mise exec node@24.20.0"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/mise-hint.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_response": {
+     "stderr": "No version is set for shim: corepack",
+     "stdout": "x",
+     "output": 5
+    }
+   },
+   "expect": {
+    "tags": [
+     "mise-hint/info"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/mise-hint.py",
+   "payload": {
+    "tool_response": "No version is set for shim: nothere"
+   },
+   "expect": {
+    "contains": [
+     "`mise install` may be needed"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/mise-hint.py",
+   "payload": {
+    "tool_name": "Read",
+    "error": "No version is set for shim: corepack"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/mise-hint.py",
+   "payload": {
+    "tool_name": "Bash",
+    "error": "plain failure"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/mise-hint.py",
+   "payload": {
+    "tool_name": "Bash",
+    "error": "No version is set for shim: corepack\nmise use -g aqua:nodejs/node@20.0.0"
+   },
+   "env": {
+    "HARNESS_TOOL_INSTALLS": "",
+    "MISE_DATA_DIR": "{sandbox}"
+   },
+   "expect": {
+    "contains": [
+     "corepack.cmd"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/mise-hint.py",
+   "payload": {
+    "tool_name": "Bash",
+    "error": "No version is set for shim: corepack",
+    "hook_event_name": 7
+   },
+   "env": {
+    "HARNESS_TOOL_INSTALLS": "{sandbox}/missing"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/mise-hint.py",
+   "payload": "{\"tool_name\": \"Bash\", \"session_id\": \"\\ud800\", \"error\": \"No version is set for shim: corepack\"}",
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/mise-hint.py",
+   "payload": "nope",
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}

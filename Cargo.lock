@@ -219,6 +219,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "q"
+version = "0.1.0"
+dependencies = [
+ "harness-hook",
+ "rustix",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -250,6 +258,13 @@ dependencies = [
  "rustix",
  "serde_json",
  "sha1",
+]
+
+[[package]]
+name = "qwreey-operator"
+version = "0.1.0"
+dependencies = [
+ "harness-hook",
 ]
 
 [[package]]

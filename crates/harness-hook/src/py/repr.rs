@@ -118,6 +118,14 @@ pub fn str_value(v: &Value) -> String {
     }
 }
 
+/// python `str(v or "")`: 없거나 거짓 값이면 빈 글, 아니면 [`str_value`].
+pub fn truthy_str(v: Option<&Value>) -> String {
+    match v {
+        Some(v) if v.truthy() => str_value(v),
+        _ => String::new(),
+    }
+}
+
 // 아직 쓰지 않은 repr 조각(작업 목록은 뒤에서 꺼내므로 거꾸로 쌓는다)
 enum Piece<'a> {
     Value(&'a Value),
@@ -217,6 +225,15 @@ mod tests {
             "[1, 2.5, \"a'b\", {'k': None, 'é': ['\\xa0']}, True, [], {}]"
         );
         assert_eq!(str_value(&Value::Str("x/y".into())), "x/y");
+    }
+
+    /// `str(v or "")`: 없거나 거짓 값은 빈 글, 참인 값은 str().
+    #[test]
+    fn truthy_str_like_python() {
+        assert_eq!(truthy_str(None), "");
+        assert_eq!(truthy_str(Some(&Value::Int(0))), "");
+        assert_eq!(truthy_str(Some(&Value::Float(1e20))), "1e+20");
+        assert_eq!(truthy_str(Some(&Value::List(vec![Value::Null]))), "[None]");
     }
 
     /// json_load 가 받는 가장 깊은 값도 호출 스택 없이 끝난다(python 도 끝낸다).

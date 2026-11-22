@@ -1,0 +1,141 @@
+{
+ "description": "subagent-slots: away with a limit-percent budget follows window resets and room, and falls back to the USD guard when the limits are stale",
+ "files": {
+  "{sandbox}/tx/pc.jsonl": "",
+  "{tmp}/claude-subagent-slots/pc.json": "{\"reserved\": {}, \"running\": {}, \"agents\": {}, \"spent\": {\"main\": {}, \"sub\": {}}, \"main\": {}, \"away\": {\"on\": true, \"since\": 1000.5, \"unit\": \"pct\", \"budget_usd\": null, \"budget_agents\": null, \"budget_pct\": 10.0, \"pct\": {\"five_hour\": {\"start\": 20.0, \"last\": 20.0, \"acc\": 0.0, \"r\": 5000, \"room\": 80.0}, \"seven_day\": {\"start\": 45.0, \"last\": 45.0, \"acc\": 0.0, \"r\": null, \"room\": 12.5}}, \"slots\": 2, \"over_slots\": 1, \"base_usd\": 0.0, \"base_spawned\": 0, \"queued\": 0, \"over_at\": null, \"over2_at\": null}, \"spawned\": 0, \"notes\": {}, \"burst\": 0, \"log\": []}"
+ },
+ "steps": [
+  {
+   "sh": "python3 -c 'import json,time; json.dump({\"five_hour\": {\"p\": 25.0, \"r\": 5000}, \"seven_day\": {\"p\": 50.0, \"r\": None}, \"t\": time.time() - 0}, open(\"{tmp}/claude-subagent-slots/pc.limits.json\", \"w\"))'"
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "pc",
+    "transcript_path": "{sandbox}/tx/pc.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_pc_1",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "sh": "python3 -c 'import json,time; json.dump({\"five_hour\": {\"p\": 35.0, \"r\": 5000}, \"seven_day\": {\"p\": 50.0, \"r\": None}, \"t\": time.time() - 0}, open(\"{tmp}/claude-subagent-slots/pc.limits.json\", \"w\"))'"
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "pc",
+    "transcript_path": "{sandbox}/tx/pc.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_pc_2",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "contains": [
+     "5h limit +15%p since away (budget 10%p)"
+    ]
+   }
+  },
+  {
+   "sh": "python3 -c 'import json,time; json.dump({\"five_hour\": {\"p\": 5.0, \"r\": 9000}, \"seven_day\": {\"p\": 50.0, \"r\": None}, \"t\": time.time() - 0}, open(\"{tmp}/claude-subagent-slots/pc.limits.json\", \"w\"))'"
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "pc",
+    "transcript_path": "{sandbox}/tx/pc.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "ls"
+    },
+    "tool_response": {
+     "stdout": ""
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "sh": "python3 -c 'import json,time; json.dump({\"five_hour\": {\"p\": 40.0, \"r\": 9000}, \"seven_day\": {\"p\": 50.0, \"r\": None}, \"t\": time.time() - 0}, open(\"{tmp}/claude-subagent-slots/pc.limits.json\", \"w\"))'"
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "pc",
+    "transcript_path": "{sandbox}/tx/pc.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_pc_3",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "decision": "deny"
+   }
+  },
+  {
+   "sh": "python3 -c 'import json,time; json.dump({\"five_hour\": {\"p\": 40.0, \"r\": 9000}, \"seven_day\": {\"p\": 50.0, \"r\": None}, \"t\": time.time() - 100000}, open(\"{tmp}/claude-subagent-slots/pc.limits.json\", \"w\"))'"
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "pc",
+    "transcript_path": "{sandbox}/tx/pc.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "Stop"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "pc",
+    "transcript_path": "{sandbox}/tx/pc.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_pc_4",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  }
+ ]
+}

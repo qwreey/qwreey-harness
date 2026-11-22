@@ -1,0 +1,746 @@
+{
+ "description": "subagent-slots: attended fan-out warns once per burst and compact epoch, never denies; stops, Stop reconcile and foreground agents keep the count",
+ "files": {
+  "{sandbox}/tx/att.jsonl": "",
+  "{sandbox}/tx/att/subagents/agent-a1.jsonl": [
+   {
+    "type": "assistant",
+    "message": {
+     "id": "m1",
+     "model": "claude-sonnet-5-5",
+     "usage": {
+      "input_tokens": 3,
+      "output_tokens": 100,
+      "cache_read_input_tokens": 10,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      }
+     }
+    }
+   }
+  ],
+  "{sandbox}/tx/att/subagents/agent-f1.jsonl": [
+   {
+    "type": "assistant",
+    "message": {
+     "id": "m2",
+     "model": "claude-haiku-5-5",
+     "usage": {
+      "input_tokens": 3,
+      "output_tokens": 50,
+      "cache_read_input_tokens": 10,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      }
+     }
+    }
+   }
+  ]
+ },
+ "steps": [
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_1",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_1",
+    "tool_input": {},
+    "tool_response": {
+     "status": "async_launched",
+     "agentId": "a1",
+     "resolvedModel": "claude-sonnet-5-5"
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStart",
+    "agent_id": "a1",
+    "agent_type": "general-purpose"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_2",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_2",
+    "tool_input": {},
+    "tool_response": {
+     "status": "async_launched",
+     "agentId": "a2",
+     "resolvedModel": "claude-sonnet-5-5"
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStart",
+    "agent_id": "a2",
+    "agent_type": "general-purpose"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_3",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_3",
+    "tool_input": {},
+    "tool_response": {
+     "status": "async_launched",
+     "agentId": "a3",
+     "resolvedModel": "claude-sonnet-5-5"
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStart",
+    "agent_id": "a3",
+    "agent_type": "general-purpose"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_4",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_4",
+    "tool_input": {},
+    "tool_response": {
+     "status": "async_launched",
+     "agentId": "a4",
+     "resolvedModel": "claude-sonnet-5-5"
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStart",
+    "agent_id": "a4",
+    "agent_type": "general-purpose"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_5",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_5",
+    "tool_input": {},
+    "tool_response": {
+     "status": "async_launched",
+     "agentId": "a5",
+     "resolvedModel": "claude-sonnet-5-5"
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStart",
+    "agent_id": "a5",
+    "agent_type": "general-purpose"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStop",
+    "agent_id": "a1",
+    "agent_type": "general-purpose",
+    "agent_transcript_path": "{sandbox}/tx/att/subagents/agent-a1.jsonl",
+    "background_tasks": [
+     {
+      "id": "a2",
+      "type": "subagent",
+      "status": "running"
+     },
+     {
+      "id": "a3",
+      "type": "subagent",
+      "status": "running"
+     },
+     {
+      "id": "a4",
+      "type": "subagent",
+      "status": "running"
+     },
+     {
+      "id": "a5",
+      "type": "subagent",
+      "status": "running"
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStop",
+    "agent_id": "a2",
+    "agent_type": "general-purpose",
+    "agent_transcript_path": "{sandbox}/tx/att/subagents/agent-a2.jsonl",
+    "background_tasks": [
+     {
+      "id": "a3",
+      "type": "subagent",
+      "status": "running"
+     },
+     {
+      "id": "a4",
+      "type": "subagent",
+      "status": "running"
+     },
+     {
+      "id": "a5",
+      "type": "subagent",
+      "status": "running"
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStop",
+    "agent_id": "a3",
+    "agent_type": "general-purpose",
+    "agent_transcript_path": "{sandbox}/tx/att/subagents/agent-a3.jsonl",
+    "background_tasks": [
+     {
+      "id": "a4",
+      "type": "subagent",
+      "status": "running"
+     },
+     {
+      "id": "a5",
+      "type": "subagent",
+      "status": "running"
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStop",
+    "agent_id": "a4",
+    "agent_type": "general-purpose",
+    "agent_transcript_path": "{sandbox}/tx/att/subagents/agent-a4.jsonl",
+    "background_tasks": [
+     {
+      "id": "a5",
+      "type": "subagent",
+      "status": "running"
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStop",
+    "agent_id": "a5",
+    "agent_type": "general-purpose",
+    "agent_transcript_path": "{sandbox}/tx/att/subagents/agent-a5.jsonl",
+    "background_tasks": []
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_6",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "opus",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_6",
+    "tool_input": {},
+    "tool_response": {
+     "status": "async_launched",
+     "agentId": "o1",
+     "resolvedModel": "claude-opus-5-5"
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStart",
+    "agent_id": "o1",
+    "agent_type": "general-purpose"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_7",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "opus",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_7",
+    "tool_input": {},
+    "tool_response": {
+     "status": "async_launched",
+     "agentId": "o2",
+     "resolvedModel": "claude-opus-5-5"
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStart",
+    "agent_id": "o2",
+    "agent_type": "general-purpose"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "sh": "echo '{\"session_id\": \"att\"}' | python3 -I {root}/plugins/q/scripts/compact_epoch.py q"
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_8",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "opus",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_8",
+    "tool_input": {},
+    "tool_response": {
+     "status": "async_launched",
+     "agentId": "o3",
+     "resolvedModel": "claude-opus-5-5"
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStart",
+    "agent_id": "o3",
+    "agent_type": "general-purpose"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Workflow",
+    "tool_use_id": "toolu_att_9",
+    "tool_input": {
+     "script": "x"
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "Stop",
+    "background_tasks": [
+     {
+      "id": "o1",
+      "type": "subagent",
+      "status": "running"
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "ls"
+    },
+    "tool_response": {
+     "stdout": ""
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_10",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "haiku",
+     "run_in_background": false
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStart",
+    "agent_id": "f1",
+    "agent_type": "general-purpose"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStop",
+    "agent_id": "f1",
+    "agent_transcript_path": "{sandbox}/tx/att/subagents/agent-f1.jsonl"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "att",
+    "transcript_path": "{sandbox}/tx/att.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_att_10",
+    "tool_input": {},
+    "tool_response": {
+     "status": "completed",
+     "agentId": "f1"
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  }
+ ]
+}
