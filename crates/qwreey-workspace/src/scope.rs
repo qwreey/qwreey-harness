@@ -56,12 +56,12 @@ impl<'a> Scope<'a> {
     // 기본 제외와 사용자 제외(python `scope.exclude()`)
     fn exclude(&self) -> Result<&[String]> {
         let list = self.exclude.get_or_init(|| {
-            let mut list = known_repos::default_exclude(&self.ctx.env)
+            let mut list = known_repos::default_exclude(&self.ctx.hook.env)
                 .map_err(|_| Stop::Raises("no usable temporary directory"))?;
             let user = self.settings().get("HARNESS_WORKSPACE_EXCLUDE");
             list.extend(known_repos::split_paths(
                 user.map_or("", String::as_str),
-                &self.ctx.env,
+                &self.ctx.hook.env,
             ));
             Ok(list)
         });
