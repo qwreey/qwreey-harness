@@ -91,6 +91,7 @@ impl Plugin {
 /// 이 바이너리가 든 플러그인 폴더: `native/` 의 위(python 판은 `hooks/` 의 위).
 pub fn plugin_root(ctx: &Context) -> Result<String> {
     let exe_dir = ctx
+        .hook
         .exe_dir
         .as_deref()
         .ok_or(Halt::Unported("no executable folder"))?;
@@ -231,7 +232,7 @@ pub fn with_setting(
     if name != "comments" {
         return body.to_owned();
     }
-    let Ok(repo) = edit::project_root(&normpath(abs_path), input.get("cwd"), &ctx.env) else {
+    let Ok(repo) = edit::project_root(&normpath(abs_path), input.get("cwd"), &ctx.hook.env) else {
         return body.to_owned();
     };
     let lang = match paths::repo_config(&repo).get("comment_language") {

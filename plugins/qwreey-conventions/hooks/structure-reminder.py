@@ -54,6 +54,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
 import conv_plugins  # noqa: E402
 import harness_nonce  # noqa: E402
+from harness_env import open_regular  # noqa: E402
 
 # 툴킷 표: 확장자, 예외 표식 주석, 생성물 접미사, 건너뛸 폴더, 테스트 판정. 새 툴킷은 한 줄 더한다(또는 저장소 structure.json 의 toolkits).
 TOOLKITS = {
@@ -164,7 +165,8 @@ def project_root(path, data):
 def load_cfg(root):
     cfg = dict(DEFAULTS)
     try:
-        cfg.update(json.load(open(os.path.join(root, ".claude", "structure.json"))))
+        with open_regular(os.path.join(root, ".claude", "structure.json")) as f:  # FIFO 는 열지 않는다
+            cfg.update(json.load(f))
     except Exception:
         pass
     return cfg

@@ -6,6 +6,7 @@ import importlib.util
 import json
 import os
 import shutil
+import signal
 import tempfile
 import unittest
 from pathlib import Path
@@ -22,6 +23,19 @@ def load_canon(path=CANON, name="harness_env_under_test"):
 
 
 he = load_canon()
+
+
+def within(seconds, fn):
+    """fn() 의 값. seconds 안에 끝나지 않으면(FIFO 에서 멈춤) 멈추지 않고 실패한다."""
+    def timed_out(signum, frame):
+        raise AssertionError("did not return within %d s (blocked on a FIFO?)" % seconds)
+    old = signal.signal(signal.SIGALRM, timed_out)
+    signal.alarm(seconds)
+    try:
+        return fn()
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old)
 
 
 class Layers(unittest.TestCase):
@@ -88,6 +102,17 @@ class Layers(unittest.TestCase):
         self.assertEqual(v["HARNESS_HEAVY_WRAP"], "auto")
         v = he.load_layers(self.tmp / "nowhere")
         self.assertEqual(v["_files"], "")
+
+    def test_fifo_layers_are_skipped(self):
+        """FIFO 인 harness.env(사용자, 저장소)는 열지 않고 그 층이 없는 것으로 본다. 다른 층은 그대로 읽는다."""
+        os.mkfifo(self.cfg / "harness.env")
+        os.mkfifo(self.proj / ".claude" / "harness.env")
+        local = self.local("DEMO_X=local\n")
+        v = within(5, lambda: he.load_layers(self.proj))
+        self.assertEqual((v["_file"], v["_files"], v.get("DEMO_X")), ("", str(local), "local"))
+
+        # is_file 로 고른 뒤 FIFO 로 바뀐 층 파일도 열지 않는다
+        self.assertFalse(within(5, lambda: he._read({}, self.cfg / "harness.env")))
 
     def test_files_listed_low_to_high(self):
         u, r, l = self.user("A=1\n"), self.repo("A=2\n"), self.local("A=3\n")
@@ -313,6 +338,12 @@ class PluginOptions(unittest.TestCase):
         self.assertEqual(self.mod.load_layers(self.proj)["_options"], "")
         (self.cfg / "settings.json").write_text('{"pluginConfigs": {"demo@mkt": {"options": ["x"]}}}', encoding="utf-8")
         self.assertNotIn("DEMO_MODE", self.mod.load_layers(self.proj))
+
+    def test_fifo_settings_is_unreadable(self):
+        """FIFO 인 settings.json 은 쓰는 쪽을 기다리지 않고 없는 것처럼 본다(예전에는 open 에서 멈췄다)."""
+        os.mkfifo(self.cfg / "settings.json")
+        v = within(5, lambda: self.mod.load_layers(self.proj))
+        self.assertEqual((v["_options"], v.get("DEMO_MODE")), ("", None))
 
     def test_several_marketplaces(self):
         self.settings({"demo@a": {"demo_mode": "a"}, "demo@b": {"demo_mode": "b"}, "demox@c": {"demo_mode": "c"}})

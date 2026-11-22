@@ -5,13 +5,13 @@
 
 use std::collections::BTreeMap;
 
+use harness_hook::HookEnv;
 use harness_hook::py::num::{parse_float, parse_int};
 use harness_hook::py::surrogate::from_os;
 use harness_hook::py::text::{split_whitespace, strip};
 use harness_hook::settings::{self, LoadRequest};
 
 use crate::abort::{Abort, Result};
-use crate::context::Context;
 use crate::git::{self, GitError};
 use crate::pylib::pathx::pathlib_parent_name;
 
@@ -42,7 +42,7 @@ pub struct Vals(BTreeMap<String, String>);
 
 impl Vals {
     /// python `env_vals(cwd)`.
-    pub fn load(ctx: &Context, cwd: &str) -> Vals {
+    pub fn load(ctx: &HookEnv, cwd: &str) -> Vals {
         let settings_dir = ctx.settings_dir();
         let request = LoadRequest {
             project: settings::project_dir(&ctx.env, Some(cwd)),

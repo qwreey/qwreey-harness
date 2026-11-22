@@ -28,7 +28,7 @@ pub struct Flush<'a> {
 
 /// 워커 명령줄(python 의 `args`, `setsid` 앞붙임 전). python3 이나 cli.py 자리를 모르면 [`Abort`].
 pub fn worker_argv(ctx: &Context, flush: &Flush<'_>) -> Result<Vec<String>> {
-    let python = which("python3", &ctx.env).ok_or(Abort("python3 not on PATH"))?;
+    let python = which("python3", &ctx.hook.env).ok_or(Abort("python3 not on PATH"))?;
     let script = ctx.worker_script().ok_or(Abort("plugin root unknown"))?;
 
     // python 판의 args 와 같은 순서
@@ -101,7 +101,7 @@ pub fn spawn(ctx: &Context, flush: &Flush<'_>) -> Result<()> {
 fn detached(ctx: &Context, program: &std::ffi::OsStr, rest: &[std::ffi::OsString]) -> Command {
     use std::os::unix::process::CommandExt;
 
-    let mut command = match which("setsid", &ctx.env) {
+    let mut command = match which("setsid", &ctx.hook.env) {
         Some(setsid) => {
             let mut c = Command::new(setsid);
             c.arg("-f").arg(program).args(rest);

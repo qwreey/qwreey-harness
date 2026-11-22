@@ -341,6 +341,28 @@ fn load_layers_matches_python() {
     own_by_options.options = vec![("demo", vec!["DEMO_FLAG"])];
     cases.push(own_by_options);
 
+    // 6. FIFO 인 settings.json 과 층 파일: 열지 않고 없는 것처럼 본다(그냥 열면 쓰는 쪽을 기다리며 멈춘다)
+    #[cfg(unix)]
+    {
+        let mkfifo = |rel: &str| {
+            let made = std::process::Command::new("mkfifo")
+                .arg(tmp.text(rel))
+                .status();
+            assert!(made.is_ok_and(|s| s.success()), "mkfifo {rel}");
+        };
+        tmp.dir("cfg-fifo");
+        tmp.write("project-fifo/.claude/harness.local.env", "REPO_KEY=local\n");
+        mkfifo("cfg-fifo/settings.json");
+        mkfifo("cfg-fifo/harness.env");
+        mkfifo("project-fifo/.claude/harness.env");
+        cases.push(LayerCase::new(
+            "fifo files",
+            base_env(&[("CLAUDE_CONFIG_DIR", &format!("{root}/cfg-fifo"))]),
+            Project::Dir(format!("{root}/project-fifo")),
+            plugin_dir.clone(),
+        ));
+    }
+
     // python 과 Rust 를 경우마다 비교
     let python_cases: Vec<Value> = cases.iter().map(LayerCase::python_case).collect();
     let Some(got) = python(&python_cases) else {

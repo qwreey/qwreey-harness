@@ -6,11 +6,11 @@
 
 use std::collections::BTreeSet;
 
+use harness_hook::HookEnv;
 use harness_hook::py::path::join;
 use harness_hook::py::text::{split_whitespace, splitlines, strip};
 use harness_hook::py::value::{Dict, Value};
 
-use crate::context::Context;
 use crate::hookio::{allow_with_input, load_dict, text, truthy};
 use crate::outcome::Outcome;
 use harness_hook::py::fs::{FsError, read_text};
@@ -21,7 +21,7 @@ const REQ_AFTER: &str = "Request:";
 const REASON: &str = "qwreey-advisor: inherit-advisor 표지를 후행 프롬프트로 펼침";
 
 /// 훅 한 번. python 은 입력 오류를 잡아 0 으로 끝나지만 출력을 쓰다 나는 오류(쓸 수 없는 서로게이트)는 1 이다.
-pub fn run(ctx: &Context, raw: &[u8]) -> Outcome {
+pub fn run(ctx: &HookEnv, raw: &[u8]) -> Outcome {
     let Some(data) = load_dict(raw) else {
         return Outcome::quiet();
     };

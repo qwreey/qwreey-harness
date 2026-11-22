@@ -17,8 +17,10 @@ getrandom = { workspace = true }
 regex = { workspace = true }
 
 # 자기 uid(claim 디렉터리 소유자 확인). std 에 getuid 가 없고 unsafe 는 금지라 쓴다(Q41).
+# close_fds: git 모듈이 git 에 이 훅이 물려받은 fd(>2)를 넘기지 않는다(python subprocess 의 close_fds=True).
 [target.'cfg(unix)'.dependencies]
 rustix = { workspace = true }
+close_fds = { workspace = true }
 
 [lints]
 workspace = true

@@ -7,11 +7,11 @@
 //!   켠 사본에 설정이 아직 없으면 꺼진 사본의 값을 쓰지 않는다.
 
 use std::collections::BTreeSet;
-use std::fs;
 use std::path::Path;
 
 use super::envfile::Values;
 use crate::env::Env;
+use crate::py::fs::read_regular_path;
 use crate::py::json_load::{Decode, from_bytes};
 use crate::py::num::{float_repr, integral_float_text};
 use crate::py::path::expanduser;
@@ -28,9 +28,11 @@ pub struct PluginManifest {
     pub option_keys: BTreeSet<String>,
 }
 
-/// JSON 파일 하나(python `open(path, encoding="utf-8")` 의 `json.load`). 없거나 읽지 못하거나 JSON 이 아니면 `None`.
+/// JSON 파일 하나(python `open_regular(path)` 의 `json.load`). 없거나 읽지 못하거나 JSON 이 아니면 `None`.
+///
+/// 일반 파일만 연다: FIFO 인 settings.json 을 그냥 열면 쓰는 쪽이 올 때까지 멈춘다.
 pub fn read_json(path: &Path) -> Option<Value> {
-    let bytes = fs::read(path).ok()?;
+    let bytes = read_regular_path(path).ok()?;
     from_bytes(&bytes, Decode::Strict).ok()
 }
 

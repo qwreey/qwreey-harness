@@ -73,7 +73,7 @@ fn main() -> ExitCode {
 
 /// python `log_error`: `<저장소 루트>/hook-errors.log` 에 한 줄. 쓰지 못하면 넘긴다.
 fn log_error(ctx: &Context, event: session_log::Event, error: Abort) {
-    let dir = ctx.config().home(&ctx.env);
+    let dir = ctx.config().home(&ctx.hook.env);
     if store::mkdir_all(&dir).is_err() {
         return;
     }

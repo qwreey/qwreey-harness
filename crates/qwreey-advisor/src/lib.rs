@@ -12,8 +12,6 @@
 
 pub mod abort;
 pub mod ambient;
-pub mod context;
-pub mod epoch;
 pub mod expand_inherit;
 pub mod git;
 pub mod guard;
@@ -23,5 +21,4 @@ pub mod outcome;
 pub mod pylib;
 pub mod track_reviewer;
 
-pub use context::Context;
 pub use outcome::Outcome;

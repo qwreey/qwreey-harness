@@ -6,7 +6,7 @@
 
 use std::fs;
 use std::io::ErrorKind;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::py::surrogate::{from_os, to_os};
 
@@ -106,14 +106,18 @@ pub fn read_bytes(path: &str) -> Result<Vec<u8>, FsError> {
 /// 일반 파일만 연다(python `os.open(path, O_RDONLY | O_NONBLOCK)` 뒤 `fstat` 로 종류 보기).
 ///
 /// FIFO 를 그냥 열면 쓰는 쪽이 올 때까지 멈춘다. 일반 파일이 아니면(FIFO, 장치, 폴더) `FsError::Os(InvalidInput)`.
-#[cfg(unix)]
 pub fn open_regular(path: &str) -> Result<fs::File, FsError> {
+    open_regular_path(&os_path(path).ok_or(FsError::Value)?)
+}
+
+/// [`open_regular`] 를 이미 OS 경로인 `path` 로(설정 층처럼 `Path` 로 다루는 곳).
+#[cfg(unix)]
+pub fn open_regular_path(path: &Path) -> Result<fs::File, FsError> {
     use rustix::fs::{FileType, Mode, OFlags, fstat, open};
 
-    let os = os_path(path).ok_or(FsError::Value)?;
     let flags = OFlags::RDONLY | OFlags::NONBLOCK | OFlags::CLOEXEC;
-    let fd =
-        open(&os, flags, Mode::empty()).map_err(|e| FsError::Os(std::io::Error::from(e).kind()))?;
+    let fd = open(path, flags, Mode::empty())
+        .map_err(|e| FsError::Os(std::io::Error::from(e).kind()))?;
     let st = fstat(&fd).map_err(|e| FsError::Os(std::io::Error::from(e).kind()))?;
     if FileType::from_raw_mode(st.st_mode) != FileType::RegularFile {
         return Err(FsError::Os(ErrorKind::InvalidInput));
@@ -121,11 +125,10 @@ pub fn open_regular(path: &str) -> Result<fs::File, FsError> {
     Ok(fs::File::from(fd))
 }
 
-/// 일반 파일만 연다. 이 OS 에서는 열린 파일의 종류를 본다(FIFO 가 없다).
+/// [`open_regular`] 를 이미 OS 경로인 `path` 로. 이 OS 에서는 열린 파일의 종류를 본다(FIFO 가 없다).
 #[cfg(not(unix))]
-pub fn open_regular(path: &str) -> Result<fs::File, FsError> {
-    let os = os_path(path).ok_or(FsError::Value)?;
-    let file = fs::File::open(os).map_err(|e| FsError::Os(e.kind()))?;
+pub fn open_regular_path(path: &Path) -> Result<fs::File, FsError> {
+    let file = fs::File::open(path).map_err(|e| FsError::Os(e.kind()))?;
     match file.metadata() {
         Ok(m) if m.is_file() => Ok(file),
         Ok(_) => Err(FsError::Os(ErrorKind::InvalidInput)),
@@ -135,10 +138,15 @@ pub fn open_regular(path: &str) -> Result<fs::File, FsError> {
 
 /// [`open_regular`] 로 연 파일의 바이트(python `open_regular(path, "rb").read()`).
 pub fn read_regular_bytes(path: &str) -> Result<Vec<u8>, FsError> {
+    read_regular_path(&os_path(path).ok_or(FsError::Value)?)
+}
+
+/// [`read_regular_bytes`] 를 이미 OS 경로인 `path` 로.
+pub fn read_regular_path(path: &Path) -> Result<Vec<u8>, FsError> {
     use std::io::Read;
 
     let mut bytes = Vec::new();
-    open_regular(path)?
+    open_regular_path(path)?
         .read_to_end(&mut bytes)
         .map_err(|e| FsError::Os(e.kind()))?;
     Ok(bytes)

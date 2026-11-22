@@ -75,7 +75,7 @@ fn notice(ctx: &Context, input: &HookInput) -> Result<Option<String>> {
     }
 
     // Sibling paths in what was written
-    let repos = known_repos::repos(&ctx.env, ctx.exe_dir.as_deref())
+    let repos = known_repos::repos(&ctx.hook.env, ctx.hook.exe_dir.as_deref())
         .map_err(|_| Stop::Raises("known_repos.repos"))?;
     let sibs = records::siblings(&project, &repos)?;
     let local_dirs = [

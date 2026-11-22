@@ -168,7 +168,7 @@ pub fn snap_dir(ctx: &Context) -> Result<String> {
     let base = ctx.tempdir()?;
     let shared = !["TMPDIR", "TEMP", "TMP"]
         .iter()
-        .any(|k| ctx.env.get_nonempty(k).is_some());
+        .any(|k| ctx.hook.env.get_nonempty(k).is_some());
     Ok(match uid() {
         Some(uid) if shared => join(&join(base, &format!("claude-conventions-{uid}")), "bash"),
         _ => join(&join(base, "claude-conventions"), "bash"),

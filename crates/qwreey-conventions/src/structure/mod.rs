@@ -72,9 +72,9 @@ impl Run<'_> {
             .layers()
             .get("HARNESS_LUAU_KB")
             .map_or("", String::as_str);
-        let kb = expanduser(strip(kb_value), &self.ctx.env);
+        let kb = expanduser(strip(kb_value), &self.ctx.hook.env);
         // python 은 두 후보를 튜플로 먼저 만든다: 설치본 찾기의 예외는 kb 가 맞아도 난다
-        let installed = crate::plugins::plugin_root(PLANNER_PLUGIN, &self.ctx.env)?;
+        let installed = crate::plugins::plugin_root(PLANNER_PLUGIN, &self.ctx.hook.env)?;
         for root in std::iter::once(kb).chain(installed) {
             let planner = pathlib_join(&root, PLANNER_REL);
             if !root.is_empty() && fs::is_file(&planner) {
@@ -176,7 +176,7 @@ fn touched_paths(
         _ => Ok(getcwd()?),
     };
     let cmd = pyval::str_or_empty(pyval::get(ti, "command"))?;
-    let found = bash::bash_paths(cmd, &cwd, &ctx.env)?;
+    let found = bash::bash_paths(cmd, &cwd, &ctx.hook.env)?;
     Ok(found.into_iter().map(Value::Str).collect())
 }
 

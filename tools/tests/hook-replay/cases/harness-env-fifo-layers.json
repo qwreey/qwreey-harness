@@ -1,0 +1,25 @@
+{
+ "description": "harness.env layers: a FIFO at the config dir's settings.json (plugin options layer) or at .claude/harness.env is not opened (it would wait for a writer); the hook reads that layer as absent and goes on",
+ "files": {
+  "src/Big.luau": {"repeat": "local x = 1\n", "times": 900},
+  ".claude/harness.local.env": "STRUCTURE_REMINDER=on\n"
+ },
+ "setup": [
+  "mkfifo .claude/harness.env {cfg}/settings.json"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {"session_id": "s1", "hook_event_name": "PostToolUse", "tool_name": "Edit",
+               "tool_input": {"file_path": "{repo}/src/Big.luau", "old_string": "a", "new_string": "a\n"},
+               "tool_response": {}},
+   "expect": {"tags": ["structure-reminder/warn"], "contains": ["(warn limit 800)"]}
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {"session_id": "s1", "hook_event_name": "PostToolUse", "tool_name": "Read",
+               "tool_input": {"file_path": "{repo}/src/Big.luau"}},
+   "expect": {"tags": ["rules-inject/info"]}
+  }
+ ]
+}

@@ -50,6 +50,7 @@ pub fn take(ctx: &Context, input: &HookInput, before: &Before<'_>) -> Result<()>
         Some((root, head)) => (root, head, true),
         None => {
             let root = ctx
+                .hook
                 .env
                 .get_nonempty("CLAUDE_PROJECT_DIR")
                 .unwrap_or(before.cwd);

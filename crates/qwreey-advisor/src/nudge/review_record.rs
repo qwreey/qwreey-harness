@@ -6,6 +6,7 @@
 
 use std::sync::LazyLock;
 
+use harness_hook::epoch::sanitize;
 use harness_hook::py::fs::{read_text, write_text};
 use harness_hook::py::num::{float_repr, parse_float, parse_int};
 use harness_hook::py::path::join;
@@ -13,7 +14,6 @@ use harness_hook::py::value::{Dict, Value};
 use harness_hook::rx::Regex;
 
 use crate::abort::{Abort, Result};
-use crate::epoch::sanitize;
 use crate::pylib::fs::makedirs;
 
 use super::NS;

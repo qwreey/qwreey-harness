@@ -43,6 +43,7 @@ load(candidates) 는 사용자 층 하나만 읽는 옛 호출용이다(플러�
 """
 import os
 import re
+import stat
 from pathlib import Path
 
 # 여러 플러그인이 읽는 키만. 한 플러그인만 읽는 키는 그 플러그인이 정한다(tools/tests/test-harness-env-owners.py 가 겹침을 본다).
@@ -117,6 +118,21 @@ LEGACY_USER_ONLY = frozenset({
 })
 
 
+def open_regular(path, mode="r"):
+    """일반 파일만 연다(open 과 같은 파일 객체, 글 모드는 UTF-8). FIFO, 장치, 폴더는 OSError.
+
+    O_NONBLOCK 으로 열고 fstat 로 종류를 본 뒤에 넘긴다: FIFO 를 그냥 열면 쓰는 쪽이 올 때까지 멈춘다.
+    저장소가 놓는 설정 파일(harness.env, conventions.json 등)을 읽는 곳은 모두 이것으로 연다."""
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0))
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise OSError("not a regular file")
+        return os.fdopen(fd, mode, encoding=None if "b" in mode else "utf-8")
+    except BaseException:
+        os.close(fd)
+        raise
+
+
 def config_dir():
     return Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
 
@@ -157,7 +173,7 @@ def _json_file(path):
         return hit[1]
     import json  # 여기서만 쓴다. userConfig 없는 플러그인의 훅은 settings.json 을 열지 않으므로 import 도 아낀다
     try:
-        with open(path, encoding="utf-8") as f:
+        with open_regular(path) as f:  # FIFO 인 settings.json 에서 멈추지 않는다
             data = json.load(f)
     except (OSError, ValueError):
         data = None
@@ -244,7 +260,9 @@ def _options_layer(vals, extra=None):
 
 def _read(vals, f, skip=frozenset()):
     try:
-        vals.update(parse(f.read_text(encoding="utf-8"), vals, skip))
+        with open_regular(f) as fh:  # is_file 로 고른 뒤 FIFO 로 바뀐 파일에서도 멈추지 않는다
+            text = fh.read()
+        vals.update(parse(text, vals, skip))
         return True
     except (OSError, UnicodeDecodeError):
         return False

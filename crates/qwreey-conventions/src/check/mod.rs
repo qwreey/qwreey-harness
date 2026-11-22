@@ -218,7 +218,7 @@ pub fn state_file(ctx: &Context, input: &HookInput) -> Result<String> {
 /// python `target(path, data)`: 검사하는 파일이면 그 설정과 종류, 아니면 `None`.
 pub fn target(ctx: &Context, path: &str, cwd: Option<&Value>) -> Result<Option<Target>> {
     let ext = splitext(path).1.to_lowercase();
-    let root = edit::project_root(path, cwd, &ctx.env)?;
+    let root = edit::project_root(path, cwd, &ctx.hook.env)?;
     let cfg = Cfg::load(&root);
     let rel = relpath(path, &root).ok_or(Halt::PyError("os.path.relpath failed"))?;
     let kind = match lex::family(&ext) {

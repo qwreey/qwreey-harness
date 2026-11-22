@@ -5,13 +5,13 @@
 
 use std::sync::LazyLock;
 
+use harness_hook::HookEnv;
 use harness_hook::py::path::{expanduser, join};
 use harness_hook::py::surrogate::from_os;
 use harness_hook::py::text::strip;
 use harness_hook::py::value::Value;
 use harness_hook::rx::Regex;
 
-use crate::context::Context;
 use crate::pyval::{parse_object, py_cmp, read_bytes};
 
 /// 라틴 문자가 아닌 문자 체계. 라틴 문자 언어는 감지하지 않는다.
@@ -171,7 +171,7 @@ pub fn script_for(language: &str) -> Option<Script> {
 }
 
 /// python `reply_env.config_dir()`: `$CLAUDE_CONFIG_DIR`, 없으면 `~/.claude`.
-pub fn config_dir(ctx: &Context) -> String {
+pub fn config_dir(ctx: &HookEnv) -> String {
     match ctx.env.get_os_nonempty("CLAUDE_CONFIG_DIR") {
         Some(dir) => from_os(dir),
         None => expanduser("~/.claude", &ctx.env),
@@ -179,7 +179,7 @@ pub fn config_dir(ctx: &Context) -> String {
 }
 
 /// python `data_dir()`: `$CLAUDE_PLUGIN_DATA`, 없으면 `<config>/plugins/data/qwreey-reply-language*` 의 첫 폴더(이름 순서).
-pub fn data_dir(ctx: &Context) -> Option<String> {
+pub fn data_dir(ctx: &HookEnv) -> Option<String> {
     if let Some(dir) = ctx.env.get_os_nonempty("CLAUDE_PLUGIN_DATA") {
         return Some(from_os(dir));
     }
@@ -204,7 +204,7 @@ fn language_in(path: &str) -> Option<String> {
 }
 
 /// python `settings_language(root)`: 저장소 local, 저장소, 사용자 settings 의 `language`.
-pub fn settings_language(ctx: &Context, root: &str) -> Option<String> {
+pub fn settings_language(ctx: &HookEnv, root: &str) -> Option<String> {
     let claude = join(root, ".claude");
     let candidates = [
         join(&claude, "settings.local.json"),
@@ -215,7 +215,7 @@ pub fn settings_language(ctx: &Context, root: &str) -> Option<String> {
 }
 
 /// python `stored_language()`: 이 플러그인이 물어 저장한 언어.
-pub fn stored_language(ctx: &Context) -> Option<String> {
+pub fn stored_language(ctx: &HookEnv) -> Option<String> {
     language_in(&join(&data_dir(ctx)?, "language.json"))
 }
 

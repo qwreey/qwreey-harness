@@ -34,10 +34,10 @@ pub struct ReuseConfig {
 }
 
 impl ReuseConfig {
-    /// python `load_cfg(root)`: 읽지 못하거나 dict 가 아니면 빈 설정.
+    /// python `load_cfg(root)`: 읽지 못하거나(일반 파일이 아닌 FIFO 등 포함) dict 가 아니면 빈 설정.
     pub fn load(root: &str) -> ReuseConfig {
         let path = join(&join(root, ".claude"), "conventions.json");
-        let raw = fs::read_text(&path)
+        let raw = fs::read_regular_text(&path)
             .ok()
             .and_then(|text| loads(&text).ok())
             .and_then(|v| v.into_dict().ok())
@@ -49,7 +49,7 @@ impl ReuseConfig {
 
     /// python `mode_of(cfg)`: 환경 변수 `REUSE_CHECK`, harness.env 층, 설정 `mode`, 기본 `shadow` 의 차례.
     pub fn mode(&self, ctx: &Context) -> Result<Mode> {
-        let chosen = match ctx.env.get_nonempty("REUSE_CHECK") {
+        let chosen = match ctx.hook.env.get_nonempty("REUSE_CHECK") {
             Some(v) => v.to_owned(),
             // harness.env 층, 그다음 설정 값
             None => match ctx.env_value("REUSE_CHECK") {

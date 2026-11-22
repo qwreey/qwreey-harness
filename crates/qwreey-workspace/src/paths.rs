@@ -14,7 +14,7 @@ pub type Base<'a> = Option<&'a str>;
 
 /// python `os.path.expanduser("~")`: 홈. 모르면 `~` 그대로.
 pub fn home(ctx: &Context) -> String {
-    ospath::expanduser("~", &ctx.env)
+    ospath::expanduser("~", &ctx.hook.env)
 }
 
 /// python `wslib.expand(p)`: 맨 앞 `$HOME`, `${HOME}` 을 홈으로, 그 뒤 `~` 로 시작하면 expanduser.
@@ -26,7 +26,7 @@ pub fn expand(ctx: &Context, p: &str) -> String {
         None => p.to_owned(),
     };
     if p.starts_with('~') {
-        ospath::expanduser(&p, &ctx.env)
+        ospath::expanduser(&p, &ctx.hook.env)
     } else {
         p
     }

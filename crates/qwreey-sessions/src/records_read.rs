@@ -64,7 +64,7 @@ pub fn run(ctx: &Context, event: Event, input: &HookInput) -> Option<String> {
     let Value::Str(path) = path else {
         return None;
     };
-    if !path.starts_with('/') || ctx.env.get_os_nonempty("SESSION_LOG_NESTED").is_some() {
+    if !path.starts_with('/') || ctx.hook.env.get_os_nonempty("SESSION_LOG_NESTED").is_some() {
         return None;
     }
     let path = normpath(path);
@@ -81,7 +81,7 @@ pub fn run(ctx: &Context, event: Event, input: &HookInput) -> Option<String> {
 
 // 저장소에 정해 둔 보관 폴더(.claude/session-log.json 의 records_home) 아래인가
 fn in_records_home(ctx: &Context, data: &Dict, path: &str) -> Result<bool> {
-    let root = match ctx.env.get_os_nonempty("CLAUDE_PROJECT_DIR") {
+    let root = match ctx.hook.env.get_os_nonempty("CLAUDE_PROJECT_DIR") {
         Some(dir) => from_os(dir),
         None => match data.get("cwd") {
             Some(Value::Str(cwd)) => cwd.clone(),
@@ -115,7 +115,7 @@ fn gate(ctx: &Context, data: &Dict, input: &Dict, path: &str) -> Result<Option<H
     }
 
     // 기록 경로인가
-    let env = &ctx.env;
+    let env = &ctx.hook.env;
     let in_store = is_under(path, &config.home(env));
     let config_dirs = [claude_config_dir(env), home_claude_dir(env)];
     if !in_store && !is_snapshot(path, &config_dirs) && !in_records_home(ctx, data, path)? {
@@ -162,7 +162,7 @@ fn notice(ctx: &Context, data: &Dict, path: &str) -> Result<Option<HookOutput>> 
     if config.disabled() {
         return Ok(None);
     }
-    if !is_under(path, &config.home(&ctx.env)) && !in_records_home(ctx, data, path)? {
+    if !is_under(path, &config.home(&ctx.hook.env)) && !in_records_home(ctx, data, path)? {
         return Ok(None);
     }
     let Some(sid) = truthy_str(data.get("session_id"), "session_id")? else {

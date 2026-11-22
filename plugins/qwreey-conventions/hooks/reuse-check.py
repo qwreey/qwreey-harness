@@ -33,6 +33,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
 import copy_regions  # noqa: E402
 import harness_nonce  # noqa: E402
+from harness_env import open_regular  # noqa: E402
 from conv_edit import GEN_MARK, MAX_BYTES, SKIP_PARTS, SKIP_SUFFIX, collect, project_root  # noqa: E402
 from conv_env import env_value  # noqa: E402
 from conv_lex import FAMILY, lex  # noqa: E402
@@ -61,7 +62,7 @@ SYNC_HINT = "Edit the canon region, then sync the copies (python3 -I tools/sync-
 
 def load_cfg(root):
     try:
-        with open(os.path.join(root, ".claude", "conventions.json"), encoding="utf-8") as f:
+        with open_regular(os.path.join(root, ".claude", "conventions.json")) as f:  # FIFO 는 열지 않는다
             r = json.load(f).get("reuse")
             return r if isinstance(r, dict) else {}
     except (OSError, ValueError, AttributeError):

@@ -1,0 +1,22 @@
+{
+ "description": "structure-reminder: an exempt entry whose path is a list or dict is matched by its python str() (a list repr is a one-character glob set), so a one-letter file is exempt",
+ "files": {
+  ".claude/structure.json": "{\"warn\": 50, \"toolkits\": {\"bare\": {\"ext\": [\"\"], \"comment\": [\"#\"]}}, \"exempt\": [{\"path\": {\"k\": 1}, \"reason\": \"never matches\"}, {\"path\": [\"x\"], \"reason\": \"generated data table\"}]}",
+  "x": {"repeat": "a\n", "times": 120},
+  "yy": {"repeat": "a\n", "times": 120}
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {"session_id": "s1", "hook_event_name": "PostToolUse", "tool_name": "Edit",
+               "tool_input": {"file_path": "{repo}/x", "old_string": "a", "new_string": "a\n"}, "tool_response": {}},
+   "expect": {"not_contains": ["(warn limit 50)"]}
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {"session_id": "s1", "hook_event_name": "PostToolUse", "tool_name": "Edit",
+               "tool_input": {"file_path": "{repo}/yy", "old_string": "a", "new_string": "a\n"}, "tool_response": {}},
+   "expect": {"tags": ["structure-reminder/warn"], "contains": ["(warn limit 50)"]}
+  }
+ ]
+}

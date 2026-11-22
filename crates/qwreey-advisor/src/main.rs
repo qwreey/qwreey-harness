@@ -6,7 +6,8 @@
 use std::io::{Read, Write};
 use std::process::ExitCode;
 
-use qwreey_advisor::{Context, Outcome, ambient, expand_inherit, guard, nudge, track_reviewer};
+use harness_hook::HookEnv;
+use qwreey_advisor::{Outcome, ambient, expand_inherit, guard, nudge, track_reviewer};
 
 const USAGE: &str = "usage: qwreey-advisor hook <readonly-for-reviewers|second-opinion-nudge|expand-inherit-prompt|track-reviewer>\n       \
                      qwreey-advisor hook ambient UserPromptSubmit";
@@ -45,7 +46,7 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
 
-    let ctx = Context::from_process();
+    let ctx = HookEnv::from_process();
     let outcome = match command {
         Command::ReadonlyForReviewers => guard::run(&ctx, &raw),
         Command::SecondOpinionNudge => nudge::run(&ctx, &raw),

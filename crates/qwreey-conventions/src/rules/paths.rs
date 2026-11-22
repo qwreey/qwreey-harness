@@ -25,7 +25,7 @@ pub const SKIP_DIRS: &[&str] = &[
 ///
 /// `cwd` 가 글이 아닌 참값이면 python 은 뒤의 경로 함수에서 예외로 끝난다.
 pub fn project_root(ctx: &Context, cwd: Option<&Value>) -> Result<String> {
-    if let Some(dir) = ctx.env.get_nonempty("CLAUDE_PROJECT_DIR") {
+    if let Some(dir) = ctx.hook.env.get_nonempty("CLAUDE_PROJECT_DIR") {
         return Ok(dir.to_owned());
     }
     match cwd {
@@ -64,7 +64,10 @@ pub fn skipped_dir(abs_path: &str, root: &str) -> bool {
 fn is_memory_path(ctx: &Context, abs_path: &str) -> bool {
     let base = format!(
         "{}/",
-        join(&normpath(&crate::plugins::config_dir(&ctx.env)), "projects")
+        join(
+            &normpath(&crate::plugins::config_dir(&ctx.hook.env)),
+            "projects"
+        )
     );
     let p = normpath(abs_path);
     let Some(tail) = p.strip_prefix(base.as_str()) else {
@@ -88,12 +91,12 @@ pub fn should_skip(ctx: &Context, tool: Option<&Value>, abs_path: &str, root: &s
 
 /// python `repo_config(root)`: 저장소 `.claude/conventions.json`, 없으면 `.claude/comments.json`.
 ///
-/// 먼저 있는 파일 하나만 본다. 읽지 못하거나 dict 가 아니면 빈 dict.
+/// 먼저 있는 파일 하나만 본다. 읽지 못하거나(일반 파일이 아닌 FIFO 등 포함) dict 가 아니면 빈 dict.
 pub fn repo_config(root: &str) -> Dict {
     for name in ["conventions.json", "comments.json"] {
         let fp = join(&join(root, ".claude"), name);
         if fs::exists(&fp) {
-            return fs::read_text(&fp)
+            return fs::read_regular_text(&fp)
                 .ok()
                 .and_then(|t| loads(&t).ok())
                 .and_then(|v| v.into_dict().ok())

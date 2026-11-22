@@ -25,6 +25,8 @@ mod transcript;
 
 use std::sync::LazyLock;
 
+use harness_hook::HookEnv;
+use harness_hook::epoch;
 use harness_hook::nonce::now_secs;
 use harness_hook::py::json::EnsureAscii;
 use harness_hook::py::path::normpath;
@@ -34,8 +36,6 @@ use harness_hook::py::value::{Dict, Value};
 use harness_hook::rx::Regex;
 
 use crate::abort::{Abort, Result};
-use crate::context::Context;
-use crate::epoch;
 use crate::hookio::{context_output, load_dict, specific, text, truthy};
 use crate::outcome::Outcome;
 use crate::pylib::text::take_chars;
@@ -61,7 +61,7 @@ static DIGITS: LazyLock<Regex> = LazyLock::new(|| regex(r"[0-9]+"));
 static PLAN_MARK: LazyLock<Regex> = LazyLock::new(|| regex(r"qwreey-advisor:\s*(reviewed|skip)"));
 
 /// 훅 한 번. python 의 예외는 모두 잡혀 0 으로 끝나므로 stdout 만 다르다.
-pub fn run(ctx: &Context, raw: &[u8]) -> Outcome {
+pub fn run(ctx: &HookEnv, raw: &[u8]) -> Outcome {
     let Some(data) = load_dict(raw) else {
         return Outcome::quiet();
     };
@@ -77,7 +77,7 @@ pub fn run(ctx: &Context, raw: &[u8]) -> Outcome {
 
 /// 한 입력의 공통 값.
 struct Hook<'a> {
-    ctx: &'a Context,
+    ctx: &'a HookEnv,
     data: &'a Dict,
     event: &'a str,
     /// python `data.get("session_id") or ""`.
@@ -85,7 +85,7 @@ struct Hook<'a> {
 }
 
 impl<'a> Hook<'a> {
-    fn new(ctx: &'a Context, data: &'a Dict) -> Result<Hook<'a>> {
+    fn new(ctx: &'a HookEnv, data: &'a Dict) -> Result<Hook<'a>> {
         // python 은 글이 아닌 session_id 를 정규식에 넣다가 예외로 끝난다
         let sid = match truthy(data, "session_id") {
             None => "",
@@ -185,7 +185,8 @@ impl<'a> Hook<'a> {
             return Ok(None);
         }
         let limit = vals.limit_of(&tier.tier)?;
-        let path = epoch::state_path(self.tempdir()?, PLUGIN, NS, self.sid)?;
+        let path = epoch::state_path(self.tempdir()?, PLUGIN, NS, self.sid, None)
+            .map_err(|_| Abort("cannot create the state folder"))?;
         Ok(Some((tier, limit, State::load(path)?)))
     }
 

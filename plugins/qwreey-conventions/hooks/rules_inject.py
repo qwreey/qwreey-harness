@@ -29,11 +29,11 @@ glob: 공식 paths 와 같게 `**`, `*`, `?`, `{a,b}`, `[..]`. 절대 경로에 
 import json
 import os
 import re
-import stat
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+from harness_env import open_regular  # noqa: E402 (bash-bypass-reminder 도 rules_inject.open_regular 로 쓴다)
 RULES_DIR = os.path.join(os.path.dirname(HERE), "rules")
 PATH_KEYS = ("file_path", "notebook_path")
 SKIP_DIRS = {"node_modules", ".git", "dist", "build", ".venv", "vendor", "__pycache__"}
@@ -99,20 +99,6 @@ def glob_to_regex(glob):
         i += 1
     out.append(")" * depth)
     return re.compile("".join(out) + r"\Z")
-
-
-def open_regular(path, mode="r"):
-    """일반 파일만 연다(open 과 같은 파일 객체, 글 모드는 UTF-8). FIFO, 장치는 OSError.
-
-    O_NONBLOCK 으로 열고 fstat 로 종류를 본 뒤에 넘긴다: FIFO 를 그냥 열면 쓰는 쪽이 올 때까지 멈춘다."""
-    fd = os.open(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0))
-    try:
-        if not stat.S_ISREG(os.fstat(fd).st_mode):
-            raise OSError("not a regular file")
-        return os.fdopen(fd, mode, encoding=None if "b" in mode else "utf-8")
-    except BaseException:
-        os.close(fd)
-        raise
 
 
 def parse_rule(path):
@@ -197,7 +183,7 @@ def repo_config(root):
         fp = os.path.join(root, ".claude", name)
         if os.path.exists(fp):
             try:
-                with open(fp, encoding="utf-8") as f:
+                with open_regular(fp) as f:  # FIFO 는 열지 않는다(못 읽는 파일과 같이 {})
                     v = json.load(f)
                 return v if isinstance(v, dict) else {}
             except Exception:

@@ -6,6 +6,7 @@
 use std::fs::File;
 use std::sync::LazyLock;
 
+use harness_hook::epoch::sanitize;
 use harness_hook::nonce::now_secs;
 use harness_hook::py::fs::{exists, os_path, read_bytes, write_text};
 use harness_hook::py::json::{EnsureAscii, dumps_dict};
@@ -15,7 +16,6 @@ use harness_hook::py::value::{Dict, Value};
 use harness_hook::rx::Regex;
 
 use crate::abort::{Abort, Result};
-use crate::epoch::sanitize;
 use crate::hookio::parse_object;
 use crate::pylib::fs::makedirs;
 use crate::pylib::hashlib::sha1_hex_prefix;

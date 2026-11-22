@@ -5,13 +5,11 @@
 use harness_hook::HookEnv;
 use harness_hook::ambient::prompt_supplement;
 
-use crate::context::Context;
 use crate::outcome::Outcome;
 
 /// 훅 한 번. 어떤 실패든 아무것도 내지 않고 0 으로 끝난다.
-pub fn run(ctx: &Context, raw: &[u8]) -> Outcome {
-    let hook = HookEnv::new(ctx.env.clone(), ctx.exe_dir.clone());
-    match prompt_supplement(&hook, raw) {
+pub fn run(ctx: &HookEnv, raw: &[u8]) -> Outcome {
+    match prompt_supplement(ctx, raw) {
         Some(stdout) => Outcome {
             stdout,
             ..Outcome::default()
