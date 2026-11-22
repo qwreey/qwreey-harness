@@ -363,7 +363,7 @@ mod tests {
     use crate::py::text::is_space;
     use crate::py::unicode::{case_fixes, is_decimal, is_word, lower};
 
-    // python IGNORECASE 가 소문자 ASCII 글자 `a` 와 `c` 를 같게 보는가(sre 의 소문자 비교와 `_casefix`)
+    // Does python IGNORECASE fold ASCII `a` and `c` (sre lower and `_casefix`)
     fn py_same_letter(a: char, c: char) -> bool {
         let lo = lower(u32::from(a));
         let got = lower(u32::from(c));
@@ -374,7 +374,7 @@ mod tests {
         regex::Regex::new(&format!(r"\A(?:{pattern})\z")).unwrap()
     }
 
-    // 모든 코드 포인트에서 두 엔진이 다른 글자의 범위들
+    // Ranges where the two engines differ over all code points
     fn differing() -> [Vec<(u32, u32)>; 4] {
         let (w, s, d) = (one(r"\w"), one(r"\s"), one(r"\d"));
         let letters: Vec<(char, regex::Regex)> =
@@ -461,7 +461,7 @@ mod tests {
         }
     }
 
-    // 두 엔진의 결과(괄호마다 범위)
+    // Results of both engines (a range per group)
     type Spans = Vec<Option<(usize, usize)>>;
 
     fn spans(m: Option<Match>, groups: usize) -> Option<Spans> {
@@ -603,13 +603,13 @@ mod tests {
     #[test]
     fn guard_catches_known_differences() {
         for (p, flags, h) in [
-            // U+FE0F 는 결합 기호: regex 는 낱말 글자로, python 은 아니라고 본다
+            // U+FE0F is a combining mark: regex calls it a word char, python does not
             (r"\bprev", Flags::NONE, "\u{2714}\u{fe0f}prev"),
-            // 윗첨자 숫자는 python 에서만 낱말 글자다
+            // Superscript digits are word chars only in python
             (r"y\b", Flags::NONE, "py\u{b2}"),
-            // python 의 $ 는 끝 줄바꿈 앞에서도 맞는다
+            // python `$` also matches before a final newline
             (r"a$", Flags::NONE, "a\n"),
-            // python IGNORECASE 는 점 없는 i 와 점 있는 I 를 i 와 같게 본다
+            // python IGNORECASE folds dotless i and dotted I to i
             ("i", Flags::IGNORECASE, "\u{131}"),
         ] {
             // The pattern as is in the regex crate disagrees with python
@@ -626,7 +626,7 @@ mod tests {
         // Plain text keeps the fast engines
         assert!(!Regex::new(r"\bprev\s$").diverges("이전 prev 값"));
 
-        // python 의 \s 가 받는 U+001C 는 옮긴 글이 받는다(넘기지 않아도 된다)
+        // U+001C, which python `\s` takes, is accepted by the translated text
         for h in ["\u{1c}", "\u{1c}\u{d55c}"] {
             assert!(!Regex::new(r"\s").diverges(h));
             assert!(Regex::new(r"\s").is_match(h) && !Regex::new(r"\S\S").is_match(h));

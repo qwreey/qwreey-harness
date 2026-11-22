@@ -405,6 +405,7 @@ mod tests {
         assert_eq!(relpath("", "/a"), None);
     }
 
+    /// `pathlib_str` 는 빈 글을 `.` 으로, 겹친 `/` 와 `.` 조각을 접어 쓰고 `//` 뿌리는 지킨다.
     #[test]
     fn pathlib_examples() {
         assert_eq!(pathlib_str(""), ".");
@@ -413,15 +414,22 @@ mod tests {
         assert_eq!(pathlib_str("///a"), "/a");
     }
 
+    /// `~` 는 HOME 으로 풀고(끝 `/` 는 뗀다), 사용자 이름이 붙은 꼴은 못 찾으면 그대로 둔다.
     #[test]
-    fn expanduser_examples() {
+    fn expanduser_with_home() {
         let env = Env::from_pairs([("HOME", "/home/x/")]);
+
         assert_eq!(expanduser("~/a", &env), "/home/x/a");
         assert_eq!(expanduser("~", &env), "/home/x");
         assert_eq!(
             expanduser("~no-such-user-here/a", &env),
             "~no-such-user-here/a"
         );
+    }
+
+    /// HOME 이 `/` 면 `~` 는 `/` 이고, HOME 이 없으면 풀지 않는다.
+    #[test]
+    fn expanduser_root_home_and_missing_home() {
         assert_eq!(expanduser("~", &Env::from_pairs([("HOME", "/")])), "/");
         assert_eq!(expanduser("~/a", &Env::default()), "~/a");
     }

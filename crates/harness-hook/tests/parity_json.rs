@@ -12,7 +12,7 @@ use harness_hook::py::json_load::{Decode, from_bytes};
 use harness_hook::py::surrogate::unit_of;
 use serde_json::{Value, json};
 
-// 서로게이트 자리표는 python 의 surrogatepass 처럼 그 코드의 3 바이트로
+// Surrogate placeholders become their 3 bytes, like python surrogatepass
 fn surrogatepass(text: &str) -> String {
     let mut out = Vec::new();
     for c in text.chars() {
@@ -32,9 +32,9 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-// (입력, indent 꼴도 견주나)
+// (input, whether the indent form is compared too)
 fn inputs() -> Vec<(Vec<u8>, bool)> {
-    // 깊은 중첩
+    // Deep nesting
     let deep = [
         format!("{}{}", "[".repeat(5000), "]".repeat(5000)),
         format!("{}1{}", "{\"a\": ".repeat(5000), "}".repeat(5000)),
@@ -46,9 +46,9 @@ fn inputs() -> Vec<(Vec<u8>, bool)> {
     ];
     let mut out: Vec<(Vec<u8>, bool)> = deep.into_iter().map(|t| (t.into_bytes(), false)).collect();
 
-    // 글로 쓸 수 있는 입력
+    // Inputs that can be written as text
     let texts: Vec<String> = vec![
-        // NaN, 무한대, 넘치는 float, float 표기
+        // NaN, infinity, overflowing floats, float spellings
         "[NaN, Infinity, -Infinity]".into(),
         "1e400".into(),
         "-1e400".into(),
@@ -56,7 +56,7 @@ fn inputs() -> Vec<(Vec<u8>, bool)> {
         "[1E400, -0.0, -0, 0.1, 1e16, 123456789012345678901234567890.5, 1e99999999999999999999]"
             .into(),
         "[1.5, 100.0, 1e-5, 0.0001, 1e22, 5e-324, 2.5e-7, 1.7976931348623157e308]".into(),
-        // 큰 정수
+        // Big integers
         "1".repeat(39),
         "170141183460469231731687303715884105727".into(),
         "170141183460469231731687303715884105728".into(),
@@ -66,12 +66,12 @@ fn inputs() -> Vec<(Vec<u8>, bool)> {
         format!("[{}]", "1".repeat(4300)),
         format!("[{}]", "1".repeat(4301)),
         format!("{{\"n\": -{}}}", "2".repeat(4300)),
-        // 서로게이트 escape
+        // Surrogate escapes
         r#""\ud800""#.into(),
         r#""\udc00\ud800""#.into(),
         r#""😀""#.into(),
         r#"["\ud83d", "\ud83dA", "\\ud800"]"#.into(),
-        // 겹친 키, 큰 객체
+        // Duplicate keys, big objects
         r#"{"a": 1, "b": 2, "a": 3}"#.into(),
         format!(
             "{{{}}}",
@@ -80,11 +80,11 @@ fn inputs() -> Vec<(Vec<u8>, bool)> {
                 .collect::<Vec<_>>()
                 .join(", ")
         ),
-        // 공백, 글
+        // Whitespace, text
         "\r\n {\"a\" : [ 1 ,2 ] }\r\n".into(),
         r#"{"a": "é\u007f\u001f\t\/\"\\", "b": "한글 ok"}"#.into(),
         "\"\u{2028}\u{7f}\u{1f600}\"".into(),
-        // 오류
+        // Errors
         String::new(),
         "  ".into(),
         "[1,]".into(),
@@ -102,7 +102,7 @@ fn inputs() -> Vec<(Vec<u8>, bool)> {
     ];
     out.extend(texts.into_iter().map(|t| (t.into_bytes(), true)));
 
-    // UTF-8 이 아닌 바이트: 글 안, 글 밖, 인코딩된 서로게이트, 잘린 글자
+    // Non-UTF-8 bytes: in text, outside text, encoded surrogates, cut chars
     let bytes: [&[u8]; 6] = [
         b"{\"a\": \"x\xffy\"}",
         b"{\"a\": \"\xed\xa0\x80\"}",
@@ -115,6 +115,7 @@ fn inputs() -> Vec<(Vec<u8>, bool)> {
     out
 }
 
+/// 같은 JSON 입력의 읽기, 쓰기(들여쓰기 포함), 오류 여부가 python 판과 같다.
 #[test]
 fn json_matches_python() {
     let inputs = inputs();
@@ -131,7 +132,7 @@ fn json_matches_python() {
         return;
     };
 
-    // 같은 입력을 Rust 로 읽고 써서 견준다
+    // Read and write the same input in Rust and compare
     for ((mode, decode), results) in modes.iter().zip(&got) {
         for (i, ((raw, indent), want)) in inputs
             .iter()
@@ -152,7 +153,7 @@ fn json_matches_python() {
                 Err(_) => json!("error"),
             };
 
-            // python 의 오류 종류(JSONDecodeError, UnicodeDecodeError, ValueError)는 가리지 않는다
+            // Error kinds (JSONDecodeError, UnicodeDecodeError, ValueError) are not told apart
             let python = match want.get("error") {
                 Some(_) => json!("error"),
                 None => want.clone(),

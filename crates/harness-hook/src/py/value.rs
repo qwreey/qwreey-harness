@@ -225,22 +225,45 @@ mod tests {
     use crate::py::json::{EnsureAscii, dumps};
     use crate::py::json_load::loads;
 
+    /// 겹친 키는 처음 자리에 마지막 값으로 남고, 쓸 때 그 순서를 지킨다.
     #[test]
-    fn keeps_order_and_writes_like_python() {
+    fn duplicate_keys_keep_first_position_and_last_value() {
         let v = loads(r#"{"b": 1, "a": {"y": 2.5, "x": [true, null]}, "b": 3}"#).unwrap();
+
         assert_eq!(
             dumps(&v, EnsureAscii::Yes, None),
             r#"{"b": 3, "a": {"y": 2.5, "x": [true, null]}}"#
         );
+    }
+
+    /// `same_content` 는 키 순서가 달라도 같은 내용이면 참이다.
+    #[test]
+    fn same_content_ignores_key_order() {
+        let v = loads(r#"{"b": 1, "a": {"y": 2.5, "x": [true, null]}, "b": 3}"#).unwrap();
         let Value::Dict(d) = &v else { panic!() };
         let other = loads(r#"{"a": {"x": [true, null], "y": 2.5}, "b": 3}"#).unwrap();
         assert!(d.same_content(other.as_dict().unwrap()));
+    }
+
+    /// `same_content` 는 정수 3 과 실수 3.0 을 다른 내용으로 본다.
+    #[test]
+    fn same_content_tells_int_from_float() {
+        let v = loads(r#"{"b": 1, "a": {"y": 2.5, "x": [true, null]}, "b": 3}"#).unwrap();
+        let Value::Dict(d) = &v else { panic!() };
         let float = loads(r#"{"a": {"x": [true, null], "y": 2.5}, "b": 3.0}"#).unwrap();
+
         assert!(!d.same_content(float.as_dict().unwrap()));
+    }
+
+    /// NaN 도 NaN 과 같은 내용으로 본다.
+    #[test]
+    fn same_content_takes_nan_as_equal() {
         let nan = loads("[NaN]").unwrap();
+
         assert!(nan.same_content(&loads("[NaN]").unwrap()));
     }
 
+    /// 키가 많은 객체도 겹친 키는 처음 자리에 마지막 값으로 남는다.
     #[test]
     fn big_objects_keep_first_position_and_last_value() {
         let pairs: Vec<(String, Value)> = (0..40)
@@ -252,6 +275,7 @@ mod tests {
         assert_eq!(d.get("k29"), Some(&Value::Int(29)));
     }
 
+    /// 100 만 겹 중첩 목록을 버려도 스택이 넘치지 않는다.
     #[test]
     fn drop_handles_deep_nesting() {
         let mut v = Value::Null;

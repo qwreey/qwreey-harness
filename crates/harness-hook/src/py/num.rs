@@ -259,6 +259,7 @@ mod tests {
         assert_eq!(parse_int_saturating("1.5"), None);
     }
 
+    /// `int()` 처럼 공백, 부호, 밑줄 구분, 다른 문자의 십진 숫자를 받고 나머지는 `None` 이다.
     #[test]
     fn int_parsing_follows_python() {
         assert_eq!(parse_int(" -1_000 "), Some(-1000));
@@ -269,14 +270,20 @@ mod tests {
         }
     }
 
+    /// `float()` 처럼 밑줄 구분과 다른 문자의 숫자, `Infinity` 를 받고 나머지는 `None` 이다.
     #[test]
-    fn float_parsing_and_g_follow_python() {
+    fn float_parsing_follows_python() {
         assert_eq!(parse_float(" 1_000.5 "), Some(1000.5));
         assert_eq!(parse_float("\u{663}"), Some(3.0));
         assert_eq!(parse_float("1__0"), None);
         assert_eq!(parse_float("_1"), None);
         assert_eq!(parse_float("x"), None);
         assert!(parse_float("-Infinity").is_some_and(|f| f.is_infinite()));
+    }
+
+    /// `format_g` 는 python `%g` 처럼 유효숫자 6 자리와 지수 꼴로 쓴다.
+    #[test]
+    fn g_format_follows_python() {
         for (x, want) in [
             (10.0, "10"),
             (0.001, "0.001"),
@@ -289,10 +296,16 @@ mod tests {
         ] {
             assert_eq!(format_g(x), want, "{x}");
         }
+    }
+
+    /// `parse_decimal` 은 다른 문자의 십진 숫자도 읽는다.
+    #[test]
+    fn decimal_parsing_reads_other_scripts() {
         assert_eq!(parse_decimal("139"), Some(139));
         assert_eq!(parse_decimal("\u{661}\u{663}\u{669}"), Some(139));
     }
 
+    /// `float_repr` 는 python `repr(float)` 처럼 가장 짧게 되돌아오는 글과 지수 꼴을 쓴다.
     #[test]
     fn repr_matches_python_examples() {
         let cases = [
@@ -312,6 +325,7 @@ mod tests {
         }
     }
 
+    /// 정수 값 float 는 소수점이나 지수 없이 정확한 자릿수로 쓴다(`-0.0` 은 `0`).
     #[test]
     fn integral_text_is_exact() {
         assert_eq!(integral_float_text(-0.0), "0");

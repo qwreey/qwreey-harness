@@ -232,51 +232,124 @@ mod tests {
         Regex::new(pattern).unwrap().is_match(text)
     }
 
+    /// 문자 그대로, `.`, 문자 클래스, 앞 고정이 일치를 가른다.
     #[test]
-    fn basic_matching() {
+    fn literals_dot_classes_and_anchors() {
         assert!(found("a.c", "xabc"));
         assert!(!found("^b", "ab"));
+        assert!(found("[t]est", "a test"));
+    }
+
+    /// 뒤 보기(`(?<!...)`)는 앞 글자를 보고 일치를 거른다.
+    #[test]
+    fn lookbehind_checks_the_previous_char() {
         assert!(found("(?<![A-Za-z])bench", "run-bench"));
         assert!(!found("(?<![A-Za-z])bench", "xbench"));
+    }
+
+    /// 앞 보기(`(?!...)`)는 뒤 글자를 보고 일치를 거른다.
+    #[test]
+    fn lookahead_checks_the_next_char() {
         assert!(found(r"perf(?:orm)?(?![A-Za-z])", "perform."));
+    }
+
+    /// 앞 선택지가 막히면 물러나 다음 선택지와 되풀이를 시도한다.
+    #[test]
+    fn backtracking_tries_other_branches() {
         assert!(found(r"(a|ab)(c|bcd)(d*)$", "abcd"));
-        assert!(found(r"(\w+) \1", "hey hey"));
-        assert!(found("[t]est", "a test"));
-        assert!(found("x{,2}y", "xxy"));
-        assert!(found("a{", "a{"));
         assert!(found(r"(a*)*b", "aab"));
         assert!(Regex::new("a|ab").unwrap().fullmatch("ab").is_some());
     }
 
+    /// `\1` 은 앞에서 잡은 글과 같은 글에 맞는다.
     #[test]
-    fn ignore_case_follows_python() {
+    fn backreference_repeats_a_capture() {
+        assert!(found(r"(\w+) \1", "hey hey"));
+    }
+
+    /// `{,2}` 는 되풀이이고, 짝 없는 `{` 는 글자 그대로다.
+    #[test]
+    fn brace_forms_follow_python() {
+        assert!(found("x{,2}y", "xxy"));
+        assert!(found("a{", "a{"));
+    }
+
+    /// IGNORECASE 는 `ſ`(U+017F)를 `s` 와 같게 본다.
+    #[test]
+    fn ignore_case_folds_long_s() {
         let re = Regex::with_flags("stress", Flags::IGNORECASE).unwrap();
+
         assert!(re.is_match("STRE\u{17f}S"));
+    }
+
+    /// IGNORECASE 는 켈빈 기호(U+212A)를 `k` 로 접어 글자로 보므로 뒤 보기에 걸린다.
+    #[test]
+    fn ignore_case_folds_kelvin_sign_in_lookbehind() {
         let re = Regex::with_flags("(?<![A-Za-z])kit", Flags::IGNORECASE).unwrap();
+
         assert!(!re.is_match("\u{212a}kit"));
     }
 
+    /// 틀린 문법은 python 처럼 `Syntax` 오류다.
     #[test]
-    fn errors_follow_python() {
+    fn syntax_errors_follow_python() {
         let err = |p: &str| Regex::new(p).unwrap_err();
+
         assert!(matches!(err("*a"), Error::Syntax(_)));
         assert!(matches!(err("a**"), Error::Syntax(_)));
         assert!(matches!(err("(a"), Error::Syntax(_)));
         assert!(matches!(err("a)"), Error::Syntax(_)));
         assert!(matches!(err(r"\q"), Error::Syntax(_)));
-        assert!(matches!(err("(?<=a+)b"), Error::Syntax(_)));
-        assert!(matches!(err("a{99999999999}"), Error::Overflow));
-        assert!(matches!(err("(?(1)a|b)"), Error::Unsupported(_)));
+        assert!(
+            matches!(err("(?<=a+)b"), Error::Syntax(_)),
+            "lookbehind needs a fixed width"
+        );
+    }
+
+    /// 너무 큰 되풀이 수는 `Overflow` 오류다.
+    #[test]
+    fn huge_repeat_count_overflows() {
+        assert!(matches!(
+            Regex::new("a{99999999999}").unwrap_err(),
+            Error::Overflow
+        ));
+    }
+
+    /// 옮기지 않은 문법(조건 패턴)은 `Unsupported` 오류다.
+    #[test]
+    fn conditional_pattern_is_unsupported() {
+        assert!(matches!(
+            Regex::new("(?(1)a|b)").unwrap_err(),
+            Error::Unsupported(_)
+        ));
+    }
+
+    /// 소유 되풀이(`c++`)와 원자 묶음(`(?>...)`)은 python 3.11 이후처럼 읽는다.
+    #[test]
+    fn possessive_and_atomic_forms_are_read() {
         assert!(!found("^c++$", "cc+") && found("^c++$", "cc"));
         assert!(!found("(?>a*)a", "aaa") && found("(?>a|ab)c", "ac"));
+    }
+
+    /// `[[:alpha:]]` 는 python 에서 오류가 아니라 평범한 문자 집합이다.
+    #[test]
+    fn posix_class_syntax_is_a_plain_set() {
         assert!(Regex::new("[[:alpha:]]").is_ok());
     }
 
+    /// `split` 은 일치 앞뒤로 글을 나눈다.
     #[test]
-    fn iterates_splits_and_escapes() {
+    fn split_cuts_around_matches() {
         let re = Regex::new(r"&&|\|\||[;|\n]").unwrap();
+
         assert_eq!(re.split("a && b | c;d"), vec!["a ", " b ", " c", "d"]);
+    }
+
+    /// `replace_all` 은 일치마다 닫힘 함수가 만든 글로 바꾼다.
+    #[test]
+    fn replace_all_uses_the_closure() {
         let re = Regex::new(r"\$\{?([A-Za-z_]\w*)\}?").unwrap();
+
         assert_eq!(
             re.replace_all("$A-${B}", |m| format!(
                 "<{}>",
@@ -284,6 +357,11 @@ mod tests {
             )),
             "<A>-<B>"
         );
+    }
+
+    /// `escape` 는 특수 문자와 공백, `-` 앞에 `\` 를 붙인다.
+    #[test]
+    fn escape_backslashes_special_chars() {
         assert_eq!(escape("a.b-c d"), r"a\.b\-c\ d");
     }
 }

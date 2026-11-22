@@ -7,7 +7,7 @@ use harness_hook::nonce::{self, Nonce};
 use harness_hook::{Env, HookInput};
 use serde_json::{Value, json};
 
-// 끝의 둘은 짝 없는 서로게이트의 자리표(py/surrogate.rs): python 은 salt 가 있으면 UnicodeEncodeError 다
+// The last two are lone surrogate placeholders; python raises UnicodeEncodeError when a salt exists
 const SIDS: [&str; 8] = [
     "abc",
     "\u{c138}\u{c158}-\u{1f600}",
@@ -26,12 +26,13 @@ fn salt_env(path: &str) -> Vec<(String, String)> {
     ])
 }
 
+/// salt 파일 읽기, nonce 계산, salt 경로 고르기가 python 판과 같다.
 #[test]
 fn nonce_and_salt_files_match_python() {
     let tmp = TempDir::new("nonce");
     let good = "0123456789abcdef".repeat(4);
 
-    // 읽히는 salt, 망가진 salt, 만들 수 없는 자리
+    // Readable salt, broken salt, a place that cannot be created
     let mut envs = vec![
         salt_env(&tmp.write("good", &good).to_string_lossy()),
         salt_env(&tmp.write("short", "abc").to_string_lossy()),
@@ -50,7 +51,7 @@ fn nonce_and_salt_files_match_python() {
         )),
     ];
 
-    // salt 경로 고르기: XDG_DATA_HOME, 그다음 HOME
+    // Salt path choice: XDG_DATA_HOME, then HOME
     tmp.write("xdg/qwreey-harness/salt", "11".repeat(32));
     tmp.write("home/.local/share/qwreey-harness/salt", "22".repeat(32));
     envs.push(pairs(&[
@@ -69,7 +70,7 @@ fn nonce_and_salt_files_match_python() {
         return;
     };
 
-    // Rust 쪽 같은 순서로
+    // Rust side in the same order
     let mut want: Vec<Value> = envs
         .iter()
         .map(|env| {
@@ -96,13 +97,14 @@ fn nonce_and_salt_files_match_python() {
     }
 }
 
+/// Rust 와 python 이 만든 salt 를 서로 읽어 같은 nonce 를 내고, 권한(파일 0600, 폴더 0700)도 같다.
 #[test]
 fn created_salt_is_shared_with_python() {
     let tmp = TempDir::new("salt-create");
     let by_rust = tmp.text("rust/a/b/salt");
     let by_python = tmp.text("python/a/b/salt");
 
-    // 서로 만든 salt 를 읽어 같은 nonce 를 내는지
+    // Each side reads the other salt and gets the same nonce
     let rust_nonce = Nonce::for_session(&Env::from_pairs(salt_env(&by_rust)), Some("abc"))
         .unwrap()
         .expect("rust creates a salt");
@@ -118,7 +120,7 @@ fn created_salt_is_shared_with_python() {
         Nonce::for_session(&Env::from_pairs(salt_env(&by_python)), Some("abc")).unwrap();
     assert_eq!(got[1], json!([python_nonce.map(|n| n.as_str().to_owned())]));
 
-    // 같은 권한(파일 0600, 새 디렉터리 0700)
+    // Same permissions (file 0600, new directory 0700)
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -130,6 +132,7 @@ fn created_salt_is_shared_with_python() {
     }
 }
 
+/// claim 폴더 경로 고르기(임시 폴더 환경 변수 순서)가 python 판과 같다.
 #[test]
 fn claim_paths_match_python() {
     let tmps = [
@@ -174,6 +177,7 @@ fn claim_paths_match_python() {
     }
 }
 
+/// 규칙 줄을 싣고 말지의 판정이 python 판과 같다(조율하지 못하는 자리면 늘 싣는다).
 #[test]
 fn rule_lines_match_python() {
     let tmp = TempDir::new("rule");
@@ -194,7 +198,7 @@ fn rule_lines_match_python() {
         ["SessionStart", {"session_id": "\u{c138}\u{c158}", "agent_id": ""}]
     ]);
 
-    // 양쪽이 서로의 claim 을 보지 않게 임시 폴더를 나눈다. blocked 는 claim 디렉터리 자리에 파일이 있는 경우(조율하지 못해 늘 싣는다)
+    // Separate temp dirs keep each side from seeing the other claims; blocked means a file sits where the claim dir goes (always loads)
     let side = |name: &str| {
         pairs(&[
             ("QWREEY_HARNESS_SALT_FILE", &salt),
@@ -219,7 +223,7 @@ fn rule_lines_match_python() {
         return;
     };
 
-    // Rust 쪽은 자기 임시 폴더에서 같은 호출 순서로
+    // Rust side in its own temp dir with the same call order
     for (i, rs_dir) in ["rs", "rs-blocked"].iter().enumerate() {
         let env = Env::from_pairs(side(rs_dir));
         let mine: Vec<String> = calls
@@ -243,7 +247,7 @@ fn rule_lines_match_python() {
     );
 }
 
-// 하루 넘은 시각으로 mtime 을 바꾼다
+// Set mtime to more than a day ago
 #[cfg(unix)]
 fn make_old(path: &std::path::Path) {
     let old = std::time::UNIX_EPOCH + std::time::Duration::from_secs(1);
@@ -252,7 +256,7 @@ fn make_old(path: &std::path::Path) {
         .expect("set mtime");
 }
 
-// claim 디렉터리 안에서 claim 이름(sha256 hex 로 시작)이 아닌 것
+// Entries in the claim dir that are not claim names (sha256 hex prefix)
 #[cfg(unix)]
 fn non_claims(dir: &std::path::Path) -> Vec<String> {
     let mut names: Vec<String> = std::fs::read_dir(dir)
@@ -264,6 +268,7 @@ fn non_claims(dir: &std::path::Path) -> Vec<String> {
     names
 }
 
+/// claim 폴더가 링크면 늘 싣고 링크 너머는 건드리지 않으며, 내 폴더에서는 오래된 보통 파일만 지우는 것이 python 판과 같다.
 #[test]
 #[cfg(unix)]
 fn claim_dir_links_and_prune_match_python() {
@@ -281,13 +286,13 @@ fn claim_dir_links_and_prune_match_python() {
     ]);
 
     for side in ["py", "rs"] {
-        // claim 디렉터리 자리에 남이 심은 링크
+        // A link planted where the claim dir goes
         let victim = tmp.dir(&format!("{side}-victim"));
         make_old(&tmp.write(&format!("{side}-victim/old"), "keep"));
         let planted = tmp.dir(&format!("{side}-link")).join("claude-harness-rule");
         symlink(&victim, planted).expect("planted link");
 
-        // 내 claim 디렉터리에 오래된 파일, 링크, 디렉터리
+        // Old file, link and directory in my claim dir
         let own = tmp.dir(&format!("{side}-own/claude-harness-rule"));
         make_old(&tmp.write(&format!("{side}-own/claude-harness-rule/old"), ""));
         let target = tmp.write(&format!("{side}-target"), "keep");
@@ -296,7 +301,7 @@ fn claim_dir_links_and_prune_match_python() {
         make_old(&tmp.dir(&format!("{side}-own/claude-harness-rule/sub")));
     }
 
-    // python 쪽
+    // Python side
     let side = |dir: &str| {
         pairs(&[
             ("QWREEY_HARNESS_SALT_FILE", &salt),
@@ -319,7 +324,7 @@ fn claim_dir_links_and_prune_match_python() {
         return;
     };
 
-    // Rust 쪽 같은 호출
+    // Rust side with the same calls
     for (i, dir) in ["rs-link", "rs-own"].iter().enumerate() {
         let env = Env::from_pairs(side(dir));
         let mine: Vec<String> = calls
@@ -335,7 +340,7 @@ fn claim_dir_links_and_prune_match_python() {
         assert_eq!(got[i], json!(mine), "case {i}");
     }
 
-    // 링크면 두 번 다 싣고 링크 너머에 쓰지도 지우지도 않는다. 내 디렉터리에서는 한 번 싣고 오래된 보통 파일만 지운다
+    // A link loads both times and nothing is written or removed past it; in my dir it loads once and only old regular files go
     let rule = got[0][0].clone();
     assert_eq!(got[0], json!([rule, rule]));
     assert_eq!(got[1], json!([rule, ""]));
@@ -354,6 +359,7 @@ fn claim_dir_links_and_prune_match_python() {
     }
 }
 
+/// nonce 가리기가 python 판과 같다.
 #[test]
 fn redaction_matches_python() {
     let tmp = TempDir::new("redact");

@@ -111,26 +111,39 @@ impl HookInput {
 mod tests {
     use super::*;
 
+    /// 세션 id 와 명령을 읽고, 글이 아닌 값은 없음으로 본다.
     #[test]
-    fn reads_fields_and_rejects_non_objects() {
+    fn reads_fields() {
         let input =
             HookInput::from_slice(br#"{"session_id":"s","tool_input":{"command":"ls"},"cwd":3}"#)
                 .unwrap();
+
         assert_eq!(input.session_id(), Some("s"));
         assert_eq!(input.command(), Some("ls"));
-        assert_eq!(input.cwd(), None);
+        assert_eq!(input.cwd(), None, "3 is not a string");
+    }
+
+    /// 최상위가 객체가 아닌 JSON 은 거절한다.
+    #[test]
+    fn rejects_non_objects() {
         assert!(matches!(
             HookInput::from_slice(b"[]"),
             Err(InputError::NotObject)
         ));
+    }
+
+    /// 깨진 JSON 은 JSON 오류로 거절한다.
+    #[test]
+    fn rejects_broken_json() {
         assert!(matches!(
             HookInput::from_slice(b"{"),
             Err(InputError::Json(_))
         ));
     }
 
+    /// 2만 겹 중첩도 python 처럼 읽고, 버릴 때 스택이 넘치지 않는다.
     #[test]
-    fn reads_what_python_reads() {
+    fn reads_deep_nesting() {
         let deep = format!(
             "{{\"session_id\": \"s\", \"tool_response\": {}1{}}}",
             "[".repeat(20_000),
@@ -139,7 +152,11 @@ mod tests {
         let input = HookInput::from_slice(deep.as_bytes()).unwrap();
         assert_eq!(input.session_id(), Some("s"));
         drop(input);
+    }
 
+    /// python 만 받는 값(NaN, 넘치는 float, UTF-8 이 아닌 바이트)도 읽는다.
+    #[test]
+    fn reads_python_only_values() {
         let odd = HookInput::from_slice(b"{\"a\": NaN, \"b\": 1e400, \"c\": \"\xff\"}").unwrap();
         assert!(matches!(odd.get("a"), Some(Value::Float(f)) if f.is_nan()));
         assert_eq!(odd.get("b"), Some(&Value::Float(f64::INFINITY)));

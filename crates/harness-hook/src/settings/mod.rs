@@ -360,10 +360,10 @@ pub fn heavy_wrap(layers: &Layers, env: &Env) -> Vec<String> {
 mod tests {
     use super::*;
 
+    /// 저장소 파일 경로는 python `str(Path(dir) / rel)` 처럼 이어 붙인다.
     #[test]
     #[cfg(unix)]
     fn project_files_join_like_pathlib() {
-        // python str(Path(dir) / rel)
         let joined = |dir: &str| project_file(dir, PROJECT_FILES[0]);
         assert_eq!(joined("/"), PathBuf::from("/.claude/harness.env"));
         assert_eq!(joined("//"), PathBuf::from("//.claude/harness.env"));

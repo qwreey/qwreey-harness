@@ -12,7 +12,7 @@ use harness_hook::py::tempfile::gettempdir;
 use serde_json::{Value, json};
 
 const PATTERNS: &[&str] = &[
-    // 훅이 쓰는 꼴
+    // Shapes the hooks use
     r#"<<(?!<)-?\s*(?:'([A-Za-z_]\w*)'|"([A-Za-z_]\w*)"|\\?([A-Za-z_]\w*))"#,
     r"&&|\|\||[;|\n]",
     r"(?<![A-Za-z])(bench|fuzz|perf(?:orm(?:ance)?)?(?![A-Za-z])|stress|soak|load-?test|hyperfine)",
@@ -29,7 +29,7 @@ const PATTERNS: &[&str] = &[
     r"core dumped|Segmentation fault|\bSIG(?:SEGV|ABRT)\b|signal: (?:3|4|11)\b",
     r"\AExit code (\d+)",
     r"(?<![A-Za-z0-9_.-])luau\-lsp",
-    // pgrep 패턴으로 쓸 만한 것
+    // Patterns usable with pgrep
     "test-delegate-cli.py",
     "[t]est-delegate",
     "python3 run.py",
@@ -117,7 +117,7 @@ const PATTERNS: &[&str] = &[
     "[^a-z]",
     "\u{d55c}+",
     "\\w+\u{903}",
-    // 빈 바퀴의 잡기(python 은 빈 바퀴를 받고 되풀이를 끝낸다), python 3.14 의 \z 와 빈 글의 \B
+    // Empty-iteration captures (python accepts one and ends the repeat), python 3.14 `\z`, `\B` on empty text
     "()*+\\d",
     "()*\\d",
     "(a|)*+\\d",
@@ -130,7 +130,7 @@ const PATTERNS: &[&str] = &[
     "\\B",
     "a\\z",
     "[\\z]",
-    // 글자 하나의 되풀이(REPEAT_ONE)와 큰 되풀이 수
+    // Single-char repeats (REPEAT_ONE) and big repeat counts
     " * * *z",
     "[ab]{2,5}?c",
     "a*?b",
@@ -166,7 +166,7 @@ const ALPHABET: &[&str] = &[
     "}", ",", " ", "\\", "()", "*?", "{0,2}?", "\\B", "\\z", "(|a)",
 ];
 
-// 시드를 고정한 작은 난수(LCG). 시험은 매번 같은 패턴을 만든다
+// Small fixed-seed random generator (LCG) so every run builds the same patterns
 fn generated(count: usize) -> Vec<String> {
     let mut state: u64 = 0x9e37_79b9_7f4a_7c15;
     let mut next = move || {
@@ -197,7 +197,7 @@ fn chars_at(text: &str, byte: usize) -> usize {
     text[..byte].chars().count()
 }
 
-// python 쪽과 같은 꼴의 결과. Unsupported 면 None
+// Result in the same shape as python; None when Unsupported
 fn rust_result(pattern: &str, bits: u64, text: &str) -> Option<Value> {
     let re = match Regex::with_flags(pattern, flags_of(bits)) {
         Ok(re) => re,
@@ -224,9 +224,10 @@ fn rust_result(pattern: &str, bits: u64, text: &str) -> Option<Value> {
     )
 }
 
+/// 정규식의 일치와 오류 종류가 python `re` 와 같다(손으로 고른 패턴과 만든 패턴, 플래그별).
 #[test]
 fn regex_matches_python() {
-    // 경우: 손으로 고른 패턴은 플래그 넷, 만든 패턴은 플래그 없음과 IGNORECASE
+    // Cases: hand-picked patterns with four flag sets, built ones with none and IGNORECASE
     let mut cases = Vec::new();
     for p in PATTERNS {
         for bits in [0, 1, 2, 4] {
@@ -235,7 +236,7 @@ fn regex_matches_python() {
             }
         }
     }
-    // 괄호 중첩: 400 겹은 둘 다 읽고, 600 겹은 python 이 RecursionError
+    // Group nesting: 400 levels read by both, 600 raises RecursionError in python
     for depth in [400, 600] {
         let p = format!("{}x{}", "(?:".repeat(depth), ")".repeat(depth));
         cases.push((p, 0, "axb".to_owned()));
@@ -250,7 +251,7 @@ fn regex_matches_python() {
     };
     let want = results[0].as_array().expect("list of results");
 
-    // 견주기
+    // Compare
     let mut unsupported = 0;
     let mut bad = Vec::new();
     for ((p, bits, t), want) in cases.iter().zip(want) {
@@ -274,6 +275,7 @@ fn regex_matches_python() {
     );
 }
 
+/// `normpath` 와 임시 폴더 고르기가 python 판과 같다.
 #[test]
 fn normpath_and_tempdir_match_python() {
     let paths = [

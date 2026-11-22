@@ -153,6 +153,7 @@ fn reference(after: &str) -> Option<(&str, usize)> {
 mod tests {
     use super::*;
 
+    /// 주석, `export`, 따옴표, 변수 참조, `~`, 환경 변수 우선, 잘못된 줄을 한 파일에서 읽는다.
     #[test]
     fn parses_quotes_comments_and_references() {
         let env = Env::from_pairs([("HOME", "/h"), ("FROM_ENV", "e")]);
@@ -168,6 +169,9 @@ mod tests {
         .into_iter()
         .map(|(k, v)| (k.to_owned(), v.to_owned()))
         .collect();
-        assert_eq!(got, want);
+        assert_eq!(
+            got, want,
+            "exportC has no space after export, so it is a name; $A_ is another name and MISSING is empty; the environment beats the file"
+        );
     }
 }

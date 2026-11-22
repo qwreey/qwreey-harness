@@ -103,7 +103,7 @@ impl LayerCase {
     }
 }
 
-// python load_layers 가 돌려주는 dict 와 같은 꼴로 바꾼다
+// Convert to the dict shape python load_layers returns
 fn layers_json(layers: &Layers) -> Value {
     let text = |p: &Path| p.to_string_lossy().into_owned();
     let mut out: Map<String, Value> = layers
@@ -112,7 +112,7 @@ fn layers_json(layers: &Layers) -> Value {
         .map(|(k, v)| (k.clone(), json!(v)))
         .collect();
 
-    // 무엇을 읽었는지
+    // What was read
     out.insert(
         "_file".into(),
         json!(layers.user_file.as_deref().map(text).unwrap_or_default()),
@@ -175,13 +175,14 @@ const MANIFEST: &str = r#"{"name": "demo", "userConfig": {"demo_flag": {}, "demo
  "demo_intfloat": {}, "demo_big": {}, "demo_list": {}, "demo_path": {}, "demo_null": {}, "demo_obj": {},
  "demo_missing": {}, "demo_ko": {}}}"#;
 
+/// 설정 층 읽기(모든 층, 망가진 파일, 사용자 층, 저장소 자리, 플러그인, FIFO)가 python 판과 같다.
 #[test]
 fn load_layers_matches_python() {
     let tmp = TempDir::new("layers");
     let root = tmp.text("");
     let root = root.trim_end_matches('/');
 
-    // 설정 디렉터리, 플러그인, 저장소
+    // Config dir, plugin, repo
     tmp.write("cfg/harness.env", USER_LAYER);
     tmp.write("cfg/settings.json", SETTINGS);
     tmp.write("plugin/.claude-plugin/plugin.json", MANIFEST);
@@ -202,7 +203,7 @@ fn load_layers_matches_python() {
     };
     let project = Project::Dir(format!("{root}/project"));
 
-    // 1. 모든 층
+    // all layers
     let mut full = LayerCase::new("full", base_env(&[]), project.clone(), plugin_dir.clone());
     full.defaults = vec![
         ("PROC_GUARD_DISK", "on".into()),
@@ -215,7 +216,7 @@ fn load_layers_matches_python() {
     ];
     let mut cases = vec![full];
 
-    // 2. 망가진 저장소 개인 파일, settings.json 여러 꼴
+    // broken repo private file, settings.json variants
     tmp.write("project2/.claude/harness.env", "REPO_KEY=shared\n");
     tmp.write("project2/.claude/harness.local.env", b"REPO_KEY=\xff\xfe\n");
     cases.push(LayerCase::new(
@@ -258,7 +259,7 @@ fn load_layers_matches_python() {
         ));
     }
 
-    // 3. 사용자 층 찾기: 깨진 파일, BOM, HARNESS_ENV(정규화), 없는 HARNESS_ENV 와 후보
+    // user layer lookup: broken file, BOM, HARNESS_ENV, missing HARNESS_ENV and candidates
     tmp.write("cfg-bad/harness.env", b"USER_A=\xff\n");
     tmp.write("cfg-bom/harness.env", "\u{feff}USER_A=1\nUSER_B=2\n");
     tmp.write("cand.env", "CAND=1\n");
@@ -293,7 +294,7 @@ fn load_layers_matches_python() {
     ]);
     cases.push(with_candidates);
 
-    // 4. 저장소 자리: 홈이 저장소(같은 파일은 한 번), Skip, 환경 변수, 정규화할 경로
+    // repo location: home as repo (same file once), Skip, env var, paths to normalize
     tmp.write("home2/.claude/harness.env", "USER_A=home\n");
     tmp.write("home2/.claude/harness.local.env", "LOCAL=1\n");
     let home2 = pairs(&[("HOME", &format!("{root}/home2"))]);
@@ -322,7 +323,7 @@ fn load_layers_matches_python() {
         no_plugin.clone(),
     ));
 
-    // 5. 플러그인 찾기: 깨진 plugin.json 을 지나 위로, userConfig 없는 자기 플러그인을 options 로
+    // plugin lookup: past a broken plugin.json, own plugin without userConfig as options
     tmp.write("plugin3/hooks/.claude-plugin/plugin.json", "{");
     tmp.write("plugin3/.claude-plugin/plugin.json", MANIFEST);
     cases.push(LayerCase::new(
@@ -341,7 +342,7 @@ fn load_layers_matches_python() {
     own_by_options.options = vec![("demo", vec!["DEMO_FLAG"])];
     cases.push(own_by_options);
 
-    // 6. FIFO 인 settings.json 과 층 파일: 열지 않고 없는 것처럼 본다(그냥 열면 쓰는 쪽을 기다리며 멈춘다)
+    // FIFO settings.json and layer files: not opened, treated as missing (opening blocks on a writer)
     #[cfg(unix)]
     {
         let mkfifo = |rel: &str| {
@@ -363,7 +364,7 @@ fn load_layers_matches_python() {
         ));
     }
 
-    // python 과 Rust 를 경우마다 비교
+    // Compare python and Rust per case
     let python_cases: Vec<Value> = cases.iter().map(LayerCase::python_case).collect();
     let Some(got) = python(&python_cases) else {
         return;
@@ -373,7 +374,7 @@ fn load_layers_matches_python() {
         assert_eq!(*g, c.rust_result(), "case {i} ({})", c.label);
     }
 
-    // 대조한 동작 가운데 층 규칙의 요점(python 판도 같은 값이다)
+    // Key layer rules among the compared behavior (python gives the same values)
     let full = &got[0];
     let expect = [
         ("HARNESS_HEAVY_WRAP", json!("nice -n 5")), // 사용자 전용: 저장소 값 무시
@@ -394,6 +395,7 @@ fn load_layers_matches_python() {
     }
 }
 
+/// 환경 파일 해석과 `option_value` 변환이 python 판과 같다.
 #[test]
 fn parse_and_option_values_match_python() {
     let env = pairs(&[("HOME", "/h"), ("FROM_ENV", "e")]);
@@ -409,7 +411,7 @@ fn parse_and_option_values_match_python() {
         "",
     ];
 
-    // option_value 에 넣을 값: 모든 JSON 타입, 정수 값 float, u64 끝, ~ 조각
+    // Values for option_value: every JSON type, integral floats, u64 limit, tilde pieces
     let values = json!([
         true,
         false,
@@ -436,7 +438,7 @@ fn parse_and_option_values_match_python() {
         .map(|t| case("parse", &env, json!({"text": t, "base": base})))
         .collect();
 
-    // 저장소 층처럼 막은 키: 그 줄은 결과에도 $NAME 에도 들지 않는다
+    // Keys blocked like the repo layer: the line is in neither the result nor $NAME
     let skip: BTreeSet<&str> = ["HARNESS_HEAVY_WRAP", "FROM_ENV", "B"].into();
     let skip_text = "HARNESS_HEAVY_WRAP=evil\nLEAK=$HARNESS_HEAVY_WRAP\nB=evil\nC=$B\nFROM_ENV=file\nD=$FROM_ENV\n";
     cases.push(case(
@@ -449,7 +451,7 @@ fn parse_and_option_values_match_python() {
         return;
     };
 
-    // Rust 쪽 같은 순서로
+    // Rust side in the same order
     let rust_env = Env::from_pairs(env.clone());
     let mut want: Vec<Value> = texts
         .iter()
@@ -475,9 +477,10 @@ fn parse_and_option_values_match_python() {
     }
 }
 
+/// 설정 폴더 고르기가 python 판과 같고, 홈이 `/` 여도 `//.claude` 가 되지 않는다.
 #[test]
 fn config_dir_matches_python() {
-    // 홈이 `/` 여도 `//.claude` 가 아니다(`//` 는 POSIX 에서 따로 정의된 뿌리라 남긴다)
+    // Home `/` gives `/.claude`, not `//.claude`; a leading `//` stays since POSIX defines it apart
     let envs = [
         pairs(&[("HOME", "/")]),
         pairs(&[("HOME", "//")]),
@@ -501,6 +504,7 @@ fn config_dir_matches_python() {
     assert_eq!(got[0], json!("/.claude"));
 }
 
+/// 무거운 실행 래퍼 찾기(PATH 와 `HARNESS_HEAVY_WRAP`)가 python 판과 같다.
 #[test]
 fn heavy_wrap_matches_python() {
     let tmp = TempDir::new("wrap");
@@ -518,7 +522,7 @@ fn heavy_wrap_matches_python() {
     exec("bin2/choom", 0o644);
     exec("bin3/nice", 0o755);
 
-    // 경우마다 PATH 와 HARNESS_HEAVY_WRAP 값(None 이면 키가 없다)
+    // PATH and HARNESS_HEAVY_WRAP per case (None means no key)
     let choom_text = choom.to_string_lossy().into_owned();
     let runs: Vec<(String, Option<String>)> = vec![
         (tmp.text("bin1"), None),
