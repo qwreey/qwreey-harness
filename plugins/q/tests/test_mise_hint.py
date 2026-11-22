@@ -14,6 +14,9 @@ from pathlib import Path
 
 HINT = Path(__file__).resolve().parent.parent / "scripts" / "mise-hint.py"
 SID = "s-mise-test"
+# HOOK_TEST_BIN=<바이너리> 면 훅을 python 스크립트 대신 `<바이너리> hook mise-hint` 로 돌린다(Rust 판, crates/q).
+BIN = os.environ.get("HOOK_TEST_BIN")
+CMD = [BIN, "hook", "mise-hint"] if BIN else [sys.executable, "-I", str(HINT)]
 MISE_ERR = (
     "Exit code 1\n"
     "mise ERROR No version is set for shim: corepack\n"
@@ -23,7 +26,7 @@ MISE_ERR = (
 
 
 def run(payload, env):
-    p = subprocess.run([sys.executable, "-I", str(HINT)], input=json.dumps(payload) if not isinstance(payload, str) else payload,
+    p = subprocess.run(CMD, input=json.dumps(payload) if not isinstance(payload, str) else payload,
                        capture_output=True, text=True, env=env, timeout=30)
     assert p.returncode == 0, p.stderr
     return json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"] if p.stdout.strip() else None

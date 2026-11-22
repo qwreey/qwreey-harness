@@ -16,6 +16,10 @@ Q = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 H = os.path.join(Q, "scripts")
 HOME = os.path.join(os.path.dirname(os.path.dirname(Q)), "home", ".claude")  # 정본 사용자 설정(statusline, harness.env)
 LEDGER = os.path.join(H, "subagent_ledger.py")
+# HOOK_TEST_BIN=<바이너리> 면 훅을 python 스크립트 대신 `<바이너리> hook subagent-slots` 로 돌린다(Rust 판, crates/q).
+# 원장 CLI(/q:away, /q:back), statusline, 원장 함수 시험은 python 그대로다.
+BIN = os.environ.get("HOOK_TEST_BIN")
+SLOTS = [BIN, "hook", "subagent-slots"] if BIN else [sys.executable, "-I", os.path.join(H, "subagent-slots.py")]
 T = tempfile.mkdtemp(prefix="slots-")
 # 사용자 설정 디렉터리 흉내: 설치된 q(이 저장소의 사본)를 가리키는 installed_plugins.json + 정본 harness.env, lib
 CFG = os.path.join(T, "cfg")
@@ -56,7 +60,7 @@ def usage_line(mid, model, inp=0, out=0, cr=0, w5=0, w1=0):
 
 
 def hook(data, env=None):
-    p = subprocess.run([sys.executable, "-I", os.path.join(H, "subagent-slots.py")], input=json.dumps(data),
+    p = subprocess.run(SLOTS, input=json.dumps(data),
                        capture_output=True, text=True, env=env or ENV, timeout=15)
     assert p.returncode == 0, p.stderr
     return json.loads(p.stdout) if p.stdout.strip() else None
@@ -542,7 +546,7 @@ check("plugin option off -> no fan-out warn", [ctx(po.launch("opus")[0]) for _ i
 os.remove(_opt)
 pn = S("opt-on")
 check("plugin option gone -> fan-out warn is back", "Several subagents at once" in ctx([pn.launch("opus") for _ in range(2)][1][0]))
-bad = subprocess.run([sys.executable, "-I", os.path.join(H, "subagent-slots.py")], input="{no", capture_output=True, text=True, env=ENV)
+bad = subprocess.run(SLOTS, input="{no", capture_output=True, text=True, env=ENV)
 check("bad stdin -> exit 0, silent", bad.returncode == 0 and not bad.stdout)
 check("other tools ignored", hook({"session_id": "x", "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {}}) is None)
 

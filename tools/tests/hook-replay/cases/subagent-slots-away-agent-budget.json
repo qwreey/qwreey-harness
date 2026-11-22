@@ -1,0 +1,445 @@
+{
+ "description": "subagent-slots: away with an agent-count budget queues past the slot limit, serializes after the budget and refuses at stage 2; main gets one notice per stage",
+ "files": {
+  "{sandbox}/tx/aw.jsonl": "",
+  "{tmp}/claude-subagent-slots/aw.json": "{\"reserved\": {}, \"running\": {}, \"agents\": {}, \"spent\": {\"main\": {}, \"sub\": {}}, \"main\": {}, \"away\": {\"on\": true, \"since\": 1000.5, \"unit\": \"agents\", \"budget_usd\": null, \"budget_agents\": 2, \"budget_pct\": null, \"pct\": {}, \"slots\": 2, \"over_slots\": 1, \"base_usd\": 0.0, \"base_spawned\": 0, \"queued\": 0, \"over_at\": null, \"over2_at\": null}, \"spawned\": 0, \"notes\": {}, \"burst\": 0, \"log\": []}"
+ },
+ "steps": [
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_aw_1",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_aw_1",
+    "tool_input": {},
+    "tool_response": {
+     "status": "async_launched",
+     "agentId": "a1",
+     "resolvedModel": "claude-sonnet-5-5"
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStart",
+    "agent_id": "a1",
+    "agent_type": "general-purpose"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_aw_2",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_aw_2",
+    "tool_input": {},
+    "tool_response": {
+     "status": "async_launched",
+     "agentId": "a2",
+     "resolvedModel": "claude-sonnet-5-5"
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStart",
+    "agent_id": "a2",
+    "agent_type": "general-purpose"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_aw_3",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "tags": [
+     "subagent-slots/action"
+    ],
+    "decision": "deny",
+    "contains": [
+     "queue:",
+     "slot limit 1"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "ls"
+    },
+    "tool_response": {
+     "stdout": ""
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStop",
+    "agent_id": "a1",
+    "agent_type": "general-purpose",
+    "agent_transcript_path": "{sandbox}/tx/aw/subagents/agent-a1.jsonl",
+    "background_tasks": [
+     {
+      "id": "a2",
+      "type": "subagent",
+      "status": "running"
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStop",
+    "agent_id": "a2",
+    "agent_type": "general-purpose",
+    "agent_transcript_path": "{sandbox}/tx/aw/subagents/agent-a2.jsonl",
+    "background_tasks": []
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_aw_4",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_aw_4",
+    "tool_input": {},
+    "tool_response": {
+     "status": "async_launched",
+     "agentId": "a4",
+     "resolvedModel": "claude-sonnet-5-5"
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStart",
+    "agent_id": "a4",
+    "agent_type": "general-purpose"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStop",
+    "agent_id": "a4",
+    "agent_type": "general-purpose",
+    "agent_transcript_path": "{sandbox}/tx/aw/subagents/agent-a4.jsonl",
+    "background_tasks": []
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_aw_5",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_aw_6",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "decision": "deny",
+    "contains": [
+     "halt: the away budget's stage 2"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_aw_7",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "decision": "deny",
+    "contains": [
+     "still in effect"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "ls"
+    },
+    "tool_response": {
+     "stdout": ""
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Workflow",
+    "tool_use_id": "toolu_aw_8",
+    "tool_input": {
+     "script": "x"
+    }
+   },
+   "expect": {
+    "decision": "deny"
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_aw_9",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    },
+    "agent_id": "nested1"
+   },
+   "expect": {
+    "decision": "deny",
+    "contains": [
+     "halt: the away budget's stage 2"
+    ]
+   }
+  },
+  {
+   "sh": "echo '{\"session_id\": \"aw\"}' | python3 -I {root}/plugins/q/scripts/compact_epoch.py q"
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_aw_10",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "decision": "deny",
+    "contains": [
+     "halt: the away budget's stage 2"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "aw",
+    "transcript_path": "{sandbox}/tx/aw.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "Stop",
+    "background_tasks": []
+   },
+   "expect": {
+    "exit": 0
+   }
+  }
+ ]
+}

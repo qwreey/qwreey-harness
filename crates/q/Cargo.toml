@@ -1,0 +1,21 @@
+[package]
+name = "q"
+version = "0.1.0"
+description = "q plugin hooks (subagent-slots, stale-work, mise-hint, ambient prompt supplement) as one binary"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "q"
+path = "src/main.rs"
+
+[dependencies]
+harness-hook = { path = "../harness-hook" }
+
+# 원장 잠금(python file_lock.lock 의 fcntl.flock)과 작업 출력 폴더의 uid(python os.getuid). std 에 둘 다 없고 unsafe 는 금지다.
+[target.'cfg(unix)'.dependencies]
+rustix = { workspace = true }
+
+[lints]
+workspace = true

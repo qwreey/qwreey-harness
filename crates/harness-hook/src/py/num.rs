@@ -214,9 +214,50 @@ pub fn parse_int(text: &str) -> Option<i128> {
     Some(if negative { -value } else { value })
 }
 
+/// python `int(text)` 을 i128 끝에서 멈춘 값. 읽지 못하면 `None`(python ValueError).
+///
+/// [`parse_int`] 와 같은 글을 받되 i128 을 넘는 수도 받아 `i128::MAX` 나 `i128::MIN` 으로 준다. 문턱처럼 견주기만 하는 값에 쓴다.
+/// python 처럼 숫자가 4300 자를 넘으면 읽지 않는다.
+pub fn parse_int_saturating(text: &str) -> Option<i128> {
+    if let Some(n) = parse_int(text) {
+        return Some(n);
+    }
+
+    // The same form as parse_int, only past i128
+    let text = crate::py::text::strip(text);
+    let (negative, digits) = match text.as_bytes().first() {
+        Some(b'-') => (true, &text[1..]),
+        Some(b'+') => (false, &text[1..]),
+        _ => (false, text),
+    };
+    let plain = digits.replace('_', "");
+    let well_formed = !digits.starts_with('_')
+        && !digits.ends_with('_')
+        && !digits.contains("__")
+        && !plain.is_empty()
+        && plain.chars().count() <= crate::py::json_load::MAX_INT_DIGITS
+        && plain
+            .chars()
+            .all(|c| crate::py::unicode::decimal_value(c).is_some());
+    well_formed.then_some(if negative { i128::MIN } else { i128::MAX })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// i128 을 넘는 수는 끝 값으로, 틀린 글은 `None` 이다.
+    #[test]
+    fn saturating_int_parsing() {
+        assert_eq!(parse_int_saturating(" 12 "), Some(12));
+        assert_eq!(parse_int_saturating(&"9".repeat(60)), Some(i128::MAX));
+        assert_eq!(
+            parse_int_saturating(&format!("-{}", "9".repeat(60))),
+            Some(i128::MIN)
+        );
+        assert_eq!(parse_int_saturating(&"9".repeat(4301)), None);
+        assert_eq!(parse_int_saturating("1.5"), None);
+    }
 
     #[test]
     fn int_parsing_follows_python() {

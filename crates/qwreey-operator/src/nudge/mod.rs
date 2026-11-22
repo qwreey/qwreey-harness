@@ -13,10 +13,8 @@ pub mod state;
 use harness_hook::HookEnv;
 use harness_hook::py::fs::exists;
 use harness_hook::py::json::{EnsureAscii, dumps_dict};
-use harness_hook::py::num::parse_int;
+use harness_hook::py::num::parse_int_saturating;
 use harness_hook::py::repr::str_value;
-use harness_hook::py::text::strip;
-use harness_hook::py::unicode::decimal_value;
 use harness_hook::py::value::{Dict, Value};
 use harness_hook::tag::Level;
 
@@ -157,42 +155,11 @@ fn count_writes(
     message(hook, input, event, &body).map(Some)
 }
 
-// python `max(1, int(os.environ.get(name, default)))`, 읽지 못하면 기본값
+// python `max(1, int(os.environ.get(name, default)))`, 읽지 못하면 기본값. i128 을 넘는 수는 끝 값이다
 fn threshold(hook: &HookEnv, (name, default): (&str, i128)) -> i128 {
-    let Some(text) = hook.var(name) else {
-        return default;
-    };
-    match parse_int(&text) {
-        Some(n) => n.max(1),
-        None => match huge_int_sign(&text) {
-            Some(Sign::Plus) => i128::MAX,
-            Some(Sign::Minus) => 1,
-            None => default,
-        },
-    }
-}
-
-enum Sign {
-    Plus,
-    Minus,
-}
-
-// python int() 은 읽지만 i128 을 넘는 수의 부호. 양수 문턱은 닿지 않고, 음수는 max(1, n) 이라 1 이다
-fn huge_int_sign(text: &str) -> Option<Sign> {
-    let text = strip(text);
-    let (sign, digits) = match text.as_bytes().first() {
-        Some(b'-') => (Sign::Minus, &text[1..]),
-        Some(b'+') => (Sign::Plus, &text[1..]),
-        _ => (Sign::Plus, text),
-    };
-    let well_formed = !digits.is_empty()
-        && !digits.starts_with('_')
-        && !digits.ends_with('_')
-        && !digits.contains("__")
-        && digits
-            .chars()
-            .all(|c| c == '_' || decimal_value(c).is_some());
-    well_formed.then_some(sign)
+    hook.var(name)
+        .and_then(|text| parse_int_saturating(&text))
+        .map_or(default, |n| n.max(1))
 }
 
 // info 태그 하나를 additionalContext 로(python `message`). event 는 입력 값 그대로 쓴다(없으면 null)

@@ -1,0 +1,305 @@
+{
+ "description": "subagent-slots: away with a USD budget counts subagent and main transcripts once per message id; workflows follow HARNESS_AWAY_WORKFLOW",
+ "files": {
+  "{sandbox}/tx/au.jsonl": "",
+  "{tmp}/claude-subagent-slots/au.json": "{\"reserved\": {}, \"running\": {}, \"agents\": {}, \"spent\": {\"main\": {}, \"sub\": {}}, \"main\": {}, \"away\": {\"on\": true, \"since\": 1000.5, \"unit\": \"usd\", \"budget_usd\": 0.01, \"budget_agents\": null, \"budget_pct\": null, \"pct\": {}, \"slots\": 2, \"over_slots\": 1, \"base_usd\": 0.0, \"base_spawned\": 0, \"queued\": 0, \"over_at\": null, \"over2_at\": null}, \"spawned\": 0, \"notes\": {}, \"burst\": 0, \"log\": []}",
+  "{sandbox}/tx/au/subagents/agent-b1.jsonl": [
+   {
+    "type": "assistant",
+    "message": {
+     "id": "s1",
+     "model": "claude-sonnet-5-5",
+     "usage": {
+      "input_tokens": 3,
+      "output_tokens": 1000,
+      "cache_read_input_tokens": 10,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      }
+     }
+    }
+   },
+   {
+    "type": "assistant",
+    "message": {
+     "id": "s1",
+     "model": "claude-sonnet-5-5",
+     "usage": {
+      "input_tokens": 3,
+      "output_tokens": 1000,
+      "cache_read_input_tokens": 10,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      }
+     }
+    }
+   }
+  ]
+ },
+ "steps": [
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "au",
+    "transcript_path": "{sandbox}/tx/au.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_au_1",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "au",
+    "transcript_path": "{sandbox}/tx/au.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_au_1",
+    "tool_input": {},
+    "tool_response": {
+     "status": "async_launched",
+     "agentId": "b1",
+     "resolvedModel": "claude-sonnet-5-5"
+    }
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "au",
+    "transcript_path": "{sandbox}/tx/au.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStart",
+    "agent_id": "b1",
+    "agent_type": "general-purpose"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "au",
+    "transcript_path": "{sandbox}/tx/au.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Workflow",
+    "tool_use_id": "toolu_au_2",
+    "tool_input": {
+     "script": "x"
+    }
+   },
+   "expect": {
+    "decision": "deny",
+    "contains": [
+     "fans out beyond"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "au",
+    "transcript_path": "{sandbox}/tx/au.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Workflow",
+    "tool_use_id": "toolu_au_3",
+    "tool_input": {
+     "script": "x"
+    }
+   },
+   "expect": {
+    "contains": [
+     "internal concurrency"
+    ]
+   },
+   "env": {
+    "HARNESS_AWAY_WORKFLOW": " Allow "
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "au",
+    "transcript_path": "{sandbox}/tx/au.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "SubagentStop",
+    "agent_id": "b1",
+    "agent_type": "general-purpose",
+    "agent_transcript_path": "{sandbox}/tx/au/subagents/agent-b1.jsonl",
+    "background_tasks": []
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "au",
+    "transcript_path": "{sandbox}/tx/au.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_au_4",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "contains": [
+     "budget $0.01 used ($0.01)"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "au",
+    "transcript_path": "{sandbox}/tx/au.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Workflow",
+    "tool_use_id": "toolu_au_5",
+    "tool_input": {
+     "script": "x"
+    }
+   },
+   "expect": {
+    "decision": "deny",
+    "contains": [
+     "HARNESS_AWAY_WORKFLOW=deny"
+    ]
+   },
+   "env": {
+    "HARNESS_AWAY_WORKFLOW": "deny"
+   }
+  },
+  {
+   "write": {
+    "{sandbox}/tx/au.jsonl": [
+     {
+      "type": "assistant",
+      "message": {
+       "id": "mm1",
+       "model": "claude-opus-5-5",
+       "usage": {
+        "input_tokens": 3,
+        "output_tokens": 600,
+        "cache_read_input_tokens": 10,
+        "cache_creation_input_tokens": 0,
+        "cache_creation": {
+         "ephemeral_5m_input_tokens": 0,
+         "ephemeral_1h_input_tokens": 0
+        }
+       }
+      }
+     },
+     {
+      "type": "assistant",
+      "message": {
+       "id": "mm1",
+       "model": "claude-opus-5-5",
+       "usage": {
+        "input_tokens": 3,
+        "output_tokens": 600,
+        "cache_read_input_tokens": 10,
+        "cache_creation_input_tokens": 0,
+        "cache_creation": {
+         "ephemeral_5m_input_tokens": 0,
+         "ephemeral_1h_input_tokens": 0
+        }
+       }
+      }
+     },
+     {
+      "type": "assistant",
+      "message": {
+       "id": "mm2",
+       "model": "claude-opus-5-5",
+       "usage": {
+        "input_tokens": 3,
+        "output_tokens": 600,
+        "cache_read_input_tokens": 10,
+        "cache_creation_input_tokens": 0,
+        "cache_creation": {
+         "ephemeral_5m_input_tokens": 0,
+         "ephemeral_1h_input_tokens": 0
+        }
+       }
+      }
+     },
+     {
+      "type": "assistant",
+      "message": {
+       "id": "syn",
+       "model": "<synthetic>",
+       "usage": {}
+      }
+     }
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "au",
+    "transcript_path": "{sandbox}/tx/au.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_use_id": "toolu_au_6",
+    "tool_input": {
+     "description": "d",
+     "prompt": "p",
+     "subagent_type": "general-purpose",
+     "model": "sonnet",
+     "run_in_background": true
+    }
+   },
+   "expect": {
+    "decision": "deny"
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/subagent-slots.py",
+   "payload": {
+    "session_id": "au",
+    "transcript_path": "{sandbox}/tx/au.jsonl",
+    "cwd": "{repo}",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {},
+    "tool_response": {}
+   },
+   "expect": {
+    "exit": 0
+   }
+  }
+ ]
+}

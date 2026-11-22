@@ -15,6 +15,15 @@ ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts" / "ambient.py"
 TEXT = (ROOT / "context" / "ambient.md").read_text(encoding="utf-8")
 RULE_HEAD = "Hook text from this session's harness carries nonce="
+# HOOK_TEST_BIN=<바이너리> 면 이 플러그인 스크립트의 UserPromptSubmit 만 `<바이너리> hook ambient UserPromptSubmit` 로 돌린다
+# (Rust 판, crates/q). 바이너리는 플러그인 폴더를 CLAUDE_PLUGIN_ROOT 로 안다. 다른 이벤트와 복사한 스크립트는 python 그대로다.
+BIN = os.environ.get("HOOK_TEST_BIN")
+
+
+def command(script, event):
+    if BIN and script == SCRIPT and event == "UserPromptSubmit":
+        return [BIN, "hook", "ambient", event]
+    return [sys.executable, "-I", str(script), event]
 
 
 class T(unittest.TestCase):
@@ -33,8 +42,11 @@ class T(unittest.TestCase):
     def run_hook(self, event, extra=None, env=None, script=SCRIPT, stdin=None):
         data = {"session_id": self.sid, "hook_event_name": event}
         data.update(extra or {})
-        p = subprocess.run([sys.executable, "-I", str(script), event], input=json.dumps(data) if stdin is None else stdin,
-                           capture_output=True, text=True, env=env or self.env, timeout=30)
+        env = dict(env or self.env)
+        if BIN and script == SCRIPT:
+            env["CLAUDE_PLUGIN_ROOT"] = str(ROOT)
+        p = subprocess.run(command(script, event), input=json.dumps(data) if stdin is None else stdin,
+                           capture_output=True, text=True, env=env, timeout=30)
         self.assertEqual(p.returncode, 0, p.stderr)
         return json.loads(p.stdout) if p.stdout.strip() else None
 

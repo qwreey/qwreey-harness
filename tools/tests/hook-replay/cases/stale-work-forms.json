@@ -1,0 +1,204 @@
+{
+ "description": "stale_work: long-running subagent and workflow tasks, the agent's own entry skipped, odd queue entries, the off switch and subagent prompts",
+ "env": {
+  "HARNESS_Q_STALE_IDLE_MIN": "5",
+  "HARNESS_Q_STALE_AGE_MIN": "0",
+  "HARNESS_Q_STALE_LONG_MIN": "0"
+ },
+ "files": {
+  "{sandbox}/projects/-fake/sw.jsonl": "",
+  "{sandbox}/projects/-fake/sw/subagents/agent-ag1.jsonl": {
+   "text": "{}\n",
+   "mtime_ago": 3600
+  },
+  "{sandbox}/projects/-fake/sw/subagents/workflows/wf1/agent-ag2.jsonl": {
+   "text": "",
+   "mtime_ago": 30
+  },
+  "{tmp}/claude-q-stale/odd.json": "{\"tasks\": {}, \"model\": [[\"info\", \"first\"], \"ab\", [\"warn\", \"second\"], [\"info\", \"third\"]], \"user\": []}"
+ },
+ "steps": [
+  {
+   "hook": "plugins/q/scripts/stale_work.py",
+   "payload": {
+    "session_id": "sw",
+    "hook_event_name": "Stop",
+    "transcript_path": "{sandbox}/projects/-fake/sw.jsonl",
+    "background_tasks": [
+     {
+      "id": "ag1",
+      "type": "subagent",
+      "status": "running",
+      "description": "review the \"core\" module xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+     },
+     {
+      "id": "ag2",
+      "type": "subagent",
+      "status": "running",
+      "name": "wf agent"
+     },
+     {
+      "id": "sh1",
+      "type": "shell",
+      "status": "running",
+      "description": "sleep"
+     },
+     {
+      "id": "mon",
+      "type": "monitor",
+      "status": "running"
+     },
+     {
+      "id": "done",
+      "type": "shell",
+      "status": "completed"
+     }
+    ]
+   },
+   "expect": {
+    "contains": [
+     "(진척은 있음)"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/stale_work.py",
+   "payload": {
+    "session_id": "sw",
+    "hook_event_name": "UserPromptSubmit",
+    "agent_id": "x"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/stale_work.py",
+   "payload": {
+    "session_id": "sw",
+    "hook_event_name": "UserPromptSubmit"
+   },
+   "expect": {
+    "tags": [
+     "stale-work/warn"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/stale_work.py",
+   "payload": {
+    "session_id": "sw",
+    "hook_event_name": "UserPromptSubmit"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/stale_work.py",
+   "payload": {
+    "session_id": "sw",
+    "hook_event_name": "SubagentStop",
+    "agent_id": "ag1",
+    "transcript_path": "{sandbox}/projects/-fake/sw.jsonl",
+    "background_tasks": [
+     {
+      "id": "ag1",
+      "type": "subagent",
+      "status": "running"
+     },
+     {
+      "id": "new",
+      "type": "shell",
+      "status": "running"
+     }
+    ]
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/stale_work.py",
+   "payload": {
+    "session_id": "sw",
+    "hook_event_name": "Stop",
+    "background_tasks": []
+   },
+   "expect": {
+    "empty": false
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/stale_work.py",
+   "payload": {
+    "session_id": "odd",
+    "hook_event_name": "UserPromptSubmit"
+   },
+   "expect": {
+    "contains": [
+     "second",
+     "first\nthird"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/stale_work.py",
+   "payload": {
+    "session_id": "sw",
+    "hook_event_name": "Stop",
+    "background_tasks": [
+     {
+      "id": "z",
+      "status": "running"
+     }
+    ]
+   },
+   "env": {
+    "HARNESS_Q_STALE": " off "
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/stale_work.py",
+   "payload": {
+    "session_id": "sw",
+    "hook_event_name": "Stop",
+    "background_tasks": "x"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/stale_work.py",
+   "payload": {
+    "session_id": "sw2",
+    "hook_event_name": "Stop",
+    "background_tasks": [
+     {
+      "id": "q1",
+      "type": "shell",
+      "status": "running",
+      "output_file": "{sandbox}/out.log"
+     }
+    ]
+   },
+   "env": {
+    "HARNESS_Q_STALE_LONG_MIN": "bad"
+   },
+   "expect": {
+    "exit": 0
+   }
+  },
+  {
+   "hook": "plugins/q/scripts/stale_work.py",
+   "payload": "[1]",
+   "expect": {
+    "empty": true
+   }
+  }
+ ]
+}
