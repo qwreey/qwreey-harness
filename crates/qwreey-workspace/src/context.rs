@@ -117,7 +117,7 @@ impl Context {
     /// 짝 없는 서로게이트가 든 id 는 python 이 UnicodeEncodeError 로 끝나는 자리다.
     pub fn nonce_attr(&self, session_id: Option<&Value>) -> Result<String> {
         let sid = match session_id {
-            Some(v) if v.truthy() => Some(py_str(v)?),
+            Some(v) if v.truthy() => Some(py_str(v)),
             _ => None,
         };
         let nonce = Nonce::for_session(&self.env, sid.as_deref())
@@ -134,8 +134,8 @@ impl Context {
         session_id: Option<&Value>,
         agent_id: Option<&Value>,
     ) -> Result<String> {
-        let sid = truthy_text(session_id)?;
-        let agent = truthy_text(agent_id)?;
+        let sid = truthy_text(session_id);
+        let agent = truthy_text(agent_id);
         let agent = (!agent.is_empty()).then_some(agent.as_str());
         harness_hook::epoch::state_path(self.tempdir()?, PLUGIN, namespace, &sid, agent)
             .map_err(|_| Stop::Raises("cannot make the state folder"))

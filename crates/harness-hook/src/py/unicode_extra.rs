@@ -1,4 +1,4 @@
-// 만든 파일: crates/qwreey-advisor/gen-unicode-extra.py 가 쓴다. 손으로 고치지 않는다.
+// 만든 파일: crates/harness-hook/gen-unicode-extra.py 가 쓴다. 손으로 고치지 않는다.
 // @structure-exempt: generated data table
 // python 3.14.9, Unicode 16.0.0.
 

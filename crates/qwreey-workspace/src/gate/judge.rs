@@ -73,7 +73,7 @@ fn paths_of(ctx: &Context, tool: &str, ti: &Dict, cwd: Base) -> Result<Vec<Strin
     let mut raw = Vec::new();
     for key in ["file_path", "notebook_path", "path"] {
         if let Some(v) = ti.get(key).filter(|v| v.truthy()) {
-            raw.push(py_str(v)?);
+            raw.push(py_str(v));
         }
     }
 

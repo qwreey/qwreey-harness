@@ -14,7 +14,7 @@ use harness_hook::py::value::{Dict, Value};
 
 use crate::context::Context;
 use crate::outcome::Outcome;
-use crate::pylib::repr::repr_str;
+use harness_hook::py::repr::repr_str;
 
 use scratch::Scratch;
 

@@ -18,5 +18,6 @@ pub mod surrogate;
 pub mod tempfile;
 pub mod text;
 pub mod unicode;
+mod unicode_extra;
 mod unicode_tables;
 pub mod value;

@@ -19,8 +19,8 @@ use harness_hook::rx::Regex;
 use crate::abort::{Abort, Result};
 use crate::git::{self, GitError};
 use crate::pylib::hashlib::sha1_hex_prefix;
-use crate::pylib::repr::is_digit_str;
 use crate::pylib::shlex::{Lexer, Syntax};
+use harness_hook::py::repr::is_digit_str;
 
 use super::settings::git_abort;
 

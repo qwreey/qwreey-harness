@@ -6,8 +6,8 @@
 use harness_hook::py::path::basename;
 use harness_hook::py::text::{split_whitespace, strip};
 
-use crate::pylib::repr::repr_str;
 use crate::pylib::shlex::{self, Syntax};
+use harness_hook::py::repr::repr_str;
 
 use super::scratch::Scratch;
 use super::syntax::{blank_quotes, has_inplace, redirect_targets, segments, strip_heredocs};

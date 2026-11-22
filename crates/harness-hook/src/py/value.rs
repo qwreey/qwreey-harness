@@ -190,7 +190,7 @@ impl Value {
         }
     }
 
-    /// python `str(v)` 의 글. 목록과 dict 는 python repr 을 옮기지 않아 `None` 이다.
+    /// python `str(v)` 의 글. 목록과 dict 는 `None` 이다(그 repr 은 [`crate::py::repr::str_value`]).
     pub fn scalar_str(&self) -> Option<String> {
         match self {
             Value::Null => Some("None".to_owned()),

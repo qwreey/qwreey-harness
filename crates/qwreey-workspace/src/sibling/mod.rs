@@ -49,7 +49,7 @@ fn notice(ctx: &Context, input: &HookInput) -> Result<Option<String>> {
     }
     let empty = Dict::new();
     let ti = input.tool_input().unwrap_or(&empty);
-    let file = truthy_text(ti.get("file_path"))?;
+    let file = truthy_text(ti.get("file_path"));
     let text = written_text(tool, ti)?;
     if file.is_empty() || text.is_empty() || !file.contains(".claude") {
         return Ok(None);
@@ -126,8 +126,8 @@ fn project(ctx: &Context, cwd: Option<&Value>) -> Result<String> {
 // python written_text: 쓴 글만. MultiEdit 는 dict 인 편집마다 new_string 을 줄바꿈으로 잇는다
 fn written_text(tool: &str, ti: &Dict) -> Result<String> {
     match tool {
-        "Write" => return truthy_text(ti.get("content")),
-        "Edit" => return truthy_text(ti.get("new_string")),
+        "Write" => return Ok(truthy_text(ti.get("content"))),
+        "Edit" => return Ok(truthy_text(ti.get("new_string"))),
         _ => {}
     }
 
@@ -137,7 +137,7 @@ fn written_text(tool: &str, ti: &Dict) -> Result<String> {
     let mut parts = Vec::new();
     for edit in edits {
         if let Value::Dict(e) = edit {
-            parts.push(truthy_text(e.get("new_string"))?);
+            parts.push(truthy_text(e.get("new_string")));
         }
     }
     Ok(parts.join("\n"))

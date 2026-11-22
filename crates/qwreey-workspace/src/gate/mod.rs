@@ -133,14 +133,9 @@ fn state_path(ctx: &Context, input: &HookInput) -> Result<String> {
     ctx.state_path(NS, input.get("session_id"), input.get("agent_id"))
 }
 
-// deny.log 한 줄. 값은 python f-string 의 str() 이다(옮기지 않은 repr 은 대신 JSON 꼴로 남긴다: 기록일 뿐이다)
+// deny.log 한 줄. 값은 python f-string 의 str() 이다
 fn log(ctx: &Context, input: &HookInput, hit: &judge::Hit) -> Result<()> {
-    let text = |key: &str| match input.get(key) {
-        None => "None".to_owned(),
-        Some(v) => {
-            py_str(v).unwrap_or_else(|_| harness_hook::py::json::dumps(v, EnsureAscii::No, None))
-        }
-    };
+    let text = |key: &str| input.get(key).map_or_else(|| "None".to_owned(), py_str);
     let dir = join(ctx.tempdir()?, NS);
     state::log_deny(
         &dir,

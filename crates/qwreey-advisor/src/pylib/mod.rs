@@ -5,7 +5,5 @@
 pub mod fs;
 pub mod hashlib;
 pub mod pathx;
-pub mod repr;
 pub mod shlex;
 pub mod text;
-mod unicode_extra;
