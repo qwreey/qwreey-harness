@@ -1,0 +1,47 @@
+{
+ "description": "qwreey-conventions: a FIFO at .claude/conventions.json or .claude/structure.json is not opened (it would wait for a writer); each hook reads it as an unreadable file and goes on",
+ "files": {
+  "m/one.py": "SKIP = [\"alpha\", \"bravo\", \"charlie\", \"delta\"]\n",
+  "src/Big.luau": {"repeat": "local x = 1\n", "times": 900}
+ },
+ "setup": [
+  "mkdir -p .claude && mkfifo .claude/conventions.json .claude/structure.json"
+ ],
+ "steps": [
+  {
+   "write": {
+    "m/two.py": "SKIP_DIRS = [\"alpha\", \"bravo\", \"charlie\", \"echo\"]  # note — dash\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/rules_inject.py",
+   "payload": {"session_id": "s1", "hook_event_name": "PostToolUse", "tool_name": "Read",
+               "tool_input": {"file_path": "{repo}/m/two.py"}},
+   "expect": {"tags": ["rules-inject/info"]}
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/conventions-check.py",
+   "payload": {"session_id": "s1", "hook_event_name": "PostToolUse", "tool_name": "Write",
+               "tool_input": {"file_path": "{repo}/m/two.py",
+                              "content": "SKIP_DIRS = [\"alpha\", \"bravo\", \"charlie\", \"echo\"]  # note — dash\n"},
+               "tool_response": {"type": "create"}},
+   "expect": {"tags": ["qwreey-conventions/info"]}
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/reuse-check.py",
+   "env": {"REUSE_CHECK": "on"},
+   "payload": {"session_id": "s1", "hook_event_name": "PostToolUse", "tool_name": "Write",
+               "tool_input": {"file_path": "{repo}/m/two.py",
+                              "content": "SKIP_DIRS = [\"alpha\", \"bravo\", \"charlie\", \"echo\"]  # note — dash\n"},
+               "tool_response": {"type": "create"}},
+   "expect": {"tags": ["qwreey-conventions/info"], "contains": ["string set repeats SKIP at m/one.py:1"]}
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/structure-reminder.py",
+   "payload": {"session_id": "s1", "hook_event_name": "PostToolUse", "tool_name": "Edit",
+               "tool_input": {"file_path": "{repo}/src/Big.luau", "old_string": "a", "new_string": "a\n"},
+               "tool_response": {}},
+   "expect": {"tags": ["structure-reminder/warn"], "contains": ["(warn limit 800)"]}
+  }
+ ]
+}

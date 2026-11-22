@@ -88,12 +88,12 @@ pub fn should_skip(ctx: &Context, tool: Option<&Value>, abs_path: &str, root: &s
 
 /// python `repo_config(root)`: 저장소 `.claude/conventions.json`, 없으면 `.claude/comments.json`.
 ///
-/// 먼저 있는 파일 하나만 본다. 읽지 못하거나 dict 가 아니면 빈 dict.
+/// 먼저 있는 파일 하나만 본다. 읽지 못하거나(일반 파일이 아닌 FIFO 등 포함) dict 가 아니면 빈 dict.
 pub fn repo_config(root: &str) -> Dict {
     for name in ["conventions.json", "comments.json"] {
         let fp = join(&join(root, ".claude"), name);
         if fs::exists(&fp) {
-            return fs::read_text(&fp)
+            return fs::read_regular_text(&fp)
                 .ok()
                 .and_then(|t| loads(&t).ok())
                 .and_then(|v| v.into_dict().ok())

@@ -166,7 +166,7 @@ fn compile_user(pattern: &Value, flags: Flags) -> Result<Option<Box<dyn Pat>>> {
 }
 
 impl Cfg {
-    /// python `load_cfg(root)`: 저장소 설정 파일을 덮은 값. 읽지 못하면 기본값.
+    /// python `load_cfg(root)`: 저장소 설정 파일을 덮은 값. 읽지 못하면(일반 파일이 아닌 FIFO 등 포함) 기본값.
     ///
     /// 파일은 `.claude` 폴더의 `conventions.json`, 없으면 예전 이름 `comments.json` 이다.
     pub fn load(root: &str) -> Cfg {
@@ -176,7 +176,7 @@ impl Cfg {
             if !fs::exists(&fp) {
                 continue;
             }
-            if let Some(Value::Dict(user)) = fs::read_text(&fp)
+            if let Some(Value::Dict(user)) = fs::read_regular_text(&fp)
                 .ok()
                 .and_then(|t| loads(&t).ok())
                 .as_ref()

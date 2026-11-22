@@ -59,6 +59,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compact_epoch  # noqa: E402
 import harness_nonce  # noqa: E402
+from harness_env import open_regular  # noqa: E402
 from conv_edit import GEN_MARK, MAX_BYTES, SKIP_PARTS, SKIP_SUFFIX, collect, project_root  # noqa: E402
 from conv_docs import DOC_HINT, INLINE_CODE, PATH_TOKEN, URL, doc_check, doc_class, doc_lines, doc_shape  # noqa: E402,F401 (scan 이 cc. 로 쓴다)
 from conv_lex import FAMILY, comment_body, lex  # noqa: E402
@@ -136,7 +137,8 @@ def load_cfg(root):
         for name in ("conventions.json", "comments.json"):  # comments.json 은 예전 이름
             fp = os.path.join(root, ".claude", name)
             if os.path.exists(fp):
-                user = json.load(open(fp))
+                with open_regular(fp) as f:  # FIFO 는 열지 않는다(못 읽는 파일과 같이 기본값)
+                    user = json.load(f)
                 if isinstance(user, dict):
                     cfg.update(user)
                 break

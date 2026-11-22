@@ -34,10 +34,10 @@ pub struct ReuseConfig {
 }
 
 impl ReuseConfig {
-    /// python `load_cfg(root)`: 읽지 못하거나 dict 가 아니면 빈 설정.
+    /// python `load_cfg(root)`: 읽지 못하거나(일반 파일이 아닌 FIFO 등 포함) dict 가 아니면 빈 설정.
     pub fn load(root: &str) -> ReuseConfig {
         let path = join(&join(root, ".claude"), "conventions.json");
-        let raw = fs::read_text(&path)
+        let raw = fs::read_regular_text(&path)
             .ok()
             .and_then(|text| loads(&text).ok())
             .and_then(|v| v.into_dict().ok())

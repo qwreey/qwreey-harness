@@ -31,11 +31,13 @@ impl Config {
         Config { values }
     }
 
-    /// python `load_cfg(root)`: 읽지 못하거나 JSON 이 아니면 기본값 그대로.
+    /// python `load_cfg(root)`: 읽지 못하거나(일반 파일이 아닌 FIFO 등 포함) JSON 이 아니면 기본값 그대로.
     pub fn load(root: &str) -> Config {
         let mut cfg = Config::defaults();
         let path = join(&join(root, ".claude"), "structure.json");
-        let parsed = fs::read_text(&path).ok().and_then(|text| loads(&text).ok());
+        let parsed = fs::read_regular_text(&path)
+            .ok()
+            .and_then(|text| loads(&text).ok());
         if let Some(value) = parsed {
             cfg.update(&value);
         }
