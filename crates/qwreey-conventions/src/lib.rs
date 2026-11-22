@@ -30,6 +30,7 @@ pub mod plugins;
 pub mod pyops;
 pub mod pyval;
 pub mod reuse;
+pub mod rules;
 pub mod stdout;
 pub mod structure;
 
