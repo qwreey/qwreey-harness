@@ -16,11 +16,11 @@ use super::config::Config;
 use super::exempt::{Exemption, exemption};
 use super::note::{Level, Note};
 use super::num::{Limit, Num};
-use super::pyops::{append, contains, fnmatch, items, items_or_empty, str_order};
 use super::state::Ledger;
 use super::toolkit::{Table, Toolkit, first_comment};
 use crate::edit::{generated, project_root};
 use crate::halt::{Halt, Result};
+use crate::pyops::{append, contains, fnmatch, items, items_or_empty, str_order};
 use crate::pyval;
 
 /// 경로에 이 폴더가 있으면 보지 않는다(python `SKIP_PARTS`, 툴킷의 `skip_parts` 와 합친다).

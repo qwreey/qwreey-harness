@@ -11,8 +11,6 @@ mod config;
 mod exempt;
 mod note;
 mod num;
-mod plugins;
-mod pyops;
 mod state;
 mod toolkit;
 
@@ -76,7 +74,7 @@ impl Run<'_> {
             .map_or("", String::as_str);
         let kb = expanduser(strip(kb_value), &self.ctx.env);
         // python 은 두 후보를 튜플로 먼저 만든다: 설치본 찾기의 예외는 kb 가 맞아도 난다
-        let installed = plugins::plugin_root(PLANNER_PLUGIN, &self.ctx.env)?;
+        let installed = crate::plugins::plugin_root(PLANNER_PLUGIN, &self.ctx.env)?;
         for root in std::iter::once(kb).chain(installed) {
             let planner = pathlib_join(&root, PLANNER_REL);
             if !root.is_empty() && fs::is_file(&planner) {

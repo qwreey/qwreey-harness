@@ -1,4 +1,5 @@
-//! 설치된 Claude Code 플러그인의 폴더 찾기(python `hooks/conv_plugins.py`): luau-kb 팩의 분리 계획기를 찾을 때 쓴다.
+//! 설치된 Claude Code 플러그인의 폴더 찾기(python `hooks/conv_plugins.py`): structure-reminder 가 luau-kb 팩의 분리 계획기를,
+//! bash-bypass-reminder 가 설치된 플러그인의 `rules/` 를 찾을 때 쓴다.
 //!
 //! Claude Code 자신의 파일만 본다: `<설정 디렉터리>/plugins/installed_plugins.json`(설치된 플러그인과 installPath),
 //! `<설정 디렉터리>/plugins/known_marketplaces.json`(마켓 위치). 읽지 못한 파일은 `{}` 이다.
@@ -9,8 +10,8 @@ use harness_hook::py::json_load::loads;
 use harness_hook::py::path::{expanduser, join, normpath};
 use harness_hook::py::value::{Dict, Value};
 
-use super::pyops::{items_or_empty, str_order};
 use crate::halt::{Halt, Result};
+use crate::pyops::{items_or_empty, str_order};
 
 /// python `config_dir()`: `$CLAUDE_CONFIG_DIR`, 없으면 `~/.claude`.
 pub fn config_dir(env: &Env) -> String {

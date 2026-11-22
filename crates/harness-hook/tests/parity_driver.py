@@ -73,6 +73,33 @@ def _json_case(raw, mode, indent):
     return {"dumps": [f.encode("utf-8", "surrogatepass").hex() for f in forms]}
 
 
+def _toml_shape(v):
+    """tomllib 값을 견줄 꼴로: 정수는 글(i128 밖은 "big"), 실수는 repr, 날짜와 시각은 "dt"."""
+    import datetime
+    if isinstance(v, bool):
+        return ["b", v]
+    if isinstance(v, int):
+        return ["i", str(v) if -2**127 <= v < 2**127 else "big"]
+    if isinstance(v, float):
+        return ["f", repr(v)]
+    if isinstance(v, str):
+        return ["s", v]
+    if isinstance(v, (datetime.date, datetime.time)):
+        return ["dt"]
+    if isinstance(v, list):
+        return ["a", [_toml_shape(x) for x in v]]
+    return ["t", [[k, _toml_shape(x)] for k, x in v.items()]]
+
+
+def _toml_case(text):
+    """tomllib.loads 의 값 꼴, 거절하면 None(훅은 어떤 예외든 빈 설정으로 본다)."""
+    import tomllib
+    try:
+        return _toml_shape(tomllib.loads(text))
+    except Exception:
+        return None
+
+
 def run(nonce_mod, env_mod, case):
     os.environ.clear()
     os.environ.update(case.get("env") or {})
@@ -154,6 +181,8 @@ def run(nonce_mod, env_mod, case):
         except RuntimeError as e:
             return {"error": str(e)}
         return vals
+    if op == "toml":
+        return [_toml_case(t) for t in a["texts"]]
     if op == "heavy_wrap":
         return env_mod.heavy_wrap(a["values"])
     raise ValueError("unknown op %r" % op)

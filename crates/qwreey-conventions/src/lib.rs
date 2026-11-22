@@ -26,6 +26,8 @@ pub mod halt;
 pub mod lex;
 pub mod memory;
 pub mod pat;
+pub mod plugins;
+pub mod pyops;
 pub mod pyval;
 pub mod reuse;
 pub mod stdout;
