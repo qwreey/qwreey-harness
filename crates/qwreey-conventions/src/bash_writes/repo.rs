@@ -10,6 +10,7 @@ use harness_hook::py::num::parse_int;
 use harness_hook::py::surrogate::{decode_os, encode_os};
 use harness_hook::py::text::{split_whitespace, splitlines, strip};
 
+use super::plain_path;
 use crate::git::{os_arg, output};
 use crate::halt::{Halt, Result};
 
@@ -55,7 +56,7 @@ pub type Porcelain = Vec<(String, String)>;
 
 /// python `porcelain(root)`: `git status --porcelain=v1 -z` 의 (경로, XY), 추적 안 하는 파일 모두, 서브모듈 빼고.
 ///
-/// 줄바꿈이 든 경로는 뺀다(`cat-file --batch` 의 줄 맞춤이 깨진다). 실패하면 `None`.
+/// 줄바꿈이 든 경로와 UTF-8 이 아닌 이름은 뺀다([`plain_path`]). 실패하면 `None`.
 pub fn porcelain(root: &str) -> Result<Option<Porcelain>> {
     let args = [
         "status",
@@ -84,7 +85,7 @@ pub fn porcelain(root: &str) -> Result<Option<Porcelain>> {
         if matches!(chars[0], 'R' | 'C') {
             i += 1;
         }
-        if !e.contains('\n') {
+        if plain_path(e) {
             let rel: String = chars[3..].iter().collect();
             let xy: String = chars[..2].iter().collect();
             match seen.get(&rel) {

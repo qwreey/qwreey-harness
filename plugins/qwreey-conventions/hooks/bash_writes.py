@@ -28,7 +28,7 @@
     따로 돌려 사본 표시 알림을 합친다. 바뀐 파일에 맞는 이 플러그인의 rules 중 이 맥락에 아직 안 넣은 것을 rules_inject 의 함수와 마커로 넣는다.
   출력 하나를 OUTPUT_BUDGET 안에 둔다: 알림을 파일 순서로 넣고 안 드는 파일부터는 conventions-scan 명령 한 줄로 넘기고, rules 는 남은 자리에만.
 
-제외: 저장소 밖, 줄바꿈이 든 경로, 일반 파일이 아닌 것(FIFO 등), conventions-check 의 제외(SKIP_PARTS, 생성 파일, 설정 exclude), 확장자 표 밖.
+제외: 저장소 밖, 줄바꿈이 든 경로와 UTF-8 이 아닌 이름(스냅숏 JSON 에 싣지 못한다), 일반 파일이 아닌 것(FIFO 등), conventions-check 의 제외(SKIP_PARTS, 생성 파일, 설정 exclude), 확장자 표 밖.
   알림을 낸 파일 NOTICE_FILES_MAX 개, 분석 BUDGET_S 초에서 끊고 남은 파일은 conventions-scan 명령으로 안내한다.
 실패는 조용히 통과한다. 끄기: CONVENTIONS_CHECK=off(검사와 사본), HARNESS_CONVENTIONS_RULES=off(rules).
 """
@@ -66,6 +66,15 @@ GIT_OPTS = r"(?:\s+(?:-[Cc]\s+\S+|--[\w-]+(?:=\S+)?|-[A-Za-z]+))*"
 GIT_REWRITE = re.compile(r"\bgit" + GIT_OPTS + r"\s+(?:checkout|switch|stash|reset|merge|rebase|pull|cherry-pick|revert|restore|am)\b"
                          r"|\bgh\s+pr\s+checkout\b")
 SCAN = os.path.join(os.path.dirname(HERE), "scripts", "conventions-scan.py")
+
+
+# git 이 UTF-8 이 아닌 파일 이름을 surrogateescape 로 읽은 글자. UTF-8 스냅숏 파일에 쓰지 못한다
+_LONE = re.compile(r"[\ud800-\udfff]")
+
+
+def _plain(path):
+    """스냅숏에 실을 수 있는 경로: 줄바꿈(cat-file 의 줄 맞춤이 깨진다)도 짝 없는 서로게이트(UTF-8 로 쓰지 못한다)도 없다."""
+    return "\n" not in path and not _LONE.search(path)
 
 
 def _clean(v):
@@ -186,7 +195,7 @@ def repo(cwd):
 
 
 def porcelain(root):
-    """{저장소 기준 경로: XY}. 실패하면 None. 줄바꿈이 든 경로는 뺀다(git cat-file --batch 의 줄 맞춤이 깨진다)."""
+    """{저장소 기준 경로: XY}. 실패하면 None. 줄바꿈이 든 경로와 UTF-8 이 아닌 이름은 뺀다(_plain)."""
     out = _git(root, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--ignore-submodules")
     if out is None:
         return None
@@ -199,7 +208,7 @@ def porcelain(root):
             continue
         if e[0] in "RC":
             i += 1  # 이름 바꾸기는 원래 경로가 한 항목 더 온다
-        if "\n" not in e:
+        if _plain(e):
             res[e[3:]] = e[:2]
     return res
 
@@ -244,7 +253,7 @@ def snapshot(data, cmd, cwd, candidates, signal):
     # Named paths: text while the total fits, (mtime, size) always
     texts, stats, named, total = {}, {}, [], 0
     for p in dict.fromkeys(candidates):
-        if not _inside(p, root) or "\n" in p:
+        if not _inside(p, root) or not _plain(p):
             continue
         named.append(p)
         stats[p] = _stat(p)
@@ -577,11 +586,13 @@ def main():
         with open(fp, encoding="utf-8") as f:
             snap = json.load(f)
     except (OSError, ValueError):
-        return 0
+        snap = None  # 없거나, 쓰다 멈춰 읽지 못하는 스냅숏
     try:
-        os.remove(fp)
+        os.remove(fp)  # 읽지 못한 것도 지운다: 남으면 같은 세션의 다음 Bash 들이 대기 중인 명령으로 본다
     except OSError:
         pass
+    if snap is None:
+        return 0
 
     # What the command changed
     items, touched, unread = changes(snap, deadline=t0 + CHANGES_S, restrict=pending(data))

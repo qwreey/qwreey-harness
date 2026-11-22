@@ -138,7 +138,7 @@ pub struct Edit<'a> {
 /// 훅 하나(PostToolUse 와 Stop).
 pub fn run(ctx: &Context, input: &HookInput) -> Result<Option<String>> {
     if input.hook_event_name() == Some("Stop") {
-        let sid = pyval::sanitized_id(input.get("session_id"))?;
+        let sid = pyval::sanitized_id(input.get("session_id"));
         return leftovers::report(ctx.tempdir()?, &sid);
     }
     let tool = input.tool_name().unwrap_or("");
@@ -209,8 +209,8 @@ pub fn notice_tag(ctx: &Context, input: &HookInput, body: &[String]) -> Result<S
 
 /// 알림 중복 상태 파일(python `state_file(session_id, agent_id)`). 폴더를 만든다.
 pub fn state_file(ctx: &Context, input: &HookInput) -> Result<String> {
-    let sid = pyval::truthy_text(input.get("session_id"))?.unwrap_or_default();
-    let agent = pyval::truthy_text(input.get("agent_id"))?;
+    let sid = pyval::truthy_text(input.get("session_id")).unwrap_or_default();
+    let agent = pyval::truthy_text(input.get("agent_id"));
     epoch::state_path(ctx.tempdir()?, PLUGIN, NS, &sid, agent.as_deref())
         .map_err(|_| Halt::PyError("cannot create the state dir"))
 }
@@ -497,8 +497,8 @@ fn record_leftovers(
         );
 
         let dir = leftovers::left_dir(ctx.tempdir()?)?;
-        let sid = pyval::sanitized_id(input.get("session_id"))?;
-        let who = match pyval::truthy_text(input.get("agent_id"))? {
+        let sid = pyval::sanitized_id(input.get("session_id"));
+        let who = match pyval::truthy_text(input.get("agent_id")) {
             Some(agent) => harness_hook::epoch::sanitize(&agent),
             None => "main".to_owned(),
         };

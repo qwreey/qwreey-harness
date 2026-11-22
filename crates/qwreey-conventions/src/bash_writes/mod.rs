@@ -25,6 +25,7 @@ use harness_hook::HookInput;
 use harness_hook::output::{EnsureAscii, HookOutput};
 use harness_hook::py::fs;
 use harness_hook::py::path::{normpath, splitext};
+use harness_hook::py::surrogate::unit_of;
 
 use crate::check;
 use crate::context::Context;
@@ -43,6 +44,13 @@ pub const CHECK_EXT: &[&str] = &[
 /// 검사 대상 확장자인가(python `os.path.splitext(rel)[1].lower() in CHECK_EXT`).
 pub fn checked_ext(path: &str) -> bool {
     CHECK_EXT.contains(&splitext(path).1.to_lowercase().as_str())
+}
+
+/// python `_plain(path)`: 스냅숏에 실을 수 있는 경로인가.
+///
+/// 줄바꿈이 들면 `cat-file --batch` 의 줄 맞춤이 깨지고, 짝 없는 서로게이트(UTF-8 이 아닌 파일 이름)는 UTF-8 스냅숏에 쓰지 못한다.
+pub fn plain_path(path: &str) -> bool {
+    !path.contains('\n') && !path.chars().any(|c| unit_of(c).is_some())
 }
 
 /// python `_inside(path, root)`: 정리한 경로가 `root/` 아래인가.
@@ -69,12 +77,14 @@ fn after(ctx: &Context, input: &HookInput, t0: Instant) -> Result<Option<String>
 
     // The snapshot this command's PreToolUse took, used once
     let fp = snap::snap_path(ctx, input)?;
-    let Some(snapshot) = snap::load(&fp)? else {
-        return Ok(None);
-    };
+    let loaded = snap::load(&fp);
+    // 읽지 못한 것도 지운다: 남으면 같은 세션의 다음 Bash 들이 대기 중인 명령으로 본다
     if let Some(os) = fs::os_path(&fp) {
         let _ = std::fs::remove_file(os);
     }
+    let Some(snapshot) = loaded? else {
+        return Ok(None);
+    };
 
     // What the command changed
     let restrict = snap::pending(ctx, input, None)?;

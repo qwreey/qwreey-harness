@@ -38,7 +38,7 @@ PLUGIN_RULES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 def _read_toml(path):
     try:
         import tomllib
-        with open(path, "rb") as f:
+        with rules_inject.open_regular(path, "rb") as f:  # FIFO 는 열지 않는다
             return tomllib.load(f)
     except Exception:  # 없거나 깨진 설정은 없는 것으로 본다(fail-open)
         return {}

@@ -1,0 +1,34 @@
+{
+ "description": "bash: Post removes a snapshot it cannot read (one a Pre stopped writing halfway); left behind it would make the session's next Bash look concurrent and check only the paths its command names",
+ "files": {
+  "src/k.py": "y = 1\n",
+  "{tmp}/claude-conventions/bash/s1.main.t0.json": "{\"root\": \"/r\", \"dirty\": {\"a"
+ },
+ "setup": [
+  "git add -A && git commit -qm init"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {"session_id": "s1", "hook_event_name": "PostToolUse", "tool_name": "Bash",
+               "tool_input": {"command": "sed -i s/a/b/ src/z.py"}, "tool_use_id": "t0"},
+   "expect": {"empty": true}
+  },
+  {
+   "note": "the script builds the path, so src/k.py is found through git status, not through the command text",
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {"session_id": "s1", "hook_event_name": "PreToolUse", "tool_name": "Bash",
+               "tool_input": {"command": "python3 -c \"open('src/' + 'k.py', 'a').write('# a · b\\n')\""}, "tool_use_id": "t1"},
+   "expect": {}
+  },
+  {
+   "sh": "python3 -c \"open('src/' + 'k.py', 'a').write('# a · b\\n')\""
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {"session_id": "s1", "hook_event_name": "PostToolUse", "tool_name": "Bash",
+               "tool_input": {"command": "python3 -c \"open('src/' + 'k.py', 'a').write('# a · b\\n')\""}, "tool_use_id": "t1"},
+   "expect": {"tags": ["qwreey-conventions/info"], "contains": ["src/k.py may not follow the comment conventions"]}
+  }
+ ]
+}

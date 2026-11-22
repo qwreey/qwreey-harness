@@ -18,6 +18,8 @@ sha1 = { workspace = true }
 # 상태 파일 잠금(conventions-check 의 state_lock, python fcntl.flock). std 에 없고 unsafe 는 금지라 쓴다(Q41).
 [target.'cfg(unix)'.dependencies]
 rustix = { workspace = true }
+# git 에 이 훅이 물려받은 fd(>2)를 넘기지 않는다(python subprocess 의 close_fds=True).
+close_fds = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }

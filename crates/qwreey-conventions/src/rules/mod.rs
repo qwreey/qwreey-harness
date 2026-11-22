@@ -75,8 +75,8 @@ impl Plugin {
 
     /// 이 맥락의 마커 머리(python `compact_epoch.state_path(PLUGIN, NS, session_id, agent_id)`). 폴더를 만든다.
     pub fn marker_base(&self, ctx: &Context, input: &HookInput) -> Result<String> {
-        let sid = pyval::truthy_text(input.get("session_id"))?.unwrap_or_default();
-        let agent = pyval::truthy_text(input.get("agent_id"))?;
+        let sid = pyval::truthy_text(input.get("session_id")).unwrap_or_default();
+        let agent = pyval::truthy_text(input.get("agent_id"));
         epoch::state_path(
             ctx.tempdir()?,
             &self.name,

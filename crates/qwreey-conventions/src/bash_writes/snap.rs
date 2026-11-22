@@ -186,11 +186,8 @@ fn uid() -> Option<u32> {
 }
 
 // python _clean(v): re.sub(r"[^\w-]", "", str(v or ""))
-fn clean(v: Option<&Value>) -> Result<String> {
-    Ok(match pyval::truthy_text(v)? {
-        Some(text) => sanitize(&text),
-        None => String::new(),
-    })
+fn clean(v: Option<&Value>) -> String {
+    pyval::truthy_text(v).map_or_else(String::new, |text| sanitize(&text))
 }
 
 fn or_default(text: String, default: &str) -> String {
@@ -202,15 +199,15 @@ fn or_default(text: String, default: &str) -> String {
 }
 
 // python _who(data): "<session>.<agent 또는 main>."
-fn who(input: &HookInput) -> Result<String> {
-    let sid = or_default(clean(input.get("session_id"))?, "nosession");
-    let agent = or_default(clean(input.get("agent_id"))?, "main");
-    Ok(format!("{sid}.{agent}."))
+fn who(input: &HookInput) -> String {
+    let sid = or_default(clean(input.get("session_id")), "nosession");
+    let agent = or_default(clean(input.get("agent_id")), "main");
+    format!("{sid}.{agent}.")
 }
 
 /// python `snap_path(data)`: tool_use_id 가 없으면 명령 글의 SHA-1 앞 16자로 Pre 와 Post 를 잇는다.
 pub fn snap_path(ctx: &Context, input: &HookInput) -> Result<String> {
-    let mut tid = clean(input.get("tool_use_id"))?;
+    let mut tid = clean(input.get("tool_use_id"));
     if tid.is_empty() {
         let cmd = match input.get("tool_input") {
             Some(Value::Dict(ti)) => ti.get("command").and_then(Value::as_str).unwrap_or(""),
@@ -223,7 +220,7 @@ pub fn snap_path(ctx: &Context, input: &HookInput) -> Result<String> {
             .collect();
         tid = format!("c{}", &hex[..16]);
     }
-    Ok(join(&snap_dir(ctx)?, &format!("{}{tid}.json", who(input)?)))
+    Ok(join(&snap_dir(ctx)?, &format!("{}{tid}.json", who(input))))
 }
 
 fn now_secs() -> f64 {
@@ -243,7 +240,7 @@ pub fn pending(ctx: &Context, input: &HookInput, mine: Option<&str>) -> Result<b
     let dir = snap_dir(ctx)?;
     let prefix = format!(
         "{}.",
-        or_default(clean(input.get("session_id"))?, "nosession")
+        or_default(clean(input.get("session_id")), "nosession")
     );
     let Ok(names) = fs::listdir(&dir) else {
         return Ok(false);
@@ -311,8 +308,9 @@ fn owned_by_me(_: &std::fs::Metadata) -> bool {
 
 /// 스냅숏을 0600 파일로 쓴다(python `os.open(fp, O_WRONLY|O_CREAT|O_TRUNC|O_NOFOLLOW, 0o600)` 와 `fchmod`).
 ///
-/// 링크인 자리는 열지 못한다(python 은 OSError 로 끝나고 bypass 가 넘긴다). python 은 글을 UTF-8 로 쓰다가
-/// 짝 없는 서로게이트에서 멈춰 앞부분만 남긴다. 그 파일은 어느 판도 읽지 못하므로 여기서는 빈 파일로 둔다.
+/// 링크인 자리는 열지 못한다(python 은 OSError 로 끝나고 bypass 가 넘긴다). 짝 없는 서로게이트가 든 경로는
+/// [`super::plain_path`] 가 미리 빼므로 글은 UTF-8 로 쓸 수 있다. 그래도 남았다면 python 은 쓰다 멈춰 앞부분만 남기고,
+/// 여기서는 빈 파일로 둔다. 어느 쪽이든 Post 가 읽지 못해 지운다.
 pub fn write(path: &str, snap: &Snapshot) -> Result<()> {
     let os = fs::os_path(path).ok_or(Halt::PyError("os.open of an unusable path"))?;
     let text = snap.to_json();
@@ -342,7 +340,7 @@ fn write_private(path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
     std::fs::write(path, bytes)
 }
 
-/// 스냅숏 파일을 읽는다. 없거나 읽지 못하거나 JSON 이 아니면 `Ok(None)`(python 은 거기서 끝난다).
+/// 스냅숏 파일을 읽는다. 없거나 읽지 못하거나 JSON 이 아니면 `Ok(None)`(python 은 지우고 끝난다, 지우기는 부르는 쪽).
 ///
 /// 읽은 JSON 이 두 훅이 쓰는 꼴이 아니면 [`Halt::Unported`].
 pub fn load(path: &str) -> Result<Option<Snapshot>> {

@@ -245,6 +245,7 @@ dependencies = [
 name = "qwreey-conventions"
 version = "0.1.0"
 dependencies = [
+ "close_fds",
  "harness-hook",
  "rustix",
  "serde_json",

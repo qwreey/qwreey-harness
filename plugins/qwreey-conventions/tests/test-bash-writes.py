@@ -354,6 +354,37 @@ class SnapshotFile(unittest.TestCase):
         finally:
             os.remove(fifo)
 
+    def test_non_utf8_file_name_is_left_out(self):
+        """UTF-8 이 아닌 이름의 파일은 스냅숏에서 빠지고, 스냅숏은 온전하며 다른 파일은 그대로 검사한다."""
+        repo = os.path.join(T, "badname")
+        put("src/a.py", "def f():\n    return 1\n", repo)
+        init_repo(repo)
+        with open(os.path.join(os.fsencode(repo), b"src", b"bad\xff.py"), "w", encoding="utf-8") as f:
+            f.write("x = 1\n")
+        cmd = "sed -i 's/return 1/# one " + MID + " two\\n    return 1/' src/a.py"
+
+        # The snapshot is valid UTF-8 JSON without the odd name
+        fp = self.pre(cmd, cwd=repo, sid="nu1")
+        with open(fp, encoding="utf-8") as f:
+            snap = json.load(f)
+        self.assertEqual(list(snap["dirty"]), [])
+        os.remove(fp)
+
+        # A full run still checks the file the command changed and leaves no snapshot
+        c = bash(cmd, sid="nu2", cwd=repo)
+        self.assertIn("src/a.py may not follow the comment conventions", notice(c))
+        self.assertEqual([x for x in snaps() if x.startswith("nu2.")], [])
+
+    def test_unreadable_snapshot_is_removed(self):
+        """Post 는 읽지 못하는 스냅숏(쓰다 멈춘 것)도 지운다: 남으면 같은 세션의 다음 Bash 가 대기 중인 명령으로 본다."""
+        os.makedirs(SNAP_DIR, exist_ok=True)
+        for i, junk in enumerate((b'{"root": "/r", "dirty": {"a', b"\xff\xfe", b"[1, 2]")):
+            fp = os.path.join(SNAP_DIR, "ur.main.toolu_ur%d.json" % i)
+            with open(fp, "wb") as f:
+                f.write(junk)
+            self.assertEqual(hook(POST, "PostToolUse", "sed -i s/a/b/ x.py", "ur", "toolu_ur%d" % i), "")
+            self.assertFalse(os.path.exists(fp), junk)
+
 
 class GitAware(unittest.TestCase):
     def test_git_restore_of_named_path(self):

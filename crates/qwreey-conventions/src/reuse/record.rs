@@ -290,11 +290,11 @@ fn try_record_report(
 ) -> Option<()> {
     let dir = join(ctx.tempdir().ok()?, NS);
     std::fs::create_dir_all(fs::os_path(&dir)?).ok()?;
-    let who = match pyval::truthy_text(agent_id).ok()? {
+    let who = match pyval::truthy_text(agent_id) {
         Some(agent) => harness_hook::epoch::sanitize(&agent),
         None => "main".to_owned(),
     };
-    let sid = pyval::sanitized_id(session_id).ok()?;
+    let sid = pyval::sanitized_id(session_id);
     let fp = join(&dir, &format!("{sid}.reuse.{who}.json"));
 
     // Update or drop this file's line
