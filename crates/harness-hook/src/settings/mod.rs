@@ -23,6 +23,7 @@ use std::path::{Path, PathBuf};
 pub use envfile::Values;
 
 use crate::env::Env;
+use crate::py::fs::read_regular_path;
 use crate::py::path::{expanduser, pathlib, which};
 use crate::py::text::{split_whitespace, strip};
 
@@ -267,9 +268,9 @@ fn base_values(env: &Env, defaults: &[(&str, &str)]) -> Values {
     values
 }
 
-// 파일 하나를 values 에 얹는다. 읽지 못하거나 UTF-8 이 아니면 false(그 층은 없는 것)
+// 파일 하나를 values 에 얹는다. 읽지 못하거나(일반 파일이 아님 포함) UTF-8 이 아니면 false(그 층은 없는 것)
 fn read_layer(values: &mut Values, file: &Path, env: &Env, skip: &BTreeSet<&str>) -> bool {
-    let Some(text) = fs::read(file)
+    let Some(text) = read_regular_path(file)
         .ok()
         .and_then(|bytes| String::from_utf8(bytes).ok())
     else {
