@@ -15,9 +15,9 @@ use harness_hook::py::path::join;
 use harness_hook::py::value::{Dict, Value};
 
 use super::num::Num;
-use super::pyops::{append, contains};
 use crate::context::{Context, PLUGIN};
 use crate::halt::{Halt, Result};
+use crate::pyops::{append, contains};
 
 /// 상태 폴더 이름(python `dedup_path` 의 namespace).
 pub const NAMESPACE: &str = "claude-structure-reminder";

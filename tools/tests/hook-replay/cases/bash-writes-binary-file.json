@@ -1,0 +1,51 @@
+{
+ "description": "bash: a file that is not UTF-8 is skipped; the text file in the same command is still checked",
+ "files": {
+  "src/a.py": "x = 1\n"
+ },
+ "setup": [
+  "git add -A && git commit -qm init"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "printf '\\xff\\xfe# a · b\\n' > src/bin.py && printf '# c · d\\n' > src/text.py"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "tags": [
+     "bash-bypass-reminder/warn"
+    ]
+   }
+  },
+  {
+   "sh": "printf '\\xff\\xfe# a · b\\n' > src/bin.py && printf '# c · d\\n' > src/text.py"
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "printf '\\xff\\xfe# a · b\\n' > src/bin.py && printf '# c · d\\n' > src/text.py"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "contains": [
+     "src/text.py may not follow"
+    ],
+    "not_contains": [
+     "src/bin.py may not follow"
+    ]
+   }
+  }
+ ]
+}

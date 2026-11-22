@@ -1,0 +1,48 @@
+{
+ "description": "bash: a command that writes then fails reaches PostToolUseFailure; the write is still checked",
+ "files": {
+  "src/a.py": "x = 1\n"
+ },
+ "setup": [
+  "git add -A && git commit -qm init"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "printf '# a · b\\n' > src/f.py && false"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "tags": [
+     "bash-bypass-reminder/warn"
+    ]
+   }
+  },
+  {
+   "sh": "printf '# a · b\\n' > src/f.py && false"
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "printf '# a · b\\n' > src/f.py && false"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "contains": [
+     "src/f.py may not follow"
+    ]
+   }
+  }
+ ]
+}

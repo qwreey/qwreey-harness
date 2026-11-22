@@ -42,6 +42,27 @@ pub enum Category {
     Language,
 }
 
+impl Target {
+    /// 코드 파일인가(python `kind == "comment"`). 아니면 모델용 문서다.
+    pub fn is_code(&self) -> bool {
+        matches!(self.kind, Kind::Comment(_))
+    }
+
+    /// 이 파일의 알림 끝 대응 문장.
+    pub fn tail(&self) -> &'static str {
+        if self.is_code() {
+            COMMENT_TAIL
+        } else {
+            DOC_TAIL
+        }
+    }
+
+    /// 코드 파일이고 머리 6줄에 생성 파일 표시가 있는가(python `kind == "comment" and generated(text)`).
+    pub fn skips_generated(&self, text: &str) -> bool {
+        self.is_code() && edit::generated(text, 6)
+    }
+}
+
 impl Category {
     const ORDER: [Category; 8] = [
         Category::History,
@@ -80,8 +101,10 @@ impl Category {
     }
 }
 
-const COMMENT_TAIL: &str = "Fix those lines; a false match (quoted text, a needed symbol) can stay, said once in your report.";
-const DOC_TAIL: &str = COMMENT_TAIL;
+/// 주석 알림 끝의 대응 문장(python `COMMENT_TAIL`). 여러 파일을 한 알림에 담는 bash-writes 는 끝에 한 번만 붙인다.
+pub const COMMENT_TAIL: &str = "Fix those lines; a false match (quoted text, a needed symbol) can stay, said once in your report.";
+/// 모델용 문서 알림 끝의 대응 문장(python `DOC_TAIL`, 지금은 [`COMMENT_TAIL`] 과 같은 글).
+pub const DOC_TAIL: &str = COMMENT_TAIL;
 /// 상태 폴더(python `NS`, 이름 변경 전과 같게 둔다).
 const NS: &str = leftovers::NS;
 /// 범주당 찍는 숫자 수 상한(python `LINE_LIST_MAX`).
@@ -97,7 +120,7 @@ enum Kind {
 }
 
 /// 검사할 파일(python `target` 의 결과).
-struct Target {
+pub struct Target {
     cfg: Cfg,
     rel: String,
     kind: Kind,
@@ -105,11 +128,11 @@ struct Target {
 }
 
 /// 한 번의 편집(python `file_notice` 의 인자).
-struct Edit<'a> {
-    path: &'a str,
-    target: &'a Target,
-    text: &'a str,
-    added: &'a Added,
+pub struct Edit<'a> {
+    pub path: &'a str,
+    pub target: &'a Target,
+    pub text: &'a str,
+    pub added: &'a Added,
 }
 
 /// 훅 하나(PostToolUse 와 Stop).
@@ -144,15 +167,12 @@ pub fn run(ctx: &Context, input: &HookInput) -> Result<Option<String>> {
     let Some((text, added)) = edit::collect(tool, ti, resp, disk.as_deref())? else {
         return Ok(None);
     };
-    if matches!(target.kind, Kind::Comment(_)) && edit::generated(&text, 6) {
+    if target.skips_generated(&text) {
         return Ok(None);
     }
 
     // Notice once per (session, caller, epoch, file, category)
-    let sid = pyval::truthy_text(input.get("session_id"))?.unwrap_or_default();
-    let agent = pyval::truthy_text(input.get("agent_id"))?;
-    let state_path = epoch::state_path(ctx.tempdir()?, PLUGIN, NS, &sid, agent.as_deref())
-        .map_err(|_| Halt::PyError("cannot create the state dir"))?;
+    let state_path = state_file(ctx, input)?;
     let edit = Edit {
         path,
         target: &target,
@@ -162,7 +182,7 @@ pub fn run(ctx: &Context, input: &HookInput) -> Result<Option<String>> {
     let body = {
         let _lock = state::StateLock::acquire(&state_path);
         let mut st = state::load(&state_path);
-        let (body, dirty) = file_notice(ctx, input, &edit, &mut st)?;
+        let (body, dirty) = file_notice(ctx, input, &edit, &mut st, true)?;
         if dirty {
             state::save(&state_path, &st);
         }
@@ -172,18 +192,31 @@ pub fn run(ctx: &Context, input: &HookInput) -> Result<Option<String>> {
         return Ok(None);
     }
 
-    let tag = format!(
-        "<harness-hook name=\"{PLUGIN}\" level=\"info\"{}>{}</harness-hook>",
-        ctx.nonce_attr(input.get("session_id"))?,
-        body.join(" ")
-    );
+    let tag = notice_tag(ctx, input, &body)?;
     Ok(Some(
         HookOutput::context("PostToolUse", tag).render(EnsureAscii::No),
     ))
 }
 
-// python target(path, data): 검사하는 파일이면 그 설정과 종류
-fn target(ctx: &Context, path: &str, cwd: Option<&Value>) -> Result<Option<Target>> {
+/// python `notice_tag(data, body)`: 주석 알림과 layout 알림을 담는 info 태그 하나.
+pub fn notice_tag(ctx: &Context, input: &HookInput, body: &[String]) -> Result<String> {
+    Ok(format!(
+        "<harness-hook name=\"{PLUGIN}\" level=\"info\"{}>{}</harness-hook>",
+        ctx.nonce_attr(input.get("session_id"))?,
+        body.join(" ")
+    ))
+}
+
+/// 알림 중복 상태 파일(python `state_file(session_id, agent_id)`). 폴더를 만든다.
+pub fn state_file(ctx: &Context, input: &HookInput) -> Result<String> {
+    let sid = pyval::truthy_text(input.get("session_id"))?.unwrap_or_default();
+    let agent = pyval::truthy_text(input.get("agent_id"))?;
+    epoch::state_path(ctx.tempdir()?, PLUGIN, NS, &sid, agent.as_deref())
+        .map_err(|_| Halt::PyError("cannot create the state dir"))
+}
+
+/// python `target(path, data)`: 검사하는 파일이면 그 설정과 종류, 아니면 `None`.
+pub fn target(ctx: &Context, path: &str, cwd: Option<&Value>) -> Result<Option<Target>> {
     let ext = splitext(path).1.to_lowercase();
     let root = edit::project_root(path, cwd, &ctx.env)?;
     let cfg = Cfg::load(&root);
@@ -207,11 +240,13 @@ fn target(ctx: &Context, path: &str, cwd: Option<&Value>) -> Result<Option<Targe
 /// python `file_notice(...)`: 한 파일에서 추가한 줄의 알림 문장들과, 상태를 바꿨는가.
 ///
 /// 이번에 추가하지 않은 줄의 문제는 Stop 보고용으로 쌓는다. 새로 알릴 것이 없으면 빈 목록이다.
-fn file_notice(
+/// `tail` 이 거짓이면 주석 알림 끝의 대응 문장을 뺀다(여러 파일을 한 알림에 담는 쪽이 한 번만 붙인다).
+pub fn file_notice(
     ctx: &Context,
     input: &HookInput,
     e: &Edit<'_>,
     st: &mut Dict,
+    tail: bool,
 ) -> Result<(Vec<String>, bool)> {
     let t = e.target;
     let pats = t.cfg.patterns()?;
@@ -287,7 +322,7 @@ fn file_notice(
 
     // Notice text
     let mut body = Vec::new();
-    if let Some(sentence) = comment_sentence(e, &fresh, expected, &doc_det)? {
+    if let Some(sentence) = comment_sentence(e, &fresh, expected, &doc_det, tail)? {
         body.push(sentence);
     }
     if let (false, Some(lang)) = (fresh_shapes.is_empty(), lang) {
@@ -382,6 +417,7 @@ fn comment_sentence(
     fresh: &[(usize, Category)],
     expected: Option<Script>,
     det: &[(Category, String)],
+    tail: bool,
 ) -> Result<Option<String>> {
     let t = e.target;
     let is_comment = matches!(t.kind, Kind::Comment(_));
@@ -425,13 +461,14 @@ fn comment_sentence(
     if parts.is_empty() {
         return Ok(None);
     }
-    let (what, tail) = if is_comment {
-        ("comment", COMMENT_TAIL)
+    let what = if is_comment { "comment" } else { "agent-doc" };
+    let end = if tail {
+        format!(" {}", t.tail())
     } else {
-        ("agent-doc", DOC_TAIL)
+        String::new()
     };
     Ok(Some(format!(
-        "{} may not follow the {what} conventions. {}. {tail}",
+        "{} may not follow the {what} conventions. {}.{end}",
         t.rel,
         parts.join("; ")
     )))

@@ -10,8 +10,8 @@ use harness_hook::py::value::{Dict, Value};
 
 use super::config::Config;
 use super::num::Limit;
-use super::pyops::{contains, items, items_or_empty, re_halt};
 use crate::halt::{Halt, Result};
+use crate::pyops::{contains, items, items_or_empty, re_halt};
 
 /// 기본 표의 확장자 전부(Bash 경로 탐지가 쓴다). 길이가 긴 것부터.
 pub const BASH_EXTS: &[&str] = &[

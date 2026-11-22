@@ -17,6 +17,7 @@ pub mod shlex;
 pub mod surrogate;
 pub mod tempfile;
 pub mod text;
+pub mod toml;
 pub mod unicode;
 mod unicode_extra;
 mod unicode_tables;

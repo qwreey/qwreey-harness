@@ -18,6 +18,19 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PRE = os.path.join(ROOT, "hooks", "bash-bypass-reminder.py")
 POST = os.path.join(ROOT, "hooks", "bash_writes.py")
 CHECK = os.path.join(ROOT, "hooks", "conventions-check.py")
+# HOOK_TEST_BIN=<바이너리> 면 세 훅을 python 스크립트 대신 `<바이너리> hook <이름>` 으로 돌린다(Rust 판, crates/qwreey-conventions).
+# 바이너리는 이 플러그인의 native/ 에 있어야 한다(그 위의 rules/ 를 읽는다). HOOK_TEST_BIN_ONLY=<이름> 이면 그 훅만 바이너리로 돌려
+# 한쪽의 Pre 와 다른 쪽의 Post 가 같은 스냅숏을 주고받는지 본다(예: bash-bypass-reminder 만 Rust, bash-writes 는 python).
+BIN = os.environ.get("HOOK_TEST_BIN")
+BIN_NAMES = {PRE: "bash-bypass-reminder", POST: "bash-writes", CHECK: "conventions-check"}
+BIN_ONLY = os.environ.get("HOOK_TEST_BIN_ONLY")
+
+
+def argv(script):
+    name = BIN_NAMES.get(script)
+    if BIN and name and BIN_ONLY in (None, "", name):
+        return [BIN, "hook", name]
+    return [sys.executable, "-I", script]
 T = tempfile.mkdtemp(prefix="bashw-")
 open(os.path.join(T, "salt"), "w").write("00" * 32)
 os.environ["QWREEY_HARNESS_SALT_FILE"] = os.path.join(T, "salt")
@@ -58,7 +71,7 @@ def hook_raw(script, event, cmd, sid, tid, env=None, cwd=REPO, agent=None, extra
     if agent:
         d["agent_id"] = agent
     d.update(extra or {})
-    p = subprocess.run([sys.executable, "-I", script], input=json.dumps(d), capture_output=True, text=True, env=env_for(env, proj=cwd), timeout=20)
+    p = subprocess.run(argv(script), input=json.dumps(d), capture_output=True, text=True, env=env_for(env, proj=cwd), timeout=20)
     assert p.returncode == 0, p.stderr
     return json.loads(p.stdout) if p.stdout.strip() else {}
 
@@ -83,7 +96,7 @@ def edit(rel, old, new, sid):
     put(rel, text)
     d = {"session_id": sid, "cwd": REPO, "hook_event_name": "PostToolUse", "tool_name": "Edit",
          "tool_input": {"file_path": path, "old_string": old, "new_string": new}, "tool_response": {}}
-    p = subprocess.run([sys.executable, "-I", CHECK], input=json.dumps(d), capture_output=True, text=True, env=env_for(), timeout=10)
+    p = subprocess.run(argv(CHECK), input=json.dumps(d), capture_output=True, text=True, env=env_for(), timeout=10)
     return json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"] if p.stdout.strip() else ""
 
 
@@ -402,7 +415,7 @@ class Concurrent(unittest.TestCase):
             procs = []
             for cmd, tid in zip(cmds, tids):
                 d = {"session_id": sid, "cwd": REPO, "hook_event_name": "PostToolUse", "tool_name": "Bash", "tool_input": {"command": cmd}, "tool_use_id": tid}
-                p = subprocess.Popen([sys.executable, "-I", POST], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, env=env_for())
+                p = subprocess.Popen(argv(POST), stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, env=env_for())
                 p.stdin.write(json.dumps(d))
                 p.stdin.close()
                 procs.append(p)

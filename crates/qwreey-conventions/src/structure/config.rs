@@ -1,14 +1,14 @@
 //! 저장소 설정 `<root>/.claude/structure.json`(python `load_cfg`): 기본값 dict 를 파일의 값으로 덮어쓴 것.
 //!
 //! 값은 꼴을 고치지 않고 JSON 값 그대로 둔다. python 은 쓰는 자리마다 그 값으로 셈하거나 예외로 끝나므로, 읽는 쪽이
-//! 그 자리에서 python 처럼 다룬다([`super::pyops`], [`super::num`]).
+//! 그 자리에서 python 처럼 다룬다([`crate::pyops`], [`super::num`]).
 
 use harness_hook::py::fs;
 use harness_hook::py::json_load::loads;
 use harness_hook::py::path::join;
 use harness_hook::py::value::{Dict, Value};
 
-use super::pyops::items;
+use crate::pyops::items;
 
 /// structure.json 을 덮어쓴 설정(python `cfg`).
 #[derive(Clone, Debug, PartialEq)]

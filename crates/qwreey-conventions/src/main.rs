@@ -10,45 +10,74 @@ use harness_hook::HookInput;
 use harness_hook::input::InputError;
 use qwreey_conventions::context::Context;
 use qwreey_conventions::halt::{Halt, Result};
-use qwreey_conventions::{check, memory, reuse, stdout, structure};
+use qwreey_conventions::{bash_writes, bypass, check, memory, reuse, rules, stdout, structure};
 
-const USAGE: &str = "usage: qwreey-conventions hook <conventions-check|reuse-check|structure-reminder|memory-placement>";
+const USAGE: &str = "usage: qwreey-conventions hook <conventions-check|reuse-check|structure-reminder|memory-placement|\
+                     rules-inject|bash-bypass-reminder|bash-writes>";
 
 /// 하위 명령 하나: python 스크립트 하나.
 struct Hook {
     name: &'static str,
-    /// 끄기 스위치(python `conv_env.is_off`). stdin 을 읽기 전에 본다.
-    switch: &'static str,
+    /// 끄기 스위치(python `conv_env.is_off`). stdin 을 읽기 전에 본다. 없으면 훅이 스스로 본다.
+    switch: Option<&'static str>,
     /// stdin 이 JSON 이지만 객체가 아닐 때 python 이 예외로 끝나는가(`data.get` 의 AttributeError).
     crash_on_non_object: bool,
+    /// 출력을 쓰다 실패해도(짝 없는 서로게이트) python 판이 예외를 잡아 0 으로 끝나는가. 쓴 데까지는 나간다.
+    catches_output_error: bool,
     run: fn(&Context, &HookInput) -> Result<Option<String>>,
 }
 
 const HOOKS: &[Hook] = &[
     Hook {
         name: "conventions-check",
-        switch: "CONVENTIONS_CHECK",
+        switch: Some("CONVENTIONS_CHECK"),
         crash_on_non_object: true,
+        catches_output_error: false,
         run: check::run,
     },
     Hook {
         name: "reuse-check",
-        switch: "CONVENTIONS_CHECK",
+        switch: Some("CONVENTIONS_CHECK"),
         crash_on_non_object: true,
+        catches_output_error: false,
         run: reuse::run,
     },
     Hook {
         name: "structure-reminder",
-        switch: "STRUCTURE_REMINDER",
+        switch: Some("STRUCTURE_REMINDER"),
         crash_on_non_object: true,
+        catches_output_error: false,
         run: structure::run,
     },
     // python 판은 본문 전체를 try 로 감싸 무엇이든 조용히 넘긴다
     Hook {
         name: "memory-placement",
-        switch: "MEMORY_PLACEMENT",
+        switch: Some("MEMORY_PLACEMENT"),
         crash_on_non_object: false,
+        catches_output_error: false,
         run: memory::run,
+    },
+    // 아래 셋은 python 판이 본문 전체를 try 로 감싼다(rules-inject 의 끄기 스위치는 plugin.json 을 읽은 뒤에 본다)
+    Hook {
+        name: "rules-inject",
+        switch: None,
+        crash_on_non_object: false,
+        catches_output_error: true,
+        run: rules::run,
+    },
+    Hook {
+        name: "bash-bypass-reminder",
+        switch: None,
+        crash_on_non_object: false,
+        catches_output_error: true,
+        run: bypass::run,
+    },
+    Hook {
+        name: "bash-writes",
+        switch: None,
+        crash_on_non_object: false,
+        catches_output_error: true,
+        run: bash_writes::run,
     },
 ];
 
@@ -64,7 +93,7 @@ fn main() -> ExitCode {
     };
 
     let ctx = Context::from_process();
-    if ctx.is_off(hook.switch) {
+    if hook.switch.is_some_and(|sw| ctx.is_off(sw)) {
         return ExitCode::SUCCESS;
     }
 
@@ -86,7 +115,7 @@ fn main() -> ExitCode {
             let (bytes, whole) = stdout::python_bytes(&out);
             let mut stdout = std::io::stdout().lock();
             let _ = stdout.write_all(&bytes).and_then(|()| stdout.flush());
-            if whole {
+            if whole || hook.catches_output_error {
                 ExitCode::SUCCESS
             } else {
                 crash("a lone surrogate in the output")

@@ -1,0 +1,50 @@
+{
+ "description": "bash: >> appends to two files (one with a space in its name); both get notices in one tag",
+ "files": {
+  "src/a.py": "x = 1\n",
+  "src/my mod.luau": "local M = {}\nreturn M\n"
+ },
+ "setup": [
+  "git add -A && git commit -qm init"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# x · y' >> src/a.py && echo '-- p · q' >> 'src/my mod.luau'"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "tags": [
+     "bash-bypass-reminder/warn"
+    ]
+   }
+  },
+  {
+   "sh": "echo '# x · y' >> src/a.py && echo '-- p · q' >> 'src/my mod.luau'"
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# x · y' >> src/a.py && echo '-- p · q' >> 'src/my mod.luau'"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "contains": [
+     "src/a.py may not follow",
+     "src/my mod.luau may not follow"
+    ]
+   }
+  }
+ ]
+}

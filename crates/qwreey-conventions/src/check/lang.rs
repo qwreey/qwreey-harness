@@ -242,6 +242,10 @@ fn sibling_majority(path: &str, ext: &str, cfg: &Cfg, cache: &mut SiblingCache) 
             break;
         }
         read += st.size;
+        if !fs::is_file(&n) {
+            // FIFO 를 열면 쓰는 쪽이 올 때까지 멈춘다
+            continue;
+        }
 
         // Lex each sibling once per (path, mtime, size)
         let key = (n.clone(), st.mtime_ns, st.size);

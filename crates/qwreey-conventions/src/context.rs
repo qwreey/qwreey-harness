@@ -3,6 +3,9 @@
 use std::cell::OnceCell;
 use std::path::{Path, PathBuf};
 
+use harness_hook::py::fs;
+use harness_hook::py::path::abspath;
+use harness_hook::py::surrogate::from_os;
 use harness_hook::py::tempfile::gettempdir;
 use harness_hook::py::text::strip;
 use harness_hook::py::value::Value;
@@ -36,10 +39,17 @@ pub struct Context {
 
 impl Context {
     /// 지금 프로세스의 환경과 실행 파일 자리.
+    ///
+    /// 자리는 부른 경로(argv[0])의 폴더다. python 판의 `__file__` 처럼 링크를 풀지 않는다(bash-bypass-reminder 가
+    /// rule 파일 경로를 모델에게 보인다). 경로 없이 이름으로 불렸으면 실행 파일의 실제 자리.
     pub fn from_process() -> Context {
-        let exe_dir = std::env::current_exe()
-            .ok()
-            .and_then(|exe| exe.parent().map(PathBuf::from));
+        let invoked = std::env::args_os()
+            .next()
+            .filter(|p| PathBuf::from(p).components().count() > 1)
+            .and_then(|p| abspath(&from_os(&p)))
+            .and_then(|p| fs::os_path(&p));
+        let exe = invoked.or_else(|| std::env::current_exe().ok());
+        let exe_dir = exe.and_then(|exe| exe.parent().map(PathBuf::from));
         Context::new(Env::from_process(), exe_dir)
     }
 

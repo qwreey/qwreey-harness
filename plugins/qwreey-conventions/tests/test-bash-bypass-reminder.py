@@ -13,6 +13,15 @@ import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOOK = os.path.join(ROOT, "hooks", "bash-bypass-reminder.py")
+POST = os.path.join(ROOT, "hooks", "bash_writes.py")
+# HOOK_TEST_BIN=<바이너리> 면 python 스크립트 대신 `<바이너리> hook <이름>` 을 돌린다(Rust 판, crates/qwreey-conventions).
+# 바이너리는 이 플러그인의 native/ 에 있어야 한다(그 위의 rules/ 를 읽는다)
+BIN = os.environ.get("HOOK_TEST_BIN")
+
+
+def argv(script):
+    name = {HOOK: "bash-bypass-reminder", POST: "bash-writes"}[script]
+    return [BIN, "hook", name] if BIN else [sys.executable, "-I", script]
 T = tempfile.mkdtemp(prefix="bypass-")
 # nonce 는 고정 salt 로(실제 ~/.local/share 의 salt 를 쓰지 않게)
 open(os.path.join(T, "salt"), "w").write("00" * 32)
@@ -30,7 +39,7 @@ def run(cmd, env=None):
     e = dict(os.environ, TMPDIR=T, CLAUDE_CONFIG_DIR=CFG, CLAUDE_PROJECT_DIR=PROJ)
     e.pop("HARNESS_READABLE_CODE", None)
     e.update(env or {})
-    r = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(payload), capture_output=True, text=True, env=e)
+    r = subprocess.run(argv(HOOK), input=json.dumps(payload), capture_output=True, text=True, env=e)
     return json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"] if r.stdout.strip() else ""
 
 
@@ -136,13 +145,13 @@ class OddInput(unittest.TestCase):
     """Valid JSON of an unexpected shape never fails the hook (Pre and Post)."""
 
     def test_odd_payloads_exit_zero(self):
-        post = os.path.join(ROOT, "hooks", "bash_writes.py")
+        post = POST
         e = dict(os.environ, TMPDIR=T, CLAUDE_CONFIG_DIR=CFG, CLAUDE_PROJECT_DIR=PROJ)
         for raw in ("[1,2]", "null", '"s"', "3", '{"tool_input": "echo x > a.py"}', '{"tool_input": {"command": ["echo", "x"]}}',
                     '{"tool_input": {"command": "echo x > a.py"}, "cwd": 5}', '{"tool_input": {"command": "echo x > a.py"}, "session_id": {}}',
                     '{"tool_name": "Bash", "tool_input": null, "cwd": []}'):
             for script in (HOOK, post):
-                r = subprocess.run([sys.executable, "-I", script], input=raw, capture_output=True, text=True, env=e, timeout=20)
+                r = subprocess.run(argv(script), input=raw, capture_output=True, text=True, env=e, timeout=20)
                 self.assertEqual(r.returncode, 0, (script, raw, r.stderr[-300:]))
 
 

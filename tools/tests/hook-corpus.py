@@ -9,6 +9,9 @@ REPO 의 .claude/conventions.json, .claude/structure.json 도 복사한다. 파�
   originalFile 과의 Write). 훅마다 양쪽은 각자의 TMPDIR, CLAUDE_PLUGIN_DATA 를 쓰고 같은 고정 salt, 설정 폴더, 저장소를 본다.
   세션 id 는 (파일, 편집)마다 새로 써서 알림 중복 거르기가 다른 입력에 번지지 않게 한다.
 reuse-check 는 저장소 색인을 처음에 한 번씩 데워 둔다(python 판의 첫 색인 시간 한도 300 ms 가 결과를 흔들지 않게).
+rules-inject 는 세 편집과 Read 를 본다. 바이너리가 플러그인의 native/ 에 있어야 그 위의 rules/ 를 읽는다(--bin 을 그 자리로 준다).
+bash 는 bash-bypass-reminder(PreToolUse)와 bash-writes(PostToolUse)의 짝이다: 파일마다 가운데를 뺀 글을 써 두고, Pre, 파일을 다시 온전히
+  쓰기(heredoc 명령 흉내), Post 를 한쪽씩 차례로 돌려 두 훅의 출력을 견준다. 임시 저장소는 커밋이 없어 모든 파일이 porcelain 에 나온다.
 결과: 훅마다 입력 수, 같음, 다름, python 이 알린 수와 양쪽 CPU 합(자식 프로세스 user+sys). 다르면 앞 몇 개의 diff 를 보이고 exit 1.
 """
 import argparse
@@ -23,7 +26,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PLUGIN = ROOT / "plugins" / "qwreey-conventions"
-HOOKS = ("conventions-check", "reuse-check", "structure-reminder")
+HOOKS = ("conventions-check", "reuse-check", "structure-reminder", "rules-inject", "bash")
+# 훅 이름 -> python 스크립트(이름이 다른 것만)
+SCRIPTS = {"rules-inject": "rules_inject.py", "bash-writes": "bash_writes.py"}
 EXTS = (".luau", ".lua", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".rs", ".py", ".go", ".kt", ".astro", ".sh", ".md")
 MAX_BYTES = 1_000_000
 SHOW_DIFFS = 5
@@ -46,11 +51,33 @@ def edits(rel, text):
     b = min(n, a + max(3, min(30, n // 3)))
     chunk = lines[a:b]
     old = [x for i, x in enumerate(chunk) if i % 3 != 1]
-    original = "\n".join(lines[:a] + lines[b:])
+    original = middle_cut(text)
     yield "create", "Write", {"content": text}, {"type": "create"}
     if "\n".join(chunk).strip():
         yield "edit", "Edit", {"old_string": "\n".join(old), "new_string": "\n".join(chunk)}, {}
     yield "overwrite", "Write", {"content": text}, {"type": "update", "originalFile": original}
+    yield "read", "Read", {}, {}
+
+
+def middle_cut(text):
+    """가운데 덩어리를 뺀 글(edits 의 overwrite 와 같은 자리)."""
+    lines = text.split("\n")
+    n = len(lines)
+    a = n // 3
+    b = min(n, a + max(3, min(30, n // 3)))
+    return "\n".join(lines[:a] + lines[b:])
+
+
+def bash_pair(side, dst, rel, text, sid, env):
+    """한쪽에서 Pre, 쓰기, Post. (Pre 결과, Post 결과)."""
+    path = dst / rel
+    path.write_text(middle_cut(text), encoding="utf-8")
+    cmd = "cat > '%s' <<'QWREEY_EOF'\n%s\nQWREEY_EOF" % (rel, text)
+    base = {"session_id": sid, "cwd": str(dst), "tool_name": "Bash", "tool_input": {"command": cmd}, "tool_use_id": "toolu_" + sid}
+    pre = side.run("bash-bypass-reminder", dict(base, hook_event_name="PreToolUse"), env)
+    path.write_text(text, encoding="utf-8")
+    post = side.run("bash-writes", dict(base, hook_event_name="PostToolUse"), env)
+    return pre, post
 
 
 class Side:
@@ -109,7 +136,7 @@ def main():
     (sandbox / "home").mkdir()
     (sandbox / "cfg").mkdir()
     (sandbox / "salt").write_text("00" * 32)
-    py = Side(sandbox, "python", lambda h: [sys.executable, "-I", "-X", "utf8", str(PLUGIN / "hooks" / (h + ".py"))])
+    py = Side(sandbox, "python", lambda h: [sys.executable, "-I", "-X", "utf8", str(PLUGIN / "hooks" / SCRIPTS.get(h, h + ".py"))])
     ex = Side(sandbox, "exec", lambda h: [binary, "hook", h])
     stats = {h: {"inputs": 0, "same": 0, "different": 0, "notices": 0} for h in hooks}
     diffs = []
@@ -130,10 +157,22 @@ def main():
 
             for i, rel in enumerate(files):
                 text = (dst / rel).read_text(encoding="utf-8", errors="replace")
+                if "bash" in hooks:
+                    sid = "b%s-%d" % (src.name, i)
+                    a, b = bash_pair(py, dst, rel, text, sid, env), bash_pair(ex, dst, rel, text, sid, env)
+                    for k, name in enumerate(("pre", "post")):
+                        s = stats["bash"]
+                        s["inputs"] += 1
+                        s["notices"] += bool(a[k][1].strip())
+                        if a[k] == b[k]:
+                            s["same"] += 1
+                        else:
+                            s["different"] += 1
+                            diffs.append(("bash", src.name, rel, name, a[k], b[k]))
                 for name, tool, ti, resp in edits(rel, text):
                     payload = {"session_id": "c%s-%d-%s" % (src.name, i, name), "cwd": str(dst), "hook_event_name": "PostToolUse",
                                "tool_name": tool, "tool_input": dict(ti, file_path=str(dst / rel)), "tool_response": resp}
-                    for hook in hooks:
+                    for hook in (h for h in hooks if h != "bash"):
                         a = py.run(hook, payload, env)
                         b = ex.run(hook, payload, env)
                         s = stats[hook]
@@ -148,6 +187,9 @@ def main():
         shutil.rmtree(sandbox, ignore_errors=True)
 
     for hook, s in stats.items():
+        if hook == "bash":
+            py.cpu[hook] = py.cpu.get("bash-bypass-reminder", 0) + py.cpu.get("bash-writes", 0)
+            ex.cpu[hook] = ex.cpu.get("bash-bypass-reminder", 0) + ex.cpu.get("bash-writes", 0)
         print("%-19s %4d inputs: %4d same, %d different, python notices %d; CPU python %.2f s, exec %.2f s"
               % (hook, s["inputs"], s["same"], s["different"], s["notices"], py.cpu.get(hook, 0), ex.cpu.get(hook, 0)))
     for hook, repo, rel, name, a, b in diffs[:SHOW_DIFFS]:

@@ -303,6 +303,8 @@ def sibling_majority(path, fam_ext, cfg=None):
             if read + st.st_size > SIBLING_MAX_BYTES:
                 break
             read += st.st_size
+            if not os.path.isfile(p):
+                continue  # FIFO 를 열면 쓰는 쪽이 올 때까지 멈춘다
             key = (p, st.st_mtime_ns, st.st_size)
             if key not in _SIBLING_STATS:
                 sib = Path(p).read_text(encoding="utf-8")

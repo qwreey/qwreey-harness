@@ -5,6 +5,9 @@
 대조 대상: 참조 구현 대 `coderag hook post-tool --pack <팩>` (+ `hook pre-compact`). 팩에는 훅이 없으므로 팩마다 임시 플러그인 폴더
 <tmp>/<팩>/plugin/{.claude-plugin/plugin.json(name = 팩), hooks/(정본 네 파일 사본), rules -> 팩의 rules} 를 만들어 거기서 파이썬을 돌린다.
 coderag 바이너리는 $CODERAG_BIN, 없으면 ../coderag/target/{debug,release}/coderag. 없으면 사유를 출력하고 0 으로 끝낸다.
+qwreey-conventions 의 Rust 판(`<바이너리> hook rules-inject`)도 같은 입력으로 참조 구현과 대조한다: $QWREEY_CONVENTIONS_BIN, 없으면
+plugins/qwreey-conventions/native/qwreey-conventions. 바이너리를 임시 플러그인의 native/ 에 복사해 그 위의 rules/ 와 plugin.json 을 읽게 한다.
+상태는 python 과 따로 둔다(TMPDIR 하나씩, compact 회차는 python compact_epoch.py 로 양쪽에 올린다). 없으면 그 대조만 건너뛴다.
 
 nonce: 두 쪽이 같은 임시 HOME 의 salt(~/.local/share/qwreey-harness/salt)를 읽으므로 태그의 nonce 값도 같아야 한다.
 격리: 두 쪽 모두 임시 폴더만 쓴다. 파이썬은 TMPDIR(회차·마커 상태), 코어는 CODERAG_HOME·CODERAG_CACHE(상태 `$CODERAG_HOME/state`).
@@ -36,6 +39,11 @@ def find_bin():
     return next((c for c in cands if c and os.access(c, os.X_OK)), None)
 
 
+def find_native():
+    cands = [os.environ.get("QWREEY_CONVENTIONS_BIN", ""), str(ROOT / "plugins" / "qwreey-conventions" / "native" / "qwreey-conventions")]
+    return next((c for c in cands if c and os.access(c, os.X_OK)), None)
+
+
 def base_env(tmp, extra):
     env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": str(tmp / "home"), "LANG": "C.UTF-8"}
     env.update(extra)
@@ -43,9 +51,16 @@ def base_env(tmp, extra):
 
 
 class Runner:
-    def __init__(self, tmp, binary, pack, proj):
+    def __init__(self, tmp, binary, pack, proj, native=None):
         self.tmp, self.bin, self.pack, self.proj = tmp, binary, pack, proj
         self.hooks = self.make_plugin(tmp / "plugin", pack)
+        self.native_bin = None
+        if native:
+            (tmp / "plugin" / "native").mkdir()
+            self.native_bin = tmp / "plugin" / "native" / "qwreey-conventions"
+            shutil.copy2(native, self.native_bin)
+        self.native_tmp = tmp / "native-tmp"
+        self.native_tmp.mkdir(parents=True, exist_ok=True)
         self.py_tmp = tmp / "py-tmp"
         self.cg_home = tmp / "cg-home"
         self.cg_cache = tmp / "cg-cache"
@@ -70,13 +85,24 @@ class Runner:
     def common(self, proj):
         return {"CLAUDE_PROJECT_DIR": str(proj), "CLAUDE_CONFIG_DIR": str(self.cfg)}
 
-    def py(self, event, data, off, proj, extra=None):
-        env = base_env(self.tmp, {"TMPDIR": str(self.py_tmp), **self.common(proj), **(extra or {})})
+    def py(self, event, data, off, proj, extra=None, tmp_dir=None):
+        env = base_env(self.tmp, {"TMPDIR": str(tmp_dir or self.py_tmp), **self.common(proj), **(extra or {})})
         if off:
             env["HARNESS_CONVENTIONS_RULES"] = "off"
         script = "rules_inject.py" if event == "hook" else "compact_epoch.py"
         argv = ["python3", "-I", str(self.hooks / script)] + ([] if event == "hook" else [self.pack])
         return subprocess.run(argv, input=json.dumps(data), capture_output=True, text=True, env=env, timeout=30, cwd=str(self.tmp)).stdout
+
+    def native(self, event, data, off, proj, extra=None):
+        """Rust 판 rules-inject. compact 는 python compact_epoch.py 가 Rust 쪽 임시 폴더의 회차를 올린다."""
+        if event != "hook":
+            return self.py(event, data, off, proj, extra, tmp_dir=self.native_tmp)
+        env = base_env(self.tmp, {"TMPDIR": str(self.native_tmp), **self.common(proj), **(extra or {})})
+        if off:
+            env["HARNESS_CONVENTIONS_RULES"] = "off"
+        raw = data if isinstance(data, str) else json.dumps(data)
+        argv = [str(self.native_bin), "hook", "rules-inject"]
+        return subprocess.run(argv, input=raw, capture_output=True, text=True, env=env, timeout=30, cwd=str(self.tmp)).stdout
 
     def cg(self, event, data, off, proj, extra=None):
         env = base_env(self.tmp, {"CODERAG_HOME": str(self.cg_home), "CODERAG_CACHE": str(self.cg_cache), **self.common(proj), **(extra or {})})
@@ -155,7 +181,10 @@ def main():
     if not binary:
         print("skip: coderag 바이너리가 없다($CODERAG_BIN 또는 ../coderag/target/{debug,release}/coderag)")
         return 0
-    total, fails, injected = 0, [], 0
+    native = find_native()
+    if not native:
+        print("skip: qwreey-conventions 바이너리가 없어 Rust 판 대조는 건너뛴다($QWREEY_CONVENTIONS_BIN 또는 plugins/qwreey-conventions/native/)")
+    total, fails, injected, native_total = 0, [], 0, 0
     with tempfile.TemporaryDirectory(prefix="rules-parity-") as t:
         for pack in PACKS:
             tmp = Path(t) / pack
@@ -165,7 +194,7 @@ def main():
             excl_rule = "web-security" if pack == "web-security" else "luau-core"
             (proj_excl / ".claude").mkdir(parents=True)
             (proj_excl / ".claude" / "conventions.json").write_text(json.dumps({"rules_exclude": [excl_rule]}))
-            r = Runner(tmp, binary, pack, proj)
+            r = Runner(tmp, binary, pack, proj, native)
             for name, steps in scenarios(pack, proj, proj_excl, r.cfg):
                 for i, (kind, data, opt) in enumerate(steps):
                     p = opt.get("proj", proj)
@@ -180,6 +209,12 @@ def main():
                     else:
                         ek = "hook" if kind == "hook" else "compact"
                         a, b = r.py(ek, data, off, p, extra), r.cg(ek, data, off, p, extra)
+                    if r.native_bin:
+                        n = r.native("hook" if kind in ("hook", "raw") else "compact", data, off, p, extra)
+                        if kind != "compact":
+                            native_total += 1
+                        if n != a:
+                            fails.append((pack, name + " [qwreey-conventions]", i, a, n))
                     if kind != "compact":
                         total += 1
                         injected += bool(a)
@@ -207,11 +242,11 @@ def main():
         if 'plugin=\\"web-security\\"' not in out:
             fails.append(("both", "project-switch", 1, "web-security 가 나와야 함", out))
     for pack, name, i, a, b in fails:
-        print("FAIL %s/%s step %d\n  python: %r\n  coderag: %r" % (pack, name, i, a[:300], b[:300]))
+        print("FAIL %s/%s step %d\n  python: %r\n  other: %r" % (pack, name, i, a[:300], b[:300]))
     # 전부 빈 출력이면 대조가 아무것도 증명하지 못한다.
     if injected < 20:
         fails.append(("matrix", "coverage", 0, "", "주입 출력이 %d 건뿐" % injected))
-    print("%d comparisons (%d with injection), %d failed" % (total, injected, len(fails)))
+    print("%d comparisons (%d with injection), %d against qwreey-conventions, %d failed" % (total, injected, native_total, len(fails)))
     return 1 if fails else 0
 
 

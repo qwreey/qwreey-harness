@@ -1,4 +1,5 @@
-//! 설치된 Claude Code 플러그인의 폴더 찾기(python `hooks/conv_plugins.py`): luau-kb 팩의 분리 계획기를 찾을 때 쓴다.
+//! 설치된 Claude Code 플러그인의 폴더 찾기(python `hooks/conv_plugins.py`): structure-reminder 가 luau-kb 팩의 분리 계획기를,
+//! bash-bypass-reminder 가 설치된 플러그인의 `rules/` 를 찾을 때 쓴다.
 //!
 //! Claude Code 자신의 파일만 본다: `<설정 디렉터리>/plugins/installed_plugins.json`(설치된 플러그인과 installPath),
 //! `<설정 디렉터리>/plugins/known_marketplaces.json`(마켓 위치). 읽지 못한 파일은 `{}` 이다.
@@ -9,8 +10,8 @@ use harness_hook::py::json_load::loads;
 use harness_hook::py::path::{expanduser, join, normpath};
 use harness_hook::py::value::{Dict, Value};
 
-use super::pyops::{items_or_empty, str_order};
 use crate::halt::{Halt, Result};
+use crate::pyops::{items_or_empty, str_order};
 
 /// python `config_dir()`: `$CLAUDE_CONFIG_DIR`, 없으면 `~/.claude`.
 pub fn config_dir(env: &Env) -> String {
@@ -60,14 +61,14 @@ fn market_dir(markets: &Dict, market: &str, name: &str) -> Result<Option<String>
 }
 
 /// 설치 기록의 플러그인 하나(python `installed_roots` 의 원소).
-struct Installed {
-    name: String,
-    market: String,
-    root: String,
+pub struct Installed {
+    pub name: String,
+    pub market: String,
+    pub root: String,
 }
 
 /// python `installed_roots(cfg)`: installed_plugins.json 순서. 폴더는 마켓 정의가 가리키는 곳, 없으면 첫 installPath.
-fn installed_roots(cfg: &str) -> Result<Vec<Installed>> {
+pub fn installed_roots(cfg: &str) -> Result<Vec<Installed>> {
     let markets = read_json(&plugins_file(cfg, "known_marketplaces.json"))
         .into_dict()
         .unwrap_or_default();

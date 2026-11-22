@@ -147,6 +147,10 @@ pub fn read_entry(
     let text = match text {
         Some(t) => t,
         None => {
+            // FIFO 를 열면 쓰는 쪽이 올 때까지 멈춘다
+            if !fs::is_file(&fp) {
+                return Err(ReadError::Fs);
+            }
             owned = fs::read_text(&fp)?;
             &owned
         }

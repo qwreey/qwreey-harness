@@ -17,6 +17,10 @@ from concurrent.futures import ThreadPoolExecutor
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOOKS = os.path.join(ROOT, "hooks")
 HOOK = os.path.join(HOOKS, "rules_inject.py")
+# HOOK_TEST_BIN=<바이너리> 면 python 스크립트 대신 `<바이너리> hook rules-inject` 를 돌린다(Rust 판, crates/qwreey-conventions).
+# 바이너리는 이 플러그인의 native/ 에 있어야 한다(그 위 폴더의 rules/ 와 plugin.json 을 읽는다)
+BIN = os.environ.get("HOOK_TEST_BIN")
+CMD = [BIN, "hook", "rules-inject"] if BIN else [sys.executable, "-I", HOOK]
 T = tempfile.mkdtemp(prefix="rules-inject-")
 # nonce 는 고정 salt 로(실제 ~/.local/share 의 salt 를 쓰지 않게)
 open(os.path.join(T, "salt"), "w").write("00" * 32)
@@ -40,7 +44,7 @@ def run(event, tool, path, session="s1", agent=None, env=None, cwd=PROJ):
     e.pop("HARNESS_CONVENTIONS_RULES", None)
     e.pop("HARNESS_READABLE_CODE", None)
     e.update(env or {})
-    r = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(payload), capture_output=True, text=True, env=e)
+    r = subprocess.run(CMD, input=json.dumps(payload), capture_output=True, text=True, env=e)
     return json.loads(r.stdout)["hookSpecificOutput"] if r.stdout.strip() else None
 
 
@@ -160,7 +164,7 @@ class Injection(unittest.TestCase):
     def test_notebook_path(self):
         payload = {"hook_event_name": "PostToolUse", "tool_name": "NotebookEdit", "tool_input": {"notebook_path": X + "/n.py"},
                    "session_id": fresh(), "cwd": PROJ}
-        r = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(payload), capture_output=True, text=True,
+        r = subprocess.run(CMD, input=json.dumps(payload), capture_output=True, text=True,
                            env=dict(os.environ, TMPDIR=T, CLAUDE_CONFIG_DIR=CFG, CLAUDE_PROJECT_DIR=PROJ))
         self.assertIn("comments", r.stdout)
 
@@ -354,7 +358,7 @@ class Switches(unittest.TestCase):
             os.remove(p)
 
     def test_bad_input_is_silent(self):
-        r = subprocess.run([sys.executable, "-I", HOOK], input="not json file_path", capture_output=True, text=True)
+        r = subprocess.run(CMD, input="not json file_path", capture_output=True, text=True)
         self.assertEqual((r.returncode, r.stdout), (0, ""))
 
 
@@ -510,7 +514,7 @@ class SwitchedRule(unittest.TestCase):
         self.assertNotIn(RC, ctx(run("PostToolUse", "Read", X + "/a.md", fresh(), env={"HARNESS_READABLE_CODE": "on"})))
 
     def test_bad_input_is_silent_with_switch(self):
-        r = subprocess.run([sys.executable, "-I", HOOK], input="not json file_path", capture_output=True, text=True)
+        r = subprocess.run(CMD, input="not json file_path", capture_output=True, text=True)
         self.assertEqual((r.returncode, r.stdout), (0, ""))
 
 

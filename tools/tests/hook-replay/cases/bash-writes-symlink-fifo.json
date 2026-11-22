@@ -1,0 +1,48 @@
+{
+ "description": "bash: writing through a symlink checks the link's text; a FIFO named in the command is not opened for reading",
+ "files": {
+  "src/real.py": "x = 1\n"
+ },
+ "setup": [
+  "ln -s real.py src/link.py && mkfifo src/pipe.py && git add src/real.py src/link.py && git commit -qm init"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# s · t' >> src/link.py && ls src/pipe.py && echo '# u · v' > src/g.py"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "tags": [
+     "bash-bypass-reminder/warn"
+    ]
+   }
+  },
+  {
+   "sh": "echo '# s · t' >> src/link.py && ls src/pipe.py && echo '# u · v' > src/g.py"
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# s · t' >> src/link.py && ls src/pipe.py && echo '# u · v' > src/g.py"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "contains": [
+     "src/g.py may not follow"
+    ]
+   }
+  }
+ ]
+}

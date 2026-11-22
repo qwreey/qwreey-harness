@@ -1,0 +1,44 @@
+{
+ "description": "bash: a command that writes and commits is still checked against the old HEAD",
+ "files": {
+  "src/a.py": "x = 1\n"
+ },
+ "setup": [
+  "git add -A && git commit -qm init"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# k · l' >> src/a.py && git add -A && git commit -qm x"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {}
+  },
+  {
+   "sh": "echo '# k · l' >> src/a.py && git add -A && git commit -qm x"
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# k · l' >> src/a.py && git add -A && git commit -qm x"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "contains": [
+     "src/a.py may not follow"
+    ]
+   }
+  }
+ ]
+}

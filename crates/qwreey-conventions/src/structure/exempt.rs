@@ -11,9 +11,9 @@ use harness_hook::py::value::Value;
 use harness_hook::rx;
 
 use super::config::Config;
-use super::pyops::{fnmatch, items_or_empty, re_halt};
 use super::toolkit::comment_marks;
 use crate::halt::{Halt, Result};
+use crate::pyops::{fnmatch, items_or_empty, re_halt};
 
 // 사유가 아닌 말: 비었거나, 미루기, 귀찮음, 자리표시
 static NOT_A_REASON: LazyLock<rx::Regex> = LazyLock::new(|| {

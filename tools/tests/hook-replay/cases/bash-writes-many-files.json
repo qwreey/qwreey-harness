@@ -1,0 +1,49 @@
+{
+ "description": "bash: a script writes 13 files; ten get notices, the rest go to one conventions-scan line, all under 9000 chars",
+ "files": {
+  "src/a.py": "x = 1\n"
+ },
+ "setup": [
+  "git add -A && git commit -qm init"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "python3 -c \"import pathlib\nfor i in range(13):\n    pathlib.Path(f'src/m{i:02d}.py').write_text('# m · n\\\\n')\""
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "tags": [
+     "bash-bypass-reminder/warn"
+    ]
+   }
+  },
+  {
+   "sh": "python3 -c \"import pathlib\nfor i in range(13):\n    pathlib.Path(f'src/m{i:02d}.py').write_text('# m · n\\\\n')\""
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "python3 -c \"import pathlib\nfor i in range(13):\n    pathlib.Path(f'src/m{i:02d}.py').write_text('# m · n\\\\n')\""
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "contains": [
+     "3 more files: run `python3 -I"
+    ],
+    "max_chars": 9000
+   }
+  }
+ ]
+}
