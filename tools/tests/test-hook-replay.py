@@ -70,6 +70,16 @@ def check(result, expect, sid, sb):
     return bad
 
 
+def session_of(payload):
+    """payload 의 session_id. 글 payload 는 JSON 이 아니거나 객체가 아닐 수 있다(그런 입력을 주는 사례): 그때는 None."""
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except ValueError:
+            return None
+    return payload.get("session_id") if isinstance(payload, dict) else None
+
+
 def run_case(path):
     """사례 하나를 돌리고 어긋난 점을 [문장] 으로 돌려준다."""
     case = json.loads(path.read_text(encoding="utf-8"))
@@ -88,7 +98,7 @@ def run_case(path):
                     errors.append("%s: no hook script %s" % (where, step["hook"]))
                     continue
                 result = sb.run(step["hook"], payload, argv=step.get("argv") or (), env=env)
-                sid = (json.loads(payload) if isinstance(payload, str) else payload).get("session_id")
+                sid = session_of(payload)
                 for msg in check(result, step.get("expect") or {}, sid, sb):
                     errors.append("%s (%s): %s\n    output: %s" % (where, step["hook"].rsplit("/", 1)[-1], msg,
                                                                    sb.normalize(result.text())[:600].replace("\n", "\n    ")))

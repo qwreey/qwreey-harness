@@ -280,6 +280,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "qwreey-workspace"
+version = "0.1.0"
+dependencies = [
+ "harness-hook",
+ "jiff",
+ "serde_json",
+]
+
+[[package]]
 name = "r-efi"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

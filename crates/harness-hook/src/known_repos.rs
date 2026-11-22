@@ -9,6 +9,10 @@
 //!
 //! python 과 달라지는 곳: UTF-8 이 아닌 경로 바이트(서로게이트 자리표)는 정렬 자리가 다르고, 세션 파일의 cwd 가
 //! UTF-8 로 인코딩한 서로게이트(python `surrogatepass` 가 받는 바이트)면 여기서는 읽지 못한 cwd 로 본다.
+//! [`repo_root`] 는 python 이 ValueError 로 끝나는 경로(NUL, 인코딩할 수 없는 글)도 위로 걸어 찾는다. python 처럼 그 자리에서
+//! 멈춰야 하는 곳은 [`try_repo_root`] 를 쓴다.
+//!
+//! 경로 함수는 이 OS 의 python `os.path` 다([`crate::py::ospath`]): Windows 에서는 ntpath 를 따른다.
 
 use std::path::Path;
 
@@ -17,7 +21,7 @@ use crate::py::fnmatch::fnmatch;
 use crate::py::fs::{self, FsError};
 use crate::py::json::{EnsureAscii, dumps};
 use crate::py::json_load::{Decode, from_bytes, loads};
-use crate::py::path::{abspath, expanduser, join, normpath};
+use crate::py::ospath::{self, SEP, abspath, expanduser, join, normcase, normpath};
 use crate::py::surrogate::unit_of;
 use crate::py::tempfile::gettempdir;
 use crate::py::text::strip;
@@ -90,8 +94,8 @@ pub fn config_dir(env: &Env) -> String {
     }
 }
 
-// python _split: `;` 로 나눈 경로들, 빈 조각은 빼고 `~` 를 푼다
-fn split_paths(value: &str, env: &Env) -> Vec<String> {
+/// python `_split(value)`: `;` 로 나눈 경로들. 빈 조각은 빼고 `~` 를 푼다.
+pub fn split_paths(value: &str, env: &Env) -> Vec<String> {
     value
         .split(';')
         .map(strip)
@@ -107,22 +111,47 @@ enum GitEntry {
     File,
 }
 
+/// python 의 `repo_root` 가 예외로 끝나는 경로: NUL 이 들었거나 OS 바이트로 바꿀 수 없다(ValueError),
+/// 또는 상대 경로인데 현재 디렉터리를 읽지 못한다(OSError).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PathError;
+
 fn git_entry(d: &str) -> Option<GitEntry> {
-    let os = fs::os_path(&join(d, ".git"))?;
-    let meta = std::fs::metadata(os).ok()?;
-    Some(if meta.is_dir() {
+    git_entry_strict(d).ok().flatten()
+}
+
+// python 은 `os.stat` 의 OSError 만 잡는다. 넘기지 못하는 경로의 ValueError 는 그대로 나간다
+fn git_entry_strict(d: &str) -> Result<Option<GitEntry>, PathError> {
+    let os = fs::os_path(&join(d, ".git")).ok_or(PathError)?;
+    let Ok(meta) = std::fs::metadata(os) else {
+        return Ok(None);
+    };
+    Ok(Some(if meta.is_dir() {
         GitEntry::Dir
     } else {
         GitEntry::File
-    })
+    }))
+}
+
+// `.git` 을 보는 방법: 넘기지 못하는 경로를 "없음"으로 볼지(lenient), python 처럼 멈출지(strict)
+type Probe = fn(&str) -> Result<Option<GitEntry>, PathError>;
+
+fn lenient(d: &str) -> Result<Option<GitEntry>, PathError> {
+    Ok(git_entry(d))
 }
 
 /// python `_fold(d)`: `.git` 이 파일인 d 를 본 저장소로. 서브모듈 등은 d, 본 저장소가 없으면 `None`.
 fn fold(d: &str) -> Option<String> {
-    let text = fs::read_text_replace(&join(d, ".git")).ok()?;
+    fold_with(d, lenient).ok().flatten()
+}
+
+fn fold_with(d: &str, probe: Probe) -> Result<Option<String>, PathError> {
+    let Ok(text) = fs::read_text_replace(&join(d, ".git")) else {
+        return Ok(None);
+    };
     let line = strip(text.split('\n').next().unwrap_or(""));
     let Some(target) = line.strip_prefix("gitdir:") else {
-        return Some(d.to_owned());
+        return Ok(Some(d.to_owned()));
     };
 
     // <본>/.git/worktrees/<이름> 이면 <본>
@@ -133,24 +162,35 @@ fn fold(d: &str) -> Option<String> {
         if parts[i] == ".git" && parts[i + 1] == "worktrees" {
             let joined = parts[..i].join("/");
             let main = normpath(if joined.is_empty() { "/" } else { &joined });
-            return (git_entry(&main) == Some(GitEntry::Dir)).then_some(main);
+            return Ok((probe(&main)? == Some(GitEntry::Dir)).then_some(main));
         }
     }
-    Some(d.to_owned())
+    Ok(Some(d.to_owned()))
 }
 
 /// python `repo_root(path)`: path 를 담은 저장소 루트. worktree 는 본 저장소로, 없으면 `None`.
+///
+/// python 이 예외로 끝나는 경로도 `None` 이나 그 위의 저장소다. 예외 자리가 필요하면 [`try_repo_root`].
 pub fn repo_root(path: &str) -> Option<String> {
-    let mut d = abspath(path)?;
+    walk_up(path, lenient).ok().flatten()
+}
+
+/// python `repo_root(path)` 를 예외까지: python 이 예외로 끝나는 경로는 [`PathError`].
+pub fn try_repo_root(path: &str) -> Result<Option<String>, PathError> {
+    walk_up(path, git_entry_strict)
+}
+
+fn walk_up(path: &str, probe: Probe) -> Result<Option<String>, PathError> {
+    let mut d = abspath(path).ok_or(PathError)?;
     loop {
-        match git_entry(&d) {
-            Some(GitEntry::Dir) => return Some(d),
-            Some(GitEntry::File) => return fold(&d),
+        match probe(&d)? {
+            Some(GitEntry::Dir) => return Ok(Some(d)),
+            Some(GitEntry::File) => return fold_with(&d, probe),
             None => {}
         }
-        let up = crate::py::path::dirname(&d).to_owned();
+        let up = ospath::dirname(&d).to_owned();
         if up == d {
-            return None;
+            return Ok(None);
         }
         d = up;
     }
@@ -357,15 +397,18 @@ pub fn excluded(root: &str, patterns: &[String]) -> Result<bool, Failed> {
         let Some(p) = abspath(pat) else {
             return Err(Failed("cannot read the current directory"));
         };
-        if root == p || root.starts_with(&format!("{}/", p.trim_end_matches('/'))) {
+        let (r, p) = (normcase(root), normcase(&p));
+        if r == p || r.starts_with(&format!("{}{SEP}", p.trim_end_matches(SEP))) {
             return Ok(true);
         }
     }
     Ok(false)
 }
 
+// python fnmatch.fnmatch: 두 글을 normcase 한 뒤 맞춘다(Windows 는 소문자와 `\`)
 fn glob(name: &str, pat: &str) -> Result<bool, Failed> {
-    fnmatch(name, pat).map_err(|_| Failed("a glob this port cannot translate"))
+    fnmatch(&normcase(name), &normcase(pat))
+        .map_err(|_| Failed("a glob this port cannot translate"))
 }
 
 fn mtime_of(path: &str) -> Value {
@@ -494,7 +537,7 @@ fn kept_roots(
         if auto && excluded(&r, defaults)? {
             continue;
         }
-        if !roots.contains(&r) {
+        if !roots.iter().any(|seen| normcase(seen) == normcase(&r)) {
             roots.push(r);
         }
     }
@@ -579,7 +622,7 @@ fn write_cache(path: &str, data: &Value) -> Result<(), Failed> {
 
     // Write a temporary file, then rename it over
     let tmp = format!("{path}.{}.tmp", std::process::id());
-    let dir = crate::py::path::dirname(path);
+    let dir = ospath::dirname(path);
     let written = (|| -> Result<(), FsError> {
         let os_dir = fs::os_path(if dir.is_empty() { "." } else { dir }).ok_or(FsError::Value)?;
         std::fs::create_dir_all(os_dir).map_err(|e| FsError::Os(e.kind()))?;

@@ -1,0 +1,4 @@
+[
+ {"hook": "plugins/qwreey-workspace/scripts/workspace_gate.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-workspace", "hook", "workspace-gate"]},
+ {"hook": "plugins/qwreey-workspace/scripts/sibling_notice.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-workspace", "hook", "sibling-notice"]}
+]
