@@ -3,6 +3,7 @@
 use std::path::PathBuf;
 
 use harness_hook::nonce::Unencodable;
+use harness_hook::py::repr::str_value;
 use harness_hook::py::value::Value;
 use harness_hook::settings::{self, Layers, LoadRequest, Project};
 use harness_hook::{Env, HookInput, Nonce};
@@ -63,7 +64,7 @@ pub fn project_for(env: &Env, cwd: Option<&Value>) -> Option<Project> {
     }
 }
 
-/// 참인 값의 python `str(v)`. 거짓이면 `None`. 목록과 객체는 옮기지 않아 `None` 이다(Claude Code 는 문자열만 준다).
+/// 참인 값의 python `str(v)`(목록과 객체는 python repr). 거짓이면 `None`.
 pub fn py_str(v: &Value) -> Option<String> {
-    v.truthy().then(|| v.scalar_str()).flatten()
+    v.truthy().then(|| str_value(v))
 }

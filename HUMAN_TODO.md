@@ -65,7 +65,7 @@
 ## 팩 rule 주입을 coderag 로 옮긴 컷오버 (이 기기)
 이 기기의 coderag 플러그인은 `~/.claude/plugins/cache/coderag-market/coderag/<버전>/` 캐시 사본으로 설치된다. 그래도 바이너리, rule 주입(`conventions/`), 프로바이더는 래퍼가 저장소 쪽을 찾아 쓰므로 바로 최신이다. 캐시에서 읽는 것은 스킬 본문, 에이전트 정의, `hooks.json` 뿐이라 이것들이 바뀐 버전에서만 update 가 필요하다.
 - [x] **먼저(vitrine 세션을 열기 전):** 설치된 web-security 가 0.2.0 이라 캐시에 옛 Python rule 훅이 남아 있다. vitrine 은 `coderag.toml` 에 web-security 가 있어 새 세션에서 rule 이 두 번 붙는다(실측). `claude plugin marketplace update qwreey-harness`, `claude plugin update web-security@qwreey-harness`(0.4.0, 훅 없음), Luau 저장소에 luau-kb 스킬이 필요하면 `claude plugin install luau-kb@qwreey-harness`(0.6.3; 지금 미설치라 Luau 저장소의 enabledPlugins 키가 가리키는 플러그인이 없다). `claude plugin list` 로 확인한 뒤 새 세션. 그 전에 vitrine 을 열어야 하면 그 `coderag.toml` 을 잠시 치운다
-- [ ] coderag 0.23.4(플러그인 래퍼를 bash 내장만으로, 훅 하나 약 12 -> 4.6 ms, Q56 a): 설치본의 `bin/coderag` 은 캐시 사본이라 갱신해야 바뀐다. `claude plugin marketplace update coderag-market`, `claude plugin update coderag@coderag-market`, `/reload-plugins`
+- [ ] coderag 0.23.4(플러그인 래퍼를 bash 내장만으로, 훅 하나 약 12 -> 4.6 ms, Q56 a): 설치본의 `bin/coderag` 은 캐시 사본이라 갱신해야 바뀐다. (2026-11-22 reload 에서 coderag 가 저장소 폴더 `~/Projects/coderag/harness/claude` 로 읽히는 것을 보았다. 그렇다면 이미 새 래퍼이니 확인 뒤 지운다) `claude plugin marketplace update coderag-market`, `claude plugin update coderag@coderag-market`, `/reload-plugins`
 - [x] coderag 0.23.0(기록 범위 `scopes/`·`records move`·`search --for`, `coderag get --body` 읽기를 compact 뒤 가리킴에 기록, 바이너리는 release 빌드 완료): `claude plugin marketplace update coderag-market`, `claude plugin update coderag@coderag-market`, `/reload-plugins`. 갱신 전에도 rule 주입은 되고, `get` 기록에 필요한 Bash matcher 와 새 스킬 글만 기다린다
 - [ ] vitrine(web-security)·quad(luau-kb)는 에이전트가 `coderag.toml` 과 `.gitignore` 의 `.coderag/` 를 넣었다(커밋 안 함, 그 저장소에서 확인 뒤 커밋). 나머지(table-sim, rbvm, mrow, moonwave-luau, devplorer, nekolog)는 같은 방식으로 넣기 전까지 새 세션에 팩 rule 이 주입되지 않는다(doctor 항목 7 이 PACK-DRIFT 로 알린다). 넣는 법: `coderag.toml` 에 `[[packs]]` + `name = "luau-kb"`(또는 `web-security`), `coderag adapt --harness claude --dry-run`, 이상 없으면 `coderag adapt --harness claude`, `coderag gen`
 - [ ] 그 저장소에서 새 세션을 열어 `.luau`(또는 `.ts`) 파일을 Read 해 rule 이 한 번만 붙는지 본다. `/q:doctor` 항목 7 에 `PACK-DRIFT`·`PACK-MISSING`·`PACK-NO-CODERAG`·`PACK-UNREGISTERED` 가 없어야 한다. `<rule plugin="web-security">` 가 두 개 보이면 옛 캐시 사본이 적재된 것이니 알려 달라
@@ -95,7 +95,7 @@
 ## ~/.claude 반영 (정본 → 실제)
 - 2026-11-11 17:58 기준 apply 를 마쳤다. `tools/home-sync.sh status` 가 모든 파일을 "같음", settings 를 "4/4 적용"(0001, 0002, 0004, 0005)으로 보인다. 고아도 없다. 켜 둔 플러그인은 q, qwreey-advisor, qwreey-conventions 이고 모두 설치돼 있다.
 - [ ] qwreey-proc-guard 0.4.0, qwreey-sessions 0.7.0, qwreey-conventions 0.17.0, qwreey-advisor 0.7.0, qwreey-reply-language 0.2.0, qwreey-workspace 0.4.0, qwreey-operator 0.5.0, q 0.13.0(자주 도는 훅이 Rust 바이너리, Q43 a, Q46 a, Q51 a, Q54 a, Q55 a): 이 기기는 플러그인을 저장소 폴더에서 바로 읽어 `/reload-plugins` 만으로 켜진다(2026-11-20 이 세션에서 proc-guard 확인). 남은 것: 다른 세션(quad, stl-luau, tbox)은 재시작할 때 함께. 문제가 보이면 알려 주면 그 플러그인의 hooks.json 만 되돌린다
-- [ ] `home/.claude/lib/harness_env.py` 가 바뀌었다(bbfc686: 저장소 층의 막힌 사용자 전용 값이 `$NAME` 으로 새지 않음). `tools/home-sync.sh diff` 로 보고 `apply`
+- [ ] `home/.claude/lib/harness_env.py` 가 바뀌었다(bbfc686: 저장소 층의 막힌 사용자 전용 값이 `$NAME` 으로 새지 않음; e4f898f: settings.json·harness.env 가 FIFO 면 열지 않는 `open_regular`). `tools/home-sync.sh diff` 로 보고 `apply`. 플러그인은 자기 사본을 쓰므로 설치본은 statusline, /q:doctor 몫이다
 - [ ] apply 가 남긴 백업 `*.bak-<시각>` 정리(확인한 뒤 직접 지운다)
   - 목록: `ls ~/.claude/*.bak-* ~/.claude/{hooks,lib,rules}/*.bak-*`
   - 지우기: `rm ~/.claude/*.bak-* ~/.claude/{hooks,lib,rules}/*.bak-*`
