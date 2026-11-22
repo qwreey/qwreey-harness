@@ -22,6 +22,12 @@ pub enum Kind {
     Write,
 }
 
+impl Kind {
+    fn from_write(write: bool) -> Kind {
+        if write { Kind::Write } else { Kind::Read }
+    }
+}
+
 /// 건드린 저장소와 갈래, 처음 나온 순서로(python 의 dict). 쓰기로 적힌 저장소는 읽기로 내리지 않는다.
 #[derive(Default)]
 struct Found(Vec<(String, Kind)>);
@@ -101,12 +107,7 @@ fn classify_segment(
     // Paths the segment touches, first seen first
     let mut touched: Vec<String> = Vec::new();
     for w in touched_words(args, &redirs) {
-        if w.contains('/')
-            || w.starts_with(['~', '.'])
-            || w.starts_with("$HOME")
-            || w.starts_with("${HOME}")
-            || redirs.contains(&w)
-        {
+        if looks_like_path(&w) || redirs.contains(&w) {
             push_new(&mut touched, norm(ctx, &w, seg_cwd.as_deref())?);
         }
     }
@@ -129,21 +130,13 @@ fn classify_segment(
         let relative = |w: &String| !isabs(&expand(ctx, w)) && !w.starts_with('~');
         let rel_args = args.iter().any(|a| !a.starts_with('-') && relative(a));
         let relative_write = write_tokens.iter().any(relative) || (whole && rel_args);
-        found.hit(
-            cwd_repo,
-            if relative_write {
-                Kind::Write
-            } else {
-                Kind::Read
-            },
-        );
+        found.hit(cwd_repo, Kind::from_write(relative_write));
     }
 
     // Each touched path
     for p in &touched {
         if let Some(repo) = scope.sibling(p)? {
-            let write = whole || written.contains(p);
-            found.hit(Some(repo), if write { Kind::Write } else { Kind::Read });
+            found.hit(Some(repo), Kind::from_write(whole || written.contains(p)));
         }
     }
     Ok(())
@@ -190,6 +183,14 @@ fn touched_words(args: &[String], redirs: &[String]) -> Vec<String> {
         );
     }
     out
+}
+
+// `/` 가 들었거나 `~`, `$HOME`, `${HOME}`, `.` 으로 시작하는 낱말
+fn looks_like_path(w: &str) -> bool {
+    w.contains('/')
+        || w.starts_with(['~', '.'])
+        || w.starts_with("$HOME")
+        || w.starts_with("${HOME}")
 }
 
 fn push_new(list: &mut Vec<String>, item: String) {

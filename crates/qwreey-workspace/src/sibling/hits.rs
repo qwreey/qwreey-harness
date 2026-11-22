@@ -31,6 +31,9 @@ pub type Hits = BTreeMap<String, Vec<(String, String)>>;
 
 const ICASE: bool = cfg!(windows);
 
+/// 경로 하나를 맞출 꼴: 글자 조각들. 조각 사이 자리는 `\` 와 `/` 둘 다 받는다(python `_sep_re`).
+type PathPattern = Vec<Vec<char>>;
+
 // 경로 꼬리 글자(python REST): 공백, 따옴표, 괄호, 줄 번호(`:12`), 앵커(`#x`), 문장 부호 밖
 fn is_rest(c: char) -> bool {
     !is_space(c) && !"`'\"<>()[]{}|,;:#*!?".contains(c)
@@ -84,7 +87,7 @@ pub fn find_hits(
 }
 
 // python _abs_prefixes: 루트 그대로, 홈 아래면 `~/` 꼴도. 조각마다 그 사이 구분자는 `\` 와 `/` 둘 다 받는다
-fn abs_prefixes(ctx: &Context, root: &str) -> Result<Vec<Vec<Vec<char>>>> {
+fn abs_prefixes(ctx: &Context, root: &str) -> Result<Vec<PathPattern>> {
     let mut out = vec![pieces(root)];
     let home = home(ctx);
     if inside(root, &home) && root != home {
@@ -98,7 +101,7 @@ fn abs_prefixes(ctx: &Context, root: &str) -> Result<Vec<Vec<Vec<char>>>> {
 }
 
 // python _sep_re 의 조각: 끝 구분자를 떼고 두 구분자로 나눈다
-fn pieces(path: &str) -> Vec<Vec<char>> {
+fn pieces(path: &str) -> PathPattern {
     path.trim_end_matches(is_sep)
         .split(is_sep)
         .map(|p| p.chars().collect())
@@ -204,7 +207,7 @@ impl Scan {
     }
 
     // 절대 꼴 하나를 `at` 에서
-    fn abs_at(&self, at: usize, prefixes: &[Vec<Vec<char>>]) -> Option<Match> {
+    fn abs_at(&self, at: usize, prefixes: &[PathPattern]) -> Option<Match> {
         if !self.after_boundary(at) {
             return None;
         }
