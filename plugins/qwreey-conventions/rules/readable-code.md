@@ -25,7 +25,7 @@ A reader scans code by shape before reading it: blank lines end a step, short co
 - A design reason is a plain comment above the declaration, apart from the doc comment. Inside a body a reason is one line at the trap, below the step label; never a multi-line block between statements.
 - Declare a local at first use in the narrowest block (handles every step uses at the top, loop state right before the loop). One name per declaration except receiving multiple returns. One role keeps one name; paired operations get symmetric names; no one-letter locals except loop indices.
 - The second time the same few-line loop is needed, extract a helper.
-- Tests follow the same layout. Each test says the one behavior it checks in a one-line doc comment, or in the name string where the runner takes one; a line that needs "and" means two tests. An expected value whose cause the test does not show gets a reason line or an assertion message (`512.0`: "x" is not a number, so the default).
+- Tests too: each states the one behavior it checks in a one-line doc comment or the runner's name string; "and" means two tests. An unexplained expected value gets a reason line or assertion message (`512.0`: bad number, so the default).
 
       local function reparent(proxy, newParent)
           local data = proxyData[proxy]

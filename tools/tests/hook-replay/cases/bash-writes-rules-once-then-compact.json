@@ -14,14 +14,14 @@
     "hook_event_name": "PreToolUse",
     "tool_name": "Bash",
     "tool_input": {
-     "command": "echo '# e · f' > src/r1.py"
+     "command": "echo '# e f' > src/r1.py"
     },
     "tool_use_id": "t1"
    },
    "expect": {}
   },
   {
-   "sh": "echo '# e · f' > src/r1.py"
+   "sh": "echo '# e f' > src/r1.py"
   },
   {
    "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
@@ -30,7 +30,7 @@
     "hook_event_name": "PostToolUse",
     "tool_name": "Bash",
     "tool_input": {
-     "command": "echo '# e · f' > src/r1.py"
+     "command": "echo '# e f' > src/r1.py"
     },
     "tool_use_id": "t1"
    },
@@ -47,14 +47,14 @@
     "hook_event_name": "PreToolUse",
     "tool_name": "Bash",
     "tool_input": {
-     "command": "echo '# g · h' > src/r2.py"
+     "command": "echo '# g h' > src/r2.py"
     },
     "tool_use_id": "t2"
    },
    "expect": {}
   },
   {
-   "sh": "echo '# g · h' > src/r2.py"
+   "sh": "echo '# g h' > src/r2.py"
   },
   {
    "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
@@ -63,7 +63,7 @@
     "hook_event_name": "PostToolUse",
     "tool_name": "Bash",
     "tool_input": {
-     "command": "echo '# g · h' > src/r2.py"
+     "command": "echo '# g h' > src/r2.py"
     },
     "tool_use_id": "t2"
    },
