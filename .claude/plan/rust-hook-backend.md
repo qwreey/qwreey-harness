@@ -69,7 +69,7 @@ Q38 b(사용자): 계획만 먼저 쓰고 debate 로 확정한다. debate 종합
 ## 열린 문제
 정해진 것(Q39 a): 순서, 런처 없음, 바이너리 단위(플러그인마다 하나), 워크스페이스 자리(이 저장소), `native/`. 남은 것은 사용자 답을 기다린다(audit 67 "For the user").
 1. **배포 ref 확정:** OS별 ref 가 우선 후보. 0단계에서 `#<ref>` 설치를 확인한 뒤 정한다. 이 저장소의 브랜치 대 별도 저장소(Q19 공개 시점과 함께).
-   - 바이너리 자리도 함께 정한다(coderag 포함): 플러그인에 싣기(지금 `native/`) 대 PATH 에 깔기. PATH 쪽 본보기: rtk(github.com/rtk-ai/rtk: brew, winget, `~/.local/bin` 에 까는 curl 스크립트, OS별 release; `rtk init -g` 가 `~/.claude/settings.json` 에 `rtk hook claude` 를 적고, `--gemini`, `--codex` 등 여러 에이전트, `--uninstall`, `--dry-run`), qx(github.com/Tlkh201313/qx: `cargo install --git`, `qx setup claude-code|codex|...`, `--remove`, 백업 파일). 벤더 중립이면 이 꼴(바이너리 하나와 에이전트마다 `setup`)이 맞고, coderag 의 `adapt --harness` 와도 닮았다. 대신 Q39 a 의 "플러그인마다 바이너리"를 다시 보게 되고, 동료가 설치를 한 번 더 해야 하며, 플러그인과 바이너리의 판이 어긋날 수 있다. 래퍼 비용(coderag 래퍼 4.6 ms 대 직접 1.1 ms)과 바이너리가 없을 때 훅 오류가 보이는지는 0단계에서 잰다.
+   - 바이너리 자리(audit 68, Q57 c: 열어 둔다): 동료가 플러그인을 받는 길에 달렸다. claude.ai 조직 배포는 기본 브랜치만 읽고 `archive` 소스와 맨 위 `bin/` 을 받지 않으므로, 그 길이면 플러그인에 싣되(바이너리를 기본 브랜치에 커밋하거나 다른 길을 0단계에서 찾는다) PATH 설치는 밀 수 없다. 마켓 CLI 면 (1b) 플러그인 `native/` + OS별 release zip 과 (2) PATH 에 한 벌 + hooks.json 이 이름으로 부르기가 둘 다 된다. rtk·qx 꼴(setup 이 settings.json 에 훅을 적기)은 플러그인 옵션이 오지 않아 쓰지 않는다. 0단계에서 잴 것: Windows 실행 형식이 확장자 없는 이름에서 `.exe` 를 찾나, 모든 OS 에서 `<bin>.exe` 이름이 되나, GUI·Cowork 로 띄운 Claude 의 PATH, 바이너리가 없을 때 사용자에게 보이는 것.
 2. **동료 환경:** claude.ai 조직 배포·Cowork 를 쓰나, OS 와 아키텍처(macOS, ARM), 회사 Windows 가 서명 없는 exe 를 막나.
 3. **바이너리가 없을 때 막는 훅:** 진행(오늘과 같음) 대 `onFailure: "block"`.
 4. **CI 러너 비용:** macOS, Windows.
