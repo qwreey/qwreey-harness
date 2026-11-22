@@ -5,7 +5,7 @@
 use std::io::{Read, Write};
 use std::process::ExitCode;
 
-use qwreey_reply_language::context::Context;
+use harness_hook::HookEnv;
 
 const USAGE: &str = "usage: qwreey-reply-language hook reply-language";
 
@@ -20,7 +20,7 @@ fn main() -> ExitCode {
     if std::io::stdin().lock().read_to_end(&mut raw).is_err() {
         return ExitCode::SUCCESS;
     }
-    let out = qwreey_reply_language::run(&Context::from_process(), &raw);
+    let out = qwreey_reply_language::run(&HookEnv::from_process(), &raw);
     if !out.is_empty() {
         let mut stdout = std::io::stdout().lock();
         let _ = stdout.write_all(&out).and_then(|()| stdout.flush());

@@ -4,27 +4,27 @@
 
 use std::io::Write;
 
+use harness_hook::HookEnv;
 use harness_hook::nonce::now_secs;
 use harness_hook::py::fs::os_path;
 use harness_hook::py::json::{EnsureAscii, dumps_dict};
 use harness_hook::py::path::join;
 use harness_hook::py::value::{Dict, Value};
 
-use crate::context::Context;
 use crate::language::data_dir;
 use crate::pyval::{Abort, Result, parse_object, read_bytes, round3, sanitize, take_chars};
 
 const NS: &str = "claude-conventions-lang";
 
 /// python `state_file(session_id)`: 폴더를 만든다. 임시 폴더가 없거나 만들지 못하면 `None`(python OSError).
-fn state_file(ctx: &Context, sid: &str) -> Option<String> {
+fn state_file(ctx: &HookEnv, sid: &str) -> Option<String> {
     let dir = join(ctx.tempdir()?, NS);
     std::fs::create_dir_all(os_path(&dir)?).ok()?;
     Some(join(&dir, &format!("{}.json", sanitize(sid))))
 }
 
 /// python `load_state(session_id)`: 읽지 못하면 빈 dict. 객체가 아닌 JSON 은 python 이 쓰다가 예외로 끝난다.
-pub fn load(ctx: &Context, sid: &str) -> Result<Dict> {
+pub fn load(ctx: &HookEnv, sid: &str) -> Result<Dict> {
     let Some(path) = state_file(ctx, sid) else {
         return Ok(Dict::new());
     };
@@ -36,7 +36,7 @@ pub fn load(ctx: &Context, sid: &str) -> Result<Dict> {
 }
 
 /// python `save_state(session_id, st)`: pid 붙은 임시 파일에 쓰고 바꿔 놓는다. 실패는 넘긴다.
-pub fn save(ctx: &Context, sid: &str, st: &Dict) {
+pub fn save(ctx: &HookEnv, sid: &str, st: &Dict) {
     let Some(path) = state_file(ctx, sid) else {
         return;
     };
@@ -50,7 +50,7 @@ pub fn save(ctx: &Context, sid: &str, st: &Dict) {
 }
 
 /// python `log(session_id, kind, ratio, length)`: 감지와 조치마다 한 줄(본문 없음). 데이터 폴더가 없거나 쓰지 못하면 넘긴다.
-pub fn log(ctx: &Context, sid: &str, kind: &str, ratio: Option<f64>, length: Option<Value>) {
+pub fn log(ctx: &HookEnv, sid: &str, kind: &str, ratio: Option<f64>, length: Option<Value>) {
     let Some(dir) = data_dir(ctx) else {
         return;
     };

@@ -4,12 +4,12 @@
 //! - Stop: 마지막 답이 이탈이면 `decision: block` 으로 다시 쓰게 한다. 사용자가 이번 턴에 목표 문자로 거의 쓰지 않았으면 통과.
 //! - PostToolBatch: 도구 호출 사이 글이 이탈이면 info(쿨다운), 한 프롬프트의 도구 호출이 10, 이후 15마다 info.
 
+use harness_hook::HookEnv;
 use harness_hook::py::json::{EnsureAscii, dumps_dict};
 use harness_hook::py::path::join;
 use harness_hook::py::surrogate::from_os;
 use harness_hook::py::value::{Dict, Value};
 
-use crate::context::Context;
 use crate::drift::{PASTED, is_drift, strip_text};
 use crate::language::{Script, data_dir, script_for, settings_language, stored_language};
 use crate::pyval::{Abort, Num, Result, number, py_eq};
@@ -23,7 +23,7 @@ const PROMPT_MIN_TARGET: usize = 3;
 
 /// 한 입력의 공통 값.
 pub struct Event<'a> {
-    pub ctx: &'a Context,
+    pub ctx: &'a HookEnv,
     pub data: &'a Dict,
     /// python `str(session_id or "nosession")` 의 글(상태와 로그 이름). 없으면 빈 글.
     pub sid: String,
