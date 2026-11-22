@@ -23,11 +23,22 @@ pub fn sanitize(text: &str) -> String {
 ///
 /// python `int()` 가 받지만 i128 을 넘는 값도 0 으로 본다(그런 회차는 쓰이지 않는다).
 pub fn epoch(tempdir: &str, plugin: &str, session_id: &str) -> i128 {
-    let dir = join(tempdir, &format!("claude-{}-epoch", sanitize(plugin)));
+    let dir = join(
+        tempdir,
+        &format!("claude-{}-epoch", sanitize_plugin(plugin)),
+    );
     match fs::read_text(&join(&dir, &sanitize(session_id))) {
         Ok(text) => parse_int(&text).unwrap_or(0),
         Err(_) => 0,
     }
+}
+
+// python `_plugin(plugin)`: `_sid` 와 달리 빈 글을 nosession 으로 바꾸지 않는다
+fn sanitize_plugin(plugin: &str) -> String {
+    plugin
+        .chars()
+        .filter(|&c| c == '-' || is_word(u32::from(c)))
+        .collect()
 }
 
 /// 이 회차의 dedup 상태 파일 경로(python `state_path`): `<임시 폴더>/<namespace>/<sid>.c<회차>[.a<agent>].json`.
@@ -77,6 +88,12 @@ mod tests {
         std::fs::write(join(&dir, "s1"), " 3\n").unwrap();
         assert_eq!(epoch(&tmp, "p", "s1"), 3);
         assert_eq!(epoch(&tmp, "p", "s2"), 0);
+
+        // An epoch namespace that cleans to nothing stays empty, like python _plugin
+        let bare = join(&tmp, "claude--epoch");
+        std::fs::create_dir_all(&bare).unwrap();
+        std::fs::write(join(&bare, "s1"), "5").unwrap();
+        assert_eq!(epoch(&tmp, "//", "s1"), 5);
         assert_eq!(
             state_path(&tmp, "p", "ns", "s1", Some("a/1")).unwrap(),
             join(&join(&tmp, "ns"), "s1.c3.aa1.json")
