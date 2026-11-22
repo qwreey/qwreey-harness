@@ -1,0 +1,127 @@
+{
+ "description": "bash: rules come with the first write in a context, not the second, and again after PreCompact bumps the epoch",
+ "files": {
+  "src/a.py": "x = 1\n"
+ },
+ "setup": [
+  "git add -A && git commit -qm init"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# e · f' > src/r1.py"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {}
+  },
+  {
+   "sh": "echo '# e · f' > src/r1.py"
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# e · f' > src/r1.py"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "tags": [
+     "rules-inject/info"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# g · h' > src/r2.py"
+    },
+    "tool_use_id": "t2"
+   },
+   "expect": {}
+  },
+  {
+   "sh": "echo '# g · h' > src/r2.py"
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# g · h' > src/r2.py"
+    },
+    "tool_use_id": "t2"
+   },
+   "expect": {
+    "no_tags": [
+     "rules-inject"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/compact_epoch.py",
+   "argv": [
+    "qwreey-conventions"
+   ],
+   "payload": {
+    "hook_event_name": "PreCompact",
+    "trigger": "auto"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# i · j' > src/r3.py"
+    },
+    "tool_use_id": "t3"
+   },
+   "expect": {
+    "tags": [
+     "bash-bypass-reminder/warn"
+    ]
+   }
+  },
+  {
+   "sh": "echo '# i · j' > src/r3.py"
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# i · j' > src/r3.py"
+    },
+    "tool_use_id": "t3"
+   },
+   "expect": {
+    "tags": [
+     "rules-inject/info"
+    ]
+   }
+  }
+ ]
+}

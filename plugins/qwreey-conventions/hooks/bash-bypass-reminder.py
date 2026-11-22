@@ -108,14 +108,17 @@ def redirect_targets(cmd):
 
 
 def cmd_paths(cmd):
-    """명령에 든 코드 파일 경로. 따옴표로 묶은 것은 공백이 있어도 통째로 하나다."""
+    """명령에 든 코드 파일 경로, 정렬한 목록. 따옴표로 묶은 것은 공백이 있어도 통째로 하나다.
+
+    정렬하는 까닭: 스냅숏이 이 순서로 글을 적고 한도를 센다. set 순서는 실행마다 다르므로(PYTHONHASHSEED) 정렬해야 같은 명령이
+    늘 같은 스냅숏을 낸다."""
     paths = []
     for m in QUOTED.finditer(cmd):
         inner = m.group(1) if m.group(1) is not None else m.group(2)
         if CODE_FILE.search(inner) and " " in inner.strip():
             paths.append(inner)
     bare = QUOTED.sub(lambda m: m.group(0) if " " not in m.group(0).strip("'\"").strip() else " ", cmd)
-    return set(paths) | {m.group(0) for m in PATHLIKE.finditer(bare)}
+    return sorted(set(paths) | {m.group(0) for m in PATHLIKE.finditer(bare)})
 
 
 def heads(cmd):

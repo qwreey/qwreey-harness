@@ -1,0 +1,100 @@
+{
+ "description": "bash: Post without a snapshot is silent; another pending snapshot in the session limits the check to named files; an hour-old one is swept",
+ "files": {
+  "src/a.py": "x = 1\n",
+  "{tmp}/claude-conventions/bash/s1.main.stale.json": {
+   "text": "{}",
+   "mtime_ago": 4000
+  }
+ },
+ "setup": [
+  "git add -A && git commit -qm init"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo hi > src/z.py"
+    },
+    "tool_use_id": "t0"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# a · b' > src/one.py"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "tags": [
+     "bash-bypass-reminder/warn"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# c · d' > src/two.py"
+    },
+    "tool_use_id": "t2"
+   },
+   "expect": {}
+  },
+  {
+   "sh": "echo '# a · b' > src/one.py && echo '# c · d' > src/two.py"
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# c · d' > src/two.py"
+    },
+    "tool_use_id": "t2"
+   },
+   "expect": {
+    "contains": [
+     "src/two.py may not follow"
+    ],
+    "not_contains": [
+     "src/one.py"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "echo '# a · b' > src/one.py"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "contains": [
+     "src/one.py may not follow"
+    ]
+   }
+  }
+ ]
+}

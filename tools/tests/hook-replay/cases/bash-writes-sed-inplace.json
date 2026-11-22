@@ -1,0 +1,51 @@
+{
+ "description": "bash: sed -i adds a comment line; warn before, and the added line gets the symbol notice after",
+ "files": {
+  "src/a.py": "def f():\n    return 1\n"
+ },
+ "setup": [
+  "git add -A && git commit -qm init"
+ ],
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "sed -i 's/return 1/# one · two\\n    return 1/' src/a.py"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "tags": [
+     "bash-bypass-reminder/warn"
+    ]
+   }
+  },
+  {
+   "sh": "sed -i 's/return 1/# one · two\\n    return 1/' src/a.py"
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash_writes.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "sed -i 's/return 1/# one · two\\n    return 1/' src/a.py"
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "tags": [
+     "qwreey-conventions/info"
+    ],
+    "contains": [
+     "src/a.py may not follow the comment conventions"
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,97 @@
+{
+ "description": "bypass: rules of installed plugins are named, domain packs only when the project's coderag.toml lists them",
+ "files": {
+  "src/a.ts": "x\n",
+  "{sandbox}/inst/tool/rules/tool.md": "---\npaths: [\"**/*.ts\"]\n---\n# t\n",
+  "{sandbox}/inst/pack/rules/pack.md": "---\npaths:\n  - \"**/*.ts\"\n---\n# p\n",
+  "{sandbox}/inst/pack/coderag.toml": "[pack]\nname = \"pack\"\n",
+  "{cfg}/plugins/installed_plugins.json": "{\"version\": 2, \"plugins\": {\"tool@m\": [{\"installPath\": \"{sandbox}/inst/tool\"}], \"pack@m\": [{\"installPath\": \"{sandbox}/inst/pack\"}]}}",
+  "{home}/.coderag/coderag.toml": "# user packs\n[[packs]]\nname = \"pack\"\npath = \"{sandbox}/inst/pack\"\n"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "python3 -c \"print(open('src/a.ts').read())\""
+    },
+    "tool_use_id": "t1"
+   },
+   "expect": {
+    "tags": [
+     "bash-bypass-reminder/info"
+    ],
+    "contains": [
+     "tool (tool rule:"
+    ],
+    "not_contains": [
+     "pack (pack rule:"
+    ]
+   }
+  },
+  {
+   "write": {
+    "coderag.toml": "[[packs]]\nname = \"pack\"\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s2",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "python3 -c \"open('src/b.ts','w').write('x')\""
+    },
+    "tool_use_id": "t2"
+   },
+   "expect": {
+    "tags": [
+     "bash-bypass-reminder/warn"
+    ],
+    "contains": [
+     "pack (pack rule:"
+    ]
+   }
+  },
+  {
+   "write": {
+    "coderag.toml": "[[packs]]\nname = \"pack\"\npath = 5\n[packs.x]\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s3",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "python3 -c \"open('src/b.ts','w').write('x')\""
+    },
+    "tool_use_id": "t3"
+   },
+   "expect": {}
+  },
+  {
+   "write": {
+    "coderag.toml": "packs = 3\n"
+   }
+  },
+  {
+   "hook": "plugins/qwreey-conventions/hooks/bash-bypass-reminder.py",
+   "payload": {
+    "session_id": "s4",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+     "command": "python3 -c \"open('src/b.ts','w').write('x')\""
+    },
+    "tool_use_id": "t4"
+   },
+   "expect": {}
+  }
+ ]
+}

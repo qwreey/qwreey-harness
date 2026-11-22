@@ -31,7 +31,7 @@ use crate::halt::{Halt, Result};
 use crate::pyval;
 
 pub use glob::{compile as compile_glob, rule_matches};
-pub use paths::{excluded, project_root, skipped_dir};
+pub use paths::{excluded, getcwd, project_root, skipped_dir};
 pub use rule::{Rule, RuleText, load_dir, parse_rule};
 
 /// 이 바이너리가 든 플러그인(python `rules_inject` 의 `PLUGIN`, `RULES_DIR`).
@@ -48,11 +48,7 @@ impl Plugin {
     ///
     /// plugin.json 이 dict 가 아닌 JSON 이면 python 은 모듈을 읽다 끝난다([`Halt::PyError`]).
     pub fn locate(ctx: &Context) -> Result<Plugin> {
-        let exe_dir = ctx
-            .exe_dir
-            .as_deref()
-            .ok_or(Halt::Unported("no executable folder"))?;
-        let root = dirname(&from_os(exe_dir.as_os_str())).to_owned();
+        let root = plugin_root(ctx)?;
         let manifest = join(&join(&root, ".claude-plugin"), "plugin.json");
         let parsed = fs::read_text(&manifest).ok().and_then(|t| loads(&t).ok());
         let name = match &parsed {
@@ -90,6 +86,15 @@ impl Plugin {
         )
         .map_err(|_| Halt::PyError("cannot create the rules state folder"))
     }
+}
+
+/// 이 바이너리가 든 플러그인 폴더: `native/` 의 위(python 판은 `hooks/` 의 위).
+pub fn plugin_root(ctx: &Context) -> Result<String> {
+    let exe_dir = ctx
+        .exe_dir
+        .as_deref()
+        .ok_or(Halt::Unported("no executable folder"))?;
+    Ok(dirname(&from_os(exe_dir.as_os_str())).to_owned())
 }
 
 /// rules-inject 훅 하나. python 이 조용히 넘기는 실패는 모두 `None` 이다.

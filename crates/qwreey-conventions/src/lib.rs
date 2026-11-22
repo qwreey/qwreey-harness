@@ -19,9 +19,12 @@
 //! - python 정본 영역(`value=string`)이 읽는 꼴 밖(내포, lambda, t-string, 표에 없는 `\N{...}` 이름): 그 영역만 판정하지 않는다.
 //! - 시간 한도(reuse-check 300, 400 ms)는 두 판의 속도가 달라 느린 실행에서만 끊는 자리가 다르다.
 
+pub mod bash_writes;
+pub mod bypass;
 pub mod check;
 pub mod context;
 pub mod edit;
+pub mod git;
 pub mod halt;
 pub mod lex;
 pub mod memory;

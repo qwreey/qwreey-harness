@@ -10,7 +10,7 @@ use harness_hook::HookInput;
 use harness_hook::input::InputError;
 use qwreey_conventions::context::Context;
 use qwreey_conventions::halt::{Halt, Result};
-use qwreey_conventions::{check, memory, reuse, rules, stdout, structure};
+use qwreey_conventions::{bash_writes, bypass, check, memory, reuse, rules, stdout, structure};
 
 const USAGE: &str = "usage: qwreey-conventions hook <conventions-check|reuse-check|structure-reminder|memory-placement|\
                      rules-inject|bash-bypass-reminder|bash-writes>";
@@ -64,6 +64,20 @@ const HOOKS: &[Hook] = &[
         crash_on_non_object: false,
         catches_output_error: true,
         run: rules::run,
+    },
+    Hook {
+        name: "bash-bypass-reminder",
+        switch: None,
+        crash_on_non_object: false,
+        catches_output_error: true,
+        run: bypass::run,
+    },
+    Hook {
+        name: "bash-writes",
+        switch: None,
+        crash_on_non_object: false,
+        catches_output_error: true,
+        run: bash_writes::run,
     },
 ];
 

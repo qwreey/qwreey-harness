@@ -61,14 +61,14 @@ fn market_dir(markets: &Dict, market: &str, name: &str) -> Result<Option<String>
 }
 
 /// 설치 기록의 플러그인 하나(python `installed_roots` 의 원소).
-struct Installed {
-    name: String,
-    market: String,
-    root: String,
+pub struct Installed {
+    pub name: String,
+    pub market: String,
+    pub root: String,
 }
 
 /// python `installed_roots(cfg)`: installed_plugins.json 순서. 폴더는 마켓 정의가 가리키는 곳, 없으면 첫 installPath.
-fn installed_roots(cfg: &str) -> Result<Vec<Installed>> {
+pub fn installed_roots(cfg: &str) -> Result<Vec<Installed>> {
     let markets = read_json(&plugins_file(cfg, "known_marketplaces.json"))
         .into_dict()
         .unwrap_or_default();

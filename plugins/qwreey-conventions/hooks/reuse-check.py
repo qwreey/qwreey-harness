@@ -135,6 +135,8 @@ def read_entry(root, rel, text=None, deadline=None):
     fp = os.path.join(root, rel)
     st = os.stat(fp)
     if text is None:
+        if not os.path.isfile(fp):
+            raise OSError("not a regular file")  # FIFO 를 열면 쓰는 쪽이 올 때까지 멈춘다
         text = open(fp, encoding="utf-8").read()
     if GEN.search("\n".join(text.split("\n", 6)[:6])):
         return [st.st_mtime_ns, st.st_size, [], []]
