@@ -21,9 +21,8 @@ getrandom = { workspace = true }
 # ledger 행의 시각(python time.strftime("%Y-%m-%dT%H:%M:%S%z"), 이 기기 시간대).
 jiff = { workspace = true }
 
-# git 에 이 훅이 물려받은 fd(>2)를 넘기지 않는다(python subprocess 의 close_fds=True). flock(handback 상태 잠금).
+# flock(handback 상태 잠금).
 [target.'cfg(unix)'.dependencies]
-close_fds = { workspace = true }
 rustix = { workspace = true }
 
 # 대조 시험이 python 쪽과 주고받는 JSON.

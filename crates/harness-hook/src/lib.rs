@@ -12,6 +12,7 @@
 pub mod ambient;
 pub mod env;
 pub mod epoch;
+pub mod git;
 pub mod hook_env;
 pub mod input;
 pub mod known_repos;

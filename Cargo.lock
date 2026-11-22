@@ -95,6 +95,7 @@ dependencies = [
 name = "harness-hook"
 version = "0.1.0"
 dependencies = [
+ "close_fds",
  "getrandom",
  "regex",
  "rustix",
@@ -239,7 +240,6 @@ dependencies = [
 name = "qwreey-advisor"
 version = "0.1.0"
 dependencies = [
- "close_fds",
  "getrandom",
  "harness-hook",
  "jiff",
@@ -253,7 +253,6 @@ dependencies = [
 name = "qwreey-conventions"
 version = "0.1.0"
 dependencies = [
- "close_fds",
  "harness-hook",
  "rustix",
  "serde_json",
