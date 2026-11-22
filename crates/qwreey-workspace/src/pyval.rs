@@ -33,7 +33,7 @@ mod tests {
         assert_eq!(truthy_text(Some(&Value::Int(0))), "");
         assert_eq!(truthy_text(Some(&Value::Float(1e20))), "1e+20");
 
-        // 목록 안의 ASCII 밖 글자도 python repr 그대로
+        // Non-ASCII chars inside a list keep their python repr
         let odd = loads(r#"["\u00e9\u00a0"]"#).unwrap();
         assert_eq!(py_str(&odd), "['\u{e9}\\xa0']");
     }
