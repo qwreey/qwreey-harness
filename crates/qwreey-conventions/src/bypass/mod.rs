@@ -21,7 +21,7 @@ use harness_hook::py::value::Value;
 
 use crate::bash_writes::{before, snap};
 use crate::context::{Context, PLUGIN};
-use crate::halt::Result;
+use crate::halt::{Halt, Result};
 use crate::pyops::str_order;
 use crate::pyval;
 use crate::rules::{self, Plugin};
@@ -132,6 +132,8 @@ impl Signals {
             .get_nonempty("CLAUDE_PROJECT_DIR")
             .unwrap_or(&cwd)
             .to_owned();
+
+        // Programs run, and whether something writes
         let heads = heads(&cmd);
         let writes = INPLACE.is_match(&cmd) || !redirect_targets(&cmd).is_empty();
         let interp = heads.iter().any(|h| INTERP.contains(&h.as_str()));
@@ -160,38 +162,13 @@ fn remind(ctx: &Context, input: &HookInput, plugin: &Plugin) -> Result<Option<St
     let sid = pyval::truthy_text(input.get("session_id"))?.unwrap_or_default();
     let agent = pyval::truthy_text(input.get("agent_id"))?;
     let state_path = epoch::state_path(ctx.tempdir()?, PLUGIN, NS, &sid, agent.as_deref())
-        .map_err(|_| crate::halt::Halt::PyError("cannot create the reminder state folder"))?;
+        .map_err(|_| Halt::PyError("cannot create the reminder state folder"))?;
     let mut seen = Seen::load(&state_path);
 
     // Snapshot for the after-command check; a failure keeps the reminder
     let _ = take_snapshot(ctx, input, &s);
 
-    // Notes: writes or interpreter, then rules for the touched files
-    let mut notes: Vec<String> = Vec::new();
-    let mut warn = false;
-    if s.writes && !seen.has("write") {
-        seen.add("write".into());
-        warn = true;
-        notes.push(WRITE_NOTE.to_owned());
-    } else if s.interp && !seen.has("interp") {
-        seen.add("interp".into());
-        warn |= s.interp_writes;
-        notes.push(interp_note(&s.heads));
-    }
-    if s.writes || s.interp {
-        let hit = rules_hit(ctx, plugin, &s, &seen)?;
-        if !hit.is_empty() {
-            warn |= s.writes || s.interp_writes;
-            notes.push(format!(
-                "Rules that apply to files this command touches: {}. If this command writes these files, read the rules first if \
-                 you have not; read-only commands need nothing.",
-                hit.iter().map(|(_, d)| d.as_str()).collect::<Vec<_>>().join(", ")
-            ));
-            for (path, _) in hit {
-                seen.add(path);
-            }
-        }
-    }
+    let (notes, warn) = notes(ctx, plugin, &s, &mut seen)?;
     if notes.is_empty() || seen.mixed {
         return Ok(None);
     }
@@ -207,6 +184,45 @@ fn remind(ctx: &Context, input: &HookInput, plugin: &Plugin) -> Result<Option<St
     Ok(Some(
         HookOutput::context("PreToolUse", text).render(EnsureAscii::No),
     ))
+}
+
+// 알림 문장들과 warn 인가: 쓰기나 인터프리터(종류마다 한 번), 그다음 건드리는 파일에 맞는 rule(파일마다 한 번)
+fn notes(
+    ctx: &Context,
+    plugin: &Plugin,
+    s: &Signals,
+    seen: &mut Seen,
+) -> Result<(Vec<String>, bool)> {
+    let mut notes: Vec<String> = Vec::new();
+    let mut warn = false;
+    if s.writes && !seen.has("write") {
+        seen.add("write".into());
+        warn = true;
+        notes.push(WRITE_NOTE.to_owned());
+    } else if s.interp && !seen.has("interp") {
+        seen.add("interp".into());
+        warn |= s.interp_writes;
+        notes.push(interp_note(&s.heads));
+    }
+    if !(s.writes || s.interp) {
+        return Ok((notes, warn));
+    }
+
+    // Rules for the files the command names
+    let hit = rules_hit(ctx, plugin, s, seen)?;
+    if !hit.is_empty() {
+        warn |= s.writes || s.interp_writes;
+        let shown: Vec<&str> = hit.iter().map(|(_, d)| d.as_str()).collect();
+        notes.push(format!(
+            "Rules that apply to files this command touches: {}. If this command writes these files, read the rules first if \
+             you have not; read-only commands need nothing.",
+            shown.join(", ")
+        ));
+        for (path, _) in hit {
+            seen.add(path);
+        }
+    }
+    Ok((notes, warn))
 }
 
 fn interp_note(heads: &[String]) -> String {

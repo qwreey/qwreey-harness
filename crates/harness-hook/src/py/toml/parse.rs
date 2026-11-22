@@ -150,14 +150,7 @@ impl<'s> Parser<'s> {
     }
 
     fn starts_with(&self, pos: usize, s: &str) -> bool {
-        let mut i = pos;
-        for c in s.chars() {
-            if self.at(i) != Some(c) {
-                return false;
-            }
-            i += 1;
-        }
-        true
+        (pos..).zip(s.chars()).all(|(i, c)| self.at(i) == Some(c))
     }
 
     fn skip(&self, mut pos: usize, chars: &[char]) -> usize {

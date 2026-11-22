@@ -73,7 +73,7 @@ pub fn more_line(plugin_root: &str, root: &str, left: &[String]) -> Result<Strin
     ))
 }
 
-/// python `notices(cc, data, snap, items, t0, unread)`: 파일 순서로 conventions-check 의 `file_notice` 를 돌린 알림.
+/// python `notices(cc, data, snap, items, t0, unread)`: 파일 순서로 conventions-check 의 알림을 모은다.
 ///
 /// 본문은 알림 태그를 씌워도 [`OUTPUT_BUDGET`] 안에 든다. 담지 못한 알림은 알린 것으로 적지 않는다.
 pub fn notices(
@@ -86,83 +86,123 @@ pub fn notices(
     t0: Instant,
 ) -> Result<Notices> {
     let state_path = check::state_file(ctx, input)?;
-    let tails_room = chars(check::COMMENT_TAIL) + chars(check::DOC_TAIL) + 2;
-    let wide = join(root, &"x".repeat(SCAN_PATHS_MAX));
-    let more_room = chars(&more_line(plugin_root, root, &[wide.clone(), wide])?) + 1;
-    let mut room = OUTPUT_BUDGET as i64
-        - chars(&check::notice_tag(ctx, input, &[])?) as i64
-        - tails_room as i64
-        - more_room as i64;
+    let mut c = Collect::new(start_room(ctx, input, plugin_root, root)?);
 
     // Files in order, under the state lock
-    let mut out = Notices {
-        body: Vec::new(),
-        code: Vec::new(),
-    };
-    let mut tails: Vec<&'static str> = Vec::new();
-    let mut left: Vec<String> = Vec::new();
     {
         let _lock = state::StateLock::acquire(&state_path);
         let mut st = state::load(&state_path);
-        let (mut dirty, mut noticed) = (false, 0);
         for (i, item) in items.iter().enumerate() {
-            if noticed >= NOTICE_FILES_MAX || t0.elapsed().as_secs_f64() > BUDGET_S {
-                left = items[i..].iter().map(|c| c.path.clone()).collect();
+            let late = t0.elapsed().as_secs_f64() > BUDGET_S;
+            if c.noticed >= NOTICE_FILES_MAX || late || !c.file(ctx, input, item, &mut st)? {
+                c.left = items[i..].iter().map(|x| x.path.clone()).collect();
                 break;
-            }
-            let Some(target) = check::target(ctx, &item.path, input.get("cwd"))? else {
-                continue;
-            };
-            if target.skips_generated(&item.now) {
-                continue;
-            }
-
-            // One file's notice, kept only if it fits
-            let keep = st.clone();
-            let added = added_set(&item.before, &item.now, 0);
-            let edit = check::Edit {
-                path: &item.path,
-                target: &target,
-                text: &item.now,
-                added: &added,
-            };
-            let (parts, changed) = check::file_notice(ctx, input, &edit, &mut st, false)?;
-            let size: usize = parts.iter().map(|p| chars(p) + 1).sum();
-            if !parts.is_empty() && size as i64 > room {
-                st = keep;
-                left = items[i..].iter().map(|c| c.path.clone()).collect();
-                break;
-            }
-            dirty |= changed;
-            if !parts.is_empty() {
-                noticed += 1;
-                room -= size as i64;
-                out.body.extend(parts);
-                tails.push(target.tail());
-            }
-            if target.is_code() {
-                out.code.push(item.clone());
             }
         }
-        if dirty {
+        if c.dirty {
             state::save(&state_path, &st);
         }
     }
 
-    // One answer sentence per kind, then the files left over
-    let mut once = HashSet::new();
-    out.body.extend(
-        tails
-            .into_iter()
-            .filter(|t| once.insert(*t))
-            .map(str::to_owned),
-    );
-    let have: HashSet<String> = left.iter().cloned().collect();
-    left.extend(unread.iter().filter(|p| !have.contains(*p)).cloned());
-    if !left.is_empty() {
-        out.body.push(more_line(plugin_root, root, &left)?);
+    c.finish(plugin_root, root, unread)
+}
+
+// 알림 본문에 쓸 수 있는 글자 수: 태그, 종류마다의 대응 문장, scan 줄 자리를 뺀 것
+fn start_room(ctx: &Context, input: &HookInput, plugin_root: &str, root: &str) -> Result<i64> {
+    let tails = chars(check::COMMENT_TAIL) + chars(check::DOC_TAIL) + 2;
+    let wide = join(root, &"x".repeat(SCAN_PATHS_MAX));
+    let more = chars(&more_line(plugin_root, root, &[wide.clone(), wide])?) + 1;
+    let tag = chars(&check::notice_tag(ctx, input, &[])?);
+    Ok(OUTPUT_BUDGET as i64 - tag as i64 - tails as i64 - more as i64)
+}
+
+/// 파일을 차례로 보며 모은 알림.
+struct Collect {
+    out: Notices,
+    tails: Vec<&'static str>,
+    /// 알림에 담지 못한 파일(scan 명령으로 넘긴다).
+    left: Vec<String>,
+    room: i64,
+    noticed: usize,
+    dirty: bool,
+}
+
+impl Collect {
+    fn new(room: i64) -> Collect {
+        Collect {
+            out: Notices {
+                body: Vec::new(),
+                code: Vec::new(),
+            },
+            tails: Vec::new(),
+            left: Vec::new(),
+            room,
+            noticed: 0,
+            dirty: false,
+        }
     }
-    Ok(out)
+
+    // 파일 하나의 알림. 자리에 들지 않으면 상태를 되돌리고 거짓(여기서 멈춘다)
+    fn file(
+        &mut self,
+        ctx: &Context,
+        input: &HookInput,
+        item: &Changed,
+        st: &mut Dict,
+    ) -> Result<bool> {
+        let Some(target) = check::target(ctx, &item.path, input.get("cwd"))? else {
+            return Ok(true);
+        };
+        if target.skips_generated(&item.now) {
+            return Ok(true);
+        }
+
+        // One file's notice, kept only if it fits
+        let keep = st.clone();
+        let added = added_set(&item.before, &item.now, 0);
+        let edit = check::Edit {
+            path: &item.path,
+            target: &target,
+            text: &item.now,
+            added: &added,
+        };
+        let (parts, changed) = check::file_notice(ctx, input, &edit, st, false)?;
+        let size: usize = parts.iter().map(|p| chars(p) + 1).sum();
+        if !parts.is_empty() && size as i64 > self.room {
+            *st = keep;
+            return Ok(false);
+        }
+
+        // Count it, and pass code files on to the copy check
+        self.dirty |= changed;
+        if !parts.is_empty() {
+            self.noticed += 1;
+            self.room -= size as i64;
+            self.out.body.extend(parts);
+            self.tails.push(target.tail());
+        }
+        if target.is_code() {
+            self.out.code.push(item.clone());
+        }
+        Ok(true)
+    }
+
+    // 종류마다 대응 문장 한 번, 그리고 담지 못한 파일과 한도로 읽지 못한 파일의 scan 줄
+    fn finish(mut self, plugin_root: &str, root: &str, unread: &[String]) -> Result<Notices> {
+        let mut once = HashSet::new();
+        let tails = self.tails.into_iter().filter(|t| once.insert(*t));
+        self.out.body.extend(tails.map(str::to_owned));
+
+        let have: HashSet<String> = self.left.iter().cloned().collect();
+        self.left
+            .extend(unread.iter().filter(|p| !have.contains(*p)).cloned());
+        if !self.left.is_empty() {
+            self.out
+                .body
+                .push(more_line(plugin_root, root, &self.left)?);
+        }
+        Ok(self.out)
+    }
 }
 
 /// python `reuse_notes(data, items)`: reuse-check 를 Write 꼴 입력으로 돌린 알림 본문들(처음 [`REUSE_MAX`] 개 파일).

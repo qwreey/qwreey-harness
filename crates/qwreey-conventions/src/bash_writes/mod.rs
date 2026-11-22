@@ -60,9 +60,11 @@ fn after(ctx: &Context, input: &HookInput, t0: Instant) -> Result<Option<String>
     if input.tool_name() != Some("Bash") {
         return Ok(None);
     }
-    let event = match input.hook_event_name() {
-        Some(e @ ("PostToolUse" | "PostToolUseFailure")) => e,
-        _ => "PostToolUse",
+    // 실패한 명령만 그 이벤트 이름으로 답하고, 그 밖은 PostToolUse
+    let event = if input.hook_event_name() == Some("PostToolUseFailure") {
+        "PostToolUseFailure"
+    } else {
+        "PostToolUse"
     };
 
     // The snapshot this command's PreToolUse took, used once

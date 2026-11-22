@@ -76,7 +76,7 @@ pub(super) fn datetime_at(src: &[char], pos: usize) -> Parsed<Option<usize>> {
 }
 
 fn days_in_month(year: u32, month: u32) -> u32 {
-    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let leap = year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400));
     match month {
         2 if leap => 29,
         2 => 28,
@@ -96,10 +96,13 @@ fn digit_run(src: &[char], mut pos: usize, is_digit: fn(char) -> bool) -> usize 
     }
 }
 
+/// 진법과 그 숫자 판정(`0x`, `0b`, `0o`).
+type Radix = (u32, fn(char) -> bool);
+
 // python RE_NUMBER 의 일치와 match_to_number. 꼴이 아니면 None, int() 가 받지 않으면(4300 자리 넘는 10진) 거절
 pub(super) fn number_at(src: &[char], pos: usize) -> Parsed<Option<(usize, Item)>> {
     // Hex, binary, octal
-    let radix: Option<(u32, fn(char) -> bool)> = match (src.get(pos), src.get(pos + 1)) {
+    let radix: Option<Radix> = match (src.get(pos), src.get(pos + 1)) {
         (Some('0'), Some('x')) => Some((16, |c| c.is_ascii_hexdigit())),
         (Some('0'), Some('b')) => Some((2, |c| matches!(c, '0' | '1'))),
         (Some('0'), Some('o')) => Some((8, |c| matches!(c, '0'..='7'))),
@@ -124,7 +127,7 @@ pub(super) fn number_at(src: &[char], pos: usize) -> Parsed<Option<(usize, Item)
     }
     match src.get(end) {
         Some('0') => end += 1,
-        Some(c) if matches!(c, '1'..='9') => end = digit_run(src, end + 1, |c| c.is_ascii_digit()),
+        Some('1'..='9') => end = digit_run(src, end + 1, |c| c.is_ascii_digit()),
         _ => return Ok(None),
     }
 
