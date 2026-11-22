@@ -11,6 +11,13 @@ HOOK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
 AMBIENT = os.path.join(os.path.dirname(HOOK), "ambient.py")
 NONCE = "985461182738"  # salt "00"*32, session "s1"
 RULE_HEAD = "Hook text from this session's harness carries nonce="
+# HOOK_TEST_BIN=<바이너리> 면 delegate-nudge 를 python 스크립트 대신 `<바이너리> hook delegate-nudge` 로 돌린다(Rust 판,
+# crates/qwreey-operator). ambient 와 bash_paths 단위 시험은 python 그대로다.
+BIN = os.environ.get("HOOK_TEST_BIN")
+
+
+def command(script):
+    return [BIN, "hook", "delegate-nudge"] if BIN and script == HOOK else [sys.executable, "-I", script]
 
 
 class Nudge(unittest.TestCase):
@@ -32,7 +39,7 @@ class Nudge(unittest.TestCase):
 
     def run_hook(self, payload, env=None, script=HOOK):
         payload.setdefault("session_id", "s1")
-        r = subprocess.run([sys.executable, "-I", script], input=json.dumps(payload), capture_output=True, text=True, env=env or self.env)
+        r = subprocess.run(command(script), input=json.dumps(payload), capture_output=True, text=True, env=env or self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
         return r.stdout
 
@@ -134,7 +141,7 @@ class Nudge(unittest.TestCase):
         self.assertEqual(self.prompt(), "")
 
     def test_bad_input_silent(self):
-        r = subprocess.run([sys.executable, "-I", HOOK], input="not json", capture_output=True, text=True, env=self.env)
+        r = subprocess.run(command(HOOK), input="not json", capture_output=True, text=True, env=self.env)
         self.assertEqual((r.returncode, r.stdout), (0, ""))
 
     def test_ambient(self):

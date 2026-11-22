@@ -30,7 +30,8 @@ EXPECTED = {
 REGIONS = {
     "lib/harness_texts.py#OMIT_LINE": ["lib/ambient.py", "../coderag/crates/coderag-core/src/rules/ledger.rs"],
     "lib/harness_texts.py#NONCE_RULE": ["lib/harness_nonce.py", "crates/harness-hook/src/nonce.rs", "../coderag/crates/coderag-core/src/hooktag.rs"],
-    "lib/harness_texts.py#STOP_ERROR": ["plugins/qwreey-advisor/hooks/second-opinion-nudge.py", "plugins/qwreey-operator/hooks/subagent-bg-tasks.py"],
+    "lib/harness_texts.py#STOP_ERROR": ["plugins/qwreey-advisor/hooks/second-opinion-nudge.py", "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
+                                       "crates/qwreey-advisor/src/nudge/messages.rs", "crates/qwreey-operator/src/bg_tasks/mod.rs"],
 }
 # 표시 없이 바이트째 같아야 하는 사본. 데이터 파일이라 머리에 표시 줄을 넣으면 출처 기록의 md5 가 어긋난다.
 # 정본을 고친 뒤 사본 자리에 그대로 복사한다(sync-copies 가 다루지 않는다).

@@ -1,0 +1,17 @@
+[package]
+name = "qwreey-operator"
+version = "0.1.0"
+description = "qwreey-operator plugin hooks (delegate-nudge, subagent-bg-tasks) as one binary"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "qwreey-operator"
+path = "src/main.rs"
+
+[dependencies]
+harness-hook = { path = "../harness-hook" }
+
+[lints]
+workspace = true

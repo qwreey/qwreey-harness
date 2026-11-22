@@ -252,6 +252,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "qwreey-operator"
+version = "0.1.0"
+dependencies = [
+ "harness-hook",
+]
+
+[[package]]
 name = "qwreey-proc-guard"
 version = "0.1.0"
 dependencies = [

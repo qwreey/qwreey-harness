@@ -11,6 +11,7 @@
 
 pub mod env;
 pub mod epoch;
+pub mod hook_env;
 pub mod input;
 pub mod known_repos;
 pub mod nonce;
@@ -22,6 +23,7 @@ pub mod tag;
 pub mod testkit;
 
 pub use env::Env;
+pub use hook_env::HookEnv;
 pub use input::HookInput;
 pub use nonce::Nonce;
 pub use output::{EnsureAscii, HookOutput, HookSpecificOutput, PermissionDecision};

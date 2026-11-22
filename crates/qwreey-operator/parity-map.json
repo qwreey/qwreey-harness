@@ -1,0 +1,4 @@
+[
+ {"hook": "plugins/qwreey-operator/hooks/delegate-nudge.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-operator", "hook", "delegate-nudge"]},
+ {"hook": "plugins/qwreey-operator/hooks/subagent-bg-tasks.py", "exec": ["${CLAUDE_PLUGIN_ROOT}/native/qwreey-operator", "hook", "subagent-bg-tasks"]}
+]

@@ -1,0 +1,186 @@
+{
+ "description": "delegate-nudge: the write count crosses once per turn, the next prompt carries it once, an Agent call resets",
+ "env": {
+  "HARNESS_OPERATOR_NUDGE_WRITES": "3"
+ },
+ "steps": [
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "src/a.py",
+     "old_string": "a",
+     "new_string": "b"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+     "file_path": "src/a.py"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "src/a.py"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+     "file_path": "src/b.ts",
+     "content": "x"
+    }
+   },
+   "expect": {
+    "tags": [
+     "delegate-nudge/info"
+    ],
+    "contains": [
+     "3 times across 2 files"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "MultiEdit",
+    "tool_input": {
+     "file_path": "src/c.rs"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "next"
+   },
+   "expect": {
+    "tags": [
+     "delegate-nudge/info"
+    ],
+    "contains": [
+     "Last turn main wrote code 4 times in 3 files"
+    ]
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "next"
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "a.py"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "b.py"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+     "prompt": "do it"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "c.py"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+     "file_path": "d.py"
+    }
+   },
+   "expect": {
+    "empty": true
+   }
+  },
+  {
+   "hook": "plugins/qwreey-operator/hooks/delegate-nudge.py",
+   "payload": {
+    "hook_event_name": "PostToolUse",
+    "tool_name": "NotebookEdit",
+    "tool_input": {
+     "notebook_path": "n.ipynb"
+    }
+   },
+   "expect": {
+    "tags": [
+     "delegate-nudge/info"
+    ]
+   }
+  }
+ ]
+}

@@ -9,6 +9,9 @@ import unittest
 
 HOOK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks", "subagent-bg-tasks.py")
 NONCE = "985461182738"  # salt "00"*32, session "s1"
+# HOOK_TEST_BIN=<바이너리> 면 훅을 python 스크립트 대신 `<바이너리> hook subagent-bg-tasks` 로 돌린다(Rust 판, crates/qwreey-operator).
+BIN = os.environ.get("HOOK_TEST_BIN")
+CMD = [BIN, "hook", "subagent-bg-tasks"] if BIN else [sys.executable, "-I", HOOK]
 
 
 def task(tid, type_="shell", status="running", desc="sleep 600"):
@@ -48,7 +51,7 @@ class SubagentBgTasks(unittest.TestCase):
         self.tmp.cleanup()
 
     def run_raw(self, stdin, env=None):
-        r = subprocess.run([sys.executable, "-I", HOOK], input=stdin, capture_output=True, text=True, env=env or self.env)
+        r = subprocess.run(CMD, input=stdin, capture_output=True, text=True, env=env or self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(r.stderr, "")
         return r.stdout

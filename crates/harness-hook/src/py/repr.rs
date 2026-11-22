@@ -118,6 +118,14 @@ pub fn str_value(v: &Value) -> String {
     }
 }
 
+/// python `str(v or "")`: 없거나 거짓 값이면 빈 글, 아니면 [`str_value`].
+pub fn truthy_str(v: Option<&Value>) -> String {
+    match v {
+        Some(v) if v.truthy() => str_value(v),
+        _ => String::new(),
+    }
+}
+
 // 아직 쓰지 않은 repr 조각(작업 목록은 뒤에서 꺼내므로 거꾸로 쌓는다)
 enum Piece<'a> {
     Value(&'a Value),

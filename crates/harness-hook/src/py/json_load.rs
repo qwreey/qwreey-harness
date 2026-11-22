@@ -54,6 +54,16 @@ impl fmt::Display for JsonError {
 
 impl std::error::Error for JsonError {}
 
+/// [`MAX_DEPTH`] 를 넘은 중첩의 오류 글.
+const TOO_DEEP: &str = "nested too deeply";
+
+impl JsonError {
+    /// 중첩이 [`MAX_DEPTH`] 를 넘어 멈췄나. python 은 이 자리에서 ValueError 가 아닌 RecursionError 를 낸다.
+    pub fn too_deep(&self) -> bool {
+        self.what == TOO_DEEP
+    }
+}
+
 /// 바이트를 `decode` 로 글로 바꾼 뒤 [`loads`].
 pub fn from_bytes(bytes: &[u8], decode: Decode) -> Result<Value, JsonError> {
     match decode {
@@ -144,7 +154,7 @@ impl Parser<'_> {
     fn value_start(&mut self, stack: &mut Vec<Frame>) -> Result<Option<Value>, JsonError> {
         self.skip_ws();
         if matches!(self.peek(), Some(b'[' | b'{')) && stack.len() >= MAX_DEPTH {
-            return self.error("nested too deeply");
+            return self.error(TOO_DEEP);
         }
         match self.peek() {
             Some(b'[') => {
