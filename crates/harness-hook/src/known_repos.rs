@@ -94,8 +94,8 @@ pub fn config_dir(env: &Env) -> String {
     }
 }
 
-// python _split: `;` 로 나눈 경로들, 빈 조각은 빼고 `~` 를 푼다
-fn split_paths(value: &str, env: &Env) -> Vec<String> {
+/// python `_split(value)`: `;` 로 나눈 경로들. 빈 조각은 빼고 `~` 를 푼다.
+pub fn split_paths(value: &str, env: &Env) -> Vec<String> {
     value
         .split(';')
         .map(strip)

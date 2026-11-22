@@ -13,6 +13,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "scripts"
 SCRIPT = SCRIPTS / "sibling_notice.py"
+# HOOK_TEST_BIN=<바이너리> 면 훅을 python 스크립트 대신 `<바이너리> hook sibling-notice` 로 돌린다(Rust 판, crates/qwreey-workspace).
+# Units 와 siblings() 시험은 python 함수를 그대로 부른다.
+BIN = os.environ.get("HOOK_TEST_BIN")
+CMD = [BIN, "hook", "sibling-notice"] if BIN else [sys.executable, "-I", str(SCRIPT)]
 sys.path.insert(0, str(SCRIPTS))
 import sibling_notice as sn  # noqa: E402
 
@@ -58,7 +62,7 @@ class Base(unittest.TestCase):
 
     def run_hook(self, tool, ti, sid="s1", **kw):
         data = {"session_id": sid, "cwd": str(self.mine), "hook_event_name": "PostToolUse", "tool_name": tool, "tool_input": ti}
-        r = subprocess.run([sys.executable, "-I", str(SCRIPT)], input=json.dumps(data), capture_output=True, text=True,
+        r = subprocess.run(CMD, input=json.dumps(data), capture_output=True, text=True,
                            env=self.env(**kw), timeout=30)
         self.assertEqual(r.returncode, 0, r.stderr)
         return json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"] if r.stdout.strip() else None
@@ -178,7 +182,7 @@ class Silent(Base):
 
     def test_other_tools_and_bad_input(self):
         self.assertIsNone(self.run_hook("Read", {"file_path": str(self.mine / ".claude" / "a.md")}))
-        r = subprocess.run([sys.executable, "-I", str(SCRIPT)], input="not json", capture_output=True, text=True, env=self.env(), timeout=30)
+        r = subprocess.run(CMD, input="not json", capture_output=True, text=True, env=self.env(), timeout=30)
         self.assertEqual((r.returncode, r.stdout), (0, ""))
 
 

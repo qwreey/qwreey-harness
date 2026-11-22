@@ -1,0 +1,23 @@
+[package]
+name = "qwreey-workspace"
+version = "0.1.0"
+description = "qwreey-workspace plugin hooks (workspace-gate, sibling-notice) as one binary"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "qwreey-workspace"
+path = "src/main.rs"
+
+[dependencies]
+harness-hook = { path = "../harness-hook" }
+# deny.log 줄의 이 기기 시각(python time.strftime('%F %T'), localtime). TZ 와 tzdb 규칙을 직접 짜지 않으려고 쓴다.
+jiff = { workspace = true }
+
+# 대조 시험이 python 쪽과 주고받는 JSON.
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

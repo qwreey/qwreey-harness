@@ -18,6 +18,13 @@ ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "scripts"
 GATE = SCRIPTS / "workspace_gate.py"
 MAP = ROOT / "skills" / "workspace" / "scripts" / "map.py"
+# HOOK_TEST_BIN=<바이너리> 면 게이트를 python 스크립트 대신 `<바이너리> hook workspace-gate <이벤트>` 로 돌린다(Rust 판, crates/qwreey-workspace).
+# 분류기와 Scope 의 단위 시험은 python 함수를 그대로 부르고, ClassifierGate 가 같은 명령을 게이트로 돌려 두 판을 함께 본다.
+BIN = os.environ.get("HOOK_TEST_BIN")
+
+
+def gate_cmd(event):
+    return [BIN, "hook", "workspace-gate", event] if BIN else [sys.executable, "-I", str(GATE), event]
 sys.path.insert(0, str(SCRIPTS))
 import wslib  # noqa: E402
 
@@ -197,7 +204,7 @@ class Env(unittest.TestCase):
 
     def run_gate(self, event, data, **kw):
         data = {"session_id": self.sid, "cwd": self.proj, **data}
-        r = subprocess.run([sys.executable, "-I", str(GATE), event], input=json.dumps(data), capture_output=True, text=True,
+        r = subprocess.run(gate_cmd(event), input=json.dumps(data), capture_output=True, text=True,
                            env=self.env(**kw), timeout=30)
         self.assertEqual(r.returncode, 0, r.stderr)
         return json.loads(r.stdout) if r.stdout.strip() else None
@@ -354,11 +361,34 @@ class Gate(Env):
         self.assertIsNone(self.pre("Edit", {"file_path": "~/.claude/rules/luau-core.md"}, HOME=str(home)))
 
     def test_fail_open(self):
-        r = subprocess.run([sys.executable, "-I", str(GATE), "PreToolUse"], input="not json", capture_output=True, text=True, env=self.env())
+        r = subprocess.run(gate_cmd("PreToolUse"), input="not json", capture_output=True, text=True, env=self.env())
         self.assertEqual((r.returncode, r.stdout), (0, ""))
 
     def test_unrelated_tool(self):
         self.assertIsNone(self.run_gate("PreToolUse", {"tool_name": "WebFetch", "tool_input": {"url": "x"}}))
+
+
+class ClassifierGate(Env):
+    """분류기 표(WRITES, READS, NONE)를 게이트 훅으로: 쓰기는 deny, 읽기는 info, 무관한 명령은 출력 없음."""
+
+    def setUp(self):
+        super().setUp()
+        self.fake = str(self.ws)
+        for n in ("qwreey-harness", "quad", "stl-luau", "rbvm", "tbox", "mrow", "coderag", "luau-kb", "vitrine"):
+            (self.ws / n / ".git").mkdir(parents=True, exist_ok=True)
+        self.proj = str(self.ws / "qwreey-harness")
+
+    def outcome(self, i, cmd):
+        out = self.run_gate("PreToolUse", {"session_id": "cls%d" % i, "hook_event_name": "PreToolUse", "tool_name": "Bash",
+                                           "tool_input": {"command": cmd.replace("/code/Projects", self.fake)}})
+        if out is None:
+            return None
+        spec = out["hookSpecificOutput"]
+        return "write" if spec.get("permissionDecision") == "deny" else "read" if "additionalContext" in spec else "?"
+
+    def test_table(self):
+        for i, (cmd, want) in enumerate([(c, "write") for c in WRITES] + [(c, "read") for c in READS] + [(c, None) for c in NONE]):
+            self.assertEqual(self.outcome(i, cmd), want, cmd)
 
 
 class MapTest(Env):
