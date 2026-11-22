@@ -1,6 +1,6 @@
 # qwreey-reply-language (plugin development)
 
-One hook script, `hooks/reply_language.py`, on UserPromptSubmit (ask for the language once), Stop (block and rewrite a drifted reply) and PostToolBatch (interim drift and long-turn notices). `hooks/reply_env.py` reads the off switch through the harness.env layers. Decision rules and settings: `docs/how-it-works.md`.
+One hook, on UserPromptSubmit (ask for the language once), Stop (block and rewrite a drifted reply) and PostToolBatch (interim drift and long-turn notices). `hooks/hooks.json` runs the Rust binary `native/qwreey-reply-language hook reply-language` (exec form, source `crates/qwreey-reply-language`, built and copied by hand, git-ignored); `hooks/reply_language.py` stays as the reference it must match byte for byte, so a behavior change goes into both (`python3 -I tools/tests/hook-parity.py --map crates/qwreey-reply-language/parity-map.json`, `cargo test -p qwreey-reply-language`). `hooks/reply_env.py` reads the off switch through the harness.env layers. Decision rules and settings: `docs/how-it-works.md`.
 
 ## Tests
 `python3 -I tests/test-reply-language.py` (exit 0 = pass, no model calls). Add a case for every new pass or block pattern, including the false positive that prompted it.

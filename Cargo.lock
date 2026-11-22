@@ -246,7 +246,6 @@ name = "qwreey-conventions"
 version = "0.1.0"
 dependencies = [
  "harness-hook",
- "regex",
  "rustix",
  "sha1",
 ]

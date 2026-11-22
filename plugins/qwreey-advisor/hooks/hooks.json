@@ -34,12 +34,21 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/ambient.py\" UserPromptSubmit",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-advisor",
+            "args": [
+              "hook",
+              "ambient",
+              "UserPromptSubmit"
+            ],
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/second-opinion-nudge.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-advisor",
+            "args": [
+              "hook",
+              "second-opinion-nudge"
+            ],
             "timeout": 5
           }
         ]
@@ -51,7 +60,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/readonly-for-reviewers.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-advisor",
+            "args": [
+              "hook",
+              "readonly-for-reviewers"
+            ],
             "timeout": 10
           }
         ]
@@ -61,7 +74,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/second-opinion-nudge.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-advisor",
+            "args": [
+              "hook",
+              "second-opinion-nudge"
+            ],
             "timeout": 10
           }
         ]
@@ -71,12 +88,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/expand-inherit-prompt.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-advisor",
+            "args": [
+              "hook",
+              "expand-inherit-prompt"
+            ],
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/track-reviewer.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-advisor",
+            "args": [
+              "hook",
+              "track-reviewer"
+            ],
             "timeout": 5
           }
         ]
@@ -87,7 +112,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/second-opinion-nudge.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-advisor",
+            "args": [
+              "hook",
+              "second-opinion-nudge"
+            ],
             "timeout": 5
           }
         ]
@@ -98,7 +127,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/second-opinion-nudge.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-advisor",
+            "args": [
+              "hook",
+              "second-opinion-nudge"
+            ],
             "timeout": 5
           }
         ]
@@ -109,7 +142,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/second-opinion-nudge.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-advisor",
+            "args": [
+              "hook",
+              "second-opinion-nudge"
+            ],
             "timeout": 5
           }
         ]
@@ -120,7 +157,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/second-opinion-nudge.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-advisor",
+            "args": [
+              "hook",
+              "second-opinion-nudge"
+            ],
             "timeout": 10
           }
         ]

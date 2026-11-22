@@ -22,7 +22,7 @@
 - 주석·문서 규약(qwreey-conventions) 전체는 필요 없고 답 언어만 지키고 싶을 때. 이 플러그인은 다른 플러그인 없이 혼자 돈다.
 
 ## 요구 사항
-- 훅이 `python3` 를 부른다(표준 라이브러리만). Linux, macOS, Windows(Git Bash) 에서 쓴다.
+- 훅은 Rust 바이너리 `native/qwreey-reply-language` 를 부른다. 지금은 저장소에서 `cargo build --release -p qwreey-reply-language` 로 만들어 그 자리에 복사해야 하고, 없으면 훅이 아무것도 하지 않는다(막지 않는 오류). 바이너리는 아직 Linux 판만 있다. python 판(`hooks/reply_language.py`, 표준 라이브러리만)은 Linux, macOS, Windows(Git Bash) 에서 돌고 대조 기준으로 남는다.
 
 ## 설정
 `/plugin configure qwreey-reply-language@qwreey-harness` 나 `/config` 의 플러그인 옵션에서 고른다. 다음 답부터 적용된다.

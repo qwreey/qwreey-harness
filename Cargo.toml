@@ -26,8 +26,10 @@ close_fds = "0.3.2"
 jiff = { version = "0.2.43", default-features = false, features = ["std", "tz-system", "tzdb-zoneinfo", "tzdb-bundle-platform"] }
 # 소스에 글로 적힌 고정 정규식(Q48 a). python 과 뜻이 갈릴 수 있는 글(일부 Unicode 글자, 끝 줄바꿈)은 harness-hook 의 rx 가
 # py::re 로 넘기므로 판정은 python 과 같다. 사용자가 적는 패턴(pgrep -f, 설정 파일)은 python 이 물러날 때까지 py::re 다.
-# unicode-perl(\w \s \d \b), unicode-case((?i)), unicode-gencat(\p{L} \p{N}). perf 는 뺐다(qwreey-conventions 만 perf-dfa).
-regex = { version = "1.13", default-features = false, features = ["std", "unicode-perl", "unicode-case", "unicode-gencat"] }
+# unicode-perl(\w \s \d \b), unicode-case((?i)), unicode-gencat(\p{L} \p{N}). perf 중 perf-dfa(지연 DFA)만 모든 crate 에 켠다(Q50 a):
+# 큰 파일(3.3k 줄)에서 conventions-check 가 이것 없이 약 50 ms, 있으면 약 11 ms 다. 짧은 글만 보는 훅은 이득도 손해도 없고
+# 바이너리마다 약 124 KB 커진다. crate 마다 기능이 같으니 어느 묶음으로 빌드해도 바이너리가 같다.
+regex = { version = "1.13", default-features = false, features = ["std", "unicode-perl", "unicode-case", "unicode-gencat", "perf-dfa"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

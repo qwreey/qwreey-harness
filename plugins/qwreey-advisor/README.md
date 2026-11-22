@@ -17,6 +17,7 @@
 
 ## 요구 사항
 - 훅이 `python3` 와 `git` 을 부른다. Linux·macOS 에서 쓴다.
+- 도구마다·말마다 도는 훅은 Rust 바이너리 `native/qwreey-advisor` 를 부른다. 지금은 저장소에서 `cargo build --release -p qwreey-advisor` 로 만들어 그 자리에 복사해야 하고, 없으면 그 훅들이 아무것도 하지 않는다(막지 않는 오류이고, 리뷰어 읽기 전용 가드도 서지 않는다). 세션 시작과 compact 는 python 이다.
 
 ## 설정
 `/plugin configure qwreey-advisor@qwreey-harness` 또는 `/config` 의 플러그인 설정에서 바꾼다.

@@ -15,6 +15,8 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "tools"))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
+from usage_scan import native_alias  # noqa: E402
 LIB = ROOT / "lib"
 HOME_LIB = ROOT / "home" / ".claude" / "lib" / "harness_env.py"
 RULE_HEAD = "Hook text from this session's harness carries nonce="
@@ -225,7 +227,16 @@ class Plugins(unittest.TestCase):
 
     def commands(self, plugin_dir):
         hooks = json.loads((plugin_dir / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
-        return {ev: [h["command"] for g in groups for h in g["hooks"]] for ev, groups in hooks.items()}
+        return {ev: [self.command(h) for g in groups for h in g["hooks"]] for ev, groups in hooks.items()}
+
+    @staticmethod
+    def command(h):
+        """항목의 명령 글. Rust 바이너리(실행 형식)는 parity-map 으로 그 바이너리가 대신하는 python 스크립트 꼴로 되돌린다."""
+        prefix = "${CLAUDE_PLUGIN_ROOT}/"
+        if not h.get("args") or not h["command"].startswith(prefix):
+            return h["command"]
+        rel, args = native_alias(h["command"][len(prefix):], tuple(h["args"]))
+        return " ".join([f'"{prefix}{rel}"', *args])
 
     def test_plugins_found(self):
         self.assertEqual({d.name for d, _ in plugin_ambients()}, {"q", "qwreey-advisor", "qwreey-operator", "qwreey-workspace"})

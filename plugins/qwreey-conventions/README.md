@@ -20,6 +20,7 @@
 
 ## 요구 사항
 - 훅이 `python3` 를 부른다(표준 라이브러리만). Linux·macOS 에서 쓴다.
+- 편집마다 도는 줄 검사, 사본 검사, 파일 길이 알림, memory 자리 알림과 턴 끝 보고는 Rust 바이너리 `native/qwreey-conventions` 를 부른다. 지금은 저장소에서 `cargo build --release -p qwreey-conventions` 로 만들어 그 자리에 복사해야 하고, 없으면 그 훅들이 아무것도 하지 않는다(막지 않는 오류).
 
 ## 설정
 `/plugin configure qwreey-conventions@qwreey-harness` 나 `/config` 의 플러그인 옵션에서 고른다. 다음 파일을 열거나 다음 답부터 적용된다.

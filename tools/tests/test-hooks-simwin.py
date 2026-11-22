@@ -2,6 +2,7 @@
 
 훅마다 그 이벤트의 최소 입력을 주고 exit 0 과 stderr 에 Traceback 이 없음을 본다. 판정 내용은 test-hook-replay.py 몫이다
 (그 묶음도 HOOK_SANDBOX_SIMWIN=1 로 흉내 낼 수 있다). simwin.py 가 못 보는 것은 그 파일 머리에 있다.
+Rust 바이너리를 부르는 훅(실행 형식)은 crates/*/parity-map.json 으로 그 바이너리가 대신하는 python 원본을 돌린다. 바이너리 자체는 흉내 내지 않는다.
 """
 import json
 import os
@@ -11,7 +12,9 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # python3 -I 는 스크립트 디렉터리를 path 에 넣지 않는다
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from hook_sandbox import ROOT, Sandbox  # noqa: E402
+from usage_scan import native_alias  # noqa: E402
 
 FORM = re.compile(r'"\$\{CLAUDE_PLUGIN_ROOT\}/([^"]+)"((?: [\w.-]+)*)$')
 SKIP = {"qwreey-desk"}
@@ -42,6 +45,19 @@ def payload(event, matcher, sb):
     return {**base, **extra}
 
 
+def registered(h):
+    """hooks.json 항목이 부르는 python 스크립트 (플러그인 기준 경로, 인자 list), 없으면 None. 실행 형식은 대신하는 원본으로."""
+    command = h.get("command", "")
+    m = FORM.search(command)
+    if m:
+        return m.group(1), m.group(2).split()
+    prefix = "${CLAUDE_PLUGIN_ROOT}/"
+    if not command.startswith(prefix) or not h.get("args"):
+        return None
+    rel, args = native_alias(command[len(prefix):], tuple(h["args"]))
+    return (rel, list(args)) if rel.endswith(".py") else None
+
+
 def hooks():
     for f in sorted(ROOT.glob("plugins/*/hooks/hooks.json")):
         if f.parent.parent.name in SKIP:
@@ -49,9 +65,9 @@ def hooks():
         for event, groups in json.loads(f.read_text(encoding="utf-8"))["hooks"].items():
             for g in groups:
                 for h in g["hooks"]:
-                    m = FORM.search(h.get("command", ""))
-                    if m:
-                        yield f.parent.parent, event, g.get("matcher", ""), m.group(1), m.group(2).split()
+                    script = registered(h)
+                    if script:
+                        yield f.parent.parent, event, g.get("matcher", ""), *script
 
 
 class HooksSimWin(unittest.TestCase):

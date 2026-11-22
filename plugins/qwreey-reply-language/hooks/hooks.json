@@ -6,7 +6,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/reply_language.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-reply-language",
+            "args": [
+              "hook",
+              "reply-language"
+            ],
             "timeout": 5
           }
         ]
@@ -17,7 +21,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/reply_language.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-reply-language",
+            "args": [
+              "hook",
+              "reply-language"
+            ],
             "timeout": 5
           }
         ]
@@ -28,7 +36,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/reply_language.py\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/native/qwreey-reply-language",
+            "args": [
+              "hook",
+              "reply-language"
+            ],
             "timeout": 5
           }
         ]
