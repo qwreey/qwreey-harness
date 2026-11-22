@@ -227,6 +227,15 @@ mod tests {
         assert_eq!(str_value(&Value::Str("x/y".into())), "x/y");
     }
 
+    /// `str(v or "")`: 없거나 거짓 값은 빈 글, 참인 값은 str().
+    #[test]
+    fn truthy_str_like_python() {
+        assert_eq!(truthy_str(None), "");
+        assert_eq!(truthy_str(Some(&Value::Int(0))), "");
+        assert_eq!(truthy_str(Some(&Value::Float(1e20))), "1e+20");
+        assert_eq!(truthy_str(Some(&Value::List(vec![Value::Null]))), "[None]");
+    }
+
     /// json_load 가 받는 가장 깊은 값도 호출 스택 없이 끝난다(python 도 끝낸다).
     #[test]
     fn deepest_value_has_no_recursion() {

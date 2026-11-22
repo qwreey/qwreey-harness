@@ -403,11 +403,8 @@ pub fn account_agent(
     add_spend(dict_mut(dict_mut(st, "spent")?, "sub")?, &scanned.by_model)?;
 
     // The agent's own total and model
-    let Value::Dict(agent) = dict_mut(st, "agents")?
-        .get_mut(agent_id)
-        .expect("set above")
-    else {
-        unreachable!("set above as a dict");
+    let Some(Value::Dict(agent)) = dict_mut(st, "agents")?.get_mut(agent_id) else {
+        return Err(Stop::Raises("an agent record that is not a dict"));
     };
     let added = py_sum(scanned.by_model.iter().map(|(_, s)| s.usd))?;
     let usd = Num::need(agent.get("usd").ok_or(Stop::Raises("KeyError on usd"))?)?.plus(added)?;
