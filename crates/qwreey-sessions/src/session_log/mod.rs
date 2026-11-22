@@ -97,7 +97,7 @@ fn session_id(ctx: &Context, data: &Dict) -> Option<String> {
     let sid = match data.get("session_id").filter(|v| v.truthy()) {
         Some(Value::Str(s)) => s.clone(),
         Some(_) => return None,
-        None => from_os(ctx.env.get_os_nonempty("CLAUDE_CODE_SESSION_ID")?),
+        None => from_os(ctx.hook.env.get_os_nonempty("CLAUDE_CODE_SESSION_ID")?),
     };
     safe_sid(&sid).then_some(sid)
 }
@@ -127,7 +127,7 @@ impl Transcript {
 
 // python `os.environ.get("CLAUDE_PROJECT_DIR") or data.get("cwd") or os.getcwd()`
 fn start_dir(ctx: &Context, data: &Dict) -> Result<String> {
-    if let Some(dir) = ctx.env.get_os_nonempty("CLAUDE_PROJECT_DIR") {
+    if let Some(dir) = ctx.hook.env.get_os_nonempty("CLAUDE_PROJECT_DIR") {
         return Ok(from_os(dir));
     }
     match data.get("cwd") {
@@ -145,11 +145,11 @@ fn handle(ctx: &Context, event: Event, data: &Dict, stdout: &mut Option<String>)
     if data.get("agent_id").is_some_and(Value::truthy) {
         return Ok(());
     }
-    if ctx.env.get_os_nonempty("SESSION_LOG_NESTED").is_some() {
+    if ctx.hook.env.get_os_nonempty("SESSION_LOG_NESTED").is_some() {
         return Ok(());
     }
     let config = ctx.config();
-    if config.disabled() || config.skip_noninteractive(&ctx.env) {
+    if config.disabled() || config.skip_noninteractive(&ctx.hook.env) {
         return Ok(());
     }
 
@@ -159,7 +159,7 @@ fn handle(ctx: &Context, event: Event, data: &Dict, stdout: &mut Option<String>)
     };
     let transcript = Transcript::of(data.get("transcript_path"));
     let start = start_dir(ctx, data)?;
-    let store = Store::new(project_root(&start)?, &config.home(&ctx.env));
+    let store = Store::new(project_root(&start)?, &config.home(&ctx.hook.env));
     let mut hs = HookState::load(&store, &sid)?;
     let mut session = Session {
         ctx,
@@ -211,7 +211,7 @@ impl Session<'_> {
         let cursor = self.hs.get("notice_seq", &ZERO)?.clone();
         if greater(&Value::Int(seq), &cursor, "notice_seq is not a number")? {
             let notices = self.store.notices_after(&cursor)?;
-            let line = brief::saved_line(self.store, &notices, &self.ctx.env)?;
+            let line = brief::saved_line(self.store, &notices, &self.ctx.hook.env)?;
             self.hs.set("notice_seq", Value::Int(seq))?;
             if !line.is_empty() {
                 out.push((Level::Info, line));
