@@ -206,7 +206,7 @@ pub fn scan(path: &str, offset: &Value, recent: Option<&Value>) -> Result<Scanne
         if !contains(line, b"\"usage\"") {
             continue;
         }
-        let Some(record) = decode_line(line) else {
+        let Some(record) = decode_line(line)? else {
             continue;
         };
         let Some((model, usage)) = usage_record(&record, &mut seen)? else {
@@ -313,9 +313,14 @@ fn contains(hay: &[u8], needle: &[u8]) -> bool {
 }
 
 // python json.loads(bytes): UTF-8(맨 앞 BOM 은 뗀다). 다른 인코딩으로 보이는 줄과 읽지 못하는 줄은 None(python 도 거의 늘 ValueError)
-fn decode_line(line: &[u8]) -> Option<Value> {
+// 너무 깊은 줄은 python 의 RecursionError 자리라 훅 전체가 조용히 끝난다(except ValueError 가 잡지 않는다)
+fn decode_line(line: &[u8]) -> Result<Option<Value>> {
     let line = line.strip_prefix(b"\xef\xbb\xbf").unwrap_or(line);
-    json_load::from_bytes(line, Decode::Strict).ok()
+    match json_load::from_bytes(line, Decode::Strict) {
+        Ok(record) => Ok(Some(record)),
+        Err(e) if e.too_deep() => Err(Stop::Raises("RecursionError on a deep transcript line")),
+        Err(_) => Ok(None),
+    }
 }
 
 // 줄 하나가 아직 세지 않은 assistant 사용량이면 (모델, usage)
@@ -435,6 +440,24 @@ mod tests {
 
     fn usage(json: &str) -> Dict {
         loads(json).unwrap().into_dict().unwrap()
+    }
+
+    /// 깨진 줄은 건너뛰고, python 이 RecursionError 로 끝나는 깊은 줄은 훅 전체를 멈춘다.
+    #[test]
+    fn deep_line_stops_like_python() {
+        assert!(matches!(decode_line(b"{\"usage\": 1"), Ok(None)));
+        assert!(matches!(
+            decode_line(b"\xef\xbb\xbf{\"usage\": 1}"),
+            Ok(Some(_))
+        ));
+
+        let depth = json_load::MAX_DEPTH + 1;
+        let deep = format!(
+            "{{\"usage\": 1, \"x\": {}{}}}",
+            "[".repeat(depth),
+            "]".repeat(depth)
+        );
+        assert!(matches!(decode_line(deep.as_bytes()), Err(Stop::Raises(_))));
     }
 
     /// 실측한 sonnet 5.5 서브에이전트 하나의 사용량이 그 가격표로 $0.043544 다.
