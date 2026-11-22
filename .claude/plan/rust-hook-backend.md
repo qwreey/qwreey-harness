@@ -81,6 +81,8 @@ Q38 b(사용자): 계획만 먼저 쓰고 debate 로 확정한다. debate 종합
 ## 이식 뒤에 할 것
 - 시험 가독성(Q47 a): 시험 함수마다 한 줄 doc 주석, 준비·실행·확인을 빈 줄과 이름표로, 뻔하지 않은 기대값은 이유를 적는다. readable-code 규약에 넣을 문구는 debate 로 정하고, 이미 있는 crate 시험(harness-hook, proc-guard, sessions)은 이식이 끝난 뒤 동작은 그대로 두고 시험만 다듬는다. 새로 쓰는 시험은 지금부터 이 꼴.
 
+- 남은 작은 일(conventions 검토 뒤): git 실행기 둘(qwreey-advisor, qwreey-conventions)을 harness-hook 하나로(close_fds 포함); FIFO 를 열면 멈추는 설정 읽기가 더 있다(`.claude/conventions.json`, reuse·conventions-check 설정, python 과 양쪽, `open_regular` 로); coderag 의 팩 rule 읽기도 FIFO 에서 멈출 수 있다(rules_inject 와 대조 계약); structure.json `exempt` 의 path 가 목록·dict 이면 Rust 만 건너뛴다(`str_value` 로).
+
 ## python 이 물러날 때 걷어낼 것
 python 과 바이트로 같게 하려고만 둔 것이다. python 판을 지우면 표준 crate 로 바꾸거나 지운다(Q48 a, Q53 a). 새로 넣을 때는 갈리는 입력이 실제로 오는지 먼저 재고, 오지 않는 입력에서만 갈리면 표준 crate 를 쓰고 그 차이를 알려진 차이로 둔다.
 - `harness_hook::py::re`(사용자·설정 패턴) -> regex crate. `rx` 의 py::re 갈래도.
