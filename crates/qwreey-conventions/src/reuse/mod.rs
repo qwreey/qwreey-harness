@@ -137,7 +137,7 @@ fn select(ctx: &Context, input: &HookInput) -> Result<Option<Edit>> {
     }
 
     // Repo-relative path and exclusions
-    let root = project_root(&path, input.get("cwd"), &ctx.env)?;
+    let root = project_root(&path, input.get("cwd"), &ctx.hook.env)?;
     let rel = relpath(&path, &root).ok_or(Halt::PyError("relpath failed"))?;
     let dirs: Vec<&str> = rel.split('/').collect();
     let dirs = &dirs[..dirs.len() - 1];

@@ -48,7 +48,7 @@ fn placement(ctx: &Context, input: &HookInput) -> Result<Option<String>> {
         return Ok(None);
     }
     let raised = |_| Halt::PyError("memory_signals raised");
-    if !location::is_memory_path(fp, input.get("cwd"), &ctx.env).map_err(raised)? {
+    if !location::is_memory_path(fp, input.get("cwd"), &ctx.hook.env).map_err(raised)? {
         return Ok(None);
     }
 

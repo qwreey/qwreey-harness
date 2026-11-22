@@ -25,7 +25,7 @@ pub const SKIP_DIRS: &[&str] = &[
 ///
 /// `cwd` 가 글이 아닌 참값이면 python 은 뒤의 경로 함수에서 예외로 끝난다.
 pub fn project_root(ctx: &Context, cwd: Option<&Value>) -> Result<String> {
-    if let Some(dir) = ctx.env.get_nonempty("CLAUDE_PROJECT_DIR") {
+    if let Some(dir) = ctx.hook.env.get_nonempty("CLAUDE_PROJECT_DIR") {
         return Ok(dir.to_owned());
     }
     match cwd {
@@ -64,7 +64,10 @@ pub fn skipped_dir(abs_path: &str, root: &str) -> bool {
 fn is_memory_path(ctx: &Context, abs_path: &str) -> bool {
     let base = format!(
         "{}/",
-        join(&normpath(&crate::plugins::config_dir(&ctx.env)), "projects")
+        join(
+            &normpath(&crate::plugins::config_dir(&ctx.hook.env)),
+            "projects"
+        )
     );
     let p = normpath(abs_path);
     let Some(tail) = p.strip_prefix(base.as_str()) else {

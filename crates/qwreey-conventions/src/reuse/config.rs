@@ -49,7 +49,7 @@ impl ReuseConfig {
 
     /// python `mode_of(cfg)`: 환경 변수 `REUSE_CHECK`, harness.env 층, 설정 `mode`, 기본 `shadow` 의 차례.
     pub fn mode(&self, ctx: &Context) -> Result<Mode> {
-        let chosen = match ctx.env.get_nonempty("REUSE_CHECK") {
+        let chosen = match ctx.hook.env.get_nonempty("REUSE_CHECK") {
             Some(v) => v.to_owned(),
             // harness.env 층, 그다음 설정 값
             None => match ctx.env_value("REUSE_CHECK") {

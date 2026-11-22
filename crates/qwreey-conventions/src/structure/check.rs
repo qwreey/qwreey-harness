@@ -126,7 +126,7 @@ pub fn check_file(
 // 툴킷과 줄 수를 재고, 보지 않을 파일(툴킷 밖, 건너뛸 폴더, ignore, 바이너리, 생성물)이면 None
 fn measure(run: &Run, path: String) -> Result<Option<Measured>> {
     // Root, config and toolkit
-    let root = match project_root(&path, run.input.get("cwd"), &run.ctx.env) {
+    let root = match project_root(&path, run.input.get("cwd"), &run.ctx.hook.env) {
         Err(Halt::Unported(why)) => return Err(Halt::Unported(why)),
         // 글이 아닌 cwd 는 load_cfg 가 잡고 relpath 에서 끝난다
         other => other,

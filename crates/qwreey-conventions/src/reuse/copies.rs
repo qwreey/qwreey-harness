@@ -114,7 +114,7 @@ impl<'c> Siblings<'c> {
                 vec![beside]
             } else {
                 // 수집 실패는 "못 찾음": 훅은 편집을 막지 않는다
-                known_repos::repos(&self.ctx.env, self.ctx.plugin_dir())
+                known_repos::repos(&self.ctx.hook.env, self.ctx.plugin_dir())
                     .unwrap_or_default()
                     .into_iter()
                     .filter(|r| basename(r) == name)

@@ -232,7 +232,7 @@ pub fn shadow_log(ctx: &Context, records: Vec<ShadowRecord>, ms: i128, budget: b
     if records.is_empty() {
         return Ok(());
     }
-    let (dir, name) = match ctx.env.get_nonempty("CLAUDE_PLUGIN_DATA") {
+    let (dir, name) = match ctx.hook.env.get_nonempty("CLAUDE_PLUGIN_DATA") {
         Some(d) => (d.to_owned(), "reuse-shadow.jsonl"),
         None => (join(ctx.tempdir()?, "claude-qwreey-reuse"), "shadow.jsonl"),
     };

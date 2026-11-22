@@ -1,4 +1,5 @@
-//! 한 번 실행하는 동안의 환경: 환경 변수, 실행 파일 자리, 임시 폴더, 이 플러그인의 harness.env 층(python `conv_env.py`).
+//! 한 번 실행하는 동안의 환경: [`HookEnv`](환경 변수, 실행 파일 자리, 임시 폴더, nonce)와 이 플러그인의 harness.env 층
+//! (python `conv_env.py`).
 
 use std::cell::OnceCell;
 use std::path::{Path, PathBuf};
@@ -6,14 +7,12 @@ use std::path::{Path, PathBuf};
 use harness_hook::py::fs;
 use harness_hook::py::path::abspath;
 use harness_hook::py::surrogate::from_os;
-use harness_hook::py::tempfile::gettempdir;
 use harness_hook::py::text::strip;
 use harness_hook::py::value::Value;
 use harness_hook::settings::{self, LoadRequest, Project, Values};
-use harness_hook::{Env, Nonce};
+use harness_hook::{Env, HookEnv};
 
 use crate::halt::{Halt, Result};
-use crate::pyval;
 
 /// 이 플러그인의 이름(태그 이름, compact 회차 폴더 `claude-qwreey-conventions-epoch`).
 pub const PLUGIN: &str = "qwreey-conventions";
@@ -27,13 +26,12 @@ pub const ENV_DEFAULTS: &[(&str, &str)] = &[
     ("MEMORY_PLACEMENT", "on"),
 ];
 
-/// 실행 환경. 층과 임시 폴더는 처음 쓸 때 한 번 읽는다(python 의 모듈 전역 캐시 자리).
+/// 실행 환경([`HookEnv`])과 이 플러그인의 harness.env 층. 층은 처음 쓸 때 한 번 읽는다(python 의 모듈 전역 캐시 자리).
 #[derive(Debug)]
 pub struct Context {
-    pub env: Env,
-    /// 바이너리가 든 `native/`. 플러그인 옵션 층이 여기서 위로 plugin.json 을 찾는다(python 판은 `hooks/`).
-    pub exe_dir: Option<PathBuf>,
-    tempdir: OnceCell<Option<String>>,
+    /// 환경 변수, 임시 폴더, nonce, 바이너리가 든 `native/`(플러그인 옵션 층이 여기서 위로 plugin.json 을 찾는다,
+    /// python 판은 `hooks/`).
+    pub hook: HookEnv,
     layers: OnceCell<Values>,
 }
 
@@ -56,18 +54,15 @@ impl Context {
     /// 주어진 환경(시험용).
     pub fn new(env: Env, exe_dir: Option<PathBuf>) -> Context {
         Context {
-            env,
-            exe_dir,
-            tempdir: OnceCell::new(),
+            hook: HookEnv::new(env, exe_dir),
             layers: OnceCell::new(),
         }
     }
 
     /// python `tempfile.gettempdir()`. 쓸 수 있는 곳이 없으면 python 은 예외로 끝난다.
     pub fn tempdir(&self) -> Result<&str> {
-        self.tempdir
-            .get_or_init(|| gettempdir(&self.env))
-            .as_deref()
+        self.hook
+            .tempdir()
             .ok_or(Halt::PyError("no usable temporary directory"))
     }
 
@@ -77,10 +72,10 @@ impl Context {
             project: Project::FromEnv,
             defaults,
             user_only,
-            plugin_dir: self.exe_dir.as_deref(),
+            plugin_dir: self.hook.exe_dir.as_deref(),
             ..LoadRequest::default()
         };
-        settings::load_layers(&self.env, &request)
+        settings::load_layers(&self.hook.env, &request)
             .map(|layers| layers.values)
             .unwrap_or_default()
     }
@@ -93,7 +88,7 @@ impl Context {
 
     /// python `conv_env.env_value(name)`: 환경 변수, 없으면 층 값, 없으면 기본값. 앞뒤 공백은 뗀다.
     pub fn env_value(&self, name: &str) -> String {
-        if let Some(v) = self.env.get(name) {
+        if let Some(v) = self.hook.env.get(name) {
             return strip(v).to_owned();
         }
         let fallback = ENV_DEFAULTS
@@ -119,7 +114,7 @@ impl Context {
 
     /// 플러그인 옵션 층을 찾을 자리(시험이 바꾼다).
     pub fn plugin_dir(&self) -> Option<&Path> {
-        self.exe_dir.as_deref()
+        self.hook.exe_dir.as_deref()
     }
 
     /// python `harness_nonce.attr(data.get("session_id"))`: ` nonce="N"` 또는 빈 글.
@@ -127,9 +122,8 @@ impl Context {
     /// id 가 python 에서 거짓이면 nonce 가 없다. 목록이나 dict 인 id 는 python 처럼 그 repr 글로 nonce 를 만든다.
     /// 짝 없는 서로게이트가 든 id 는 python 이 UnicodeEncodeError 로 끝나는 자리다.
     pub fn nonce_attr(&self, session_id: Option<&Value>) -> Result<String> {
-        let sid = pyval::truthy_text(session_id);
-        let nonce = Nonce::for_session(&self.env, sid.as_deref())
-            .map_err(|_| Halt::PyError("session id has a lone surrogate"))?;
-        Ok(harness_hook::nonce::attr(nonce.as_ref()))
+        self.hook
+            .nonce_attr(session_id)
+            .map_err(|_| Halt::PyError("session id has a lone surrogate"))
     }
 }

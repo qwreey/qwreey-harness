@@ -43,14 +43,14 @@ impl RuleDirs {
 /// 이 플러그인은 지금 도는 사본이 이긴다(설치된 옛 버전과 겹쳐 나오지 않게).
 pub fn plugin_rule_dirs(ctx: &Context, own_rules: &str, proj: &str) -> Result<RuleDirs> {
     let mut out = RuleDirs(vec![(own_rules.to_owned(), OWN.to_owned())]);
-    for p in installed_roots(&config_dir(&ctx.env))? {
+    for p in installed_roots(&config_dir(&ctx.hook.env))? {
         if out.0.iter().any(|(_, n)| *n == p.name) || fs::is_file(&join(&p.root, "coderag.toml")) {
             continue;
         }
         out.set(join(&p.root, "rules"), p.name);
     }
     if !proj.is_empty() {
-        for (dir, name) in listed_pack_dirs(&ctx.env, proj)? {
+        for (dir, name) in listed_pack_dirs(&ctx.hook.env, proj)? {
             out.set(dir, name);
         }
     }

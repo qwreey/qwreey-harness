@@ -128,6 +128,7 @@ impl Signals {
             _ => rules::getcwd()?,
         };
         let proj = ctx
+            .hook
             .env
             .get_nonempty("CLAUDE_PROJECT_DIR")
             .unwrap_or(&cwd)
@@ -275,7 +276,7 @@ fn rules_hit(
     let dirs = rule_dirs::plugin_rule_dirs(ctx, &plugin.rules_dir(), &s.proj)?;
     let mut roots = vec![
         join(&join(&s.proj, ".claude"), "rules"),
-        join(&join(&expanduser("~", &ctx.env), ".claude"), "rules"),
+        join(&join(&expanduser("~", &ctx.hook.env), ".claude"), "rules"),
     ];
     roots.extend(dirs.dirs().map(str::to_owned));
     let found = rule_dirs::load_rules(ctx, &roots)?;
@@ -297,7 +298,7 @@ fn rules_hit(
             }
         }
         if matched {
-            let shown = rule_dirs::describe(&r.path, &dirs, &s.proj, &ctx.env);
+            let shown = rule_dirs::describe(&r.path, &dirs, &s.proj, &ctx.hook.env);
             hit.push((r.path, shown));
         }
     }
