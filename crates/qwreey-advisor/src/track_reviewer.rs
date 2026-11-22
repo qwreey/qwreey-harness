@@ -6,12 +6,12 @@
 
 use std::sync::LazyLock;
 
+use harness_hook::HookEnv;
 use harness_hook::py::path::join;
 use harness_hook::py::surrogate::from_os;
 use harness_hook::py::value::{Dict, Value};
 use harness_hook::rx::Regex;
 
-use crate::context::Context;
 use crate::hookio::{allow_with_input, load_dict, text, truthy};
 use crate::outcome::Outcome;
 use crate::pylib::fs::makedirs;
@@ -35,7 +35,7 @@ pub fn parse_run_line(text: &str) -> Option<(String, String)> {
 }
 
 /// 훅 한 번. python 의 예외는 모두 잡혀 0 으로 끝나므로 어느 경우든 stdout 만 다르다.
-pub fn run(ctx: &Context, raw: &[u8]) -> Outcome {
+pub fn run(ctx: &HookEnv, raw: &[u8]) -> Outcome {
     let Some(data) = load_dict(raw) else {
         return Outcome::quiet();
     };
@@ -44,7 +44,7 @@ pub fn run(ctx: &Context, raw: &[u8]) -> Outcome {
         .unwrap_or_default()
 }
 
-fn updated_prompt(ctx: &Context, data: &Dict) -> Option<String> {
+fn updated_prompt(ctx: &HookEnv, data: &Dict) -> Option<String> {
     // Reviewer calls without a run line
     let ti = match truthy(data, "tool_input") {
         None => return None,

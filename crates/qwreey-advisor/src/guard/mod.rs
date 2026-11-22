@@ -8,11 +8,11 @@ mod bash;
 mod scratch;
 mod syntax;
 
+use harness_hook::HookEnv;
 use harness_hook::py::json_load::{self, Decode};
 use harness_hook::py::surrogate::from_os;
 use harness_hook::py::value::{Dict, Value};
 
-use crate::context::Context;
 use crate::outcome::Outcome;
 use harness_hook::py::repr::repr_str;
 
@@ -33,7 +33,7 @@ pub enum Verdict {
 }
 
 /// `raw` 는 훅 stdin 바이트다(python 은 그 글을 가드에 그대로 넘긴다).
-pub fn run(ctx: &Context, raw: &[u8]) -> Outcome {
+pub fn run(ctx: &HookEnv, raw: &[u8]) -> Outcome {
     // Unreadable input passes
     let Ok(value) = json_load::from_bytes(raw, Decode::SurrogateEscape) else {
         return Outcome::quiet();
@@ -78,7 +78,7 @@ pub struct Guard {
 
 impl Guard {
     /// 환경(`CLAUDE_AUDIT_SCRATCH`)과 입력의 session_id 로 만든다. nonce 를 만들지 못하면 python 처럼 속성 없이.
-    pub fn new(ctx: &Context, data: &Dict) -> Guard {
+    pub fn new(ctx: &HookEnv, data: &Dict) -> Guard {
         let base = ctx
             .env
             .get_os("CLAUDE_AUDIT_SCRATCH")
@@ -185,5 +185,37 @@ fn cwd_of(data: &Dict) -> Option<Cwd> {
             let dir = std::env::current_dir().ok()?;
             Some(Cwd::Text(from_os(dir.as_os_str())))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use harness_hook::{Env, Nonce};
+
+    /// 목록인 session_id 도 python 처럼 `str()` 글(`['s1']`)의 nonce 를 deny 태그에 단다.
+    #[test]
+    fn list_session_id_gets_python_nonce() {
+        let dir = std::env::temp_dir().join(format!("qa-guard-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let salt = dir.join("salt");
+        std::fs::write(&salt, "ab".repeat(32)).unwrap();
+        let ctx = HookEnv::new(
+            Env::from_pairs([("QWREEY_HARNESS_SALT_FILE", salt.as_os_str())]),
+            None,
+        );
+
+        // The tag carries the nonce of str(["s1"])
+        let data = json_load::loads(r#"{"session_id": ["s1"]}"#)
+            .unwrap()
+            .into_dict()
+            .unwrap();
+        let want = Nonce::from_salt(&"ab".repeat(32), "['s1']");
+        let text = Guard::new(&ctx, &data).deny_text("blocked");
+        assert!(
+            text.contains(&format!(" nonce=\"{}\">", want.as_str())),
+            "{text}"
+        );
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }
