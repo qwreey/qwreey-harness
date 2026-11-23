@@ -49,9 +49,10 @@ static TS_EXPORT: LazyLock<Regex> = LazyLock::new(|| constant(r"\bexport\b"));
 static RUST_PUB: LazyLock<Regex> = LazyLock::new(|| constant(r"\bpub\b"));
 /// 함수 머리 위의 속성이나 데코레이터 줄(`#[...]`, `@x`). 문서 주석은 그 위에 있어도 된다.
 pub(super) static ATTRIBUTE: LazyLock<Regex> = LazyLock::new(|| constant(r"^\s*(?:#\[|@)"));
-/// Rust 시험 속성: `#[test]`, `#[tokio::test]`, `#[tokio::test(flavor = "...")]`. `#[cfg(test)]` 는 시험이 아니다.
-static RUST_TEST: LazyLock<Regex> =
-    LazyLock::new(|| constant(r"#\[\s*(?:[A-Za-z_]\w*\s*::\s*)*(?:test|rstest|test_case|quickcheck)\s*[\](]"));
+/// Rust 시험 속성: `#[test]`, `#[rstest]`, `#[test_case(...)]`, `#[quickcheck]`, 경로 붙은 꼴(`#[tokio::test(flavor = "...")]`). `#[cfg(test)]` 는 시험이 아니다.
+static RUST_TEST: LazyLock<Regex> = LazyLock::new(|| {
+    constant(r"#\[\s*(?:[A-Za-z_]\w*\s*::\s*)*(?:test|rstest|test_case|quickcheck)\s*[\](]")
+});
 static PY_DEF: LazyLock<Regex> = LazyLock::new(|| constant(r"^\s*(?:async\s+)?def\s+(\w+)"));
 static PY_CLASS: LazyLock<Regex> = LazyLock::new(|| constant(r"^\s*class\s+(\w+)"));
 static PY_MAIN: LazyLock<Regex> = LazyLock::new(|| constant(r"^if\s+__name__\s*=="));
@@ -550,7 +551,16 @@ mod tests {
             .into_iter()
             .map(|f| (f.name, f.test))
             .collect();
-        let want = [("a", true), ("b", true), ("c", true), ("d", true), ("e", true), ("f", true), ("g", false), ("helper", false)];
+        let want = [
+            ("a", true),
+            ("b", true),
+            ("c", true),
+            ("d", true),
+            ("e", true),
+            ("f", true),
+            ("g", false),
+            ("helper", false),
+        ];
         assert_eq!(tests, want.map(|(n, t)| (n.to_owned(), t)).to_vec());
     }
 
