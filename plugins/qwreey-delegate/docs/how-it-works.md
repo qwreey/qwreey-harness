@@ -61,7 +61,7 @@
   - `HARNESS_DELEGATE_RUNS_DAYS`(기본 14): gc 가 지우는 결과의 나이(일).
   - `HARNESS_DELEGATE_CODEX_SANDBOX`(기본 `read-only`), `HARNESS_DELEGATE_KEEP_ENV`(비어 있지 않으면 빈 환경 대신 지금 환경, 토큰 변수가 샐 수 있음).
   - 실행 파일·인증 위치: `HARNESS_DELEGATE_AGY_BIN`, `HARNESS_DELEGATE_CODEX_BIN`(기본은 PATH, 없으면 `HARNESS_TOOL_INSTALLS` 아래), `HARNESS_DELEGATE_AGY_HOME`(기본 `~/.gemini`), `HARNESS_DELEGATE_CODEX_HOME`(기본 `$CODEX_HOME`, 없으면 `~/.codex`).
-  - 모델(저장소 층도 정할 수 있음): `HARNESS_DELEGATE_AGY_MODEL`(`gemini-3.8-flash-high`, pro 는 없는 것으로 본다), `HARNESS_DELEGATE_CODEX_MODEL`(`gpt-6-luna`). `run --model` 이 이긴다. effort 기본 `medium`.
+  - 모델(저장소 층도 정할 수 있음): `HARNESS_DELEGATE_AGY_MODEL`(`gemini-4-hydrogen-high`, argon·neon·carbon 은 할당이 커서 없는 것으로 본다), `HARNESS_DELEGATE_CODEX_MODEL`(`gpt-6-luna`). `run --model` 이 이긴다. effort 기본 `medium`.
 
 ## 작업 폴더
 상태 폴더 아래에 둔다. 모두 root 소유이고, 작업 uid 가 지나가야 하는 폴더(상태 폴더, `work/`, `<key>-<agent>/`, `.homes/`, `.hooks/`)는 0711, 기록·결과·잠금·`repos/` 폴더는 0700 이다. `<key>` 는 `<저장소 폴더 이름>-<경로 해시 8자>`.

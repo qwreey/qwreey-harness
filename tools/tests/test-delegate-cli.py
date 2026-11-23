@@ -136,7 +136,7 @@ class LifecycleChecks:
 
         (call,) = f.calls("agy")
         argv = call["argv"]
-        self.assertEqual(argv[1:3], ["--model", "gemini-3.8-flash-high"])
+        self.assertEqual(argv[1:3], ["--model", "gemini-4-hydrogen-high"])
         self.assertNotIn("--dangerously-skip-permissions", argv, "기본 프리셋의 headless 거절을 끄지 않는다")
         self.assertEqual(argv[argv.index("--output-format") + 1], "json")
         settings = json.loads(argv[argv.index("--settings") + 1])
@@ -513,7 +513,7 @@ class Lifecycle(Base, LifecycleChecks):
         f.user_env((f.cfg / "harness.env").read_text() + "HARNESS_HEAVY_WRAP=wrap -n 7 --\n")
         self.ok("run", "agy", "w1", f.prompt, "--mode", "empty")
         want = (f"-n 7 -- {f.bin / 'setpriv'} --no-new-privs --inh-caps=-all --bounding-set=-all --reuid={f.uid} "
-                f"--regid={f.uid} --clear-groups {f.bin / 'agy'} --model gemini-3.8-flash-high")
+                f"--regid={f.uid} --clear-groups {f.bin / 'agy'} --model gemini-4-hydrogen-high")
         self.assertTrue((f.ctl / "wrap.log").read_text().startswith(want), (f.ctl / "wrap.log").read_text())
 
     def make_legacy(self):

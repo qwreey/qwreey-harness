@@ -64,7 +64,7 @@ KT_PRIVATE = re.compile(r"\b(?:private|protected|internal)\b")
 # 함수 머리 위의 속성이나 데코레이터 줄(`#[...]`, `@x`). 문서 주석은 그 위에 있어도 된다
 ATTRIBUTE = re.compile(r"^\s*(?:#\[|@)")
 # Rust 시험 속성: `#[test]`, `#[tokio::test]`, `#[tokio::test(flavor = "...")]`. `#[cfg(test)]` 는 시험이 아니다
-RUST_TEST = re.compile(r"#\[\s*(?:[A-Za-z_]\w*\s*::\s*)*test\s*[\](]")
+RUST_TEST = re.compile(r"#\[\s*(?:[A-Za-z_]\w*\s*::\s*)*(?:test|rstest|test_case|quickcheck)\s*[\](]")
 
 PY_DEF = re.compile(r"^\s*(?:async\s+)?def\s+(\w+)")
 PY_CLASS = re.compile(r"^\s*class\s+(\w+)")

@@ -51,7 +51,7 @@ static RUST_PUB: LazyLock<Regex> = LazyLock::new(|| constant(r"\bpub\b"));
 pub(super) static ATTRIBUTE: LazyLock<Regex> = LazyLock::new(|| constant(r"^\s*(?:#\[|@)"));
 /// Rust 시험 속성: `#[test]`, `#[tokio::test]`, `#[tokio::test(flavor = "...")]`. `#[cfg(test)]` 는 시험이 아니다.
 static RUST_TEST: LazyLock<Regex> =
-    LazyLock::new(|| constant(r"#\[\s*(?:[A-Za-z_]\w*\s*::\s*)*test\s*[\](]"));
+    LazyLock::new(|| constant(r"#\[\s*(?:[A-Za-z_]\w*\s*::\s*)*(?:test|rstest|test_case|quickcheck)\s*[\](]"));
 static PY_DEF: LazyLock<Regex> = LazyLock::new(|| constant(r"^\s*(?:async\s+)?def\s+(\w+)"));
 static PY_CLASS: LazyLock<Regex> = LazyLock::new(|| constant(r"^\s*class\s+(\w+)"));
 static PY_MAIN: LazyLock<Regex> = LazyLock::new(|| constant(r"^if\s+__name__\s*=="));
@@ -542,7 +542,7 @@ mod tests {
     /// 시험 속성(`#[test]`, `#[tokio::test(...)]`, 머리 줄의 `#[test]`)이 달린 함수만 시험이다.
     #[test]
     fn marks_rust_tests() {
-        let rs = "#[cfg(test)]\nmod tests {\n    #[test]\n    fn a() {}\n\n    #[tokio::test(flavor = \"x\")]\n    #[ignore]\n    async fn b() {}\n\n    #[test] fn c() {}\n\n    fn helper() {}\n}\n";
+        let rs = "#[cfg(test)]\nmod tests {\n    #[test]\n    fn a() {}\n\n    #[tokio::test(flavor = \"x\")]\n    #[ignore]\n    async fn b() {}\n\n    #[test] fn c() {}\n\n    #[rstest]\n    fn d() {}\n\n    #[test_case(1 ; \"one\")]\n    fn e(n: u8) {}\n\n    #[quickcheck]\n    fn f() {}\n\n    #[testing]\n    fn g() {}\n\n    fn helper() {}\n}\n";
         let rows = lex(rs, Family::Rust, true);
         let lines: Vec<&str> = rs.split('\n').collect();
         let tests: Vec<(String, bool)> = functions(&rows, &lines, Lang::Rust)
@@ -550,7 +550,7 @@ mod tests {
             .into_iter()
             .map(|f| (f.name, f.test))
             .collect();
-        let want = [("a", true), ("b", true), ("c", true), ("helper", false)];
+        let want = [("a", true), ("b", true), ("c", true), ("d", true), ("e", true), ("f", true), ("g", false), ("helper", false)];
         assert_eq!(tests, want.map(|(n, t)| (n.to_owned(), t)).to_vec());
     }
 

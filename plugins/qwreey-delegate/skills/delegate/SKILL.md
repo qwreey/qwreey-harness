@@ -29,7 +29,7 @@ Before launching, show the user in one line what you will ask.
 
 - At most one task per agent at a time, summed over all repositories (`HARNESS_DELEGATE_MAX_CONCURRENT=1`), because the token limit is per user. Widen it only when the user says there is room. Put priorities in one task instead of splitting it into overlapping ones.
 - agy and codex can run side by side: each run takes its own free uid from the range.
-- agy uses only `gemini-3.8-flash-high`; treat pro as absent.
+- agy uses only `gemini-4-hydrogen-high`; treat argon, neon and carbon as absent.
 - codex runs on a ChatGPT Plus quota, which is small; the user checks usage. Model `gpt-6-luna`, `--effort medium`.
 - `--timeout` defaults to 3600 s. Run with Bash `run_in_background` and wait for the notification.
 

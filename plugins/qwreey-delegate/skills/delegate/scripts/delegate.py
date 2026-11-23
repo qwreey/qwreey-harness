@@ -78,7 +78,7 @@ ENV_DEFAULTS = {
     # Delegations running at once per agent, summed over every repository: the token limit is per user subscription.
     "HARNESS_DELEGATE_MAX_CONCURRENT": "1",
     # Default models (run --model wins). Unrelated to isolation, so a repository layer may set them.
-    "HARNESS_DELEGATE_AGY_MODEL": "gemini-3.8-flash-high",
+    "HARNESS_DELEGATE_AGY_MODEL": "gemini-4-hydrogen-high",
     "HARNESS_DELEGATE_CODEX_MODEL": "gpt-6-luna",
     # Extra names (space-separated globs) kept out of empty-mode files. It only adds to the built-in list, so a repository may set it.
     "HARNESS_DELEGATE_SECRET_GLOBS": "",
