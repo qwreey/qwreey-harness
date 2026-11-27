@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/ambient.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I -X utf8 \"${CLAUDE_PLUGIN_ROOT}/hooks/ambient.py\" PreCompact",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

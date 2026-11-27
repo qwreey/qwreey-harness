@@ -81,7 +81,8 @@ CANON_OF_ENTRIES = frozenset({"lib/known_repos.py"})
 # 새 호출자는 여기나 ENTRIES 에 넣어야 시험이 통과한다: 사용자 전용 키를 읽는다면 ENTRIES 에 넣고 user_only 를 넘긴다.
 LAYERS_ALLOW = frozenset({
     "lib/ambient.py", "plugins/q/scripts/ambient.py", "plugins/qwreey-advisor/hooks/ambient.py",
-    "plugins/qwreey-operator/hooks/ambient.py", "plugins/qwreey-workspace/scripts/ambient.py",
+    "plugins/qwreey-operator/hooks/ambient.py", "plugins/qwreey-voice/hooks/ambient.py",
+    "plugins/qwreey-workspace/scripts/ambient.py",
     "plugins/qwreey-advisor/hooks/second-opinion-nudge.py", "plugins/qwreey-operator/hooks/subagent-bg-tasks.py",
     "plugins/qwreey-operator/hooks/delegate-nudge.py",
     "plugins/q/scripts/drift.py", "plugins/q/scripts/stale_work.py",

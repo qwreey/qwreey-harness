@@ -62,6 +62,11 @@
       "description": "메인이 정하지 못했거나 따져 보지 않은 선택(이름, 규약, 상시 문구, 설계 갈림길)을 서브에이전트 둘의 맞선 토론에 붙이는 스킬 qwreey-debate:debate. 토론자가 코드·기록·웹에서 근거를 찾고 지금 안의 약한 근거와 대안별 장단점을 내면 메인이 갈림 표와 적용할 문구로 종합하고 사용자가 정한다. 다른 모델 계열 도구는 있으면 선택적으로. 훅 없음, 모든 OS"
     },
     {
+      "name": "qwreey-voice",
+      "source": "./plugins/qwreey-voice",
+      "description": "Claude 가 사용자에게 말하고 일을 넘기는 방법의 한국어 지침을 세션 시작에 싣는다: 시키는 말 대신 얻는 것과 미루면 생기는 일을, 통보 대신 고를 거리를, 정할 일은 질문 꼴로, 글은 결론 먼저 짧게. 글은 context/ambient.md 한 파일이라 자기에게 맞게 고쳐 쓴다. 메인 대화만, 막지 않는다, 모든 OS(python3)"
+    },
+    {
       "name": "qwreey-license",
       "source": "./plugins/qwreey-license",
       "description": "라이선스 파일을 기억으로 쓰지 않게 하는 스킬 qwreey-license:license. 공개 방식을 물어 라이선스 고르기를 돕고(정하는 것은 사용자), GitHub licenses API 나 SPDX 에서 정본을 받아 연도·소유자를 채우고, 기존 LICENSE 와 manifest license 필드를 대조하고, THIRD_PARTY_NOTICES.md 에 서드파티 고지를 더한다. 훅 없음, 모든 OS, 네트워크 필요"

@@ -1,0 +1,8 @@
+{
+  "plugin": "qwreey-voice",
+  "events": [
+    "SessionStart",
+    "PreCompact"
+  ],
+  "off_switch": "HARNESS_VOICE_AMBIENT"
+}

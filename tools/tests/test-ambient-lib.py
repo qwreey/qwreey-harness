@@ -239,7 +239,7 @@ class Plugins(unittest.TestCase):
         return " ".join([f'"{prefix}{rel}"', *args])
 
     def test_plugins_found(self):
-        self.assertEqual({d.name for d, _ in plugin_ambients()}, {"q", "qwreey-advisor", "qwreey-operator", "qwreey-workspace"})
+        self.assertEqual({d.name for d, _ in plugin_ambients()}, {"q", "qwreey-advisor", "qwreey-operator", "qwreey-voice", "qwreey-workspace"})
 
     def test_config_matches_registration(self):
         for plugin_dir, script in plugin_ambients():

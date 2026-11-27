@@ -12,6 +12,7 @@ Claude Code 하네스(사용자 레벨 `~/.claude` 정본, `/q:doctor` 진단, �
 | `plugins/qwreey-workspace/` | 다른 저장소 읽기 전용 게이트(`workspace_gate.py`)와 `qwreey-workspace:workspace` 스킬(지도, 살아 있는 세션, worktree 잠금), 규약 주입. 카드 `plugins/qwreey-workspace/README.md` |
 | `plugins/qwreey-advisor/` | 모델이 부르는 독립 검토(별도 플러그인). luau 지식은 `luau-kb` 플러그인 |
 | `plugins/qwreey-conventions/` | 코드 주석·모델용 문서 관례(둘 다 rule, 기존 주석·문서 정리 명령 `comments-cleanup`·`docs-cleanup`)와 추가한 줄을 한 줄로 알리는 훅, 구조 한도(`structure-reminder`)·셸 우회 쓰기(`bash-bypass-reminder`)·auto memory 배치(`memory-placement`) 알림 훅. 옛 user-level 훅들을 대체 |
+| `plugins/qwreey-voice/` | Claude 가 사용자에게 말하고 일을 넘기는 방법의 한국어 지침을 세션 시작에 싣는다(글 한 파일, 모든 플랫폼). 카드 `plugins/qwreey-voice/README.md` |
 | `plugins/qwreey-reply-language/` | 답이 사용자 언어에서 영어로 새면 턴 끝에서 다시 쓰게 하는 훅(`reply-language`, 모든 플랫폼). 카드 `plugins/qwreey-reply-language/README.md` |
 | `plugins/luau-lsp/` | `.luau` 에 luau-lsp 언어 서버를 붙이는 플러그인(진단, hover, 정의 찾기, Rojo 면 Roblox 정의 파일). 바이너리는 따로 설치하고 런처가 찾는다. luau-kb 팩은 LSP 를 싣지 않는다. 카드 `plugins/luau-lsp/README.md` |
 | `plugins/qwreey-proc-guard/` | 무거운 실행(벤치·퍼저)이 choom 없이 나가면 거절하는 PreToolUse 훅(`heavy-proc-guard`, Linux 전용), 자기 셸에 걸리는 `pgrep -f` 대기 루프를 거절하는 훅(`self-match-guard`, 모든 플랫폼), Bash 명령 앞뒤의 디스크 여유 공간 경고와 명령이 남긴 core dump 정리 알림(`resource-guard`, core 는 Linux 만) |

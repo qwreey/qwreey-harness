@@ -128,6 +128,6 @@ MANIFEST 대상 아님. 근거 실측: `.claude/scopes/home/.claude/audit/17-hoo
 - 지시가 없으면 요약이 SessionStart 로 실린 `<plugin name="X">` 블록을 풀어 쓰고, SessionStart(source=compact) 가 요약 뒤에 블록을 다시 실어 같은 내용이 두 번 남는다. `Omit any <plugin name="X"> block from the summary; it is re-injected after compaction.` 한 줄이면 요약에서 빠졌다(2/2).
 - 수동 `/compact` 에서는 PreCompact stdout 이 compact 뒤에도 `PreCompact [명령] completed successfully: …` 줄로 맥락에 남는다. 그래서 한 훅에 한 줄, 짧게 쓴다.
 - 규칙: compact 때 블록을 다시 싣는 플러그인은 PreCompact 에서 그 블록을 요약에서 빼라는 한 줄(`Omit the <plugin name="X"> block from the summary; it is re-injected after compaction.`, 정본 `lib/harness_texts.py` 의 `OMIT_LINE`, 사본은 `tools/sync-copies.py` 가 옮긴다)을 낸다. 주입이 꺼졌거나(끄기 스위치, 빈 파일) 서브에이전트(`agent_id`)의 compact 이면 내지 않는다. 요약기에게 주는 지시라 `<harness-hook>` 으로 감싸지 않는다.
-  - 지금 내는 플러그인: q, qwreey-advisor, qwreey-operator, qwreey-workspace(각자 `ambient.py PreCompact`), coderag(`coderag hook pre-compact`, 지난 compact 뒤에 `<harness-hook name="coderag-recall">` 목록을 실었을 때만).
+  - 지금 내는 플러그인: q, qwreey-advisor, qwreey-operator, qwreey-voice, qwreey-workspace(각자 `ambient.py PreCompact`), coderag(`coderag hook pre-compact`, 지난 compact 뒤에 `<harness-hook name="coderag-recall">` 목록을 실었을 때만).
   - 요약기에게 남길 것·뺄 것을 주는 상시 지시(예전 전역 CLAUDE.md 의 `# Compact instructions`)는 qwreey-sessions 가 PreCompact 마다 태그 없이 두 줄로 낸다(`scripts/sllib/messages.py` 의 `COMPACT_INSTRUCTIONS`, 끄기 `SESSION_LOG_COMPACT_INSTRUCTIONS=off`).
   - 다시 실리지 않는 `<harness-hook>` 알림은 요약에 맡긴다. qwreey-sessions 의 compact 뒤 알림(기록 경로와 방금 요약된 구간의 닻)은 그 compact 의 구간에만 해당하고, startup 인계는 다시 실리지 않으므로 빼라고 하지 않는다.

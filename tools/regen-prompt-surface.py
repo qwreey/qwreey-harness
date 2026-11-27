@@ -40,7 +40,8 @@ SIZES = OUT / "sizes.json"
 REGEN = "python3 -I tools/regen-prompt-surface.py"
 SID = "surface"
 AMBIENTS = [("q", "plugins/q/scripts/ambient.py"), ("qwreey-advisor", "plugins/qwreey-advisor/hooks/ambient.py"),
-            ("qwreey-operator", "plugins/qwreey-operator/hooks/ambient.py"), ("qwreey-workspace", "plugins/qwreey-workspace/scripts/ambient.py")]
+            ("qwreey-operator", "plugins/qwreey-operator/hooks/ambient.py"), ("qwreey-voice", "plugins/qwreey-voice/hooks/ambient.py"),
+            ("qwreey-workspace", "plugins/qwreey-workspace/scripts/ambient.py")]
 AMBIENT_EVENTS = ("SessionStart", "SubagentStart", "PreCompact")
 # 팩 rule 을 참조 구현으로 돌릴 때 임시 플러그인에 놓는 파일(tools/tests/test-coderag-rules-parity.py 와 같은 묶음)
 RULES_INJECT_FILES = ("rules_inject.py", "conv_env.py", "harness_env.py", "compact_epoch.py", "harness_nonce.py")

@@ -1,0 +1,25 @@
+{
+  "name": "qwreey-voice",
+  "version": "0.1.0",
+  "description": "Claude 가 사용자에게 말하고 일을 넘기는 방법을 정한 한국어 지침을 세션 시작에 싣는다. 시키는 말 대신 얻는 것과 미루면 생기는 일을 말하고, 고를 거리를 주고, 정할 일은 질문 꼴로, 글은 결론 먼저 짧게. 글은 context/ambient.md 한 파일이라 자기에게 맞게 고쳐 쓴다. 메인 대화만, 훅은 글을 싣기만 하고 막지 않는다.",
+  "author": {
+    "name": "qwreey",
+    "email": "me@qwreey.moe"
+  },
+  "license": "MIT",
+  "keywords": [
+    "qwreey",
+    "voice",
+    "tone",
+    "handoff",
+    "korean"
+  ],
+  "userConfig": {
+    "harness_voice_ambient": {
+      "type": "boolean",
+      "title": "대화 지침 싣기",
+      "description": "켜 두면 세션 시작에 사용자와 말하는 방법의 지침(context/ambient.md)을 싣는다. 끄면 그 글이 빠진다. 저장소는 .claude/harness.env 에 HARNESS_VOICE_AMBIENT=off 를 두어 그 저장소에서만 끈다.",
+      "default": true
+    }
+  }
+}
