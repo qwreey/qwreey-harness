@@ -10,7 +10,7 @@
   "ambient.qwreey-operator.SessionStart": 2540,
   "ambient.qwreey-operator.SubagentStart": 690,
   "ambient.qwreey-voice.PreCompact": 97,
-  "ambient.qwreey-voice.SessionStart": 2143,
+  "ambient.qwreey-voice.SessionStart": 2486,
   "ambient.qwreey-workspace.PreCompact": 101,
   "ambient.qwreey-workspace.SessionStart": 857,
   "ambient.qwreey-workspace.SubagentStart": 857,
@@ -80,8 +80,8 @@
  },
  "totals": {
   "packs_listings": 4413,
-  "session_start": 15427,
-  "session_start_hooks": 7306,
+  "session_start": 15770,
+  "session_start_hooks": 7649,
   "session_start_listings": 8121,
   "subagent_start_hooks": 2601
  }
