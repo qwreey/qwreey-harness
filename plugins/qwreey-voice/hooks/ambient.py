@@ -10,6 +10,7 @@ python3 -I tools/sync-copies.py --apply 로 옮긴다. 플러그인마다 다른
                 (옆의 harness_env.py 사본; userConfig 에 소문자 키를 boolean 으로 두면 대화상자에서 끈다). 없으면 스위치 없음.
     epoch       compact 회차 이름공간(compact_epoch.py). 기본은 plugin. UserPromptSubmit 보충만 쓴다.
 - context/ambient.md: 메인 세션 글. context/subagent.md: 서브에이전트 글(없으면 ambient.md). 파일이 비면 블록이 없다.
+  글 안의 HTML 주석(<!-- ... -->)은 사람용 메모라 싣지 않는다.
 
 이벤트(hooks.json 에 등록하고 events 에도 넣어야 돈다):
 - SessionStart: 메인 세션에 startup, resume, clear, compact 마다(hooks.json 의 matcher).
@@ -35,6 +36,9 @@ sys.path.insert(0, HERE)  # python3 -I 는 스크립트 디렉터리를 path 에
 CONTEXT = os.path.join(os.path.dirname(HERE), "context")
 EVENTS = ("SessionStart", "SubagentStart", "UserPromptSubmit", "PreCompact")
 SKIP_AGENTS = {"fork"}
+# 글 파일의 메모: 사람이 남기는 줄이라 모델에게 싣지 않는다
+NOTE_LINES = re.compile(r"^[ \t]*<!--(?:(?!-->).)*-->[ \t]*\n", re.M | re.S)
+NOTE_INLINE = re.compile(r"[ \t]*<!--(?:(?!-->).)*-->", re.S)
 # @start-replace: lib/harness_texts.py#OMIT_LINE value=string template="OMIT_LINE = {value}"
 OMIT_LINE = "Omit the {block} block from the summary; it is re-injected after compaction."
 # @end-replace
@@ -55,10 +59,16 @@ def load_config(context=CONTEXT):
     return cfg
 
 
+def strip_notes(text):
+    """HTML 주석(<!-- ... -->)을 뺀 글. 주석만 있던 줄은 줄째 뺀다. 닫히지 않은 주석은 그대로 둔다."""
+    text = NOTE_LINES.sub("", text)
+    return NOTE_INLINE.sub("", text)
+
+
 def read_text(name, context=CONTEXT):
     try:
         with open(os.path.join(context, name), encoding="utf-8") as f:
-            return f.read()
+            return strip_notes(f.read())
     except OSError:
         return ""
 

@@ -100,6 +100,15 @@ class Lib(unittest.TestCase):
         env = dict(self.env, QWREEY_HARNESS_SALT_FILE=str(self.tmp / "blocker" / "salt"))
         self.assertEqual(self.ctx("SessionStart", {"source": "startup"}, env=env), '<plugin name="demo">\n## Main\n- main line\n</plugin>')
 
+    def test_html_comments_are_not_injected(self):
+        """글 파일의 HTML 주석은 실리지 않는다: 주석만 있던 줄은 줄째 빠지고, 줄 끝 주석은 그 앞 글을 남긴다."""
+        noted = "## Main\n<!-- why: note\nover two lines -->\n- main line <!-- inline -->\n- open <!-- never closed\n"
+        (self.plug / "context" / "ambient.md").write_text(noted, encoding="utf-8")
+
+        injected = self.ctx("SessionStart", {"source": "startup"})
+
+        self.assertTrue(injected.endswith("\n## Main\n- main line\n- open <!-- never closed\n</plugin>"), injected)
+
     def test_subagent_text(self):
         self.assertIn("## Main", self.ctx("SubagentStart", {"agent_type": "Explore", "agent_id": "a1"}), "subagent.md 가 없으면 메인 글")
         (self.plug / "context" / "subagent.md").write_text(SUB, encoding="utf-8")

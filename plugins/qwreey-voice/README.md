@@ -13,10 +13,10 @@
 - 건강, 진단, 약, 병원 이야기를 하지 않는다.
 
 ## 글 고치기
-지침은 `context/ambient.md` 한 파일이고 한국어다. 줄을 고치면 다음 세션(또는 `/clear`, compact 뒤)부터 그 글이 실린다. 설치 방식이 캐시 사본이면 고친 뒤 `claude plugin update qwreey-voice@qwreey-harness` 가 필요하다.
+지침은 `context/ambient.md` 한 파일이고 한국어다. `<!-- ... -->` 로 적은 줄은 사람용 메모라 Claude 에게 실리지 않는다(줄을 왜 그렇게 적었는지 남겨 두는 자리). 줄을 고치면 다음 세션(또는 `/clear`, compact 뒤)부터 그 글이 실린다. 설치 방식이 캐시 사본이면 고친 뒤 `claude plugin update qwreey-voice@qwreey-harness` 가 필요하다.
 
 ## 비용
-- 세션 시작마다 글 한 덩이(약 1,100자). 모델을 부르지 않는다.
+- 세션 시작마다 글 한 덩이(약 2,200자). 모델을 부르지 않는다.
 
 ## 요구 사항
 - 세션 시작 훅이 `python3` 를 부른다. Linux, macOS, Windows(Python 3 설치 필요).
