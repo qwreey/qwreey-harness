@@ -1,13 +1,15 @@
 ---
 format: 1
 title: 플러그인과 팩의 라이선스를 MIT 로 맞출까?
-description: 플러그인과 팩의 라이선스를 MIT 로 맞출까? 권장 a) 전부 MIT
-status: active
+description: 플러그인과 팩의 라이선스를 MIT 로 맞출까? 답 a) 전부 MIT
+status: archived; answered a) 전부 MIT
 id: Q65
 urgency: later
 blocks: 없음. 공개 전에만 정하면 된다
 recommended: a
 created: 2026-11-27T04:24:38.594Z
+answered: 2026-11-27T04:29:18.481Z
+answer: a
 ---
 
 # Q65. 플러그인과 팩의 라이선스를 MIT 로 맞출까?
@@ -31,3 +33,7 @@ HUMAN_TODO 에서 옮겨 온 질문이에요.
 
 **권장 a) 전부 MIT**
 적힌 값과 파일이 어긋난 상태만 맞추면 된다
+
+## 답
+
+a

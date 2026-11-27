@@ -1,13 +1,15 @@
 ---
 format: 1
 title: codex 위임에 worktree 모드를 열까?
-description: codex 위임에 worktree 모드를 열까? 권장 a) 그대로 둔다
-status: active
+description: codex 위임에 worktree 모드를 열까? 답 a) 그대로 둔다
+status: archived; answered a) 그대로 둔다
 id: Q66
 urgency: later
 blocks: 없음
 recommended: a
 created: 2026-11-27T04:24:38.650Z
+answered: 2026-11-27T04:29:18.481Z
+answer: a
 ---
 
 # Q66. codex 위임에 worktree 모드를 열까?
@@ -29,3 +31,7 @@ HUMAN_TODO 에서 옮겨 온 질문이에요.
 
 **권장 a) 그대로 둔다**
 지금까지 막힌 위임이 없었다. 필요한 일이 생기면 그때 열어도 된다
+
+## 답
+
+a
